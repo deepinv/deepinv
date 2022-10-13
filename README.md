@@ -10,7 +10,10 @@ Inverse problems are ubiquitous in scientific imaging and signal processing. Alt
 ## Log
 * [2022-10-13] upload v0.1 (core moudel, only EI) by DC
 
-## To Do
+## To Do Julian
+* add Measurement splitting
+
+## To Do Dongdong
 * add **REI**, **SURE**, **MC**, **Sup** and * by next meeting (2022-10-20)
 
 ## Reference
