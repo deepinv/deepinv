@@ -7,19 +7,16 @@ Inverse problems are ubiquitous in scientific imaging and signal processing. Alt
 
 ## Outline
 
+## Log
+* [2022-10-13] upload v0.1 (core moudel, only EI) by DC
 
 ## To Do
-
-[Week 1] Core Module (v0.0).
-
-## Log
-
+* add **REI**, **SURE**, **MC**, **Sup** and * by next meeting (2022-10-20)
 
 ## Reference
 
-`DeepInv` is built upon the the below papers.
+The below papers are related to `DeepInv`.
 
-PAMI paper - **Self-Supervised Imaging** and
 ```
 @inproceedings{chen2021equivariant,
     title     = {Equivariant Imaging: Learning Beyond the Range Space},
@@ -34,11 +31,22 @@ PAMI paper - **Self-Supervised Imaging** and
     author    = {Chen, Dongdong and Tachella, Juli{\'a}n and Davies, Mike E},
     booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
     year      = {2022}}
-    
+
+@article{chen2022imaging,
+    title={Imaging with Equivariant Deep Learning},
+    author={Chen, Dongdong and Davies, Mike and Ehrhardt, Matthias J and Sch{\"o}nlieb, Carola-Bibiane and Sherry, Ferdia and Tachella, Juli{\'a}n},
+    journal={IEEE Signal Processing Magazine},
+    year={2022}}
+
 @article{tachella2022sampling,
     title={Unsupervised Learning From Incomplete Measurements for Inverse Problems},
     author={Tachella, Juli{\'a}n and Chen, Dongdong and Davies, Mike},
     journal={To appear in Proceedings of the Thirty-sixth Conference on Neural Information Processing Systems (NeurIPS)},
     year={2022}}
 
+@article{tachella2022sampling,
+    title={Sampling Theorems for Unsupervised Learning in Linear Inverse Problems},
+    author={Tachella, Juli{\'a}n and Chen, Dongdong and Davies, Mike},
+    journal={arXiv preprint arXiv:2203.12513},
+    year={2022}}
 ```
