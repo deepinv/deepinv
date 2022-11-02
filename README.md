@@ -4,17 +4,18 @@
 
 Inverse problems are ubiquitous in scientific imaging and signal processing. Although deep learning has achieved significant success in many imaging problems, a comprehensive and timely library is still missing. `DeepInv` will implement the most mainstream deep learning approaches for imaging, from supervised, unsupervised, and self-supervised methods. We hope people could effectively solve their inverse problems by simply calling DeepInv's APIs which should be very easy to setup and friendly to use.  
 
-
 ## Outline
 
 ## Log
-* [2022-10-13] upload v0.1 (core moudel, only EI) by DC
+* [2022-10-13] upload v0.1 (core module), only implemented ei) [dongdong]
+* [2022-11-02] upload v0.2 (core module), added 'ei', 'rei', 'sure', 'mc', 'sup', 'measplit', 'noise mode', new interface and allow flexible losses combination) [dongdong]
 
 ## To Do Julian
 * add Measurement splitting
 
 ## To Do Dongdong
-* add **REI**, **SURE**, **MC**, **Sup** and * by next meeting (2022-10-20)
+* [Done] add **REI**, **SURE**, **MC**, **Sup** and * by next meeting (2022-10-20)
+* [Done] add Measurement splitting (MeaSplit) -- just made a first go, need to double-check.
 
 ## Reference
 
