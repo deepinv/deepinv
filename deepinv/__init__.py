@@ -99,76 +99,7 @@ def data_parallel(model, ngpu=1):
         model = torch.nn.DataParallel(model, list(range(ngpu)))
     return model
 
-
-# def iterative(mode, backbone_net, weight_tied, step_size, iterations, device, physics):
-#     return models.iterative.unroll(mode, backbone_net, weight_tied, step_size, iterations, device, physics)
-
-
 def train(model,
-          train_dataloader,
-          learning_rate,
-          epochs,
-          schedule,
-          loss_closure=None,#list
-          loss_weight=None,
-          optimizer=None,
-          physics=None,
-          noise=None,
-          dtype=torch.float,
-          device=torch.device(f"cuda:0"),
-          ckp_interval=100,
-          save_path=None):
-
-    losses = AverageMeter('loss', ':.2e')
-    meters = [losses]
-    progress = ProgressMeter(epochs, meters, surfix=f"[{save_path}]")
-
-    save_path='./ckp/{}'.format('_'.join([get_timestamp(), save_path]))
-    # os.makedirs(save_path, exist_ok=True)
-
-    f = lambda y: model(physics.A_dagger(y))
-
-    for epoch in range(epochs):
-        adjust_learning_rate(optimizer, epoch, learning_rate, cos=False, epochs=epochs, schedule=schedule)
-
-        for i, x in enumerate(train_dataloader):
-            x = x[0] if isinstance(x, list) else x
-            x = x.type(dtype).to(device) # todo: dataloader is only for y
-
-            y0 = physics.A(x)  # generate measurement input y
-            if noise is not None:
-                y0 = noise(y0)
-
-            x1 = f(y0)
-            y1 = physics.A(x1)
-
-            # loss = loss_closure(y0, model)
-
-            loss = 0
-            for l, w in zip(loss_closure, loss_weight):
-                if l.name in ['mc']:
-                    loss += w * l(x1, y0)
-                if l.name in ['ms']:
-                    loss += w * l(y0, f)
-                if l.name in ['sup']:
-                    loss += w * l(x1, x)
-                if l.name.startswith('sure'):
-                    loss += w * l(y0, y1, f)
-                if l.name in ['ei', 'rei']:
-                    loss += w * l(x1, f)
-
-            losses.update(loss.item())
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        progress.display(epoch + 1)
-        save_model(epoch, model, optimizer, ckp_interval, epochs, save_path)
-    return model
-
-
-def debug(model,
           train_dataloader,
           learning_rate,
           epochs,
@@ -183,7 +114,7 @@ def debug(model,
           ckp_interval=100,
           save_path=None,
           verbos=False):
-    # losses = AverageMeter('loss', ':.2e')
+
     losses = AverageMeter('loss', ':.3e')
     meters = [losses]
     if verbos:
@@ -196,10 +127,10 @@ def debug(model,
         meters.append(psnr_fbp)
         meters.append(psnr_net)
 
+
     progress = ProgressMeter(epochs, meters, surfix=f"[{save_path}]")
 
     save_path = './ckp/{}'.format('_'.join([get_timestamp(), save_path]))
-    # os.makedirs(save_path, exist_ok=True)
 
     f = lambda y: model(physics.A_dagger(y))
 
@@ -219,21 +150,25 @@ def debug(model,
             x1 = f(y0)
             y1 = physics.A(x1)
 
-            # loss = loss_closure(y0, model)
-
-            loss = 0
-            for l, w, v in zip(loss_closure, loss_weight, losses_verbos):
+            loss_total = 0
+            j = 0
+            for l, w in zip(loss_closure, loss_weight):
+                loss = 0
                 if l.name in ['mc']:
-                    loss += w * l(x1, y0)
+                    loss = w * l(x1, y0)
                 if l.name in ['ms']:
-                    loss += w * l(y0, f)
+                    loss = w * l(y0, f)
                 if l.name in ['sup']:
-                    loss += w * l(x1, x)
+                    loss = w * l(x1, x)
                 if l.name.startswith('sure'):
-                    loss += w * l(y0, y1, f)
+                    loss = w * l(y0, y1, f)
                 if l.name in ['ei', 'rei']:
-                    loss += w * l(x1, f)
-                v.update(loss.item())
+                    loss = w * l(x1, f)
+                loss_total += loss
+                if verbos:
+                    j = j+1
+                    losses_verbos[j].update(loss.item())
+
 
             losses.update(loss.item())
 
