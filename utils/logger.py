@@ -26,33 +26,16 @@ class AverageMeter(object):
         fmtstr = '{name}={avg' + self.fmt + '}'
         return fmtstr.format(**self.__dict__)
 
-
-# class ProgressMeter(object):
-#     def __init__(self, num_epochs, meters, prefix=""):
-#         self.epoch_fmtstr = self._get_epoch_fmtstr(num_epochs)
-#         self.meters = meters
-#         self.prefix = prefix
-#
-#     def display(self, epoch):
-#         entries = [get_timestamp()]
-#         entries += [self.prefix + self.epoch_fmtstr.format(epoch)]
-#         entries += [str(meter) for meter in self.meters]
-#         print('\t'.join(entries))
-#
-#     def _get_epoch_fmtstr(self, num_epochs):
-#         num_digits = len(str(num_epochs // 1))
-#         fmt = '{:' + str(num_digits) + 'd}'
-#         return '[' + fmt + '/' + fmt.format(num_epochs) + ']'
-
-
 class ProgressMeter(object):
-    def __init__(self, num_epochs, meters, prefix=""):
+    def __init__(self, num_epochs, meters, surfix="", prefix=""):
         self.epoch_fmtstr = self._get_epoch_fmtstr(num_epochs)
         self.meters = meters
+        self.surfix = surfix
         self.prefix = prefix
 
     def display(self, epoch):
-        entries = [get_timestamp()]
+        entries = [self.surfix]
+        entries += [get_timestamp()]
         entries += [self.epoch_fmtstr.format(epoch)]
         entries += [str(meter) for meter in self.meters]
         entries += [self.prefix]

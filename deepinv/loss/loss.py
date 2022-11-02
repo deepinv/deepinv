@@ -1,108 +1,18 @@
 import math
 import torch
 import torch.nn as nn
-import torchvision
-from torch.nn import functional as F
 from torch import autograd as autograd
 
-
-# --------------------------------------------
-# EI loss
-# --------------------------------------------
-class EILoss(nn.Module):
-    def __init__(self, transform, physics, ei_loss_weight=1.0, metric=torch.nn.MSELoss()): #todo: (metric: mse, L1, L2)
-        """
-        Equivariant imaging loss
-        https://github.com/edongdongchen/EI
-        https://https://arxiv.org/pdf/2103.14756.pdf
-        Args:
-            ei_loss_weight (int):
-        """
-        super(EILoss, self).__init__()
-        self.ei_loss_weight = ei_loss_weight
-        self.metric = metric
-
-        self.T = lambda x: transform.apply(x)
-        self.A = lambda x: physics.A(x)
-
-    def forward(self, y, model):
-        x1 = model(y)
-        x2 = self.T(x1)
-        x3 = model(self.A(x2))
+#todo: REQ loss, SURE_alone loss (with noise distribution), DONE
+#todo: define an individual noise module (Gaussian, Possion, MPG) DONE
 
 
-        loss_mc = self.metric(self.A(x1), y)
-        loss_ei = self.ei_loss_weight * self.metric(x3, x2)
-        return loss_mc + loss_ei
+def mse(device):
+    return nn.MSELoss().to(device=device)
 
-# REI Loss
+def l1(device):
+    return nn.L1Loss().to(device=device)
 
-# --------------------------------------------
-# MC loss
-# --------------------------------------------
-class MCLoss(nn.Module):
-    def __init__(self, mc_loss_weight=1, metric=torch.nn.MSELoss()):
-        """
-        measurement (or data) consistency loss
-        Args:
-            mc_loss_weight (int):
-        """
-        super(EILoss, self).__init__()
-        self.mc_loss_weight = mc_loss_weight
-
-    def forward(self, y, model, physics):
-        x1 = model(y)
-        return self.mc_loss_weight * torch.nn.MSELoss()(physics.A(x1), y)
-
-# --------------------------------------------
-# Supversided loss
-# --------------------------------------------
-class SupLoss(nn.Module):
-    def __init__(self, sup_loss_weight=1):
-        """
-        supervised (paired GT x and meas. y) loss
-        Args:
-            sup_loss_weight (int):
-        """
-        super(EILoss, self).__init__()
-        self.sup_loss_weight = sup_loss_weight
-
-    def forward(self, x, y, model):
-        x1 = model(y)
-        return self.sup_loss_weight * torch.nn.MSELoss()(x1, x)
-
-
-#todo: REQ loss, SURE_alone loss (with noise distribution),
-#todo: define an individual noise module (Gaussian, Possion, MPG)
-
-
-# --------------------------------------------
-# TV loss
-# --------------------------------------------
-class TVLoss(nn.Module):
-    def __init__(self, tv_loss_weight=1):
-        """
-        Total variation loss
-        https://github.com/jxgu1016/Total_Variation_Loss.pytorch
-        Args:
-            tv_loss_weight (int):
-        """
-        super(TVLoss, self).__init__()
-        self.tv_loss_weight = tv_loss_weight
-
-    def forward(self, x):
-        batch_size = x.size()[0]
-        h_x = x.size()[2]
-        w_x = x.size()[3]
-        count_h = self.tensor_size(x[:, :, 1:, :])
-        count_w = self.tensor_size(x[:, :, :, 1:])
-        h_tv = torch.pow((x[:, :, 1:, :] - x[:, :, :h_x - 1, :]), 2).sum()
-        w_tv = torch.pow((x[:, :, :, 1:] - x[:, :, :, :w_x - 1]), 2).sum()
-        return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w) / batch_size
-
-    @staticmethod
-    def tensor_size(t):
-        return t.size()[1] * t.size()[2] * t.size()[3]
 
 
 # --------------------------------------------

@@ -1,7 +1,7 @@
 import torch
 import deepinv as dinv
 
-dataloader = dinv.datasets.mnist_dataloader()
+dataloader = dinv.datasets.mnist_dataloader(mode='test', batch_size=128, num_workers=4, shuffle=True)
 
 physics = dinv.physics.inpainting(img_width=28,
                                   img_heigth=28,
@@ -17,7 +17,7 @@ model = dinv.models.unet(in_channels=1,
 
 loss = dinv.loss.EILoss(transform=dinv.transform.Shift(n_trans=2),
                         physics=physics,
-                        ei_loss_weight=0.1,
+                        ei_loss_weight=1.0,
                         metric=torch.nn.MSELoss().to(dinv.device))
 
 
@@ -29,8 +29,10 @@ dinv.train(model=model,
            train_dataloader=dataloader,
            learning_rate=5e-4,
            physics=physics,
-           epochs=100,
-           schedule=[50],
+           epochs=20,
+           schedule=[10],
            loss_closure=loss,
            optimizer=optimizer,
-           device=dinv.device)
+           device=dinv.device,
+           ckp_interval=10,
+           save_path='dinv_ei')
