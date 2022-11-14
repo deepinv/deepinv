@@ -16,17 +16,18 @@ class MeaSplitLoss(torch.nn.Module):
         mask = torch.ones(tsize).to(y.get_device())
 
         mask[torch.rand_like(mask) > self.split_ratio] = 0
-
         inp = inpainting(tsize, mask)
         inp2 = inpainting(tsize, torch.ones_like(mask)-mask)
 
-        physics1 = self.physics + inp
-        physics2 = self.physics + inp2
+        physics1 = inp + self.physics
+        physics2 = inp2 + self.physics
 
         y1 = inp.A(y)
         y2 = inp2.A(y)
 
         loss_ms = self.metric(physics2.A(f(y1, physics1)), y2)
+
+        loss_ms /= (1-self.split_ratio) # normalize loss
 
         return loss_ms
 

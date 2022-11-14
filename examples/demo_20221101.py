@@ -1,9 +1,8 @@
 import deepinv as dinv
-import torch
 
 dataloader = dinv.datasets.mnist_dataloader(mode='test', batch_size=128, num_workers=4, shuffle=True)
 
-physics = dinv.physics.inpainting((1, 28, 28), mask=0.7,device=dinv.device)
+physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28)).to(dinv.device)
 
 model = dinv.models.unet(in_channels=1,
                          out_channels=1,
@@ -20,7 +19,7 @@ loss_ei = dinv.loss.EILoss(transform=dinv.transform.Shift(n_trans=2),
 
 loss_ms = dinv.loss.MeaSplitLoss(physics=physics,
                                  metric=dinv.metric.mse(dinv.device),
-                                 split_ratio=0.5)
+                                 split_ratio=0.9)
 
 
 optimizer = dinv.optim.Adam(model.parameters(),
@@ -32,15 +31,15 @@ dinv.train(model=model,
            train_dataloader=dataloader,
            learning_rate=5e-4,
            physics=physics,
-           epochs=20,
-           schedule=[10],
+           epochs=500,
+           schedule=[400],
            loss_closure=[loss_ms,loss_ei],
            # loss_closure=[loss_sure, loss_rei],
            # loss_closure=[loss_ms, loss_ei],
            loss_weight=[1,1],
            optimizer=optimizer,
            device=dinv.device,
-           ckp_interval=10,
+           ckp_interval=250,
            save_path='dinv_ms_ei',
            verbos=True)
 
