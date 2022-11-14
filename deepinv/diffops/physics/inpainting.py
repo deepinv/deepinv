@@ -1,40 +1,79 @@
 import os
 import torch
 
-class Inpainting():
-    def __init__(self, img_heigth=512, img_width=512, mask_rate=0.3, online=False, device='cuda:0'):
+class GaussianNoise(torch.nn.Module): # parent class for forward models
+    def __init__(self, std=.1):
+        super().__init__()
+        self.std = std
+
+    def forward(self, x):
+        return x + torch.randn_like(x)*self.std
+
+
+class Forward(torch.nn.Module): # parent class for forward models
+    def __init__(self, A = lambda x: x, A_adjoint = lambda x: x, noise_model = GaussianNoise(std=0.2)):
+        super().__init__()
+        self.noise_model = noise_model
+        self.forw = A
+        self.adjoint = A_adjoint
+
+    def __add__(self, other):
+        A = lambda x: self.A(other.A(x))
+        A_adjoint = lambda x: self.A_adjoint(other.A_adjoint(x))
+        noise = self.noise_model
+        return Forward(A, A_adjoint, noise)
+
+    def forward(self, x): # degrades signal
+        return self.noise(self.A(x))
+
+    def A(self, x):
+        return self.forw(x)
+
+    def noise(self, x):
+        return self.noise_model(x)
+
+    def A_adjoint(self, x):
+        return self.adjoint(x)
+
+    def A_dagger(self, x): # degrades signal
+        # USE Conjugate gradient here as default option
+        return self.A_adjoint(x)
+
+
+class Inpainting(Forward):
+    def __init__(self, tensor_size, mask=0.3, save=False, device='cuda:0'):
+        super().__init__()
         self.name = 'inpainting'
-        self.mask_rate = mask_rate
-        root_path = '/remote/rds/users/dchen2/DongdongChen_UoE/Code/tmp/pycharm_project_deepinv/deepinv/datasets/'
-        mask_path = root_path + 'mask_{}x{}_{}.pt'.format(img_width, img_heigth, mask_rate)
-        if online:
-            self.mask = torch.ones(img_heigth, img_width, device=device)
-            self.mask[torch.rand_like(self.mask) > 1 - mask_rate] = 0
-            print('the online mask is created...')
-        else:
-            if os.path.exists(mask_path):
-                mask = torch.load(mask_path)
-                self.mask = mask.to(device)
-                print(f'the mask is loaded from:\n{mask_path}')
+        self.tensor_size = tensor_size
+
+        if isinstance(mask, torch.Tensor): # check if the user created mask
+            self.mask = mask
+        else: # otherwise create new random mask
+            mask_rate = mask
+            if not save:
+                self.mask = torch.ones(tensor_size, device=device)
+                self.mask[torch.rand_like(self.mask) > mask_rate] = 0
             else:
-                self.mask = torch.ones(img_heigth, img_width, device=device)
-                self.mask[torch.rand_like(self.mask) > 1 - mask_rate] = 0
-                torch.save(self.mask, mask_path)
-                print(f'the mask is created and saved at:\n{mask_path}')
+                root_path = './' #root_path = '/remote/rds/users/dchen2/DongdongChen_UoE/Code/tmp/pycharm_project_deepinv/deepinv/datasets/'
+                mask_path = root_path + 'mask_{}x{}_{}.pt'.format(tensor_size[0], tensor_size[1], mask_rate)
+                if os.path.exists(mask_path):
+                    mask = torch.load(mask_path)
+                    self.mask = mask.to(device)
+                    print(f'the mask is loaded from:\n{mask_path}')
+                else:
+                    self.mask = torch.ones(tensor_size, device=device)
+                    self.mask[torch.rand_like(self.mask) >  mask_rate] = 0
+                    torch.save(self.mask, mask_path)
+                    print(f'the mask is created and saved at:\n{mask_path}')
 
-    def A(self, x, new_mask=None):
-        return torch.einsum('kl,ijkl->ijkl', self.mask if new_mask is None else new_mask, x)
+    def A(self, x):
+        return self.mask * x
 
-    def A_dagger(self, x, new_mask=None):
-        return torch.einsum('kl,ijkl->ijkl', self.mask if new_mask is None else new_mask, x)
+    def A_dagger(self, x):
+        return self.mask * x
 
     def A_adjoint(self, x):
         return self.A_dagger(x)
-
-    def masking_y(self, y, new_mask=None):
-        return y if new_mask is None else torch.einsum('kl,ijkl->ijkl', new_mask, y)
-
-
 
 
 

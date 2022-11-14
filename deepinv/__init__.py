@@ -3,10 +3,10 @@ import torch
 
 # import utils
 
-
 from utils.nn import adjust_learning_rate, save_model
 from utils.logger import AverageMeter, ProgressMeter, get_timestamp
 from utils.metric import cal_psnr
+from deepinv.diffops.models.iterative import denoising
 
 __all__ = [
     "__title__",
@@ -20,7 +20,8 @@ __all__ = [
 
 
 try:
-    from deepinv import models
+    from .diffops import models, physics, transform
+
     __all__ += ['models']
 except ImportError:
     pass
@@ -29,40 +30,42 @@ try:
     from deepinv import loss
     __all__ += ['loss']
 except ImportError:
+    print('Warning: couldnt import loss subpackage')
     pass
 
 
 try:
-    from deepinv.models import iterative
+    from deepinv.diffops import models
     __all__ += ['iterative']
 except ImportError:
-    pass
-
-
-try:
-    from deepinv import datasets
-    __all__ += ['datasets']
-except ImportError:
+    print('Warning: couldnt import models subpackage')
     pass
 
 try:
-    from deepinv import nn
-    __all__ += ['nn']
+    from deepinv.diffops.models import iterative
+    __all__ += ['iterative']
 except ImportError:
+    print('Warning: couldnt import iterative subpackage')
     pass
-
 
 try:
     from deepinv.diffops import physics
     __all__ += ['physics']
 except ImportError:
+    print('Warning: couldnt import physics subpackage')
     pass
 
+try:
+    from deepinv import datasets
+    __all__ += ['datasets']
+except ImportError:
+    print('Warning: couldnt import datasets subpackage')
+    pass
 
 try:
-    from deepinv.diffops import transform
     __all__ += ['transform']
 except ImportError:
+    print('Warning: couldnt import transform subpackage')
     pass
 
 
@@ -108,7 +111,6 @@ def train(model,
           loss_weight=None,
           optimizer=None,
           physics=None,
-          noise=None,
           dtype=torch.float,
           device=torch.device(f"cuda:0"),
           ckp_interval=100,
@@ -132,7 +134,7 @@ def train(model,
 
     save_path = './ckp/{}'.format('_'.join([get_timestamp(), save_path]))
 
-    f = lambda y: model(physics.A_dagger(y))
+    f = denoising(model)
 
     for epoch in range(epochs):
         adjust_learning_rate(optimizer, epoch, learning_rate, cos=False, epochs=epochs, schedule=schedule)
@@ -141,13 +143,10 @@ def train(model,
             x = x[0] if isinstance(x, list) else x
             x = x.type(dtype).to(device)  # todo: dataloader is only for y
 
-            y0 = physics.A(x)  # generate measurement input y
-            if noise is not None:
-                y0 = noise(y0)
+            y0 = physics(x)  # generate measurement input y
 
-            fbp = physics.A_dagger(y0)
+            x1 = f(y0, physics)
 
-            x1 = f(y0)
             y1 = physics.A(x1)
 
             loss_total = 0
@@ -167,17 +166,17 @@ def train(model,
                 loss_total += loss
                 if verbos:
                     j = j+1
-                    losses_verbos[j].update(loss.item())
+                    #losses_verbos[j].update(loss.item())
 
 
-            losses.update(loss.item())
+            losses.update(loss_total.item())
 
             if verbos:
-                psnr_fbp.update(cal_psnr(fbp, x))
+                psnr_fbp.update(cal_psnr(physics.A_dagger(y0), x))
                 psnr_net.update(cal_psnr(x1, x))
 
             optimizer.zero_grad()
-            loss.backward()
+            loss_total.backward()
             optimizer.step()
 
         progress.display(epoch + 1)

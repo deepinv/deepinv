@@ -17,13 +17,12 @@ class EILoss(nn.Module):
         super(EILoss, self).__init__()
         self.name = 'ei'
         self.metric = metric
-
-        self.T = lambda x: transform.apply(x)
-        self.A = lambda x: physics.A(x)
+        self.T = transform
+        self.physics = physics
 
     def forward(self, x1, f):
-        x2 = self.T(x1)
-        x3 = f(self.A(x2))
+        x2 = self.T.apply(x1)
+        x3 = f(self.physics.A(x2), self.physics)
 
         loss_ei = self.metric(x3, x2) # x2 is varying...
         return loss_ei

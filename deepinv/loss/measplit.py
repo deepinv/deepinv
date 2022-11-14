@@ -1,36 +1,32 @@
 import torch
+from deepinv.diffops.physics import inpainting
 
 class MeaSplitLoss(torch.nn.Module):
-    def __init__(self, physics, metric=torch.nn.MSELoss(), division_mask_rate=0.1):
+    def __init__(self, physics, metric=torch.nn.MSELoss(), split_ratio=0.65):
         super(MeaSplitLoss, self).__init__()
         self.name = 'ms'
         self.physics = physics
         self.metric = metric
-        self.division_mask_rate = division_mask_rate
-        self.A = lambda x: physics.A(x)
-        self.A_dagger = lambda y: physics.A_dagger(y)
+        self.split_ratio = split_ratio
 
     def forward(self, y, f):
-        mask1, mask2 = self.update_division_mask(self.physics.mask)
+        # sample a splitting
+        tsize = y.size()[1:]
 
-        A1 = lambda x: self.masking_y(self.A(x), mask1)
-        A2 = lambda x: self.masking_y(self.A(x), mask2)
+        mask = torch.ones(tsize).to(y.get_device())
 
-        y1 = self.masking_y(y, mask1)
-        y2 = self.masking_y(y, mask2)
+        mask[torch.rand_like(mask) > self.split_ratio] = 0
 
-        # loss_ms = self.metric(A1(model(self.A_dagger(y2))), y1)
-        loss_ms = self.metric(A1(f(y2)), y1)
+        inp = inpainting(tsize, mask)
+        inp2 = inpainting(tsize, torch.ones_like(mask)-mask)
+
+        physics1 = self.physics + inp
+        physics2 = self.physics + inp2
+
+        y1 = inp.A(y)
+        y2 = inp2.A(y)
+
+        loss_ms = self.metric(physics2.A(f(y1, physics1)), y2)
 
         return loss_ms
 
-    def masking_y(self, y, new_mask=None):
-        masked_y = torch.einsum('kl,ijkl->ijkl', new_mask, y)
-        return masked_y
-
-    def update_division_mask(self, mask):
-        mask_left = torch.ones_like(mask)  # 256x256 all ones
-        mask_left[torch.rand_like(mask_left) >= self.division_mask_rate] = 0
-
-        mask_right = torch.ones_like(mask) - mask_left
-        return mask_left, mask_right
