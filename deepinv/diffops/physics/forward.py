@@ -15,9 +15,9 @@ class Forward(torch.nn.Module): # parent class for forward models
         self.forw = A
         self.adjoint = A_adjoint
 
-    def __add__(self, other):
-        A = lambda x: self.A(other.A(x))
-        A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x))
+    def __add__(self, other): #  physics3 = physics1 + physics2
+        A = lambda x: self.A(other.A(x)) # (A' = A_1 A_2)
+        A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x)) #(A'^{T} = A_2^{T} A_1^{T})
         noise = self.noise_model
         return Forward(A, A_adjoint, noise)
 
@@ -34,7 +34,7 @@ class Forward(torch.nn.Module): # parent class for forward models
         return self.adjoint(x)
 
     def A_dagger(self, x): # degrades signal
-        # USE Conjugate gradient here as default option
+        # USE Conjugate gradient here as default option min_x |A(x)-y| (we need A and A^{T})
         return self.A_adjoint(x)
 
 

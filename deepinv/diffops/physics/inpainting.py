@@ -31,8 +31,6 @@ class Inpainting(Forward):
         self.mask = self.mask.unsqueeze(0)
 
     def A(self, x):
-        #print(x.size())
-        #print(self.mask.size())
         return self.mask * x
 
     def A_dagger(self, x):

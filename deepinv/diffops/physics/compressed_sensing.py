@@ -5,7 +5,7 @@ import numpy as np
 
 
 class CompressedSensing(Forward):
-    def __init__(self, m, img_shape, save=False, G=None, g=None, dtype=torch.float, device='cuda:0'):
+    def __init__(self, m, img_shape, save=False, G=1, g=0, dtype=torch.float, device='cuda:0', save_dir='.'):
         super().__init__()
         self.img_shape = img_shape
 
@@ -14,14 +14,17 @@ class CompressedSensing(Forward):
             n *= d
 
         if save:
-            fname = './physics/forw_cs_{}x{}_G{}_g{}.pt'.format(n, m, G, g)
-            if os.path.exists(fname):
-                A, A_dagger = torch.load(fname)
+            dir_name = save_dir + '/saved_forward/forw_cs_{}x{}_G{}/'.format(n, m, G)
+            file_name = 'forw_g{}.pt'.format(g)
+            if os.path.exists(dir_name+file_name):
+                A, A_dagger = torch.load(dir_name+file_name)
+                print('CS matrix has been LOADED from {}'.format(dir_name + file_name))
             else:
                 A = np.random.randn(m, n) / np.sqrt(m)
                 A_dagger = np.linalg.pinv(A)
-                torch.save([A, A_dagger], fname)
-                print('CS matrix has been CREATED & SAVED at {}'.format(fname))
+                os.makedirs(dir_name)
+                torch.save([A, A_dagger], dir_name+file_name)
+                print('CS matrix has been CREATED & SAVED at {}'.format(dir_name+file_name))
         else:
             A = np.random.randn(m, n) / np.sqrt(m)
             A_dagger = np.linalg.pinv(A)

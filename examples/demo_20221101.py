@@ -1,31 +1,33 @@
+import sys
+sys.path.append('../deepinv')
 import deepinv as dinv
 
-dataloader = dinv.datasets.mnist_dataloader(mode='test', batch_size=128, num_workers=4, shuffle=True)
 
-physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28)).to(dinv.device)
+dataloader = dinv.datasets.mnist_dataloader(mode='train', batch_size=128, num_workers=4, shuffle=True)
 
-model = dinv.models.unet(in_channels=1,
+physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28), save=True).to(dinv.device)
+
+backbone = dinv.models.unet(in_channels=1,
                          out_channels=1,
                          circular_padding=True,
                          compact=3).to(dinv.device)
 
+model = dinv.models.FBPNet(backbone)
 
-loss_mc = dinv.loss.MCLoss(physics=physics,
-                           metric=dinv.metric.mse(dinv.device))
+loss_mc = dinv.loss.MCLoss(metric=dinv.metric.mse(dinv.device))
+loss_sup = dinv.loss.SupLoss(metric=dinv.metric.mse(dinv.device))
 
 loss_ei = dinv.loss.EILoss(transform=dinv.transform.Shift(n_trans=2),
-                           physics=physics,
                            metric=dinv.metric.mse(dinv.device))
 
-loss_ms = dinv.loss.MeaSplitLoss(physics=physics,
-                                 metric=dinv.metric.mse(dinv.device),
+loss_mcsure = dinv.loss.SureMCLoss(sigma=.2)
+
+loss_ms = dinv.loss.MeaSplitLoss(metric=dinv.metric.mse(dinv.device),
                                  split_ratio=0.9)
 
-
 optimizer = dinv.optim.Adam(model.parameters(),
-                            lr=1e-4,
+                            lr=5e-4,
                             weight_decay=1e-8)
-
 
 dinv.train(model=model,
            train_dataloader=dataloader,
@@ -33,13 +35,10 @@ dinv.train(model=model,
            physics=physics,
            epochs=500,
            schedule=[400],
-           loss_closure=[loss_ms,loss_ei],
-           # loss_closure=[loss_sure, loss_rei],
-           # loss_closure=[loss_ms, loss_ei],
-           loss_weight=[1,1],
+           loss_closure=[loss_sup],
+           loss_weight=[1],
            optimizer=optimizer,
            device=dinv.device,
            ckp_interval=250,
-           save_path='dinv_ms_ei',
-           verbos=True)
-
+           save_path='dinv_sup',
+           verbose=True)

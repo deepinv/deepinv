@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 from deepinv import models as models
 
-class Denoising(nn.Module):
+class FBPNet(nn.Module):
     def __init__(self, backbone_net, pinv=False):
-        super(Denoising, self).__init__()
+        super(FBPNet, self).__init__()
         self.pinv = pinv
         self.backbone_net = backbone_net
 

@@ -1,49 +1,27 @@
 import torch
 import torch.nn as nn
 
-class SURE_Gaussian_Loss(nn.Module):
-    def __init__(self, sigma, tau, physics):
-        super(SURE_Gaussian_Loss, self).__init__()
-        self.name='sure'
-        # self.sure_loss_weight = sure_loss_weight
-        self.sigma=sigma
+def mc_div(x, y, f, tau):
+    # y = f(x), avoids double computation
+    # computes the divergence of f at x using a montecarlo approx.
+    b = torch.randn_like(x)
+    y2 = f(x + tau * b)
+    div =  (b * (y2 - y)).flatten().mean()/tau
+    return div
+
+class SureMCLoss(nn.Module):
+    def __init__(self, sigma, tau=0.01):
+        super(SureMCLoss, self).__init__()
+        self.name='suremc'
+        self.sigma2=sigma** 2
         self.tau=tau
-        self.physics=physics
-        # self.A = lambda x: physics.A(x)
-        # self.A_dagger=lambda y: physics.A_dagger(y)
 
-    def forward(self, y0, y1, model):
-        sigma2 = self.sigma ** 2
-
-        # b = torch.randn_like(x0)
-
-        b = torch.randn_like(self.physics.A_dagger(y0))
-
-        b = self.physics.A(b)
-
-        # print(y0.shape)
-        # print(self.tau)
-        # print(b.shape)
-        # tmp = y0 + self.tau * b
-        # print('verbos:', tmp.shape)
-
-        y2 = self.physics.A(model(self.physics.A_dagger(y0 + self.tau * b)))
-
-        # compute batch size K
-        K = y0.shape[0]
-        # compute n (dimension of x)
-        n = y0.shape[-1] * y0.shape[-2] * y0.shape[-3]
-
-        # compute m (dimension of y)
-        if self.physics.name == 'mri':
-            m = n / self.physics.acceleration  # dim(y)
-        if self.physics.name == 'inpainting':
-            m = n * (1 - self.physics.mask_rate)
-
+    # TODO: leave denoising as default
+    def forward(self, y0, y1, physics, f):
         # compute loss_sure
-        loss_sure = torch.sum((y1 - y0).pow(2)) / (K * m) - sigma2 \
-                    + (2 * sigma2 / (self.tau * m * K)) * (b * (y2 - y1)).sum()
-
+        div = mc_div(y0, y1, lambda x: physics.A(f(x, physics)), self.tau)
+        loss_sure = (y1 - y0).pow(2).flatten().mean() - self.sigma2\
+                    + 2 * self.sigma2 * div
         return loss_sure
 
 
