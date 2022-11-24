@@ -65,3 +65,6 @@ class Unrolling(nn.Module):
             if self.block_config['residual']:
                 x = x + input
         return x
+
+
+# todo: Deep equilibrium? dongdong?

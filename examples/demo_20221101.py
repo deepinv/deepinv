@@ -2,15 +2,21 @@ import sys
 sys.path.append('../deepinv')
 import deepinv as dinv
 
-dataloader = dinv.datasets.mnist_dataloader(mode='train', batch_size=128, num_workers=4, shuffle=True)
 
-#physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28), save=True).to(dinv.device)
-physics = dinv.physics.inpainting((1,28,28), save=True, mask=0.3).to(dinv.device)
+physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28), save=True).to(dinv.device)
+
+
+# todo: dinv.generate_dataset(dataset, physics, pairs=True) if pairs == True we get (x,y, physics), otherwise (y, physics)
+# todo: here dataset contains images (mnist_dataset)
+# todo: keep in mind how we add MOI
+# todo: dinv.generate_dataset(dataset, [physics1,...,physics10], pairs=True) if pairs == True we get (x,y, physicsx), otherwise (y, physicsx)
+
+ataloader = dinv.datasets.mnist_dataloader(mode='train', batch_size=128, num_workers=4, shuffle=True)
 
 backbone = dinv.models.unet(in_channels=1,
                          out_channels=1,
                          circular_padding=True,
-                         compact=3).to(dinv.device)
+                         scales=3).to(dinv.device)
 
 model = dinv.models.FBPNet(backbone)
 
@@ -28,6 +34,7 @@ loss_ms = dinv.loss.MeaSplitLoss(metric=dinv.metric.mse(dinv.device),
 optimizer = dinv.optim.Adam(model.parameters(),
                             lr=5e-4,
                             weight_decay=1e-8)
+
 
 dinv.train(model=model,
            train_dataloader=dataloader,

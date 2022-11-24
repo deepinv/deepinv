@@ -10,6 +10,13 @@ def mnist_dataloader(mode='train', batch_size=1, shuffle=True, num_workers=1):
                               transform=transform_data)
     return DataLoader(data_set,batch_size=batch_size, shuffle=shuffle,num_workers=num_workers)
 
+
+# generate_dataset(physics)
+#   self.physics = physics
+#
+#   def __getitem__():
+#       return x, y, self.physics
+
 if __name__ == '__main__':
     # data = mnist_dataloader('train')
     # print(len(data)) # 60000

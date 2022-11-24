@@ -112,7 +112,7 @@ def train(model,
           loss_closure=None,  # list
           loss_weight=None,
           optimizer=None,
-          physics=None,
+          physics=None, # todo: remove?
           dtype=torch.float,
           device=torch.device(f"cuda:0"),
           ckp_interval=100,
@@ -145,11 +145,11 @@ def train(model,
     for epoch in range(epochs):
         adjust_learning_rate(optimizer, epoch, learning_rate, cos=False, epochs=epochs, schedule=schedule)
 
-        for i, x in enumerate(train_dataloader):
+        for i, x in enumerate(train_dataloader): # todo: dataloader receives pair (x,y) or (x,y,index?)
             x = x[0] if isinstance(x, list) else x
-            x = x.type(dtype).to(device)  # todo: dataloader is only for y
+            x = x.type(dtype).to(device)  #
 
-            y0 = physics(x)  # generate noisy measurement input y
+            y0 = physics(x)  # todo: remove this step
 
             x1 = f(y0, physics)
 
