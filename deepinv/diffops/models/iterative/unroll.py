@@ -10,7 +10,7 @@ class FBPNet(nn.Module):
         self.backbone_net = backbone_net
 
     def forward(self, y, physics):
-        return self.backbone_net(physics.A_adjoint(y))
+        return self.backbone_net(physics.A_adjoint(y)) if self.pinv else self.backbone_net(physics.A_dagger(y))
 
 class Unrolling(nn.Module):
     def __init__(self, backbone_net, mode='pgd', weight_tied=False, step_size=1.0, iterations=5, pinv=False):

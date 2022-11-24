@@ -23,9 +23,11 @@ class EILoss(nn.Module):
     def forward(self, x1, physics, f):
         x2 = self.T.apply(x1)
 
-        y = physics.A(x2)
+
         if self.noise:
-            y = physics.noise(y)
+            y = physics(x2)
+        else:
+            y = physics.A(x2)
 
         x3 = f(y, physics)
 

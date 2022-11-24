@@ -2,10 +2,10 @@ import sys
 sys.path.append('../deepinv')
 import deepinv as dinv
 
-
 dataloader = dinv.datasets.mnist_dataloader(mode='train', batch_size=128, num_workers=4, shuffle=True)
 
-physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28), save=True).to(dinv.device)
+#physics = dinv.physics.compressed_sensing(m=100, img_shape=(1,28,28), save=True).to(dinv.device)
+physics = dinv.physics.inpainting((1,28,28), save=True, mask=0.3).to(dinv.device)
 
 backbone = dinv.models.unet(in_channels=1,
                          out_channels=1,
@@ -35,10 +35,10 @@ dinv.train(model=model,
            physics=physics,
            epochs=500,
            schedule=[400],
-           loss_closure=[loss_sup],
+           loss_closure=[loss_mcsure,loss_ei],
            loss_weight=[1],
            optimizer=optimizer,
            device=dinv.device,
            ckp_interval=250,
-           save_path='dinv_sup',
+           save_path='dinv_mcsure_ei',
            verbose=True)

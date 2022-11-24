@@ -5,7 +5,7 @@ import torch
 
 
 save_dir = '..'
-folder = '22-11-17-08:53:04_dinv_sure_ei' # '22-11-16-13:51:50_dinv_mc_ei' #'22-11-16-13:45:50_dinv_ms_ei' #'22-11-17-08:53:04_dinv_sure_ei' #  '22-11-16-13:45:50_dinv_ms_ei'
+folder = '22-11-17-14:26:08_dinv_sup' #'22-11-17-14:21:57_dinv_ms' #'22-11-17-08:53:04_dinv_sure_ei' # '22-11-16-13:51:50_dinv_mc_ei' #'22-11-16-13:45:50_dinv_ms_ei' #'22-11-17-08:53:04_dinv_sure_ei' #  '22-11-16-13:45:50_dinv_ms_ei'
 ckp = 499
 
 ckp_path = save_dir + '/ckp/' + folder + '/ckp_' + str(ckp) + '.pth.tar'
@@ -21,6 +21,8 @@ model = dinv.models.unet(in_channels=1,
 
 model.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 model.eval()
+
+model = dinv.models.FBPNet(model)
 
 dinv.test(model=model,
           test_dataloader=dataloader,

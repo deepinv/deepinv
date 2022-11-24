@@ -1,7 +1,7 @@
 import torch
 
 class AE(torch.nn.Module):
-    def __init__(self, residual=False, dim_input=28*28, dim_hid=32):
+    def __init__(self, dim_input, dim_hid=32, residual=True):
         super().__init__()
         self.residual = residual
 

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class UNet(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, residual=True, circular_padding=False, cat=True, compact=4):
+    def __init__(self, in_channels=1, out_channels=1, residual=True, circular_padding=False, cat=True, scales=4):
         super(UNet, self).__init__()
         """compact unet (4 levels)"""
         self.name = 'unet'
@@ -12,7 +12,7 @@ class UNet(nn.Module):
 
         self.residual = residual
         self.cat = cat
-        self.compact = compact
+        self.compact = scales
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
 
@@ -56,13 +56,13 @@ class UNet(nn.Module):
         self.Conv_1x1 = nn.Conv2d(in_channels=64, out_channels=out_channels, kernel_size=1, stride=1, padding=0)
 
 
-        if compact==5:
+        if self.compact==5:
             self._forward = self.forward_standard
-        if compact==4:
+        if self.compact==4:
             self._forward = self.forward_compact4
-        if compact==3:
+        if self.compact==3:
             self._forward = self.forward_compact3
-        if compact==2:
+        if self.compact==2:
             self._forward = self.forward_compact2
 
     def forward(self, x):
