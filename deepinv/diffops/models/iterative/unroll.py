@@ -1,7 +1,7 @@
-import DeepInv
+# import DeepInv
 import torch
 import torch.nn as nn
-from deepinv import models as models
+# from deepinv import models as models
 
 class FBPNet(nn.Module):
     def __init__(self, backbone_net, pinv=False):

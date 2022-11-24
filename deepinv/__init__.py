@@ -7,8 +7,11 @@ from utils.nn import adjust_learning_rate, save_model
 from utils.logger import AverageMeter, ProgressMeter, get_timestamp
 from utils.metric import cal_psnr
 from utils.plotting import plot_debug
-from deepinv.diffops.models.iterative import denoising
+# from deepinv.diffops.models.iterative import denoising
+from deepinv.diffops.models.iterative import FBPNet
+
 import numpy as np
+
 
 __all__ = [
     "__title__",
@@ -196,7 +199,10 @@ def test(model,
           device=torch.device(f"cuda:0"),
           plot=True):
 
-    f = denoising(model)
+    # f = denoising(model)
+
+    f = FBPNet(model)
+
     psnr_fbp = []
     psnr_net = []
 
