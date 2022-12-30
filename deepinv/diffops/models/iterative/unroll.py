@@ -14,9 +14,9 @@ class FBPNet(nn.Module):
 
 class Unrolling(nn.Module):
     def __init__(self, backbone_net, mode='pgd', weight_tied=False, step_size=1.0, iterations=5, pinv=False):
-        # todo: tied-> weight_tied; block_arch-> backbone_net; (remove config, just a fixed network/config)
+        # todo: tied-> weight_tied; block_arch-> backbone_net; (remove config, just a fixed network/config) # done
         # todo: step_size (A.LipCons)
-        # todo: time_step -> iterations
+        # todo: time_step -> iterations # done
 
         # todo: env. requirements
         super(Unrolling, self).__init__()
@@ -67,4 +67,4 @@ class Unrolling(nn.Module):
         return x
 
 
-# todo: Deep equilibrium? dongdong?
+# todo: Deep equilibrium? dongdong? # Done (Dec05): /deepinv/diffops/models/iterative/equilibrium.py
