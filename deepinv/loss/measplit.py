@@ -1,5 +1,5 @@
 import torch
-from deepinv.diffops.physics import inpainting
+from deepinv.diffops.physics import Inpainting
 
 class MeaSplitLoss(torch.nn.Module):
     def __init__(self, metric=torch.nn.MSELoss(), split_ratio=0.9, regular_mask=False):
@@ -21,8 +21,11 @@ class MeaSplitLoss(torch.nn.Module):
 
 
         # create inpainting masks
-        inp = inpainting(tsize, mask)
-        inp2 = inpainting(tsize, 1-mask)
+        # inp = inpainting(tsize, mask)
+        # inp2 = inpainting(tsize, 1-mask)
+
+        inp = Inpainting(tsize, mask)
+        inp2 = Inpainting(tsize, 1-mask)
 
         # concatenate operators
         physics1 = inp + physics # A_1 = P*A

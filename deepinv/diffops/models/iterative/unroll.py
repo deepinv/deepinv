@@ -1,16 +1,20 @@
 # import DeepInv
 import torch
 import torch.nn as nn
+
 # from deepinv import models as models
 
-class FBPNet(nn.Module):
-    def __init__(self, backbone_net, pinv=False):
-        super(FBPNet, self).__init__()
-        self.pinv = pinv
-        self.backbone_net = backbone_net
+#
+# class FBPNet(nn.Module):
+#     def __init__(self, backbone_net, pinv=False):
+#         super(FBPNet, self).__init__()
+#         self.pinv = pinv
+#         self.backbone_net = backbone_net
+#
+#     def forward(self, y, physics):
+#         return self.backbone_net(physics.A_adjoint(y)) if self.pinv else self.backbone_net(physics.A_dagger(y))
 
-    def forward(self, y, physics):
-        return self.backbone_net(physics.A_adjoint(y)) if self.pinv else self.backbone_net(physics.A_dagger(y))
+
 
 class Unrolling(nn.Module):
     def __init__(self, backbone_net, mode='pgd', weight_tied=False, step_size=1.0, iterations=5, pinv=False):

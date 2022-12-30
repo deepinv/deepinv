@@ -22,7 +22,7 @@ model = dinv.models.unet(in_channels=1,
 model.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 model.eval()
 
-model = dinv.models.FBPNet(model)
+model = dinv.models.ar(model)
 
 dinv.test(model=model,
           test_dataloader=dataloader,
