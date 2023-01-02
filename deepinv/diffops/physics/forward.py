@@ -43,6 +43,7 @@ class Denoising(Forward):
         super().__init__()
         self.name = 'denoising'
 
+
     def A(self, x):
         return x
 

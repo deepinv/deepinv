@@ -159,7 +159,7 @@ def train(model,
             for l, w in zip(loss_closure, loss_weight):
                 loss = 0
                 if l.name in ['mc']:
-                    loss = w * l(x1, y0, physics)
+                    loss = w * l(y0, x1, physics)
                 if l.name in ['ms']:
                     loss = w * l(y0, physics, f)
                 if l.name in ['sup']:

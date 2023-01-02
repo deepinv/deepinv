@@ -3,12 +3,13 @@ sys.path.append('../deepinv')
 import deepinv as dinv
 
 
-dataloader = dinv.datasets.mnist_dataloader(mode='train', batch_size=128, num_workers=4, shuffle=True)
-
+# dataloader = dinv.datasets.mnist_dataloader(mode='train', batch_size=128, num_workers=4, shuffle=True)
+dataloader = dinv.datasets.mnist_dataloader(mode='test', batch_size=64, num_workers=4, shuffle=True)
 save_dir = '..'
 # physics = dinv.physics.CompressedSensing(m=100, img_shape=(1,28,28), save=True, save_dir=save_dir).to(dinv.device)
 
 physics = dinv.physics.Inpainting(tensor_size=(28,28), save=True, device=dinv.device)
+physics.noise_model = dinv.physics.GaussianNoise(std=0)
 
 backbone = dinv.models.unet(in_channels=1,
                          out_channels=1,
@@ -24,24 +25,27 @@ loss_sup = dinv.loss.SupLoss(metric=dinv.metric.mse(dinv.device))
 loss_ei = dinv.loss.EILoss(transform=dinv.transform.Shift(n_trans=2),
                            metric=dinv.metric.mse(dinv.device))
 
-loss_mcsure = dinv.loss.SureMCLoss(sigma=.2)
+loss_mcsure = dinv.loss.SureMCLoss(sigma=.3)
 
 loss_ms = dinv.loss.MeaSplitLoss(metric=dinv.metric.mse(dinv.device),
                                  split_ratio=0.9)
 
 optimizer = dinv.optim.Adam(model.parameters(),
-                            lr=5e-4,
+                            lr=1e-4,
                             weight_decay=1e-8)
 
 dinv.train(model=model,
            train_dataloader=dataloader,
-           learning_rate=5e-4,
+           learning_rate=1e-4,
            physics=physics,
            epochs=500,
            schedule=[400],
            # loss_closure=[loss_ms],
-           loss_closure=[loss_ei],
-           loss_weight=[1],
+           loss_closure=[loss_mc,loss_ei],
+           # loss_closure=[loss_sup],
+           # loss_closure=[loss_mc],
+           # loss_weight=[1],
+           loss_weight=[1,1],
            optimizer=optimizer,
            device=dinv.device,
            ckp_interval=250,

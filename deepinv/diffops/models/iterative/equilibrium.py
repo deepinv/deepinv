@@ -3,13 +3,14 @@ import torch.nn as nn
 import deepinv.diffops.models as models
 
 
-class Equilibrium(nn.Module):
-    def __init__(self, mode, step_size, block_arch, block_config, device):
-        super(Equilibrium, self).__init__()
+class ModelOptimization(nn.Module):
+    def __init__(self, mode, step_size, model, device):
+        super(ModelOptimization, self).__init__()
         assert mode in ['lfb', 'pgd', 'gd', 'admm']
 
         self.name = f'equilibrium-{mode}'
         self.mode = mode
+        self.model = model
 
         # self.time_step = time_step # maximum number of iterations in Fixed-point calculation
 
@@ -17,8 +18,8 @@ class Equilibrium(nn.Module):
         self.step_size = step_size # eta
         # self.register_parameter(name='step_size', param=torch.nn.Parameter(torch.tensor(step_size), requires_grad=True))
 
-        self.block_config = block_config
-        self.block =models.__dict__[block_arch](**self.block_config).to(device)
+        # self.block_config = block_config
+        # self.block =models.__dict__[block_arch](**self.block_config).to(device)
 
         # gradient of (least square) data consistency term
         # self.dc_grad = lambda x,y,physics: physics.A_adjoint(y - physics.A(x))
@@ -29,27 +30,68 @@ class Equilibrium(nn.Module):
         z = physics.A_dagger(y).to(y.device) if z_init is None else z_init.clone()
 
         if self.mode == 'lfb':  # learned forward backward
-            z = self.block(torch.cat([z, self.dc_grad(z, y, physics)], dim=1))
+            z = self.model(torch.cat([z, self.dc_grad(z, y, physics)], dim=1))
             z = z[:, :self.block_config['out_channels'], ...]
         if self.mode == 'pgd':  # proximal gradient descent
             # s = x + self.step_size * self.dc_grad(x, y, physics)
             # x = s + self.block(s)
-            z = self.block(z + self.step_size * self.dc_grad(z, y, physics))
+            z = self.model(z + self.step_size * self.dc_grad(z, y, physics))
 
         if self.mode == 'gd':  # gradient descent
-            z = z + self.step_size * (self.dc_grad(z, y, physics) + self.block(z))
+            z = z + self.step_size * (self.dc_grad(z, y, physics) + self.model(z))
 
         return z
+
+# class ModelOptimization(nn.Module):
+#     def __init__(self, mode, step_size, block_arch, block_config, device):
+#         super(ModelOptimization, self).__init__()
+#         assert mode in ['lfb', 'pgd', 'gd', 'admm']
+#
+#         self.name = f'equilibrium-{mode}'
+#         self.mode = mode
+#
+#         # self.time_step = time_step # maximum number of iterations in Fixed-point calculation
+#
+#
+#         self.step_size = step_size # eta
+#         # self.register_parameter(name='step_size', param=torch.nn.Parameter(torch.tensor(step_size), requires_grad=True))
+#
+#         self.block_config = block_config
+#         self.block =models.__dict__[block_arch](**self.block_config).to(device)
+#
+#         # gradient of (least square) data consistency term
+#         # self.dc_grad = lambda x,y,physics: physics.A_adjoint(y - physics.A(x))
+#         self.dc_grad = lambda x, y, physics: physics.A_adjoint(
+#             y.to(physics.device) - physics.A(x.to(physics.device))).to(x.device)
+#
+#     def forward(self, y, physics, z_init=None):
+#         z = physics.A_dagger(y).to(y.device) if z_init is None else z_init.clone()
+#
+#         if self.mode == 'lfb':  # learned forward backward
+#             z = self.block(torch.cat([z, self.dc_grad(z, y, physics)], dim=1))
+#             z = z[:, :self.block_config['out_channels'], ...]
+#         if self.mode == 'pgd':  # proximal gradient descent
+#             # s = x + self.step_size * self.dc_grad(x, y, physics)
+#             # x = s + self.block(s)
+#             z = self.block(z + self.step_size * self.dc_grad(z, y, physics))
+#
+#         if self.mode == 'gd':  # gradient descent
+#             z = z + self.step_size * (self.dc_grad(z, y, physics) + self.block(z))
+#
+#         return z
 
 
 
 class FixedPoint(nn.Module):
-    def __init__(self, f, fixed_point_solver, **kwargs): #todo: fixed_point_solver=AndersonExp (default), f=PGD (default)
+    # def __init__(self, f, fixed_point_solver=AndersonExp(), **kwargs): #todo: fixed_point_solver=AndersonExp (default), f=PGD (default), Done
+    def __init__(self, f, **kwargs): #todo: fixed_point_solver=AndersonExp (default), f=PGD (default), Done
         super(FixedPoint, self).__init__()
 
         self.f = f # single step mobel-based optimization
                    # using DNN proximal operaetor: [GD, PGD, LFB] network
-        self.fixed_point_solver = fixed_point_solver # anderson
+        # self.fixed_point_solver = fixed_point_solver # anderson
+
+        self.fixed_point_solver = AndersonExp()
 
         # self.f = EquilibriumIteration()
         # self.fixed_point_solver = andersonexp
