@@ -30,6 +30,7 @@ def train(model,
           ckp_interval=100,
           save_path=None,
           verbose=False,
+          unsupervised=False,
           plot=False,
           save_dir='.'):
 
@@ -68,10 +69,14 @@ def train(model,
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
 
+
         for i in range(batches):
             G_perm = np.random.permutation(G)
             for g in G_perm:
-                x, y = next(iterators[g])
+                if unsupervised:
+                    y = next(iterators[g])
+                else:
+                    x, y = next(iterators[g])
 
                 #x = x[0] if isinstance(x, list) else x
                 #y = physics(x)  # generate noisy measurement input y
@@ -87,7 +92,7 @@ def train(model,
                         loss = l(y, x1, physics[g])
                     if l.name in ['ms']:
                         loss = l(y, physics[g], f)
-                    if l.name in ['sup']:
+                    if not unsupervised and l.name in ['sup']:
                         loss = l(x1, x)
                     if l.name in ['moi']:
                         loss = l(x1, physics, f)
@@ -104,9 +109,14 @@ def train(model,
                 losses.update(loss_total.item())
 
                 if i == 0 and plot:
-                    plot_debug([physics[g].A_adjoint(y), x1, x], ['Linear Inv.', 'Estimated', 'Ground Truth'])
+                    imgs = [physics[g].A_adjoint(y), x1]
+                    titles = ['Linear Inv.', 'Estimated']
+                    if not unsupervised:
+                        imgs.append(x)
+                        titles.append('Supervised')
+                    plot_debug(imgs, titles)
 
-                if verbose:
+                if (not unsupervised) and verbose:
                     psnr_fbp.update(cal_psnr(physics[g].A_adjoint(y), x, normalize=True))
                     psnr_net.update(cal_psnr(x1, x, normalize=True))
 
