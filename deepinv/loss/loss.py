@@ -7,6 +7,13 @@ from torch import autograd as autograd
 #todo: define an individual noise module (Gaussian, Possion, MPG) DONE
 
 
+class OneSidedL2(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x, y):
+        return torch.nn.functional.relu(-x*y).flatten().pow(2).mean()
+
 def mse(device):
     return nn.MSELoss().to(device=device)
 

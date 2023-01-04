@@ -16,4 +16,4 @@ class MCLoss(nn.Module):
         self.metric = metric
 
     def forward(self, y, x, physics):
-        return self.metric(y, physics.A(x))
+        return self.metric(physics.A(x), y)

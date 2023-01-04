@@ -4,17 +4,22 @@ import fastmri
 def abs(x):
     return fastmri.complex_abs(x.squeeze().permute(1,2,0)).detach().cpu().numpy()
 
+
 def norm(a):
     return a.pow(2).sum(dim=3).sum(dim=2).sqrt().unsqueeze(2).unsqueeze(3)
+
+def cal_angle(a, b):
+    norm_a = (a*a).flatten().sum().sqrt()
+    norm_b = (b*b).flatten().sum().sqrt()
+    angle = (a*b).flatten().sum()/(norm_a*norm_b)
+    angle = angle.acos()/3.14159265359
+    return angle.detach().cpu().numpy()
 
 def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):#True
     """Computes the peak signal-to-noise ratio (PSNR)"""
     # a: prediction
     # b: groundtruth
-
-
     with torch.no_grad():
-
         if normalize:
             an = a/norm(a)*norm(b)
         else:
@@ -22,17 +27,17 @@ def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):#True
         # if normalize:
         #     a = (a - a.min()) / (a.max() - a.min())
         #     b = (b - b.min()) / (b.max() - b.min())
-
         if complex:
             an = fastmri.complex_abs(an.permute(0, 2, 3, 1))
             b = fastmri.complex_abs(b.permute(0, 2, 3, 1))
 
-        mse = torch.mean((an - b) ** 2)
+        mse = (an - b).pow(2).flatten().mean()
         if mse == 0:
-            psnr = 100
+            psnr = 100 * torch.ones(1)
         else:
-            psnr = 20 * torch.log10(max_pixel / torch.sqrt(mse))
-        return psnr.detach().cpu().numpy() if psnr.device=='cpu' else psnr
+            psnr = 20 * torch.log10(max_pixel / mse.sqrt())
+
+        return psnr.detach().cpu().numpy() #if psnr.device=='cpu' else psnr
 
 def cal_mse(a, b):
     """Computes the mean squared error (MSE)"""

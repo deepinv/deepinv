@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
 
-from .unroll import Unrolling as unroll
-
-
-
-# from .unroll import FBPNet
+from .unroll import Unrolling
+from .unroll import ArtifactRemoval
 
 
 # class Unrolling(nn.Module):

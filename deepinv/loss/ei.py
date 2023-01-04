@@ -6,10 +6,9 @@ from torch.autograd import Variable
 # EI loss
 # --------------------------------------------
 class EILoss(nn.Module):
-    def __init__(self, transform, metric=torch.nn.MSELoss(), noise=True): #todo: (metric: mse, L1, L2)
+    def __init__(self, transform, metric=torch.nn.MSELoss(), noise=True, weight=1.):
         """
         Equivariant imaging loss
-        https://github.com/edongdongchen/EI
         https://https://arxiv.org/pdf/2103.14756.pdf
         Args:
             ei_loss_weight (int):
@@ -17,12 +16,12 @@ class EILoss(nn.Module):
         super(EILoss, self).__init__()
         self.name = 'ei'
         self.metric = metric
+        self.weight = weight
         self.T = transform
         self.noise = noise
 
     def forward(self, x1, physics, f):
         x2 = self.T.apply(x1)
-
 
         if self.noise:
             y = physics(x2)
@@ -31,7 +30,7 @@ class EILoss(nn.Module):
 
         x3 = f(y, physics)
 
-        loss_ei = self.metric(x3, x2)
+        loss_ei = self.weight*self.metric(x3, x2)
         return loss_ei
 
 
@@ -48,7 +47,7 @@ class RobustEILoss(nn.Module):
             ei_loss_weight (int):
         """
         super(RobustEILoss, self).__init__()
-        self.name='rei'
+        self.name = 'rei'
         self.noise = noise
         self.metric = metric
 

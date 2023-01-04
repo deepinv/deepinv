@@ -1,21 +1,31 @@
 import torch
 from torch.utils.data import DataLoader
+from .datagenerator import OnlineDataset
 from torchvision import transforms, datasets
 
-def mnist_dataloader(mode='train', batch_size=1, shuffle=True, num_workers=1):
+
+def custom_collate(batch, physics=None, supervised=True):
+    x, labels = torch.utils.data.default_collate(batch)
+    x = x.to('cuda:0')
+    if physics is not None:
+        y = physics(x)
+        if supervised:
+            return x, y
+        else:
+            return y
+    else:
+        return x
+
+
+def mnist_dataloader(train=True, batch_size=1, shuffle=True, num_workers=1):
     transform_data = transforms.Compose([transforms.ToTensor()])
     data_set = datasets.MNIST(root='../datasets/',
-                              train=True if mode=='train' else False,
+                              train=train,
                               download=True,
                               transform=transform_data)
-    return DataLoader(data_set,batch_size=batch_size, shuffle=shuffle,num_workers=num_workers)
 
-
-# generate_dataset(physics)
-#   self.physics = physics
-#
-#   def __getitem__():
-#       return x, y, self.physics
+    return DataLoader(data_set, batch_size=batch_size,shuffle=shuffle,
+                      num_workers=num_workers, pin_memory=True)
 
 if __name__ == '__main__':
     # data = mnist_dataloader('train')

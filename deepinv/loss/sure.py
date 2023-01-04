@@ -17,8 +17,9 @@ class SureMCLoss(nn.Module):
         self.tau=tau
 
     # TODO: leave denoising as default
-    def forward(self, y0, y1, physics, f):
+    def forward(self, y0, x1, physics, f):
         # compute loss_sure
+        y1 = physics.A(x1)
         div = mc_div(y0, y1, lambda x: physics.A(f(x, physics)), self.tau)
         loss_sure = (y1 - y0).pow(2).flatten().mean() - self.sigma2\
                     + 2 * self.sigma2 * div
