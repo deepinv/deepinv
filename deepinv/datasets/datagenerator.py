@@ -1,58 +1,22 @@
-from torch.utils.data.dataset import Dataset
 from tqdm import tqdm
 import os
-import numpy as np
 import h5py
 import torch
 from torch.utils.data import DataLoader, Subset
 from torch.utils import data
 
-
-class OnlineDataset(Dataset):
-    """Generate inverse problems dataset from base signal dataset."""
-    def __init__(self, dataset, physics, supervised=True):
-        """
-        Args:
-            dataset (torch.Dataset): base dataset with signals (e.g. mnist dataset).
-            physics (dinv.physics or callable): forward operator.
-            supervised (boolean): generate supervised pairs (x,y) or unsupervised measurements (y)
-        """
-        self.dataset = dataset
-        self.physics = physics
-        self.supervised = supervised
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        x = self.dataset.data[idx]
-        x = x[0] if isinstance(x, list) else x # get rid of labels
-        return x
-
-    def collate(self, batch: list[np.ndarray, int], device: torch.device) -> tuple[torch.Tensor]:
-        x, labels = torch.utils.data.default_collate(batch)
-        x = x.to('cuda:0')
-        if self.physics is not None:
-            y = self.physics(x)
-
-        if self.supervised:
-            return x, y
-        else:
-            return y
-
-
 class HDF5Dataset(data.Dataset):
     """
     Represents a DeepInverse HDF5 dataset which stores measurements and (optionally) associated signals.
-    ----------
-    file_path
-        Path to the folder containing the dataset (one or multiple HDF5 files).
-    transform
-        PyTorch transform to apply to every data instance (default=None). Only use if the forward operator
-        is equivariant to the transform.
     """
 
     def __init__(self, path, train=True, transform=None):
+        '''
+        :param path: Path to the folder containing the dataset (one or multiple HDF5 files).
+        :param train: Set to True for training and False for testing.
+        :param transform: PyTorch transform to apply to every data instance (default=None). Only use if the forward operator
+        is equivariant to the transform.
+        '''
         super().__init__()
         self.data_info = []
         self.data_cache = {}
@@ -78,12 +42,21 @@ class HDF5Dataset(data.Dataset):
 
 
 def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device='cuda:0', max_datapoints=1e6,
-                     dataset_filename='dinv_dataset', batch_size = 32, num_workers=4, supervised=True):
-    """
-    Args:
-        max_datapoints (int): Maximum desired number of datapoints in the dataset. If larger than len(base_dataset),
+                     dataset_filename='dinv_dataset', batch_size=32, num_workers=4, supervised=True):
+    '''
+        This function generates a dataset of measurement pairs (or measurement only if supervised=False) from a baseline dataset (e.g. MNIST, ImageNet) using the forward operator provided by the user.
+    :param train_dataset: base dataset with images used for generating associated measurements via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the HD5Dataset class.
+    :param physics: Forward operator used to generate the measurement data. It can be either a single operator or a list of forward operators. In the latter case, the dataset will be assigned evenly across operators.
+    :param save_dir: folder where the dataset and forward operator will be saved.
+    :param test_dataset: if included, the function will also generate measurements associated to the test dataset.
+    :param device: torch.device which indicates cpu or gpu.
+    :param max_datapoints: Maximum desired number of datapoints in the dataset. If larger than len(base_dataset),
         the function will use the whole base dataset.
-    """
+    :param dataset_filename: desired filename of the dataset.
+    :param batch_size: batch size for generating the measurement data (it only affects the speed of the generating process)
+    :param num_workers: number of workers for generating the measurement data (it only affects the speed of the generating process)
+    :param supervised: Generates supervised pairs (x,y) of measurements and signals. If set to false, it will generate a training dataset with measurements only (y) and a test dataset with pairs (x,y)
+    '''
     if os.path.exists(save_dir + dataset_filename):
         print("WARNING: Dataset already exists, this will overwrite the previous dataset.")
 

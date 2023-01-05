@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-from .datagenerator import OnlineDataset
 from torchvision import transforms, datasets
 
 
