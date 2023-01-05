@@ -42,12 +42,16 @@ class OnlineDataset(Dataset):
 
 
 class HDF5Dataset(data.Dataset):
-    """Represents a DeepInv HDF5 dataset.
-    Input params:
-        file_path: Path to the folder containing the dataset (one or multiple HDF5 files).
-        transform: PyTorch transform to apply to every data instance (default=None). Only use if the forward operator
+    """
+    Represents a DeepInverse HDF5 dataset which stores measurements and (optionally) associated signals.
+    ----------
+    file_path
+        Path to the folder containing the dataset (one or multiple HDF5 files).
+    transform
+        PyTorch transform to apply to every data instance (default=None). Only use if the forward operator
         is equivariant to the transform.
     """
+
     def __init__(self, path, train=True, transform=None):
         super().__init__()
         self.data_info = []

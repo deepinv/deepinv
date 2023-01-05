@@ -33,6 +33,14 @@ def train(model,
           unsupervised=False,
           plot=False,
           save_dir='.'):
+    """
+    Trains a reconstruction model with the train dataloader.
+    ----------
+    train_dataloader
+        A string indicating the name of the person.
+    learning_rate
+        learning rate of the optimizer
+    """
 
     losses = AverageMeter('loss', ':.3e')
     meters = [losses]
