@@ -4,4 +4,9 @@
 # PyCharm
 .idea/
 
+# Files
+*.png
+*.pth
+*.ckpt
+
 /docs/build/
