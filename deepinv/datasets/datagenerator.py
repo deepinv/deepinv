@@ -95,7 +95,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
             x = x[0] if isinstance(x, list) else x
             x = x.to(device)
 
-            # choose operator
+            # choose operator and generate measurement
             y = physics[g](x)
 
             if i == 0:
@@ -113,7 +113,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
         if test_dataset is not None:
             index = 0
             test_dataloader = DataLoader(
-                Subset(train_dataset, indices=list(range(g * n_test_g, (g + 1) * n_test_g))),
+                Subset(test_dataset, indices=list(range(g * n_test_g, (g + 1) * n_test_g))),
                 batch_size=batch_size, num_workers=num_workers, pin_memory=True)
 
             if G > 1:

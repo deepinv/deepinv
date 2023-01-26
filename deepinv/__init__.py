@@ -90,5 +90,17 @@ except ImportError:
 
 # GLOBAL PROPERTY
 dtype = torch.float
-device = torch.device(f'cuda:0')
+
+def get_freer_gpu():
+    import os
+    import numpy as np
+    os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
+    memory_available = [int(x.split()[2]) for x in open('tmp', 'r').readlines()]
+    idx = np.argmax(memory_available)
+    print(f'Selected GPU {idx} with {np.max(memory_available)} MB free memory ')
+    return idx
+
+free_gpu_id = get_freer_gpu()
+#torch.cuda.set_device(free_gpu_id)
+device = torch.device(f'cuda:{free_gpu_id}')
 

@@ -1,7 +1,7 @@
 from utils.nn import adjust_learning_rate, save_model
 from utils.logger import AverageMeter, ProgressMeter, get_timestamp
-from utils.metric import cal_psnr
-from utils.plotting import plot_debug
+from utils.metric import cal_psnr, norm
+from utils.plotting import plot_debug, torch2cpu
 import numpy as np
 import torch
 
@@ -71,6 +71,7 @@ def train(model,
     G = len(train_dataloader)
 
     f = model
+    loss_history = []
 
     for epoch in range(epochs):
         adjust_learning_rate(optimizer, epoch, learning_rate, cos=False, epochs=epochs, schedule=schedule)
@@ -116,7 +117,7 @@ def train(model,
 
                 losses.update(loss_total.item())
 
-                if i == 0 and plot:
+                if i == 0 and g == 0 and plot:
                     imgs = [physics[g].A_adjoint(y), x1]
                     titles = ['Linear Inv.', 'Estimated']
                     if not unsupervised:
@@ -131,20 +132,20 @@ def train(model,
                 optimizer.zero_grad()
                 loss_total.backward()
                 optimizer.step()
+                loss_history.append(loss_total.detach().cpu().numpy())
 
         progress.display(epoch + 1)
-        save_model(epoch, model, optimizer, ckp_interval, epochs, save_path)
+        save_model(epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path)
 
     return model
-
-
 
 def test(model,
           test_dataloader,
           physics,
           dtype=torch.float,
           device=torch.device(f"cuda:0"),
-          plot=True):
+          plot=True,
+         save_dir=None):
 
     f = model
     psnr_fbp = []
@@ -157,6 +158,7 @@ def test(model,
         test_dataloader = [test_dataloader]
 
     G = len(test_dataloader)
+    imgs = []
 
     for g in range(G):
         dataloader = test_dataloader[g]
@@ -168,16 +170,22 @@ def test(model,
 
             x1 = f(y, physics[g])
 
-            if i == 0 and plot:
-                plot_debug([physics[g].A_adjoint(y), x1, x], ['Linear Inv.', 'Estimated', 'Ground Truth'])
+            if g < 10 and i < 10 and plot:
+                xlin = physics[g].A_adjoint(y)
+                imgs.append(torch2cpu(xlin))
+                imgs.append(torch2cpu(x1))
+                imgs.append(torch2cpu(x))
 
-            psnr_fbp.append(cal_psnr(physics[g].A_adjoint(y), x, normalize=True))
-            psnr_net.append(cal_psnr(x1, x, normalize=True))
+            psnr_fbp.append(cal_psnr(physics[g].A_adjoint(y), x))
+            psnr_net.append(cal_psnr(x1, x))
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
     pinv_psnr = np.mean(psnr_fbp)
     pinv_std_psnr = np.std(psnr_fbp)
     print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
+
+    if plot and save_dir:
+        plot_debug(imgs, shape=(1, len(imgs)), row_order=True, save_dir=save_dir)
 
     return test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr

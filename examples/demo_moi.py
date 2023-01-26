@@ -24,8 +24,8 @@ backbone = dinv.models.unet(in_channels=1,
 
 model = dinv.models.ArtifactRemoval(backbone, pinv=False)
 
-loss_mc = dinv.loss.MCLoss(metric=dinv.metric.mse(dinv.device))
-loss_moi = dinv.loss.MOILoss(metric=dinv.metric.mse(dinv.device))
+loss_mc = dinv.loss.MCLoss(metric=dinv.metric.mse)
+loss_moi = dinv.loss.MOILoss(metric=dinv.metric.mse)
 
 optimizer = dinv.optim.Adam(model.parameters(),
                             lr=5e-4,

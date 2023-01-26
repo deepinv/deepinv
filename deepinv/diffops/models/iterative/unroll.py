@@ -25,17 +25,17 @@ class Unrolling(nn.Module):
         super(Unrolling, self).__init__()
         assert mode in ['lfb', 'pgd', 'gd', 'admm']
 
-        device = backbone_net.device()
+        device = next(backbone_net.parameters()).device
         self.mode = mode
         self.iterations = iterations
         self.register_parameter(name='step_size',
-                                param=torch.nn.Parameter(torch.tensor(step_size),
-                                                         requires_grad=True))
+                                param=torch.nn.Parameter(torch.tensor(step_size, device=device),
+                                requires_grad=True))
         self.pinv = pinv
         self.weight_tied = weight_tied
 
         if self.weight_tied:
-            self.blocks = torch.nn.ModuleList([backbone_net].to(device))
+            self.blocks = torch.nn.ModuleList([backbone_net])
         else:
             self.blocks = torch.nn.ModuleList([backbone_net[_].to(device) for _ in range(iterations)])
 
@@ -46,25 +46,35 @@ class Unrolling(nn.Module):
 
     def forward(self, y, physics, x_init=None):
         # gradient of (least square) data consistency term
-        dc_grad = lambda x, y: physics.A_adjoint(y.to(physics.device) - physics.A(x.to(physics.device))).to(x.device)
+        device = y.device
+        #dc_grad = lambda x0, y0: physics.A_adjoint(y0.to(physics.device) - physics.A(x0.to(physics.device)))
+        dc_grad = lambda x0, y0: physics.A_adjoint(y0.to(device) - physics.A(x0.to(device)))
 
         if self.pinv:
-            x = physics.A_dagger(y).to(y.device) if x_init is None else x_init.clone()
+            x = physics.A_dagger(y).to(device) if x_init is None else x_init.clone()
         else:
-            x = physics.A_adjoint(y).to(y.device) if x_init is None else x_init.clone()
+            x = physics.A_adjoint(y).to(device) if x_init is None else x_init.clone()
 
         input = x
 
         for t in range(self.iterations):
-            t = 0 if len(self.blocks)==1 else t
-            if self.mode == 'lfb': # learned forward backward
-                x = self.blocks[t](torch.cat([x, dc_grad(x, y)], dim=1))
-            if self.mode == 'pgd': # proximal gradient descent
-                x = self.blocks[t](x + self.step_size[t] * dc_grad(x, y))
-            if self.mode == 'gd': # gradient descent
-                x = self.blocks[t](x) + x + self.step_size[t] * dc_grad(x, y)
+            r = 0 if len(self.blocks) == 1 else t
+            if self.mode == 'lfb':  # learned forward backward
+                x = self.blocks[r](torch.cat([x, dc_grad(x, y)], dim=1))
+            if self.mode == 'pgd':  # proximal gradient descent
+                if r == 0:
+                    x = self.blocks[r](x + self.step_size * dc_grad(x, y))
+                else:
+                    x = self.blocks[r](x + self.step_size[r] * dc_grad(x, y))
+
+            if self.mode == 'gd':  # gradient descent
+                if r == 0:
+                    x = self.blocks[r](x) + x + self.step_size * dc_grad(x, y)
+                else:
+                    x = self.blocks[r](x) + x + self.step_size[r] * dc_grad(x, y)
+
         if self.mode == 'lfb':
-            x = x[:,:self.block_config['out_channels']]
+            x = x[:, :self.block_config['out_channels']]
             if self.block_config['residual']:
                 x = x + input
         return x

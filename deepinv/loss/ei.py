@@ -7,12 +7,16 @@ from torch.autograd import Variable
 # --------------------------------------------
 class EILoss(nn.Module):
     def __init__(self, transform, metric=torch.nn.MSELoss(), noise=True, weight=1.):
-        """
-        Equivariant imaging loss
+        '''
+        Equivariant imaging self-supervised loss
         https://https://arxiv.org/pdf/2103.14756.pdf
-        Args:
-            ei_loss_weight (int):
-        """
+        https://https://arxiv.org/pdf/2111.12855.pdf
+        :param transform: Transform to generate the virtually augmented measurement. It can be any torch-differentiable
+         function (deepinv.diffops.transform, torchvision.transforms, torch.nn.Modules, etc.)
+        :param metric: Metric used to compute the error between the reconstructed augmented measurement and the reference image.
+        :param noise: Apply noise (of physics) in the virtually augmented measurement.
+        :param weight: Weight of the loss.
+        '''
         super(EILoss, self).__init__()
         self.name = 'ei'
         self.metric = metric
@@ -21,7 +25,7 @@ class EILoss(nn.Module):
         self.noise = noise
 
     def forward(self, x1, physics, f):
-        x2 = self.T.apply(x1)
+        x2 = self.T(x1)
 
         if self.noise:
             y = physics(x2)
@@ -33,32 +37,6 @@ class EILoss(nn.Module):
         loss_ei = self.weight*self.metric(x3, x2)
         return loss_ei
 
-
-# --------------------------------------------
-# Robust EI loss
-# --------------------------------------------
-class RobustEILoss(nn.Module):
-    def __init__(self, transform, physics, noise, metric=torch.nn.MSELoss()):
-        """
-        RobustEquivariant imaging loss
-        https://github.com/edongdongchen/REI
-        https://https://arxiv.org/pdf/2111.12855.pdf
-        Args:
-            ei_loss_weight (int):
-        """
-        super(RobustEILoss, self).__init__()
-        self.name = 'rei'
-        self.noise = noise
-        self.metric = metric
-
-        self.T = lambda x: transform.apply(x)
-        self.A = lambda x: physics.A(x)
-
-    def forward(self, x1, f):
-        x2 = self.T(x1)
-        x3 = f(self.noise(self.A(x2)))
-        loss_req = self.metric(x3, x2)
-        return loss_req
 
 # --------------------------------------------
 # Adversarial EI loss
@@ -80,7 +58,7 @@ class AdvEILoss(nn.Module):
         self.metric_adv = metric_adv
         self.metric_ei = metric_ei
 
-        self.T = lambda x: transform.apply(x)
+        self.T = lambda x: transform(x)
         self.n_trans = transform.n_trans
         self.A = lambda x: physics.A(x)
         self.A_dagger = lambda y: physics.A_dagger(y)

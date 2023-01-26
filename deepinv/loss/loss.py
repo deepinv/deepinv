@@ -6,19 +6,23 @@ from torch import autograd as autograd
 #todo: REQ loss, SURE_alone loss (with noise distribution), DONE
 #todo: define an individual noise module (Gaussian, Possion, MPG) DONE
 
-
-class OneSidedL2(torch.nn.Module):
-    def __init__(self):
+class LpNorm(torch.nn.Module):
+    def __init__(self, p=2, onesided=False):
         super().__init__()
+        self.p = p
+        self.onesided = onesided
 
     def forward(self, x, y):
-        return torch.nn.functional.relu(-x*y).flatten().pow(2).mean()
+        if self.onesided:
+            return torch.nn.functional.relu(-x*y).flatten().pow(self.p).mean()
+        else:
+            return (x-y).flatten().abs().pow(self.p).mean()
 
-def mse(device):
-    return nn.MSELoss().to(device=device)
+def mse():
+    return nn.MSELoss()
 
-def l1(device):
-    return nn.L1Loss().to(device=device)
+def l1():
+    return nn.L1Loss()
 
 
 

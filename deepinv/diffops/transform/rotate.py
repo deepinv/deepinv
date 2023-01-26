@@ -1,10 +1,17 @@
 import torch
 from kornia.geometry.transform import rotate
 
-class Rotate():
-    def __init__(self, n_trans, group_size=360):
-        self.n_trans, self.group_size = n_trans, group_size
-    def apply(self, data):
+class Rotate(torch.nn.Module):
+    def __init__(self, n_trans, degrees=360):
+        '''
+        Generates n_transf randomly rotated versions of 2D images with zero padding.
+        :param n_trans: number of rotated versions generated per input image.
+        :param degrees: images are rotated in the range of angles (-degrees, degrees)
+        '''
+        super(Rotate, self).__init__()
+        self.n_trans, self.group_size = n_trans, degrees
+
+    def forward(self, data):
         if self.group_size == 360:
             theta = torch.arange(0, 360)[1:][torch.randperm(359)]
             theta = theta[:self.n_trans].type_as(data)
