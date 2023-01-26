@@ -1,5 +1,8 @@
 import torch
-import fastmri
+try:
+    import fastmri
+except:
+    print('WARNING: couldnt load fastmri')
 
 def abs(x):
     return fastmri.complex_abs(x.squeeze().permute(1,2,0)).detach().cpu().numpy()

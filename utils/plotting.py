@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import torch
 
@@ -7,6 +8,10 @@ def torch2cpu(img):
 
 
 def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True):
+
+    if not os.path.exists(save_dir.split('/')[0]):
+        print('Creating ', save_dir.split('/')[0], ' folder...')
+        os.makedirs(save_dir.split('/')[0])
 
     if torch.is_tensor(imgs[0]):
         imgs = [torch2cpu(i) for i in imgs]

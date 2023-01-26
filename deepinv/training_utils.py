@@ -145,7 +145,7 @@ def test(model,
           dtype=torch.float,
           device=torch.device(f"cuda:0"),
           plot=True,
-         save_dir=None):
+          save_dir=None):
 
     f = model
     psnr_fbp = []
@@ -163,6 +163,7 @@ def test(model,
     for g in range(G):
         dataloader = test_dataloader[g]
         for i, (x, y) in enumerate(dataloader):
+            print('Sample ', i, ' out of ', len(dataloader), '\r')
             #x = x[0] if isinstance(x, list) else x
             x = x.type(dtype).to(device)
             y = y.type(dtype).to(device)

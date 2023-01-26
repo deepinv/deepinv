@@ -21,6 +21,13 @@ except ImportError:
     pass
 
 try:
+    from deepinv import pnp
+    __all__ += ['pnp']
+except ImportError:
+    print('Warning: couldnt import pnp subpackage')
+    pass
+
+try:
     from deepinv import loss
     __all__ += ['loss']
 except ImportError:
@@ -100,7 +107,10 @@ def get_freer_gpu():
     print(f'Selected GPU {idx} with {np.max(memory_available)} MB free memory ')
     return idx
 
-free_gpu_id = get_freer_gpu()
-#torch.cuda.set_device(free_gpu_id)
-device = torch.device(f'cuda:{free_gpu_id}')
+if torch.cuda.is_available():
+    free_gpu_id = get_freer_gpu()
+    #torch.cuda.set_device(free_gpu_id)
+    device = torch.device(f'cuda:{free_gpu_id}')
+else:
+    device = 'cpu'
 
