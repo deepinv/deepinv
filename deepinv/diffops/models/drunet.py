@@ -1,14 +1,17 @@
-# Code borrowed to Kai Zhang https://github.com/cszn/DPIR/tree/master/models
+# Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 # TODO: missing the eval functions
-
-
+import numpy as np
+import torch
 import torch.nn as nn
 
+cuda = True if torch.cuda.is_available() else False
+Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
 class UNetRes(nn.Module):
-    def __init__(self, in_nc=1, out_nc=1, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose'):
+    def __init__(self, in_channels=1, out_channels=1, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose'):
         super(UNetRes, self).__init__()
 
-        self.m_head = conv(in_nc, nc[0], bias=False, mode='C')
+        self.m_head = conv(in_channels, nc[0], bias=False, mode='C')
 
         # downsample
         if downsample_mode == 'avgpool':
@@ -40,7 +43,7 @@ class UNetRes(nn.Module):
         self.m_up2 = sequential(upsample_block(nc[2], nc[1], bias=False, mode='2'), *[ResBlock(nc[1], nc[1], bias=False, mode='C'+act_mode+'C') for _ in range(nb)])
         self.m_up1 = sequential(upsample_block(nc[1], nc[0], bias=False, mode='2'), *[ResBlock(nc[0], nc[0], bias=False, mode='C'+act_mode+'C') for _ in range(nb)])
 
-        self.m_tail = conv(nc[0], out_nc, bias=False, mode='C')
+        self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
     def forward(self, x0):
         x1 = self.m_head(x0)
@@ -55,6 +58,9 @@ class UNetRes(nn.Module):
 
         return x
 
+'''
+Functional blocks below
+'''
 from collections import OrderedDict
 import torch
 import torch.nn as nn
@@ -582,3 +588,195 @@ class NonLocalBlock2D(nn.Module):
         z = W_y + x
 
         return z
+
+'''
+Helpers for test time
+'''
+
+def apply_DRUNet(model, img_L, noise_level_model=0.01, x8=False):
+
+    img_L = torch.cat(
+            (img_L, torch.FloatTensor([noise_level_model]).repeat(1, 1, img_L.shape[2], img_L.shape[3])), dim=1)
+
+    # ------------------------------------
+    # (2) img_E
+    # ------------------------------------
+
+    if not x8 and img_L.size(2) // 8 == 0 and img_L.size(3) // 8 == 0:
+        img_E = model(img_L)
+    elif not x8 and (img_L.size(2) // 8 != 0 or img_L.size(3) // 8 != 0):
+        img_E = test_mode(model, img_L, refield=64, mode=5)
+    elif x8:
+        raise NotImplementedError('x8 test mode not implemented!')
+
+    return img_E
+
+'''
+Copyright (c) 2020 Kai Zhang (cskaizhang@gmail.com)
+'''
+
+'''
+modified by Kai Zhang (github: https://github.com/cszn)
+03/03/2019
+'''
+
+
+# def single2tensor4(img):
+#     return torch.from_numpy(np.ascontiguousarray(img)).permute(2, 0, 1).float().unsqueeze(0)
+def single2tensor4(img):
+    imgn = torch.from_numpy(img)
+    init_shape = imgn.shape
+    if len(init_shape) == 2:
+        imgn.unsqueeze_(0)
+        imgn.unsqueeze_(0)
+    elif len(init_shape) == 3:
+        imgn.unsqueeze_(0)
+    return imgn.type(Tensor)
+
+
+# convert 2/3/4-dimensional torch tensor to uint
+def tensor2uint(img):
+    img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
+    if img.ndim == 3:
+        # img = np.transpose(img, (1, 2, 0))
+        img = np.moveaxis(img, 0, -1)
+    # return img*255
+    return np.uint8((img*255.0).round())
+
+
+def tensor2np(img):
+    return img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
+
+
+def test_mode(model, L, mode=0, refield=32, min_size=256, sf=1, modulo=1):
+    '''
+    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    # Some testing modes
+    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    # (0) normal: test(model, L)
+    # (1) pad: test_pad(model, L, modulo=16)
+    # (2) split: test_split(model, L, refield=32, min_size=256, sf=1, modulo=1)
+    # (3) x8: test_x8(model, L, modulo=1)
+    # (4) split and x8: test_split_x8(model, L, refield=32, min_size=256, sf=1, modulo=1)
+    # (5) split only once: test_onesplit(model, L, refield=32, min_size=256, sf=1, modulo=1)
+    # ---------------------------------------
+    '''
+    if mode == 0:
+        E = test(model, L)
+    elif mode == 1:
+        E = test_pad(model, L, modulo)
+    elif mode == 5:
+        E = test_onesplit(model, L, refield, min_size, sf, modulo)
+    return E
+
+
+'''
+# ---------------------------------------
+# normal (0)
+# ---------------------------------------
+'''
+
+
+def test(model, L):
+    E = model(L)
+    return E
+
+
+'''
+# ---------------------------------------
+# pad (1)
+# ---------------------------------------
+'''
+
+
+def test_pad(model, L, modulo=16):
+    h, w = L.size()[-2:]
+    paddingBottom = int(np.ceil(h/modulo)*modulo-h)
+    paddingRight = int(np.ceil(w/modulo)*modulo-w)
+    L = torch.nn.ReplicationPad2d((0, paddingRight, 0, paddingBottom))(L)
+    E = model(L)
+    E = E[..., :h, :w]
+    return E
+
+
+'''
+# ---------------------------------------
+# split (function)
+# ---------------------------------------
+'''
+
+
+def test_split_fn(model, L, refield=32, min_size=256, sf=1, modulo=1):
+    '''
+    model:
+    L: input Low-quality image
+    refield: effective receptive filed of the network, 32 is enough
+    min_size: min_sizeXmin_size image, e.g., 256X256 image
+    sf: scale factor for super-resolution, otherwise 1
+    modulo: 1 if split
+    '''
+    h, w = L.size()[-2:]
+    if h*w <= min_size**2:
+        L = torch.nn.ReplicationPad2d((0, int(np.ceil(w/modulo)*modulo-w), 0, int(np.ceil(h/modulo)*modulo-h)))(L)
+        E = model(L)
+        E = E[..., :h*sf, :w*sf]
+    else:
+        top = slice(0, (h//2//refield+1)*refield)
+        bottom = slice(h - (h//2//refield+1)*refield, h)
+        left = slice(0, (w//2//refield+1)*refield)
+        right = slice(w - (w//2//refield+1)*refield, w)
+        Ls = [L[..., top, left], L[..., top, right], L[..., bottom, left], L[..., bottom, right]]
+
+        if h * w <= 4*(min_size**2):
+            Es = [model(Ls[i]) for i in range(4)]
+        else:
+            Es = [test_split_fn(model, Ls[i], refield=refield, min_size=min_size, sf=sf, modulo=modulo) for i in range(4)]
+
+        b, c = Es[0].size()[:2]
+        E = torch.zeros(b, c, sf * h, sf * w).type_as(L)
+
+        E[..., :h//2*sf, :w//2*sf] = Es[0][..., :h//2*sf, :w//2*sf]
+        E[..., :h//2*sf, w//2*sf:w*sf] = Es[1][..., :h//2*sf, (-w + w//2)*sf:]
+        E[..., h//2*sf:h*sf, :w//2*sf] = Es[2][..., (-h + h//2)*sf:, :w//2*sf]
+        E[..., h//2*sf:h*sf, w//2*sf:w*sf] = Es[3][..., (-h + h//2)*sf:, (-w + w//2)*sf:]
+    return E
+
+
+
+def test_onesplit(model, L, refield=32, min_size=256, sf=1, modulo=1):
+    '''
+    model:
+    L: input Low-quality image
+    refield: effective receptive filed of the network, 32 is enough
+    min_size: min_sizeXmin_size image, e.g., 256X256 image
+    sf: scale factor for super-resolution, otherwise 1
+    modulo: 1 if split
+    '''
+    h, w = L.size()[-2:]
+
+    top = slice(0, (h//2//refield+1)*refield)
+    bottom = slice(h - (h//2//refield+1)*refield, h)
+    left = slice(0, (w//2//refield+1)*refield)
+    right = slice(w - (w//2//refield+1)*refield, w)
+    Ls = [L[..., top, left], L[..., top, right], L[..., bottom, left], L[..., bottom, right]]
+    Es = [model(Ls[i]) for i in range(4)]
+    b, c = Es[0].size()[:2]
+    E = torch.zeros(b, c, sf * h, sf * w).type_as(L)
+    E[..., :h//2*sf, :w//2*sf] = Es[0][..., :h//2*sf, :w//2*sf]
+    E[..., :h//2*sf, w//2*sf:w*sf] = Es[1][..., :h//2*sf, (-w + w//2)*sf:]
+    E[..., h//2*sf:h*sf, :w//2*sf] = Es[2][..., (-h + h//2)*sf:, :w//2*sf]
+    E[..., h//2*sf:h*sf, w//2*sf:w*sf] = Es[3][..., (-h + h//2)*sf:, (-w + w//2)*sf:]
+    return E
+
+
+
+'''
+# ---------------------------------------
+# split (2)
+# ---------------------------------------
+'''
+
+
+def test_split(model, L, refield=32, min_size=256, sf=1, modulo=1):
+    E = test_split_fn(model, L, refield=refield, min_size=min_size, sf=sf, modulo=modulo)
+    return E

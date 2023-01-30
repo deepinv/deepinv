@@ -163,22 +163,23 @@ def test(model,
     for g in range(G):
         dataloader = test_dataloader[g]
         for i, (x, y) in enumerate(dataloader):
-            print('Sample ', i, ' out of ', len(dataloader), '\r')
-            #x = x[0] if isinstance(x, list) else x
-            x = x.type(dtype).to(device)
-            y = y.type(dtype).to(device)
-            #y0 = physics(x)  # generate measurement input y
+            if i<1:
+                print('Sample ', i, ' out of ', len(dataloader), '\r')
+                #x = x[0] if isinstance(x, list) else x
+                x = x.type(dtype).to(device)
+                y = y.type(dtype).to(device)
+                #y0 = physics(x)  # generate measurement input y
 
-            x1 = f(y, physics[g])
+                x1 = f(y, physics[g])
 
-            if g < 10 and i < 10 and plot:
-                xlin = physics[g].A_adjoint(y)
-                imgs.append(torch2cpu(xlin))
-                imgs.append(torch2cpu(x1))
-                imgs.append(torch2cpu(x))
+                if g < 10 and i < 10 and plot:
+                    xlin = physics[g].A_adjoint(y)
+                    imgs.append(torch2cpu(xlin))
+                    imgs.append(torch2cpu(x1))
+                    imgs.append(torch2cpu(x))
 
-            psnr_fbp.append(cal_psnr(physics[g].A_adjoint(y), x))
-            psnr_net.append(cal_psnr(x1, x))
+                psnr_fbp.append(cal_psnr(physics[g].A_adjoint(y), x))
+                psnr_net.append(cal_psnr(x1, x))
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
