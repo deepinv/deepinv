@@ -58,6 +58,7 @@ class CompressedSensing(Forward):
         self.img_shape = img_shape
         self.fast = fast
         self.channelwise = channelwise
+        self.dtype = dtype
 
         if channelwise:
             n = int(np.prod(img_shape[1:]))
@@ -135,6 +136,58 @@ class CompressedSensing(Forward):
             x = torch.einsum('im, nm->in', y, self._A_dagger)
             x = x.reshape(N, C, H, W)
         return x
+
+    def power_method(self, x0, max_iter=100, tol=1e-3, verbose=True):
+        '''
+        Computes the spectral (l2) norm (Lipschitz constant) of the operator At*A, i.e. ||At*A||.
+        Args:
+            x0: initialisation point of the algorithm
+            A: forward operator A
+            At: adjoint (backward) operator of A
+            max_iter: maximum number of iterations
+            tol: relative variation criterion for convergence
+            verbose: print information
+
+        Returns:
+            z: spectral norm of At*A, i.e. z = ||At*A||
+        '''
+        x = torch.randn_like(x0)
+        x /= torch.norm(x)
+        zold = torch.zeros_like(x)
+        for it in range(max_iter):
+            y = self.A(x)
+            y = self.A_adjoint(y)
+            z = torch.matmul(x.reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+
+            rel_var = torch.norm(z - zold)
+            if rel_var < tol and verbose:
+                print("Power iteration converged at iteration: ", it, ", val: ", z)
+                break
+            zold = z
+            x = y / torch.norm(y)
+
+        return z
+
+    def adjointness_test(self, u):
+        '''
+        Numerically check that A_adj is indeed the adjoint of A.
+
+        Args:
+            u: initialisation point of the adjointness test method
+        Returns:
+            s1-s2: a quantity that should be theoretically 0. In practice, it should be of the order of the
+            chosen dtype precision (i.e. single or double).
+        '''
+        u_in = u.type(self.dtype)
+        Au = self.A(u_in)
+
+        v = torch.randn_like(Au)
+        Atv = self.A_adjoint(v)
+
+        s1 = v.flatten().T @ Au.flatten()
+        s2 = Atv.flatten().T @ u_in.flatten()
+
+        return s1-s2
 
 
 if __name__ == "__main__":

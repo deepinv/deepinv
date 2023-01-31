@@ -10,9 +10,10 @@ m = 100
 physics = []
 dataloader = []
 dir = f'../datasets/MNIST/G_{G}_m{m}/'
+dtype = torch.float
 
 for g in range(G):
-    p = dinv.physics.CompressedSensing(m=m, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
+    p = dinv.physics.CompressedSensing(m=m, img_shape=(1, 28, 28), device=dinv.device, dtype=dtype).to(dinv.device)
     p.sensor_model = lambda x: torch.sign(x)
     p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
     physics.append(p)
@@ -38,7 +39,7 @@ ckp_path = '/Users/matthieuterris/Documents/work/research/codes/checkpoints/DnCN
 # (it will be important for what follows that our implementation of the adjoint is correct!
 # To check this, we check that <Hu,v>=<u,H'v> for random vectors u and v.)
 
-def pow_it(x0, A, At, max_iter=100, tol=1e-3, verbose=True):
+def pow_it(x0, A, At, max_iter=100, tol=1e-5, verbose=True):
     x = torch.randn_like(x0)
     x /= torch.norm(x)
     zold = torch.zeros_like(x)
@@ -56,28 +57,34 @@ def pow_it(x0, A, At, max_iter=100, tol=1e-3, verbose=True):
 
     return z
 
-u = torch.randn(1, 28, 28)
-Au = physics[0].A(u)
+u = torch.randn(1, 28, 28).type(dtype)
+# Au = physics[0].A(u)
+#
+# v = torch.randn_like(Au)
+# Atv = physics[0].A_adjoint(v)
+#
+# s1 = v.flatten().T @ Au.flatten()
+# s2 = Atv.flatten().T @ u.flatten()
+#
+# print("adjointness test: (should be small) ", s1-s2)
+#
+# def A(x): return physics[0].A(x)
+# def At(x): return physics[0].A_adjoint(x)
 
-v = torch.randn_like(Au)
-Atv = physics[0].A_adjoint(v)
-
-s1 = v.flatten().T @ Au.flatten()
-s2 = Atv.flatten().T @ u.flatten()
-
-print("adjointness test: (should be small) ", s1-s2)
-
-def A(x): return physics[0].A(x)
-def At(x): return physics[0].A_adjoint(x)
-
-lip = pow_it(u, A, At)
-
+# lip = pow_it(u, A, At)
+#
+# print('Lip cte = ', lip)
+#
+lip = physics[0].power_method(u, tol=1e-5)
 print('Lip cte = ', lip)
+
+testadj = physics[0].adjointness_test(u)
+print('Adj test : ', testadj)
 
 denoiser.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 denoiser = denoiser.eval()
 
-pnp_algo = dinv.pnp.ProximalGradient(denoiser, denoise_level=None, gamma = 1/lip, max_iter=500)  # Remove pinv
+pnp_algo = dinv.pnp.ProximalGradient(denoiser, denoise_level=None, gamma = 1/lip, max_iter=10)  # Remove pinv
 # Pnp algo has a forward function
 
 dinv.test(model=pnp_algo,  # Safe because it has forward

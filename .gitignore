@@ -4,6 +4,9 @@
 # PyCharm
 .idea/
 
+results/
+*__pycache__*
+
 # Files
 *.png
 *.pth
