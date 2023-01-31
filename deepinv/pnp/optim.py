@@ -7,7 +7,7 @@ class ProximalGradient(nn.Module):
     TODO: add doc
     """
 
-    def __init__(self, denoiser, denoise_level=None, max_iter=10, gamma=1, crit_conv=1e-4, test_mode=True):
+    def __init__(self, denoiser, denoise_level=None, max_iter=10, gamma=1, crit_conv=1e-4, test_mode=True, verbose=False):
         super(ProximalGradient, self).__init__()
 
         self.denoiser = denoiser
@@ -16,6 +16,7 @@ class ProximalGradient(nn.Module):
         self.gamma = gamma
         self.crit_conv = crit_conv
         self.test_mode = test_mode
+        self.verbose = verbose
 
     def forward(self, y, physics):
         """
@@ -25,7 +26,7 @@ class ProximalGradient(nn.Module):
         with torch.set_grad_enabled(not self.test_mode):  # Enable grad at train time and disable it at test time
 
             # Initialisation
-            x = physics.A_adjoint(y)  # New init
+            x = physics.A_adjoint(y)*0  # New init
 
             for it in range(self.max_iter):
 
@@ -36,7 +37,8 @@ class ProximalGradient(nn.Module):
                 x = self.denoise(x_cur)
 
                 crit_cur = (x_prev-x).norm() / (x.norm()+1e-03) # For convergence analysis
-                print(it, 'crit = ', crit_cur , '\r')
+                if self.verbose:
+                    print(it, 'crit = ', crit_cur , '\r')
 
                 if self.crit_conv is not None and crit_cur < self.crit_conv:
                     break

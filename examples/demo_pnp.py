@@ -84,7 +84,7 @@ print('Adj test : ', testadj)
 denoiser.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 denoiser = denoiser.eval()
 
-pnp_algo = dinv.pnp.ProximalGradient(denoiser, denoise_level=None, gamma = 1/lip, max_iter=10)  # Remove pinv
+pnp_algo = dinv.pnp.ProximalGradient(denoiser, denoise_level=None, gamma = 0.15/lip, max_iter=20, verbose=False)  # Remove pinv
 # Pnp algo has a forward function
 
 dinv.test(model=pnp_algo,  # Safe because it has forward
