@@ -40,11 +40,11 @@ for g in range(G):
         p.sensor_model = lambda x: torch.sign(x)
     elif problem == 'inpainting':
         p = dinv.physics.Inpainting(tensor_size=im_size, mask=.5, device=dinv.device)
-    elif problem == 'blind_deblur':
+    elif problem == 'blind_deblur': # TODO
         p = dinv.physics.BlindBlur(kernel_size=11)
     elif problem == 'denoising':
         p = dinv.physics.Denoising(sigma=.2)
-    elif problem == 'CT':
+    elif problem == 'CT': # TODO
         p = dinv.physics.CT(img_width=im_size[-1], views=30)
     elif problem == 'deblur':
         p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)

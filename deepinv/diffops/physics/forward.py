@@ -14,6 +14,16 @@ class Forward(torch.nn.Module):  # parent class for forward models
     def __init__(self, A=lambda x: x, A_adjoint=lambda x: x,
                  noise_model=lambda x: x, sensor_model=lambda x: x,
                  max_iter=50, tol=1e-3):
+        '''
+        Parent function for forward operators
+        TODO
+        :param A: linear
+        :param A_adjoint:
+        :param noise_model:
+        :param sensor_model:
+        :param max_iter:
+        :param tol:
+        '''
         super().__init__()
         self.noise_model = noise_model
         self.sensor_model = sensor_model
@@ -42,6 +52,9 @@ class Forward(torch.nn.Module):  # parent class for forward models
         return self.noise_model(x)
 
     def A_adjoint(self, x):
+        return self.adjoint(x)
+
+    def prox(self, x): #TODO
         return self.adjoint(x)
 
     def A_dagger(self, y):

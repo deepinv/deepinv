@@ -21,10 +21,10 @@ except ImportError:
     pass
 
 try:
-    from deepinv import pnp
-    __all__ += ['pnp']
+    from deepinv import optim
+    __all__ += ['optim']
 except ImportError:
-    print('Warning: couldnt import pnp subpackage')
+    print('Warning: couldnt import optim subpackage')
     pass
 
 try:

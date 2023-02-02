@@ -32,6 +32,7 @@ for g in range(G):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
+    p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
     physics.append(p)
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))
@@ -42,7 +43,6 @@ denoiser = dinv.models.dncnn(in_channels=1,
 
 ckp_path = '../saved_models/DNCNN_nch_1_sigma_2.0_ljr_0.001.ckpt'
 # https://drive.google.com/file/d/1VSVwDvoEPHOEIiM1Dc37sonTu7pMQ4Xa
-
 # DRUNet (not FNE) from Zhang et al.
 # denoiser = dinv.models.drunet(in_channels=2,
 #                          out_channels=1).to(dinv.device)

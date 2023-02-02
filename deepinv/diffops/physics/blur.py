@@ -163,8 +163,8 @@ if __name__ == "__main__":
     w = torch.ones((1, 1, 5, 5), device=device)/25
 
     #physics = BlindBlur(kernel_size=5, padding='same')
-    physics = Blur(filter=gaussian_blur(sigma=(1, 1)), padding='same', device=device)
-    #physics = Downsampling(factor=8)
+    #physics = Blur(filter=gaussian_blur(sigma=(1, 1)), padding='same', device=device)
+    physics = Downsampling(factor=8)
 
     #x = [x, w]
     y = physics.A(x)

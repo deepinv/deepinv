@@ -34,6 +34,7 @@ for g in range(G):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
+    p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
     physics.append(p)
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))
