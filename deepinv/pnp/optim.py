@@ -26,7 +26,7 @@ class ProximalGradient(nn.Module):
         with torch.set_grad_enabled(not self.test_mode):  # Enable grad at train time and disable it at test time
 
             # Initialisation
-            x = physics.A_adjoint(y)*0  # New init
+            x = torch.zeros_like(physics.A_adjoint(y))  # New init
 
             for it in range(self.max_iter):
 

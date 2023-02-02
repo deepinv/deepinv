@@ -109,7 +109,6 @@ def get_freer_gpu():
 
 if torch.cuda.is_available():
     free_gpu_id = get_freer_gpu()
-    #torch.cuda.set_device(free_gpu_id)
     device = torch.device(f'cuda:{free_gpu_id}')
 else:
     device = 'cpu'

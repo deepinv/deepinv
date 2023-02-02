@@ -1,42 +1,60 @@
-import sys
-sys.path.append('../deepinv')
-import deepinv as dinv
 import torch
+import deepinv as dinv
 from torchvision import datasets, transforms
 
 # base train dataset
-# transform_data = transforms.Compose([transforms.ToTensor(), transforms.Resize(128), transforms.Pad(64, padding_mode='symmetric'),
-#                                      transforms.RandomHorizontalFlip(), transforms.RandomAffine(degrees=180, translate=(0.2, 0.2)),
-#                                      transforms.CenterCrop(128)])
 transform_data = transforms.Compose([transforms.ToTensor()])
 
-data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
-#data_train = datasets.CelebA(root='../datasets/', split='train', transform=transform_data, download=True)
-# data_train = datasets.Flowers102(root='../datasets/', split='test', transform=transform_data, download=True)
-#data_train = datasets.FashionMNIST(root='../datasets/', train=True, transform=transform_data, download=True)
+G = 1  # number of operators
+max_datapoints = 1e7
+num_workers = 4  # set to 0 if using cpu
 
-# base test dataset
-data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
-#data_test = datasets.CelebA(root='../datasets/', split='test', transform=transform_data)
-# data_test = datasets.Flowers102(root='../datasets/', split='train', transform=transform_data)
-#data_test = datasets.FashionMNIST(root='../datasets/', train=False, transform=transform_data)
+# problem
+problem = 'denoising'
+dataset = 'MNIST'
+dir = f'../datasets/MNIST/{problem}/G{G}/'
 
-m = 100
-G = 1
-max_datapoints = 3000
 
-# physics
-dir = f'../datasets/MNIST/G_{G}_m{m}/'
+if dataset == 'MNIST':
+    data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
+    data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
+
+elif dataset =='CelebA':
+    data_train = datasets.CelebA(root='../datasets/', split='train', transform=transform_data, download=True)
+    data_test = datasets.CelebA(root='../datasets/', split='test', transform=transform_data)
+
+elif dataset =='FashionMNIST':
+    data_train = datasets.FashionMNIST(root='../datasets/', train=True, transform=transform_data, download=True)
+    data_test = datasets.FashionMNIST(root='../datasets/', train=False, transform=transform_data)
+
+
+x = data_train[0]
+im_size = x[0].shape if isinstance(x, list) or isinstance(x, tuple) else x.shape
 
 physics = []
 for g in range(G):
-    # p = dinv.physics.CompressedSensing(m=m, fast=True, img_shape=(1, 28, 28)).to(dinv.device)
-    print('Device = ', dinv.device)
-    p = dinv.physics.CompressedSensing(m=m, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
+    if problem == 'CS':
+        p = dinv.physics.CompressedSensing(m=300, img_shape=im_size, device=dinv.device)
+    elif problem == 'onebitCS':
+        p = dinv.physics.CompressedSensing(m=300, img_shape=im_size, device=dinv.device)
+        p.sensor_model = lambda x: torch.sign(x)
+    elif problem == 'inpainting':
+        p = dinv.physics.Inpainting(tensor_size=im_size, mask=.5, device=dinv.device)
+    elif problem == 'blind_deblur':
+        p = dinv.physics.BlindBlur(kernel_size=11)
+    elif problem == 'denoising':
+        p = dinv.physics.Denoising(sigma=.2)
+    elif problem == 'CT':
+        p = dinv.physics.CT(img_width=im_size[-1], views=30)
+    elif problem == 'deblur':
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+    else:
+        raise Exception("The inverse problem chosen doesn't exist")
+
+    # p.sensor_model = lambda x: torch.sign(x)
     physics.append(p)
 
 # generate paired dataset
 dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
                                physics=physics, device=dinv.device, save_dir=dir, max_datapoints=max_datapoints,
-                               num_workers=0)
+                               num_workers=num_workers)

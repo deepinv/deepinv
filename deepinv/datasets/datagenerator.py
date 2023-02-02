@@ -78,7 +78,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     for g in range(G):
         hf = h5py.File(f"{save_dir}/{dataset_filename}{g}.h5", 'w')
 
-        hf.attrs['operator'] = physics[g].name
+        hf.attrs['operator'] = physics[g].__class__.__name__
 
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 

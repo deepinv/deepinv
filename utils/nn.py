@@ -18,7 +18,7 @@ def save_model(epoch, model, optimizer, ckp_interval, epochs, loss, save_path):
 
         state = {'epoch': epoch,
                  'state_dict': model.state_dict(),
-                 'loss':loss,
+                 'loss': loss,
                  'optimizer': optimizer.state_dict()}
         torch.save(state, os.path.join(save_path, 'ckp_{}.pth.tar'.format(epoch)))
     pass

@@ -2,18 +2,29 @@ import torch
 import torch.nn as nn
 
 # --------------------------------------------
-# MC loss
+# Jacobian Spectral Norm loss
 # --------------------------------------------
 class JacobianSpectralNorm(nn.Module):
-
+    '''
+    TODO description
+    '''
     def __init__(self):
-        super(self, JacobianSpectralNorm)
+        super().__init__()
 
-    def jacobian_spectral_norm(self, y_in, x_hat, sigma, interpolation=False, training=False):
+    def forward(self, y_in, x_hat, denoiser, sigma, interpolation=False, training=False):
         '''
         Jacobian spectral norm from Pesquet et al;
         Computes the spectral norm of Q = 2J-I where J is the denoising model.
         BEWARE: reversed usage compared to Pesquet et al: it is now called as (y, x_hat) and not (x_hat, y) !
+
+        TODO: explain parameters
+        :param y_in:
+        :param x_hat:
+        :param denoiser:
+        :param sigma:
+        :param interpolation:
+        :param training:
+        :return:
         '''
 
         # FOR REFERENCE
@@ -37,7 +48,7 @@ class JacobianSpectralNorm(nn.Module):
             x = y_in
 
         x.requires_grad_()
-        x_hat, _ = self.forward(x, sigma)
+        x_hat, _ = denoiser(x, sigma)
 
         y = 2.*x_hat-y_in  # Beware notation : y_in = input, x_hat = output network
 

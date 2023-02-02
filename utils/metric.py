@@ -1,12 +1,7 @@
 import torch
-try:
-    import fastmri
-except:
-    print('WARNING: couldnt load fastmri')
 
 def abs(x):
-    return fastmri.complex_abs(x.squeeze().permute(1,2,0)).detach().cpu().numpy()
-
+    return x.abs().squeeze().permute(1,2,0).detach().cpu().numpy()
 
 def norm(a):
     return a.pow(2).sum(dim=3).sum(dim=2).sqrt().unsqueeze(2).unsqueeze(3)
@@ -23,16 +18,19 @@ def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):#True
     # a: prediction
     # b: groundtruth
     with torch.no_grad():
+
+        if type(a) is list or type(a) is tuple:
+            a = a[0]
+            b = b[0]
+
         if normalize:
             an = a/norm(a)*norm(b)
         else:
             an = a
-        # if normalize:
-        #     a = (a - a.min()) / (a.max() - a.min())
-        #     b = (b - b.min()) / (b.max() - b.min())
+
         if complex:
-            an = fastmri.complex_abs(an.permute(0, 2, 3, 1))
-            b = fastmri.complex_abs(b.permute(0, 2, 3, 1))
+            an = an.abs().permute(0, 2, 3, 1)
+            b = b.abs().permute(0, 2, 3, 1)
 
         mse = (an - b).pow(2).flatten().mean()
         if mse == 0:
@@ -56,8 +54,8 @@ def cal_psnr_complex(a, b):
     :param b: shape [N,2,H,W]
     :return: psnr value
     """
-    a = complex_abs(a.permute(0,2,3,1))
-    b = complex_abs(b.permute(0,2,3,1))
+    a = complex_abs(a.permute(0, 2, 3, 1))
+    b = complex_abs(b.permute(0, 2, 3, 1))
     return cal_psnr(a,b)
 
 def complex_abs(data):

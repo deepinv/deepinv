@@ -15,3 +15,7 @@ results/
 *.pth
 
 /docs/build/
+/onebitcs/
+/experimental/
+/deepinv/datasets/reside/
+/saved_models/

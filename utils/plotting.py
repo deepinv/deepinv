@@ -8,18 +8,18 @@ def torch2cpu(img):
 
 
 def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True):
-
-    if not os.path.exists(save_dir.split('/')[0]):
-        print('Creating ', save_dir.split('/')[0], ' folder...')
-        os.makedirs(save_dir.split('/')[0])
+    if save_dir:
+        if not os.path.exists(save_dir.split('/')[0]):
+            print('Creating ', save_dir.split('/')[0], ' folder...')
+            os.makedirs(save_dir.split('/')[0])
 
     if torch.is_tensor(imgs[0]):
         imgs = [torch2cpu(i) for i in imgs]
 
     if not shape:
-        shape = (len(imgs), 1)
+        shape = (1, len(imgs))
 
-    plt.figure(figsize=(shape[1], shape[0]))
+    plt.figure(figsize=(shape[1], 1.2*shape[0]))
 
     for i, img in enumerate(imgs):
         if row_order:
@@ -27,13 +27,13 @@ def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, ti
             c = int((i - r)/shape[0])
             idx = r * shape[1] + c
         else:
-            c = int(i/shape[1])
+            r = int(i/shape[1])
             idx = i
 
         plt.subplot(shape[0], shape[1], idx + 1)
 
         plt.imshow(img, cmap='gray')
-        if titles and c == 0:
+        if titles and r == 0:
             plt.title(titles[i], size=8)
         plt.axis('off')
 

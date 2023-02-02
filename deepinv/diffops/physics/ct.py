@@ -4,15 +4,27 @@ from .radon import Radon, IRadon
 from deepinv.diffops.physics.forward import Forward
 
 class CT(Forward):
-    def __init__(self, img_width, radon_view, uniform=True, circle = False, device='cuda:0', I0=1e5):
+    '''
+        TODO
+    '''
+    def __init__(self, img_width, views, uniform=True,
+                 circle=False, device='cuda:0', I0=1e5):
+        '''
+        TODO
+        :param img_width:
+        :param views:
+        :param uniform:
+        :param circle:
+        :param device:
+        :param I0:
+        '''
+        super().__init__()
         if uniform:
-            theta = np.linspace(0, 180, radon_view, endpoint=False)
+            theta = np.linspace(0, 180, views, endpoint=False)
         else:
-            theta = torch.arange(radon_view)
+            theta = torch.arange(views)
         self.radon = Radon(img_width, theta, circle).to(device)
         self.iradon = IRadon(img_width, theta, circle).to(device)
-
-        self.name='ct'
         self.I0 = I0
 
         # used for normalzation input
@@ -24,10 +36,11 @@ class CT(Forward):
         m = self.noise(m) # Mixed-Poisson-Gaussian Noise
         return m
 
-    def A(self, x, add_noise=False):
-        m = self.I0 * torch.exp(-self.radon(x)) # clean GT measurement
+    def A(self, x):
+        m = self.I0 * torch.exp(-self.radon(x))  # clean GT measurement
 
         return m
 
     def A_dagger(self, y):
         return self.iradon(y)
+
