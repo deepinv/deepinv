@@ -41,6 +41,9 @@ class CT(Forward):
 
         return m
 
+    def A_adjoint(self, y): # TODO: true adjoint
+        return self.iradon(y)
+
     def A_dagger(self, y):
         return self.iradon(y)
 

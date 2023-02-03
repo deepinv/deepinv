@@ -2,18 +2,62 @@ import torch
 import numpy as np
 
 class GaussianNoise(torch.nn.Module): # parent class for forward models
-    def __init__(self, std=.1):
+    def __init__(self, sigma=.1):
         super().__init__()
-        self.std = std
+        self.std = sigma
 
     def forward(self, x):
         return x + torch.randn_like(x)*self.std
 
 
+def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
+    '''
+    Standard conjugate gradient algorithm to solve Ax=b
+        see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
+    :param A: Linear operator as a callable function, has to be square!
+    :param b: input tensor
+    :param max_iter: maximum number of CG iterations
+    :param tol: absolute tolerance for stopping the CG algorithm.
+    :return: torch tensor x verifying Ax=b
+    '''
+
+    def dot(s1, s2):
+        return (s1 * s2).flatten().sum()
+
+    x = torch.zeros_like(b)
+
+    r = b
+    p = r
+    rsold = dot(r, r)
+
+    for i in range(int(max_iter)):
+        Ap = A(p)
+        alpha = rsold / dot(p, Ap)
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rsnew = dot(r, r)
+        #print(rsnew.sqrt())
+        if rsnew.sqrt() < tol:
+            break
+        p = r + (rsnew / rsold) * p
+        rsold = rsnew
+
+    return x
+
 class Forward(torch.nn.Module):  # parent class for forward models
     def __init__(self, A=lambda x: x, A_adjoint=lambda x: x,
                  noise_model=lambda x: x, sensor_model=lambda x: x,
                  max_iter=50, tol=1e-3):
+        '''
+        Parent function for forward operators
+        TODO
+        :param A: linear
+        :param A_adjoint:
+        :param noise_model:
+        :param sensor_model:
+        :param max_iter:
+        :param tol:
+        '''
         super().__init__()
         self.noise_model = noise_model
         self.sensor_model = sensor_model
@@ -29,7 +73,7 @@ class Forward(torch.nn.Module):  # parent class for forward models
         sensor = self.sensor_model
         return Forward(A, A_adjoint, noise, sensor)
 
-    def forward(self, x):# degrades signal
+    def forward(self, x):  # degrades signal
         return self.sensor(self.noise(self.A(x)))
 
     def A(self, x):
@@ -44,10 +88,28 @@ class Forward(torch.nn.Module):  # parent class for forward models
     def A_adjoint(self, x):
         return self.adjoint(x)
 
+    def prox(self, y, z, gamma):
+        '''
+        Computes proximal operator of f(x) = 1/2*||Ax-y||^2
+        i.e. argmin_x 1/2*||Ax-y||^2+gamma/2*||x-z||^2
+
+        :param y: measurements tensor
+        :param z: signal tensor
+        :param gamma: hyperparameter of the proximal operator
+        :return: estimated signal tensor
+        '''
+
+        b = self.A_adjoint(y) + gamma*z
+
+        H = lambda x: self.A_adjoint(self.A(x))+gamma*x
+
+        x = conjugate_gradient(H, b, self.max_iter, self.tol)
+
+        return x
+
     def A_dagger(self, y):
         """
         Computes A^{\dagger}y = x using conjugate gradient method.
-        see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
         If the size of y is larger than x (overcomplete problem), it computes (A^t A)^{-1} A^t y
         otherwise (incomplete problem) it computes  A^t (A A^t)^{-1} y
@@ -57,36 +119,21 @@ class Forward(torch.nn.Module):  # parent class for forward models
         @:param y : The right hand side (RHS) vector of the system.
         """
 
-        def dot(s1, s2):
-            return (s1*s2).flatten().sum()
 
-        yr = self.A_adjoint(y)
-        incomplete = np.prod(yr.shape) > np.prod(y.shape)
-        x = torch.zeros_like(y)
-        if not incomplete:
-            y = yr
+        Aty = self.A_adjoint(y)
 
-        r = y
-        p = r
-        rsold = dot(r, r)
+        overcomplete = np.prod(Aty.shape) < np.prod(y.shape)
 
-        for i in range(self.max_iter):
-            if incomplete:
-                Ap = self.A(self.A_adjoint(p))
-            else:
-                Ap = self.A_adjoint(self.A(p))
+        if not overcomplete:
+            A = lambda x: self.A(self.A_adjoint(x))
+            b = y
+        else:
+            A = lambda x: self.A_adjoint(self.A(x))
+            b = Aty
 
-            alpha = rsold / dot(p, Ap)
-            x = x + alpha * p
-            r = r - alpha * Ap
-            rsnew = dot(r, r)
-            #print(rsnew.sqrt())
-            if rsnew.sqrt() < self.tol:
-                break
-            p = r + (rsnew / rsold) * p
-            rsold = rsnew
+        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol)
 
-        if incomplete:
+        if not overcomplete:
             x = self.A_adjoint(x)
 
         return x
@@ -142,6 +189,7 @@ class Forward(torch.nn.Module):  # parent class for forward models
         s2 = Atv.flatten().T @ u_in.flatten()
 
         return s1-s2
+
 
 class Denoising(Forward):
     def __init__(self, sigma=.1):

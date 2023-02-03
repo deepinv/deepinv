@@ -54,7 +54,7 @@ for g in range(G):
     elif problem == 'CT':
         p = dinv.physics.CT(img_width=im_size[-1], views=30)
     elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 

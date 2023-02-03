@@ -13,7 +13,7 @@ dataset = 'MNIST'
 problem = 'denoising'
 ckp = 1  # saved epoch
 trained_net = 'dinv_moi_demo'
-dir = f'../datasets/MNIST/{problem}/G{G}/'
+dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 physics = []
 dataloader = []
@@ -30,10 +30,11 @@ for g in range(G):
     elif problem == 'blind_deblur':
         p = dinv.physics.BlindBlur(kernel_size=11)
     elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
+    p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
     physics.append(p)
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))

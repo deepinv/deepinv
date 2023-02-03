@@ -11,7 +11,7 @@ batch_size = 128  # choose if using small cpu/gpu
 plot = True
 dataset = 'MNIST'
 problem = 'deblur'
-dir = f'../datasets/MNIST/{problem}/G{G}/'
+dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 physics = []
 dataloader = []
@@ -27,11 +27,14 @@ for g in range(G):
         p = dinv.physics.Denoising(sigma=.2)
     elif problem == 'blind_deblur':
         p = dinv.physics.BlindBlur(kernel_size=11)
+    elif problem == 'super_resolution':
+        p = dinv.physics.Downsampling(factor=4)
     elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
+    p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
     physics.append(p)
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))
@@ -42,7 +45,6 @@ denoiser = dinv.models.dncnn(in_channels=1,
 
 ckp_path = '../saved_models/DNCNN_nch_1_sigma_2.0_ljr_0.001.ckpt'
 # https://drive.google.com/file/d/1VSVwDvoEPHOEIiM1Dc37sonTu7pMQ4Xa
-
 # DRUNet (not FNE) from Zhang et al.
 # denoiser = dinv.models.drunet(in_channels=2,
 #                          out_channels=1).to(dinv.device)
@@ -98,7 +100,7 @@ print('Adj test : ', testadj)
 denoiser.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 denoiser = denoiser.eval()
 
-pnp_algo = dinv.pnp.ProximalGradient(denoiser, denoise_level=None, gamma=0.15/lip, max_iter=20, verbose=False)  # Remove pinv
+pnp_algo = dinv.optim.ProximalGradient(denoiser, denoise_level=None, gamma=0.15/lip, max_iter=20, verbose=False)  # Remove pinv
 # Pnp algo has a forward function
 
 dinv.test(model=pnp_algo,  # Safe because it has forward

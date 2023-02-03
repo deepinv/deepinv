@@ -10,9 +10,9 @@ max_datapoints = 1e7
 num_workers = 4  # set to 0 if using cpu
 
 # problem
-problem = 'denoising'
+problem = 'deblur'
 dataset = 'MNIST'
-dir = f'../datasets/MNIST/{problem}/G{G}/'
+dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 
 if dataset == 'MNIST':
@@ -40,18 +40,20 @@ for g in range(G):
         p.sensor_model = lambda x: torch.sign(x)
     elif problem == 'inpainting':
         p = dinv.physics.Inpainting(tensor_size=im_size, mask=.5, device=dinv.device)
-    elif problem == 'blind_deblur':
+    elif problem == 'blind_deblur': # TODO
         p = dinv.physics.BlindBlur(kernel_size=11)
+    elif problem == 'super_resolution':
+        p = dinv.physics.Downsampling(factor=4)
     elif problem == 'denoising':
-        p = dinv.physics.Denoising(sigma=.2)
-    elif problem == 'CT':
+        p = dinv.physics.Denoising()
+    elif problem == 'CT': # TODO
         p = dinv.physics.CT(img_width=im_size[-1], views=30)
     elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
-    # p.sensor_model = lambda x: torch.sign(x)
+    p.noise_model = dinv.physics.GaussianNoise(sigma=.1)
     physics.append(p)
 
 # generate paired dataset

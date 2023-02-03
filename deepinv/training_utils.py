@@ -149,9 +149,7 @@ def train(model,
     return model
 
 
-
-def test(model,
-          test_dataloader,
+def test(model, test_dataloader,
           physics,
           dtype=torch.float,
           device=torch.device(f"cuda:0"),
