@@ -8,7 +8,7 @@ num_workers = 4  # set to 0 if using small cpu
 batch_size = 128  # choose if using small cpu/gpu
 plot = False
 dataset = 'MNIST'
-problem = 'denoising'
+problem = 'CS'
 physics = []
 dataloader = []
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
@@ -29,7 +29,7 @@ backbone = dinv.models.unet(in_channels=1,
 model = dinv.models.ArtifactRemoval(backbone)
 
 # choose optimizer and scheduler
-optimizer = dinv.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
 
 
