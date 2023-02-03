@@ -13,9 +13,16 @@ results/
 *.ckpt
 *.tar.gz
 *.pth
+*tmp
 
 /docs/build/
 /onebitcs/
 /experimental/
 /deepinv/datasets/reside/
 /saved_models/
+venv
+build
+deepinv.egg-info
+dist
+datasets
+

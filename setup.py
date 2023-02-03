@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 about = {}
-with open("DeepInv/__about__.py") as fp:
+with open("deepinv/__about__.py") as fp:
     exec(fp.read(), about)
 
 install_requires = [

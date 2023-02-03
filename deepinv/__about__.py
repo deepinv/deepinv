@@ -8,7 +8,7 @@ __all__ = [
     "__license__",
 ]
 
-__title__ = "deepinverse"
+__title__ = "deepinv"
 __summary__ = "Deep Learning for Inverse Problems Library for PyTorch"
 __url__ = 'https://github.com/edongdongchen/deepinv'
 __version__ = "0.0.1"

@@ -12,10 +12,8 @@ __all__ = [
     "__license__",
 ]
 
-
 try:
     from .diffops import models, physics, transform
-
     __all__ += ['models']
 except ImportError:
     pass
