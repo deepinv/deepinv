@@ -9,8 +9,8 @@ num_workers = 0  # set to 0 if using small cpu
 images = 4
 plot = True
 dataset = 'MNIST'
-problem = 'super_resolution'
-dir = f'../datasets/MNIST/{problem}/G{G}/'
+problem = 'deblur'
+dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 physics = []
 dataloader = []
@@ -29,7 +29,7 @@ for g in range(G):
     elif problem == 'super_resolution':
         p = dinv.physics.Downsampling(factor=4)
     elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
@@ -46,8 +46,8 @@ ckp_path = '../saved_models/DNCNN_nch_1_sigma_2.0_ljr_0.001.ckpt'
 
 u = torch.randn((1, 28, 28), device=dinv.device) #.type(dtype)
 
-lip = physics[0].power_method(u.unsqueeze(0), tol=1e-5)
-print('Lip cte = ', lip)
+norm = physics[0].power_method(u.unsqueeze(0), tol=1e-5)
+print('Lip cte = ', norm)
 
 testadj = physics[0].adjointness_test(u.unsqueeze(0))
 print('Adj test : ', testadj)
@@ -55,20 +55,29 @@ print('Adj test : ', testadj)
 denoiser.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 denoiser = denoiser.eval()
 
-f = dinv.sampling.PnPULA(denoiser, sigma=1, max_iter=1000, step_size=0.1/lip, verbose=True)
+sigma = .1
+regularization = 100
+iterations = 5000
+
+lip = norm / (sigma**2)
+f = dinv.sampling.PnPULA(denoiser, sigma=sigma, max_iter=iterations,
+                         alpha=regularization, step_size=1./lip, verbose=True)
 
 for g in range(G):
     iterator = iter(dataloader[g])
     x, y = next(iterator)
+    x = x.to(dinv.device)
     y = y.to(dinv.device)
 
     mean, var = f(y, physics[g])
 
+    error = (mean-x).abs()
     imgs = []
     for i in range(images):
         imgs.append(y[i, :, :, :].unsqueeze(0))
         imgs.append(x[i, :, :, :].unsqueeze(0))
         imgs.append(mean[i, :, :, :].unsqueeze(0))
-        imgs.append(var[i, :, :, :].unsqueeze(0))
+        imgs.append(var[i, :, :, :].unsqueeze(0).sqrt())
+        imgs.append(error[i, :, :, :].unsqueeze(0))
 
-    plot_debug(imgs, shape=(images, 4), titles=['measurement', 'ground truth', 'mean', 'variance'])
+    plot_debug(imgs, shape=(images, 5), titles=['measurement', 'ground truth', 'mean', 'standard dev.', 'error'])

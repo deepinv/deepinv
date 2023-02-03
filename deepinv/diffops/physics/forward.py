@@ -2,9 +2,9 @@ import torch
 import numpy as np
 
 class GaussianNoise(torch.nn.Module): # parent class for forward models
-    def __init__(self, std=.1):
+    def __init__(self, sigma=.1):
         super().__init__()
-        self.std = std
+        self.std = sigma
 
     def forward(self, x):
         return x + torch.randn_like(x)*self.std
@@ -189,6 +189,7 @@ class Forward(torch.nn.Module):  # parent class for forward models
         s2 = Atv.flatten().T @ u_in.flatten()
 
         return s1-s2
+
 
 class Denoising(Forward):
     def __init__(self, sigma=.1):

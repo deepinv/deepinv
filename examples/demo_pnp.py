@@ -10,8 +10,8 @@ num_workers = 4  # set to 0 if using small cpu
 batch_size = 128  # choose if using small cpu/gpu
 plot = True
 dataset = 'MNIST'
-problem = 'super_resolution'
-dir = f'../datasets/MNIST/{problem}/G{G}/'
+problem = 'deblur'
+dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 physics = []
 dataloader = []
@@ -30,7 +30,7 @@ for g in range(G):
     elif problem == 'super_resolution':
         p = dinv.physics.Downsampling(factor=4)
     elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 

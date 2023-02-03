@@ -155,6 +155,7 @@ if __name__ == "__main__":
     device = 'cuda:0'
 
     import matplotlib.pyplot as plt
+    import deepinv as dinv
 
     x = torchvision.io.read_image('../../../datasets/celeba/img_align_celeba/010214.jpg')
     x = x.unsqueeze(0).float()/256
@@ -163,15 +164,16 @@ if __name__ == "__main__":
     w = torch.ones((1, 1, 5, 5), device=device)/25
 
     #physics = BlindBlur(kernel_size=5, padding='same')
-    #physics = Blur(filter=gaussian_blur(sigma=(1, 1)), padding='same', device=device)
-    physics = Downsampling(factor=8)
+    physics = Blur(filter=gaussian_blur(sigma=(5, .1)), padding='same', device=device)
+    #physics = Downsampling(factor=8)
+    physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
 
     #x = [x, w]
-    y = physics.A(x)
+    y = physics(x)
     #xhat = physics.A_adjoint(y)
 
     #xhat = physics.A_dagger(y)
-    xhat = physics.prox(y,torch.zeros_like(x), gamma=.1)
+    xhat = physics.prox(y, torch.zeros_like(x), gamma=.1)
 
     #x = x[0]
     #xhat = xhat[0]
