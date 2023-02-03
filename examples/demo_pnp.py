@@ -10,7 +10,7 @@ num_workers = 4  # set to 0 if using small cpu
 batch_size = 128  # choose if using small cpu/gpu
 plot = True
 dataset = 'MNIST'
-problem = 'deblur'
+problem = 'super_resolution'
 dir = f'../datasets/MNIST/{problem}/G{G}/'
 
 physics = []
@@ -27,6 +27,8 @@ for g in range(G):
         p = dinv.physics.Denoising(sigma=.2)
     elif problem == 'blind_deblur':
         p = dinv.physics.BlindBlur(kernel_size=11)
+    elif problem == 'super_resolution':
+        p = dinv.physics.Downsampling(factor=4)
     elif problem == 'deblur':
         p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(1, .5)), device=dinv.device)
     else:
@@ -98,7 +100,7 @@ print('Adj test : ', testadj)
 denoiser.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
 denoiser = denoiser.eval()
 
-pnp_algo = dinv.pnp.ProximalGradient(denoiser, denoise_level=None, gamma=0.15/lip, max_iter=20, verbose=False)  # Remove pinv
+pnp_algo = dinv.optim.ProximalGradient(denoiser, denoise_level=None, gamma=0.15/lip, max_iter=20, verbose=False)  # Remove pinv
 # Pnp algo has a forward function
 
 dinv.test(model=pnp_algo,  # Safe because it has forward

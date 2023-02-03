@@ -1,1 +1,1 @@
-from .langevin import MYULA
+from .langevin import PnPULA

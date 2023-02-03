@@ -169,7 +169,9 @@ if __name__ == "__main__":
     #x = [x, w]
     y = physics.A(x)
     #xhat = physics.A_adjoint(y)
-    xhat = physics.A_dagger(y)
+
+    #xhat = physics.A_dagger(y)
+    xhat = physics.prox(y,torch.zeros_like(x), gamma=.1)
 
     #x = x[0]
     #xhat = xhat[0]

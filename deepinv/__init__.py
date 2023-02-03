@@ -77,8 +77,15 @@ except ImportError:
     pass
 
 try:
-    from torch import optim
+    from deepinv import optim
     __all__ += ['optim']
+except ImportError:
+    pass
+
+
+try:
+    from deepinv import sampling
+    __all__ += ['sampling']
 except ImportError:
     pass
 

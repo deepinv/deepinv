@@ -10,7 +10,7 @@ max_datapoints = 1e7
 num_workers = 4  # set to 0 if using cpu
 
 # problem
-problem = 'denoising'
+problem = 'super_resolution'
 dataset = 'MNIST'
 dir = f'../datasets/MNIST/{problem}/G{G}/'
 
@@ -42,6 +42,8 @@ for g in range(G):
         p = dinv.physics.Inpainting(tensor_size=im_size, mask=.5, device=dinv.device)
     elif problem == 'blind_deblur': # TODO
         p = dinv.physics.BlindBlur(kernel_size=11)
+    elif problem == 'super_resolution':
+        p = dinv.physics.Downsampling(factor=4)
     elif problem == 'denoising':
         p = dinv.physics.Denoising(sigma=.2)
     elif problem == 'CT': # TODO

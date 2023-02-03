@@ -6,6 +6,7 @@
 
 results/
 *__pycache__*
+*.pyc
 
 # Files
 *.png
