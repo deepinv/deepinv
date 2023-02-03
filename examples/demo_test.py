@@ -13,7 +13,7 @@ dataset = 'MNIST'
 problem = 'denoising'
 ckp = 1  # saved epoch
 trained_net = 'dinv_moi_demo'
-dir = f'../datasets/MNIST/{problem}/G{G}/'
+dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 physics = []
 dataloader = []
