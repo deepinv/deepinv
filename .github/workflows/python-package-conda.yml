@@ -3,11 +3,42 @@ name: Python Package using Conda
 on: [push]
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  test_no_conda:
+    name: Test without conda
+    runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 5
+      matrix:
+        include:
+          - os: ubuntu-latest
+            version_python: 3.9
+          - os: macos-latest
+            version_python: 3.9
+    env:
+      JUNIT_XML: "test-data.xml"
+      VERSION_PYTHON: ${{ matrix.version_python }}
 
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.VERSION_PYTHON }}
+
+      - name: Install deepinv and its dependencies
+        run: pip install -e .
+      - name: Test with pytest
+        run: |
+          python -m pytest deepinv/tests
+          
+  test_conda:
+    name: Test with conda
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            version_python: 3.9
+          - os: macos-latest
+            version_python: 3.9
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -22,7 +53,7 @@ jobs:
       run: |
         conda env update --file environment.yml --name base
         conda install -yq pip
-        pip install -e .[test]
+        pip install -e .
     - name: Lint with flake8
       run: |
         conda install flake8
