@@ -27,7 +27,9 @@ jobs:
           python-version: ${{ env.VERSION_PYTHON }}
 
       - name: Install deepinv and its dependencies
-        run: pip install -e .
+        run: |
+          pip install -e .
+          pip install pytest
       - name: Test with pytest
         run: |
           python -m pytest deepinv/tests
@@ -64,4 +66,5 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
+        conda install pytest
         python -m pytest deepinv/tests
