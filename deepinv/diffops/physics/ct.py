@@ -1,9 +1,9 @@
 import torch
 import numpy as np
 from .radon import Radon, IRadon
-from deepinv.diffops.physics.forward import Forward
+from deepinv.diffops.physics.forward import Physics
 
-class CT(Forward):
+class CT(Physics):
     '''
         TODO
     '''

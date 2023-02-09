@@ -1,8 +1,8 @@
-from deepinv.diffops.physics.forward import Forward
+from deepinv.diffops.physics.forward import Physics
 import torch
 
 
-class Inpainting(Forward):
+class Inpainting(Physics):
     def __init__(self, tensor_size, mask=0.3, device='cuda:0'):
         super().__init__()
         self.name = 'inpainting'

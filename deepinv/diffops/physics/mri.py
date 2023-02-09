@@ -1,9 +1,9 @@
 import torch
 import fastmri
 from fastmri.data import transforms as T
-from deepinv.diffops.physics.forward import Forward
+from deepinv.diffops.physics.forward import Physics
 
-class MRI(Forward):
+class MRI(Physics):
     '''
     TODO
     '''

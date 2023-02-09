@@ -1,41 +1,55 @@
-from deepinv.diffops.physics.forward import Forward
+from deepinv.diffops.physics.forward import Physics
 import torch
 import numpy as np
 
+
 def hadamard(u, normalize=True):
-    """Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
-    n must be a power of 2.
+    """
+    Hadamard Transform
+    The transform is performed across the last dimension of the input signal
+    If normalize=True, the transform is orthogonal and hadamard(hadamard(x)) = x
+    The length of the signal should be a power of 2
     Parameters:
         u: Tensor of shape (..., n)
         normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
     Returns:
         product: Tensor of shape (..., n)
     """
-    batch_size, n = u.shape
+
+    u_shape = u.shape
+    n = u.shape[-1]
+    u = u.view(-1, u_shape[-1])
+
     m = int(np.log2(n))
     assert n == 1 << m, 'n must be a power of 2'
     x = u[..., np.newaxis]
     for d in range(m)[::-1]:
         x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
-    return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
+    return x.view(*u_shape) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
-def dct1(x):
+def dst1(x):
     """
-    Discrete Cosine Transform, Type I
+    Orthogonal Discrete Sine Transform, Type I
+    The transform is performed across the last dimension of the input signal
+    Due to orthogonality dst1(dst1(x)) = x
     :param x: the input signal
-    :return: the DCT-I of the signal over the last dimension
+    :return: the DST-I of the signal over the last dimension
     """
     x_shape = x.shape
-    n = x.shape[-1]
-    x = x.view(-1, x_shape[-1])
-    x = torch.cat([x, x.flip([1])[:, 1:-1]], dim=1)
 
-    x = torch.view_as_real(torch.fft.rfft(x, dim=1))
-    return x[:, :, 0].view(*x_shape)/ np.sqrt(2 * (n - 1))
+    b = int(np.prod(x_shape[:-1]))
+    n = x_shape[-1]
+    x = x.view(-1, n)
+
+    z = torch.zeros(b, 1, device=x.device)
+    x = torch.cat([z, x, z, -x.flip([1])], dim=1)
+    x = torch.view_as_real(torch.fft.rfft(x, norm='ortho'))
+    x = x[:, 1:-1, 1]
+    return x.view(*x_shape)
 
 
-class CompressedSensing(Forward):
+class CompressedSensing(Physics):
     def __init__(self, m, img_shape, fast=False, channelwise=False, dtype=torch.float, device='cuda:0'):
         """
         Compressed Sensing forward operator. Creates a random sampling m x n matrix where n= prod(img_shape).
@@ -77,7 +91,7 @@ class CompressedSensing(Forward):
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            A = np.random.randn(m, n) / np.sqrt(m)
+            A = np.random.randn(m, n) / (np.sqrt(n) * (1 + np.sqrt(m/n)))
             A_dagger = np.linalg.pinv(A)
             self._A = torch.from_numpy(A).type(dtype).to(device)
             self._A_dagger = torch.from_numpy(A_dagger).type(dtype).to(device)
@@ -94,12 +108,12 @@ class CompressedSensing(Forward):
             x = x.reshape(N, -1)
 
         if self.fast:
-            y = dct1(x*self.D)[:, self.mask]
+            y = dst1(x*self.D)[:, self.mask]
         else:
             y = torch.einsum('in, mn->im', x, self._A)
 
         if self.channelwise:
-            y = y.reshape(N, C, -1)
+            y = y.view(N, C, -1)
 
         return y
 
@@ -109,18 +123,19 @@ class CompressedSensing(Forward):
 
         if self.channelwise:
             N2 = N*C
-            y = y.reshape(N2, -1)
+            y = y.view(N2, -1)
         else:
             N2 = N
 
         if self.fast:
+            #x = dct1(y)
             y2 = torch.zeros((N2, self.n), device=y.device)
             y2[:, self.mask] = y
-            x = dct1(y2)*self.D
+            x = dst1(y2)*self.D
         else:
             x = torch.einsum('im, nm->in', y, self._A_adjoint)  # x:(N, n, 1)
 
-        x = x.reshape(N, C, H, W)
+        x = x.view(N, C, H, W)
         return x
 
     def A_dagger(self, y):
@@ -143,12 +158,19 @@ if __name__ == "__main__":
     device = 'cuda:0'
 
     # for comparing fast=True and fast=False forward matrices.
-    for i in range(5):
-        n = 2**(i+2)
-        im_size = (3, n, n)
+    for i in range(1):
+        n = 2**(i+4)
+        im_size = (1, n, n)
         m = int(np.prod(im_size))
-        x = torch.randn((4,) + im_size, device=device)
+        x = torch.randn((1,) + im_size, device=device)
+
+        print((dst1(dst1(x))-x).flatten().abs().sum())
+
         physics = CompressedSensing(img_shape=im_size, m=m, fast=True, device=device)
+
+        print((physics.A_adjoint(physics.A(x))-x).flatten().abs().sum())
+        print(f'adjointness: {physics.adjointness_test(x)}')
+        print(f'norm: {physics.power_method(x, verbose=False)}')
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
         start.record()
@@ -162,3 +184,4 @@ if __name__ == "__main__":
         # Waits for everything to finish running
         torch.cuda.synchronize()
         print(start.elapsed_time(end))
+

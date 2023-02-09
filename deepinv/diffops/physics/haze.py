@@ -1,18 +1,19 @@
 import torch
-from deepinv.diffops.physics.forward import Forward
+from deepinv.diffops.physics.forward import Physics
 
 
-class Haze(Forward):
-    def __init__(self, beta=0.1):
+class Haze(Physics):
+    def __init__(self, beta=0.1, offset=0):
         super().__init__()
         self.beta = beta
+        self.offset = offset
 
     def A(self, x):
         im = x[0]
         d = x[1]
         A = x[2]
 
-        t = torch.exp(-self.beta*d)
+        t = torch.exp(-self.beta*(d+self.offset))
         y = t*im + (1-t)*A
         return y
 

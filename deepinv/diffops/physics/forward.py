@@ -44,7 +44,8 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
 
     return x
 
-class Forward(torch.nn.Module):  # parent class for forward models
+
+class Physics(torch.nn.Module):  # parent class for forward models
     def __init__(self, A=lambda x: x, A_adjoint=lambda x: x,
                  noise_model=lambda x: x, sensor_model=lambda x: x,
                  max_iter=50, tol=1e-3):
@@ -71,7 +72,7 @@ class Forward(torch.nn.Module):  # parent class for forward models
         A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x)) #(A'^{T} = A_2^{T} A_1^{T})
         noise = self.noise_model
         sensor = self.sensor_model
-        return Forward(A, A_adjoint, noise, sensor)
+        return Physics(A, A_adjoint, noise, sensor)
 
     def forward(self, x):  # degrades signal
         return self.sensor(self.noise(self.A(x)))
@@ -185,13 +186,13 @@ class Forward(torch.nn.Module):  # parent class for forward models
         v = torch.randn_like(Au)
         Atv = self.A_adjoint(v)
 
-        s1 = v.flatten().T @ Au.flatten()
-        s2 = Atv.flatten().T @ u_in.flatten()
+        s1 = (v*Au).flatten().sum()
+        s2 = (Atv*u_in).flatten().sum()
 
         return s1-s2
 
 
-class Denoising(Forward):
+class Denoising(Physics):
     def __init__(self, sigma=.1):
         super().__init__()
         self.name = 'denoising'

@@ -10,7 +10,7 @@ max_datapoints = 1e7
 num_workers = 4  # set to 0 if using cpu
 
 # problem
-problem = 'deblur'
+problem = 'inpainting'
 dataset = 'MNIST'
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
 

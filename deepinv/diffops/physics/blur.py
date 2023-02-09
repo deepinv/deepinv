@@ -3,7 +3,7 @@ from torchvision.transforms.functional import rotate
 import torchvision
 import torch.nn.functional as F
 import torch
-from deepinv.diffops.physics.forward import Forward
+from deepinv.diffops.physics.forward import Physics
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
@@ -29,18 +29,20 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     return filt.unsqueeze(0).unsqueeze(0)
 
 
-class Downsampling(Forward):
-    def __init__(self, factor=2, mode='bilinear'):
+class Downsampling(Physics):
+    def __init__(self, img_size, factor=2, mode='nearest', antialias=False):
         super().__init__()
         self.mode = mode
         self.scale = factor
+        self.imsize = img_size[-2:]
+        self.antialias = antialias
 
     def A(self, x):
-        s = interp(x, scale_factor=1/self.scale, mode=self.mode)
+        s = interp(x, scale_factor=1/self.scale, mode=self.mode, antialias=self.antialias)
         return s
 
     def A_adjoint(self, y):
-        s = interp(y, scale_factor=self.scale, mode=self.mode)
+        s = interp(y, size=self.imsize, mode=self.mode, antialias=self.antialias)
         return s
 
 
@@ -66,7 +68,7 @@ def conv(x, filter, padding):
     return y
 
 
-def deconv(y, filter, padding):
+def conv_transpose(y, filter, padding):
     b, c, h, w = y.shape
 
     if padding == 'same':
@@ -96,7 +98,7 @@ def deconv(y, filter, padding):
     return x
 
 
-class BlindBlur(Forward):
+class BlindBlur(Physics):
     def __init__(self, kernel_size=3, padding='same'):
         '''
         Blind blur operator
@@ -128,7 +130,7 @@ class BlindBlur(Forward):
         return x, w
 
 
-class Blur(Forward):
+class Blur(Physics):
     def __init__(self, filter=gaussian_blur(), padding='same', device='cpu'):
         '''
 
@@ -148,7 +150,7 @@ class Blur(Forward):
         return conv(x, self.filter, self.padding)
 
     def A_adjoint(self, y):
-        return deconv(y, self.filter, self.padding)
+        return conv_transpose(y, self.filter, self.padding)
 
 # test code
 if __name__ == "__main__":

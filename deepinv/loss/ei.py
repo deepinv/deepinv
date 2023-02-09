@@ -120,3 +120,66 @@ class AdvEILoss(nn.Module):
         optimizer_D.step()
 
         return loss_G, loss_D
+
+
+# --------------------------------------------
+# EI2 loss
+# --------------------------------------------
+class EI2Loss(nn.Module):
+    def __init__(self, transform, x_size, alpha=1., features=32, noise=True,
+                 metric=torch.nn.MSELoss(), weight=1., device='cuda:0'):
+        '''
+        :param transform: Transform to generate the virtually augmented measurement. It can be any torch-differentiable
+         function (deepinv.diffops.transform, torchvision.transforms, torch.nn.Modules, etc.)
+        :param metric: Metric used to compute the error between the reconstructed augmented measurement and the reference image.
+        :param noise: Apply noise (of physics) in the virtually augmented measurement.
+        :param weight: Weight of the loss.
+        '''
+        super(EI2Loss, self).__init__()
+        self.name = 'ei'
+        self.metric = metric
+        self.weight = weight
+        self.T = transform
+        self.noise = noise
+        self.alpha = alpha
+        self.W = torch.nn.Linear(in_features=x_size, out_features=features,
+                                 bias=False, device=device)
+
+        #self.W = torch.nn.Conv2d(in_channels=1, out_channels=features, kernel_size=3,
+        #                         bias=False, device=device)
+
+    def forward(self,  x1, physics, y):
+        x2 = self.T(x1)
+
+        # project into nullspace of physics
+        #r1 = x1 - physics.A_dagger(physics.A(x1))
+        #r2 = x2 - physics.A_dagger(physics.A(x2))
+
+        if self.noise:
+            r1 = physics(x2)
+        else:
+            r1 = physics.A(x2)
+
+        r2 = y
+
+        r1 = torch.reshape(r1, (r1.shape[0], -1))
+        r2 = torch.reshape(r2, (r2.shape[0], -1))
+
+        # compute random Fourier features
+        r1 = self.W(r1)*self.alpha
+        r2 = self.W(r2)*self.alpha
+
+        #r1 = torch.nn.functional.relu(r1)
+        #r2 = torch.nn.functional.relu(r2)
+        r1 = torch.cat([torch.sin(r1), torch.cos(r1)], dim=1)
+        r2 = torch.cat([torch.sin(r2), torch.cos(r2)], dim=1)
+
+        #r1 = (r1-r1.mean(dim=0).unsqueeze(0)).pow(2)
+        #r2 = (r2-r2.mean(dim=0).unsqueeze(0)).pow(2)
+
+
+        r1 = r1.mean(dim=0)
+        r2 = r2.mean(dim=0)
+
+        loss_ei = self.weight*self.metric(r1, r2)
+        return loss_ei
