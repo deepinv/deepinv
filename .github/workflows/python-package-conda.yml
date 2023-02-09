@@ -31,5 +31,4 @@ jobs:
     - name: Test with pytest
       run: |
         conda develop .
-        conda install --use-local deepinv
         python -m pytest deepinv/tests
