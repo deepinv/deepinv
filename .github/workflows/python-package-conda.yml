@@ -1,6 +1,12 @@
 name: Python Package using Conda
 
-on: [push]
+on: 
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
 
 jobs:
   test_no_conda:
@@ -11,10 +17,7 @@ jobs:
         include:
           - os: ubuntu-latest
             version_python: 3.9
-          - os: macos-latest
-            version_python: 3.9
     env:
-      JUNIT_XML: "test-data.xml"
       VERSION_PYTHON: ${{ matrix.version_python }}
 
     steps:
@@ -36,8 +39,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            version_python: 3.9
-          - os: macos-latest
             version_python: 3.9
     steps:
     - uses: actions/checkout@v3
