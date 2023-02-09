@@ -31,4 +31,4 @@ jobs:
     - name: Test with pytest
       run: |
         conda install pytest
-        pytest deepinv/tests
+        python -m pytest deepinv/tests
