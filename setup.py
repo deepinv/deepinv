@@ -18,7 +18,7 @@ extras_require = {
     # 'RBF-FD and Gaussians': ['cython', 'RBF @ git+https://github.com/treverhines/RBF']
 }
 
-with open("README.md", 'r', encoding='utf-8') as f:
+with open("README.rst", 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 download_url = 'https://github.com/edongdongchen/deepinv/archive/v{}.tar.gz'.format(about['__version__'])
