@@ -178,7 +178,7 @@ class AndersonExp(nn.Module):
 
             X[:, k % self.m] = self.beta * (alpha[:, None] @ F[:, :n])[:, 0] + (1 - self.beta) * (alpha[:, None] @ X[:, :n])[:, 0]
             F[:, k % self.m] = f(X[:, k % self.m].reshape(x0.shape)).reshape(bsz, -1)
-            res = (F[:, k % self.m] - X[:, k % self.m]).norm().item() / (1e-5 + F[:, k % m].norm().item())
+            res = (F[:, k % self.m] - X[:, k % self.m]).norm().item() / (1e-5 + F[:, k % self.m].norm().item())
 
             if (res < self.tol):
                 break
