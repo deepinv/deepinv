@@ -5,7 +5,7 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
 @pytest.fixture
 def device():
-    return 'cuda:0'
+    return dinv.device
 
 
 @pytest.fixture

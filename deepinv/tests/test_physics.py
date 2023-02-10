@@ -4,7 +4,7 @@ import deepinv as dinv
 
 @pytest.fixture
 def device():
-    return 'cuda:0'
+    return dinv.device
 
 
 @pytest.fixture
