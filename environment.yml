@@ -6,6 +6,7 @@ dependencies:
   - nodejs=16.13.*
   - flask
   - pip
+  - fastmri
   - torch
   - torchvision
   - pip:
