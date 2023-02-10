@@ -35,9 +35,6 @@ __all__ += ['datasets']
 
 __all__ += ['transform']
 
-from deepinv.diffops import noise
-__all__ += ['noise']
-
 from deepinv import sampling
 __all__ += ['sampling']
 

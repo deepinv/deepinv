@@ -1,14 +1,6 @@
 import torch
 import numpy as np
 
-class GaussianNoise(torch.nn.Module): # parent class for forward models
-    def __init__(self, sigma=.1):
-        super().__init__()
-        self.std = sigma
-
-    def forward(self, x):
-        return x + torch.randn_like(x)*self.std
-
 
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     '''
