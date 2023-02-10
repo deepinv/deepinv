@@ -12,93 +12,39 @@ __all__ = [
     "__license__",
 ]
 
-try:
-    from .diffops import models, physics, transform
-    __all__ += ['models']
-except ImportError:
-    pass
+from .diffops import models, physics, transform
+__all__ += ['models']
 
-try:
-    from deepinv import optim
-    __all__ += ['optim']
-except ImportError:
-    print('Warning: couldnt import optim subpackage')
-    pass
+from deepinv import optim
+__all__ += ['optim']
 
-try:
-    from deepinv import loss
-    __all__ += ['loss']
-except ImportError:
-    print('Warning: couldnt import loss subpackage')
-    pass
+from deepinv import loss
+__all__ += ['loss']
 
+from deepinv.diffops import models
+__all__ += ['iterative']
 
-try:
-    from deepinv.diffops import models
-    __all__ += ['iterative']
-except ImportError:
-    print('Warning: couldnt import models subpackage')
-    pass
+from deepinv.diffops.models import iterative
+__all__ += ['iterative']
 
-try:
-    from deepinv.diffops.models import iterative
-    __all__ += ['iterative']
-except ImportError:
-    print('Warning: couldnt import iterative subpackage')
-    pass
+from deepinv.diffops import physics
+__all__ += ['physics']
 
-try:
-    from deepinv.diffops import physics
-    __all__ += ['physics']
-except ImportError:
-    print('Warning: couldnt import physics subpackage')
-    pass
+from deepinv import datasets
+__all__ += ['datasets']
 
-try:
-    from deepinv import datasets
-    __all__ += ['datasets']
-except ImportError:
-    print('Warning: couldnt import datasets subpackage')
-    pass
+__all__ += ['transform']
 
-try:
-    __all__ += ['transform']
-except ImportError:
-    print('Warning: couldnt import transform subpackage')
-    pass
+from deepinv.diffops import noise
+__all__ += ['noise']
 
+from deepinv import sampling
+__all__ += ['sampling']
 
-try:
-    from deepinv.diffops import noise
-    __all__ += ['noise']
-except ImportError:
-    pass
+from deepinv.loss import loss as metric
+__all__ += ['metric']
 
-try:
-    from deepinv import optim
-    __all__ += ['optim']
-except ImportError:
-    pass
-
-
-try:
-    from deepinv import sampling
-    __all__ += ['sampling']
-except ImportError:
-    pass
-
-try:
-    from deepinv.loss import loss as metric
-    __all__ += ['metric']
-except ImportError:
-    pass
-
-try:
-    from deepinv.training_utils import train, test
-    __all__ += ['metric']
-except ImportError:
-    pass
-
+from deepinv.training_utils import train, test
 
 # GLOBAL PROPERTY
 dtype = torch.float
