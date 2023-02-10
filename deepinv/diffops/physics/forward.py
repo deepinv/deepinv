@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-
+from .noise import GaussianNoise
 
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     '''
