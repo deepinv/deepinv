@@ -21,6 +21,9 @@ __all__ += ['optim']
 from deepinv import loss
 __all__ += ['loss']
 
+from deepinv import utils
+__all__ += ['utils']
+
 from deepinv.diffops import models
 __all__ += ['iterative']
 

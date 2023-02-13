@@ -1,6 +1,4 @@
-from deepinv.utils.nn import save_model, load_checkpoint
-from deepinv.utils.logger import AverageMeter, ProgressMeter, get_timestamp
-from deepinv.utils.metric import cal_psnr
+from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr
 from deepinv.utils.plotting import plot_debug, torch2cpu
 import numpy as np
 from tqdm import tqdm
