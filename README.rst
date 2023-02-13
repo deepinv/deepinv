@@ -1,4 +1,4 @@
-DeepInv: A python library for imaging inverse problems
+DeepInv: PyTorch package for imaging inverse problems
 =====================================
 
 |Test Status| |Python 3.6+| |codecov|
