@@ -3,12 +3,6 @@ DeepInv: A python library for imaging inverse problems
 
 |Test Status| |Python 3.6+| |codecov|
 
-
-Benchmark repository for optimization
-=====================================
-
-|Test Status| |Python 3.6+| |codecov|
-
 DeepInv is a pytorch library for solving imaging inverse problems using deep learning.
 It is built for simplicity, transparency, and reproducibility.
 
