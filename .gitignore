@@ -20,6 +20,7 @@ results/
 /onebitcs/
 /experimental/
 /deepinv/datasets/reside/
+deepinv/version.py
 /saved_models/
 venv
 build
