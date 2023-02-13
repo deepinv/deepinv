@@ -25,7 +25,7 @@ Finding help
 If you need any help in using ``DeepInv`` do this
 
 
-Citing Benchopt
+Citing DeepInv
 ---------------
 
 If you use ``DeepInv`` in a scientific publication, please cite the following paper
