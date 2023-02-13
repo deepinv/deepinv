@@ -1,7 +1,7 @@
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from utils.plotting import plot_debug
+from deepinv.utils.plotting import plot_debug
 
 G = 1  # number of operators
 epochs = 2  # number of training epochs
