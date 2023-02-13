@@ -17,6 +17,7 @@ jobs:
         include:
           - os: ubuntu-latest
             version_python: 3.9
+            coverage: 'true'
     env:
       VERSION_PYTHON: ${{ matrix.version_python }}
 
@@ -64,7 +65,41 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+    - name: Test with pytest and generate coverage report
       run: |
         conda install pytest
+        conda install pytest-cov
         python -m pytest deepinv/tests
+        pytest --cov=./ --cov-report=xml
+         
+    - name: Upload coverage to Codecov
+      if: ${{ matrix.coverage == 'true' }}
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./coverage/reports/
+        env_vars: OS,PYTHON
+        fail_ci_if_error: true
+        files: ./coverage1.xml,./coverage2.xml
+        flags: unittests
+        name: codecov-umbrella
+        path_to_write_report: ./coverage/codecov_report.txt
+        verbose: true
+          
+  report_test:
+    if: ${{ always() }}
+    needs: [test_conda, test_no_conda]
+    runs-on: ubuntu-latest
+    env:
+      TEST_CONDA: ${{ needs.test_conda.result }}
+      TEST_NO_CONDA: ${{ needs.test_no_conda.result }}
+
+    steps:
+      - name: "Gather test results."
+        run: |
+          if [[ $TEST_CONDA == 'success' && $TEST_NO_CONDA == 'success' ]]; then
+            exit 0;
+          else
+            exit 1;
+          fi
+        shell: bash
