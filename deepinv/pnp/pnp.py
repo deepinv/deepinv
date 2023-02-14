@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from deepinv.optim.optim_base import optim
 
+
 class PnP(optim):
     '''
     Plug-and-Play (PnP) algorithms for image restoration. 
@@ -9,7 +10,6 @@ class PnP(optim):
 
     :param denoiser: denoising operator 
     :param sigma: Noise level of the denoiser. List or int. If list, the length of the list must be equal to max_iter.
-    :param theta: Additional parameter for ADMM and DRS.
     '''
     def __init__(self, denoiser, sigma = 1/255., theta = 1., **kwargs):
         super().__init__(**kwargs)
@@ -31,65 +31,64 @@ class PnP(optim):
                                 param=torch.nn.Parameter(torch.tensor(sigma, device=device),
                                 requires_grad=True))
 
-        if isinstance(theta, float) or isinstance(theta, int):
-            self.thetas = [theta] * self.max_iter
-        elif isinstance(theta, list):
-            assert len(theta) == self.max_iter
-            self.thetas = theta
-        else:
-            raise ValueError('theta must be either an int or a list of length max_iter') 
-
         
-    def HQS(self, y) : 
-        x = y
+    def HQS(self, y, physics, init=None) : 
+        '''
+        Plug-and-Play Half Quadratric Splitting (HQS) algorithm for image restoration.
+
+        :param y: Degraded image.
+        :param physics: Physics instance modeling the degradation.
+        :param init: Initialization of the algorithm. If None, the algorithm starts from y.
+        '''
+        if init is None:
+            x = y
+        else:
+            x = init
         for it in range(self.max_iter):
             x_prev = x
-            z = self.physics.prox(y, x, self.stepsizes[it])
+            z = self.data_fidelity.prox(x, y, physics, self.stepsizes[it])
             x = self.denoiser(z, self.sigmas[it])
-            if self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
 
-    def PGD(self, y) : 
-        x = y
+    def PGD(self, y, physics, init=None) : 
+        if init is None:
+            x = y
+        else:
+            x = init
         for it in range(self.max_iter):
             x_prev = x
-            z = x - self.stepsizes[it]*self.physics.grad(x)
+            z = x - self.stepsizes[it]*self.data_fidelity.grad(x, y, physics)
             x = self.denoiser(z, self.sigmas[it])
-            if self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
 
-    def DRS(self, y) :
-        x = y
-        for it in range(self.max_iter):
-            x_prev = x
-            z = 2*self.physics.prox(y, x, self.stepsizes[it]) - x
-            y = 2*self.denoiser(z, self.sigmas[it]) - z
-            x = self.thetas[it]*y + (1-self.theta[it])*x_prev
-            if self.check_conv(x_prev,x) :
-                break
-        return x
-
-    def ADMM(self, y):
+    def DRS(self, y, physics, init=None) :
         # TO DO 
         pass
 
-    def PD(self, y):
+
+    def ADMM(self, y, physics, init=None):
         # TO DO 
         pass
 
-    def forward(self, y):
+    def PD(self, y, physics, init=None):
+        # TO DO 
+        pass
+
+    def forward(self, y, physics, init=None):
         if self.algo_name == 'HQS':
-            return self.HQS(y)
+            return self.HQS(y, physics, init)
         elif self.algo_name == 'PGD':
-            return self.PGD(y)
+            return self.PGD(y, physics, init)
         elif self.algo_name == 'DRS':
-            return self.DRS(y)
+            return self.DRS(y, physics, init)
         elif self.algo_name == 'ADMM':
-            return self.ADMM(y)
+            return self.ADMM(y, physics, init)
         elif self.algo_name == 'PD':
-            return self.PD(y)
+            return self.PD(y, physics, init)
         else:
             raise notImplementedError
 

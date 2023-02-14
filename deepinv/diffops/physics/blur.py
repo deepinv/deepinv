@@ -252,7 +252,7 @@ class BlindBlur(Physics):
 
 
 class Blur(Physics):
-    def __init__(self, filter=gaussian_blur(), padding='same', device='cpu'):
+    def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu'):
         r'''
 
         Blur operator. Uses torch.conv2d for performing the convolutions

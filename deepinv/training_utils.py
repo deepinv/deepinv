@@ -17,7 +17,7 @@ def train(model,
           save_path='.',
           verbose=False,
           unsupervised=False,
-          plot=False,):
+          plot=False):
     """
     Trains a reconstruction model with the train dataloader.
     ----------
@@ -139,6 +139,7 @@ def test(model, test_dataloader,
           dtype=torch.float,
           device=torch.device(f"cuda:0"),
           plot=False,
+          plot_input=False,
           save_img_path=None):
 
     f = model
@@ -172,6 +173,8 @@ def test(model, test_dataloader,
 
             if g < show_operators and i == 0 and plot:
                 xlin = physics[g].A_adjoint(y)
+                if plot_input : 
+                    imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
@@ -186,8 +189,8 @@ def test(model, test_dataloader,
     print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
 
     if plot:
-        titles = ['Linear', 'Network', 'Ground Truth']
-        plot_debug(imgs, shape=(min(show_operators, G), 3), titles=titles,
+        titles = ['Input', 'Linear', 'Network', 'Ground Truth']
+        plot_debug(imgs, shape=(min(show_operators, G), 4), titles=titles,
                    row_order=True, save_dir=save_img_path)
 
     return test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr
