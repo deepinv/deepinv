@@ -63,4 +63,5 @@ test(model=model,  # Safe because it has forward
     physics=p,
     device=dinv.device,
     plot=True,
+    plot_input=True,
     save_img_path='../results/results_pnp.png')
