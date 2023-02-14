@@ -1,23 +1,8 @@
-from utils.nn import save_model
-from utils.logger import AverageMeter, ProgressMeter, get_timestamp
-from utils.metric import cal_psnr, norm
-from utils.plotting import plot_debug, torch2cpu
+from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr
+from deepinv.utils.plotting import plot_debug, torch2cpu
 import numpy as np
 from tqdm import tqdm
-from deepinv.loss.sup import SupLoss
 import torch
-
-
-def load_checkpoint(model, path_checkpoint, device):
-    checkpoint = torch.load(path_checkpoint, map_location=device)
-    model.load_state_dict(checkpoint['state_dict'])
-    return model
-
-
-def data_parallel(model, ngpu=1):
-    if ngpu > 1:
-        model = torch.nn.DataParallel(model, list(range(ngpu)))
-    return model
 
 
 def train(model,

@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from .noise import GaussianNoise
 
+
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     '''
     Standard conjugate gradient algorithm to solve Ax=b
@@ -155,7 +156,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
             rel_var = torch.norm(z - zold)
             if rel_var < tol and verbose:
-                print("Power iteration converged at iteration: ", it, ", val: ", z)
+                print(f"Power iteration converged at iteration {it}, value={z.item():.2f}")
                 break
             zold = z
             x = y / torch.norm(y)
