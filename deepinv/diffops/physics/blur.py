@@ -114,46 +114,33 @@ class Downsampling(Physics):
         return x
 
     def prox_l2(self, y, z, gamma):
-        if self.padding == 'circular':
-            x_shape = x.shape
-            # Formula from (Zhao, 2016)
-            z_t = gamma*self.A_adjoint(y) + z
+        if self.padding == 'circular': # Formula from (Zhao, 2016)
 
-            h = filter_fft(self.filter, x.shape, real=False)
-
-            r = fft.fft2(x)
+            z_hat = gamma*self.A_adjoint(y) + z
+            Fz_hat = fft.fft2(z_hat)
+            Fh = filter_fft(self.filter, x.shape, real=False)
+            Fhc = torch.conj(Fh)
+            Fh2 = torch.abs(Fhc*Fh)
+            Fx = fft.fft2(x)
 
             # splitting
             def splits(a, sf):
                 '''split a into sfxsf distinct blocks
                 Args:
-                    a: NxCxWxHx2
+                    a: NxCxWxH
                     sf: split factor
                 Returns:
-                    b: NxCx(W/sf)x(H/sf)x2x(sf^2)
+                    b: NxCx(W/sf)x(H/sf)x(sf^2)
                 '''
-                b = torch.stack(torch.chunk(a, sf, dim=2), dim=5)
-                b = torch.cat(torch.chunk(b, sf, dim=3), dim=5)
+                b = torch.stack(torch.chunk(a, sf, dim=2), dim=4)
+                b = torch.cat(torch.chunk(b, sf, dim=3), dim=4)
                 return b
 
-            r = splits(torch.view_as_real(r), self.factor)
-            h = splits(torch.view_as_real(h), self.factor)
-
-            r = torch.view_as_complex(torch.sum(r*h, dim=-1)) # NxCx(W/sf)x(H/sf)
-
-            h_s = torch.sum(h*h, dim=(-2, -1)) # NxCx(W/sf)x(H/sf)
-
-            # scaling
-            r /= (1 + h_s*gamma/self.factor**2)
-
-            r = r.unsqueeze(-1)*h
-
-            r = r.view(*x_shape)
-
-            # unpacking
-            r = torch.real(fft.ifft2(x))
-
-            return z_t - r/self.factor**2
+            top = torch.mean(splits(Fh*Fz_hat, self.factor),dim=-1)
+            below = gamma*torch.mean(splits(Fh2, self.factor),dim=-1) + 1
+            rc = Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            r = torch.real(fft.ifft2(rc))
+            return z_hat - r
         else:
             return Physics.prox_l2(self, y, z, gamma)
 
@@ -386,46 +373,28 @@ class BlurFFT(DecomposablePhysics):
 # test code
 if __name__ == "__main__":
     device = 'cuda:0'
-
+    import deepinv as dinv
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image('../../../datasets/celeba/img_align_celeba/010214.jpg')
-    x = x.unsqueeze(0).float()/256
-
-    pix = 128
+    x = torchvision.io.read_image('../../../datasets/set3c/0/butterfly.png')
+    x = x.unsqueeze(0).float()/255
     factor = 2
-
-    x = x[:, :, :pix, :pix].to(device)
-
-    #w = torch.ones((1, 1, 10, 1),device=device)/10
-    #physics = BlindBlur(kernel_size=5, padding='same')
-    #physics = Blur(filter=w, padding='circular', device=device)
-
-    #physics = BlurFFT(filter=gaussian_blur(sigma=(1, 1)),img_size=(3, pix, pix), device=device)
-
-    physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='gauss', device=device)
-    #physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
+    x = x.to(device)
+    physics = Downsampling(factor=factor, img_size=(3, 256, 256), mode='gauss', device=device)
+    physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
 
     y = physics(x)
 
     print(physics.adjointness_test(x))
     print(physics.power_method(x))
-    #x = [x, w]
-    #xhat = physics.A_adjoint(y)
 
-    #xhat = physics.A_dagger(y)
-    xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=.1)
-
-    #x = x[0]
-    #xhat = xhat[0]
-
-
-    plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
+    xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=2)
     plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
     plt.show()
 
-    plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
+    # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
