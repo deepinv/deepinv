@@ -368,19 +368,13 @@ class BlurFFT(DecomposablePhysics):
         :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
         :param device: cpu or cuda
         '''
-<<<<<<< HEAD
-        super().__init__(**kwargs)
-        self.mask = filter_fft(filter, img_size, device=device)
-=======
         super().__init__()
 
         assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'
 
 
         self.img_size = img_size
-        print(self.img_size)
         self.mask = filter_fft(filter, img_size)
->>>>>>> bb7fd08acf543e3fe5b3a4ab22acc71e86056bc9
         self.mask = self.mask.requires_grad_(False).to(device)
 
 
@@ -388,11 +382,7 @@ class BlurFFT(DecomposablePhysics):
         return fft.fft2(x, norm="ortho")
 
     def U(self, x):
-<<<<<<< HEAD
-        return torch.real(fft.ifft2(x, norm="ortho"))
-=======
         return fft.irfft2(x, norm="ortho", s=self.img_size[-2:])
->>>>>>> bb7fd08acf543e3fe5b3a4ab22acc71e86056bc9
 
     def U_adjoint(self, x):
         return self.V_adjoint(x)
