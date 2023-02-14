@@ -10,8 +10,8 @@ max_datapoints = 1e7
 num_workers = 4  # set to 0 if using cpu
 
 # problem
-problem = 'inpainting'
-dataset = 'MNIST'
+problem = 'deblur'
+dataset = 'CelebA'
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 
@@ -26,6 +26,9 @@ elif dataset =='CelebA':
 elif dataset =='FashionMNIST':
     data_train = datasets.FashionMNIST(root='../datasets/', train=True, transform=transform_data, download=True)
     data_test = datasets.FashionMNIST(root='../datasets/', train=False, transform=transform_data)
+
+else :
+    raise Exception("The dataset chosen doesn't exist")
 
 
 x = data_train[0]
