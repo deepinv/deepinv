@@ -4,8 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.pnp.denoiser import Denoiser
 from deepinv.pnp.pnp import PnP
-from deepinv.pnp.red import RED
 from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.optim_base import ProxOptim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -23,7 +23,8 @@ noise_level_img = 0.03
 lamb = 0.1
 stepsize = 1 / lamb
 sigma_k = 2.
-sigma = sigma_k*noise_level_img
+sigma_denoiser = sigma_k*noise_level_img
+max_iter = 10
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -56,7 +57,9 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, ckpt_path=ckpt_path)
 
-pnp = PnP(algo_name=pnp_algo, data_fidelity=data_fidelity, denoiser=denoiser, max_iter=10, sigma=0.03, stepsize=stepsize, device=dinv.device)
+prox_g = lambda x,it : denoiser(x, sigma_denoiser)
+
+pnp = ProxOptim(prox_g = prox_g, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
 
 test(model=pnp,  # Safe because it has forward
     test_dataloader=dataloader,
