@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from deepinv.pnp.denoiser import Denoiser
 from deepinv.pnp.pnp import PnP
 from deepinv.pnp.red import RED
+from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -36,11 +37,12 @@ elif problem == 'denoising':
 elif problem == 'blind_deblur':
     p = dinv.physics.BlindBlur(kernel_size=11)
 elif problem == 'deblur':
-    p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
+    p = dinv.physics.BlurFFT((3,256,256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
 else:
     raise Exception("The inverse problem chosen doesn't exist")
-
 p.noise = dinv.physics.GaussianNoise(sigma=noise_level_img)
+
+data_fidelity = DataFidelity(type='L2')
 
 val_transform = transforms.Compose([
             transforms.ToTensor(),
@@ -54,11 +56,9 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, ckpt_path=ckpt_path)
 
-pnp = PnP(algo_name=pnp_algo, denoiser=denoiser, physics = p, max_iter=10, sigma=0.03, stepsize=stepsize, device=dinv.device)
+pnp = PnP(algo_name=pnp_algo, data_fidelity=data_fidelity, denoiser=denoiser, max_iter=10, sigma=0.03, stepsize=stepsize, device=dinv.device)
 
-model = lambda x,physics : pnp(x)
-
-test(model=model,  # Safe because it has forward
+test(model=pnp,  # Safe because it has forward
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
