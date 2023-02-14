@@ -68,11 +68,15 @@ class Downsampling(Physics):
     r'''
     Downsampling operator for super-resolution problems.
 
+    :param img_size: (tuple of ints), size of the input image
+    :param factor: (int), downsampling factor
+    :param mode: (str) downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
+    :param sigma_gauss: (int or tuple of ints) standard deviation of the gaussian kernel. If int, the same value is used for both dimensions. If None, the standard deviation is set to the downsampling factor.
+    :param device:( (str) device
+    :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+
     '''
-    def __init__(self, img_size, factor=2, mode=None, device='cpu', padding='circular'):
-        '''
-        p
-        '''
+    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, device='cpu', padding='circular'):
         super().__init__()
         self.factor = factor
         self.imsize = img_size
@@ -81,7 +85,18 @@ class Downsampling(Physics):
 
         if mode:
             if mode == 'gauss':
-                self.filter = gaussian_blur(sigma=(self.factor, self.factor)).requires_grad_(False).to(device)
+                if sigma_gauss is None:
+                    sigma_gauss_x = factor
+                    sigma_gauss_y = factor
+                elif isinstance(sigma_gauss, int):
+                    sigma_gauss_x = sigma_gauss
+                    sigma_gauss_y = sigma_gauss
+                elif isinstance(sigma_gauss, tuple):
+                    sigma_gauss_x = sigma_gauss[0]
+                    sigma_gauss_y = sigma_gauss[1]
+                else:
+                    raise Exception("sigma_gauss should be an int or a tuple of ints")
+                self.filter = gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y)).requires_grad_(False).to(device)
             elif mode == 'bilinear':
                 self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
             elif mode == 'bicubic':
