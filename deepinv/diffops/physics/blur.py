@@ -22,6 +22,7 @@ def filter_fft(filter, img_size, real=True):
         return fft.fft2(filt2)
 
 
+
 def gaussian_blur(sigma=(1, 1), angle=0):
     s = max(sigma)
     c = int(s/0.3+1)
@@ -69,11 +70,15 @@ class Downsampling(Physics):
     r'''
     Downsampling operator for super-resolution problems.
 
+    :param img_size: (tuple of ints), size of the input image
+    :param factor: (int), downsampling factor
+    :param mode: (str) downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
+    :param sigma_gauss: (int or tuple of ints) standard deviation of the gaussian kernel. If int, the same value is used for both dimensions. If None, the standard deviation is set to the downsampling factor.
+    :param device:( (str) device
+    :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+
     '''
-    def __init__(self, img_size, factor=2, mode=None, device='cpu', padding='circular'):
-        '''
-        p
-        '''
+    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, device='cpu', padding='circular'):
         super().__init__()
         self.factor = factor
         self.imsize = img_size
@@ -82,7 +87,18 @@ class Downsampling(Physics):
 
         if mode:
             if mode == 'gauss':
-                self.filter = gaussian_blur(sigma=(self.factor, self.factor)).requires_grad_(False).to(device)
+                if sigma_gauss is None:
+                    sigma_gauss_x = factor
+                    sigma_gauss_y = factor
+                elif isinstance(sigma_gauss, int):
+                    sigma_gauss_x = sigma_gauss
+                    sigma_gauss_y = sigma_gauss
+                elif isinstance(sigma_gauss, tuple):
+                    sigma_gauss_x = sigma_gauss[0]
+                    sigma_gauss_y = sigma_gauss[1]
+                else:
+                    raise Exception("sigma_gauss should be an int or a tuple of ints")
+                self.filter = gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y)).requires_grad_(False).to(device)
             elif mode == 'bilinear':
                 self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
             elif mode == 'bicubic':
@@ -91,6 +107,10 @@ class Downsampling(Physics):
                 raise Exception("The downsampling mode chosen doesn't exist")
 
         assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
+
+        self.Fh = filter_fft(self.filter, x.shape, real=False)
+        self.Fhc = torch.conj(self.Fh)
+        self.Fh2 = torch.abs(self.Fhc*self.Fh)
 
     def A(self, x):
 
@@ -115,46 +135,28 @@ class Downsampling(Physics):
         return x
 
     def prox_l2(self, y, z, gamma):
-        if self.padding == 'circular':
-            x_shape = x.shape
-            # Formula from (Zhao, 2016)
-            z_t = gamma*self.A_adjoint(y) + z
+        if self.padding == 'circular': # Formula from (Zhao, 2016)
 
-            h = filter_fft(self.filter, x.shape, real=False)
+            z_hat = gamma*self.A_adjoint(y) + z
+            Fz_hat = fft.fft2(z_hat)
 
-            r = fft.fft2(x)
-
-            # splitting
             def splits(a, sf):
                 '''split a into sfxsf distinct blocks
                 Args:
-                    a: NxCxWxHx2
+                    a: NxCxWxH
                     sf: split factor
                 Returns:
-                    b: NxCx(W/sf)x(H/sf)x2x(sf^2)
+                    b: NxCx(W/sf)x(H/sf)x(sf^2)
                 '''
-                b = torch.stack(torch.chunk(a, sf, dim=2), dim=5)
-                b = torch.cat(torch.chunk(b, sf, dim=3), dim=5)
+                b = torch.stack(torch.chunk(a, sf, dim=2), dim=4)
+                b = torch.cat(torch.chunk(b, sf, dim=3), dim=4)
                 return b
 
-            r = splits(torch.view_as_real(r), self.factor)
-            h = splits(torch.view_as_real(h), self.factor)
-
-            r = torch.view_as_complex(torch.sum(r*h, dim=-1)) # NxCx(W/sf)x(H/sf)
-
-            h_s = torch.sum(h*h, dim=(-2, -1)) # NxCx(W/sf)x(H/sf)
-
-            # scaling
-            r /= (1 + h_s*gamma/self.factor**2)
-
-            r = r.unsqueeze(-1)*h
-
-            r = r.view(*x_shape)
-
-            # unpacking
-            r = torch.real(fft.ifft2(x))
-
-            return z_t - r/self.factor**2
+            top = torch.mean(splits(self.Fh*Fz_hat, self.factor),dim=-1)
+            below = gamma*torch.mean(splits(self.Fh2, self.factor),dim=-1) + 1
+            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            r = torch.real(fft.ifft2(rc))
+            return z_hat - r
         else:
             return Physics.prox_l2(self, y, z, gamma)
 
@@ -375,6 +377,7 @@ class BlurFFT(DecomposablePhysics):
         print(self.img_size)
         self.mask = filter_fft(filter, img_size)
         self.mask = self.mask.requires_grad_(False).to(device)
+
 
     def V_adjoint(self, x):
         return fft.rfft2(x, norm="ortho")
