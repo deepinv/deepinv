@@ -16,7 +16,7 @@ def imsize():
 
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
-operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur', 'super_resolution']
+operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur_fft', 'deblur', 'super_resolution']
 
 def find_operator(name, img_size, device):
     '''
@@ -30,7 +30,8 @@ def find_operator(name, img_size, device):
     if name == 'CS':
         p = dinv.physics.CompressedSensing(m=300, img_shape=img_size, device=device)
     elif name == 'fastCS':
-        p = dinv.physics.CompressedSensing(m=200, fast=True, channelwise=True, img_shape=img_size, device=device)
+        p = dinv.physics.CompressedSensing(m=200, fast=True, channelwise=True,
+                                           img_shape=img_size, device=device)
     elif name == 'inpainting':
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=.5, device=device)
     elif name == 'MRI':
@@ -41,6 +42,9 @@ def find_operator(name, img_size, device):
         p = dinv.physics.BlindBlur(kernel_size=3)
     elif name == 'deblur':
         p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=device)
+    elif name == 'deblur_fft':
+        p = dinv.physics.BlurFFT(img_size=img_size, filter=dinv.physics.blur.gaussian_blur
+        (sigma=(.1, .5), angle=45.), device=device)
     elif name == 'super_resolution':
         p = dinv.physics.Downsampling(img_size=img_size, factor=2)
     else:

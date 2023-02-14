@@ -11,12 +11,14 @@ def filter_fft(filter, img_size, device='cpu'):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
-    filt2 = torch.zeros(filter.shape[:2] + img_size[-2:], device=device)
+    filt2 = torch.zeros(filter.shape[:2] + img_size[-2:], device=filter.device)
 
     filt2[:, :filter.shape[1], :filter.shape[2], :filter.shape[3]] = filter
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
     return fft.fft2(filt2)
+
+
 
 def gaussian_blur(sigma=(1, 1), angle=0):
     s = max(sigma)
@@ -366,8 +368,19 @@ class BlurFFT(DecomposablePhysics):
         :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
         :param device: cpu or cuda
         '''
+<<<<<<< HEAD
         super().__init__(**kwargs)
         self.mask = filter_fft(filter, img_size, device=device)
+=======
+        super().__init__()
+
+        assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'
+
+
+        self.img_size = img_size
+        print(self.img_size)
+        self.mask = filter_fft(filter, img_size)
+>>>>>>> bb7fd08acf543e3fe5b3a4ab22acc71e86056bc9
         self.mask = self.mask.requires_grad_(False).to(device)
 
 
@@ -375,7 +388,11 @@ class BlurFFT(DecomposablePhysics):
         return fft.fft2(x, norm="ortho")
 
     def U(self, x):
+<<<<<<< HEAD
         return torch.real(fft.ifft2(x, norm="ortho"))
+=======
+        return fft.irfft2(x, norm="ortho", s=self.img_size[-2:])
+>>>>>>> bb7fd08acf543e3fe5b3a4ab22acc71e86056bc9
 
     def U_adjoint(self, x):
         return self.V_adjoint(x)
@@ -387,28 +404,47 @@ class BlurFFT(DecomposablePhysics):
 # test code
 if __name__ == "__main__":
     device = 'cuda:0'
-    import deepinv as dinv
+
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image('../../../datasets/set3c/0/butterfly.png')
-    x = x.unsqueeze(0).float()/255
+    x = torchvision.io.read_image('../../../datasets/celeba/img_align_celeba/010214.jpg')
+    x = x.unsqueeze(0).float()/256
+
+    pix = 125
+    pix2 = 128
     factor = 2
-    x = x.to(device)
-    physics = Downsampling(factor=factor, img_size=(3, 256, 256), mode='gauss', device=device)
-    physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
+
+    x = x[:, :, :pix, :pix2].to(device)
+
+    #w = torch.ones((1, 1, 10, 1),device=device)/10
+    #physics = BlindBlur(kernel_size=5, padding='same')
+    #physics = Blur(filter=w, padding='circular', device=device)
+
+    physics = BlurFFT(filter=gaussian_blur(sigma=(.1, .5), angle=45.), img_size=(3, pix, pix2), device=device)
+
+    #physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='gauss', device=device)
+    #physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
 
     y = physics(x)
 
     print(physics.adjointness_test(x))
     print(physics.power_method(x))
+    #x = [x, w]
+    #xhat = physics.A_adjoint(y)
 
-    xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=2)
+    xhat = physics.A_dagger(y)
+    #xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=.1)
+
+    #x = x[0]
+    #xhat = xhat[0]
+
+
+    plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
+    plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
     plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
     plt.show()
 
-    # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
+    plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
