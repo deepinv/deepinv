@@ -11,8 +11,10 @@ class PnP(optim):
     :param sigma: Noise level of the denoiser. List or int. If list, the length of the list must be equal to max_iter.
     :param theta: Additional parameter for ADMM and DRS.
     '''
-    def __init__(self, denoiser, sigma = 1., theta = 1., **kwargs):
+    def __init__(self, denoiser, sigma = 1/255., theta = 1., **kwargs):
         super().__init__(**kwargs)
+
+        self.denoiser = denoiser
 
         assert self.algo_name in ('HQS', 'PGD', 'ADMM', 'DRS', 'PD'), 'Algo must be proximal'
         if not self.unroll : 
@@ -22,7 +24,7 @@ class PnP(optim):
                 assert len(sigma) == self.max_iter
                 self.sigmas = sigma
             else:
-                raise ValueError('sigma must be either an int or a list of length max_iter') 
+                raise ValueError('sigma must be either int/float,  or a list of length max_iter') 
         else : 
             assert isinstance(sigma, int) # the initial parameter is uniform across layer int in that case
             self.register_parameter(name='sigmas',
@@ -42,7 +44,7 @@ class PnP(optim):
         x = y
         for it in range(self.max_iter):
             x_prev = x
-            z = self.physics.prox(x, self.stepsizes[it])
+            z = self.physics.prox(y, x, self.stepsizes[it])
             x = self.denoiser(z, self.sigmas[it])
             if self.check_conv(x_prev,x) :
                 break
@@ -62,7 +64,7 @@ class PnP(optim):
         x = y
         for it in range(self.max_iter):
             x_prev = x
-            z = 2*self.physics.prox(x, self.stepsizes[it]) - x
+            z = 2*self.physics.prox(y, x, self.stepsizes[it]) - x
             y = 2*self.denoiser(z, self.sigmas[it]) - z
             x = self.thetas[it]*y + (1-self.theta[it])*x_prev
             if self.check_conv(x_prev,x) :

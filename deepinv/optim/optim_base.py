@@ -25,13 +25,13 @@ class optim(nn.Module):
         self.physics = physics
         self.unroll = unroll
         if not unroll : 
-            if isinstance(stepsize, int):
+            if isinstance(stepsize, float) or isinstance(stepsize, int):
                 self.stepsizes = [stepsize] * max_iter
             elif isinstance(stepsize, list):
                 assert len(stepsize) == max_iter
                 self.stepsizes = stepsize
             else:
-                raise ValueError('stepsize must be either an int or a list of length max_iter') 
+                raise ValueError('stepsize must be either int/float or a list of length max_iter') 
         else : 
             assert isinstance(stepsize, int) # the initial parameter is uniform across layer int in that case
             self.register_parameter(name='step_size',
@@ -39,8 +39,9 @@ class optim(nn.Module):
                                 requires_grad=True))
         self.max_iter = max_iter
         self.crit_conv = crit_conv
+        self.verbose = verbose
 
-    def check_conv(x_prev,x):
+    def check_conv(self,x_prev,x):
         crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
         if self.verbose:
             print(it, 'crit = ', crit_cur , '\r')

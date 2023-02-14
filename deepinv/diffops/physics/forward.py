@@ -81,7 +81,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def A_adjoint(self, x):
         return self.adjoint(x)
 
-    def prox(self, y, z, gamma):
+    def prox(self, y, z, gamma=1.):
         '''
         Computes proximal operator of f(x) = 1/2*||Ax-y||^2
         i.e. argmin_x 1/2*||Ax-y||^2+gamma/2*||x-z||^2

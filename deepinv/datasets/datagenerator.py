@@ -74,9 +74,10 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
     n_train = min(len(train_dataset), max_datapoints)
     n_train_g = int(n_train/G)
-
-    n_test = min(len(test_dataset), max_datapoints)
-    n_test_g = int(n_test/G)
+    
+    if test_dataset is not None:
+        n_test = min(len(test_dataset), max_datapoints)
+        n_test_g = int(n_test/G)
 
     for g in range(G):
         hf = h5py.File(f"{save_dir}/{dataset_filename}{g}.h5", 'w')
