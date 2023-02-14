@@ -3,8 +3,23 @@ import torchvision
 import torch.nn.functional as F
 import torch
 import numpy as np
-from deepinv.diffops.physics.forward import Physics
+import torch.fft as fft
+from deepinv.diffops.physics.forward import Physics, DecomposablePhysics
 
+
+def filter_fft(filter, img_size, real=True):
+    ph = int((filter.shape[2] - 1) / 2)
+    pw = int((filter.shape[3] - 1) / 2)
+
+    filt2 = torch.zeros(filter.shape[:2] + img_size[-2:], device=device)
+
+    filt2[:, :filter.shape[1], :filter.shape[2], :filter.shape[3]] = filter
+    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
+
+    if real:
+        return fft.rfft2(filt2)
+    else:
+        return fft.fft2(filt2)
 
 def gaussian_blur(sigma=(1, 1), angle=0):
     s = max(sigma)
@@ -48,9 +63,16 @@ def bicubic_filter(factor=2):
     return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
 
 
-# TODO: add more filters
+# TODO: fix bilinear filter
 class Downsampling(Physics):
+    r'''
+    Downsampling operator for super-resolution problems.
+
+    '''
     def __init__(self, img_size, factor=2, mode=None, device='cpu', padding='circular'):
+        '''
+        p
+        '''
         super().__init__()
         self.factor = factor
         self.imsize = img_size
@@ -87,9 +109,53 @@ class Downsampling(Physics):
         x[:, :, ::self.factor, ::self.factor] = y  # upsample
 
         if self.mode:
-            x = conv_transpose(x, self.filter, padding=self.padding) #*(self.factor**2)
+            x = conv_transpose(x, self.filter, padding=self.padding)
 
         return x
+
+    def prox_l2(self, y, z, gamma):
+        if self.padding == 'circular':
+            x_shape = x.shape
+            # Formula from (Zhao, 2016)
+            z_t = gamma*self.A_adjoint(y) + z
+
+            h = filter_fft(self.filter, x.shape, real=False)
+
+            r = fft.fft2(x)
+
+            # splitting
+            def splits(a, sf):
+                '''split a into sfxsf distinct blocks
+                Args:
+                    a: NxCxWxHx2
+                    sf: split factor
+                Returns:
+                    b: NxCx(W/sf)x(H/sf)x2x(sf^2)
+                '''
+                b = torch.stack(torch.chunk(a, sf, dim=2), dim=5)
+                b = torch.cat(torch.chunk(b, sf, dim=3), dim=5)
+                return b
+
+            r = splits(torch.view_as_real(r), self.factor)
+            h = splits(torch.view_as_real(h), self.factor)
+
+            r = torch.view_as_complex(torch.sum(r*h, dim=-1)) # NxCx(W/sf)x(H/sf)
+
+            h_s = torch.sum(h*h, dim=(-2, -1)) # NxCx(W/sf)x(H/sf)
+
+            # scaling
+            r /= (1 + h_s*gamma/self.factor**2)
+
+            r = r.unsqueeze(-1)*h
+
+            r = r.view(*x_shape)
+
+            # unpacking
+            r = torch.real(fft.ifft2(x))
+
+            return z_t - r/self.factor**2
+        else:
+            return Physics.prox_l2(self, y, z, gamma)
 
 
 def extend_filter(filter):
@@ -118,6 +184,14 @@ def extend_filter(filter):
 
 
 def conv(x, filter, padding):
+    '''
+        Convolution of x and filter. The transposed of this operation is conv_transpose(x, filter, padding)
+
+        :param x: (torch.Tensor) Image of size (B,C,W,H).
+        :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
+        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image.
+    '''
     b, c, h, w = x.shape
 
     filter = extend_filter(filter)
@@ -147,6 +221,15 @@ def conv(x, filter, padding):
 
 
 def conv_transpose(y, filter, padding):
+    '''
+        Tranposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
+
+        :param x: (torch.Tensor) Image of size (B,C,W,H).
+        :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
+        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image.
+    '''
+
     b, c, h, w = y.shape
 
     filter = extend_filter(filter)
@@ -214,13 +297,11 @@ def conv_transpose(y, filter, padding):
         out[:, :, -1, -1] += x[:, :, -ph:, -pw:].sum(3).sum(2)
         out[:, :, -1, 0] += x[:, :, -ph:, :pw].sum(3).sum(2)
         out[:, :, 0, -1] += x[:, :, :ph, -pw:].sum(3).sum(2)
-
-
     return out
 
 
 class BlindBlur(Physics):
-    def __init__(self, kernel_size=3, padding='same'):
+    def __init__(self, kernel_size=3, padding='circular'):
         r'''
         Blind blur operator
 
@@ -251,15 +332,15 @@ class BlindBlur(Physics):
         return x, w
 
 
-class Blur(Physics):
-    def __init__(self, filter=gaussian_blur(), padding='same', device='cpu'):
+class Blur(DecomposablePhysics):
+    def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu'):
         r'''
 
         Blur operator. Uses torch.conv2d for performing the convolutions
 
         :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
-        :param padding: if 'same' the blurred output has the same size as the image
-        if 'valid' the blurred output is smaller than the image (no padding)
+        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image.
         :param device: cpu or cuda
         '''
         super().__init__()
@@ -273,6 +354,35 @@ class Blur(Physics):
     def A_adjoint(self, y):
         return conv_transpose(y, self.filter, self.padding)
 
+
+class BlurFFT(DecomposablePhysics):
+    def __init__(self,  img_size, filter=gaussian_blur(), device='cpu'):
+        r'''
+
+        Blur operator based on torch.fft operations. Uses torch.conv2d for performing the convolutions
+        The FFT assumes a circular padding of the input
+
+        :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
+        :param device: cpu or cuda
+        '''
+        super().__init__()
+        self.mask = filter_fft(filter, img_size)
+        self.mask = self.mask.requires_grad_(False).to(device)
+
+
+    def V_adjoint(self, x):
+        return fft.rfft2(x, norm="ortho")
+
+    def U(self, x):
+        return fft.irfft2(x, norm="ortho")
+
+    def U_adjoint(self, x):
+        return self.V_adjoint(x)
+
+    def V(self, x):
+        return self.U(x)
+
+
 # test code
 if __name__ == "__main__":
     device = 'cuda:0'
@@ -283,14 +393,17 @@ if __name__ == "__main__":
     x = x.unsqueeze(0).float()/256
 
     pix = 128
-    factor = 3
+    factor = 2
 
     x = x[:, :, :pix, :pix].to(device)
 
-    w = torch.ones((1, 1, 10, 1),device=device)/10
+    #w = torch.ones((1, 1, 10, 1),device=device)/10
     #physics = BlindBlur(kernel_size=5, padding='same')
-    physics = Blur(filter=w, padding='circular', device=device)
-    #physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='bilinear', device=device)
+    #physics = Blur(filter=w, padding='circular', device=device)
+
+    #physics = BlurFFT(filter=gaussian_blur(sigma=(1, 1)),img_size=(3, pix, pix), device=device)
+
+    physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='gauss', device=device)
     #physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
 
     y = physics(x)
@@ -300,8 +413,8 @@ if __name__ == "__main__":
     #x = [x, w]
     #xhat = physics.A_adjoint(y)
 
-    xhat = physics.A_dagger(y)
-    #xhat = physics.prox(y, torch.zeros_like(x), gamma=.1)
+    #xhat = physics.A_dagger(y)
+    xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=.1)
 
     #x = x[0]
     #xhat = xhat[0]

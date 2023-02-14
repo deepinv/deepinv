@@ -80,3 +80,23 @@ def test_operators_norm(name, imsize, device):
     norm = physics.power_method(x)
     assert 1.5 > norm > .5
 
+
+@pytest.mark.parametrize("name", operators)
+def test_pseudo_inverse(name, imsize, device):
+    '''
+    Tests if a linear physics operator has a well defined pseudoinverse.
+    Warning: Only test linear operators, non-linear ones will fail the test.
+
+    :param name: operator name (see find_operator)
+    :param imsize: (tuple) image size tuple in (C, H, W)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts norm is in (.5,1.5)
+    '''
+    physics = find_operator(name, imsize, device)
+    x = torch.randn(imsize, device=device).unsqueeze(0)
+
+    r = physics.A_adjoint(physics.A(x))
+    y = physics.A(r)
+    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    assert error < 0.01
+

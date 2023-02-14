@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from deepinv.diffops.models import drunet_testmode
 
+
 class ProximalGradient(nn.Module):
     """
     TODO: add doc

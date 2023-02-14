@@ -1,8 +1,8 @@
-from deepinv.diffops.physics.forward import Physics
+from deepinv.diffops.physics.forward import DecomposablePhysics
 import torch
 
 
-class Inpainting(Physics):
+class Inpainting(DecomposablePhysics):
     def __init__(self, tensor_size, mask=0.3, device='cuda:0'):
         super().__init__()
         self.name = 'inpainting'
@@ -16,13 +16,3 @@ class Inpainting(Physics):
             self.mask[torch.rand_like(self.mask) > mask_rate] = 0
 
         self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
-
-    def A(self, x):
-        return self.mask * x
-
-    def A_dagger(self, x):
-        return self.mask * x
-
-    def A_adjoint(self, x):
-        return self.A_dagger(x)
-

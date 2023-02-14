@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from .noise import GaussianNoise
 
 
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
@@ -56,6 +55,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.noise_model = noise_model
         self.sensor_model = sensor_model
         self.forw = A
+        self.SVD = False  # flag indicating SVD available
         self.adjoint = A_adjoint
         self.max_iter = max_iter
         self.tol = tol
@@ -82,7 +82,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def A_adjoint(self, x):
         return self.adjoint(x)
 
-    def prox(self, y, z, gamma):
+    def prox_l2(self, y, z, gamma):
         '''
         Computes proximal operator of f(x) = 1/2*||Ax-y||^2
         i.e. argmin_x 1/2*||Ax-y||^2+gamma/2*||x-z||^2
@@ -96,7 +96,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         b = self.A_adjoint(y) + gamma*z
 
         H = lambda x: self.A_adjoint(self.A(x))+gamma*x
-
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
 
         return x
@@ -110,7 +109,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist
 
-        @:param y : The right hand side (RHS) vector of the system.
+        :param y : The right hand side (RHS) vector of the system.
         """
 
 
@@ -185,17 +184,76 @@ class Physics(torch.nn.Module):  # parent class for forward models
         return s1-s2
 
 
-class Denoising(Physics):
-    def __init__(self, sigma=.1):
+class DecomposablePhysics(Physics):
+    def __init__(self, U=lambda x: x, U_adjoint=lambda x: x, V=lambda x: x, V_adjoint=lambda x: x, mask = 1.):
+        r'''
+        Parent function for linear forward operators which have a simple singular value decomposition (SVD) of the form
+
+        .. math::
+            A = U\diag(s)V^{T} \in \mathbb{R}^{m\times n}
+
+        where :math:`U\in\mathbb{C}^{n\times n}` and :math:`V\in\mathbb{C}^{m\times m}`
+        are orthonormal linear transformations and `U\in\mathbb{C}^{n\times n}`
+
+        :param U: (callable) orthonormal transformation
+        :param U_adjoint: (callable) transpose of U
+        :param V: (callable) orthonormal transformation
+        :param V_adjoint: (callable) transpose of V
+        :param mask: (Torch.Tensor or float) Singular values of the transform
+        '''
         super().__init__()
-        self.name = 'denoising'
-        self.noise_model = GaussianNoise(sigma)
+        self.V = V
+        self.U = U
+        self.U_adjoint = U_adjoint
+        self.V_adjoint = V_adjoint
+        self.mask = mask
 
     def A(self, x):
+        return self.U(self.mask*self.V_adjoint(x))
+
+    def A_adjoint(self, y):
+
+        if isinstance(self.mask, float):
+            mask = self.mask
+        else:
+            mask = torch.conj(self.mask)
+
+        return self.V(mask*self.V_adjoint(y))
+
+    def prox_l2(self, y, z, gamma):
+        '''
+        Computes proximal operator of f(x) = 1/2*||Ax-y||^2
+        i.e. argmin_x 1/2*||Ax-y||^2+gamma/2*||x-z||^2
+
+        :param y: (Torch.Tensor) measurements tensor
+        :param z: (Torch.Tensor or float) signal tensor
+        :param gamma: (positive float) hyperparameter of the proximal operator
+        :return: estimated signal tensor
+        '''
+
+        b = self.A_adjoint(y) + gamma*z
+
+        scaling = self.mask.pow(2) + gamma
+        x = self.V(self.V_adjoint(b)/scaling)
+
         return x
 
-    def A_dagger(self, x):
-        return x
+    def A_dagger(self, y):
+        """
+        Computes
+        .. math::
+            A^{\dagger}y = x
 
-    def A_adjoint(self, x):
-        return x
+        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist
+
+        :param y : The right hand side (RHS) vector of the system.
+        """
+
+        # avoid division by singular value = 0
+
+        mask = self.mask
+
+        if not isinstance(self.mask, float):
+            mask[mask == 0] = 1
+
+        return self.V(self.U_adjoint(y)/mask)

@@ -1,4 +1,11 @@
 import torch
+from deepinv.diffops.physics.forward import DecomposablePhysics
+
+
+class Denoising(DecomposablePhysics):
+    def __init__(self, sigma=.1):
+        super().__init__()
+        self.noise_model = GaussianNoise(sigma)
 
 
 class GaussianNoise(torch.nn.Module):

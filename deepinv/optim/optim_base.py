@@ -24,7 +24,7 @@ class optim(nn.Module):
         self.g = g
         self.physics = physics
         self.unroll = unroll
-        if not unroll : 
+        if not unroll:
             if isinstance(stepsize, int):
                 self.stepsizes = [stepsize] * max_iter
             elif isinstance(stepsize, list):
