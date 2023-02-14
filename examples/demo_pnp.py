@@ -58,10 +58,9 @@ pnp = PnP(algo_name=pnp_algo, denoiser=denoiser, physics = p, max_iter=10, sigma
 
 model = lambda x,physics : pnp(x)
 
-
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
     plot=True,
-    save_img_path='../results/results_pnp_set3c.png')
+    save_img_path='../results/results_pnp.png')
