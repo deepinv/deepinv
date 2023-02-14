@@ -40,7 +40,7 @@ elif problem == 'deblur':
     p = dinv.physics.BlurFFT((3,256,256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
 else:
     raise Exception("The inverse problem chosen doesn't exist")
-p.noise = dinv.physics.GaussianNoise(sigma=noise_level_img)
+p.noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img)
 
 data_fidelity = DataFidelity(type='L2')
 
