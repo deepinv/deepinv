@@ -3,7 +3,6 @@ import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
 from deepinv.pnp.denoiser import Denoiser
-from deepinv.pnp.pnp import PnP
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.optim.optim_base import ProxOptim
 from deepinv.training_utils import test
@@ -38,10 +37,9 @@ elif problem == 'denoising':
 elif problem == 'blind_deblur':
     p = dinv.physics.BlindBlur(kernel_size=11)
 elif problem == 'deblur':
-    p = dinv.physics.BlurFFT((3,256,256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
+    p = dinv.physics.BlurFFT((3,256,256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
 else:
     raise Exception("The inverse problem chosen doesn't exist")
-p.noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img)
 
 data_fidelity = DataFidelity(type='L2')
 

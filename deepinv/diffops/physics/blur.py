@@ -75,8 +75,8 @@ class Downsampling(Physics):
     :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
 
     '''
-    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, device='cpu', padding='circular'):
-        super().__init__()
+    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, device='cpu', padding='circular',**kwargs):
+        super().__init__(**kwargs)
         self.factor = factor
         self.imsize = img_size
         self.padding = padding
@@ -301,7 +301,7 @@ def conv_transpose(y, filter, padding):
 
 
 class BlindBlur(Physics):
-    def __init__(self, kernel_size=3, padding='circular'):
+    def __init__(self, kernel_size=3, padding='circular', **kwargs):
         r'''
         Blind blur operator
 
@@ -345,7 +345,7 @@ class Blur(DecomposablePhysics):
         otherwise the blurred output has the same size as the image.
         :param device: cpu or cuda
         '''
-        super().__init__()
+        super().__init__(**kwargs)
         self.padding = padding
         self.device = device
         self.filter = filter.requires_grad_(False).to(device)
@@ -368,7 +368,7 @@ class BlurFFT(DecomposablePhysics):
         :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
         :param device: cpu or cuda
         '''
-        super().__init__()
+        super().__init__(**kwargs)
 
         assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'
 

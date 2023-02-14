@@ -185,7 +185,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
 
 class DecomposablePhysics(Physics):
-    def __init__(self, U=lambda x: x, U_adjoint=lambda x: x, V=lambda x: x, V_adjoint=lambda x: x, mask = 1.):
+    def __init__(self, U=lambda x: x, U_adjoint=lambda x: x, V=lambda x: x, V_adjoint=lambda x: x, mask = 1., **kwargs):
         r'''
         Parent function for linear forward operators which have a simple singular value decomposition (SVD) of the form
 
@@ -201,7 +201,7 @@ class DecomposablePhysics(Physics):
         :param V_adjoint: (callable) transpose of V
         :param mask: (Torch.Tensor or float) Singular values of the transform
         '''
-        super().__init__()
+        super().__init__(**kwargs)
         self._V = V
         self._U = U
         self._U_adjoint = U_adjoint
