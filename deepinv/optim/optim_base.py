@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.data_fidelity import data_fidelity
 
 class optim(nn.Module):
     '''
@@ -22,7 +21,7 @@ class optim(nn.Module):
     :param verbose: prints progress of the algorithm.
     '''
 
-    def __init__(self, algo_name, data_fidelity, device, g = None, prox_g = None, grad_g = None, max_iter=10, stepsize = 1., , theta = 1., g_first = False, crit_conv=None, unroll = False, verbose=False):
+    def __init__(self, algo_name, data_fidelity, device, g = None, prox_g = None, grad_g = None, max_iter=10, stepsize = 1., theta = 1., g_first = False, crit_conv=None, unroll = False, verbose=False):
         super(optim, self).__init__()
 
         assert algo_name in ('GD', 'HQS', 'PGD', 'ADMM', 'DRS', 'PD'), 'Optimization algorithm not implemented'

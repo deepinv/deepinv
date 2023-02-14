@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 
-class data_fidelity(nn.Module):
+class DataFidelity(nn.Module):
     '''
     Data fidelity term for optimization algorithms.
     '''
 
     def __init__(self, type):
-        super(optim, self).__init__()
+        super(DataFidelity, self).__init__()
 
         if type == 'L2':
             self.f = lambda x,y : 0.5 * (x-y).norm()**2
@@ -33,5 +33,5 @@ class data_fidelity(nn.Module):
 
     def prox(self, x, y, physics, stepsize):
         Ax = physics.A(x)
-        return physics.L2_prox(Ax, y, stepsize)
+        return physics.prox_l2(Ax, y, stepsize)
 

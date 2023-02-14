@@ -7,7 +7,7 @@ import torch.fft as fft
 from deepinv.diffops.physics.forward import Physics, DecomposablePhysics
 
 
-def filter_fft(filter, img_size, real=True):
+def filter_fft(filter, img_size, device='cpu'):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
@@ -16,10 +16,7 @@ def filter_fft(filter, img_size, real=True):
     filt2[:, :filter.shape[1], :filter.shape[2], :filter.shape[3]] = filter
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
-    if real:
-        return fft.rfft2(filt2)
-    else:
-        return fft.fft2(filt2)
+    return fft.fft2(filt2)
 
 def gaussian_blur(sigma=(1, 1), angle=0):
     s = max(sigma)
@@ -106,7 +103,7 @@ class Downsampling(Physics):
 
         assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
 
-        self.Fh = filter_fft(self.filter, x.shape, real=False)
+        self.Fh = filter_fft(self.filter, x.shape, real=False, device=device)
         self.Fhc = torch.conj(self.Fh)
         self.Fh2 = torch.abs(self.Fhc*self.Fh)
 
@@ -312,7 +309,7 @@ class BlindBlur(Physics):
         :param kernel_size: (int) maximum support size of the (unknown) blurring kernels
         :param padding:
         '''
-        super().__init__()
+        super().__init__(**kwargs)
         self.padding = padding
 
         if type(kernel_size) is not list or type(kernel_size) is not tuple:
@@ -334,6 +331,8 @@ class BlindBlur(Physics):
 
 
 class Blur(DecomposablePhysics):
+    
+
     def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu'):
         r'''
 
@@ -357,25 +356,26 @@ class Blur(DecomposablePhysics):
 
 
 class BlurFFT(DecomposablePhysics):
-    def __init__(self,  img_size, filter=gaussian_blur(), device='cpu'):
-        r'''
 
+
+    def __init__(self,  img_size, filter=gaussian_blur(), device='cpu', **kwargs):
+        '''
         Blur operator based on torch.fft operations. Uses torch.conv2d for performing the convolutions
         The FFT assumes a circular padding of the input
 
         :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
         :param device: cpu or cuda
         '''
-        super().__init__()
-        self.mask = filter_fft(filter, img_size)
+        super().__init__(**kwargs)
+        self.mask = filter_fft(filter, img_size, device=device)
         self.mask = self.mask.requires_grad_(False).to(device)
 
 
     def V_adjoint(self, x):
-        return fft.rfft2(x, norm="ortho")
+        return fft.fft2(x, norm="ortho")
 
     def U(self, x):
-        return fft.irfft2(x, norm="ortho")
+        return torch.real(fft.ifft2(x, norm="ortho"))
 
     def U_adjoint(self, x):
         return self.V_adjoint(x)

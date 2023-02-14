@@ -109,6 +109,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
             # Add new data to it
             bsize = x.size()[0]
+            print(y)
             hf['y_train'][index:index+bsize] = y.to('cpu').numpy()
             if supervised:
                 hf['x_train'][index:index+bsize] = x.to('cpu').numpy()
