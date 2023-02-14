@@ -106,6 +106,10 @@ class Downsampling(Physics):
 
         assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
 
+        self.Fh = filter_fft(self.filter, x.shape, real=False)
+        self.Fhc = torch.conj(self.Fh)
+        self.Fh2 = torch.abs(self.Fhc*self.Fh)
+
     def A(self, x):
 
         if self.mode:
@@ -133,12 +137,7 @@ class Downsampling(Physics):
 
             z_hat = gamma*self.A_adjoint(y) + z
             Fz_hat = fft.fft2(z_hat)
-            Fh = filter_fft(self.filter, x.shape, real=False)
-            Fhc = torch.conj(Fh)
-            Fh2 = torch.abs(Fhc*Fh)
-            Fx = fft.fft2(x)
 
-            # splitting
             def splits(a, sf):
                 '''split a into sfxsf distinct blocks
                 Args:
@@ -151,9 +150,9 @@ class Downsampling(Physics):
                 b = torch.cat(torch.chunk(b, sf, dim=3), dim=4)
                 return b
 
-            top = torch.mean(splits(Fh*Fz_hat, self.factor),dim=-1)
-            below = gamma*torch.mean(splits(Fh2, self.factor),dim=-1) + 1
-            rc = Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            top = torch.mean(splits(self.Fh*Fz_hat, self.factor),dim=-1)
+            below = gamma*torch.mean(splits(self.Fh2, self.factor),dim=-1) + 1
+            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
             return z_hat - r
         else:
