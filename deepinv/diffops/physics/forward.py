@@ -202,14 +202,26 @@ class DecomposablePhysics(Physics):
         :param mask: (Torch.Tensor or float) Singular values of the transform
         '''
         super().__init__()
-        self.V = V
-        self.U = U
-        self.U_adjoint = U_adjoint
-        self.V_adjoint = V_adjoint
+        self._V = V
+        self._U = U
+        self._U_adjoint = U_adjoint
+        self._V_adjoint = V_adjoint
         self.mask = mask
 
     def A(self, x):
         return self.U(self.mask*self.V_adjoint(x))
+
+    def U(self, x):
+        return self._U(x)
+
+    def V(self, x):
+        return self._U(x)
+
+    def U_adjoint(self, x):
+        return self._U_adjoint(x)
+
+    def V_adjoint(self, x):
+        return self._V_adjoint(x)
 
     def A_adjoint(self, y):
 
