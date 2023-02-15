@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
-import bm3d
+try:
+    import bm3d
+except:
+    print('WARNING: could not load BM3D')
 import numpy as np
 
 def tensor2array(img):
