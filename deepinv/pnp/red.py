@@ -23,7 +23,7 @@ class RED(ProxOptim):
         else : 
             assert isinstance(sigma_denoiser, float) # the initial parameter is uniform across layer int in that case
             self.register_parameter(name='sigma_denoiser',
-                                param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=device),
+                                param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=self.device),
                                 requires_grad=True))
 
         self.grad_g = lambda x,it : x-denoiser(x, self.sigma_denoiser[it])
