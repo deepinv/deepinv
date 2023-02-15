@@ -71,7 +71,7 @@ class Downsampling(Physics):
     :param factor: (int), downsampling factor
     :param mode: (str) downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
     :param sigma_gauss: (int or tuple of ints) standard deviation of the gaussian kernel. If int, the same value is used for both dimensions. If None, the standard deviation is set to the downsampling factor.
-    :param device:( (str) device
+    :param filter: (torch.Tensor) custom filter. 
     :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
 
     '''
