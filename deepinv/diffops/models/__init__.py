@@ -4,3 +4,4 @@ from .drunet import UNetRes as drunet
 from .drunet import test_mode as drunet_testmode
 from .dncnn import DnCNN as dncnn
 from .iterative.unroll import ArtifactRemoval
+from .tgv_prox import TGVprox as tgvprox

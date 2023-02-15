@@ -41,6 +41,6 @@ def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, ti
         plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
     if save_dir:
-        plt.savefig(save_dir)
+        plt.savefig(save_dir, dpi=1200)
 
     plt.show()
