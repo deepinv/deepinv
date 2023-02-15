@@ -40,22 +40,22 @@ class ProxOptim(nn.Module):
 
         if not unroll : 
             if isinstance(stepsize, float):
-                self.stepsizes = [stepsize] * max_iter
+                self.stepsize = [stepsize] * max_iter
             elif isinstance(stepsize, list):
                 assert len(stepsize) == max_iter
-                self.stepsizes = stepsize
+                self.stepsize = stepsize
             else:
                 raise ValueError('stepsize must be either int/float or a list of length max_iter') 
         else : 
             assert isinstance(stepsize, float) # the initial parameter is uniform across layer int in that case
-            self.register_parameter(name='step_size',
+            self.register_parameter(name='stepsize',
                                 param=torch.nn.Parameter(torch.tensor(stepsize, device=self.device),
                                 requires_grad=True))
         if isinstance(stepsize, float):
-            self.thetas = [theta] * max_iter
+            self.theta = [theta] * max_iter
         elif isinstance(theta, list):
             assert len(theta) == max_iter
-            self.thetas = theta
+            self.theta = theta
         else:
             raise ValueError('stepsize must be either int/float or a list of length max_iter') 
 
@@ -83,7 +83,7 @@ class ProxOptim(nn.Module):
             x = init
         for it in range(self.max_iter):
             x_prev = x
-            x - self.stepsizes[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
+            x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
@@ -104,11 +104,11 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first : 
-                z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsizes[it])
+                z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
                 x = self.prox_g(z, it)
             else :
                 z = self.prox_g(z, it)
-                x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsizes[it])
+                x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
@@ -130,11 +130,11 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first : # prox on g and grad on f
-                z = x - self.stepsizes[it]*self.lamb*self.data_fidelity.grad(x, y, physics)
+                z = x - self.stepsize[it]*self.lamb*self.data_fidelity.grad(x, y, physics)
                 x = self.prox_g(z, it)
             else :  # prox on f and grad on g
-                z = x - self.stepsizes[it]*self.grad_g(x,it)
-                x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsizes[it])
+                z = x - self.stepsize[it]*self.grad_g(x,it)
+                x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
@@ -154,12 +154,12 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first :
-                z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsizes[it])
+                z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
                 w = self.prox_g(2*z-x_prev, it)
             else :
                 z = self.prox_g(x, it)
-                w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.lamb*self.stepsizes[it])
-            x = x_prev + self.thetas[it]*(w - z)
+                w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.lamb*self.stepsize[it])
+            x = x_prev + self.theta[it]*(w - z)
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return w
@@ -180,12 +180,12 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first :
-                z = self.data_fidelity.prox(w-x, y, physics, self.lamb*self.stepsizes[it])
+                z = self.data_fidelity.prox(w-x, y, physics, self.lamb*self.stepsize[it])
                 w = self.prox_g(z+x_prev, it)
             else :
                 z = self.prox_g(w-x, it)
-                w = self.data_fidelity.prox(z+x_prev, y, physics, self.lamb*self.stepsizes[it])
-            x = x_prev + self.thetas[it]*(z - w)
+                w = self.data_fidelity.prox(z+x_prev, y, physics, self.lamb*self.stepsize[it])
+            x = x_prev + self.theta[it]*(z - w)
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return w
