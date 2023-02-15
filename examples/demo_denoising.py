@@ -67,7 +67,7 @@ n_channels = 1
 # backbone = dinv.models.drunet(in_channels=n_channels+1, out_channels=n_channels)
 # model = dinv.models.ArtifactRemoval(backbone, ckpt_path=ckpt_path, device=dinv.device)
 
-backbone = dinv.models.tgv_prox(reg=5.)
+backbone = dinv.models.tgvprox(reg=1.)
 model = dinv.models.ArtifactRemoval(backbone)
 
 
@@ -81,4 +81,5 @@ test(model=model,
      physics=physics,
      plot=plot,
      device=dinv.device,
+     save_img_path='results/example_denoising.png',
      **kwargs)

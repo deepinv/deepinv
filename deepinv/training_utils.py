@@ -190,8 +190,12 @@ def test(model, test_dataloader,
     print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
 
     if plot:
-        titles = ['Input', 'Linear', 'Network', 'Ground Truth']
-        plot_debug(imgs, shape=(min(show_operators, G), 4), titles=titles,
+        titles = ['Linear', 'Network', 'Ground Truth']
+        num_im = 3
+        if plot_input:
+            titles = ['Input'] + titles
+            num_im = 4
+        plot_debug(imgs, shape=(min(show_operators, G), num_im), titles=titles,
                    row_order=True, save_dir=save_img_path)
 
     return test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr

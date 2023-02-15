@@ -19,9 +19,14 @@ if dataset == 'MNIST':
     data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
     data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
 
-elif dataset == 'set3c':  # TO DO
-    data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
-    data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
+elif dataset == 'set3c':
+
+    val_transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    data_train = datasets.ImageFolder(root='../datasets/set3c/', transform=val_transform)
+    data_test = datasets.ImageFolder(root='../datasets/set3c/', transform=val_transform)
 
 elif dataset =='CelebA':
     data_train = datasets.CelebA(root='../datasets/', split='train', transform=transform_data, download=True)
