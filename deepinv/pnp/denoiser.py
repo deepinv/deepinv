@@ -15,7 +15,8 @@ def array2tensor(img):
     return torch.from_numpy(img).permute(2, 0, 1)
 
 class Denoiser(nn.Module):
-    def __init__(self, denoiser_name, device, n_channels=3, pretrain=True, ckpt_path=None, train=False):
+    def __init__(self, denoiser_name, device, n_channels=3, pretrain=True, ckpt_path=None, train=False, n_it_max=1000,
+                 verbose=False):
         '''
         '''
         super(Denoiser, self).__init__()
@@ -31,6 +32,9 @@ class Denoiser(nn.Module):
                 for _, v in self.model.named_parameters():
                     v.requires_grad = False
             self.model = self.model.to(device)
+        elif self.denoiser_name == 'TGV':
+            from deepinv.diffops.models.tgv import TGV
+            self.model = TGV(n_it_max=n_it_max, verbose=verbose)
         
     def forward(self, x, sigma):
         if self.denoiser_name == 'BM3D':            #x = torch.cat((x, torch.tensor([sigma]).to(self.device).repeat(1, 1, x.shape[2], x.shape[3])), dim=1)
@@ -40,5 +44,7 @@ class Denoiser(nn.Module):
             x = torch.cat((x, noise_level_map), 1)
             x = self.model(x)
             return x
+        elif self.denoiser_name == 'TGV':
+            return self.model(x, sigma)
         else: 
             raise Exception("The denoiser chosen doesn't exist")

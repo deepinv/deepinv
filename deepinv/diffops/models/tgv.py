@@ -3,7 +3,7 @@ import warnings
 import torch
 import torch.nn as nn
 
-class TGVprox(nn.Module):
+class TGV(nn.Module):
     '''
     Implements the proximal operator of the (second order) Total Generalised Variation (TGV) operator.(see K. Bredies,
     K. Kunisch, and T. Pock, "Total generalized variation," SIAM J. Imaging Sci., 3(3), 492-526, 2010.)
@@ -22,8 +22,8 @@ class TGVprox(nn.Module):
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov (https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb)
     '''
-    def __init__(self, reg=1., verbose=True, n_it_max=1000, crit=1e-5, convergence_test=False):
-        super(TGVprox, self).__init__()
+    def __init__(self, reg=1., verbose=True, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None):
+        super(TGV, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
@@ -36,7 +36,11 @@ class TGVprox(nn.Module):
         self.rho = 1.99  # in 1,2
         self.sigma = 1 / self.tau / 72
 
-        self.convergence_test = convergence_test
+        self.x2 = x2
+        self.r2 = r2
+        self.u2 = u2
+
+        self.has_converged = False
 
     def prox_tau_fx(self, x, y):
         return (x + self.tau * y) / (1 + self.tau)
@@ -49,33 +53,37 @@ class TGVprox(nn.Module):
     def prox_sigma_g_conj(self, u):
         return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2, torch.tensor([1])).unsqueeze(-1))
 
-    def forward(self, y, x2=None, u2=None, r2=None):
+    def forward(self, y, reg=None):
 
-        if x2 is None:
-            x2 = y.clone()
-        if r2 is None:
-#             r2 = torch.zeros((x2.shape[-3], x2.shape[-2], x2.shape[-1], 2))
-            r2 = torch.zeros((*x2.shape, 2))
-        if u2 is None:
-#             u2 = torch.zeros((x2.shape[-3], x2.shape[-2], x2.shape[-1], 4))
-            u2 = torch.zeros((*x2.shape, 4))
+        if reg is not None:
+            self.lambda1 = reg * 0.1
+            self.lambda2 = reg * 0.15
+
+        if self.x2 is None:
+            self.x2 = y.clone()
+        if self.r2 is None:
+            self.r2 = torch.zeros((*self.x2.shape, 2))
+        if self.u2 is None:
+            self.u2 = torch.zeros((*self.x2.shape, 4))
         cy = (y ** 2).sum() / 2
         primalcostlowerbound = 0
 
         for _ in range(self.n_it_max):
-            x_prev = x2.clone()
-            tmp = self.tau * epsilonT(u2)
-            x = self.prox_tau_fx(x2 - nablaT(tmp), y)
-            r = self.prox_tau_fr(r2 + tmp)
-            u = self.prox_sigma_g_conj(u2 + self.sigma * epsilon(nabla(2 * x - x2) - (2 * r - r2)))
-            x2 = x2 + self.rho * (x - x2)
-            r2 = r2 + self.rho * (r - r2)
-            u2 = u2 + self.rho * (u - u2)
+            x_prev = self.x2.clone()
+            tmp = self.tau * epsilonT(self.u2)
+            x = self.prox_tau_fx(self.x2 - nablaT(tmp), y)
+            r = self.prox_tau_fr(self.r2 + tmp)
+            u = self.prox_sigma_g_conj(self.u2 + self.sigma * epsilon(nabla(2 * x - self.x2) - (2 * r - self.r2)))
+            self.x2 = self.x2 + self.rho * (x - self.x2)
+            self.r2 = self.r2 + self.rho * (r - self.r2)
+            self.u2 = self.u2 + self.rho * (u - self.u2)
 
-            rel_err = torch.linalg.norm(x_prev.flatten() - x2.flatten()) / torch.linalg.norm(x2.flatten() + 1e-12)
+            rel_err = torch.linalg.norm(x_prev.flatten() - self.x2.flatten()) / torch.linalg.norm(self.x2.flatten() + 1e-12)
 
             if _ > 1 and rel_err < self.crit:
-                print('TGV prox reached convergence')
+                self.has_converged = True
+                if self.verbose:
+                    print('TGV prox reached convergence')
                 break
 
             if self.verbose and _ % 100 == 0:
@@ -94,14 +102,11 @@ class TGVprox(nn.Module):
                     print('Iter: ', _, ' Primal cost: ', primalcost.item(), ' Rel err:', rel_err)
 
             if _ == self.n_it_max-1:
-                message = 'The algorithm did not converge, stopped after ' + str(_+1) + ' iterations.'
-                if self.convergence_test:
-                    raise Exception(message)
-                else:
-                    warnings.warn(message)
+                if self.verbose:
+                    print('The algorithm did not converge, stopped after ' + str(_+1) + ' iterations.')
 
         # return x2, r2, u2
-        return x2  # TODO: to allow warm restart, we would need to output r2 and u2
+        return self.x2  # TODO: to allow warm restart, we would need to output r2 and u2
 
 def nabla(I):
     b, c, h, w = I.shape

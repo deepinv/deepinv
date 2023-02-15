@@ -245,7 +245,12 @@ class DecomposablePhysics(Physics):
 
         b = self.A_adjoint(y) + gamma*z
 
-        scaling = self.mask.pow(2) + gamma
+        # scaling = self.mask.pow(2) + gamma
+        if not isinstance(self.mask, float):
+            scaling = self.mask.pow(2) + gamma
+        else:
+            scaling = self.mask ** 2 + gamma
+
         x = self.V(self.V_adjoint(b)/scaling)
 
         return x
