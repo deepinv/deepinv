@@ -81,8 +81,8 @@ class Downsampling(Physics):
         self.imsize = img_size
         self.padding = padding
         self.mode = mode
-        if filter: 
-            self.filter = filter 
+        if filter:
+            self.filter = filter
         elif mode:
             if mode == 'gauss':
                 if sigma_gauss is None:
@@ -103,18 +103,18 @@ class Downsampling(Physics):
                 self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
             else:
                 raise Exception("The downsampling mode chosen doesn't exist")
-        else :
-            raise Exception("Either mode or filter should be given")
-
+        else:
+            self.filter = None
+            
         assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
-
-        self.Fh = filter_fft(self.filter, x.shape, real=False, device=device)
-        self.Fhc = torch.conj(self.Fh)
-        self.Fh2 = torch.abs(self.Fhc*self.Fh)
+        if self.filter : 
+            self.Fh = filter_fft(self.filter, x.shape, real=False, device=device)
+            self.Fhc = torch.conj(self.Fh)
+            self.Fh2 = torch.abs(self.Fhc*self.Fh)
 
     def A(self, x):
 
-        if self.mode:
+        if self.filter:
             out = conv(x, self.filter, padding=self.padding)
         else:
             out = x
@@ -129,7 +129,7 @@ class Downsampling(Physics):
 
         x[:, :, ::self.factor, ::self.factor] = y  # upsample
 
-        if self.mode:
+        if self.filter:
             x = conv_transpose(x, self.filter, padding=self.padding)
 
         return x
