@@ -69,13 +69,13 @@ class Downsampling(Physics):
 
     :param img_size: (tuple of ints), size of the input image
     :param factor: (int), downsampling factor
+    :param filter: (torch.Tensor) custom filter. 
     :param mode: (str) downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
     :param sigma_gauss: (int or tuple of ints) standard deviation of the gaussian kernel. If int, the same value is used for both dimensions. If None, the standard deviation is set to the downsampling factor.
-    :param filter: (torch.Tensor) custom filter. 
     :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
 
     '''
-    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, filter = None, device='cpu', padding='circular', **kwargs):
+    def __init__(self, img_size, factor=2, filter = None, mode=None, sigma_gauss = None, device='cpu', padding='circular', **kwargs):
         super().__init__(**kwargs)
         self.factor = factor
         self.imsize = img_size
