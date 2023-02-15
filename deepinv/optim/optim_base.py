@@ -33,6 +33,11 @@ class ProxOptim(nn.Module):
         self.grad_g = grad_g
         self.g_first = g_first
         self.unroll = unroll
+        self.max_iter = max_iter
+        self.crit_conv = crit_conv
+        self.verbose = verbose
+        self.device = device
+
         if not unroll : 
             if isinstance(stepsize, float):
                 self.stepsizes = [stepsize] * max_iter
@@ -44,7 +49,7 @@ class ProxOptim(nn.Module):
         else : 
             assert isinstance(stepsize, float) # the initial parameter is uniform across layer int in that case
             self.register_parameter(name='step_size',
-                                param=torch.nn.Parameter(torch.tensor(stepsize, device=device),
+                                param=torch.nn.Parameter(torch.tensor(stepsize, device=self.device),
                                 requires_grad=True))
         if isinstance(stepsize, float):
             self.thetas = [theta] * max_iter
@@ -54,9 +59,6 @@ class ProxOptim(nn.Module):
         else:
             raise ValueError('stepsize must be either int/float or a list of length max_iter') 
 
-        self.max_iter = max_iter
-        self.crit_conv = crit_conv
-        self.verbose = verbose
 
     def check_conv(self,x_prev,x):
         crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
