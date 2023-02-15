@@ -7,15 +7,19 @@ transform_data = transforms.Compose([transforms.ToTensor()])
 
 G = 1  # number of operators
 max_datapoints = 1e7
-num_workers = 4  # set to 0 if using cpu
+num_workers = 0  # set to 0 if using cpu
 
 # problem
-problem = 'deblur'
-dataset = 'CelebA'
+problem = 'denoising'
+dataset = 'set3c'
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 
 if dataset == 'MNIST':
+    data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
+    data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
+
+elif dataset == 'set3c':  # TO DO
     data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
     data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
 
