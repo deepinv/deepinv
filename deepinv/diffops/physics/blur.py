@@ -75,14 +75,15 @@ class Downsampling(Physics):
     :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
 
     '''
-    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, device='cpu', padding='circular',**kwargs):
+    def __init__(self, img_size, factor=2, mode=None, sigma_gauss = None, filter = None, device='cpu', padding='circular', **kwargs):
         super().__init__(**kwargs)
         self.factor = factor
         self.imsize = img_size
         self.padding = padding
         self.mode = mode
-
-        if mode:
+        if filter: 
+            self.filter = filter 
+        elif mode:
             if mode == 'gauss':
                 if sigma_gauss is None:
                     sigma_gauss_x = factor
@@ -102,6 +103,8 @@ class Downsampling(Physics):
                 self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
             else:
                 raise Exception("The downsampling mode chosen doesn't exist")
+        else :
+            raise Exception("Either mode or filter should be given")
 
         assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
 
