@@ -338,7 +338,7 @@ class BlindBlur(Physics):
 class Blur(DecomposablePhysics):
     
 
-    def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu'):
+    def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu', **kwargs):
         r'''
 
         Blur operator. Uses torch.conv2d for performing the convolutions
