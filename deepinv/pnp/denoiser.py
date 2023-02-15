@@ -12,7 +12,7 @@ def array2tensor(img):
     return torch.from_numpy(img).permute(2, 0, 1)
 
 class Denoiser(nn.Module):
-    def __init__(self, denoiser_name, device, n_channels=3, ckpt_path=None):
+    def __init__(self, denoiser_name, device, n_channels=3, pretrain=True, ckpt_path=None, train=False):
         '''
         '''
         super(Denoiser, self).__init__()
@@ -21,10 +21,12 @@ class Denoiser(nn.Module):
         if self.denoiser_name == 'drunet':
             from deepinv.diffops.models.drunet import UNetRes
             self.model = UNetRes(in_channels=n_channels+1, out_channels=n_channels)
-            self.model.load_state_dict(torch.load(ckpt_path), strict=True)
-            self.model.eval()
-            for _, v in self.model.named_parameters():
-                v.requires_grad = False
+            if pretrain and ckpt_path is not None:
+                self.model.load_state_dict(torch.load(ckpt_path), strict=True)
+            if not train:
+                self.model.eval()
+                for _, v in self.model.named_parameters():
+                    v.requires_grad = False
             self.model = self.model.to(device)
         
     def forward(self, x, sigma):

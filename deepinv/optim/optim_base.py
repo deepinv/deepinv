@@ -38,19 +38,19 @@ class ProxOptim(nn.Module):
         self.verbose = verbose
         self.device = device
 
-        if not unroll : 
-            if isinstance(stepsize, float):
-                self.stepsize = [stepsize] * max_iter
-            elif isinstance(stepsize, list):
-                assert len(stepsize) == max_iter
-                self.stepsize = stepsize
-            else:
-                raise ValueError('stepsize must be either int/float or a list of length max_iter') 
-        else : 
-            assert isinstance(stepsize, float) # the initial parameter is uniform across layer int in that case
+        if isinstance(stepsize, float):
+            self.stepsize = [stepsize] * max_iter
+        elif isinstance(stepsize, list):
+            assert len(stepsize) == max_iter
+            self.stepsize = stepsize
+        else:
+            raise ValueError('stepsize must be either int/float or a list of length max_iter') 
+        
+        if self.unroll : 
             self.register_parameter(name='stepsize',
                                 param=torch.nn.Parameter(torch.tensor(stepsize, device=self.device),
                                 requires_grad=True))
+        
         if isinstance(stepsize, float):
             self.theta = [theta] * max_iter
         elif isinstance(theta, list):

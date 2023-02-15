@@ -11,7 +11,7 @@ num_workers = 4  # set to 0 if using cpu
 
 # problem
 problem = 'deblur'
-dataset = 'CelebA'
+dataset = 'MNIST'
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 
