@@ -7,6 +7,9 @@ TODO :
 - (Sam) Add GS-PnP and Prox-PnP implementations.
 
 - (Matthieu) Test optim module with TGV
+- (Matthieu) Wavelet denoiser?
+- (Matthieu) Lipschitz losses
+
 
 - (Dongdong) MRI operator (use DecomposablePhysics)
 - (Dongdong) CT operator (use DecomposablePhysics)
