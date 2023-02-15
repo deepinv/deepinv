@@ -11,10 +11,10 @@ class DataFidelity(nn.Module):
 
         if type == 'L2':
             self.f = lambda x,y : 0.5 * (x-y).norm()**2
-            self.grad = lambda x,y : x-y
+            self.grad_f = lambda x,y : x-y
         elif type == 'L1':
             self.f = lambda x,y : (x-y).abs().sum()
-            self.grad = lambda x,y : torch.sign(x-y)
+            self.grad_f = lambda x,y : torch.sign(x-y)
         elif type == 'KL':
             pass
         else :
@@ -26,8 +26,8 @@ class DataFidelity(nn.Module):
 
     def grad(self, x, y, physics):
         Ax = physics.A(x)
-        if self.grad is not None :
-            return self.grad(Ax,y)
+        if self.grad_f is not None :
+            return self.grad_f(Ax,y)
         else :
             raise ValueError('No gradient defined for this data fidelity term.')
 

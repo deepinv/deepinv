@@ -66,6 +66,25 @@ class ProxOptim(nn.Module):
         else :
             return False
 
+    def GD(self, y, physics, init=None) : 
+        '''
+        Gradient Descent (GD)
+
+        :param y: Degraded image.
+        :param physics: Physics instance modeling the degradation.
+        :param init: Initialization of the algorithm. If None, the algorithm starts from y.
+        '''
+        if init is None:
+            x = y
+        else:
+            x = init
+        for it in range(self.max_iter):
+            x_prev = x
+            x - self.stepsizes[it]*(self.data_fidelity.grad(x, y, physics) + self.grad_g(x))
+            if not self.unroll and self.check_conv(x_prev,x) :
+                break
+        return x 
+
 
     def HQS(self, y, physics, init=None) : 
         '''
@@ -99,6 +118,8 @@ class ProxOptim(nn.Module):
         :param physics: Physics instance modeling the degradation.
         :param init: Initialization of the algorithm. If None, the algorithm starts from y.
         '''
+        if self.prox_g is None and self.grad_g is not None:
+            self.g_first = True 
         if init is None:
             x = y
         else:
@@ -135,10 +156,10 @@ class ProxOptim(nn.Module):
             else :
                 z = self.prox_g(x, it)
                 w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.stepsizes[it])
-            x = x_prev + self.theta[it]*(w - z)
+            x = x_prev + self.thetas[it]*(w - z)
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
-        return x
+        return w
 
     def ADMM(self, y, physics, init=None):
         '''
@@ -149,46 +170,37 @@ class ProxOptim(nn.Module):
         :param init: Initialization of the algorithm. If None, the algorithm starts from y.
         '''
         if init is None:
-            x = y
+            w = y
         else:
-            x = init
+            w = init
+        x = torch.zeros_like(w)
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first :
-                z = self.data_fidelity.prox(x, y, physics, self.stepsizes[it])
+                z = self.data_fidelity.prox(w-x, y, physics, self.stepsizes[it])
                 w = self.prox_g(z+x_prev, it)
             else :
-                z = self.prox_g(x, it)
+                z = self.prox_g(w-x, it)
                 w = self.data_fidelity.prox(z+x_prev, y, physics, self.stepsizes[it])
-            x = x_prev + self.theta[it]*(z - w)
+            x = x_prev + self.thetas[it]*(z - w)
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
-        return x
+        return w
 
-    def PD(self, y, physics, init=None):
-        '''
-        Primal-Dual (PD)
-
-        :param y: Degraded image.
-        :param physics: Physics instance modeling the degradation.
-        :param init: Initialization of the algorithm. If None, the algorithm starts from y.
-        '''
-        # TO DO 
-        pass
 
     def forward(self, y, physics, init=None):
         if self.algo_name == 'HQS':
             return self.HQS(y, physics, init)
+        elif self.algo_name == 'GD':
+            return self.GD(y, physics, init)
         elif self.algo_name == 'PGD':
             return self.PGD(y, physics, init)
         elif self.algo_name == 'DRS':
             return self.DRS(y, physics, init)
         elif self.algo_name == 'ADMM':
             return self.ADMM(y, physics, init)
-        elif self.algo_name == 'PD':
-            return self.PD(y, physics, init)
         else:
-            raise notImplementedError
+            raise ValueError('Unknown algorithm name')
 
 
 

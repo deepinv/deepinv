@@ -13,14 +13,14 @@ problem = 'deblur'
 G = 1
 denoiser_name = 'drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
-pnp_algo = 'ADMM'
+red_algo = 'GD'
 batch_size = 1
 dataset = 'set3c'
 dataset_path = '../../datasets/set3c'
 dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
 lamb = 0.1
-stepsize = 1.
+stepsize = 1 / lamb
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
 max_iter = 10
@@ -55,11 +55,11 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, ckpt_path=ckpt_path)
 
-prox_g = lambda x,it : denoiser(x, sigma_denoiser)
+grad_g = lambda x : lamb*(x-denoiser(x, sigma_denoiser))
 
-pnp = ProxOptim(prox_g = prox_g, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
+red = ProxOptim(grad_g = grad_g, algo_name=red_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
 
-test(model=pnp,  # Safe because it has forward
+test(model=red, 
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
