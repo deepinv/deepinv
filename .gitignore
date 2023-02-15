@@ -9,11 +9,12 @@ results/
 *.pyc
 
 # Files
+*.pt
+*.h5
 *.png
 *.pth
 *.ckpt
 *.tar.gz
-*.pth
 *tmp
 
 /docs/build/

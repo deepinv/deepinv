@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 import torch.nn as nn
 
@@ -20,10 +22,12 @@ class TGVprox(nn.Module):
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov (https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb)
     '''
-    def __init__(self, reg=1., verbose=True):
+    def __init__(self, reg=1., verbose=True, n_it_max=1000, crit=1e-5, convergence_test=False):
         super(TGVprox, self).__init__()
 
         self.verbose = verbose
+        self.n_it_max = n_it_max
+        self.crit = crit
 
         self.lambda1 = reg * 0.1
         self.lambda2 = reg * 0.15
@@ -31,6 +35,8 @@ class TGVprox(nn.Module):
 
         self.rho = 1.99  # in 1,2
         self.sigma = 1 / self.tau / 72
+
+        self.convergence_test = convergence_test
 
     def prox_tau_fx(self, x, y):
         return (x + self.tau * y) / (1 + self.tau)
@@ -43,7 +49,7 @@ class TGVprox(nn.Module):
     def prox_sigma_g_conj(self, u):
         return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2, torch.tensor([1])).unsqueeze(-1))
 
-    def forward(self, y, x2=None, u2=None, r2=None, n_it_max=1000, crit=1e-5):
+    def forward(self, y, x2=None, u2=None, r2=None):
 
         if x2 is None:
             x2 = y.clone()
@@ -56,7 +62,7 @@ class TGVprox(nn.Module):
         cy = (y ** 2).sum() / 2
         primalcostlowerbound = 0
 
-        for _ in range(n_it_max):
+        for _ in range(self.n_it_max):
             x_prev = x2.clone()
             tmp = self.tau * epsilonT(u2)
             x = self.prox_tau_fx(x2 - nablaT(tmp), y)
@@ -68,7 +74,7 @@ class TGVprox(nn.Module):
 
             rel_err = torch.linalg.norm(x_prev.flatten() - x2.flatten()) / torch.linalg.norm(x2.flatten() + 1e-12)
 
-            if _ > 1 and rel_err < crit:
+            if _ > 1 and rel_err < self.crit:
                 print('TGV prox reached convergence')
                 break
 
@@ -84,7 +90,15 @@ class TGVprox(nn.Module):
                 dualcost2 = cy - torch.sum(
                     (y - nablaT(epsilonT(u3))) ** 2) / 2.  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
-                print('Iter: ', _, ' Primal cost: ', primalcost.item(), ' Rel err:', rel_err)
+                if self.verbose:
+                    print('Iter: ', _, ' Primal cost: ', primalcost.item(), ' Rel err:', rel_err)
+
+            if _ == self.n_it_max-1:
+                message = 'The algorithm did not converge, stopped after ' + str(_+1) + ' iterations.'
+                if self.convergence_test:
+                    raise Exception(message)
+                else:
+                    warnings.warn(message)
 
         # return x2, r2, u2
         return x2  # TODO: to allow warm restart, we would need to output r2 and u2
