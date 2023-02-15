@@ -60,7 +60,7 @@ class ProxOptim(nn.Module):
             raise ValueError('stepsize must be either int/float or a list of length max_iter') 
 
 
-    def check_conv(self,x_prev,x):
+    def check_conv(self,x_prev,x,it):
         crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
         if self.verbose:
             print(it, 'crit = ', crit_cur , '\r')
@@ -84,7 +84,7 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
-            if not self.unroll and self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x,it) :
                 break
         return x 
 
@@ -109,7 +109,7 @@ class ProxOptim(nn.Module):
             else :
                 z = self.prox_g(z, it)
                 x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
-            if not self.unroll and self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x,it) :
                 break
         return x 
 
@@ -135,7 +135,7 @@ class ProxOptim(nn.Module):
             else :  # prox on f and grad on g
                 z = x - self.stepsize[it]*self.grad_g(x,it)
                 x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
-            if not self.unroll and self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x,it) :
                 break
         return x 
 
@@ -160,7 +160,7 @@ class ProxOptim(nn.Module):
                 z = self.prox_g(x, it)
                 w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.lamb*self.stepsize[it])
             x = x_prev + self.theta[it]*(w - z)
-            if not self.unroll and self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x,it) :
                 break
         return w
 
@@ -186,7 +186,7 @@ class ProxOptim(nn.Module):
                 z = self.prox_g(w-x, it)
                 w = self.data_fidelity.prox(z+x_prev, y, physics, self.lamb*self.stepsize[it])
             x = x_prev + self.theta[it]*(z - w)
-            if not self.unroll and self.check_conv(x_prev,x) :
+            if not self.unroll and self.check_conv(x_prev,x,it) :
                 break
         return w
 
