@@ -24,7 +24,6 @@ class ProxOptim(nn.Module):
     def __init__(self, algo_name, data_fidelity, device, g = None, prox_g = None, grad_g = None, max_iter=10, stepsize = 1., theta = 1., g_first = False, crit_conv=None, unroll = False, verbose=False):
         super().__init__()
 
-        assert algo_name in ('GD', 'HQS', 'PGD', 'ADMM', 'DRS', 'PD'), 'Optimization algorithm not implemented'
         self.algo_name = algo_name
         self.data_fidelity = data_fidelity
         self.g = g
