@@ -3,8 +3,8 @@ from deepinv.diffops.physics.forward import Physics
 
 
 class Haze(Physics):
-    def __init__(self, beta=0.1, offset=0):
-        super().__init__()
+    def __init__(self, beta=0.1, offset=0, **kwargs):
+        super().__init__(**kwargs)
         self.beta = beta
         self.offset = offset
 

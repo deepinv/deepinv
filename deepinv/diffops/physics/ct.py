@@ -8,7 +8,7 @@ class CT(Physics):
         TODO
     '''
     def __init__(self, img_width, views, uniform=True,
-                 circle=False, device='cuda:0', I0=1e5):
+                 circle=False, device='cuda:0', I0=1e5, **kwargs):
         '''
         TODO
         :param img_width:
@@ -18,7 +18,7 @@ class CT(Physics):
         :param device:
         :param I0:
         '''
-        super().__init__()
+        super().__init__(**kwargs)
         if uniform:
             theta = np.linspace(0, 180, views, endpoint=False)
         else:

@@ -50,7 +50,7 @@ def dst1(x):
 
 
 class CompressedSensing(Physics):
-    def __init__(self, m, img_shape, fast=False, channelwise=False, dtype=torch.float, device='cuda:0'):
+    def __init__(self, m, img_shape, fast=False, channelwise=False, dtype=torch.float, device='cuda:0', **kwargs):
         """
         Compressed Sensing forward operator. Creates a random sampling m x n matrix where n= prod(img_shape).
         This class generates a random iid Gaussian matrix if fast=False or
@@ -67,7 +67,7 @@ class CompressedSensing(Physics):
         :param dtype: Forward matrix is stored as a dtype.
         :param device: Device to store the forward matrix.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.name = f'CS_m{m}'
         self.img_shape = img_shape
         self.fast = fast

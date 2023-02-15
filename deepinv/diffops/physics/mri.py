@@ -7,7 +7,7 @@ class MRI(Physics):
     '''
     TODO
     '''
-    def __init__(self, acceleration=4, device='cpu'):
+    def __init__(self, acceleration=4, device='cpu', **kwargs):
         '''
 
         TODO
@@ -15,7 +15,7 @@ class MRI(Physics):
         :param acceleration: 
         :param device: 
         '''
-        super().__init__()
+        super().__init__(**kwargs)
         mask = torch.load(f'../physics/mask_{acceleration}x.pth.tar')['mask']
 
         self.mask = mask.to(device)

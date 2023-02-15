@@ -3,8 +3,8 @@ import torch
 
 
 class Inpainting(DecomposablePhysics):
-    def __init__(self, tensor_size, mask=0.3, device='cuda:0'):
-        super().__init__()
+    def __init__(self, tensor_size, mask=0.3, device='cuda:0', **kwargs):
+        super().__init__(**kwargs)
         self.name = 'inpainting'
         self.tensor_size = tensor_size
 

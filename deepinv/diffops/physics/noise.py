@@ -3,8 +3,8 @@ from deepinv.diffops.physics.forward import DecomposablePhysics
 
 
 class Denoising(DecomposablePhysics):
-    def __init__(self, sigma=.1):
-        super().__init__()
+    def __init__(self, sigma=.1, **kwargs):
+        super().__init__(**kwargs)
         self.noise_model = GaussianNoise(sigma)
 
 
