@@ -6,3 +6,11 @@ TODO :
 - (Sam) Clean load model + weights + datasets : inspired from SDEdit code.
 - (Sam) Add GS-PnP and Prox-PnP implementations.
 
+- (Matthieu) Test optim module with TGV
+
+- (Dongdong) MRI operator (use DecomposablePhysics)
+- (Dongdong) CT operator (use DecomposablePhysics)
+
+- (Julian) Tests for non-linear operators
+- (Julian) Write intro documentation
+- (Julian) fix codecoverage
