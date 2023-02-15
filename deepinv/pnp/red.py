@@ -4,6 +4,10 @@ from deepinv.optim.optim_base import ProxOptim
 
 class RED(ProxOptim):
     '''
+    Regulatization by Denoiser (RED) algorithms for Image Restoration. Consists in replacing Id-grad_g with a denoiser.
+
+    :param denoiser: Dennoiser model
+    :param sigma_denoiser: Denoiser noise standart deviation.
     '''
     def __init__(self, denoiser, sigma_denoiser = 0.05, **kwargs):
         super().__init__(**kwargs)
