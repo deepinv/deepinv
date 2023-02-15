@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.pnp.denoiser import Denoiser
 from deepinv.optim.data_fidelity import DataFidelity
-from deepinv.optim.optim_base import ProxOptim
+from deepinv.pnp.red import RED
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -13,14 +13,14 @@ problem = 'deblur'
 G = 1
 denoiser_name = 'drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
-red_algo = 'GD'
+pnp_algo = 'PGD'
 batch_size = 1
 dataset = 'set3c'
 dataset_path = '../../datasets/set3c'
 dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
-lamb = 0.1
-stepsize = 1 / lamb
+lamb = 10
+stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
 max_iter = 10
@@ -55,11 +55,9 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, ckpt_path=ckpt_path)
 
-grad_g = lambda x : lamb*(x-denoiser(x, sigma_denoiser))
+red = RED(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
 
-red = ProxOptim(grad_g = grad_g, algo_name=red_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
-
-test(model=red, 
+test(model=red,  # Safe because it has forward
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,

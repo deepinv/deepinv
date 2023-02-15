@@ -3,15 +3,16 @@ import torch.nn as nn
 
 class ProxOptim(nn.Module):
     '''
-    Proximal Optimization algorithms for minimizing the sum of two functions f + g where f is a data-fidelity term that will me modeled by an instance of physics
+    Proximal Optimization algorithms for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
     and g is a regularizer either explicit or implicitly given by either its prox or its gradient. 
     By default, the algorithms starts with a step on f and finishes with step on g. 
 
     :param algo_name: Name of the optimization algorithm.
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.   
+    :param lamb: Regularization parameter.
     :param g: Regularizing potential. 
     :param prox_g: Proximal operator of the regularizing potential. x,it -> prox_g(x,it)
-    :param grad_g: Gradient of the regularizing potential. x -> grad_g(x)
+    :param grad_g: Gradient of the regularizing potential. x,it -> grad_g(x)
     :param max_iter: Number of iterations.
     :param step_size: Step size of the algorithm. List or int. If list, the length of the list must be equal to max_iter.
     :param theta: Relacation parameter of the ADMM/DRS/PD algorithms.
@@ -21,11 +22,12 @@ class ProxOptim(nn.Module):
     :param verbose: prints progress of the algorithm.
     '''
 
-    def __init__(self, algo_name, data_fidelity, device, g = None, prox_g = None, grad_g = None, max_iter=10, stepsize = 1., theta = 1., g_first = False, crit_conv=None, unroll = False, verbose=False):
+    def __init__(self, algo_name='PGD', data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None, grad_g = None, max_iter=10, stepsize = 1., theta = 1., g_first = False, crit_conv=None, unroll = False, verbose=False):
         super().__init__()
 
         self.algo_name = algo_name
         self.data_fidelity = data_fidelity
+        self.lamb = lamb
         self.g = g
         self.prox_g = prox_g
         self.grad_g = grad_g
@@ -79,7 +81,7 @@ class ProxOptim(nn.Module):
             x = init
         for it in range(self.max_iter):
             x_prev = x
-            x - self.stepsizes[it]*(self.data_fidelity.grad(x, y, physics) + self.grad_g(x))
+            x - self.stepsizes[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
@@ -100,11 +102,11 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first : 
-                z = self.data_fidelity.prox(x, y, physics, self.stepsizes[it])
+                z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsizes[it])
                 x = self.prox_g(z, it)
             else :
                 z = self.prox_g(z, it)
-                x = self.data_fidelity.prox(z, y, physics, self.stepsizes[it])
+                x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsizes[it])
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
@@ -126,11 +128,11 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first : # prox on g and grad on f
-                z = x - self.stepsizes[it]*self.data_fidelity.grad(x, y, physics)
+                z = x - self.stepsizes[it]*self.lamb*self.data_fidelity.grad(x, y, physics)
                 x = self.prox_g(z, it)
             else :  # prox on f and grad on g
-                z = x - self.stepsizes[it]*self.grad_g(x)
-                x = self.data_fidelity.prox(z, y, physics, self.stepsizes[it])
+                z = x - self.stepsizes[it]*self.grad_g(x,it)
+                x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsizes[it])
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
         return x 
@@ -150,11 +152,11 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first :
-                z = self.data_fidelity.prox(x, y, physics, self.stepsizes[it])
+                z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsizes[it])
                 w = self.prox_g(2*z-x_prev, it)
             else :
                 z = self.prox_g(x, it)
-                w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.stepsizes[it])
+                w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.lamb*self.stepsizes[it])
             x = x_prev + self.thetas[it]*(w - z)
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
@@ -176,11 +178,11 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             if not self.g_first :
-                z = self.data_fidelity.prox(w-x, y, physics, self.stepsizes[it])
+                z = self.data_fidelity.prox(w-x, y, physics, self.lamb*self.stepsizes[it])
                 w = self.prox_g(z+x_prev, it)
             else :
                 z = self.prox_g(w-x, it)
-                w = self.data_fidelity.prox(z+x_prev, y, physics, self.stepsizes[it])
+                w = self.data_fidelity.prox(z+x_prev, y, physics, self.lamb*self.stepsizes[it])
             x = x_prev + self.thetas[it]*(z - w)
             if not self.unroll and self.check_conv(x_prev,x) :
                 break
