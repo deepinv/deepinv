@@ -14,3 +14,4 @@ TODO :
 - (Julian) Tests for non-linear operators
 - (Julian) Write intro documentation
 - (Julian) fix codecoverage
+- (Julian) Sampling functions (ULA, etc)
