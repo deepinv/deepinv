@@ -11,6 +11,9 @@ class RED(ProxOptim):
     '''
     def __init__(self, denoiser, sigma_denoiser = 0.05, **kwargs):
         super().__init__(**kwargs)
+
+        assert self.algo_name in ['GD','PGS'], 'RED only works with GD or PGD'
+
         self.denoiser = denoiser
         if not self.unroll : 
             if isinstance(sigma_denoiser, float):

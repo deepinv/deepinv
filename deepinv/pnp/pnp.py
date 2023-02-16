@@ -11,6 +11,9 @@ class PnP(ProxOptim):
     '''
     def __init__(self, denoiser, sigma_denoiser=0.05, **kwargs):
         super().__init__(**kwargs)
+
+        assert self.algo_name in ['PGD','ADMM','DRS'], 'PnP only works with PGD, ADMM or DRS'
+
         self.denoiser = denoiser
         if isinstance(sigma_denoiser, float):
             self.sigma_denoiser = [sigma_denoiser] * self.max_iter

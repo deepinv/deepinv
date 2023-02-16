@@ -105,7 +105,7 @@ class ProxOptim(nn.Module):
                 x.requires_grad = True
                 self.grad_g = lambda x,it : torch.autograd.grad(g(x), x, create_graph=True, only_inputs=True)[0]
             else :
-                raise ValueError('grad_g or nn g must be provided for {}'.format(algo_name))
+                raise ValueError('grad_g or nn.Module g must be provided for {}'.format(algo_name))
 
         if requires_prox_g and prox_g is None :
             if g is not None and isinstance(g, nn.Module) :
@@ -117,7 +117,7 @@ class ProxOptim(nn.Module):
                     grad_f = lambda  y : grad_g(y,it) + (1/2)*(y-x)
                     return gradient_descent(grad_f, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
             else :
-                raise ValueError('prox_g, grad_g or nn g must be provided for {}'.format(algo_name))
+                raise ValueError('prox_g, grad_g or nn.Module g must be provided for {}'.format(algo_name))
 
 
         if isinstance(stepsize, float):
