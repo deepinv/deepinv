@@ -1,5 +1,6 @@
 .. image:: resources/deepinv_logolarge.svg
     :alt: A pytorch library for solving imaging inverse problems using deep learning.
+    :align: center
 
 |Test Status| |Python 3.6+| |codecov|
 
