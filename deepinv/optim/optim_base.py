@@ -2,6 +2,17 @@ import torch
 import torch.nn as nn
 
 
+def check_conv(x_prev,x,it,crit_conv,verbose=False):
+    crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
+    if verbose:
+        print(it, 'crit = ', crit_cur , '\r')
+    if crit_conv is not None and crit_cur < crit_conv:
+        has_converged = True
+        return True
+    else:
+        return False
+
+
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     '''
     Standard conjugate gradient algorithm to solve Ax=b
@@ -49,10 +60,10 @@ def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
     '''
 
     for i in range(int(max_iter)):
+        x_prev = x
         x = x - step_size * grad_f(x)
-        if f(x).abs() < tol:
+        if check_conv(x_prev, x, i, crit_conv=tol) :
             break
-
     return x
 
 class ProxOptim(nn.Module):
@@ -141,17 +152,6 @@ class ProxOptim(nn.Module):
         else:
             raise ValueError('stepsize must be either int/float or a list of length max_iter') 
 
-
-    def check_conv(self,x_prev,x,it):
-        crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
-        if self.verbose:
-            print(it, 'crit = ', crit_cur , '\r')
-        if self.crit_conv is not None and crit_cur < self.crit_conv:
-            self.has_converged = True
-            return True
-        else:
-            return False
-
     def GD(self, y, physics, init=None) : 
         '''
         Gradient Descent (GD)
@@ -167,7 +167,7 @@ class ProxOptim(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
-            if not self.unroll and self.check_conv(x_prev,x,it) :
+            if not self.unroll and check_conv(x_prev,x,it, self.crit_conv, self.verbose) :
                 break
         return x 
 
@@ -192,7 +192,7 @@ class ProxOptim(nn.Module):
             else :
                 z = self.prox_g(z, it)
                 x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
-            if not self.unroll and self.check_conv(x_prev,x,it) :
+            if not self.unroll and check_conv(x_prev,x,it, self.crit_conv, self.verbose) :
                 break
         return x 
 
@@ -218,7 +218,7 @@ class ProxOptim(nn.Module):
             else :  # prox on f and grad on g
                 z = x - self.stepsize[it]*self.grad_g(x,it)
                 x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
-            if not self.unroll and self.check_conv(x_prev,x,it) :
+            if not self.unroll and check_conv(x_prev,x,it, self.crit_conv, self.verbose) :
                 break
         return x 
 
@@ -243,7 +243,7 @@ class ProxOptim(nn.Module):
                 z = self.prox_g(x, it)
                 w = self.data_fidelity.prox(2*z-x_prev, y, physics, self.lamb*self.stepsize[it])
             x = x_prev + self.theta[it]*(w - z)
-            if not self.unroll and self.check_conv(x_prev,x,it) :
+            if not self.unroll and check_conv(x_prev,x,it, self.crit_conv, self.verbose) :
                 break
         return w
 
@@ -269,7 +269,7 @@ class ProxOptim(nn.Module):
                 z = self.prox_g(w-x, it)
                 w = self.data_fidelity.prox(z+x_prev, y, physics, self.lamb*self.stepsize[it])
             x = x_prev + self.theta[it]*(z - w)
-            if not self.unroll and self.check_conv(x_prev,x,it) :
+            if not self.unroll and check_conv(x_prev,x,it, self.crit_conv, self.verbose) :
                 break
         return w
 

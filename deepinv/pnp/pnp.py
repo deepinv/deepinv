@@ -33,7 +33,7 @@ class UnrolledPnP(ProxOptim):
     :param denoiser: Dennoiser model
     :param sigma_denoiser: Denoiser noise standart deviation.
     '''
-    def __init__(self, backbone_net,  weight_tied=False, sigma_denoiser=0.05, **kwargs):
+    def __init__(self, backbone_net,  weight_tied=True, sigma_denoiser=0.05, **kwargs):
         super().__init__(**kwargs, prox_g = lambda x,it:x)
 
         self.weight_tied = weight_tied
@@ -52,4 +52,7 @@ class UnrolledPnP(ProxOptim):
                             param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=self.device),
                             requires_grad=True))
 
-        self.prox_g = lambda x,it : self.blocks[it](x, self.sigma_denoiser[it]) if self.weight_tied else self.blocks[0](x, self.sigma_denoiser[it])
+        self.prox_g = lambda x,it : self.blocks[it](x, self.sigma_denoiser[it]) if not self.weight_tied else self.blocks[0](x, self.sigma_denoiser[it])
+
+        from torchsummary import summary
+        print(summary(backbone_net, [(1,3, 256, 256), (1,1)]))

@@ -16,7 +16,7 @@ denoiser_name = 'drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
 pnp_algo = 'HQS'
 batch_size = 128
-dataset = 'DRUNET'
+dataset = 'CBSD68'
 dir = f'../datasets/{dataset}/{problem}/'
 dataset_path = f'../datasets/{dataset}/'
 noise_level_img = 0.03
@@ -65,7 +65,7 @@ if not os.path.exists(f'{dir}/dinv_dataset0.h5'):
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=True, ckpt_path=ckpt_path, train=True)
+denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True, nb_blocks=1)
 
 pnp = UnrolledPnP(backbone_net=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
 
