@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -13,7 +14,7 @@ class WaveletDict(nn.Module):
     TODO: detail doc + perform tests + warm restart
     '''
 
-    def __init__(self, ths=0.1, max_it=100, conv_crit=1e-3, eps=1e-6, gamma=1., verbose=False,
+    def __init__(self, y_shape, ths=0.1, max_it=100, conv_crit=1e-3, eps=1e-6, gamma=1., verbose=False,
                  list_wv=['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8']):
 
         super(WaveletDict, self).__init__()
@@ -24,7 +25,7 @@ class WaveletDict(nn.Module):
         self.eps = eps
         self.list_wv = list_wv
         self.conv_crit = conv_crit
-        self.dict = SARA_dict(y, level=3, list_wv=list_wv)
+        self.dict = SARA_dict(torch.zeros(y_shape), level=3, list_wv=list_wv)
         self.verbose = verbose
 
     def prox_l1(self, x, ths=0.1):
@@ -43,12 +44,12 @@ class WaveletDict(nn.Module):
             x_old = torch.clone(x_)
 
             v_up = self.dict.Psi(v1)
-            x_ = torch.maximum(x_ - self.gamma * (v_up + x_ - y), torch.Tensor([0.]))  #  projection on [0, )
+            x_ = torch.maximum(x_ - self.gamma * (v_up + x_ - y), torch.Tensor([0.]))  # Projection on [0, +\infty)
             prev_xsol = 2. * x_ - x_old
             r1 = self.dict.Psit(prev_xsol)
             v1 = v1 + 0.5 * r1 - self.prox_l1(v1 + 0.5 * r1, ths=0.5 * self.ths)  # weights on ths
 
-            rel_err = torch.linalg.norm(x_ - x_old) / np.linalg.norm(x_old + self.eps)
+            rel_err = torch.linalg.norm(x_ - x_old) / torch.linalg.norm(x_old + self.eps)
             if rel_err < self.conv_crit:
                 break
 
