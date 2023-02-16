@@ -1,4 +1,4 @@
-.. image:: https://github.com/deepinv/deepinv/resources/deepinv_logolarge.svg
+.. image:: resources/deepinv_logolarge.svg
     :alt: A pytorch library for solving imaging inverse problems using deep learning.
 
 |Test Status| |Python 3.6+| |codecov|
