@@ -47,11 +47,11 @@ class TGV(nn.Module):
 
     def prox_tau_fr(self, r):
         left = torch.sqrt(torch.sum(r ** 2, axis=-1)) / (self.tau * self.lambda1)
-        tmp = r - r / (torch.maximum(left, torch.tensor([1])).unsqueeze(-1))
+        tmp = r - r / (torch.maximum(left, torch.tensor([1]).type(left.dtype)).unsqueeze(-1))
         return tmp
 
     def prox_sigma_g_conj(self, u):
-        return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2, torch.tensor([1])).unsqueeze(-1))
+        return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2, torch.tensor([1]).type(u.dtype)).unsqueeze(-1))
 
     def forward(self, y, reg=None):
 
@@ -62,9 +62,9 @@ class TGV(nn.Module):
         if self.x2 is None:
             self.x2 = y.clone()
         if self.r2 is None:
-            self.r2 = torch.zeros((*self.x2.shape, 2))
+            self.r2 = torch.zeros((*self.x2.shape, 2)).type(self.x2.dtype)
         if self.u2 is None:
-            self.u2 = torch.zeros((*self.x2.shape, 4))
+            self.u2 = torch.zeros((*self.x2.shape, 4)).type(self.x2.dtype)
         cy = (y ** 2).sum() / 2
         primalcostlowerbound = 0
 
@@ -94,7 +94,7 @@ class TGV(nn.Module):
                 tmp = torch.max(torch.sqrt(torch.sum(epsilonT(u) ** 2,
                                                      axis=-1)))  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
                 u3 = u / torch.maximum(tmp / self.lambda1, torch.tensor([
-                                                                       1]))  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
+                                                                       1]).type(tmp.dtype))  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = cy - torch.sum(
                     (y - nablaT(epsilonT(u3))) ** 2) / 2.  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
@@ -105,8 +105,7 @@ class TGV(nn.Module):
                 if self.verbose:
                     print('The algorithm did not converge, stopped after ' + str(_+1) + ' iterations.')
 
-        # return x2, r2, u2
-        return self.x2  # TODO: to allow warm restart, we would need to output r2 and u2
+        return self.x2
 
 def nabla(I):
     b, c, h, w = I.shape
