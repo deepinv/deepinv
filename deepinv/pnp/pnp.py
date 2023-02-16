@@ -10,7 +10,7 @@ class PnP(ProxOptim):
     :param sigma_denoiser: Denoiser noise standart deviation.
     '''
     def __init__(self, denoiser, sigma_denoiser=0.05, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, prox_g = lambda x,it:x)
 
         assert self.algo_name in ['PGD','ADMM','DRS'], 'PnP only works with PGD, ADMM or DRS'
 
@@ -34,7 +34,7 @@ class UnrolledPnP(ProxOptim):
     :param sigma_denoiser: Denoiser noise standart deviation.
     '''
     def __init__(self, backbone_net,  weight_tied=False, sigma_denoiser=0.05, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, prox_g = lambda x,it:x)
 
         self.weight_tied = weight_tied
         if self.weight_tied:

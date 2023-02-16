@@ -59,8 +59,12 @@ def get_freer_gpu():
     return idx
 
 if torch.cuda.is_available():
-    free_gpu_id = get_freer_gpu()
-    device = torch.device(f'cuda:{free_gpu_id}')
+    try :
+        free_gpu_id = get_freer_gpu()
+        device = torch.device(f'cuda:{free_gpu_id}')
+    except :
+        device = torch.device('cuda')
+        print('unable to get GPU info')
 else:
     device = 'cpu'
 

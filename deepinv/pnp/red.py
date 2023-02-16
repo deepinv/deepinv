@@ -10,7 +10,7 @@ class RED(ProxOptim):
     :param sigma_denoiser: Denoiser noise standart deviation.
     '''
     def __init__(self, denoiser, sigma_denoiser = 0.05, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, grad_g=lambda x,it:x)
 
         assert self.algo_name in ['GD','PGS'], 'RED only works with GD or PGD'
 

@@ -96,13 +96,14 @@ class ProxOptim(nn.Module):
 
         if algo_name == 'GD' or ( algo_name == 'PGD' and self.g_first ) :
             requires_grad_g = True
+            requires_prox_g = False
         else :
+            requires_grad_g = False
             requires_prox_g = True
 
         if requires_grad_g and grad_g is None :
             if g is not None and isinstance(g, nn.Module) :
                 torch.set_grad_enabled(True)
-                x.requires_grad = True
                 self.grad_g = lambda x,it : torch.autograd.grad(g(x), x, create_graph=True, only_inputs=True)[0]
             else :
                 raise ValueError('grad_g or nn.Module g must be provided for {}'.format(algo_name))
@@ -110,7 +111,6 @@ class ProxOptim(nn.Module):
         if requires_prox_g and prox_g is None :
             if g is not None and isinstance(g, nn.Module) :
                 torch.set_grad_enabled(True)
-                x.requires_grad = True
                 grad_g = lambda x,it : torch.autograd.grad(g(x), x,create_graph=True, only_inputs=True)[0]
             if grad_g is not None :
                 def prox_g(self,x,it) :
