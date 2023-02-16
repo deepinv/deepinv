@@ -31,7 +31,7 @@
      showguides="true"
      inkscape:zoom="1.4142136"
      inkscape:cx="86.267025"
-     inkscape:cy="18.031222"
+     inkscape:cy="18.738329"
      inkscape:window-width="1920"
      inkscape:window-height="992"
      inkscape:window-x="-8"
@@ -455,7 +455,7 @@
            y="104.00277" /></text>
       <text
          xml:space="preserve"
-         style="font-size:18.8173px;font-family:helvetica;-inkscape-font-specification:helvetica;opacity:0.722398;mix-blend-mode:normal;fill:#1a1a1a;fill-opacity:1;stroke:url(#linearGradient2031);stroke-width:0;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter1272)"
+         style="font-size:18.8173px;font-family:helvetica;-inkscape-font-specification:helvetica;opacity:0.90536278;mix-blend-mode:normal;fill:#000000;fill-opacity:1;stroke:url(#linearGradient2031);stroke-width:0;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter1272)"
          x="64.68412"
          y="108.79306"
          id="text1243"
@@ -464,7 +464,7 @@
          inkscape:transform-center-y="-3.6036606e-06"><tspan
            sodipodi:role="line"
            id="tspan1241"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.8173px;font-family:futura;-inkscape-font-specification:futura;opacity:0.179811;fill:#1a1a1a;fill-opacity:1;stroke:url(#linearGradient2031);stroke-width:0;stroke-opacity:1"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.8173px;font-family:futura;-inkscape-font-specification:futura;opacity:0.179811;fill:#000000;fill-opacity:1;stroke:url(#linearGradient2031);stroke-width:0;stroke-opacity:1"
            x="64.68412"
            y="108.79306">DeepInv</tspan></text>
     </g>
