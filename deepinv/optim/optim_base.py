@@ -40,7 +40,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
 def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
     '''
     Standard gradient descent algorithm to solve min_x f(x)
-    :param f: function to minimize as a callable function.
+    :param grad_f: gradient of function to bz minimized as a callable function.
     :param x: input tensor
     :param step_size: step size of the gradient descent algorithm.
     :param max_iter: maximum number of iterations
@@ -103,21 +103,21 @@ class ProxOptim(nn.Module):
             if g is not None and isinstance(g, nn.Module) :
                 torch.set_grad_enabled(True)
                 x.requires_grad = True
-                self.grad_g = lambda x,it : torch.autograd.grad(g(x), x)[0]
+                self.grad_g = lambda x,it : torch.autograd.grad(g(x), x, create_graph=True, only_inputs=True)[0]
             else :
-                raise ValueError('grad_g or deep g must be provided for {}'.format(algo_name))
+                raise ValueError('grad_g or nn g must be provided for {}'.format(algo_name))
 
         if requires_prox_g and prox_g is None :
             if g is not None and isinstance(g, nn.Module) :
                 torch.set_grad_enabled(True)
                 x.requires_grad = True
-                grad_g = lambda x,it : torch.autograd.grad(g(x), x)[0]
+                grad_g = lambda x,it : torch.autograd.grad(g(x), x,create_graph=True, only_inputs=True)[0]
             if grad_g is not None :
                 def prox_g(self,x,it) :
                     grad_f = lambda  y : grad_g(y,it) + (1/2)*(y-x)
                     return gradient_descent(grad_f, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
             else :
-                raise ValueError('prox_g, grad_g or deep g must be provided for {}'.format(algo_name))
+                raise ValueError('prox_g, grad_g or nn g must be provided for {}'.format(algo_name))
 
 
         if isinstance(stepsize, float):
