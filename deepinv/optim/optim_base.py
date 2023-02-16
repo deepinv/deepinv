@@ -22,7 +22,9 @@ class ProxOptim(nn.Module):
     :param verbose: prints progress of the algorithm.
     '''
 
-    def __init__(self, algo_name='PGD', data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None, grad_g = None, max_iter=10, stepsize = 1., theta = 1., g_first = False, crit_conv=None, unroll = False, verbose=False):
+    def __init__(self, algo_name='PGD', data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
+                 grad_g = None, max_iter=10, stepsize=1., theta=1., g_first = False, crit_conv=None, unroll=False,
+                 verbose=False):
         super().__init__()
 
         self.algo_name = algo_name
@@ -37,6 +39,7 @@ class ProxOptim(nn.Module):
         self.crit_conv = crit_conv
         self.verbose = verbose
         self.device = device
+        self.has_converged = False
 
         if isinstance(stepsize, float):
             self.stepsize = [stepsize] * max_iter
@@ -65,8 +68,9 @@ class ProxOptim(nn.Module):
         if self.verbose:
             print(it, 'crit = ', crit_cur , '\r')
         if self.crit_conv is not None and crit_cur < self.crit_conv:
+            self.has_converged = True
             return True
-        else :
+        else:
             return False
 
     def GD(self, y, physics, init=None) : 

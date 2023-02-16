@@ -17,7 +17,7 @@ ckpt_path = '../checkpoints/drunet_gray.pth'
 # pnp_algo = 'HQS'
 batch_size = 1
 dataset = 'set3c'
-dataset_path = '../datasets/set3c'
+dataset_path = '../../datasets/set3c'
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
 noise_level_img = 0.03
 lamb = 0.1
@@ -67,7 +67,7 @@ n_channels = 1
 # backbone = dinv.models.drunet(in_channels=n_channels+1, out_channels=n_channels)
 # model = dinv.models.ArtifactRemoval(backbone, ckpt_path=ckpt_path, device=dinv.device)
 
-backbone = dinv.models.tgvprox(reg=1.)
+backbone = dinv.models.TGV(reg=1.)
 model = dinv.models.ArtifactRemoval(backbone)
 
 

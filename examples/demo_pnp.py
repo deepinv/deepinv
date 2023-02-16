@@ -8,12 +8,12 @@ from deepinv.pnp.pnp import PnP
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
-num_workers = 4  # set to 0 if using small cpu
+num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
 denoiser_name = 'drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
-pnp_algo = 'HQS'
+pnp_algo = 'PGD'
 batch_size = 1
 dataset = 'set3c'
 dataset_path = '../../datasets/set3c'
@@ -23,7 +23,7 @@ lamb = 10
 stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
-max_iter = 10
+max_iter = 50
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -53,9 +53,15 @@ dinv.datasets.generate_dataset(train_dataset=dataset, test_dataset=None,
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, ckpt_path=ckpt_path)
+# denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, ckpt_path=ckpt_path)
+denoiser_name = 'TGV'
+denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_it_max=100)
 
-pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
+if denoiser_name=='TGV':
+    sigma_denoiser = sigma_denoiser*5  # Small tweak, tested on PGD, but a little bit too high on HQS
+
+pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity,
+          max_iter=max_iter, crit_conv=1e-3, stepsize=stepsize, device=dinv.device, verbose=True)
 
 test(model=pnp,  # Safe because it has forward
     test_dataloader=dataloader,
