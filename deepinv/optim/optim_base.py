@@ -1,6 +1,60 @@
 import torch
 import torch.nn as nn
 
+
+def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
+    '''
+    Standard conjugate gradient algorithm to solve Ax=b
+        see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
+    :param A: Linear operator as a callable function, has to be square!
+    :param b: input tensor
+    :param max_iter: maximum number of CG iterations
+    :param tol: absolute tolerance for stopping the CG algorithm.
+    :return: torch tensor x verifying Ax=b
+    '''
+
+    def dot(s1, s2):
+        return (s1 * s2).flatten().sum()
+
+    x = torch.zeros_like(b)
+
+    r = b
+    p = r
+    rsold = dot(r, r)
+
+    for i in range(int(max_iter)):
+        Ap = A(p)
+        alpha = rsold / dot(p, Ap)
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rsnew = dot(r, r)
+        #print(rsnew.sqrt())
+        if rsnew.sqrt() < tol:
+            break
+        p = r + (rsnew / rsold) * p
+        rsold = rsnew
+
+    return x
+
+
+def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
+    '''
+    Standard gradient descent algorithm to solve min_x f(x)
+    :param f: function to minimize as a callable function.
+    :param x: input tensor
+    :param step_size: step size of the gradient descent algorithm.
+    :param max_iter: maximum number of iterations
+    :param tol: absolute tolerance for stopping the algorithm.
+    :return: torch tensor x verifying min_x f(x)
+    '''
+
+    for i in range(int(max_iter)):
+        x = x - step_size * grad_f(x)
+        if f(x).abs() < tol:
+            break
+
+    return x
+
 class ProxOptim(nn.Module):
     '''
     Proximal Optimization algorithms for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
@@ -12,7 +66,7 @@ class ProxOptim(nn.Module):
     :param lamb: Regularization parameter.
     :param g: Regularizing potential. 
     :param prox_g: Proximal operator of the regularizing potential. x,it -> prox_g(x,it)
-    :param grad_g: Gradient of the regularizing potential. x,it -> grad_g(x)
+    :param grad_g: Gradient of the regularizing potential. x,it -> grad_g(x,it)
     :param max_iter: Number of iterations.
     :param step_size: Step size of the algorithm. List or int. If list, the length of the list must be equal to max_iter.
     :param theta: Relacation parameter of the ADMM/DRS/PD algorithms.
@@ -24,13 +78,12 @@ class ProxOptim(nn.Module):
 
     def __init__(self, algo_name='PGD', data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
                  grad_g = None, max_iter=10, stepsize=1., theta=1., g_first = False, crit_conv=None, unroll=False,
-                 verbose=False):
+                 verbose=False, stepsize_inter = 1., max_iter_inter=50, tol_inter=1e-3) :
         super().__init__()
 
         self.algo_name = algo_name
         self.data_fidelity = data_fidelity
         self.lamb = lamb
-        self.g = g
         self.prox_g = prox_g
         self.grad_g = grad_g
         self.g_first = g_first
@@ -40,6 +93,32 @@ class ProxOptim(nn.Module):
         self.verbose = verbose
         self.device = device
         self.has_converged = False
+
+        if algo_name == 'GD' or ( algo_name == 'PGD' and self.g_first ) :
+            requires_grad_g = True
+        else :
+            requires_prox_g = True
+
+        if requires_grad_g and grad_g is None :
+            if g is not None and isinstance(g, nn.Module) :
+                torch.set_grad_enabled(True)
+                x.requires_grad = True
+                self.grad_g = lambda x,it : torch.autograd.grad(g(x), x)[0]
+            else :
+                raise ValueError('grad_g or deep g must be provided for {}'.format(algo_name))
+
+        if requires_prox_g and prox_g is None :
+            if g is not None and isinstance(g, nn.Module) :
+                torch.set_grad_enabled(True)
+                x.requires_grad = True
+                grad_g = lambda x,it : torch.autograd.grad(g(x), x)[0]
+            if grad_g is not None :
+                def prox_g(self,x,it) :
+                    grad_f = lambda  y : grad_g(y,it) + (1/2)*(y-x)
+                    return gradient_descent(grad_f, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
+            else :
+                raise ValueError('prox_g, grad_g or deep g must be provided for {}'.format(algo_name))
+
 
         if isinstance(stepsize, float):
             self.stepsize = [stepsize] * max_iter

@@ -1,40 +1,6 @@
 import torch
 import numpy as np
-
-
-def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
-    '''
-    Standard conjugate gradient algorithm to solve Ax=b
-        see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
-    :param A: Linear operator as a callable function, has to be square!
-    :param b: input tensor
-    :param max_iter: maximum number of CG iterations
-    :param tol: absolute tolerance for stopping the CG algorithm.
-    :return: torch tensor x verifying Ax=b
-    '''
-
-    def dot(s1, s2):
-        return (s1 * s2).flatten().sum()
-
-    x = torch.zeros_like(b)
-
-    r = b
-    p = r
-    rsold = dot(r, r)
-
-    for i in range(int(max_iter)):
-        Ap = A(p)
-        alpha = rsold / dot(p, Ap)
-        x = x + alpha * p
-        r = r - alpha * Ap
-        rsnew = dot(r, r)
-        #print(rsnew.sqrt())
-        if rsnew.sqrt() < tol:
-            break
-        p = r + (rsnew / rsold) * p
-        rsold = rsnew
-
-    return x
+from deepinv.optim.optim_base import conjugate_gradient
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -94,10 +60,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         '''
 
         b = self.A_adjoint(y) + gamma*z
-
         H = lambda x: self.A_adjoint(self.A(x))+gamma*x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
-
         return x
 
     def A_dagger(self, y):
