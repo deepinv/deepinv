@@ -29,7 +29,6 @@ im_size = 256
 epochs = 2
 
 
-
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
 elif problem == 'onebitCS':
