@@ -1,6 +1,7 @@
 TODO : 
 
 - Merge UNets in one clean UNet model
+- Add rescaling options for all denoisers
 
 - (Sam) Unrolled version + improved versions (USRNet / Chouzenoux ... )
 - (Sam) DEQ
