@@ -1,4 +1,7 @@
 TODO : 
+
+- Merge UNets in one clean UNet model
+
 - (Sam) Unrolled version + improved versions (USRNet / Chouzenoux ... )
 - (Sam) DEQ
 - (Sam) Default parameters of various PnP methods. 
