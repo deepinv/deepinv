@@ -89,7 +89,7 @@ class ProxOptim(nn.Module):
 
     def __init__(self, algo_name='PGD', data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
                  grad_g = None, max_iter=10, stepsize=1., theta=1., g_first = False, crit_conv=None, unroll=False,
-                 verbose=False, stepsize_inter = 1., max_iter_inter=50, tol_inter=1e-3) :
+                 weight_tied=True, verbose=False, stepsize_inter = 1., max_iter_inter=50, tol_inter=1e-3) :
         super().__init__()
 
         self.algo_name = algo_name
@@ -99,6 +99,7 @@ class ProxOptim(nn.Module):
         self.grad_g = grad_g
         self.g_first = g_first
         self.unroll = unroll
+        self.weight_tied = weight_tied
         self.max_iter = max_iter
         self.crit_conv = crit_conv
         self.verbose = verbose
@@ -130,12 +131,11 @@ class ProxOptim(nn.Module):
             else :
                 raise ValueError('prox_g, grad_g or nn.Module g must be provided for {}'.format(algo_name))
 
-
         if isinstance(stepsize, float):
-            self.stepsize = [stepsize] * max_iter
+            stepsize = [stepsize] * max_iter
         elif isinstance(stepsize, list):
             assert len(stepsize) == max_iter
-            self.stepsize = stepsize
+            stepsize = stepsize
         else:
             raise ValueError('stepsize must be either int/float or a list of length max_iter') 
         
@@ -143,14 +143,16 @@ class ProxOptim(nn.Module):
             self.register_parameter(name='stepsize',
                                 param=torch.nn.Parameter(torch.tensor(stepsize, device=self.device),
                                 requires_grad=True))
+        else:
+            self.stepsize = stepsize
         
-        if isinstance(stepsize, float):
+        if isinstance(theta, float):
             self.theta = [theta] * max_iter
         elif isinstance(theta, list):
             assert len(theta) == max_iter
             self.theta = theta
         else:
-            raise ValueError('stepsize must be either int/float or a list of length max_iter') 
+            raise ValueError('theta must be either int/float or a list of length max_iter') 
 
     def GD(self, y, physics, init=None) : 
         '''

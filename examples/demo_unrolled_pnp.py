@@ -4,7 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.pnp.denoiser import Denoiser
 from deepinv.optim.data_fidelity import DataFidelity
-from deepinv.pnp.pnp import UnrolledPnP
+from deepinv.pnp.pnp import PnP
+from deepinv.pnp.red import RED
 from deepinv.training_utils import train,test
 from torchvision import datasets, transforms
 import os
@@ -12,9 +13,8 @@ import os
 num_workers = 4  # set to 0 if using small cpu
 problem = 'deblur'
 G = 1
-denoiser_name = 'drunet'
+denoiser_name = 'tiny_drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
-pnp_algo = 'HQS'
 batch_size = 128
 dataset = 'CBSD68'
 dir = f'../datasets/{dataset}/{problem}/'
@@ -24,7 +24,7 @@ lamb = 10
 stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
-max_iter = 10
+max_iter = 6
 im_size = 256
 epochs = 2
 
@@ -65,9 +65,12 @@ if not os.path.exists(f'{dir}/dinv_dataset0.h5'):
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True, nb_blocks=1)
+denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
 
-pnp = UnrolledPnP(backbone_net=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device)
+# pnp_algo = 'HQS'
+# pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device, unroll=True)
+pnp_algo = 'PGD'
+pnp = RED(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device, unroll=True)
 
 # choose training losses
 losses = []

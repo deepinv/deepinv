@@ -12,47 +12,27 @@ class PnP(ProxOptim):
     def __init__(self, denoiser, sigma_denoiser=0.05, **kwargs):
         super().__init__(**kwargs, prox_g = lambda x,it:x)
 
-        assert self.algo_name in ['PGD','ADMM','DRS'], 'PnP only works with PGD, ADMM or DRS'
+        assert self.algo_name in ['HQS','PGD','ADMM','DRS'], 'PnP only works with HQS, PGD, ADMM or DRS'
 
         self.denoiser = denoiser
-        if isinstance(sigma_denoiser, float):
-            self.sigma_denoiser = [sigma_denoiser] * self.max_iter
-        elif isinstance(sigma_denoiser, list):
-            assert len(sigma_denoiser) == self.max_iter
-            self.sigma_denoiser = sigma_denoiser
+
+        if self.unroll and not self.weight_tied:
+            self.denoiser = torch.nn.ModuleList([denoiser for _ in range(self.max_iter)])
         else:
-            raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter') 
-
-        self.prox_g = lambda x,it : self.denoiser(x, self.sigma_denoiser[it])
-
-
-class UnrolledPnP(ProxOptim):
-    '''
-    Unrolled Plug-and-Play algorithms for Image Restoration. 
-
-    :param denoiser: Dennoiser model
-    :param sigma_denoiser: Denoiser noise standart deviation.
-    '''
-    def __init__(self, backbone_net,  weight_tied=True, sigma_denoiser=0.05, **kwargs):
-        super().__init__(**kwargs, prox_g = lambda x,it:x)
-
-        self.weight_tied = weight_tied
-        if self.weight_tied:
-            self.blocks = torch.nn.ModuleList([backbone_net])
-        else:
-            self.blocks = torch.nn.ModuleList([backbone_net for _ in range(self.max_iter)])
-        self.blocks.to(self.device)
+            self.denoiser = denoiser
+            
         if isinstance(sigma_denoiser, float):
             sigma_denoiser = [sigma_denoiser] * self.max_iter
         elif isinstance(sigma_denoiser, list):
             assert len(sigma_denoiser) == self.max_iter
+            sigma_denoiser = sigma_denoiser
         else:
             raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter') 
-        self.register_parameter(name='sigma_denoiser',
+        if self.unroll : 
+             self.register_parameter(name='sigma_denoiser',
                             param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=self.device),
                             requires_grad=True))
+        else:
+            self.sigma_denoiser = sigma_denoiser
 
-        self.prox_g = lambda x,it : self.blocks[it](x, self.sigma_denoiser[it]) if not self.weight_tied else self.blocks[0](x, self.sigma_denoiser[it])
-
-        from torchsummary import summary
-        print(summary(backbone_net, [(1,3, 256, 256), (1,1)]))
+        self.prox_g = lambda x,it : self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])

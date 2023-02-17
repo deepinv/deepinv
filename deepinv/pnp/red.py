@@ -12,21 +12,27 @@ class RED(ProxOptim):
     def __init__(self, denoiser, sigma_denoiser = 0.05, **kwargs):
         super().__init__(**kwargs, grad_g=lambda x,it:x)
 
-        assert self.algo_name in ['GD','PGS'], 'RED only works with GD or PGD'
+        assert self.algo_name in ['GD','PGD'], 'RED only works with GD or PGD'
 
         self.denoiser = denoiser
-        if not self.unroll : 
-            if isinstance(sigma_denoiser, float):
-                self.sigma_denoiser = [sigma_denoiser] * self.max_iter
-            elif isinstance(sigma_denoiser, list):
-                assert len(sigma_denoiser) == self.max_iter
-                self.sigma_denoiser = sigma_denoiser
-            else:
-                raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter') 
-        else : 
-            assert isinstance(sigma_denoiser, float) # the initial parameter is uniform across layer int in that case
-            self.register_parameter(name='sigma_denoiser',
-                                param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=self.device),
-                                requires_grad=True))
 
-        self.grad_g = lambda x,it : x-denoiser(x, self.sigma_denoiser[it])
+        if self.unroll and not self.weight_tied:
+            self.denoiser = torch.nn.ModuleList([denoiser for _ in range(self.max_iter)])
+        else:
+            self.denoiser = denoiser
+
+        if isinstance(sigma_denoiser, float):
+            sigma_denoiser = [sigma_denoiser] * self.max_iter
+        elif isinstance(sigma_denoiser, list):
+            assert len(sigma_denoiser) == self.max_iter
+            sigma_denoiser = sigma_denoiser
+        else:
+            raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter') 
+        if self.unroll : 
+             self.register_parameter(name='sigma_denoiser',
+                            param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=self.device),
+                            requires_grad=True))
+        else:
+            self.sigma_denoiser = sigma_denoiser
+
+        self.grad_g = lambda x,it : x-self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else x-self.denoiser(x, self.sigma_denoiser[it])
