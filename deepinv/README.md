@@ -1,5 +1,6 @@
 TODO : 
 - (Sam) Unrolled version + improved versions (USRNet / Chouzenoux ... )
+- (Sam) DEQ
 - (Sam) Default parameters of various PnP methods. 
 - (Sam) code acceleration methods of proximal algorithms.
 - (Sam) Add Primal-Dual code.
