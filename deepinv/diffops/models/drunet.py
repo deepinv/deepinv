@@ -45,8 +45,7 @@ class UNetRes(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
-    def forward(self, x0):
-        
+    def forward_unet(self, x0):
         x1 = self.m_head(x0)
         x2 = self.m_down1(x1)
         x3 = self.m_down2(x2)
@@ -56,6 +55,12 @@ class UNetRes(nn.Module):
         x = self.m_up2(x+x3)
         x = self.m_up1(x+x2)
         x = self.m_tail(x+x1)
+        return x
+
+    def forward(self, x, sigma):
+        noise_level_map = torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3)).fill_(sigma).to(x.device)
+        x = torch.cat((x, noise_level_map), 1)
+        x = self.forward_unet(x)
         return x
 
 '''

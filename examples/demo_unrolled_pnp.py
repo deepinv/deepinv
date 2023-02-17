@@ -16,7 +16,7 @@ G = 1
 denoiser_name = 'tiny_drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
 batch_size = 128
-dataset = 'CBSD68'
+dataset = 'DRUNET'
 dir = f'../datasets/{dataset}/{problem}/'
 dataset_path = f'../datasets/{dataset}/'
 noise_level_img = 0.03
@@ -60,7 +60,7 @@ train_transform = transforms.Compose([
 if not os.path.exists(f'{dir}/dinv_dataset0.h5'):
     dataset = datasets.ImageFolder(root=dataset_path, transform=val_transform)
     dinv.datasets.generate_dataset(train_dataset=dataset, test_dataset=None,
-                               physics=p, device=dinv.device, save_dir=dir, max_datapoints=1000,
+                               physics=p, device=dinv.device, save_dir=dir, max_datapoints=100000,
                                num_workers=num_workers)
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
