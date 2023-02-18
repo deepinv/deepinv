@@ -32,6 +32,5 @@ class DataFidelity(nn.Module):
             raise ValueError('No gradient defined for this data fidelity term.')
 
     def prox(self, x, y, physics, stepsize):
-        Ax = physics.A(x)
-        return physics.prox_l2(Ax, y, stepsize)
+        return physics.prox_l2(y, x, stepsize)
 
