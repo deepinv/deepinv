@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.optim_base import ProxOptim
+from deepinv.optim.optim_base import FixedPointOptim
 
-class PnP(ProxOptim):
+class PnP(FixedPointOptim):
     '''
     Plug-and-Play algorithms for Image Restoration. Consists in replacing prox_g with a denoiser.
 
@@ -10,9 +10,7 @@ class PnP(ProxOptim):
     :param sigma_denoiser: Denoiser noise standart deviation.
     '''
     def __init__(self, denoiser, sigma_denoiser=0.05, **kwargs):
-        super().__init__(**kwargs, prox_g = lambda x,it:x)
-
-        assert self.algo_name in ['HQS','PGD','ADMM','DRS'], 'PnP only works with HQS, PGD, ADMM or DRS'
+        super().__init__(**kwargs)
 
         self.denoiser = denoiser
 
