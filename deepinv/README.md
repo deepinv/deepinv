@@ -2,8 +2,9 @@ TODO :
 
 - Merge UNets in one clean UNet model
 - Add rescaling options for all denoisers
-
-- (Sam) Unrolled version + improved versions (USRNet / Chouzenoux ... )
+ 
+- (Sam) Refactor Optim class with classes for each algorithm 
+- (Sam) improved unrolled versions (USRNet / Chouzenoux ... )
 - (Sam) DEQ
 - (Sam) Default parameters of various PnP methods. 
 - (Sam) code acceleration methods of proximal algorithms.
