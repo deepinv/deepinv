@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from deepinv.optim.optim_base import conjugate_gradient
+from deepinv.optim.utils import conjugate_gradient
 
 
 class Physics(torch.nn.Module):  # parent class for forward models

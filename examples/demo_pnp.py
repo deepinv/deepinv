@@ -3,8 +3,10 @@ import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
 from deepinv.pnp.denoiser import Denoiser
-from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
+from deepinv.optim.fixed_point import FixedPoint
+from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -41,7 +43,7 @@ elif problem == 'deblur':
 else:
     raise Exception("The inverse problem chosen doesn't exist")
 
-data_fidelity = DataFidelity(type='L2')
+data_fidelity = L2()
 
 val_transform = transforms.Compose([
             transforms.ToTensor(),
@@ -60,10 +62,12 @@ if denoiser_name=='TGV':
     denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_it_max=100)
     sigma_denoiser = sigma_denoiser*5  # Small tweak, tested on PGD, but a little bit too high on HQS
 
-pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity,
-          max_iter=max_iter, crit_conv=1e-3, stepsize=stepsize, device=dinv.device, verbose=True)
+PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser)
+iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, max_iter=max_iter, device=dinv.device)
+FP = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-3,verbose=True)
+model = lambda x,physics : FP(x,x,physics) # FP forward arguments are init, input, physics  
 
-test(model=pnp,  # Safe because it has forward
+test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,

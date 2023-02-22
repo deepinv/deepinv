@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.optim_base import ProxOptim
+from deepinv.optim.optim_iterator import ProxOptim
 
 class RED(ProxOptim):
     '''

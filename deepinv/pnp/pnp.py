@@ -1,18 +1,21 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.optim_base import FixedPointOptim
 
-class PnP(FixedPointOptim):
+class PnP(nn.Module):
     '''
     Plug-and-Play algorithms for Image Restoration. Consists in replacing prox_g with a denoiser.
 
     :param denoiser: Dennoiser model
     :param sigma_denoiser: Denoiser noise standart deviation.
     '''
-    def __init__(self, denoiser, sigma_denoiser=0.05, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, denoiser, sigma_denoiser=0.05, max_iter=50, unroll=False, weight_tied=False, device = 'cpu'):
+        super().__init__()
 
         self.denoiser = denoiser
+        self.unroll = unroll
+        self.weight_tied = weight_tied
+        self.max_iter=max_iter
+        self.device=device
 
         if self.unroll and not self.weight_tied:
             self.denoiser = torch.nn.ModuleList([denoiser for _ in range(self.max_iter)])
@@ -32,5 +35,6 @@ class PnP(FixedPointOptim):
                             requires_grad=True))
         else:
             self.sigma_denoiser = sigma_denoiser
-
-        self.prox_g = lambda x,it : self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])
+    
+    def prox_g(self, x,it) : 
+        return self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])

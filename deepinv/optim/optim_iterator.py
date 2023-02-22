@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.utils import check_conv, gradient_descent
+from deepinv.optim.utils import gradient_descent
 
-class FixedPointOptim(nn.Module):
+class OptimIterator(nn.Module):
     '''
-    Fixed Point Optimization algorithms for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
+    Optimization algorithms Fixed Point Iterations for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
     and g is a regularizer either explicit or implicitly given by either its prox or its gradient. 
     By default, the algorithms starts with a step on f and finishes with step on g. 
 
@@ -13,18 +13,14 @@ class FixedPointOptim(nn.Module):
     :param g: Regularizing potential. 
     :param prox_g: Proximal operator of the regularizing potential. x,it -> prox_g(x,it)
     :param grad_g: Gradient of the regularizing potential. x,it -> grad_g(x,it)
-    :param max_iter: Number of iterations.
-    :param step_size: Step size of the algorithm. List or int. If list, the length of the list must be equal to max_iter.
-    :param theta: Relacation parameter of the ADMM/DRS/PD algorithms.
     :param g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param crit_conv: Mimimum relative change in the solution to stop the algorithm.
+    :param step_size: Step size of the algorithm. List or int. If list, the length of the list must be equal to max_iter.
     :param unroll: If True, the algorithm is unrolled in time.
-    :param verbose: prints progress of the algorithm.
     '''
 
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
-                 grad_g = None, max_iter=10, stepsize=1., theta=1., g_first = False, crit_conv=None, unroll=False,
-                 weight_tied=True, verbose=False, stepsize_inter = 1., max_iter_inter=50, tol_inter=1e-3, init=None) :
+                 grad_g = None, max_iter=50, stepsize=1., g_first = False, unroll=False,
+                 stepsize_inter = 1., max_iter_inter=50, tol_inter=1e-3) :
         super().__init__()
 
         self.data_fidelity = data_fidelity
@@ -33,13 +29,9 @@ class FixedPointOptim(nn.Module):
         self.grad_g = grad_g
         self.g_first = g_first
         self.unroll = unroll
-        self.weight_tied = weight_tied
         self.max_iter = max_iter
-        self.crit_conv = crit_conv
-        self.verbose = verbose
         self.device = device
         self.has_converged = False
-        self.init = init
 
         if g is not None and isinstance(g, nn.Module) :
             def grad_g(self,x,it):
@@ -64,41 +56,24 @@ class FixedPointOptim(nn.Module):
         else:
             self.stepsize = stepsize
         
-        if isinstance(theta, float):
-            self.theta = [theta] * max_iter
-        elif isinstance(theta, list):
-            assert len(theta) == max_iter
-            self.theta = theta
-        else:
-            raise ValueError('theta must be either int/float or a list of length max_iter') 
-
-        def FP_operator(self, x, y, physics, it):
+        def forward(self, x, it, y, physics):
             pass
 
-        def forward(self, y, physics):
-            x = self.init if self.init is not None else y
-            for it in range(self.max_iter):
-                x_prev = x
-                x = FP_operator(x,y,physics)
-                if not self.unroll and check_conv(x_prev,x,it, self.crit_conv, self.verbose):
-                    break
-            return x 
+class GD(OptimIterator):
 
-class GD(FixedPointOptim):
-
-    def __init__(**kwards):
-        super().__init__(**kwards)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-    def FP_operator(self, x, y, physics, it):
+    def forward(self, x, y, physics, it):
         return x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
 
 
-class HQS(FixedPointOptim):
+class HQS(OptimIterator):
 
-    def __init__(**kwards):
-        super().__init__(**kwards)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-    def FP_operator(self, x, y, physics, it):
+    def forward(self, x, it, y, physics):
         if not self.g_first : 
             z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
             x = self.prox_g(z, it)
@@ -107,12 +82,12 @@ class HQS(FixedPointOptim):
             x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
         return x
 
-class PGD(FixedPointOptim):
+class PGD(OptimIterator):
 
-    def __init__(**kwards):
-        super().__init__(**kwards)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-    def FP_operator(self, x, y, physics, it):
+    def forward(self, x, it, y, physics):
         if not self.g_first : # prox on g and grad on f
             z = x - self.stepsize[it]*self.lamb*self.data_fidelity.grad(x, y, physics)
             x = self.prox_g(z, it)
@@ -121,12 +96,12 @@ class PGD(FixedPointOptim):
             x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize[it])
         return x
 
-class DRS(FixedPointOptim):
+class DRS(OptimIterator):
 
-    def __init__(**kwards):
-        super().__init__(**kwards)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
-    def FP_operator(self, x, y, physics, it):
+    def forward(self, x, it, y, physics):
         if not self.g_first :
             Rprox_f = 2*self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])-x
             Rprox_g = 2*self.prox_g(Rprox_f, it)-Rprox_f
@@ -137,13 +112,22 @@ class DRS(FixedPointOptim):
             x = (1/2)*(x + Rprox_g)
         return x
 
-class ADMM(FixedPointOptim):
+class ADMM(OptimIterator):
 
-    def __init__(**kwards):
-        super().__init__(**kwards)
+    def __init__(self, theta, **kwargs):
+        super().__init__(**kwargs)
 
-    def FP_operator(self, x, y, physics, it):
+        if isinstance(theta, float):
+            self.theta = [theta] * self.max_iter
+        elif isinstance(theta, list):
+            assert len(theta) == self.max_iter
+            self.theta = theta
+        else:
+            raise ValueError('theta must be either int/float or a list of length max_iter') 
+
+    def forward(self, x, it, y, physics):
         # TODO : same as DRS ???
+        pass
     
 
         
