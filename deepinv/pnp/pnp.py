@@ -4,11 +4,8 @@ import torch.nn as nn
 class PnP(nn.Module):
     '''
     Plug-and-Play algorithms for Image Restoration. Consists in replacing prox_g with a denoiser.
-
-    :param denoiser: Dennoiser model
-    :param sigma_denoiser: Denoiser noise standart deviation.
     '''
-    def __init__(self, denoiser, sigma_denoiser=0.05, max_iter=50, unroll=False, weight_tied=False, device = 'cpu'):
+    def __init__(self, denoiser, stepsize=1., sigma_denoiser=0.05, max_iter=50, unroll=False, weight_tied=False, device = 'cpu'):
         super().__init__()
 
         self.denoiser = denoiser
@@ -29,11 +26,24 @@ class PnP(nn.Module):
             sigma_denoiser = sigma_denoiser
         else:
             raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter') 
+
+        if isinstance(stepsize, float):
+            stepsize = [stepsize] * self.max_iter
+        elif isinstance(stepsize, list):
+            assert len(stepsize) == self.max_iter
+            stepsize = stepsize
+        else:
+            raise ValueError('stepsize must be either int/float or a list of length max_iter') 
+            
         if self.unroll : 
-             self.register_parameter(name='sigma_denoiser',
+            self.register_parameter(name='sigma_denoiser',
                             param=torch.nn.Parameter(torch.tensor(sigma_denoiser, device=self.device),
                             requires_grad=True))
+            self.register_parameter(name='stepsize',
+                            param=torch.nn.Parameter(torch.tensor(stepsize, device=self.device),
+                            requires_grad=True))
         else:
+            self.stepsize = stepsize
             self.sigma_denoiser = sigma_denoiser
     
     def prox_g(self, x,it) : 
