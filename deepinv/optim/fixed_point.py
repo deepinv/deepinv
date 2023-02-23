@@ -13,7 +13,6 @@ class FixedPoint(nn.Module):
         self.verbose = verbose
         self.early_stop = early_stop
 
-
     def forward(self, init, *args):
         x = init
         for it in range(self.max_iter):

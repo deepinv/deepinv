@@ -26,6 +26,9 @@ stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
 max_iter = 50
+crit_conv = 1e-5
+verbose = True
+early_stop = True 
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -63,9 +66,9 @@ if denoiser_name=='TGV':
     sigma_denoiser = sigma_denoiser*5  # Small tweak, tested on PGD, but a little bit too high on HQS
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser)
-iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, max_iter=max_iter, device=dinv.device)
-FP = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-3,verbose=True)
-model = lambda x,physics : FP(x,x,physics) # FP forward arguments are init, input, physics  
+iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device)
+FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
+model = lambda x,physics : FP(x, x, physics) # FP forward arguments are init, input, physics  
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,
