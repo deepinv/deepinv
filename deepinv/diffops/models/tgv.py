@@ -53,11 +53,11 @@ class TGV(nn.Module):
     def prox_sigma_g_conj(self, u):
         return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2, torch.tensor([1]).type(u.dtype)).unsqueeze(-1))
 
-    def forward(self, y, reg=None):
+    def forward(self, y, sigma=None):
 
-        if reg is not None:
-            self.lambda1 = reg * 0.1
-            self.lambda2 = reg * 0.15
+        if sigma is not None:
+            self.lambda1 = sigma * 0.1
+            self.lambda2 = sigma * 0.15
 
         if self.x2 is None:
             self.x2 = y.clone()
