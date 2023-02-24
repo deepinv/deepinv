@@ -20,6 +20,6 @@ class FixedPoint(nn.Module):
             x = self.iterator(x, it, *args)
             if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose) :
                 break
-        return x 
+        return x
 
 

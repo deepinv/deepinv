@@ -23,7 +23,6 @@ class PnP(nn.Module):
             sigma_denoiser = [sigma_denoiser] * self.max_iter
         elif isinstance(sigma_denoiser, list):
             assert len(sigma_denoiser) == self.max_iter
-            sigma_denoiser = sigma_denoiser
         else:
             raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter') 
 
@@ -31,7 +30,6 @@ class PnP(nn.Module):
             stepsize = [stepsize] * self.max_iter
         elif isinstance(stepsize, list):
             assert len(stepsize) == self.max_iter
-            stepsize = stepsize
         else:
             raise ValueError('stepsize must be either int/float or a list of length max_iter') 
             
@@ -46,5 +44,8 @@ class PnP(nn.Module):
             self.stepsize = stepsize
             self.sigma_denoiser = sigma_denoiser
     
-    def prox_g(self, x,it) : 
+    def prox_g(self,x,it) : 
         return self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])
+
+    def update_stepsize(self,it):
+        return self.stepsize[it]
