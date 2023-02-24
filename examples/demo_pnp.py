@@ -2,7 +2,7 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.pnp.denoiser import Denoiser
+from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
 from deepinv.optim.fixed_point import FixedPoint

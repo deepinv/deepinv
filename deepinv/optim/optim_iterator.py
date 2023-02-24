@@ -31,17 +31,18 @@ class OptimIterator(nn.Module):
 
         self.stepsize = lambda it : update_stepsize(it) if update_stepsize else stepsize
 
-        if g is not None and isinstance(g, nn.Module) and prox_g is None and grad_g is None:
-            def grad_g(self,x,*args):
-                torch.set_grad_enabled(True)
-                return torch.autograd.grad(g(x,*args), x, create_graph=True, only_inputs=True)[0]
-            def prox_g(self,x,*args) :
-                grad = lambda  y : grad_g(y,*args) + (1/2)*(y-x)
-                return gradient_descent(grad, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
-        else :
-            raise ValueError
+        if prox_g is None and grad_g is None :
+            if g is not None and isinstance(g, nn.Module):
+                def grad_g(self,x,*args):
+                    torch.set_grad_enabled(True)
+                    return torch.autograd.grad(g(x,*args), x, create_graph=True, only_inputs=True)[0]
+                def prox_g(self,x,*args) :
+                    grad = lambda  y : grad_g(y,*args) + (1/2)*(y-x)
+                    return gradient_descent(grad, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
+            else :
+                raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
         
-        def forward(self, x, it, y, physics):
+        def forward(self, x, it, y, physitcs):
             pass
 
 
