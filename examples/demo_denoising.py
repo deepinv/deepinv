@@ -63,11 +63,8 @@ for g in range(G):
 
 from deepinv.diffops.models.denoiser import Denoiser
 denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=True, ckpt_path=ckpt_path)
-model = dinv.models.ArtifactRemoval(denoiser)
+model = lambda x,physics : denoiser(x, sigma)
 plot=True
-
-# denoise = lambda x, p : model(x, p, {'sigma', sigma})
-kwargs = {'sigma': sigma}
 
 test(model=model,
      test_dataloader=dataloader,
@@ -75,4 +72,4 @@ test(model=model,
      plot=plot,
      device=dinv.device,
      save_img_path='results/example_denoising.png',
-     **kwargs)
+     plot_input = True)
