@@ -1,9 +1,53 @@
+import math
 import numpy as np
 import torch
 import torch.nn as nn
 
-from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
+from .denoiser import register
 
+try:
+    from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
+except:
+    print('WARNING: pytorch_wavelets not imported')
+
+@register('waveletprior')
+class WaveletPrior(nn.Module):
+    '''
+    Torch implementation of the proximal operator of sparsity in a redundant wavelet dictionary domain (SARA dictionary).
+
+    Minimisation is performed with a dual forward-backward algorithm.
+
+    TODO: raise error if list_wv is larger than 1
+    '''
+
+    def __init__(self, y_shape, ths=0.1, max_it=100, conv_crit=1e-3, eps=1e-6, gamma=1., verbose=False,
+                 list_wv=['db8'], dtype=torch.FloatTensor, level=3):
+        super(WaveletPrior, self).__init__()
+
+        self.dtype = dtype
+        self.max_it = max_it
+        self.ths = ths
+        self.gamma = gamma
+        self.eps = eps
+        self.list_wv = list_wv
+        self.conv_crit = conv_crit
+        self.dict = SARA_dict(torch.zeros(y_shape).type(self.dtype), level=level, list_wv=list_wv)
+        self.verbose = verbose
+
+    def prox_l1(self, x, ths=0.1):
+        return torch.maximum(torch.Tensor([0]).type(x.dtype), x - ths) + torch.minimum(torch.Tensor([0]).type(x.dtype),
+                                                                                       x + ths)
+
+    def forward(self, y, ths=None):
+
+        ths_ = self.ths
+        if ths is not None:
+            ths_ = ths
+        v1_low, v1_high = self.dict.Psit(y)  # initialization of L1 dual variable
+        v1_high = self.prox_l1(v1_high, ths=ths_)
+        x = self.dict.Psi(v1_low, v1_high)
+
+        return x
 
 class WaveletDict(nn.Module):
     '''
@@ -24,6 +68,7 @@ class WaveletDict(nn.Module):
         self.max_it = max_it
         self.ths = ths
         self.gamma = gamma
+        self.gamma = gamma
         self.eps = eps
         self.list_wv = list_wv
         self.conv_crit = conv_crit
@@ -40,48 +85,38 @@ class WaveletDict(nn.Module):
         return torch.maximum(torch.Tensor([0]).type(x.dtype), x - ths) + torch.minimum(torch.Tensor([0]).type(x.dtype),
                                                                                        x + ths)
 
-    def forward(self, y):
+    def forward(self, y, ths=None):  # , A, At, centre, radius, gamma=1.0, crit_conv=1e-5):
 
-        if self.v1_low is None:
-            self.v1_low, self.v1_high = self.dict.Psit(y)  # initialization of L1 dual variable
-        if self.r1 is None:
-            self.r1 = torch.clone(self.v1_high)
-            self.r1_low = torch.clone(self.v1_low)
-        if self.vy1 is None:
-            self.vy1 = torch.clone(self.v1_high)
-        if self.x_ is None:
-            self.x_ = torch.zeros_like(y)
+        ths_ = self.ths
+
+        if ths is not None:
+            ths_ = ths
+
+        self.u_low, self.u_high = self.dict.Psit(y)
 
         for it in range(self.max_it):
 
-            x_old = torch.clone(self.x_)
+            u_prev = self.u_high.clone()
 
-            v_up = self.dict.Psi(self.v1_low, self.v1_high)
-            self.x_ = torch.maximum(self.x_ - self.gamma * (v_up + self.x_ - y),
-                                    torch.Tensor([0.]).type(self.x_.dtype))  # Projection on [0, +\infty)
-            prev_xsol = 2. * self.x_ - x_old
-            self.v1_low, self.r1 = self.dict.Psit(prev_xsol)
-            self.v1_high = self.v1_high + 0.5 * self.r1 - self.prox_l1(self.v1_high + 0.5 * self.r1,
-                                                                       ths=0.5 * self.ths)  # weights on ths
-            self.v1_low = self.v1_low + 0.5 * self.r1_low - self.prox_l1(self.v1_low + 0.5 * self.r1_low,
-                                                                         ths=0. * self.ths)  # weights on ths
+            x = y - self.dict.Psi(self.u_low, self.u_high)
 
-            rel_err = torch.linalg.norm(self.x_ - x_old) / torch.linalg.norm(x_old + self.eps)
-            if rel_err < self.conv_crit:
+            Ax_low, Ax_high = self.dict.Psit(x)
+
+            u_low_ = self.u_low + self.gamma * Ax_low
+            u_high_ = self.u_high + self.gamma * Ax_high
+
+            self.u_low = u_low_ - self.gamma * self.prox_l1(u_low_ / self.gamma, ths=0. / self.gamma)
+            self.u_high = u_high_ - self.gamma * self.prox_l1(u_high_ / self.gamma, ths=ths_ / self.gamma)
+
+            rel_crit = ((self.u_high - u_prev).norm()) / ((self.u_high).norm() + 1e-12)
+            if it % 50 == 0:
+                print(it, rel_crit)
+            if rel_crit < self.conv_crit and it > 10:
                 break
-
-            if self.verbose:
-                if it % 1 == 0:
-                    cost = torch.abs(self.r1).sum()
-                    print('Iter ', str(it), ' rel crit = ', rel_err, ' l1 cost = ', cost)
-
-        if self.verbose:
-            print('Converged after ', str(it), ' iterations; relative err = ', rel_err)
-
-        return self.x_
+        return x
 
 
-def coef2vec(coef, Nc, Nx, Ny):
+def coef2vec(coef):
     """
     Convert wavelet coefficients to an array-type vector, inverse operation of vec2coef.
     The initial wavelet coefficients are stocked in a list as follows:
@@ -115,7 +150,7 @@ def vec2coef(vec, bookkeeping):
     ind = 0
     coef = []
     for ele in bookkeeping:
-        indnext = ele[0] * ele[1] * ele[2]
+        indnext = math.prod(ele)
         coef.append((torch.reshape(vec[ind:ind + indnext], ele),
                      torch.reshape(vec[ind + indnext:ind + 2 * indnext], ele),
                      torch.reshape(vec[ind + 2 * indnext:ind + 3 * indnext], ele)))
@@ -140,6 +175,9 @@ def pywt2torch_format(Yh_):
     Yh_rev = Yh_[::-1]
     Yh = [torch.stack(Yh_cur).unsqueeze(0) for Yh_cur in Yh_rev]
 
+    if len(Yh[0].shape) == 4:  #  Black and white case
+        Yh = [Yh_cur.unsqueeze(0) for Yh_cur in Yh]
+
     return Yh
 
 
@@ -147,7 +185,7 @@ def wavedec_asarray(im, wv='db8', level=3):
     xfm = DWTForward(J=level, mode='zero', wave=wv)
     Yl, Yh = xfm(im)
     Yl, Yh_ = torch2pywt_format(Yl, Yh)
-    wd, book = coef2vec(Yh_, im.shape[-3], im.shape[-2], im.shape[-1])
+    wd, book = coef2vec(Yh_)
 
     return Yl.flatten(), Yl.shape, wd, book
 

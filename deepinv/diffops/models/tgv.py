@@ -2,7 +2,10 @@ import warnings
 
 import torch
 import torch.nn as nn
+from .denoiser import register
 
+
+@register('tgv')
 class TGV(nn.Module):
     '''
     Implements the proximal operator of the (second order) Total Generalised Variation (TGV) operator.(see K. Bredies,
@@ -22,6 +25,7 @@ class TGV(nn.Module):
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov (https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb)
     '''
+
     def __init__(self, reg=1., verbose=True, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None):
         super(TGV, self).__init__()
 
@@ -51,20 +55,22 @@ class TGV(nn.Module):
         return tmp
 
     def prox_sigma_g_conj(self, u):
-        return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2, torch.tensor([1]).type(u.dtype)).unsqueeze(-1))
+        return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2,
+                                  torch.tensor([1]).type(u.dtype)).unsqueeze(-1))
 
     def forward(self, y, sigma=None):
+
+        restart = True if self.x2 is None or self.x2.shape != y.shape else False
 
         if sigma is not None:
             self.lambda1 = sigma * 0.1
             self.lambda2 = sigma * 0.15
 
-        if self.x2 is None:
+        if restart:
             self.x2 = y.clone()
-        if self.r2 is None:
             self.r2 = torch.zeros((*self.x2.shape, 2)).type(self.x2.dtype)
-        if self.u2 is None:
             self.u2 = torch.zeros((*self.x2.shape, 4)).type(self.x2.dtype)
+
         cy = (y ** 2).sum() / 2
         primalcostlowerbound = 0
 
@@ -78,7 +84,8 @@ class TGV(nn.Module):
             self.r2 = self.r2 + self.rho * (r - self.r2)
             self.u2 = self.u2 + self.rho * (u - self.u2)
 
-            rel_err = torch.linalg.norm(x_prev.flatten() - self.x2.flatten()) / torch.linalg.norm(self.x2.flatten() + 1e-12)
+            rel_err = torch.linalg.norm(x_prev.flatten() - self.x2.flatten()) / torch.linalg.norm(
+                self.x2.flatten() + 1e-12)
 
             if _ > 1 and rel_err < self.crit:
                 self.has_converged = True
@@ -94,18 +101,20 @@ class TGV(nn.Module):
                 tmp = torch.max(torch.sqrt(torch.sum(epsilonT(u) ** 2,
                                                      axis=-1)))  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
                 u3 = u / torch.maximum(tmp / self.lambda1, torch.tensor([
-                                                                       1]).type(tmp.dtype))  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
+                    1]).type(
+                    tmp.dtype))  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = cy - torch.sum(
                     (y - nablaT(epsilonT(u3))) ** 2) / 2.  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
                 if self.verbose:
                     print('Iter: ', _, ' Primal cost: ', primalcost.item(), ' Rel err:', rel_err)
 
-            if _ == self.n_it_max-1:
+            if _ == self.n_it_max - 1:
                 if self.verbose:
-                    print('The algorithm did not converge, stopped after ' + str(_+1) + ' iterations.')
+                    print('The algorithm did not converge, stopped after ' + str(_ + 1) + ' iterations.')
 
         return self.x2
+
 
 def nabla(I):
     b, c, h, w = I.shape
@@ -119,12 +128,14 @@ def nabla(I):
 
 def nablaT(G):
     b, c, h, w = G.shape[:-1]
-    I = torch.zeros(b, c, h, w).type(G.dtype) # note that we just reversed left and right sides of each line to obtain the transposed operator
+    I = torch.zeros(b, c, h, w).type(
+        G.dtype)  # note that we just reversed left and right sides of each line to obtain the transposed operator
     I[:, :, :-1] -= G[:, :, :-1, :, 0]
     I[:, :, 1:] += G[:, :, :-1, :, 0]
     I[..., :-1] -= G[..., :-1, 1]
     I[..., 1:] += G[..., :-1, 1]
     return I
+
 
 # # ADJOINTNESS TEST
 # u = torch.randn((4, 3, 100,100)).type(torch.DoubleTensor)
@@ -135,7 +146,7 @@ def nablaT(G):
 # print('Adjointness test (should be small): ', e)
 
 
-def epsilon(I): # Simplified
+def epsilon(I):  # Simplified
     b, c, h, w, _ = I.shape
     G = torch.zeros((b, c, h, w, 4)).type(I.dtype)
     G[:, :, 1:, :, 0] -= I[:, :, :-1, :, 0]  # xdy

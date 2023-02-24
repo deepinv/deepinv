@@ -15,6 +15,7 @@ class FixedPoint(nn.Module):
 
     def forward(self, init, *args):
         x = init
+        print('And inside fixed point, init is ', init.shape)
         for it in range(self.max_iter):
             x_prev = x
             x = self.iterator(x, it, *args)

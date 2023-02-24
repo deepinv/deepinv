@@ -9,9 +9,13 @@ G = 1  # number of operators
 max_datapoints = 1e7
 num_workers = 0  # set to 0 if using cpu
 
-# problem
-problem = 'denoising'
-dataset = 'set3c'
+# # problem
+# problem = 'denoising'
+# dataset = 'set3c'
+# dir = f'../datasets/{dataset}/{problem}/G{G}/'
+problem = 'CS'
+dataset = 'MNIST'
+max_datapoints = 10
 dir = f'../datasets/{dataset}/{problem}/G{G}/'
 
 
