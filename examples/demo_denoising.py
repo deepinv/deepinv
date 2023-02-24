@@ -2,9 +2,7 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.pnp.denoiser import Denoiser
-from deepinv.pnp.pnp import PnP
-from deepinv.pnp.red import RED
+from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -12,8 +10,8 @@ from torchvision import datasets, transforms
 num_workers = 0  # set to 0 if using small cpu
 problem = 'denoising'
 G = 1
-denoiser_name = 'drunet'
-ckpt_path = '../checkpoints/drunet_gray.pth'
+denoiser_name = 'GSDRUNet'
+ckpt_path = '../checkpoints/GSDRUNet.ckpt'
 # pnp_algo = 'HQS'
 batch_size = 1
 dataset = 'set3c'
@@ -48,8 +46,6 @@ for g in range(G):
     p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
     physics.append(p)
 
-    print(p)
-
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))
 
@@ -62,15 +58,12 @@ for g in range(G):
 #                                num_workers=num_workers)
 # dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 # dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-
-n_channels = 1
 # backbone = dinv.models.drunet(in_channels=n_channels+1, out_channels=n_channels)
 # model = dinv.models.ArtifactRemoval(backbone, ckpt_path=ckpt_path, device=dinv.device)
 
-backbone = dinv.models.TGV(reg=1.)
-model = dinv.models.ArtifactRemoval(backbone)
-
-
+from deepinv.diffops.models.denoiser import Denoiser
+denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=True, ckpt_path=ckpt_path)
+model = dinv.models.ArtifactRemoval(denoiser)
 plot=True
 
 # denoise = lambda x, p : model(x, p, {'sigma', sigma})
