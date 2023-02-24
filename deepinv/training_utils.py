@@ -170,7 +170,8 @@ def test(model, test_dataloader,
 
             y = y.type(dtype).to(device)
 
-            x1 = f(y, physics[g], **kwargs)
+            with torch.no_grad():
+                x1 = f(y, physics[g], **kwargs)
             #print('Here we check convergence :', f.has_converged)
 
             if g < show_operators and i == 0 and plot:

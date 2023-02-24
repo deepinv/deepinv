@@ -118,7 +118,7 @@ class PD(OptimIterator):
 
         TODO:
         - check that there is no conflict with the data_fidelity.prox
-        - check that there is
+        - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
         '''
         super().__init__(**kwargs)
 

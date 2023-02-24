@@ -2,7 +2,7 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.pnp.denoiser import Denoiser
+from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
 from deepinv.optim.fixed_point import FixedPoint
@@ -11,10 +11,12 @@ from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 import os
 
-num_workers = 4  # set to 0 if using small cpu
+# num_workers = 4  # set to 0 if using small cpu
+num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
 denoiser_name = 'tiny_drunet'
+denoiser_name = 'TGV'
 ckpt_path = '../checkpoints/drunet_color.pth'
 batch_size = 128
 dataset = 'set3c'
@@ -69,7 +71,11 @@ if not os.path.exists(f'{dir}/dinv_dataset0.h5'):
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
+if denoiser_name=='TGV':
+    denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_it_max=100)
+    sigma_denoiser = sigma_denoiser*5  # Small tweak, tested on PGD, but a little bit too high on HQS
+
+# denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
 
 # pnp_algo = 'HQS'
 # pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device, unroll=True)
@@ -87,15 +93,23 @@ losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 optimizer = torch.optim.Adam(PnP_module.parameters(), lr=1e-4, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
 
-train(model=model,
-        train_dataloader=dataloader,
-        epochs=epochs,
-        scheduler=scheduler,
-        loss_closure=losses,
-        physics=p,
-        optimizer=optimizer,
-        device=dinv.device,
-        ckp_interval=250,
-        save_path=f'{dir}/dinv_moi_demo',
-        plot=False,
-        verbose=True)
+test(model=model,  # Safe because it has forward
+    test_dataloader=dataloader,
+    physics=p,
+    device=dinv.device,
+    plot=True,
+    plot_input=True,
+    save_img_path='../results/results_pnp.png')
+
+# train(model=model,
+#         train_dataloader=dataloader,
+#         epochs=epochs,
+#         scheduler=scheduler,
+#         loss_closure=losses,
+#         physics=p,
+#         optimizer=optimizer,
+#         device=dinv.device,
+#         ckp_interval=250,
+#         save_path=f'{dir}/dinv_moi_demo',
+#         plot=False,
+#         verbose=True)
