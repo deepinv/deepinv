@@ -46,7 +46,7 @@ class GSPnP(nn.Module):
         '''
         Dg = self.potential_grad(x, sigma)
         x_hat = x - Dg
-        return x_hat, Dg
+        return x_hat
 
 def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='R'):
     '''

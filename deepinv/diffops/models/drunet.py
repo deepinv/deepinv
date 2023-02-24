@@ -185,8 +185,8 @@ class ResBlock(nn.Module):
         self.res = conv(in_channels, out_channels, kernel_size, stride, padding, bias, mode, negative_slope)
 
     def forward(self, x):
-        #res = self.res(x)
-        return x + self.res(x)
+        res = self.res(x)
+        return x + res
 
 
 """

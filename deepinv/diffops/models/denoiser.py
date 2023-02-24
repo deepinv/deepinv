@@ -26,7 +26,7 @@ class Denoiser(nn.Module):
             deep = True
         elif 'GSDRUNet' in self.denoiser_name:
             from deepinv.diffops.models.GSPnP import GSDRUNet
-            self.model = GSDRUNet(in_channels=n_channels+1, out_channels=n_channels, nb = 4, nc=[64, 128, 256, 512], act_mode='E')
+            self.model = GSDRUNet(in_channels=n_channels+1, out_channels=n_channels, nb = 2, nc=[64, 128, 256, 512], act_mode='E')
         elif self.denoiser_name == 'TGV':
             from deepinv.diffops.models.tgv import TGV
             self.model = TGV(n_it_max=100, verbose=False)
@@ -41,9 +41,7 @@ class Denoiser(nn.Module):
 
         if isinstance(self.model, nn.Module):
             if pretrain and ckpt_path is not None:
-                state_dict = torch.load(ckpt_path)
-                print(state_dict.keys())
-                self.model.load_state_dict(torch.load(ckpt_path), strict=True)
+                self.model.load_state_dict(torch.load(ckpt_path), strict=False)
             if not train:
                 self.model.eval()
                 for _, v in self.model.named_parameters():
