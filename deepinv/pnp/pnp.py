@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class PnP(nn.Module):
     '''
-    Plug-and-Play algorithms for Image Restoration. Consists in replacing prox_g with a denoiser.
+    Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration. Consists in replacing prox_g or grad_g with a denoiser.
     '''
     def __init__(self, denoiser, stepsize=1., sigma_denoiser=0.05, max_iter=50, unroll=False, weight_tied=False, device = 'cpu'):
         super().__init__()
@@ -46,6 +46,9 @@ class PnP(nn.Module):
     
     def prox_g(self,x,it) : 
         return self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])
+
+    def grad_g(self,x,it) : 
+        return x-(self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it]))
 
     def update_stepsize(self,it):
         return self.stepsize[it]
