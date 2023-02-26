@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from .denoiser import register
+
 class StudentGrad(nn.Module):
     def __init__(self, denoiser):
         super().__init__()
@@ -48,15 +50,16 @@ class GSPnP(nn.Module):
         x_hat = x - Dg
         return x_hat
 
-def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='R'):
+@register('gsdrunet')
+def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='E', ckpt_path=None):
     '''
     Gradient Step DRUNet
     :param in_channels: (int) Number of input channels
     :param out_channels: (int) Number of output channels
     :param nb: (int) Number of blocks in the DRUNet
     :param nc: (list) Number of channels in the DRUNet
-    :param device: (torch.device) Device to use
     '''
     from deepinv.diffops.models.drunet import DRUNet
-    denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode)
+    denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode,
+                      ckpt_path=ckpt_path)
     return GSPnP(denoiser)
