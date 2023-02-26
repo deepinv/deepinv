@@ -13,23 +13,31 @@ import os
 
 # num_workers = 4  # set to 0 if using small cpu
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
-# problem = 'deblur'
-# G = 1
-# # denoiser_name = 'tiny_drunet'
-# denoiser_name = 'TGV'
-# ckpt_path = '../checkpoints/drunet_color.pth'
-# batch_size = 128
-# dataset = 'set3c'
-# dataset_path = '../../datasets/set3c'
-problem = 'CS'
+
+# PROBLEM SELECTION
+# EITHER
+dataset = 'set3c'
+problem = 'deblur'
 G = 1
-# denoiser_name = 'tiny_drunet'
-denoiser_name = 'TGV'  # <-- THIS IS OPTIONAL
+
+# OR
+# problem = 'CS'
+# dataset = 'MNIST'
+# G = 1
+
+# PRIOR SELECTION
 # model_spec = {'name': 'tgv', 'args': {'n_it_max':500, 'verbose':True}}
-model_spec = {'name': 'waveletprior',
-              'args': {'y_shape':(1,1,28,28), 'max_it':100, 'verbose':False, 'list_wv':['db4'], 'level':1}}
+# model_spec = {'name': 'waveletprior',
+#               'args': {'wv':'db8', 'level': 3}}
+model_spec = {'name': 'waveletdictprior',
+              'args': {'max_iter':10, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':2}}
+# n_channels = 3
+# model_spec = {'name': 'drunet',
+#               'args': {'in_channels':n_channels+1, 'out_channels':n_channels, 'nb':4, 'nc':[64, 128, 256, 512],
+#                        'ckpt_path': '../checkpoints/drunet_color.pth'}}
+
+# PATH, BATCH SIZE ETC
 batch_size = 3
-dataset = 'MNIST'
 dataset_path = f'../../datasets/{dataset}/'
 dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
@@ -40,7 +48,7 @@ sigma_denoiser = sigma_k*noise_level_img
 max_iter = 6
 im_size = 256
 epochs = 2
-max_iter = 50
+max_iter = 100
 crit_conv = 1e-5
 verbose = True
 early_stop = True 
@@ -84,16 +92,24 @@ if not os.path.exists(f'{dir}/dinv_dataset0.h5') and not 'MNIST' in dataset:
 
 physics = []
 for g in range(G):
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
-    p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
+    if problem == 'CS':
+        p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
+        p.sensor_model = lambda x: torch.sign(x)
+    elif problem == 'deblur':
+        p = dinv.physics.BlurFFT((3, 256, 256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.),
+                                 device=dinv.device, noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img))
+    try:
+        p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
+        dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
+    except:
+        p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
+        dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
     physics.append(p)
-    dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
 # if denoiser_name=='TGV':
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_it_max=100, model_spec=model_spec)
-sigma_denoiser = sigma_denoiser*1.0  # Small tweak, tested on PGD, but a little bit too high on HQS
+denoiser = Denoiser(model_spec=model_spec)
+sigma_denoiser = sigma_denoiser*0.2 # Small tweak, tested on PGD, but a little bit too high on HQS
 
 # denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
 

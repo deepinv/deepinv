@@ -4,11 +4,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from .denoiser import register
+
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
+@register('drunet')
 class UNetRes(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose'):
+    def __init__(self, in_channels=1, out_channels=1, nc=[64, 128, 256, 512], nb=4, act_mode='R',
+                 downsample_mode='strideconv', upsample_mode='convtranspose', pretrain=False, ckpt_path=None,
+                 device=None):
         super(UNetRes, self).__init__()
 
         self.m_head = conv(in_channels, nc[0], bias=False, mode='C')
@@ -45,6 +50,12 @@ class UNetRes(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
+        if pretrain or ckpt_path is not None:
+            self.load_state_dict(torch.load(ckpt_path), strict=True)
+
+        if device is not None:
+            self.to(device)
+
     def forward_unet(self, x0):
         x1 = self.m_head(x0)
         x2 = self.m_down1(x1)
@@ -64,7 +75,7 @@ class UNetRes(nn.Module):
         return x
 
 
-class DRUNet(UNetRes):
+class DRUNet(UNetRes):  # not needed?
     def __init__(self, **kwargs):
         super(UNetRes, self).__init__(**kwargs)
 
