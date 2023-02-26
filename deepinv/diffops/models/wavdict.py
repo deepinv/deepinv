@@ -5,10 +5,7 @@ import torch.nn as nn
 
 from .denoiser import register
 
-try:
-    from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
-except:
-    print('WARNING: pytorch_wavelets not imported')
+from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
 
 @register('waveletprior')
 class WaveletPrior(nn.Module):
