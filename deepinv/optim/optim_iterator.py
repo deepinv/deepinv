@@ -107,8 +107,32 @@ class ADMM(OptimIterator):
     def forward(self, x, it, y, physics):
         # TODO : same as DRS ???
         pass
-    
 
+
+class PD(OptimIterator):
+
+    def __init__(self, **kwargs):
+        '''
+        In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
+        primal and dual variables.
+
+        TODO:
+        - check that there is no conflict with the data_fidelity.prox
+        - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
+        '''
+        super().__init__(**kwargs)
+
+    def forward(self, pd_var, it, y, physics):
+
+        x, u = pd_var[:, :pd_var.shape[1]//2, ...], pd_var[:, pd_var.shape[1]//2:, ...]
+
+        x_ = self.prox_g(x - gamma * physics.A_adjoint(u), it)
+        v = u + sigma * physics.A(2 * x_ - x)
+        u = v - sigma * self.data_fidelity.prox(v / sigma, y, physics, self.lamb * self.stepsize(it) / sigma)
+
+        pd_variable = torch.cat((x_, u), axis=1)
+
+        return pd_variable
         
 
 # def ADMM(self, y, physics, init=None):

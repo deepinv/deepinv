@@ -2,8 +2,10 @@ import warnings
 
 import torch
 import torch.nn as nn
+from .denoiser import register
 
 
+@register('tgv')
 class TGV(nn.Module):
     '''
     Implements the proximal operator of the (second order) Total Generalised Variation (TGV) operator.(see K. Bredies,

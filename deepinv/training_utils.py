@@ -170,13 +170,13 @@ def test(model, test_dataloader,
 
             y = y.type(dtype).to(device)
 
-            x1 = f(y, physics[g], **kwargs)
-            #print('Here we check convergence :', f.has_converged)
+            with torch.no_grad():
+                x1 = f(y, physics[g], **kwargs)
 
             if g < show_operators and i == 0 and plot:
                 xlin = physics[g].A_adjoint(y)
                 if plot_input : 
-                    imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
