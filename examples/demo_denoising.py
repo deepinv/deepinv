@@ -15,9 +15,12 @@ G = 1
 # ckpt_path = '../checkpoints/GSDRUNet.ckpt'
 # NEW: update the following dictionnary with parameters for GSDRUNet appropriately
 n_channels = 3
+pretrain = True
+train = False
 model_spec = {'name': 'gsdrunet',
               'args': {'in_channels':n_channels+1, 'out_channels':n_channels,
-                       'ckpt_path': '../checkpoints/GSDRUNet.ckpt'}}
+                       'ckpt_path': '../checkpoints/GSDRUNet.ckpt',
+                        'pretrain':pretrain, 'train':train, 'device':dinv.device}}
 # pnp_algo = 'HQS'
 batch_size = 1
 dataset = 'set3c'
@@ -55,20 +58,8 @@ for g in range(G):
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))
 
-# val_transform = transforms.Compose([
-#             transforms.ToTensor(),
-#  ])
-# dataset = datasets.ImageFolder(root=dataset_path, transform=val_transform)
-# dinv.datasets.generate_dataset(train_dataset=dataset, test_dataset=None,
-#                                physics=p, device=dinv.device, save_dir=dir, max_datapoints=5,
-#                                num_workers=num_workers)
-# dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
-# dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-# backbone = dinv.models.drunet(in_channels=n_channels+1, out_channels=n_channels)
-# model = dinv.models.ArtifactRemoval(backbone, ckpt_path=ckpt_path, device=dinv.device)
-
 from deepinv.diffops.models.denoiser import Denoiser
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=True, ckpt_path=ckpt_path)
+denoiser = Denoiser(model_spec=model_spec)
 model = lambda x,physics : denoiser(x, sigma)
 plot=True
 
