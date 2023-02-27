@@ -18,7 +18,7 @@ class OptimIterator(nn.Module):
     '''
 
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
-                 grad_g = None, g_first = False, stepsize=1., stepsize_inter = 1., max_iter_inter=50, 
+                 grad_g = None, g_first = False, stepsize=1.,  stepsize_inter = 1., max_iter_inter=50,
                  tol_inter=1e-3, update_stepsize=None) :
         super().__init__()
 
@@ -111,7 +111,7 @@ class ADMM(OptimIterator):
 
 class PD(OptimIterator):
 
-    def __init__(self, **kwargs):
+    def __init__(self, stepsize_2=1., update_stepsize=None, **kwargs):
         '''
         In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
         primal and dual variables.
@@ -122,17 +122,44 @@ class PD(OptimIterator):
         '''
         super().__init__(**kwargs)
 
+        self.stepsize_2 = lambda it : update_stepsize(it) if update_stepsize else stepsize_2
+
+
+    def primal_prox(self, x, Atu, it):
+        return self.prox_g(x - self.stepsize_2(it) * Atu, it)
+
+    def dual_prox(self, Ax_cur, u, y, it):
+        v = u + self.stepsize(it) / 2. * Ax_cur
+        return v - self.stepsize(it) / 2. * self.data_fidelity.prox_norm(v / (self.stepsize(it) / 2.), y, self.lamb)
+
+
     def forward(self, pd_var, it, y, physics):
 
-        x, u = pd_var[:, :pd_var.shape[1]//2, ...], pd_var[:, pd_var.shape[1]//2:, ...]
+        x, u = pd_var
 
-        x_ = self.prox_g(x - gamma * physics.A_adjoint(u), it)
-        v = u + sigma * physics.A(2 * x_ - x)
-        u = v - sigma * self.data_fidelity.prox(v / sigma, y, physics, self.lamb * self.stepsize(it) / sigma)
+        x_ = self.primal_prox(x, physics.A_adjoint(u), it)
+        Ax_cur = physics.A(2*x_ - x)
+        u = self.dual_prox(Ax_cur, u, y, it)
 
-        pd_variable = torch.cat((x_, u), axis=1)
+        pd_variable = (x_, u)
 
         return pd_variable
+
+
+    # def forward(self, pd_var, it, y, physics):
+    #
+    #     x, u = pd_var
+    #
+    #     x_ = self.prox_g(x - self.stepsize_2(it) * physics.A_adjoint(u), it)
+    #     v = u + self.stepsize(it)/2. * physics.A(2 * x_ - x)
+    #     u = v - self.stepsize(it)/2. * self.data_fidelity.prox_norm(v / (self.stepsize(it)/2.), y, self.lamb)
+    #
+    #     pd_variable = (x_, u)
+    #
+    #     return pd_variable
+
+
+
         
 
 # def ADMM(self, y, physics, init=None):

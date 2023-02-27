@@ -15,15 +15,15 @@ import os
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 
 # PROBLEM SELECTION
-# EITHER
-dataset = 'set3c'
-problem = 'deblur'
-G = 1
+# # EITHER
+# dataset = 'set3c'
+# problem = 'deblur'
+# G = 1
 
 # OR
-# problem = 'CS'
-# dataset = 'MNIST'
-# G = 1
+problem = 'CS'
+dataset = 'MNIST'
+G = 1
 
 # PRIOR SELECTION
 # model_spec = {'name': 'tgv', 'args': {'n_it_max':500, 'verbose':True}}
@@ -69,7 +69,8 @@ elif problem == 'deblur':
 else:
     raise Exception("The inverse problem chosen doesn't exist")
 
-data_fidelity = L2()
+# data_fidelity = L2()
+data_fidelity = IndicatorL2(radius=0.)
 
 # val_transform = transforms.Compose([
 #             transforms.CenterCrop(im_size),
@@ -117,12 +118,14 @@ sigma_denoiser = sigma_denoiser*0.2 # Small tweak, tested on PGD, but a little b
 # pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device, unroll=True)
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
-iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
+# iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
+iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
 FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
 # model = lambda x, physics : FP(physics.A_adjoint(x), x, physics) # FP forward arguments are init, input, physics
 
 def model(x, physics):
-    x_init = physics.A_adjoint(x)
+    # x_init = physics.A_adjoint(x)  # Case PGD
+    x_init = (physics.A_adjoint(x), x)
     return FP(x_init, x, physics)
 
 # choose training losses

@@ -15,12 +15,13 @@ class FixedPoint(nn.Module):
 
     def forward(self, init, *args):
         x = init
-        print('And inside fixed point, init is ', init.shape)
+        # print('And inside fixed point, init is ', init.shape)
         for it in range(self.max_iter):
-            x_prev = x
+            x_prev = x if type(x) is not tuple else x[0]
             x = self.iterator(x, it, *args)
-            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose) :
+            x_out = x if type(x) is not tuple else x[0]
+            if self.early_stop and check_conv(x_prev, x_out, it, self.crit_conv, self.verbose) :
                 break
-        return x
+        return x_out
 
 

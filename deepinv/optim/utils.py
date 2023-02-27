@@ -6,7 +6,6 @@ def check_conv(x_prev,x,it,crit_conv,verbose=False):
     if verbose:
         print(it, 'crit = ', crit_cur , '\r')
     if crit_conv is not None and crit_cur < crit_conv:
-        has_converged = True
         return True
     else:
         return False
