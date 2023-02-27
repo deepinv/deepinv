@@ -2,7 +2,7 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.pnp.denoiser import Denoiser
+from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
 from deepinv.optim.fixed_point import FixedPoint
@@ -11,27 +11,29 @@ from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 import os
 
-num_workers = 4  # set to 0 if using small cpu
+num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
-denoiser_name = 'tiny_drunet'
-ckpt_path = '../checkpoints/drunet_color.pth'
-batch_size = 128
-dataset = 'DRUNET'
+denoiser_name = 'gsdrunet'
+ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+pnp_algo = 'PGD'
+batch_size = 1
+dataset = 'set3c'
+dataset_path = '../../datasets/set3c'
 dir = f'../datasets/{dataset}/{problem}/'
-dataset_path = f'../datasets/{dataset}/'
 noise_level_img = 0.03
 lamb = 10
 stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
-max_iter = 6
-im_size = 256
-epochs = 2
-max_iter = 50
+max_iter = 5
 crit_conv = 1e-5
 verbose = True
 early_stop = True 
+n_channels = 3
+pretrain = True
+epochs = 2
+im_size = 256
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -69,15 +71,32 @@ if not os.path.exists(f'{dir}/dinv_dataset0.h5'):
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
-
-# pnp_algo = 'HQS'
-# pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device, unroll=True)
+model_spec = {'name': denoiser_name,
+              'args': {
+                    'in_channels':n_channels+1, 
+                    'out_channels':n_channels,
+                    'ckpt_path': ckpt_path,
+                    'pretrain':pretrain, 
+                    'train': True, 
+                    'device':dinv.device
+                    }}
+denoiser = Denoiser(model_spec=model_spec)
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
 FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
-model = lambda x,physics : FP(x, x, physics) # FP forward arguments are init, input, physics  
+
+class Unroll(nn.Module):
+    def __init__(self, FP) :
+        super().__init__()
+        self.FP = FP
+        self.parameters = PnP_module.parameters
+
+    def forward(self,x,physics):
+        # FP(init, input, physics)
+        return FP(x, x, physics) 
+
+model = Unroll(FP)
 
 # choose training losses
 losses = []
@@ -98,4 +117,4 @@ train(model=model,
         ckp_interval=250,
         save_path=f'{dir}/dinv_moi_demo',
         plot=False,
-        verbose=True)
+        verbose=False)

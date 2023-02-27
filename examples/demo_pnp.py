@@ -13,8 +13,8 @@ from torchvision import datasets, transforms
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
-denoiser_name = 'TGV'
-ckpt_path = '../checkpoints/usrnet_tiny.pth'
+denoiser_name = 'gsdrunet'
+ckpt_path = '../checkpoints/GSDRUNet.ckpt'
 pnp_algo = 'PGD'
 batch_size = 1
 dataset = 'set3c'
@@ -29,6 +29,9 @@ max_iter = 50
 crit_conv = 1e-5
 verbose = True
 early_stop = True 
+n_channels = 3
+pretrain = True
+train = False
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -58,11 +61,17 @@ dinv.datasets.generate_dataset(train_dataset=dataset, test_dataset=None,
 dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3)
 
-# if denoiser_name=='TGV':
-#     denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_it_max=100)
-#     sigma_denoiser = sigma_denoiser*5  # Small tweak, tested on PGD, but a little bit too high on HQS
+model_spec = {'name': denoiser_name,
+              'args': {
+                    'in_channels':n_channels+1, 
+                    'out_channels':n_channels,
+                    'ckpt_path': ckpt_path,
+                    'pretrain':pretrain, 
+                    'train':train, 
+                    'device':dinv.device
+                    }}
+denoiser = Denoiser(model_spec=model_spec)
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
@@ -75,4 +84,5 @@ test(model=model,  # Safe because it has forward
     device=dinv.device,
     plot=False,
     plot_input=True,
-    save_img_path='../results/results_pnp.png')
+    save_img_path='../results/results_pnp.png',
+    verbose=verbose)
