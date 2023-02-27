@@ -5,11 +5,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from .denoiser import register
+
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
+@register('drunet')
 class DRUNet(nn.Module):
-    def __init__(self, in_channels=4, out_channels=3, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose'):
+    def __init__(self, in_channels=4, out_channels=3, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose',
+                 pretrain=False, ckpt_path=None, device=None):
         super(DRUNet, self).__init__()
 
         self.m_head = conv(in_channels, nc[0], bias=False, mode='C')
@@ -46,6 +50,12 @@ class DRUNet(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
+        if pretrain or ckpt_path is not None:
+            self.load_state_dict(torch.load(ckpt_path), strict=True)
+
+        if device is not None:
+            self.to(device)
+
     def forward_unet(self, x0):
         x1 = self.m_head(x0)
         x2 = self.m_down1(x1)
@@ -63,7 +73,7 @@ class DRUNet(nn.Module):
         x = torch.cat((x, noise_level_map), 1)
         if x.size(2) // 8 == 0 and x.size(3) // 8 == 0:
             x = self.forward_unet(x)
-        else : 
+        else :
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x
 

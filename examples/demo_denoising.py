@@ -10,8 +10,14 @@ from torchvision import datasets, transforms
 num_workers = 0  # set to 0 if using small cpu
 problem = 'denoising'
 G = 1
-denoiser_name = 'GSDRUNet'
-ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+# PREVIOUS
+# denoiser_name = 'GSDRUNet'
+# ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+# NEW: update the following dictionnary with parameters for GSDRUNet appropriately
+n_channels = 3
+model_spec = {'name': 'gsdrunet',
+              'args': {'in_channels':n_channels+1, 'out_channels':n_channels,
+                       'ckpt_path': '../checkpoints/GSDRUNet.ckpt'}}
 # pnp_algo = 'HQS'
 batch_size = 1
 dataset = 'set3c'

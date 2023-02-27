@@ -31,7 +31,7 @@ class DataFidelity(nn.Module):
     def grad(self, x, y, physics):
         Ax = physics.A(x)
         if self.grad_f is not None:
-            return self.grad_f(Ax, y)
+            return physics.A_adjoint(self.grad_f(Ax, y))
         else:
             raise ValueError('No gradient defined for this data fidelity term.')
 
