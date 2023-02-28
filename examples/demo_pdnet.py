@@ -10,7 +10,7 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
-from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock
+from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy
 import os
 
 # num_workers = 4  # set to 0 if using small cpu
@@ -151,11 +151,11 @@ sigma_denoiser = sigma_denoiser*0.2 # Small tweak, tested on PGD, but a little b
 
 # STEP 2: debugging PD
 max_iter = 1
-PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
+# PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 # iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
 # model = Unfolded(iterator, custom_prox_1=PnP_module.prox_g, physics=p)
 
-iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
+iterator = PD(data_fidelity=data_fidelity, update_stepsize=None)
 # iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
 
 # def prox_g_module(x):
@@ -168,13 +168,25 @@ iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=st
 #     print('hey')
 #     return 0*x
 
-model = Unfolded(iterator, custom_prox_1=None, custom_prox_2=None, physics=p,
-                 max_iter=max_iter, verbose=False)
+# model = Unfolded(iterator, custom_prox_1=None, custom_prox_2=None, physics=p,
+#                  max_iter=1, verbose=True)
 
-# def model(x, physics):
-#     # x_init = physics.A_adjoint(x)  # Case PGD
-#     x_init = (physics.A_adjoint(x), x)
-#     return FP(x_init, x, physics)
+
+class Dummy(nn.Module):
+    def __init__(self, iterator):
+        super(Dummy, self).__init__()
+
+        self.iterator = iterator
+        self.toy_model = Toy(in_channels=1, out_channels=1)
+
+    def forward(self, x, physics):
+        # x_init = physics.A_adjoint(x)  # Case PGD
+        x_init = (physics.A_adjoint(x), x)
+        # out = self.iterator(x_init, 1, x, physics)
+        out = self.toy_model(physics.A_adjoint(x))
+        return out
+
+model = Dummy(iterator)
 
 # test(model=model,  # Safe because it has forward
 #     test_dataloader=dataloader,
@@ -189,7 +201,8 @@ model = Unfolded(iterator, custom_prox_1=None, custom_prox_2=None, physics=p,
 
 for name, param in model.named_parameters():
     if param.requires_grad:
-        print(name, param.data)
+        print(name, ' is trainable')
+        # print(name, param.data)
 
 # optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-8)
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))

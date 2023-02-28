@@ -112,9 +112,10 @@ class ADMM(OptimIterator):
 
 
 
-class PD(OptimIterator):
+# class PD(OptimIterator):
+class PD(nn.Module):
 
-    def __init__(self, update_stepsize=None, stepsize_2=1., **kwargs):
+    def __init__(self, data_fidelity, update_stepsize=None, stepsize_2=1.): #, **kwargs):
         '''
         In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
         primal and dual variables.
@@ -123,12 +124,13 @@ class PD(OptimIterator):
         - check that there is no conflict with the data_fidelity.prox
         - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
         '''
-        super(PD, self).__init__(**kwargs)
+        super(PD, self).__init__() #**kwargs)
 
         self.stepsize_2 = lambda it : update_stepsize(it) if update_stepsize else stepsize_2
         self.primal_prox = PrimalBlock()
         self.dual_prox = DualBlock()
 
+        self.data_fidelity = data_fidelity
 
     # def primal_prox(self, x, Atu, it):
     #     return self.prox_g(x - self.stepsize_2(it) * Atu, it)

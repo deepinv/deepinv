@@ -121,11 +121,16 @@ def train(model,
                     psnr_net.update(cal_psnr(x1, x))
 
                 optimizer.zero_grad()
-                loss_total.backward()
+                # loss_total.backward()
+                loss.backward()
 
-                for p in model.parameters():
-                    param_norm = p.grad.data.norm(2)
-                    total_norm += param_norm.item() ** 2
+                for idx, p in enumerate(f.parameters()):
+                    print(idx)
+                    try:
+                        param_norm = p.grad.data.norm(2)
+                        total_norm += param_norm.item() ** 2
+                    except:
+                        print('Failed')
                 total_norm = total_norm ** (1. / 2)
                 print('Norm = ', total_norm)
 

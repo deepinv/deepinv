@@ -16,18 +16,16 @@ class Unfolded(nn.Module):
         self.physics = physics
 
         self.iterator = iterator
-        if custom_prox_1 is not None:
-            self.iterator.primal_prox = nn.ModuleList([custom_prox_1])
-
-        if custom_prox_2 is not None:
-            self.iterator.dual_prox = nn.ModuleList([custom_prox_2])
+        # if custom_prox_1 is not None:
+        #     self.iterator.primal_prox = nn.ModuleList([custom_prox_1])
+        #
+        # if custom_prox_2 is not None:
+        #     self.iterator.dual_prox = nn.ModuleList([custom_prox_2])
 
         self.FP = FixedPoint(self.iterator, max_iter=max_iter, early_stop=True, crit_conv=crit_conv, verbose=verbose)
         # self.parameters = self.iterator.parameters
 
-    def forward(self, x, physics=None):
-        if physics is None:
-            physics = self.physics
-        x_init = (physics.A_adjoint(x), x)
-        return self.FP(x_init, x, physics)
+    def forward(self, y, physics):
+        x_init = (physics.A_adjoint(y), y)
+        return self.FP(x_init, y, physics)
 
