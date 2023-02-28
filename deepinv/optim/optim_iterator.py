@@ -42,7 +42,7 @@ class OptimIterator(nn.Module):
             else :
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
         
-        def forward(self, x, it, y, physitcs):
+        def forward(self, x, it, y, physics):
             pass
 
 

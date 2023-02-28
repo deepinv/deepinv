@@ -15,17 +15,13 @@ def register(name):
     return decorator
 
 
-def make(model_spec, args=None, train=False):
+def make(model_spec, args=None):
     if args is not None:
         model_args = copy.deepcopy(model_spec['args'])
         model_args.update(args)
     else:
         model_args = model_spec['args']
     model = models[model_spec['name']](**model_args)
-    if not train:
-        model.eval()
-        for _, v in model.named_parameters():
-            v.requires_grad = False
     return model
 
 class Denoiser(nn.Module):

@@ -13,7 +13,7 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 @register('drunet')
 class DRUNet(nn.Module):
     def __init__(self, in_channels=4, out_channels=3, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose',
-                 pretrain=False, ckpt_path=None, device=None):
+                 pretrain=False, ckpt_path=None, train=False, device=None):
         super(DRUNet, self).__init__()
 
         self.m_head = conv(in_channels, nc[0], bias=False, mode='C')
@@ -50,8 +50,13 @@ class DRUNet(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
-        if pretrain or ckpt_path is not None:
+        if pretrain and ckpt_path is not None:
             self.load_state_dict(torch.load(ckpt_path), strict=True)
+
+        if not train:
+            self.eval()
+            for _, v in self.named_parameters():
+                v.requires_grad = False
 
         if device is not None:
             self.to(device)

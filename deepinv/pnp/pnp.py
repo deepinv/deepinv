@@ -5,7 +5,7 @@ class PnP(nn.Module):
     '''
     Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration. Consists in replacing prox_g or grad_g with a denoiser.
     '''
-    def __init__(self, denoiser, stepsize=1., sigma_denoiser=0.05, max_iter=50, unroll=False, weight_tied=False, device = 'cpu'):
+    def __init__(self, denoiser, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=50, unroll=False, weight_tied=False, device = torch.device('cpu')):
         super().__init__()
 
         self.denoiser = denoiser
@@ -13,6 +13,7 @@ class PnP(nn.Module):
         self.weight_tied = weight_tied
         self.max_iter=max_iter
         self.device=device
+        self.init = init
 
         if self.unroll and not self.weight_tied:
             self.denoiser = torch.nn.ModuleList([denoiser for _ in range(self.max_iter)])

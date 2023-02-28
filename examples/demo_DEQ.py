@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
-from deepinv.pnp.unrolling import Unrolling
+from deepinv.pnp.deep_equilibrium import DEQ
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test, train
@@ -19,8 +19,8 @@ denoiser_name = 'gsdrunet'
 ckpt_path = '../checkpoints/GSDRUNet.ckpt'
 pnp_algo = 'PGD'
 batch_size = 1
-dataset = 'set3c'
-dataset_path = '../../datasets/set3c'
+dataset = 'DRUNET'
+dataset_path = '../../datasets/DRUNET'
 dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
 lamb = 10
@@ -35,6 +35,8 @@ n_channels = 3
 pretrain = True
 epochs = 2
 im_size = 256
+max_iter_backward = 10
+batch_size = 32
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -83,10 +85,12 @@ model_spec = {'name': denoiser_name,
                     }}
 denoiser = Denoiser(model_spec=model_spec)
 
+use_anderson = False
+
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
-model = Unrolling(FP)
+FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, use_anderson = use_anderson, verbose=verbose)
+model = DEQ(FP, iterator, max_iter_backward=max_iter_backward, use_anderson = use_anderson)
 
 # choose training losses
 losses = []

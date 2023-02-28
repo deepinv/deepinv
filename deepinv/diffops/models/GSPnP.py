@@ -17,9 +17,10 @@ class GSPnP(nn.Module):
 
     :param denoiser: (nn.Module) Denoiser module
     '''
-    def __init__(self, denoiser):
+    def __init__(self, denoiser, train = False):
         super().__init__()
         self.student_grad = StudentGrad(denoiser)
+        self.train = train
 
     def potential(self, x, sigma):
         N = self.student_grad(x, sigma)
@@ -32,10 +33,13 @@ class GSPnP(nn.Module):
         :param sigma: Denoiser level (std)
         :return: Dg(x), DRUNet output N(x)
         '''
+        torch.set_grad_enabled(True)
         x = x.float()
         x = x.requires_grad_()
         N = self.student_grad(x, sigma)
         JN = torch.autograd.grad(N, x, grad_outputs=x - N, create_graph=True, only_inputs=True)[0]
+        if not self.train:
+            torch.set_grad_enabled(False)
         Dg = x - N - JN
         return Dg
 
@@ -51,7 +55,7 @@ class GSPnP(nn.Module):
         return x_hat
 
 @register('gsdrunet')
-def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='E', ckpt_path=None):
+def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='E', pretrain=False, ckpt_path=None, train=False, device=torch.device('cpu')):
     '''
     Gradient Step DRUNet
     :param in_channels: (int) Number of input channels
@@ -60,6 +64,8 @@ def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mo
     :param nc: (list) Number of channels in the DRUNet
     '''
     from deepinv.diffops.models.drunet import DRUNet
-    denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode,
-                      ckpt_path=ckpt_path)
-    return GSPnP(denoiser)
+    denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode, pretrain=False, train=train, device=device)
+    model = GSPnP(denoiser, train=train)
+    if pretrain and ckpt_path is not None:
+        model.load_state_dict(torch.load(ckpt_path), strict=False)
+    return model
