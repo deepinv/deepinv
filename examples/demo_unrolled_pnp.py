@@ -15,12 +15,12 @@ import os
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
-denoiser_name = 'gsdrunet'
-ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+denoiser_name = 'dncnn'
+depth=5
+ckpt_path = None
 pnp_algo = 'PGD'
-batch_size = 1
-dataset = 'set3c'
-dataset_path = '../../datasets/set3c'
+dataset = 'drunet'
+dataset_path = '../../datasets/drunet'
 dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
 lamb = 10
@@ -35,6 +35,7 @@ n_channels = 3
 pretrain = True
 epochs = 2
 im_size = 256
+batch_size = 32
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -74,8 +75,9 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 model_spec = {'name': denoiser_name,
               'args': {
-                    'in_channels':n_channels+1, 
+                    'in_channels':n_channels, 
                     'out_channels':n_channels,
+                    'depth': depth,
                     'ckpt_path': ckpt_path,
                     'pretrain':pretrain, 
                     'train': True, 
@@ -86,7 +88,7 @@ denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
 FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
-model = Unrolling(FP)
+model = Unrolling(FP, PnP_module)
 
 # choose training losses
 losses = []

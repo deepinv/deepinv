@@ -15,8 +15,7 @@ import os
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
-denoiser_name = 'gsdrunet'
-ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+denoiser_name = 'dncnn'
 pnp_algo = 'PGD'
 batch_size = 1
 dataset = 'DRUNET'
@@ -32,11 +31,12 @@ crit_conv = 1e-5
 verbose = True
 early_stop = False 
 n_channels = 3
-pretrain = True
+pretrain = False
 epochs = 2
 im_size = 256
 max_iter_backward = 10
-batch_size = 32
+batch_size = 8
+ckpt_path = None
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -76,7 +76,7 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 model_spec = {'name': denoiser_name,
               'args': {
-                    'in_channels':n_channels+1, 
+                    'in_channels':n_channels, 
                     'out_channels':n_channels,
                     'ckpt_path': ckpt_path,
                     'pretrain':pretrain, 
@@ -90,7 +90,7 @@ use_anderson = False
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
 FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, use_anderson = use_anderson, verbose=verbose)
-model = DEQ(FP, iterator, max_iter_backward=max_iter_backward, use_anderson = use_anderson)
+model = DEQ(FP, iterator, PnP_module, max_iter_backward=max_iter_backward, use_anderson = use_anderson)
 
 # choose training losses
 losses = []
