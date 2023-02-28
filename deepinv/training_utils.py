@@ -121,8 +121,7 @@ def train(model,
                     psnr_net.update(cal_psnr(x1, x))
 
                 optimizer.zero_grad()
-                # loss_total.backward()
-                loss.backward()
+                loss_total.backward()
 
                 for idx, p in enumerate(f.parameters()):
                     print(idx)
