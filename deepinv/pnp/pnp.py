@@ -47,6 +47,10 @@ class PnP(nn.Module):
     def prox_g(self,x,it) : 
         return self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])
 
+    def prox_g_new(self,x,it) :
+        print('Turlututu')
+        return self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it])
+
     def grad_g(self,x,it) : 
         return x-(self.denoiser[it](x, self.sigma_denoiser[it]) if self.unroll and not self.weight_tied else self.denoiser(x, self.sigma_denoiser[it]))
 

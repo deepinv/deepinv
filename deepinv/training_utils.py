@@ -83,7 +83,7 @@ def train(model,
 
                 y = y.to(device)
 
-                x1 = f(y, physics[g])
+                x1 = f(y, physics[g])   # Requires grad ok
 
                 loss_total = 0
                 for k, l in enumerate(loss_closure):
@@ -122,6 +122,13 @@ def train(model,
 
                 optimizer.zero_grad()
                 loss_total.backward()
+
+                for p in model.parameters():
+                    param_norm = p.grad.data.norm(2)
+                    total_norm += param_norm.item() ** 2
+                total_norm = total_norm ** (1. / 2)
+                print('Norm = ', total_norm)
+
                 optimizer.step()
 
         if scheduler:

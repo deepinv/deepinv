@@ -20,7 +20,7 @@ class FixedPoint(nn.Module):
             x_prev = x if type(x) is not tuple else x[0]
             x = self.iterator(x, it, *args)
             x_out = x if type(x) is not tuple else x[0]
-            if self.early_stop and check_conv(x_prev, x_out, it, self.crit_conv, self.verbose) :
+            if self.early_stop and check_conv(x_prev, x_out, it, self.crit_conv, self.verbose):
                 break
         return x_out
 

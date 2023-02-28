@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.utils import gradient_descent
+from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock
 
 class OptimIterator(nn.Module):
     '''
@@ -41,8 +42,9 @@ class OptimIterator(nn.Module):
                     return gradient_descent(grad, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
             else :
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
-        
-        def forward(self, x, it, y, physitcs):
+
+
+        def forward(self, x, it, y, physics):
             pass
 
 
@@ -109,9 +111,10 @@ class ADMM(OptimIterator):
         pass
 
 
+
 class PD(OptimIterator):
 
-    def __init__(self, stepsize_2=1., update_stepsize=None, **kwargs):
+    def __init__(self, update_stepsize=None, stepsize_2=1., **kwargs):
         '''
         In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
         primal and dual variables.
@@ -120,17 +123,20 @@ class PD(OptimIterator):
         - check that there is no conflict with the data_fidelity.prox
         - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
         '''
-        super().__init__(**kwargs)
+        super(PD, self).__init__(**kwargs)
 
         self.stepsize_2 = lambda it : update_stepsize(it) if update_stepsize else stepsize_2
+        self.primal_prox = PrimalBlock()
+        self.dual_prox = DualBlock()
 
 
-    def primal_prox(self, x, Atu, it):
-        return self.prox_g(x - self.stepsize_2(it) * Atu, it)
-
-    def dual_prox(self, Ax_cur, u, y, it):
-        v = u + self.stepsize(it) / 2. * Ax_cur
-        return v - self.stepsize(it) / 2. * self.data_fidelity.prox_norm(v / (self.stepsize(it) / 2.), y, self.lamb)
+    # def primal_prox(self, x, Atu, it):
+    #     return self.prox_g(x - self.stepsize_2(it) * Atu, it)
+    #
+    #
+    # def dual_prox(self, Ax_cur, u, y, it):
+    #     v = u + self.stepsize(it) / 2. * Ax_cur
+    #     return v - self.stepsize(it) / 2. * self.data_fidelity.prox_norm(v / (self.stepsize(it) / 2.), y, self.lamb)
 
 
     def forward(self, pd_var, it, y, physics):
