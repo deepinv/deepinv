@@ -1,7 +1,9 @@
 import torch.nn as nn
+from .denoiser import register
 
+@register('dncnn')
 class DnCNN(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, depth=20, act_mode='R', bias=True, nf=64):
+    def __init__(self, in_channels=1, out_channels=1, depth=20, act_mode='R', bias=True, nf=64, pretrain=False, ckpt_path=None, train=False,  device=None):
         """
         TODO: add doc
         """
@@ -16,6 +18,17 @@ class DnCNN(nn.Module):
 
         if act_mode == 'R':  # Kai Zhang's nomenclature
             self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
+
+        if pretrain and ckpt_path is not None:
+            self.load_state_dict(torch.load(ckpt_path), strict=True)
+
+        if not train:
+            self.eval()
+            for _, v in self.named_parameters():
+                v.requires_grad = False
+
+        if device is not None:
+            self.to(device)
 
     def forward(self, x_in, denoise_level=None):
 

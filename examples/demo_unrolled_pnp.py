@@ -109,4 +109,4 @@ train(model=model,
         ckp_interval=250,
         save_path=f'{dir}/dinv_moi_demo',
         plot=False,
-        verbose=False)
+        verbose=True)

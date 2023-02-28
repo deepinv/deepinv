@@ -1,9 +1,10 @@
 
 import torch
 import torch.nn as nn
+from deepinv.optim.fixed_point import FixedPoint
 
 class DEQ(nn.Module):
-    def __init__(self, FP, iterator, max_iter_backward=50, use_anderson = False) :
+    def __init__(self, FP, iterator, PnP_module, max_iter_backward=50, use_anderson = False) :
         super().__init__()
         self.FP = FP
         self.iterator = iterator
