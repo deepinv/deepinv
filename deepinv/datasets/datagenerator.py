@@ -98,7 +98,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
         for i, x in enumerate(tqdm(train_dataloader)):
             x = x[0] if isinstance(x, list) else x
             x = x.to(device)
-
+            
             # choose operator and generate measurement
             y = physics[g](x)
 

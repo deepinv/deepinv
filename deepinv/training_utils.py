@@ -9,6 +9,7 @@ def train(model,
           train_dataloader,
           epochs,
           loss_closure,
+          eval_dataloader=None,
           physics=None,
           scheduler=None,
           optimizer=None,
@@ -58,6 +59,9 @@ def train(model,
 
     if type(train_dataloader) is not list:
         train_dataloader = [train_dataloader]
+    
+    if eval_dataloader and type(eval_dataloader) is not list:
+        eval_dataloader = [eval_dataloader]
 
     G = len(train_dataloader)
 
