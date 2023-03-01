@@ -61,7 +61,6 @@ def train(model,
 
     G = len(train_dataloader)
 
-    f = model
     loss_history = []
 
     for epoch in range(epochs):
@@ -83,7 +82,7 @@ def train(model,
 
                 y = y.to(device)
 
-                x1 = f(y, physics[g])
+                x1 = model(y, physics[g])   # Requires grad ok
 
                 loss_total = 0
                 for k, l in enumerate(loss_closure):
@@ -122,6 +121,23 @@ def train(model,
 
                 optimizer.zero_grad()
                 loss_total.backward()
+
+                # print('Now inside the algo')
+                # for name, param in model.named_parameters():
+                #     if param.requires_grad:
+                #         print(name, ' is trainable')
+                #
+                # total_norm = 0.
+                # for idx, p in enumerate(model.parameters()):
+                #     print(idx)
+                #     try:
+                #         param_norm = p.grad.data.norm(2)
+                #         total_norm += param_norm.item() ** 2
+                #     except:
+                #         print('Failed')
+                # total_norm = total_norm ** (1. / 2)
+                # print('Norm = ', total_norm)
+
                 optimizer.step()
 
         if scheduler:
@@ -143,7 +159,6 @@ def test(model, test_dataloader,
           save_img_path=None,
           **kwargs):
 
-    f = model
     psnr_linear = []
     psnr_net = []
 
@@ -171,7 +186,7 @@ def test(model, test_dataloader,
             y = y.type(dtype).to(device)
 
             with torch.no_grad():
-                x1 = f(y, physics[g], **kwargs)
+                x1 = model(y, physics[g], **kwargs)
 
             if g < show_operators and i == 0 and plot:
                 xlin = physics[g].A_adjoint(y)

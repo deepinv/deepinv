@@ -3,8 +3,8 @@ from torch.utils.data import DataLoader
 import torch
 
 G = 1  # number of operators
-epochs = 2  # number of training epochs
-num_workers = 4  # set to 0 if using small cpu
+epochs = 10  # number of training epochs
+num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 batch_size = 128  # choose if using small cpu/gpu
 plot = False
 dataset = 'MNIST'
