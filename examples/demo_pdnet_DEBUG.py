@@ -25,7 +25,7 @@ batch_size = 1
 physics = []
 for g in range(G):
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
+    # p.sensor_model = lambda x: torch.sign(x)
 
     p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
@@ -46,7 +46,26 @@ class Dummy(nn.Module):
 
 model = Dummy()
 
+# y = torch.randn((1, 300))
+#
+# out = model(y, p)
+# loss = out.norm()
+#
+# loss.backward()
 
+# # for idx, p in enumerate(model.parameters()):
+# for idx, nameparam in enumerate(model.named_parameters()):
+#     name, param = nameparam
+#     print(name)
+#     print(param.grad)
+#     try:
+#         param_norm = param.grad.norm(2)
+#         total_norm += param_norm.item() ** 2
+#     except:
+#         print('Failed')
+# total_norm = total_norm ** (1. / 2)
+#
+# print(sdasds)
 
 # Let's check that the parameters of the dummy model are trainable
 for name, param in model.named_parameters():
