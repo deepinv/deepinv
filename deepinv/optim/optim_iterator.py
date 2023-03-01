@@ -59,44 +59,93 @@ class HQS(OptimIterator):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        if primal_prox is not None:
+            self._primal_prox = primal_prox
+        else:
+            self._primal_prox = self.primal_prox
+
+        if dual_prox is not None:
+            self._dual_prox = dual_prox
+        else:
+            self._dual_prox = self.dual_prox
+
+    def primal_prox(self, x, y, physics, it):
+        return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize(it))
+
+    def dual_prox(self, z, it):
+        return self.prox_g(z,it)
     
     def forward(self, x, it, y, physics):
-        if not self.g_first : 
-            z = self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize(it))
-            x = self.prox_g(z,it)
-        else :
-            z = self.prox_g(z,it)
-            x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize(it))
+        if not self.g_first:
+            z = self._primal_prox(x, y, physics, it)
+            x = self._dual_prox(z, it)
+        else:
+            z = self._dual_prox(x, it)
+            x = self._primal_prox(z, y, physics, it)
         return x
 
 class PGD(OptimIterator):
 
-    def __init__(self, **kwargs):
+    def __init__(self, primal_prox=None, dual_prox=None, **kwargs):
         super().__init__(**kwargs)
-    
+
+        if primal_prox is not None:
+            self._primal_prox = primal_prox
+        else:
+            self._primal_prox = self.primal_prox
+
+        if dual_prox is not None:
+            self._dual_prox = dual_prox
+        else:
+            self._dual_prox = self.dual_prox
+
+    def primal_prox(self, x, grad, it):
+        return x - self.stepsize(it) * self.lamb * grad
+
+    def dual_prox(self, x, it):
+        return self.prox_g(x, it)
+
     def forward(self, x, it, y, physics):
-        if not self.g_first : # prox on g and grad on f
-            z = x - self.stepsize(it)*self.lamb*self.data_fidelity.grad(x, y, physics)
-            x = self.prox_g(z,it)
-        else :  # prox on f and grad on g
-            z = x - self.stepsize(it)*self.grad_g(x,it)
+        if not self.g_first: # prox on g and grad on f
+            grad = self.data_fidelity.grad(x, y, physics)
+            z = self._primal_prox(x, grad, it)
+            x = self._dual_prox(z, it)
+        else:  # TODO: refactor  # prox on f and grad on g
+            z = x - self.stepsize(it)*self.grad_g(x)
             x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize(it))
         return x
 
 class DRS(OptimIterator):
 
-    def __init__(self, **kwargs):
+    def __init__(self, primal_prox=None, dual_prox=None, **kwargs):
         super().__init__(**kwargs)
+
+        if primal_prox is not None:
+            self._primal_prox = primal_prox
+        else:
+            self._primal_prox = self.primal_prox
+
+        if dual_prox is not None:
+            self._dual_prox = dual_prox
+        else:
+            self._dual_prox = self.dual_prox
+
+    def primal_prox(self, x, y, physics, it):
+        return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize(it))
+
+    def dual_prox(self, z, it):
+        return self.prox_g(z, it)
     
     def forward(self, x, it, y, physics):
-        if not self.g_first :
-            Rprox_f = 2*self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize(it))-x
-            Rprox_g = 2*self.prox_g(Rprox_f,it)-Rprox_f
+        if not self.g_first:
+            Rprox_f = 2*self._primal_prox(x, y, physics, it)-x
+            Rprox_g = 2*self._dual_prox(Rprox_f, it)-Rprox_f
             x = (1/2)*(x + Rprox_g)
-        else :
-            Rprox_g = 2*self.prox_g(x,it)-x
-            Rprox_f = 2*self.data_fidelity.prox(Rprox_g, y, physics, self.lamb*self.stepsize(it))-Rprox_g
-            x = (1/2)*(x + Rprox_g)
+        else:
+            Rprox_g = 2*self._dual_prox(x, it)-x
+            Rprox_f = 2*self._primal_prox(Rprox_g, y, physics, it) - Rprox_g
+            x = (1/2)*(x + Rprox_f)
         return x
 
 class ADMM(OptimIterator):
@@ -129,12 +178,15 @@ class PD(OptimIterator):
 
         if primal_prox is not None:
             self._primal_prox = primal_prox
-            self._dual_prox = dual_prox
         else:
             self._primal_prox = self.primal_prox
+
+        if dual_prox is not None:
+            self._dual_prox = dual_prox
+        else:
             self._dual_prox = self.dual_prox
 
-    def primal_prox(self, x, Atu, it):
+    def primal_prox(self, x, Atu, y, it):
         return self.prox_g(x - self.stepsize_2(it) * Atu, it)
 
     def dual_prox(self, Ax_cur, u, y, it):
@@ -146,7 +198,7 @@ class PD(OptimIterator):
 
         x, u = pd_var
 
-        x_ = self._primal_prox(x, physics.A_adjoint(u), it)
+        x_ = self._primal_prox(x, physics.A_adjoint(u), y, it)
         Ax_cur = physics.A(2*x_ - x)
         u = self._dual_prox(Ax_cur, u, y, it)
 
