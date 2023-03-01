@@ -20,6 +20,7 @@ def train(model,
           verbose=False,
           unsupervised=False,
           plot=False,
+          plot_input=False,
           wandb_vis=False):
     """
     Trains a reconstruction model with the train dataloader.
@@ -31,7 +32,7 @@ def train(model,
     """
 
     if wandb_vis:
-        wandb.watch(model, log="all")
+        wandb.watch(model)
 
     losses = AverageMeter('loss', ':.2e')
     meters = [losses]
@@ -140,7 +141,7 @@ def train(model,
                 optimizer.step()
 
         if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
-            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis)
+            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis, plot_input=plot_input)
             if verbose : 
                 eval_psnr_linear.update(test_psnr)
                 eval_psnr_net.update(pinv_psnr)
@@ -201,13 +202,23 @@ def test(model, test_dataloader,
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
 
-            if g < show_operators and i == 0 and plot:
+            if g < show_operators and i == 0 :
                 xlin = physics[g].A_adjoint(y)
-                if plot_input : 
-                    imgs.append(torch2cpu(physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0)))
-                imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
-                imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
-                imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                if plot :
+                    if plot_input : 
+                        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                if wandb_vis :
+                    n_plot = min(8,len(x))
+                    imgs = []
+                    if plot_input : 
+                        imgs.append(wandb.Image(y[:n_plot], caption="Input"))
+                    imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
+                    imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
+                    imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
+                    wandb.log({ "images" : imgs})
 
             psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
             psnr_net.append(cal_psnr(x1, x))
