@@ -15,6 +15,7 @@ def train(model,
           optimizer=None,
           device=torch.device(f"cuda:0"),
           ckp_interval=100,
+          eval_interval=1, 
           save_path='.',
           verbose=False,
           unsupervised=False,
@@ -31,18 +32,25 @@ def train(model,
     losses = AverageMeter('loss', ':.2e')
     meters = [losses]
     losses_verbose = []
-    psnr_net = []
-    psnr_linear = []
+    train_psnr_net = []
+    train_psnr_linear = []
+    eval_psnr_net = []
+    eval_psnr_linear = []
 
     if verbose:
         losses_verbose = [AverageMeter('loss_' + l.name, ':.2e') for l in loss_closure]
-        psnr_net = AverageMeter('psnr_net', ':.2f')
-        psnr_linear = AverageMeter('psnr_linear', ':.2f')
+        train_psnr_net = AverageMeter('train_psnr_net', ':.2f')
+        train_psnr_linear = AverageMeter('train_psnr_linear', ':.2f')
+        eval_psnr_net = AverageMeter('eval_psnr_net', ':.2f')
+        eval_psnr_linear = AverageMeter('eval_psnr_linear', ':.2f')
 
         for loss in losses_verbose:
             meters.append(loss)
-        meters.append(psnr_linear)
-        meters.append(psnr_net)
+        meters.append(train_psnr_linear)
+        meters.append(train_psnr_net)
+        if eval_dataloader : 
+            meters.append(eval_psnr_linear)
+            meters.append(eval_psnr_net)
 
     progress = ProgressMeter(epochs, meters)
 
@@ -120,29 +128,18 @@ def train(model,
                     plot_debug(imgs, titles=titles)
 
                 if (not unsupervised) and verbose:
-                    psnr_linear.update(cal_psnr(physics[g].A_adjoint(y), x))
-                    psnr_net.update(cal_psnr(x1, x))
+                    train_psnr_linear.update(cal_psnr(physics[g].A_adjoint(y), x))
+                    train_psnr_net.update(cal_psnr(x1, x))
 
                 optimizer.zero_grad()
                 loss_total.backward()
-
-                # print('Now inside the algo')
-                # for name, param in model.named_parameters():
-                #     if param.requires_grad:
-                #         print(name, ' is trainable')
-                #
-                # total_norm = 0.
-                # for idx, p in enumerate(model.parameters()):
-                #     print(idx)
-                #     try:
-                #         param_norm = p.grad.data.norm(2)
-                #         total_norm += param_norm.item() ** 2
-                #     except:
-                #         print('Failed')
-                # total_norm = total_norm ** (1. / 2)
-                # print('Norm = ', total_norm)
-
                 optimizer.step()
+
+        if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
+            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False)
+            if verbose : 
+                eval_psnr_linear.update(test_psnr)
+                eval_psnr_net.update(pinv_psnr)
 
         if scheduler:
             scheduler.step()
@@ -156,11 +153,11 @@ def train(model,
 
 def test(model, test_dataloader,
           physics,
-          dtype=torch.float,
           device=torch.device(f"cuda:0"),
           plot=False,
           plot_input=False,
           save_img_path=None,
+          verbose=True,
           **kwargs):
 
     psnr_linear = []
@@ -179,15 +176,16 @@ def test(model, test_dataloader,
 
     for g in range(G):
         dataloader = test_dataloader[g]
-        print(f'Processing data of operator {g+1} out of {G}')
+        if verbose : 
+            print(f'Processing data of operator {g+1} out of {G}')
         for i, (x, y) in enumerate(tqdm(dataloader)):
 
             if type(x) is list or type(x) is tuple:
                 x = [s.to(device) for s in x]
             else:
-                x = x.type(dtype).to(device)
+                x = x.to(device)
 
-            y = y.type(dtype).to(device)
+            y = y.to(device)
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
@@ -207,7 +205,8 @@ def test(model, test_dataloader,
     test_std_psnr = np.std(psnr_net)
     pinv_psnr = np.mean(psnr_linear)
     pinv_std_psnr = np.std(psnr_linear)
-    print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
+    if verbose : 
+        print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
 
     if plot:
         titles = ['Linear', 'Network', 'Ground Truth']

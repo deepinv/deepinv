@@ -19,8 +19,8 @@ denoiser_name = 'dncnn'
 depth = 7
 ckpt_path = None
 pnp_algo = 'PGD'
-train_dataset = 'drunet'
-test_dataset = 'CBSD68'
+train_dataset_name = 'drunet'
+test_dataset_name = 'CBSD68'
 noise_level_img = 0.03
 lamb = 10
 stepsize = 1.
@@ -65,13 +65,15 @@ train_transform = transforms.Compose([
                 transforms.RandomVerticalFlip(p=0.5),
                 transforms.ToTensor(),
             ])
-train_input_dataset = datasets.ImageFolder(root=f'../datasets/{train_dataset}/', transform=train_transform)
-test_input_dataset = datasets.ImageFolder(root=f'../datasets/{test_dataset}/', transform=val_transform)
+train_input_dataset = datasets.ImageFolder(root=f'../datasets/{train_dataset_name}/', transform=train_transform)
+test_input_dataset = datasets.ImageFolder(root=f'../datasets/{test_dataset_name}/', transform=val_transform)
 dinv.datasets.generate_dataset(train_dataset=train_input_dataset, test_dataset=test_input_dataset,
-                            physics=p, device=dinv.device, save_dir=f'../datasets/artificial/{train_dataset}/', max_datapoints=max_datapoints,
+                            physics=p, device=dinv.device, save_dir=f'../datasets/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
                             num_workers=num_workers)
-dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset}/dinv_dataset0.h5', train=True)
-dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+train_dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5', train=True)
+eval_dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5', train=False)
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+eval_dataloader = DataLoader(eval_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
 model_spec = {'name': denoiser_name,
               'args': {
@@ -99,7 +101,8 @@ optimizer = torch.optim.Adam(PnP_module.parameters(), lr=1e-4, weight_decay=1e-8
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
 
 train(model=model,
-        train_dataloader=dataloader,
+        train_dataloader=train_dataloader,
+        eval_dataloader=eval_dataloader,
         epochs=epochs,
         scheduler=scheduler,
         loss_closure=losses,
