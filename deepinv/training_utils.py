@@ -122,21 +122,21 @@ def train(model,
                 optimizer.zero_grad()
                 loss_total.backward()
 
-                print('Now inside the algo')
-                for name, param in model.named_parameters():
-                    if param.requires_grad:
-                        print(name, ' is trainable')
-
-                total_norm = 0.
-                for idx, p in enumerate(model.parameters()):
-                    print(idx)
-                    try:
-                        param_norm = p.grad.data.norm(2)
-                        total_norm += param_norm.item() ** 2
-                    except:
-                        print('Failed')
-                total_norm = total_norm ** (1. / 2)
-                print('Norm = ', total_norm)
+                # print('Now inside the algo')
+                # for name, param in model.named_parameters():
+                #     if param.requires_grad:
+                #         print(name, ' is trainable')
+                #
+                # total_norm = 0.
+                # for idx, p in enumerate(model.parameters()):
+                #     print(idx)
+                #     try:
+                #         param_norm = p.grad.data.norm(2)
+                #         total_norm += param_norm.item() ** 2
+                #     except:
+                #         print('Failed')
+                # total_norm = total_norm ** (1. / 2)
+                # print('Norm = ', total_norm)
 
                 optimizer.step()
 

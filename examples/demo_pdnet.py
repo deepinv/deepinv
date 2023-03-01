@@ -39,7 +39,7 @@ model_spec = {'name': 'waveletdictprior',
 #                        'ckpt_path': '../checkpoints/drunet_color.pth'}}
 
 # PATH, BATCH SIZE ETC
-batch_size = 1
+batch_size = 3
 dataset_path = f'../../datasets/{dataset}/'
 dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
@@ -72,7 +72,7 @@ else:
     raise Exception("The inverse problem chosen doesn't exist")
 
 # data_fidelity = L2()
-data_fidelity = IndicatorL2(radius=0.)
+data_fidelity = IndicatorL2(radius=2)
 
 # val_transform = transforms.Compose([
 #             transforms.CenterCrop(im_size),
@@ -112,7 +112,7 @@ for g in range(G):
 
 # if denoiser_name=='TGV':
 denoiser = Denoiser(model_spec=model_spec)
-sigma_denoiser = sigma_denoiser*0.2 # Small tweak, tested on PGD, but a little bit too high on HQS
+sigma_denoiser = sigma_denoiser*1.0 # Small tweak, tested on PGD, but a little bit too high on HQS
 
 # denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
 
@@ -149,63 +149,40 @@ sigma_denoiser = sigma_denoiser*0.2 # Small tweak, tested on PGD, but a little b
 #     save_img_path='../results/results_pnp_1.png')
 
 
-# STEP 2: debugging PD
-max_iter = 1
+# # STEP 2: debugging PD
+# max_iter = 10
 # PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 # iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
-# model = Unfolded(iterator, custom_prox_1=PnP_module.prox_g, physics=p)
-
-iterator = PD(data_fidelity=data_fidelity, update_stepsize=None)
-# iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
-
-# def prox_g_module(x):
-#     return PnP_module.denoiser(x)
-
-# custom_prox_1 = PrimalBlock()
-# custom_prox_2 = DualBlock()
-
-# def custom_prox_1(x, z, it):
-#     print('hey')
-#     return 0*x
-
-# model = Unfolded(iterator, custom_prox_1=None, custom_prox_2=None, physics=p,
-#                  max_iter=1, verbose=True)
-
-
-class Dummy(nn.Module):
-    def __init__(self, iterator):
-        super(Dummy, self).__init__()
-
-        self.iterator = iterator
-        self.toy_model = Toy(in_channels=1, out_channels=1)
-
-    def forward(self, x, physics):
-        # x_init = physics.A_adjoint(x)  # Case PGD
-        x_init = (physics.A_adjoint(x), x)
-        # out = self.iterator(x_init, 1, x, physics)
-        out = self.toy_model(physics.A_adjoint(x))
-        return out
-
-model = Dummy(iterator)
-
+# model = Unfolded(iterator, custom_prox_1=None, physics=p)
+#
 # test(model=model,  # Safe because it has forward
 #     test_dataloader=dataloader,
 #     physics=p,
 #     device=dinv.device,
 #     plot=True,
 #     plot_input=True,
-#     save_img_path='../results/results_pnp_1.png')
+#     save_img_path='../results/results_pnp.png',
+#     verbose=verbose)
 
-# STEP 3: TRAIN!
+
+# STEP 3: TRAIN
+max_iter = 5
+
+custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
+custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
+
+iterator = PD(prox_g=None, data_fidelity=data_fidelity, stepsize=stepsize,
+              device=dinv.device, update_stepsize=None, trainable=True)
+model = Unfolded(iterator, physics=p,
+                 custom_primal_prox=custom_primal_prox, custom_dual_prox=custom_dual_prox,
+                 max_iter=max_iter, verbose=False)
+
 # choose optimizer and scheduler
 
 for name, param in model.named_parameters():
     if param.requires_grad:
         print(name, ' is trainable')
-        # print(name, param.data)
 
-# optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-8)
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(10000000))
 # choose training losses
