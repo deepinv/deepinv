@@ -1,0 +1,148 @@
+2023-03-01 18:36:51,520 INFO    StreamThr :18283 [internal.py:wandb_internal():87] W&B internal server running at pid: 18283, started at: 2023-03-01 18:36:51.518959
+2023-03-01 18:36:51,522 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: status
+2023-03-01 18:36:51,524 INFO    WriterThread:18283 [datastore.py:open_for_write():85] open: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/run-ynrq09xt.wandb
+2023-03-01 18:36:51,527 DEBUG   SenderThread:18283 [sender.py:send():336] send: header
+2023-03-01 18:36:51,570 DEBUG   SenderThread:18283 [sender.py:send():336] send: run
+2023-03-01 18:36:52,066 INFO    SenderThread:18283 [dir_watcher.py:__init__():216] watching files in: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files
+2023-03-01 18:36:52,067 INFO    SenderThread:18283 [sender.py:_start_run_threads():1067] run started: ynrq09xt with start time 1677692211.522473
+2023-03-01 18:36:52,068 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:36:52,070 INFO    SenderThread:18283 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:36:52,071 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: check_version
+2023-03-01 18:36:52,071 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: check_version
+2023-03-01 18:36:52,153 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: run_start
+2023-03-01 18:36:52,157 DEBUG   HandlerThread:18283 [system_info.py:__init__():31] System info init
+2023-03-01 18:36:52,158 DEBUG   HandlerThread:18283 [system_info.py:__init__():46] System info init done
+2023-03-01 18:36:52,159 INFO    HandlerThread:18283 [system_monitor.py:start():151] Starting system monitor
+2023-03-01 18:36:52,159 INFO    SystemMonitor:18283 [system_monitor.py:_start():116] Starting system asset monitoring threads
+2023-03-01 18:36:52,159 INFO    HandlerThread:18283 [system_monitor.py:probe():172] Collecting system info
+2023-03-01 18:36:52,160 INFO    SystemMonitor:18283 [interfaces.py:start():168] Started cpu
+2023-03-01 18:36:52,162 INFO    SystemMonitor:18283 [interfaces.py:start():168] Started disk
+2023-03-01 18:36:52,164 INFO    SystemMonitor:18283 [interfaces.py:start():168] Started gpu
+2023-03-01 18:36:52,165 INFO    SystemMonitor:18283 [interfaces.py:start():168] Started memory
+2023-03-01 18:36:52,165 INFO    SystemMonitor:18283 [interfaces.py:start():168] Started network
+2023-03-01 18:36:52,180 DEBUG   HandlerThread:18283 [system_info.py:probe():195] Probing system
+2023-03-01 18:36:52,184 DEBUG   HandlerThread:18283 [system_info.py:_probe_git():180] Probing git
+2023-03-01 18:36:52,220 DEBUG   HandlerThread:18283 [system_info.py:_probe_git():188] Probing git done
+2023-03-01 18:36:52,220 DEBUG   HandlerThread:18283 [system_info.py:probe():241] Probing system done
+2023-03-01 18:36:52,221 DEBUG   HandlerThread:18283 [system_monitor.py:probe():181] {'os': 'Linux-3.10.0-957.el7.x86_64-x86_64-with-glibc2.17', 'python': '3.9.6', 'heartbeatAt': '2023-03-01T17:36:52.180758', 'startedAt': '2023-03-01T17:36:51.494405', 'docker': None, 'cuda': '10.0.130', 'args': (), 'state': 'running', 'program': '/beegfs/shurault/deepinv/examples/demo_unrolled_pnp.py', 'codePath': 'examples/demo_unrolled_pnp.py', 'git': {'remote': 'git@github.com:deepinv/deepinv.git', 'commit': 'e8e115ca223539d9d072b220a420a579e347b2f4'}, 'email': 'samuel.hurault@u-bordeaux.fr', 'root': '/beegfs/shurault/deepinv', 'host': 'sirocco22.plafrim.cluster', 'username': 'shurault', 'executable': '/beegfs/shurault/deepinv/venv/bin/python', 'cpu_count': 64, 'cpu_count_logical': 128, 'cpu_freq': {'current': 2595.032999999997, 'min': 0.0, 'max': 0.0}, 'cpu_freq_per_core': [{'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}], 'disk': {'total': 59.970703125, 'used': 31.085582733154297}, 'gpu': 'NVIDIA A100-PCIE-40GB', 'gpu_count': 2, 'gpu_devices': [{'name': 'NVIDIA A100-PCIE-40GB', 'memory_total': 42949672960}, {'name': 'NVIDIA A100-PCIE-40GB', 'memory_total': 42949672960}], 'memory': {'total': 503.45769119262695}}
+2023-03-01 18:36:52,221 INFO    HandlerThread:18283 [system_monitor.py:probe():182] Finished collecting system info
+2023-03-01 18:36:52,222 INFO    HandlerThread:18283 [system_monitor.py:probe():185] Publishing system info
+2023-03-01 18:36:52,222 DEBUG   HandlerThread:18283 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2023-03-01 18:36:52,224 DEBUG   HandlerThread:18283 [system_info.py:_save_pip():67] Saving pip packages done
+2023-03-01 18:36:52,227 INFO    HandlerThread:18283 [system_monitor.py:probe():187] Finished publishing system info
+2023-03-01 18:36:52,234 DEBUG   SenderThread:18283 [sender.py:send():336] send: files
+2023-03-01 18:36:52,235 INFO    SenderThread:18283 [sender.py:_save_file():1321] saving file wandb-metadata.json with policy now
+2023-03-01 18:36:52,243 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: stop_status
+2023-03-01 18:36:52,244 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: stop_status
+2023-03-01 18:36:52,454 DEBUG   SenderThread:18283 [sender.py:send():336] send: telemetry
+2023-03-01 18:36:52,455 DEBUG   SenderThread:18283 [sender.py:send():336] send: telemetry
+2023-03-01 18:36:52,934 INFO    wandb-upload_0:18283 [upload_job.py:push():138] Uploaded file /tmp/tmp_q7_lnlawandb/fb696dot-wandb-metadata.json
+2023-03-01 18:36:53,071 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/wandb-summary.json
+2023-03-01 18:36:53,072 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/wandb-metadata.json
+2023-03-01 18:36:53,073 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/requirements.txt
+2023-03-01 18:36:53,074 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/output.log
+2023-03-01 18:36:54,581 DEBUG   SenderThread:18283 [sender.py:send():336] send: exit
+2023-03-01 18:36:54,582 INFO    SenderThread:18283 [sender.py:send_exit():559] handling exit code: 1
+2023-03-01 18:36:54,583 INFO    SenderThread:18283 [sender.py:send_exit():561] handling runtime: 2
+2023-03-01 18:36:54,585 INFO    SenderThread:18283 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:36:54,585 INFO    SenderThread:18283 [sender.py:send_exit():567] send defer
+2023-03-01 18:36:54,586 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,587 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 0
+2023-03-01 18:36:54,587 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,588 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 0
+2023-03-01 18:36:54,589 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 1
+2023-03-01 18:36:54,589 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,590 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 1
+2023-03-01 18:36:54,590 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,591 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 1
+2023-03-01 18:36:54,592 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 2
+2023-03-01 18:36:54,592 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,593 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 2
+2023-03-01 18:36:54,593 INFO    HandlerThread:18283 [system_monitor.py:finish():161] Stopping system monitor
+2023-03-01 18:36:54,594 DEBUG   SystemMonitor:18283 [system_monitor.py:_start():130] Starting system metrics aggregation loop
+2023-03-01 18:36:54,595 INFO    HandlerThread:18283 [interfaces.py:finish():175] Joined cpu
+2023-03-01 18:36:54,595 DEBUG   SystemMonitor:18283 [system_monitor.py:_start():137] Finished system metrics aggregation loop
+2023-03-01 18:36:54,595 INFO    HandlerThread:18283 [interfaces.py:finish():175] Joined disk
+2023-03-01 18:36:54,596 DEBUG   SystemMonitor:18283 [system_monitor.py:_start():141] Publishing last batch of metrics
+2023-03-01 18:36:54,691 INFO    HandlerThread:18283 [interfaces.py:finish():175] Joined gpu
+2023-03-01 18:36:54,692 INFO    HandlerThread:18283 [interfaces.py:finish():175] Joined memory
+2023-03-01 18:36:54,692 INFO    HandlerThread:18283 [interfaces.py:finish():175] Joined network
+2023-03-01 18:36:54,693 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,694 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 2
+2023-03-01 18:36:54,695 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 3
+2023-03-01 18:36:54,695 DEBUG   SenderThread:18283 [sender.py:send():336] send: stats
+2023-03-01 18:36:54,695 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,697 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 3
+2023-03-01 18:36:54,697 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,698 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 3
+2023-03-01 18:36:54,699 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 4
+2023-03-01 18:36:54,699 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,700 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 4
+2023-03-01 18:36:54,700 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,701 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 4
+2023-03-01 18:36:54,702 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 5
+2023-03-01 18:36:54,702 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,703 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 5
+2023-03-01 18:36:54,703 DEBUG   SenderThread:18283 [sender.py:send():336] send: summary
+2023-03-01 18:36:54,706 INFO    SenderThread:18283 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:36:54,707 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,707 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 5
+2023-03-01 18:36:54,708 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 6
+2023-03-01 18:36:54,708 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,709 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 6
+2023-03-01 18:36:54,709 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,710 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 6
+2023-03-01 18:36:54,713 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: status_report
+2023-03-01 18:36:54,929 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 7
+2023-03-01 18:36:54,930 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:54,930 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 7
+2023-03-01 18:36:54,931 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:54,932 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 7
+2023-03-01 18:36:55,078 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/wandb-summary.json
+2023-03-01 18:36:55,079 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/config.yaml
+2023-03-01 18:36:55,080 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/output.log
+2023-03-01 18:36:55,581 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: poll_exit
+2023-03-01 18:36:56,587 INFO    SenderThread:18283 [sender.py:transition_state():587] send defer: 8
+2023-03-01 18:36:56,588 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: poll_exit
+2023-03-01 18:36:56,588 DEBUG   HandlerThread:18283 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:36:56,589 INFO    HandlerThread:18283 [handler.py:handle_request_defer():170] handle defer: 8
+2023-03-01 18:36:56,590 DEBUG   SenderThread:18283 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:36:56,590 INFO    SenderThread:18283 [sender.py:send_request_defer():583] handle sender defer: 8
+2023-03-01 18:36:57,085 INFO    Thread-13 :18283 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/files/output.log
+2023-03-01 18:36:57,590 INFO    HandlerThread:18283 [handler.py:finish():841] shutting down handler
+2023-03-01 18:36:57,590 INFO    WriterThread:18283 [datastore.py:close():299] close: /beegfs/shurault/deepinv/examples/wandb/run-20230301_183651-ynrq09xt/run-ynrq09xt.wandb
+2023-03-01 18:36:57,592 ERROR   StreamThr :18283 [internal.py:wandb_internal():175] Thread SenderThread:
+Traceback (most recent call last):
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/internal_util.py", line 49, in run
+    self._run()
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/internal_util.py", line 100, in _run
+    self._process(record)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/internal.py", line 329, in _process
+    self._sm.send(record)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/sender.py", line 343, in send
+    send_handler(record)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/sender.py", line 365, in send_request
+    send_handler(record)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/sender.py", line 615, in send_request_defer
+    self._flush_job()
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/sender.py", line 1567, in _flush_job
+    artifact = self._job_builder.build()
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/job_builder.py", line 188, in build
+    artifact, source = self._build_repo_job(metadata, program_relpath)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/internal/job_builder.py", line 127, in _build_repo_job
+    artifact = Artifact(name, JOB_ARTIFACT_TYPE)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/wandb_artifacts.py", line 180, in __init__
+    self._storage_policy = WandbStoragePolicy(
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/wandb_artifacts.py", line 864, in __init__
+    self._cache = get_artifacts_cache()
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/interface/artifacts.py", line 988, in get_artifacts_cache
+    _artifacts_cache = ArtifactsCache(cache_dir)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/interface/artifacts.py", line 855, in __init__
+    filesystem.mkdir_exists_ok(self._cache_dir)
+  File "/beegfs/shurault/deepinv/venv/lib/python3.9/site-packages/wandb/sdk/lib/filesystem.py", line 16, in mkdir_exists_ok
+    os.makedirs(dir_name, exist_ok=True)
+  File "/cm/shared/dev/modules/generic/apps/language/python/3.9.6/lib/python3.9/os.py", line 215, in makedirs
+    makedirs(head, exist_ok=exist_ok)
+  File "/cm/shared/dev/modules/generic/apps/language/python/3.9.6/lib/python3.9/os.py", line 225, in makedirs
+    mkdir(name, mode)
+OSError: [Errno 122] Disk quota exceeded: '/home/shurault/.cache/wandb'

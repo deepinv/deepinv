@@ -1,0 +1,278 @@
+2023-03-01 18:47:28,210 INFO    StreamThr :25078 [internal.py:wandb_internal():87] W&B internal server running at pid: 25078, started at: 2023-03-01 18:47:28.208737
+2023-03-01 18:47:28,212 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: status
+2023-03-01 18:47:28,226 INFO    WriterThread:25078 [datastore.py:open_for_write():85] open: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/run-idcogr1l.wandb
+2023-03-01 18:47:28,228 DEBUG   SenderThread:25078 [sender.py:send():336] send: header
+2023-03-01 18:47:28,264 DEBUG   SenderThread:25078 [sender.py:send():336] send: run
+2023-03-01 18:47:28,713 INFO    SenderThread:25078 [dir_watcher.py:__init__():216] watching files in: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files
+2023-03-01 18:47:28,714 INFO    SenderThread:25078 [sender.py:_start_run_threads():1067] run started: idcogr1l with start time 1677692848.218671
+2023-03-01 18:47:28,715 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:28,715 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: check_version
+2023-03-01 18:47:28,717 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:28,718 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: check_version
+2023-03-01 18:47:28,800 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: run_start
+2023-03-01 18:47:28,803 DEBUG   HandlerThread:25078 [system_info.py:__init__():31] System info init
+2023-03-01 18:47:28,804 DEBUG   HandlerThread:25078 [system_info.py:__init__():46] System info init done
+2023-03-01 18:47:28,805 INFO    HandlerThread:25078 [system_monitor.py:start():151] Starting system monitor
+2023-03-01 18:47:28,806 INFO    SystemMonitor:25078 [system_monitor.py:_start():116] Starting system asset monitoring threads
+2023-03-01 18:47:28,806 INFO    HandlerThread:25078 [system_monitor.py:probe():172] Collecting system info
+2023-03-01 18:47:28,807 INFO    SystemMonitor:25078 [interfaces.py:start():168] Started cpu
+2023-03-01 18:47:28,808 INFO    SystemMonitor:25078 [interfaces.py:start():168] Started disk
+2023-03-01 18:47:28,810 INFO    SystemMonitor:25078 [interfaces.py:start():168] Started gpu
+2023-03-01 18:47:28,811 INFO    SystemMonitor:25078 [interfaces.py:start():168] Started memory
+2023-03-01 18:47:28,812 INFO    SystemMonitor:25078 [interfaces.py:start():168] Started network
+2023-03-01 18:47:28,825 DEBUG   HandlerThread:25078 [system_info.py:probe():195] Probing system
+2023-03-01 18:47:28,832 DEBUG   HandlerThread:25078 [system_info.py:_probe_git():180] Probing git
+2023-03-01 18:47:28,868 DEBUG   HandlerThread:25078 [system_info.py:_probe_git():188] Probing git done
+2023-03-01 18:47:28,869 DEBUG   HandlerThread:25078 [system_info.py:probe():241] Probing system done
+2023-03-01 18:47:28,869 DEBUG   HandlerThread:25078 [system_monitor.py:probe():181] {'os': 'Linux-3.10.0-957.el7.x86_64-x86_64-with-glibc2.17', 'python': '3.9.6', 'heartbeatAt': '2023-03-01T17:47:28.826433', 'startedAt': '2023-03-01T17:47:28.174892', 'docker': None, 'cuda': '10.0.130', 'args': (), 'state': 'running', 'program': '/beegfs/shurault/deepinv/examples/demo_unrolled_pnp.py', 'codePath': 'examples/demo_unrolled_pnp.py', 'git': {'remote': 'git@github.com:deepinv/deepinv.git', 'commit': 'e8e115ca223539d9d072b220a420a579e347b2f4'}, 'email': 'samuel.hurault@u-bordeaux.fr', 'root': '/beegfs/shurault/deepinv', 'host': 'sirocco22.plafrim.cluster', 'username': 'shurault', 'executable': '/beegfs/shurault/deepinv/venv/bin/python', 'cpu_count': 64, 'cpu_count_logical': 128, 'cpu_freq': {'current': 2595.032999999997, 'min': 0.0, 'max': 0.0}, 'cpu_freq_per_core': [{'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}, {'current': 2595.033, 'min': 0.0, 'max': 0.0}], 'disk': {'total': 59.970703125, 'used': 31.085582733154297}, 'gpu': 'NVIDIA A100-PCIE-40GB', 'gpu_count': 2, 'gpu_devices': [{'name': 'NVIDIA A100-PCIE-40GB', 'memory_total': 42949672960}, {'name': 'NVIDIA A100-PCIE-40GB', 'memory_total': 42949672960}], 'memory': {'total': 503.45769119262695}}
+2023-03-01 18:47:28,870 INFO    HandlerThread:25078 [system_monitor.py:probe():182] Finished collecting system info
+2023-03-01 18:47:28,871 INFO    HandlerThread:25078 [system_monitor.py:probe():185] Publishing system info
+2023-03-01 18:47:28,871 DEBUG   HandlerThread:25078 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2023-03-01 18:47:28,873 DEBUG   HandlerThread:25078 [system_info.py:_save_pip():67] Saving pip packages done
+2023-03-01 18:47:28,876 INFO    HandlerThread:25078 [system_monitor.py:probe():187] Finished publishing system info
+2023-03-01 18:47:28,882 DEBUG   SenderThread:25078 [sender.py:send():336] send: files
+2023-03-01 18:47:28,883 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-metadata.json with policy now
+2023-03-01 18:47:28,892 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: stop_status
+2023-03-01 18:47:28,892 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: stop_status
+2023-03-01 18:47:29,103 DEBUG   SenderThread:25078 [sender.py:send():336] send: telemetry
+2023-03-01 18:47:29,636 INFO    wandb-upload_0:25078 [upload_job.py:push():138] Uploaded file /tmp/tmpju1bsve0wandb/xayfl9on-wandb-metadata.json
+2023-03-01 18:47:29,717 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-metadata.json
+2023-03-01 18:47:29,718 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/requirements.txt
+2023-03-01 18:47:29,719 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:30,720 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_created():275] file/dir created: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:32,726 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:33,021 DEBUG   SenderThread:25078 [sender.py:send():336] send: telemetry
+2023-03-01 18:47:34,022 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: status_report
+2023-03-01 18:47:34,734 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:36,437 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:36,438 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:36,438 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:36,440 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:36,442 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:36,443 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:36,444 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:36,446 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:36,741 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:37,341 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:37,342 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:37,342 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:37,343 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:37,346 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:37,347 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:37,347 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:37,349 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:37,745 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:38,226 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:38,228 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:38,228 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:38,229 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:38,232 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:38,233 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:38,234 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:38,236 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:38,750 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:38,752 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:39,040 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: status_report
+2023-03-01 18:47:39,117 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:39,118 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:39,118 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:39,119 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:39,121 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:39,122 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:39,123 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:39,126 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:39,754 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:40,006 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:40,007 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:40,007 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:40,008 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:40,010 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:40,011 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:40,012 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:40,014 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:40,758 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:40,760 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:40,911 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:40,912 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:40,912 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:40,913 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:40,915 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:40,916 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:40,917 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:40,919 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:41,820 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:41,821 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:41,821 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:41,823 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:41,825 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:41,826 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:41,826 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:41,829 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:42,725 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:42,726 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:42,726 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:42,727 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:42,729 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:42,730 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:42,731 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:42,733 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:42,767 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:42,768 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:43,629 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:43,631 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:43,631 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:43,632 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:43,634 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:43,635 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:43,637 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:43,639 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:43,770 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:43,892 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: keepalive
+2023-03-01 18:47:43,893 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: keepalive
+2023-03-01 18:47:44,273 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: status_report
+2023-03-01 18:47:44,528 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:44,529 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: partial_history
+2023-03-01 18:47:44,529 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:44,530 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:44,533 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:44,534 DEBUG   SenderThread:25078 [sender.py:send():336] send: history
+2023-03-01 18:47:44,534 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: summary_record
+2023-03-01 18:47:44,536 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:44,540 DEBUG   SenderThread:25078 [sender.py:send():336] send: telemetry
+2023-03-01 18:47:44,541 DEBUG   SenderThread:25078 [sender.py:send():336] send: files
+2023-03-01 18:47:44,541 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file model.h5 with policy live
+2023-03-01 18:47:44,576 DEBUG   SenderThread:25078 [sender.py:send():336] send: exit
+2023-03-01 18:47:44,576 INFO    SenderThread:25078 [sender.py:send_exit():559] handling exit code: 0
+2023-03-01 18:47:44,577 INFO    SenderThread:25078 [sender.py:send_exit():561] handling runtime: 15
+2023-03-01 18:47:44,580 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:44,581 INFO    SenderThread:25078 [sender.py:send_exit():567] send defer
+2023-03-01 18:47:44,582 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,582 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 0
+2023-03-01 18:47:44,583 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,583 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 0
+2023-03-01 18:47:44,584 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 1
+2023-03-01 18:47:44,585 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,585 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 1
+2023-03-01 18:47:44,586 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,586 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 1
+2023-03-01 18:47:44,587 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 2
+2023-03-01 18:47:44,587 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,588 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 2
+2023-03-01 18:47:44,589 INFO    HandlerThread:25078 [system_monitor.py:finish():161] Stopping system monitor
+2023-03-01 18:47:44,589 DEBUG   SystemMonitor:25078 [system_monitor.py:_start():130] Starting system metrics aggregation loop
+2023-03-01 18:47:44,590 INFO    HandlerThread:25078 [interfaces.py:finish():175] Joined cpu
+2023-03-01 18:47:44,590 DEBUG   SystemMonitor:25078 [system_monitor.py:_start():137] Finished system metrics aggregation loop
+2023-03-01 18:47:44,591 INFO    HandlerThread:25078 [interfaces.py:finish():175] Joined disk
+2023-03-01 18:47:44,592 DEBUG   SystemMonitor:25078 [system_monitor.py:_start():141] Publishing last batch of metrics
+2023-03-01 18:47:44,692 INFO    HandlerThread:25078 [interfaces.py:finish():175] Joined gpu
+2023-03-01 18:47:44,692 INFO    HandlerThread:25078 [interfaces.py:finish():175] Joined memory
+2023-03-01 18:47:44,693 INFO    HandlerThread:25078 [interfaces.py:finish():175] Joined network
+2023-03-01 18:47:44,694 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,695 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 2
+2023-03-01 18:47:44,695 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 3
+2023-03-01 18:47:44,696 DEBUG   SenderThread:25078 [sender.py:send():336] send: stats
+2023-03-01 18:47:44,696 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,697 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 3
+2023-03-01 18:47:44,698 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,699 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 3
+2023-03-01 18:47:44,699 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 4
+2023-03-01 18:47:44,700 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,700 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 4
+2023-03-01 18:47:44,701 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,702 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 4
+2023-03-01 18:47:44,702 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 5
+2023-03-01 18:47:44,703 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,703 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 5
+2023-03-01 18:47:44,704 DEBUG   SenderThread:25078 [sender.py:send():336] send: summary
+2023-03-01 18:47:44,706 INFO    SenderThread:25078 [sender.py:_save_file():1321] saving file wandb-summary.json with policy end
+2023-03-01 18:47:44,707 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,708 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 5
+2023-03-01 18:47:44,708 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 6
+2023-03-01 18:47:44,709 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,709 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 6
+2023-03-01 18:47:44,710 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,710 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 6
+2023-03-01 18:47:44,713 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: status_report
+2023-03-01 18:47:44,774 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:44,775 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:44,915 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 7
+2023-03-01 18:47:44,915 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:44,916 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 7
+2023-03-01 18:47:44,917 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:44,917 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 7
+2023-03-01 18:47:45,576 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: poll_exit
+2023-03-01 18:47:45,778 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/config.yaml
+2023-03-01 18:47:46,783 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:48,636 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 8
+2023-03-01 18:47:48,637 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: poll_exit
+2023-03-01 18:47:48,637 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:48,639 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 8
+2023-03-01 18:47:48,639 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:48,640 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 8
+2023-03-01 18:47:48,655 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 9
+2023-03-01 18:47:48,656 DEBUG   SenderThread:25078 [sender.py:send():336] send: artifact
+2023-03-01 18:47:48,656 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:48,659 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 9
+2023-03-01 18:47:48,790 INFO    Thread-13 :25078 [dir_watcher.py:_on_file_modified():292] file/dir modified: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:49,894 INFO    wandb-upload_1:25078 [upload_job.py:push():93] Skipped uploading /home/shurault/.local/share/wandb/artifacts/staging/tmpqmws27ab
+2023-03-01 18:47:50,283 INFO    wandb-upload_0:25078 [upload_job.py:push():96] Uploaded file /home/shurault/.local/share/wandb/artifacts/staging/tmpisfeuoap
+2023-03-01 18:47:50,577 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: keepalive
+2023-03-01 18:47:51,678 INFO    SenderThread:25078 [sender.py:send_artifact():1417] sent artifact job-git_github.com_deepinv_deepinv.git_examples_demo_unrolled_pnp.py - {'id': 'QXJ0aWZhY3Q6Mzg1MTczMTk1', 'digest': '8b8ca0c629987277036f6932164c2154', 'state': 'PENDING', 'aliases': [], 'artifactSequence': {'id': 'QXJ0aWZhY3RDb2xsZWN0aW9uOjU1NDA3NjA4', 'latestArtifact': {'id': 'QXJ0aWZhY3Q6Mzg1MTcwNjQ0', 'versionIndex': 1}}, 'version': 'latest'}
+2023-03-01 18:47:51,678 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:51,679 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: status_report
+2023-03-01 18:47:51,679 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 9
+2023-03-01 18:47:51,680 INFO    SenderThread:25078 [dir_watcher.py:finish():362] shutting down directory watcher
+2023-03-01 18:47:51,793 INFO    SenderThread:25078 [dir_watcher.py:finish():392] scan: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files
+2023-03-01 18:47:51,796 INFO    SenderThread:25078 [dir_watcher.py:finish():406] scan save: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json wandb-summary.json
+2023-03-01 18:47:51,798 INFO    SenderThread:25078 [dir_watcher.py:finish():406] scan save: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log output.log
+2023-03-01 18:47:51,801 INFO    SenderThread:25078 [dir_watcher.py:finish():406] scan save: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/config.yaml config.yaml
+2023-03-01 18:47:51,803 INFO    SenderThread:25078 [dir_watcher.py:finish():406] scan save: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-metadata.json wandb-metadata.json
+2023-03-01 18:47:51,806 INFO    SenderThread:25078 [dir_watcher.py:finish():406] scan save: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/requirements.txt requirements.txt
+2023-03-01 18:47:51,808 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 10
+2023-03-01 18:47:51,810 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:51,811 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 10
+2023-03-01 18:47:51,812 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:51,812 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 10
+2023-03-01 18:47:51,813 INFO    SenderThread:25078 [file_pusher.py:finish():162] shutting down file pusher
+2023-03-01 18:47:52,358 INFO    wandb-upload_1:25078 [upload_job.py:push():138] Uploaded file /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/wandb-summary.json
+2023-03-01 18:47:52,450 INFO    wandb-upload_0:25078 [upload_job.py:push():138] Uploaded file /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/output.log
+2023-03-01 18:47:52,504 INFO    wandb-upload_3:25078 [upload_job.py:push():138] Uploaded file /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/requirements.txt
+2023-03-01 18:47:52,540 INFO    wandb-upload_2:25078 [upload_job.py:push():138] Uploaded file /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/files/config.yaml
+2023-03-01 18:47:52,741 INFO    Thread-12 :25078 [sender.py:transition_state():587] send defer: 11
+2023-03-01 18:47:52,742 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:52,743 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 11
+2023-03-01 18:47:52,743 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:52,744 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 11
+2023-03-01 18:47:52,745 INFO    SenderThread:25078 [file_pusher.py:join():167] waiting for file pusher
+2023-03-01 18:47:52,745 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 12
+2023-03-01 18:47:52,746 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:52,746 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 12
+2023-03-01 18:47:52,747 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:52,748 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 12
+2023-03-01 18:47:52,926 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 13
+2023-03-01 18:47:52,927 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:52,928 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 13
+2023-03-01 18:47:52,929 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:52,929 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 13
+2023-03-01 18:47:52,930 INFO    SenderThread:25078 [sender.py:transition_state():587] send defer: 14
+2023-03-01 18:47:52,931 DEBUG   SenderThread:25078 [sender.py:send():336] send: final
+2023-03-01 18:47:52,931 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: defer
+2023-03-01 18:47:52,931 DEBUG   SenderThread:25078 [sender.py:send():336] send: footer
+2023-03-01 18:47:52,932 INFO    HandlerThread:25078 [handler.py:handle_request_defer():170] handle defer: 14
+2023-03-01 18:47:52,933 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: defer
+2023-03-01 18:47:52,934 INFO    SenderThread:25078 [sender.py:send_request_defer():583] handle sender defer: 14
+2023-03-01 18:47:52,935 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: poll_exit
+2023-03-01 18:47:52,936 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: server_info
+2023-03-01 18:47:52,936 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: poll_exit
+2023-03-01 18:47:52,936 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: get_summary
+2023-03-01 18:47:52,937 DEBUG   SenderThread:25078 [sender.py:send_request():363] send_request: server_info
+2023-03-01 18:47:52,938 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: sampled_history
+2023-03-01 18:47:53,149 INFO    MainThread:25078 [wandb_run.py:_footer_history_summary_info():3442] rendering history
+2023-03-01 18:47:53,150 INFO    MainThread:25078 [wandb_run.py:_footer_history_summary_info():3474] rendering summary
+2023-03-01 18:47:53,151 INFO    MainThread:25078 [wandb_run.py:_footer_sync_info():3398] logging synced files
+2023-03-01 18:47:53,152 DEBUG   HandlerThread:25078 [handler.py:handle_request():144] handle_request: shutdown
+2023-03-01 18:47:53,152 INFO    HandlerThread:25078 [handler.py:finish():841] shutting down handler
+2023-03-01 18:47:53,937 INFO    WriterThread:25078 [datastore.py:close():299] close: /beegfs/shurault/deepinv/examples/wandb/run-20230301_184728-idcogr1l/run-idcogr1l.wandb
+2023-03-01 18:47:54,149 INFO    SenderThread:25078 [sender.py:finish():1493] shutting down sender
+2023-03-01 18:47:54,150 INFO    SenderThread:25078 [file_pusher.py:finish():162] shutting down file pusher
+2023-03-01 18:47:54,151 INFO    SenderThread:25078 [file_pusher.py:join():167] waiting for file pusher

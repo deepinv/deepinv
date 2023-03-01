@@ -3,7 +3,7 @@ from deepinv.utils.plotting import plot_debug, torch2cpu
 import numpy as np
 from tqdm import tqdm
 import torch
-
+import wandb
 
 def train(model,
           train_dataloader,
@@ -19,7 +19,8 @@ def train(model,
           save_path='.',
           verbose=False,
           unsupervised=False,
-          plot=False):
+          plot=False,
+          wandb_vis=False):
     """
     Trains a reconstruction model with the train dataloader.
     ----------
@@ -28,6 +29,9 @@ def train(model,
     learning_rate
         learning rate of the optimizer
     """
+
+    if wandb_vis:
+        wandb.watch(model, log="all")
 
     losses = AverageMeter('loss', ':.2e')
     meters = [losses]
@@ -136,7 +140,7 @@ def train(model,
                 optimizer.step()
 
         if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
-            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False)
+            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis)
             if verbose : 
                 eval_psnr_linear.update(test_psnr)
                 eval_psnr_net.update(pinv_psnr)
@@ -145,9 +149,15 @@ def train(model,
             scheduler.step()
 
         loss_history.append(loss_total.detach().cpu().numpy())
+        if wandb_vis :
+            wandb.log({"training loss": loss_total})
 
         progress.display(epoch + 1)
         save_model(epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path)
+        
+    if wandb_vis :
+        wandb.save('model.h5')
+
     return model
 
 
@@ -158,6 +168,7 @@ def test(model, test_dataloader,
           plot_input=False,
           save_img_path=None,
           verbose=True,
+          wandb_vis=False,
           **kwargs):
 
     psnr_linear = []
@@ -207,6 +218,10 @@ def test(model, test_dataloader,
     pinv_std_psnr = np.std(psnr_linear)
     if verbose : 
         print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
+    if wandb_vis : 
+         wandb.log({
+            "Test linear PSNR": pinv_psnr,
+            "Test model PSNR": test_psnr})
 
     if plot:
         titles = ['Linear', 'Network', 'Ground Truth']

@@ -11,6 +11,7 @@ from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 import os
+import wandb
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
@@ -32,10 +33,17 @@ verbose = True
 early_stop = False 
 n_channels = 3
 pretrain = False
-epochs = 100
+epochs = 10
 im_size = 128
 batch_size = 32
 max_datapoints = 100
+
+
+wandb_vis = True
+
+if wandb_vis :
+    wandb_user_name = "samuro95"
+    wandb.init(entity=wandb_user_name, project='unrolling')
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -100,6 +108,7 @@ losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 optimizer = torch.optim.Adam(PnP_module.parameters(), lr=1e-4, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
 
+
 train(model=model,
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
@@ -109,7 +118,8 @@ train(model=model,
         physics=p,
         optimizer=optimizer,
         device=dinv.device,
-        ckp_interval=250,
-        save_path=f'{dir}/dinv_moi_demo',
+        ckp_interval=10,
+        save_path=f'../checkpoints/tests/demo_unrolled',
         plot=False,
-        verbose=True)
+        verbose=True,
+        wandb_vis=wandb_vis)

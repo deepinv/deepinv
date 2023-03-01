@@ -1,0 +1,8 @@
+
+The model has 188173 trainable parameters
+Traceback (most recent call last):
+  File "/beegfs/shurault/deepinv/examples/demo_unrolled_pnp.py", line 111, in <module>
+    train(model=model,
+  File "/beegfs/shurault/deepinv/deepinv/training_utils.py", line 120, in train
+    wandb.log({"l.name": loss.item()})
+NameError: name 'wandb' is not defined
