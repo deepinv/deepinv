@@ -121,5 +121,6 @@ train(model=model,
         ckp_interval=10,
         save_path=f'../checkpoints/tests/demo_unrolled',
         plot=False,
+        plot_input=True,
         verbose=True,
         wandb_vis=wandb_vis)
