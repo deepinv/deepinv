@@ -38,7 +38,6 @@ im_size = 128
 batch_size = 32
 max_datapoints = 100
 
-
 wandb_vis = True
 
 if wandb_vis :
@@ -63,21 +62,24 @@ else:
 
 data_fidelity = L2()
 
-val_transform = transforms.Compose([
-            transforms.CenterCrop(im_size),
-            transforms.ToTensor(),
- ])
-train_transform = transforms.Compose([
-                transforms.RandomCrop(im_size, pad_if_needed=True),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomVerticalFlip(p=0.5),
+
+if not os.path.exists(f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5'):
+    val_transform = transforms.Compose([
+                transforms.CenterCrop(im_size),
                 transforms.ToTensor(),
-            ])
-train_input_dataset = datasets.ImageFolder(root=f'../datasets/{train_dataset_name}/', transform=train_transform)
-test_input_dataset = datasets.ImageFolder(root=f'../datasets/{test_dataset_name}/', transform=val_transform)
-dinv.datasets.generate_dataset(train_dataset=train_input_dataset, test_dataset=test_input_dataset,
-                            physics=p, device=dinv.device, save_dir=f'../datasets/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
-                            num_workers=num_workers)
+    ])
+    train_transform = transforms.Compose([
+                    transforms.RandomCrop(im_size, pad_if_needed=True),
+                    transforms.RandomHorizontalFlip(p=0.5),
+                    transforms.RandomVerticalFlip(p=0.5),
+                    transforms.ToTensor(),
+                ])
+    train_input_dataset = datasets.ImageFolder(root=f'../datasets/{train_dataset_name}/', transform=train_transform)
+    test_input_dataset = datasets.ImageFolder(root=f'../datasets/{test_dataset_name}/', transform=val_transform)
+    dinv.datasets.generate_dataset(train_dataset=train_input_dataset, test_dataset=test_input_dataset,
+                                physics=p, device=dinv.device, save_dir=f'../datasets/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
+                                num_workers=num_workers)
+
 train_dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5', train=True)
 eval_dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5', train=False)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
@@ -107,7 +109,6 @@ losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(PnP_module.parameters(), lr=1e-4, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
-
 
 train(model=model,
         train_dataloader=train_dataloader,

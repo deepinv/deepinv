@@ -22,5 +22,6 @@ class DEQ(nn.Module):
         def backward_hook(grad):
             g = FixedPoint(lambda x,it: torch.autograd.grad(f0, z0, x, retain_graph=True)[0] + grad, max_iter=self.max_iter_backward, use_anderson=self.use_anderson)(grad)
             return g
-        z.register_hook(backward_hook)
+        if z.requires_grad:
+            z.register_hook(backward_hook)
         return z
