@@ -16,7 +16,7 @@ num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small c
 problem = 'deblur'
 G = 1
 denoiser_name = 'dncnn'
-depth=5
+depth = 7
 ckpt_path = None
 pnp_algo = 'PGD'
 train_dataset = 'drunet'
@@ -31,10 +31,10 @@ crit_conv = 1e-5
 verbose = True
 early_stop = False 
 n_channels = 3
-pretrain = True
-epochs = 2
+pretrain = False
+epochs = 100
 im_size = 128
-batch_size = 8
+batch_size = 32
 max_datapoints = 100
 
 if problem == 'CS':
@@ -49,7 +49,7 @@ elif problem == 'denoising':
 elif problem == 'blind_deblur':
     p = dinv.physics.BlindBlur(kernel_size=11)
 elif problem == 'deblur':
-    p = dinv.physics.BlurFFT((3,256,256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
+    p = dinv.physics.BlurFFT((3,im_size,im_size), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
 else:
     raise Exception("The inverse problem chosen doesn't exist")
 
@@ -70,7 +70,7 @@ test_input_dataset = datasets.ImageFolder(root=f'../datasets/{test_dataset}/', t
 dinv.datasets.generate_dataset(train_dataset=train_input_dataset, test_dataset=test_input_dataset,
                             physics=p, device=dinv.device, save_dir=f'../datasets/artificial/{train_dataset}/', max_datapoints=max_datapoints,
                             num_workers=num_workers)
-dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{dataset}/dinv_dataset0.h5', train=True)
+dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset}/dinv_dataset0.h5', train=True)
 dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
 model_spec = {'name': denoiser_name,

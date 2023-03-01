@@ -37,6 +37,7 @@ im_size = 256
 max_iter_backward = 10
 batch_size = 8
 ckpt_path = None
+depth = 5
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
@@ -78,6 +79,7 @@ model_spec = {'name': denoiser_name,
               'args': {
                     'in_channels':n_channels, 
                     'out_channels':n_channels,
+                    'depth':depth
                     'ckpt_path': ckpt_path,
                     'pretrain':pretrain, 
                     'train': True, 
