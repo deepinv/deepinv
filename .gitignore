@@ -16,7 +16,7 @@ results/
 *.ckpt
 *.tar.gz
 *tmp
-
+*.tar
 /docs/build/
 /onebitcs/
 /experimental/
