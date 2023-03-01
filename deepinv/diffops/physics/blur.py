@@ -400,14 +400,10 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image('../../../datasets/celeba/img_align_celeba/010214.jpg')
-    x = x.unsqueeze(0).float()/256
+    x = torchvision.io.read_image('../../../datasets/set3c/0/butterfly.png')
+    x = x.unsqueeze(0).float().to(device)/255
+    pritn(x.shape)
 
-    pix = 125
-    pix2 = 128
-    factor = 2
-
-    x = x[:, :, :pix, :pix2].to(device)
 
     #w = torch.ones((1, 1, 10, 1),device=device)/10
     #physics = BlindBlur(kernel_size=5, padding='same')
