@@ -191,15 +191,19 @@ def conv(x, filter, padding):
         Convolution of x and filter. The transposed of this operation is conv_transpose(x, filter, padding)
 
         :param x: (torch.Tensor) Image of size (B,C,W,H).
-        :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
+        :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,1,W,H) for filtering each channel with the same filter.
         :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     '''
     b, c, h, w = x.shape
 
+    filter = filter.flip(-1).flip(-2) # In order to perform convolution and not correlation like Pytorch native conv
+
     filter = extend_filter(filter)
+
     ph = (filter.shape[2] - 1)/2
     pw = (filter.shape[3] - 1)/2
+
 
     if padding == 'valid':
         h_out = int(h - 2*ph)
@@ -235,10 +239,13 @@ def conv_transpose(y, filter, padding):
 
     b, c, h, w = y.shape
 
+    filter = filter.flip(-1).flip(-2) # In order to perform convolution and not correlation like Pytorch native conv
+
     filter = extend_filter(filter)
 
     ph = (filter.shape[2] - 1)/2
     pw = (filter.shape[3] - 1)/2
+    
 
     h_out = int(h + 2 * ph)
     w_out = int(w + 2 * pw)
@@ -335,7 +342,7 @@ class BlindBlur(Physics):
         return x, w
 
 
-class Blur(DecomposablePhysics):
+class Blur(Physics):
     
 
     def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu', **kwargs):
@@ -343,7 +350,7 @@ class Blur(DecomposablePhysics):
 
         Blur operator. Uses torch.conv2d for performing the convolutions
 
-        :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
+        :param filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter
         :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
         :param device: cpu or cuda
@@ -402,38 +409,47 @@ if __name__ == "__main__":
 
     x = torchvision.io.read_image('../../../datasets/set3c/0/butterfly.png')
     x = x.unsqueeze(0).float().to(device)/255
-    pritn(x.shape)
-
-
-    #w = torch.ones((1, 1, 10, 1),device=device)/10
-    #physics = BlindBlur(kernel_size=5, padding='same')
-    #physics = Blur(filter=w, padding='circular', device=device)
-
-    physics = BlurFFT(filter=gaussian_blur(sigma=(.1, .5), angle=45.), img_size=(3, pix, pix2), device=device)
+    
+    # test on non symmetric blur kernel 
+    import os
+    import hdf5storage
+    kernel_path = os.path.join('../../../datasets/kernels', 'Levin09.mat')
+    kernels = hdf5storage.loadmat(kernel_path)['kernels']
+    filter = torch.tensor(np.expand_dims(kernels[0,1], axis=(0, 1)))
+    # print(filter.shape)
+    # plt.imshow(filter[0,0,:,:].cpu().numpy())
+    # plt.show()
+    # filter = filter.flip(-1).flip(-2)
+    # plt.imshow(filter[0,0,:,:].cpu().numpy())
+    # plt.show()
+    blurFFT = BlurFFT(filter=filter, img_size=x.shape[1:], device=device)
+    blur = Blur(filter=filter, device=device)
 
     #physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='gauss', device=device)
     #physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
 
-    y = physics(x)
-
-    print(physics.adjointness_test(x))
-    print(physics.power_method(x))
+    y1 = blurFFT.A(x)
+    y2 = blur.A(x)
+    print(y1)
+    print(y2)
+    
+    # print(physics.power_method(x))
     #x = [x, w]
     #xhat = physics.A_adjoint(y)
 
-    xhat = physics.A_dagger(y)
+    #xhat = physics.A_dagger(y)
     #xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=.1)
 
     #x = x[0]
     #xhat = xhat[0]
 
 
-    plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
+    # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
 
-    plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
+    # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
