@@ -28,4 +28,4 @@ build
 deepinv.egg-info
 dist
 datasets
-
+wandb
