@@ -58,11 +58,21 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :param gamma: hyperparameter of the proximal operator
         :return: estimated signal tensor
         '''
-
         b = self.A_adjoint(y) + gamma*z
         H = lambda x: self.A_adjoint(self.A(x))+gamma*x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
+
+    def prox_l2_norm(self, y, z, gamma):
+        '''
+        computes the proximal operator of \frac{1}{2}*gamma*||x-y||_2^2 in z
+
+        :param y: measurements tensor
+        :param z: signal tensor
+        :param gamma: hyperparameter of the proximal operator
+        :return: estimated signal tensor
+        '''
+        return (z + gamma * y) / (1 + gamma)
 
     def A_dagger(self, y):
         """

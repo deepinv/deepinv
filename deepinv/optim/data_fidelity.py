@@ -9,11 +9,12 @@ class DataFidelity(nn.Module):
     f(Ax,y)
     '''
 
-    def __init__(self, f=None, grad_f=None, prox_f=None):
+    def __init__(self, f=None, grad_f=None, prox_f=None, prox_norm=None):
         super().__init__()
         self._grad_f = grad_f # TODO: use autograd?
         self._f = f
         self._prox_f = prox_f
+        self._prox_norm = prox_norm
 
     def f(self, x, y):
         return self._f(x)
@@ -41,6 +42,9 @@ class DataFidelity(nn.Module):
         else:# TODO: use GD?
             raise Exception("no prox operator is implemented for the data fidelity term.")
 
+    def prox_norm(self, x, y, stepsize):
+        return self.prox_norm(x, y, stepsize)
+
 
 class L2(DataFidelity):
     '''
@@ -56,8 +60,42 @@ class L2(DataFidelity):
     def grad_f(self, x, y):
         return x-y
 
-    def prox(self, x, y, physics, stepsize):
+    def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
         return physics.prox_l2(x, y, stepsize)
+
+    def prox_norm(self, x, y, gamma):  # Should be this instead?
+        '''
+        computes the proximal operator of \frac{1}{2}*gamma*||x-y||_2^2
+        '''
+        return (x+gamma*y)/(1+gamma)
+
+
+class IndicatorL2(DataFidelity):
+    '''
+    Indicator of L2 ball with radius r
+
+    '''
+    def __init__(self, radius=None):
+        super().__init__()
+        self.radius = radius
+
+    def f(self, x, y, radius=0.):
+        dist = (x-y).flatten().pow(2).sum()
+        loss = 0 if dist<radius else 1e16
+        return loss
+
+    # def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
+    #     return physics.prox_l2(x, y, stepsize)
+
+    # def project_l2ball(x, centre=torch.tensor([0]), radius=torch.tensor([1])):
+    #     return centre + torch.min(radius, torch.linalg.norm(x.flatten() - centre.flatten())) * (x - centre) / (
+    #                 torch.linalg.norm(x - centre) + 1e-12)
+
+    def prox_norm(self, x, y, gamma, radius=None):
+        if radius is None:
+            radius = self.radius
+        return y + torch.min(torch.tensor([radius]), torch.linalg.norm(x.flatten() - y.flatten())) * (x - y) / \
+            (torch.linalg.norm(x - y) + 1e-6)
 
 
 class PoissonLikelihood(DataFidelity):

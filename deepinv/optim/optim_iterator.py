@@ -31,7 +31,7 @@ class OptimIterator(nn.Module):
 
         self.stepsize = lambda it : update_stepsize(it) if update_stepsize else stepsize
 
-        if prox_g is None and grad_g is None :
+        if prox_g is None and grad_g is None and not trainable:
             if g is not None and isinstance(g, nn.Module):
                 def grad_g(self,x,*args):
                     torch.set_grad_enabled(True)
@@ -39,7 +39,7 @@ class OptimIterator(nn.Module):
                 def prox_g(self,x,*args) :
                     grad = lambda  y : grad_g(y,*args) + (1/2)*(y-x)
                     return gradient_descent(grad, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
-            else :
+            else:
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
         
         def forward(self, x, it, y, physics):
@@ -111,7 +111,8 @@ class ADMM(OptimIterator):
 
 class PD(OptimIterator):
 
-    def __init__(self, **kwargs):
+    def __init__(self, data_fidelity, update_stepsize=None, stepsize_2=1.,
+                 primal_prox=None, dual_prox=None, **kwargs):
         '''
         In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
         primal and dual variables.
@@ -120,17 +121,36 @@ class PD(OptimIterator):
         - check that there is no conflict with the data_fidelity.prox
         - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
         '''
-        super().__init__(**kwargs)
+        super(PD, self).__init__(**kwargs)
+
+        self.stepsize_2 = lambda it : update_stepsize(it) if update_stepsize else stepsize_2
+
+        self.data_fidelity = data_fidelity
+
+        if primal_prox is not None:
+            self._primal_prox = primal_prox
+            self._dual_prox = dual_prox
+        else:
+            self._primal_prox = self.primal_prox
+            self._dual_prox = self.dual_prox
+
+    def primal_prox(self, x, Atu, it):
+        return self.prox_g(x - self.stepsize_2(it) * Atu, it)
+
+    def dual_prox(self, Ax_cur, u, y, it):
+        v = u + self.stepsize(it) / 2. * Ax_cur
+        return v - self.stepsize(it) / 2. * self.data_fidelity.prox_norm(v / (self.stepsize(it) / 2.), y, self.lamb)
+
 
     def forward(self, pd_var, it, y, physics):
 
-        x, u = pd_var[:, :pd_var.shape[1]//2, ...], pd_var[:, pd_var.shape[1]//2:, ...]
+        x, u = pd_var
 
-        x_ = self.prox_g(x - gamma * physics.A_adjoint(u), it)
-        v = u + sigma * physics.A(2 * x_ - x)
-        u = v - sigma * self.data_fidelity.prox(v / sigma, y, physics, self.lamb * self.stepsize(it) / sigma)
+        x_ = self._primal_prox(x, physics.A_adjoint(u), it)
+        Ax_cur = physics.A(2*x_ - x)
+        u = self._dual_prox(Ax_cur, u, y, it)
 
-        pd_variable = torch.cat((x_, u), axis=1)
+        pd_variable = (x_, u)
 
         return pd_variable
         

@@ -8,7 +8,7 @@ class FixedPoint(nn.Module):
     def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=None, use_anderson=False, 
                 anderson_m = 5, anderson_lamb=1e-4, anderson_beta = 1., verbose=False) :
         super().__init__()
-        self.iterator = iterator 
+        self.iterator = iterator
         self.max_iter = max_iter
         self.crit_conv = crit_conv
         self.verbose = verbose
@@ -20,11 +20,12 @@ class FixedPoint(nn.Module):
     def forward(self, init, *args):
         x = init
         for it in range(self.max_iter):
-            x_prev = x
+            x_prev = x.clone() if type(x) is not tuple else x[0]
             x = self.iterator(x, it, *args)
-            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose) :
-                break
-        return x
+            x_out = x if type(x) is not tuple else x[0]
+            if self.early_stop and check_conv(x_prev, x_out, it, self.crit_conv, self.verbose):
+                    break
+        return x_out
 
 
 
