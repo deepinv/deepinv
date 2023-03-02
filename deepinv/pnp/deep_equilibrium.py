@@ -4,6 +4,21 @@ import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 
 class DEQ(nn.Module):
+    '''
+    Deep Equilibrium Model. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/. 
+
+    Args : 
+    iterator : y = iterator(x,it) forward model.
+    PnP_module : nn.Module, Plug&Play module with trainable parameters.
+    anderson_acceleration : bool, if True, use Anderson acceleration for the fixed-point forward and backward resolutions.
+    max_iter_forward: int, maximum number of iterations for the fixed-point forward resolution.
+    max_iter_backward: int, maximum number of iterations for the fixed-point backward resolution.
+    anderson_beta: float, beta parameter for the Anderson acceleration.
+    anderson_history_size: int, history size parameter for the Anderson acceleration.
+    early_stop: bool, if True, stop the fixed-point resolution when the relative error is below crit_conv.
+    crit_conv: float, relative error criterion for the fixed-point resolution.
+    verbose: bool, if True, print the relative error at each iteration of the fixed-point resolution.
+    '''
     def __init__(self, iterator, PnP_module, anderson_acceleration=False, max_iter_forward=50, max_iter_backward=50, 
                 anderson_beta=1., anderson_history_size=5, early_stop=True, crit_conv=1-5, verbose=False) :
         super().__init__()
