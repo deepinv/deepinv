@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from deepinv.optim.utils import check_conv
 
-class FixedPointSolver(nn.Module):
+class FixedPoint(nn.Module):
     '''
     '''
     def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=None, verbose=False) :
@@ -46,8 +46,6 @@ class AndersonAcceleration(nn.Module):
             if self.early_stop and check_conv(x_prev, x_out, it, self.crit_conv, self.verbose):
                     break
         return x_out
-
-
 
 
 class AndersonExp(nn.Module):
