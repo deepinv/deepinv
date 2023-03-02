@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 
 def check_conv(x_prev,x,it,crit_conv,verbose=False):
+    x_prev = x_prev if type(x_prev) is not tuple else x_prev[0]
+    x = x if type(x) is not tuple else x[0]
     crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
     if verbose:
         print(it, 'crit = ', crit_cur , '\r')

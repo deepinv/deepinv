@@ -3,21 +3,25 @@ from deepinv.utils.plotting import plot_debug, torch2cpu
 import numpy as np
 from tqdm import tqdm
 import torch
-
+import wandb
 
 def train(model,
           train_dataloader,
           epochs,
           loss_closure,
+          eval_dataloader=None,
           physics=None,
           scheduler=None,
           optimizer=None,
           device=torch.device(f"cuda:0"),
           ckp_interval=100,
+          eval_interval=1, 
           save_path='.',
           verbose=False,
           unsupervised=False,
-          plot=False):
+          plot=False,
+          plot_input=False,
+          wandb_vis=False):
     """
     Trains a reconstruction model with the train dataloader.
     ----------
@@ -27,21 +31,31 @@ def train(model,
         learning rate of the optimizer
     """
 
+    if wandb_vis:
+        wandb.watch(model)
+
     losses = AverageMeter('loss', ':.2e')
     meters = [losses]
     losses_verbose = []
-    psnr_net = []
-    psnr_linear = []
+    train_psnr_net = []
+    train_psnr_linear = []
+    eval_psnr_net = []
+    eval_psnr_linear = []
 
     if verbose:
         losses_verbose = [AverageMeter('loss_' + l.name, ':.2e') for l in loss_closure]
-        psnr_net = AverageMeter('psnr_net', ':.2f')
-        psnr_linear = AverageMeter('psnr_linear', ':.2f')
+        train_psnr_net = AverageMeter('train_psnr_net', ':.2f')
+        train_psnr_linear = AverageMeter('train_psnr_linear', ':.2f')
+        eval_psnr_net = AverageMeter('eval_psnr_net', ':.2f')
+        eval_psnr_linear = AverageMeter('eval_psnr_linear', ':.2f')
 
         for loss in losses_verbose:
             meters.append(loss)
-        meters.append(psnr_linear)
-        meters.append(psnr_net)
+        meters.append(train_psnr_linear)
+        meters.append(train_psnr_net)
+        if eval_dataloader : 
+            meters.append(eval_psnr_linear)
+            meters.append(eval_psnr_net)
 
     progress = ProgressMeter(epochs, meters)
 
@@ -58,6 +72,9 @@ def train(model,
 
     if type(train_dataloader) is not list:
         train_dataloader = [train_dataloader]
+    
+    if eval_dataloader and type(eval_dataloader) is not list:
+        eval_dataloader = [eval_dataloader]
 
     G = len(train_dataloader)
 
@@ -116,47 +133,43 @@ def train(model,
                     plot_debug(imgs, titles=titles)
 
                 if (not unsupervised) and verbose:
-                    psnr_linear.update(cal_psnr(physics[g].A_adjoint(y), x))
-                    psnr_net.update(cal_psnr(x1, x))
+                    train_psnr_linear.update(cal_psnr(physics[g].A_adjoint(y), x))
+                    train_psnr_net.update(cal_psnr(x1, x))
 
                 optimizer.zero_grad()
                 loss_total.backward()
-
-                # print('Now inside the algo')
-                # for name, param in model.named_parameters():
-                #     if param.requires_grad:
-                #         print(name, ' is trainable')
-                #
-                # total_norm = 0.
-                # for idx, p in enumerate(model.parameters()):
-                #     print(idx)
-                #     try:
-                #         param_norm = p.grad.data.norm(2)
-                #         total_norm += param_norm.item() ** 2
-                #     except:
-                #         print('Failed')
-                # total_norm = total_norm ** (1. / 2)
-                # print('Norm = ', total_norm)
-
                 optimizer.step()
+
+        if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
+            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis, plot_input=plot_input)
+            if verbose : 
+                eval_psnr_linear.update(test_psnr)
+                eval_psnr_net.update(pinv_psnr)
 
         if scheduler:
             scheduler.step()
 
         loss_history.append(loss_total.detach().cpu().numpy())
+        if wandb_vis :
+            wandb.log({"training loss": loss_total})
 
         progress.display(epoch + 1)
         save_model(epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path)
+        
+    if wandb_vis :
+        wandb.save('model.h5')
+
     return model
 
 
 def test(model, test_dataloader,
           physics,
-          dtype=torch.float,
           device=torch.device(f"cuda:0"),
           plot=False,
           plot_input=False,
           save_img_path=None,
+          verbose=True,
+          wandb_vis=False,
           **kwargs):
 
     psnr_linear = []
@@ -175,26 +188,37 @@ def test(model, test_dataloader,
 
     for g in range(G):
         dataloader = test_dataloader[g]
-        print(f'Processing data of operator {g+1} out of {G}')
+        if verbose : 
+            print(f'Processing data of operator {g+1} out of {G}')
         for i, (x, y) in enumerate(tqdm(dataloader)):
 
             if type(x) is list or type(x) is tuple:
                 x = [s.to(device) for s in x]
             else:
-                x = x.type(dtype).to(device)
+                x = x.to(device)
 
-            y = y.type(dtype).to(device)
+            y = y.to(device)
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
 
-            if g < show_operators and i == 0 and plot:
+            if g < show_operators and i == 0 :
                 xlin = physics[g].A_adjoint(y)
-                if plot_input : 
-                    imgs.append(torch2cpu(physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0)))
-                imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
-                imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
-                imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                if plot :
+                    if plot_input : 
+                        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                if wandb_vis :
+                    n_plot = min(8,len(x))
+                    imgs = []
+                    if plot_input : 
+                        imgs.append(wandb.Image(y[:n_plot], caption="Input"))
+                    imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
+                    imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
+                    imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
+                    wandb.log({ "images" : imgs})
 
             psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
             psnr_net.append(cal_psnr(x1, x))
@@ -203,7 +227,12 @@ def test(model, test_dataloader,
     test_std_psnr = np.std(psnr_net)
     pinv_psnr = np.mean(psnr_linear)
     pinv_std_psnr = np.std(psnr_linear)
-    print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
+    if verbose : 
+        print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
+    if wandb_vis : 
+         wandb.log({
+            "Test linear PSNR": pinv_psnr,
+            "Test model PSNR": test_psnr})
 
     if plot:
         titles = ['Linear', 'Network', 'Ground Truth']

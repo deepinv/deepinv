@@ -29,7 +29,8 @@ class Unfolded(nn.Module):
 
     def forward(self, y, physics, **kwargs):
         x_init = (physics.A_adjoint(y), y)
-        return self.FP(x_init, y, physics)
+        x_out = self.FP(x_init, y, physics)
+        return x_out if type(x_out) is not tuple else x_out[0]
 
     def primal_prox_step(self, x, Atu, it):
         return self.custom_primal_prox[it](x, Atu, it)

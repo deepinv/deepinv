@@ -16,7 +16,7 @@ results/
 *.ckpt
 *.tar.gz
 *tmp
-
+*.tar
 /docs/build/
 /onebitcs/
 /experimental/
@@ -28,4 +28,4 @@ build
 deepinv.egg-info
 dist
 datasets
-
+wandb/

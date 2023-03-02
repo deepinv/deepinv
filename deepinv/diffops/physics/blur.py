@@ -387,7 +387,6 @@ class BlurFFT(DecomposablePhysics):
         self.mask = filter_fft(filter, img_size)
         self.mask = self.mask.requires_grad_(False).to(device)
 
-
     def V_adjoint(self, x):
         return fft.fft2(x, norm="ortho")
 
