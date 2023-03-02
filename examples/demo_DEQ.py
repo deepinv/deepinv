@@ -42,8 +42,7 @@ wandb_vis = True
 max_iter_backward = 10
 
 if wandb_vis :
-    wandb_user_name = "samuro95"
-    wandb.init(entity=wandb_user_name, project='unrolling')
+    wandb.init(project='DEQ')
 
 if problem == 'CS':
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
