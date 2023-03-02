@@ -3,7 +3,7 @@ import torch.nn as nn
 from deepinv.optim.utils import check_conv
 
 class FixedPoint(nn.Module):
-     '''
+    '''
     Fixed-point iterations. 
 
         iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
@@ -12,7 +12,7 @@ class FixedPoint(nn.Module):
         crit_conv : stopping criterion.  Default = 1e-5
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False) :
+    def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
@@ -67,7 +67,8 @@ class AndersonAcceleration(nn.Module):
         X[:, 0] = init.reshape(B, -1)
         F[:, 0] = self.iterator(init, 0, *args).reshape(B, -1)
         X[:, 1] = F[:, 0]
-        F[:, 1] = self.iterator(F[:, 0].reshape(init.shape),1,*args).reshape(B, -1)
+        x = self.iterator(F[:, 0].reshape(init.shape),1,*args)
+        F[:, 1] = x.reshape(B, -1)
 
         H = torch.zeros(B, self.history_size + 1, self.history_size + 1, dtype=init.dtype, device=init.device)
         H[:, 0, 1:] = H[:, 1:, 0] = 1

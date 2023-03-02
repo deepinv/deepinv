@@ -34,7 +34,7 @@ early_stop = False
 n_channels = 3
 pretrain = False
 epochs = 10
-im_size = 128
+im_size = 32
 batch_size = 32
 max_datapoints = 100
 
@@ -98,8 +98,7 @@ denoiser = Denoiser(model_spec=model_spec)
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
-model = Unrolling(FP, PnP_module)
+model = Unrolling(iterator, PnP_module, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
 
 # choose training losses
 losses = []

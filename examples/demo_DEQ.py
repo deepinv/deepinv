@@ -37,9 +37,11 @@ epochs = 10
 im_size = 32
 batch_size = 1
 max_datapoints = 100
-use_anderson = False
 wandb_vis = True
-max_iter_backward = 2
+max_iter_backward = 10
+use_anderson_acceleration = True
+anderson_history_size = 5
+anderson_beta = 1.
 
 if wandb_vis :
     wandb.init(project='DEQ')
@@ -99,9 +101,8 @@ denoiser = Denoiser(model_spec=model_spec)
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
-FP = AndersonAcceleration(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
-model = DEQ(FP, iterator, PnP_module, max_iter_backward=max_iter_backward)
+model = DEQ(iterator, PnP_module, anderson_acceleration = use_anderson_acceleration, max_iter_forward=max_iter, max_iter_backward=max_iter_backward, anderson_beta=anderson_beta,
+        anderson_history_size = anderson_history_size, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
 
 # choose training losses
 losses = []

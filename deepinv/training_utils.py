@@ -101,6 +101,8 @@ def train(model,
 
                 x1 = model(y, physics[g])   # Requires grad ok
 
+
+
                 loss_total = 0
                 for k, l in enumerate(loss_closure):
                     loss = 0
