@@ -19,7 +19,7 @@ class OptimIterator(nn.Module):
 
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
                  grad_g = None, g_first = False, stepsize=1., stepsize_inter = 1., max_iter_inter=50, 
-                 tol_inter=1e-3, update_stepsize=None) :
+                 tol_inter=1e-3, update_stepsize=None, sigma_denoiser=1.) :
         super().__init__()
 
         self.data_fidelity = data_fidelity
@@ -30,6 +30,15 @@ class OptimIterator(nn.Module):
         self.device = device
 
         self.stepsize = lambda it : update_stepsize(it) if update_stepsize else stepsize
+
+        # if isinstance(sigma_denoiser, float):
+        #     sigma_denoiser = [sigma_denoiser] * self.max_iter
+        # elif isinstance(sigma_denoiser, list):
+        #     assert len(sigma_denoiser) == self.max_iter
+        # else:
+        #     raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter')
+        self.sigma_denoiser_constant = sigma_denoiser
+
 
         if prox_g is None and grad_g is None and not trainable:
             if g is not None and isinstance(g, nn.Module):
@@ -44,6 +53,15 @@ class OptimIterator(nn.Module):
         
         def forward(self, x, it, y, physics):
             pass
+
+    def get_init(self, y, physics):
+        return physics.A_adjoint(y)
+
+    def get_primal_variable(self, x):
+        return x
+
+    def sigma_denoiser(self, it):
+        return self.sigma_denoiser_constant
 
 
 class GD(OptimIterator):
@@ -71,10 +89,10 @@ class HQS(OptimIterator):
             self._dual_prox = self.dual_prox
 
     def primal_prox(self, x, y, physics, it):
-        return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize(it))
+        return self.data_fidelity.prox(y, x, physics, self.lamb*self.stepsize(it))
 
     def dual_prox(self, z, it):
-        return self.prox_g(z,it)
+        return self.prox_g(z, self.sigma_denoiser(it))
     
     def forward(self, x, it, y, physics):
         if not self.g_first:
@@ -104,7 +122,7 @@ class PGD(OptimIterator):
         return x - self.stepsize(it) * self.lamb * grad
 
     def dual_prox(self, x, it):
-        return self.prox_g(x, it)
+        return self.prox_g(x, self.sigma_denoiser(it))
 
     def forward(self, x, it, y, physics):
         if not self.g_first: # prox on g and grad on f
@@ -113,7 +131,7 @@ class PGD(OptimIterator):
             x = self._dual_prox(z, it)
         else:  # TODO: refactor  # prox on f and grad on g
             z = x - self.stepsize(it)*self.grad_g(x)
-            x = self.data_fidelity.prox(z, y, physics, self.lamb*self.stepsize(it))
+            x = self.data_fidelity.prox(y, z, physics, self.lamb*self.stepsize(it))
         return x
 
 class DRS(OptimIterator):
@@ -132,10 +150,10 @@ class DRS(OptimIterator):
             self._dual_prox = self.dual_prox
 
     def primal_prox(self, x, y, physics, it):
-        return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize(it))
+        return self.data_fidelity.prox(y, x, physics, self.lamb*self.stepsize(it))
 
     def dual_prox(self, z, it):
-        return self.prox_g(z, it)
+        return self.prox_g(z, self.sigma_denoiser(it))
     
     def forward(self, x, it, y, physics):
         if not self.g_first:
@@ -186,10 +204,16 @@ class PD(OptimIterator):
         else:
             self._dual_prox = self.dual_prox
 
-    def primal_prox(self, x, Atu, y, it):
-        return self.prox_g(x - self.stepsize_2(it) * Atu, it)
+    def get_init(self, y, physics):
+        return physics.A_adjoint(y), y
 
-    def dual_prox(self, Ax_cur, u, y, it):
+    def get_primal_variable(self, x):
+        return x[0]
+
+    def primal_prox(self, x, Atu, y, it):
+        return self.prox_g(x - self.stepsize_2(it) * Atu, self.sigma_denoiser(it))
+
+    def dual_prox(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
         v = u + self.stepsize(it) / 2. * Ax_cur
         return v - self.stepsize(it) / 2. * self.data_fidelity.prox_norm(v / (self.stepsize(it) / 2.), y, self.lamb)
 

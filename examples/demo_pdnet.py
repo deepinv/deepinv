@@ -71,8 +71,8 @@ elif problem == 'deblur':
 else:
     raise Exception("The inverse problem chosen doesn't exist")
 
-# data_fidelity = L2()
-data_fidelity = IndicatorL2(radius=2)
+data_fidelity = L2()
+# data_fidelity = IndicatorL2(radius=2)
 
 # val_transform = transforms.Compose([
 #             transforms.CenterCrop(im_size),
@@ -149,55 +149,61 @@ sigma_denoiser = sigma_denoiser*1.0 # Small tweak, tested on PGD, but a little b
 #     save_img_path='../results/results_pnp_1.png')
 
 
-# # STEP 2: debugging PD
-# max_iter = 10
-# PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
-# iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
-# model = Unfolded(iterator, custom_prox_1=None, physics=p)
+# STEP 2: debugging PD
+max_iter = 200
+PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+# iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize,
+#               device=dinv.device, update_stepsize=None, sigma_denoiser=sigma_denoiser)
+iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize,
+              device=dinv.device, update_stepsize=None, sigma_denoiser=sigma_denoiser)
+# iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize,
+#               device=dinv.device, update_stepsize=None, sigma_denoiser=sigma_denoiser)
+model = Unfolded(iterator, max_iter=max_iter, custom_primal_prox=None, physics=p, crit_conv=1e-4)
+# model = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-5, verbose=True)
+
+test(model=model,  # Safe because it has forward
+    test_dataloader=dataloader,
+    physics=p,
+    device=dinv.device,
+    plot=True,
+    plot_input=False,
+    save_img_path='../results/results_pnp.png',
+    verbose=verbose)
+
+
+# # STEP 3: TRAIN
+# max_iter = 5
 #
-# test(model=model,  # Safe because it has forward
-#     test_dataloader=dataloader,
-#     physics=p,
-#     device=dinv.device,
-#     plot=True,
-#     plot_input=True,
-#     save_img_path='../results/results_pnp.png',
-#     verbose=verbose)
-
-
-# STEP 3: TRAIN
-max_iter = 5
-
-custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
-custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
-
-iterator = PD(prox_g=None, data_fidelity=data_fidelity, stepsize=stepsize,
-              device=dinv.device, update_stepsize=None, trainable=True)
-model = Unfolded(iterator, physics=p,
-                 custom_primal_prox=custom_primal_prox, custom_dual_prox=custom_dual_prox,
-                 max_iter=max_iter, verbose=False)
-
-# choose optimizer and scheduler
-
-for name, param in model.named_parameters():
-    if param.requires_grad:
-        print(name, ' is trainable')
-
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(10000000))
-# choose training losses
-losses = []
-losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
+# custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
+# custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
 #
-train(model=model,
-        train_dataloader=dataloader,
-        epochs=100,
-        scheduler=scheduler,
-        loss_closure=losses,
-        physics=p,
-        optimizer=optimizer,
-        device=dinv.device,
-        ckp_interval=1000,
-        save_path=f'{dir}/dinv_moi_demo',
-        plot=False,
-        verbose=True)
+# iterator = PD(prox_g=None, data_fidelity=data_fidelity, stepsize=stepsize,
+#               device=dinv.device, update_stepsize=None, trainable=True)
+# model = Unfolded(iterator, physics=p,
+#                  custom_primal_prox=custom_primal_prox, custom_dual_prox=custom_dual_prox,
+#                  max_iter=max_iter, verbose=False)
+#
+# # choose optimizer and scheduler
+#
+# for name, param in model.named_parameters():
+#     if param.requires_grad:
+#         print(name, ' is trainable')
+#
+# optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(10000000))
+# # choose training losses
+# losses = []
+# losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
+# #
+# train(model=model,
+#         train_dataloader=dataloader,
+#         epochs=100,
+#         scheduler=scheduler,
+#         loss_closure=losses,
+#         physics=p,
+#         optimizer=optimizer,
+#         device=dinv.device,
+#         ckp_interval=1000,
+#         save_path=f'{dir}/dinv_moi_demo',
+#         plot=False,
+#         verbose=True)
