@@ -34,12 +34,12 @@ early_stop = False
 n_channels = 3
 pretrain = False
 epochs = 10
-im_size = 128
-batch_size = 32
+im_size = 32
+batch_size = 1
 max_datapoints = 100
 use_anderson = False
 wandb_vis = True
-max_iter_backward = 10
+max_iter_backward = 2
 
 if wandb_vis :
     wandb.init(project='DEQ')
