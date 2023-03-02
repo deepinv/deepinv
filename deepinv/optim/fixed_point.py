@@ -19,6 +19,8 @@ class FixedPointSolver(nn.Module):
             x_prev = x 
             x = self.iterator(x, it, *args)
             if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose):
+                if verbose:
+                    print('Convergence reached at iteration ', it)
                 break 
         return x
 
