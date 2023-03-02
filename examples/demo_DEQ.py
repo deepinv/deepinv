@@ -21,7 +21,7 @@ depth = 7
 ckpt_path = None
 pnp_algo = 'PGD'
 train_dataset_name = 'drunet'
-test_dataset_name = 'CBSD68'
+test_dataset_name = 'cbsd68'
 noise_level_img = 0.03
 lamb = 10
 stepsize = 1.
@@ -99,8 +99,8 @@ denoiser = Denoiser(model_spec=model_spec)
 
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, use_anderson = use_anderson, verbose=verbose)
-model = DEQ(FP, iterator, PnP_module, max_iter_backward=max_iter_backward, use_anderson = use_anderson)
+FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
+model = DEQ(FP, iterator, PnP_module, max_iter_backward=max_iter_backward)
 
 # choose training losses
 losses = []
