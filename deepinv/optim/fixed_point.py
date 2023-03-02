@@ -3,9 +3,16 @@ import torch.nn as nn
 from deepinv.optim.utils import check_conv
 
 class FixedPoint(nn.Module):
+     '''
+    Fixed-point iterations. 
+
+        iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
+        max_iter : maximum number of iterations. Default = 50 
+        early_stop : if True, the acceleration stops when the convergence criterion is reached. Default = True
+        crit_conv : stopping criterion.  Default = 1e-5
+        verbose: if True, print the relative error at each iteration. Default = False
     '''
-    '''
-    def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=None, verbose=False) :
+    def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False) :
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
@@ -26,8 +33,18 @@ class FixedPoint(nn.Module):
 
 class AndersonAcceleration(nn.Module):
     '''
+    Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/. 
+    Args :
+        iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
+        history_size : size of the history used for the acceleration. Default = 5
+        max_iter : maximum number of iterations. Default = 50 
+        early_stop : if True, the acceleration stops when the convergence criterion is reached. Default = True
+        crit_conv : stopping criterion.  Default = 1e-5
+        ridge: ridge regularization in solver. Default = 1e-4
+        beta: momentum in Anderson updates. Default = 1.
+        verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator, history_size=5, ridge=1e-4, max_iter=50, early_stop=True, crit_conv=None, verbose=False) :
+    def __init__(self, iterator, history_size=5, max_iter=50, early_stop=True, crit_conv=1e-5, ridge=1e-4, beta=1.0, verbose=False) :
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
@@ -35,56 +52,42 @@ class AndersonAcceleration(nn.Module):
         self.verbose = verbose
         self.early_stop = early_stop
         self.history_size = history_size
+        if isinstance(beta, float):
+            beta = [beta] * self.max_iter
+        self.beta = beta
+        self.ridge = ridge
         
 
     def forward(self, init, *args):
-        x = init
-        for it in range(self.max_iter):
-            x_prev = x.clone() if type(x) is not tuple else x[0]
-            x = self.iterator(x, it, *args)
-            x_out = x if type(x) is not tuple else x[0]
-            if self.early_stop and check_conv(x_prev, x_out, it, self.crit_conv, self.verbose):
-                    break
-        return x_out
+        B, C, H, W = init.shape
+        X = torch.zeros(B, self.history_size, C * H * W, dtype=init.dtype, device=init.device)
+        F = torch.zeros(B, self.history_size, C * H * W, dtype=init.dtype, device=init.device)
+        X[:, 0] = init.reshape(B, -1)
+        F[:, 0] = self.iterator(init, 0, *args).reshape(B, -1)
+        X[:, 1] = F[:, 0]
+        F[:, 1] = self.iterator(F[:, 0].reshape(init.shape),1,*args).reshape(B, -1)
 
-
-class AndersonExp(nn.Module):
-    """ Anderson acceleration for fixed point iteration. """
-    def __init__(self, m=5, lam=1e-4, max_iter=50, tol=1e-2, beta=1.0):
-        super(AndersonExp, self).__init__()
-        self.m = m
-        self.lam = lam
-        self.max_iter = max_iter
-        self.tol = tol
-        self.beta = beta
-
-    def forward(self, f, x0):
-        bsz, d, H, W = x0.shape
-        X = torch.zeros(bsz, self.m, d * H * W, dtype=x0.dtype, device=x0.device)
-        F = torch.zeros(bsz, self.m, d * H * W, dtype=x0.dtype, device=x0.device)
-        X[:, 0], F[:, 0] = x0.reshape(bsz, -1), f(x0).reshape(bsz, -1)
-        X[:, 1], F[:, 1] = F[:, 0], f(F[:, 0].reshape(x0.shape)).reshape(bsz, -1)
-
-        H = torch.zeros(bsz, self.m + 1, self.m + 1, dtype=x0.dtype, device=x0.device)
+        H = torch.zeros(B, self.history_size + 1, self.history_size + 1, dtype=init.dtype, device=init.device)
         H[:, 0, 1:] = H[:, 1:, 0] = 1
-        y = torch.zeros(bsz, self.m + 1, 1, dtype=x0.dtype, device=x0.device)
+        y = torch.zeros(B, self.history_size + 1, dtype=init.dtype, device=init.device)
         y[:, 0] = 1
+        for it in range(2, self.max_iter):
 
-        current_k = 0
-        for k in range(2, self.max_iter):
-            current_k = k
-            n = min(k, self.m)
+            n = min(it, self.history_size)
             G = F[:, :n] - X[:, :n]
-            H[:, 1:n + 1, 1:n + 1] = torch.bmm(G, G.transpose(1, 2)) + self.lam * torch.eye(n, dtype=x0.dtype, device=x0.device)[
-                None]
-            alpha = torch.solve(y[:, :n + 1], H[:, :n + 1, :n + 1])[0][:, 1:n + 1, 0]  # (bsz x n)
 
-            X[:, k % self.m] = self.beta * (alpha[:, None] @ F[:, :n])[:, 0] + (1 - self.beta) * (alpha[:, None] @ X[:, :n])[:, 0]
-            F[:, k % self.m] = f(X[:, k % self.m].reshape(x0.shape)).reshape(bsz, -1)
-            res = (F[:, k % self.m] - X[:, k % self.m]).norm().item() / (1e-5 + F[:, k % self.m].norm().item())
+            H[:, 1:n+1, 1:n+1] = torch.bmm(G, G.transpose(1, 2)) + self.ridge * torch.eye(n, dtype=init.dtype, device=init.device).unsqueeze(0)
+            alpha = torch.linalg.solve(H[:, :n+1, :n+1],y[:, :n+1])[:, 1:n+1]
 
-            if (res < self.tol):
-                break
-        # tt += bsz
-        return X[:, current_k % self.m].view_as(x0), res
+            X[:, it % self.history_size] = self.beta[it] * (alpha[:, None] @ F[:, :n])[:, 0] + (1 - self.beta[it]) * (alpha[:, None] @ X[:, :n])[:, 0]
+            F[:, it % self.history_size] = self.iterator(X[:, it % self.history_size].reshape(init.shape), it, *args).reshape(B, -1)
+
+            x_prev = X[:, it % self.history_size].reshape(init.shape)
+            x = F[:, it % self.history_size].reshape(init.shape)
+            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose):
+                if verbose:
+                    print('Convergence reached at iteration ', it)
+                break 
+                
+        return x
 

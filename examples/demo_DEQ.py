@@ -6,7 +6,7 @@ from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
 from deepinv.pnp.deep_equilibrium import DEQ
-from deepinv.optim.fixed_point import FixedPoint
+from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
@@ -27,7 +27,7 @@ lamb = 10
 stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
-max_iter = 5
+max_iter = 20
 crit_conv = 1e-5
 verbose = True
 early_stop = False 
@@ -100,6 +100,7 @@ denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
 FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
+FP = AndersonAcceleration(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
 model = DEQ(FP, iterator, PnP_module, max_iter_backward=max_iter_backward)
 
 # choose training losses
