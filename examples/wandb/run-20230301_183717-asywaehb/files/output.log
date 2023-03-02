@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/beegfs/shurault/deepinv/examples/demo_unrolled_pnp.py", line 47, in <module>
-    wandb.watch(model, log="all")
-NameError: name 'model' is not defined
