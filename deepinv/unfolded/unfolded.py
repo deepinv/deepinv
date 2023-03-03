@@ -43,7 +43,7 @@ class Unfolded(nn.Module):
 
         x = self.iterator.get_init(y, physics)
 
-        x_out = self.FP(x, y, physics)
+        x_out = self.FP(x, y, physics, **kwargs)
 
         x_out = self.iterator.get_primal_variable(x_out)
 
