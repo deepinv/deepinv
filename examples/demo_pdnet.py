@@ -125,8 +125,8 @@ PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_deno
 #               device=dinv.device, update_stepsize=None, sigma_denoiser=PnP_module.sigma_denoiser)
 iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
               device=dinv.device, update_stepsize=None, sigma_denoiser=PnP_module.sigma_denoiser)
-# model = Unfolded(iterator, max_iter=max_iter, custom_primal_prox=None, physics=p, crit_conv=1e-4)
-model = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-5, verbose=True)
+model = Unfolded(iterator, max_iter=max_iter, custom_primal_prox=None, physics=p, crit_conv=1e-4)
+# model = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-5, verbose=True)
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,
@@ -141,7 +141,7 @@ test(model=model,  # Safe because it has forward
 # # # STEP 3: TRAIN
 # denoiser = Denoiser(model_spec=model_spec)
 # sigma_denoiser = sigma_denoiser*1.0 # Small tweak, tested on PGD, but a little bit too high on HQS
-# #
+#
 # # custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
 # # custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
 #

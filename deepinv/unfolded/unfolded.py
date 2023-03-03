@@ -40,7 +40,13 @@ class Unfolded(nn.Module):
         self.FP = FixedPoint(self.iterator, max_iter=max_iter, early_stop=True, crit_conv=crit_conv, verbose=verbose)
 
     def forward(self, y, physics, **kwargs):
-        x_out = self.FP(y, physics)
+
+        x = self.iterator.get_init(y, physics)
+
+        x_out = self.FP(x, y, physics)
+
+        x_out = self.iterator.get_primal_variable(x_out)
+
         return x_out
 
     def primal_prox_step(self, x, Atu, it):

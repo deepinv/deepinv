@@ -20,9 +20,7 @@ class FixedPoint(nn.Module):
         self.verbose = verbose
         self.early_stop = early_stop
 
-    def forward(self, *args):
-
-        x = self.iterator.get_init(*args)
+    def forward(self, x, *args):
 
         for it in range(self.max_iter):
             x_prev = x 
@@ -31,8 +29,6 @@ class FixedPoint(nn.Module):
                 if self.verbose:
                     print('Convergence reached at iteration ', it)
                 break
-
-        x = self.iterator.get_primal_variable(x)
 
         return x
 
