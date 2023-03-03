@@ -29,7 +29,8 @@ class OptimIterator(nn.Module):
         self.g_first = g_first
         self.device = device
 
-        self.stepsize = lambda it : update_stepsize(it) if update_stepsize else stepsize
+        # self.stepsize = lambda it : update_stepsize(it) if update_stepsize else stepsize  # Deprecate ?
+        self.stepsize_values = stepsize
 
         # if isinstance(sigma_denoiser, float):
         #     sigma_denoiser = [sigma_denoiser] * self.max_iter
@@ -37,7 +38,7 @@ class OptimIterator(nn.Module):
         #     assert len(sigma_denoiser) == self.max_iter
         # else:
         #     raise ValueError('sigma_denoiser must be either int/float or a list of length max_iter')
-        self.sigma_denoiser_constant = sigma_denoiser
+        self.sigma_denoiser_values = sigma_denoiser
 
 
         if prox_g is None and grad_g is None and not trainable:
@@ -61,7 +62,18 @@ class OptimIterator(nn.Module):
         return x
 
     def sigma_denoiser(self, it):
-        return self.sigma_denoiser_constant
+        if isinstance(self.sigma_denoiser_values, list) or isinstance(self.sigma_denoiser_values, nn.ModuleList) or \
+                isinstance(self.sigma_denoiser_values, nn.ParameterList) :
+            sigma_cur = self.sigma_denoiser_values[it]
+        return sigma_cur
+
+    def stepsize(self, it):
+        if isinstance(self.stepsize_values, list) or isinstance(self.sigma_denoiser_values, nn.ModuleList):
+            stepsize_cur = self.stepsize_values[it]
+        else:
+            stepsize_cur = self.stepsize_values
+        return stepsize_cur
+
 
 
 class GD(OptimIterator):
@@ -92,7 +104,7 @@ class HQS(OptimIterator):
         return self.data_fidelity.prox(y, x, physics, self.lamb*self.stepsize(it))
 
     def dual_prox(self, z, it):
-        return self.prox_g(z, self.sigma_denoiser(it))
+        return self.prox_g(z, self.stepsize(it)*self.sigma_denoiser(it), it)
     
     def forward(self, x, it, y, physics):
         if not self.g_first:
@@ -122,7 +134,7 @@ class PGD(OptimIterator):
         return x - self.stepsize(it) * self.lamb * grad
 
     def dual_prox(self, x, it):
-        return self.prox_g(x, self.sigma_denoiser(it))
+        return self.prox_g(x, self.sigma_denoiser(it), it)
 
     def forward(self, x, it, y, physics):
         if not self.g_first: # prox on g and grad on f
@@ -153,7 +165,7 @@ class DRS(OptimIterator):
         return self.data_fidelity.prox(y, x, physics, self.lamb*self.stepsize(it))
 
     def dual_prox(self, z, it):
-        return self.prox_g(z, self.sigma_denoiser(it))
+        return self.prox_g(z, self.sigma_denoiser(it), it)
     
     def forward(self, x, it, y, physics):
         if not self.g_first:
@@ -190,7 +202,7 @@ class PD(OptimIterator):
         '''
         super(PD, self).__init__(**kwargs)
 
-        self.stepsize_2 = lambda it : update_stepsize(it) if update_stepsize else stepsize_2
+        self.stepsize_2 = lambda it : update_stepsize(it) if update_stepsize else stepsize_2/2.
 
         self.data_fidelity = data_fidelity
 
@@ -211,11 +223,11 @@ class PD(OptimIterator):
         return x[0]
 
     def primal_prox(self, x, Atu, y, it):
-        return self.prox_g(x - self.stepsize_2(it) * Atu, self.sigma_denoiser(it))
+        return self.prox_g(x - self.stepsize_2(it) * Atu, self.stepsize_2(it)*self.sigma_denoiser(it), it)
 
     def dual_prox(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
-        v = u + self.stepsize(it) / 2. * Ax_cur
-        return v - self.stepsize(it) / 2. * self.data_fidelity.prox_norm(v / (self.stepsize(it) / 2.), y, self.lamb)
+        v = u + self.stepsize(it) * Ax_cur
+        return v - self.stepsize(it) * self.data_fidelity.prox_norm(v / self.stepsize(it), y, self.lamb)
 
 
     def forward(self, pd_var, it, y, physics):
@@ -224,9 +236,9 @@ class PD(OptimIterator):
 
         x_ = self._primal_prox(x, physics.A_adjoint(u), y, it)
         Ax_cur = physics.A(2*x_ - x)
-        u = self._dual_prox(Ax_cur, u, y, it)
+        u_ = self._dual_prox(Ax_cur, u, y, it)
 
-        pd_variable = (x_, u)
+        pd_variable = (x_, u_)
 
         return pd_variable
         
