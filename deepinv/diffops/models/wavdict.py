@@ -43,9 +43,9 @@ class WaveletDict(nn.Module):
             x_prev = x.clone()
             for p in range(len(self.list_prox)):
                 p_p[p, ...] = self.list_prox[p](z_p[p, ...], ths)
-            x = p_p.mean(axis=0)
+            x = torch.mean(p_p.clone(), axis=0)
             for p in range(len(self.list_prox)):
-                z_p[p, ...] = x + z_p[p, ...] - p_p[p, ...]
+                z_p[p, ...] = x + z_p[p, ...].clone() - p_p[p, ...]
             rel_crit = torch.linalg.norm((x - x_prev).flatten()) / torch.linalg.norm(x.flatten() + 1e-6)
             if rel_crit<1e-3:
                 break

@@ -29,10 +29,10 @@ G = 1
 
 # PRIOR SELECTION
 # model_spec = {'name': 'tgv', 'args': {'n_it_max':500, 'verbose':True}}
-# model_spec = {'name': 'waveletprior',
-#               'args': {'wv':'db8', 'level': 3}}
-model_spec = {'name': 'waveletdictprior',
-              'args': {'max_iter':10, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':2}}
+model_spec = {'name': 'waveletprior',
+              'args': {'wv':'db8', 'level': 3}}
+# model_spec = {'name': 'waveletdictprior',
+#               'args': {'max_iter':10, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':2}}
 # n_channels = 3
 # model_spec = {'name': 'drunet',
 #               'args': {'in_channels':n_channels+1, 'out_channels':n_channels, 'nb':4, 'nc':[64, 128, 256, 512],
@@ -71,8 +71,8 @@ elif problem == 'deblur':
 else:
     raise Exception("The inverse problem chosen doesn't exist")
 
-# data_fidelity = L2()
-data_fidelity = IndicatorL2(radius=2)
+data_fidelity = L2()
+# data_fidelity = IndicatorL2(radius=2)
 
 # val_transform = transforms.Compose([
 #             transforms.CenterCrop(im_size),
@@ -110,94 +110,78 @@ for g in range(G):
     physics.append(p)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
-# if denoiser_name=='TGV':
+
+# STEP 2: debugging PD
+max_iter = 5
+
 denoiser = Denoiser(model_spec=model_spec)
 sigma_denoiser = sigma_denoiser*1.0 # Small tweak, tested on PGD, but a little bit too high on HQS
 
-# denoiser = Denoiser(denoiser_name=denoiser_name, device=dinv.device, n_channels=3, pretrain=False, ckpt_path=ckpt_path, train=True)
+# denoiser_list = [Denoiser(model_spec=model_spec) for _ in range(max_iter)]
 
-# pnp_algo = 'HQS'
-# pnp = PnP(denoiser=denoiser, sigma_denoiser=sigma_denoiser, algo_name=pnp_algo, data_fidelity=data_fidelity, max_iter=max_iter, stepsize=stepsize, device=dinv.device, unroll=True)
+# sigma_denoiser = [0.2825, 0.1734, 0.1314, 0.0714, 0.0065]  # Learned weights for db8
+PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+# iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
+#               device=dinv.device, update_stepsize=None, sigma_denoiser=PnP_module.sigma_denoiser)
+iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
+              device=dinv.device, update_stepsize=None, sigma_denoiser=PnP_module.sigma_denoiser)
+# model = Unfolded(iterator, max_iter=max_iter, custom_primal_prox=None, physics=p, crit_conv=1e-4)
+model = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-5, verbose=True)
+
+test(model=model,  # Safe because it has forward
+    test_dataloader=dataloader,
+    physics=p,
+    device=dinv.device,
+    plot=True,
+    plot_input=False,
+    save_img_path='../results/results_pnp_PGD_nonlearned_weights.png',
+    verbose=verbose)
 
 
-# # STEP 1: debugging PD
-# PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
-# # iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-# iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-# FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
-# # model = lambda x, physics : FP(physics.A_adjoint(x), x, physics) # FP forward arguments are init, input, physics
+# # # STEP 3: TRAIN
+# denoiser = Denoiser(model_spec=model_spec)
+# sigma_denoiser = sigma_denoiser*1.0 # Small tweak, tested on PGD, but a little bit too high on HQS
+# #
+# # custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
+# # custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
 #
-# def model(x, physics):
-#     # x_init = physics.A_adjoint(x)  # Case PGD
-#     x_init = (physics.A_adjoint(x), x)
-#     return FP(x_init, x, physics)
+# max_iter = 5
+# PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize,
+#                  learn_sigma=True, learn_stepsize=False)
+# iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
+#               device=dinv.device, update_stepsize=None, sigma_denoiser=PnP_module.sigma_denoiser)
+# model = FixedPoint(iterator, max_iter=max_iter, early_stop=True, crit_conv=1e-5, verbose=False)
 #
+# # denoiser_list = [Denoiser(model_spec=model_spec) for _ in range(max_iter)]
+# # sigma_denoiser = sigma_denoiser# *.5 # Small tweak, tested on PGD, but a little bit too high on HQS
+# #
+# # iterator = PD(prox_g=None, data_fidelity=data_fidelity, stepsize=stepsize,
+# #               device=dinv.device, update_stepsize=None, trainable=True)
+# # model = Unfolded(iterator, physics=p,
+# #                  custom_primal_prox=custom_primal_prox, custom_dual_prox=custom_dual_prox,
+# #                  max_iter=max_iter, verbose=False)
+# #
+# # choose optimizer and scheduler
+#
+# for name, param in model.named_parameters():
+#     if param.requires_grad:
+#         print(name, ' is trainable')
+#
+# optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(10000000))
 # # choose training losses
 # losses = []
 # losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
-#
-# # choose optimizer and scheduler
-# optimizer = torch.optim.Adam(PnP_module.parameters(), lr=1e-4, weight_decay=1e-8)
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
-#
-# test(model=model,  # Safe because it has forward
-#     test_dataloader=dataloader,
-#     physics=p,
-#     device=dinv.device,
-#     plot=True,
-#     plot_input=True,
-#     save_img_path='../results/results_pnp_1.png')
-
-
-# # STEP 2: debugging PD
-# max_iter = 10
-# PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
-# iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize=None)
-# model = Unfolded(iterator, custom_prox_1=None, physics=p)
-#
-# test(model=model,  # Safe because it has forward
-#     test_dataloader=dataloader,
-#     physics=p,
-#     device=dinv.device,
-#     plot=True,
-#     plot_input=True,
-#     save_img_path='../results/results_pnp.png',
-#     verbose=verbose)
-
-
-# STEP 3: TRAIN
-max_iter = 5
-
-custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
-custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
-
-iterator = PD(prox_g=None, data_fidelity=data_fidelity, stepsize=stepsize,
-              device=dinv.device, update_stepsize=None, trainable=True)
-model = Unfolded(iterator, physics=p,
-                 custom_primal_prox=custom_primal_prox, custom_dual_prox=custom_dual_prox,
-                 max_iter=max_iter, verbose=False)
-
-# choose optimizer and scheduler
-
-for name, param in model.named_parameters():
-    if param.requires_grad:
-        print(name, ' is trainable')
-
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(10000000))
-# choose training losses
-losses = []
-losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
-#
-train(model=model,
-        train_dataloader=dataloader,
-        epochs=100,
-        scheduler=scheduler,
-        loss_closure=losses,
-        physics=p,
-        optimizer=optimizer,
-        device=dinv.device,
-        ckp_interval=1000,
-        save_path=f'{dir}/dinv_moi_demo',
-        plot=False,
-        verbose=True)
+# #
+# train(model=model,
+#         train_dataloader=dataloader,
+#         epochs=1000,
+#         scheduler=scheduler,
+#         loss_closure=losses,
+#         physics=p,
+#         optimizer=optimizer,
+#         device=dinv.device,
+#         ckp_interval=2000,
+#         save_path=f'{dir}/dinv_moi_demo',
+#         plot=False,
+#         verbose=True)

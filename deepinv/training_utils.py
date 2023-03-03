@@ -203,6 +203,7 @@ def test(model, test_dataloader,
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
+                print('We exited model ', x1.shape)
 
             if g < show_operators and i == 0 :
                 xlin = physics[g].A_adjoint(y)

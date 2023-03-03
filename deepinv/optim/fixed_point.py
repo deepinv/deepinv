@@ -20,15 +20,20 @@ class FixedPoint(nn.Module):
         self.verbose = verbose
         self.early_stop = early_stop
 
-    def forward(self, init, *args):
-        x = init
+    def forward(self, *args):
+
+        x = self.iterator.get_init(*args)
+
         for it in range(self.max_iter):
             x_prev = x 
             x = self.iterator(x, it, *args)
-            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose):
-                if verbose:
+            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose) and it>1:
+                if self.verbose:
                     print('Convergence reached at iteration ', it)
-                break 
+                break
+
+        x = self.iterator.get_primal_variable(x)
+
         return x
 
 class AndersonAcceleration(nn.Module):
