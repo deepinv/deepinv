@@ -27,15 +27,13 @@ class Unfolded(nn.Module):
                                                for i in range(max_iter)])
             self.iterator.sigma_denoiser = self.sigma_denoiser
 
-
-
         self.custom_primal_prox = custom_primal_prox
         self.custom_dual_prox = custom_dual_prox
 
         if custom_primal_prox is not None:
-            self.iterator._primal_prox = self.primal_prox_step
+            self.iterator.primal_prox = self.primal_prox_step
         if custom_dual_prox is not None:
-            self.iterator._dual_prox = self.dual_prox_step
+            self.iterator.dual_prox = self.dual_prox_step
 
         self.FP = FixedPoint(self.iterator, max_iter=max_iter, early_stop=True, crit_conv=crit_conv, verbose=verbose)
 

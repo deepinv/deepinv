@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
-from deepinv.pnp.unrolling import Unrolling
+from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test, train
@@ -96,9 +96,13 @@ model_spec = {'name': denoiser_name,
                     }}
 denoiser = Denoiser(model_spec=model_spec)
 
-PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize, unroll=True, weight_tied=True)
-iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-model = Unrolling(iterator, PnP_module, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
+PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, sigma_denoiser=PnP_module.sigma_denoiser)
+
+custom_dual_prox = [PnP_module.prox_g for it in range(max_iter)]
+
+model = Unfolded(iterator, max_iter=max_iter, custom_dual_prox=custom_dual_prox, physics=p, crit_conv=1e-4)
+
 
 # choose training losses
 losses = []
