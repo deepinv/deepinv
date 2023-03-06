@@ -26,7 +26,7 @@ class OptimIterator(nn.Module):
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
                  grad_g = None, g_first = False, stepsize=[1.]*50, g_param=[1.]*50, stepsize_inter = 1., max_iter_inter=50, 
                  tol_inter=1e-3, beta=1.) :
-        super().__init__()
+        super(OptimIterator, self).__init__()
 
         self.data_fidelity = data_fidelity
         self.lamb = lamb
@@ -38,10 +38,7 @@ class OptimIterator(nn.Module):
         self.g_param = g_param
         self.beta = beta
 
-        assert g 
-
-
-        if prox_g is None and grad_g is None and not trainable:
+        if prox_g is None and grad_g is None:
             if g is not None and isinstance(g, nn.Module):
                 def grad_g(self,x,*args):
                     torch.set_grad_enabled(True)
@@ -52,34 +49,34 @@ class OptimIterator(nn.Module):
             else:
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
         
-        def g_step(self, x, it):
-            pass
+    def g_step(self, x, it):
+        pass
 
-        def f_step(self, y, physics, it):
-            pass
+    def f_step(self, y, physics, it):
+        pass
 
-        def relaxation_step(self, u, v):
-            return self.beta*u + (1-self.beta)*v
+    def relaxation_step(self, u, v):
+        return self.beta*u + (1-self.beta)*v
 
-        def forward(self, x, it, y, physics):
-            '''
-            General splitting algorithm for minimizing \lambda f + g. Can be overwritten for specific other forms.
-            Returns primal and dual updates. 
-            '''
-            x_prev = x[0]
-            if not self.g_first:
-                x = self.f_step(x_prev, y, physics, it)
-                x = self.g_step(x, it)
-            else:
-                x = self.g_step(x_prev, it)
-                x = self.f_step(x, y, physics, it)
-            x = self.relaxation_step(x, x_prev, it)
-            return (x,)
+    def forward(self, x, it, y, physics):
+        '''
+        General splitting algorithm for minimizing \lambda f + g. Can be overwritten for specific other forms.
+        Returns primal and dual updates. 
+        '''
+        x_prev = x[0]
+        if not self.g_first:
+            x = self.f_step(x_prev, y, physics, it)
+            x = self.g_step(x, it)
+        else:
+            x = self.g_step(x_prev, it)
+            x = self.f_step(x, y, physics, it)
+        x = self.relaxation_step(x, x_prev)
+        return (x,)
 
 class GD(OptimIterator): #TODO
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(GD, self).__init__(**kwargs)
     
     def forward(self, x, it, y, physics):
         x = x[0]
@@ -90,7 +87,7 @@ class GD(OptimIterator): #TODO
 class HQS(OptimIterator):
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(HQS, self).__init__(**kwargs)
 
     def f_step(self, x, y, physics, it):
         return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
@@ -102,7 +99,7 @@ class HQS(OptimIterator):
 class PGD(OptimIterator):
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(PGD, self).__init__(**kwargs)
 
     def f_step(self, x, y, physics, it):
         if not self.g_first:
@@ -119,7 +116,7 @@ class PGD(OptimIterator):
 class DRS(OptimIterator):
 
     def __init__(self, beta=0.5, **kwargs):
-        super().__init__(**kwargs)
+        super(DRS, self).__init__(**kwargs)
         self.beta = beta
 
     def f_step(self, x, y, physics, it):
@@ -127,17 +124,12 @@ class DRS(OptimIterator):
 
     def g_step(self, z, it):
         return 2*self.prox_g(z, self.g_param[it], it) - z
-    
-    def forward(self, x, it, y, physics):
-        if not self.g_first:
-            return (1/2)*(x + self.g_step(self.f_step(x, y, physics, it), it))
-        else:
-            return (1/2)*(x + self.f_step(self.g_step(x,it), it, y, physics))
+
 
 class ADMM(OptimIterator):
 
     def __init__(self, theta, **kwargs):
-        super().__init__(**kwargs)
+        super(ADMM, self).__init__(**kwargs)
 
     def forward(self, x, it, y, physics):
         # TODO : same as DRS ???

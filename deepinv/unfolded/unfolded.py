@@ -8,7 +8,7 @@ class Unfolded(nn.Module):
     '''
     Unfolded module
     '''
-    def __init__(self, iterator, init=None, stepsize=1., max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False, 
+    def __init__(self, iterator, init=None, max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False, 
                  custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True, constant_stepsize=False, constant_g_param=False):
         super(Unfolded, self).__init__()
 
@@ -19,24 +19,21 @@ class Unfolded(nn.Module):
 
         if learn_stepsize:
             if constant_stepsize : 
-                self.step_size = nn.Parameter(torch.tensor(stepsize, device=self.device))
+                self.step_size = nn.Parameter(torch.tensor(iterator.stepsize[0], device=self.device))
                 self.stepsize_list = [self.step_size]*max_iter
             else :
-                self.stepsize_list = nn.ParameterList([nn.Parameter(torch.tensor(stepsize, device=self.device))
+                self.stepsize_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.stepsize[i], device=self.device))
                                                for i in range(max_iter)])
             self.iterator.stepsize = self.stepsize_list
 
         if learn_g_param:
             if constant_g_param :
-                self.g_param = nn.Parameter(torch.tensor(g_param, device=self.device))
+                self.g_param = nn.Parameter(torch.tensor(iterator.g_param[0], device=self.device))
                 self.g_param_list = [self.g_param]*max_iter
             else :
-                self.g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(g_param, device=self.device))
+                self.g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.g_param[i], device=self.device))
                                                for i in range(max_iter)])
             self.iterator.g_param = self.g_param_list
-
-        self.custom_primal_prox = custom_primal_prox
-        self.custom_dual_prox = custom_dual_prox
 
         if custom_g_step is not None:
             self.iterator.g_step = self.custom_g_step # COMMENT : can we avoid the 'primal_prox_step' fct by asking custom_g_step to take the same args as g_step and f_step ?
@@ -48,7 +45,7 @@ class Unfolded(nn.Module):
     def get_init(self, y, physics):
         return physics.A_adjoint(y), y
 
-    def get_primal_variable(x),
+    def get_primal_variable(self, x):
         return x[0]
 
     def forward(self, y, physics, **kwargs):
@@ -56,9 +53,3 @@ class Unfolded(nn.Module):
         x = self.FP(x, y, physics, **kwargs)
         x = self.get_primal_variable(x)
         return x
-
-    # def primal_prox_step(self, x, Atu, it):
-    #     return self.custom_primal_prox[it](x, Atu, it)
-
-    # def dual_prox_step(self, Ax_cur, u, y, it):
-    #     return self.custom_dual_prox[it](Ax_cur, u, y, it)

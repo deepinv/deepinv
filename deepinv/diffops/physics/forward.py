@@ -216,7 +216,6 @@ class DecomposablePhysics(Physics):
         :param gamma: (positive float) hyperparameter of the proximal operator
         :return: estimated signal tensor
         '''
-
         b = self.A_adjoint(y) + gamma*z
 
         # scaling = self.mask.pow(2) + gamma
