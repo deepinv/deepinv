@@ -8,32 +8,41 @@ class Unfolded(nn.Module):
     '''
     Unfolded module
     '''
-    def __init__(self, iterator, custom_primal_prox=None, custom_dual_prox=None, stepsize=1., max_iter=50, physics=None,
-                 crit_conv=1e-3, verbose=True, device='cpu', learn_stepsizes=False, learn_sigmas=False):
+    def __init__(self, iterator, stepsize=1., max_iter=50, physics=None, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False, 
+                 custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True, constant_stepsize=False, constant_g_param=False):
         super(Unfolded, self).__init__()
 
         self.max_iter = max_iter
         self.physics = physics
         self.device = device
-
         self.iterator = iterator
-        if learn_stepsizes:
-            self.stepsize_list = nn.ParameterList([nn.Parameter(torch.tensor(1., device=self.device))
-                                               for i in range(max_iter)])
-            self.iterator.stepsize = self.stepsize
+        self.crit_conv = crit_conv
 
-        if learn_sigmas:
-            self.sigma_list = nn.ParameterList([nn.Parameter(torch.tensor(2., device=self.device))
+        if learn_stepsize:
+            if constant_stepsize : 
+                self.step_size = nn.Parameter(torch.tensor(stepsize, device=self.device))
+                self.stepsize_list = [self.step_size]*max_iter
+            else :
+                self.stepsize_list = nn.ParameterList([nn.Parameter(torch.tensor(stepsize, device=self.device))
                                                for i in range(max_iter)])
-            self.iterator.sigma_denoiser = self.sigma_denoiser
+            self.iterator.stepsize = self.stepsize_list
+
+        if learn_g_param:
+            if constant_g_param :
+                self.g_param = nn.Parameter(torch.tensor(g_param, device=self.device))
+                self.g_param_list = [self.g_param]*max_iter
+            else :
+                self.g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(g_param, device=self.device))
+                                               for i in range(max_iter)])
+            self.iterator.g_param = self.g_param_list
 
         self.custom_primal_prox = custom_primal_prox
         self.custom_dual_prox = custom_dual_prox
 
-        if custom_primal_prox is not None:
-            self.iterator.primal_prox = self.primal_prox_step
-        if custom_dual_prox is not None:
-            self.iterator.dual_prox = self.dual_prox_step
+        if custom_g_step is not None:
+            self.iterator.g_step = self.custom_g_step
+        if custom_f_step is not None:
+            self.iterator.f_step = self.custom_f_step
 
         self.FP = FixedPoint(self.iterator, max_iter=max_iter, early_stop=True, crit_conv=crit_conv, verbose=verbose)
 

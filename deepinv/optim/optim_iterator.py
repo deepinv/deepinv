@@ -8,6 +8,12 @@ class OptimIterator(nn.Module):
     and g is a regularizer either explicit or implicitly given by either its prox or its gradient. 
     By default, the algorithms starts with a step on f and finishes with step on g. 
 
+    TODO : handle init / get_primal_variable.
+    TODO : adapt PD to the new g_step / f_step stype.
+    TODO : update stepize PD removed.
+    TODO : add accelerated algorithms.
+    TODO : ADMM
+
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.   
     :param lamb: Regularization parameter.
     :param g: Regularizing potential. 
@@ -18,8 +24,8 @@ class OptimIterator(nn.Module):
     '''
 
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
-                 grad_g = None, g_first = False, stepsize=1., stepsize_inter = 1., max_iter_inter=50, 
-                 tol_inter=1e-3, update_stepsize=None, sigma_denoiser=1.) :
+                 grad_g = None, g_first = False, stepsize=1., g_param=1., stepsize_inter = 1., max_iter_inter=50, 
+                 tol_inter=1e-3) :
         super().__init__()
 
         self.data_fidelity = data_fidelity
@@ -29,7 +35,7 @@ class OptimIterator(nn.Module):
         self.g_first = g_first
         self.device = device
         self.stepsize = stepsize
-        self.sigma_denoiser = sigma_denoiser
+        self.g_param = g_param
 
         if prox_g is None and grad_g is None and not trainable:
             if g is not None and isinstance(g, nn.Module):
@@ -51,21 +57,15 @@ class OptimIterator(nn.Module):
         def forward(self, x, it, y, physics):
             '''
             General splitting algorithm for minimizing \lambda f + g. Can be overwritten for specific other forms.
+            Returns primal and dual updates. 
             '''
             if not self.g_first:
-                z = self.f_step(x, y, physics, it)
-                x = self.g_step(z, it)
+                u = self.f_step(x, y, physics, it)
+                v = self.g_step(u, it)
             else:
-                z = self.g_step(x, it)
-                x = self.f_step(z, y, physics, it)
-            return x
-
-    def get_init(self, y, physics):
-        return physics.A_adjoint(y)
-
-    def get_primal_variable(self, x):
-        return x
-
+                u = self.g_step(x, it)
+                v = self.f_step(u, y, physics, it)
+            return v, u
 
 class GD(OptimIterator): #TODO
 
@@ -73,7 +73,8 @@ class GD(OptimIterator): #TODO
         super().__init__(**kwargs)
     
     def forward(self, x, it, y, physics):
-        return x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
+        v = x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
+        return v, v 
 
 
 class HQS(OptimIterator):
@@ -82,64 +83,48 @@ class HQS(OptimIterator):
         super().__init__(**kwargs)
 
     def f_step(self, x, y, physics, it):
-        return self.data_fidelity.prox(y, x, physics, self.lamb*self.stepsize[it])
+        return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
 
     def g_step(self, z, it):
-        return self.prox_g(z, self.sigma_denoiser[it], it)
+        return self.prox_g(z, self.g_param[it], it)
 
 
-class PGD(OptimIterator): # TO
+class PGD(OptimIterator):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def f_step(self, x, grad, it):
-        return x - self.stepsize[it] * self.lamb * grad
+    def f_step(self, x, y, physics, it):
+        if not self.g_first:
+            return x - self.stepsize[it] * self.lamb * self.data_fidelity.grad(x, y, physics)
+        else :
+            return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
 
     def g_step(self, x, it):
-        return self.prox_g(x, self.sigma_denoiser[it], it)
-
-    def forward(self, x, it, y, physics):
-        if not self.g_first: # prox on g and grad on f
-            grad = self.data_fidelity.grad(x, y, physics)
-            z = self._primal_prox(x, grad, it)
-            x = self._dual_prox(z, it)
-        else:  # TODO: refactor  # prox on f and grad on g
-            z = x - self.stepsize[it]*self.grad_g(x)
-            x = self.data_fidelity.prox(y, z, physics, self.lamb*self.stepsize[it])
-        return x
+        if not self.g_first:
+            return self.prox_g(x, self.g_param[it], it)
+        else :
+            return x - self.stepsize[it] * self.grad_g(x,it)
 
 class DRS(OptimIterator):
 
     def __init__(self, primal_prox=None, dual_prox=None, **kwargs):
         super().__init__(**kwargs)
 
-        if primal_prox is not None:
-            self._primal_prox = primal_prox
-        else:
-            self._primal_prox = self.primal_prox
+    def f_step(self, x, y, physics, it):
+        return 2*self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it]) - x
 
-        if dual_prox is not None:
-            self._dual_prox = dual_prox
-        else:
-            self._dual_prox = self.dual_prox
-
-    def primal_prox(self, x, y, physics, it):
-        return self.data_fidelity.prox(y, x, physics, self.lamb*self.stepsize[it])
-
-    def dual_prox(self, z, it):
-        return self.prox_g(z, self.sigma_denoiser[it], it)
+    def g_step(self, z, it):
+        return 2*self.prox_g(z, self.g_param[it], it) - z
     
     def forward(self, x, it, y, physics):
         if not self.g_first:
-            Rprox_f = 2*self._primal_prox(x, y, physics, it)-x
-            Rprox_g = 2*self._dual_prox(Rprox_f, it)-Rprox_f
-            x = (1/2)*(x + Rprox_g)
+            u = self.f_step(x, y, physics, it)
+            v = self.g_step(v, it)
         else:
-            Rprox_g = 2*self._dual_prox(x, it)-x
-            Rprox_f = 2*self._primal_prox(Rprox_g, y, physics, it) - Rprox_g
-            x = (1/2)*(x + Rprox_f)
-        return x
+            u = self.g_step(x,it)
+            v = self.f_step(u, it, y, physics)
+        return (1/2)*(x + v)
 
 class ADMM(OptimIterator):
 
@@ -179,14 +164,8 @@ class PD(OptimIterator):
         else:
             self._dual_prox = self.dual_prox
 
-    def get_init(self, y, physics):
-        return physics.A_adjoint(y), y
-
-    def get_primal_variable(self, x):
-        return x[0]
-
     def primal_prox(self, x, Atu, y, it):
-        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it]*self.sigma_denoiser[it], it)
+        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it]*self.g_param[it], it)
 
     def dual_prox(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
         v = u + self.stepsize[it] * Ax_cur

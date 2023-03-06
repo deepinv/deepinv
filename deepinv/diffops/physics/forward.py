@@ -48,7 +48,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def A_adjoint(self, x):
         return self.adjoint(x)
 
-    def prox_l2(self, y, z, gamma):
+    def prox_l2(self, z, y, gamma):
         '''
         Computes proximal operator of f(x) = 1/2*||Ax-y||^2
         i.e. argmin_x 1/2*||Ax-y||^2+gamma/2*||x-z||^2
@@ -63,7 +63,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
-    def prox_l2_norm(self, y, z, gamma):
+    def prox_l2_norm(self, z, y, gamma):
         '''
         computes the proximal operator of \frac{1}{2}*gamma*||x-y||_2^2 in z
 
@@ -206,7 +206,7 @@ class DecomposablePhysics(Physics):
 
         return self.V(mask*self.V_adjoint(y))
 
-    def prox_l2(self, y, z, gamma):
+    def prox_l2(self, z, y, gamma):
         '''
         Computes proximal operator of f(x) = 1/2*||Ax-y||^2
         i.e. argmin_x 1/2*||Ax-y||^2+gamma/2*||x-z||^2

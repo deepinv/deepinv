@@ -134,7 +134,7 @@ class Downsampling(Physics):
 
         return x
 
-    def prox_l2(self, y, z, gamma):
+    def prox_l2(self, z, y, gamma):
         if self.padding == 'circular': # Formula from (Zhao, 2016)
 
             z_hat = gamma*self.A_adjoint(y) + z
@@ -158,7 +158,7 @@ class Downsampling(Physics):
             r = torch.real(fft.ifft2(rc))
             return z_hat - r
         else:
-            return Physics.prox_l2(self, y, z, gamma)
+            return Physics.prox_l2(self, z, y, gamma)
 
 
 def extend_filter(filter):
