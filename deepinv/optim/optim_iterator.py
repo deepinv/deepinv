@@ -17,15 +17,15 @@ class OptimIterator(nn.Module):
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.   
     :param lamb: Regularization parameter.
     :param g: Regularizing potential. 
-    :param prox_g: Proximal operator of the regularizing potential. x,it -> prox_g(x,it)
-    :param grad_g: Gradient of the regularizing potential. x,it -> grad_g(x,it)
+    :param prox_g: Proximal operator of the regularizing potential. x, g_param, it -> prox_g(x, g_param, it)
+    :param grad_g: Gradient of the regularizing potential. x, g_param, it -> grad_g(x, g_param, it)
     :param g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
     :param stepsize: Step size of the algorithm.
     '''
 
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
-                 grad_g = None, g_first = False, stepsize=1., g_param=1., stepsize_inter = 1., max_iter_inter=50, 
-                 tol_inter=1e-3) :
+                 grad_g = None, g_first = False, stepsize=[1.]*50, g_param=[1.]*50, stepsize_inter = 1., max_iter_inter=50, 
+                 tol_inter=1e-3, beta=1.) :
         super().__init__()
 
         self.data_fidelity = data_fidelity
@@ -36,6 +36,10 @@ class OptimIterator(nn.Module):
         self.device = device
         self.stepsize = stepsize
         self.g_param = g_param
+        self.beta = beta
+
+        assert g 
+
 
         if prox_g is None and grad_g is None and not trainable:
             if g is not None and isinstance(g, nn.Module):
@@ -54,18 +58,23 @@ class OptimIterator(nn.Module):
         def f_step(self, y, physics, it):
             pass
 
+        def relaxation_step(self, u, v):
+            return self.beta*u + (1-self.beta)*v
+
         def forward(self, x, it, y, physics):
             '''
             General splitting algorithm for minimizing \lambda f + g. Can be overwritten for specific other forms.
             Returns primal and dual updates. 
             '''
+            x_prev = x[0]
             if not self.g_first:
-                u = self.f_step(x, y, physics, it)
-                v = self.g_step(u, it)
+                x = self.f_step(x_prev, y, physics, it)
+                x = self.g_step(x, it)
             else:
-                u = self.g_step(x, it)
-                v = self.f_step(u, y, physics, it)
-            return v, u
+                x = self.g_step(x_prev, it)
+                x = self.f_step(x, y, physics, it)
+            x = self.relaxation_step(x, x_prev, it)
+            return (x,)
 
 class GD(OptimIterator): #TODO
 
@@ -73,8 +82,9 @@ class GD(OptimIterator): #TODO
         super().__init__(**kwargs)
     
     def forward(self, x, it, y, physics):
-        v = x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x,it))
-        return v, v 
+        x = x[0]
+        x = x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x, g_param[it], it))
+        return (x,)
 
 
 class HQS(OptimIterator):
@@ -104,12 +114,13 @@ class PGD(OptimIterator):
         if not self.g_first:
             return self.prox_g(x, self.g_param[it], it)
         else :
-            return x - self.stepsize[it] * self.grad_g(x,it)
+            return x - self.stepsize[it] * self.grad_g(x, self.g_param[it], it)
 
 class DRS(OptimIterator):
 
-    def __init__(self, primal_prox=None, dual_prox=None, **kwargs):
+    def __init__(self, beta=0.5, **kwargs):
         super().__init__(**kwargs)
+        self.beta = beta
 
     def f_step(self, x, y, physics, it):
         return 2*self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it]) - x
@@ -119,12 +130,9 @@ class DRS(OptimIterator):
     
     def forward(self, x, it, y, physics):
         if not self.g_first:
-            u = self.f_step(x, y, physics, it)
-            v = self.g_step(v, it)
+            return (1/2)*(x + self.g_step(self.f_step(x, y, physics, it), it))
         else:
-            u = self.g_step(x,it)
-            v = self.f_step(u, it, y, physics)
-        return (1/2)*(x + v)
+            return (1/2)*(x + self.f_step(self.g_step(x,it), it, y, physics))
 
 class ADMM(OptimIterator):
 

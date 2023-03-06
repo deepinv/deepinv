@@ -8,12 +8,11 @@ class Unfolded(nn.Module):
     '''
     Unfolded module
     '''
-    def __init__(self, iterator, stepsize=1., max_iter=50, physics=None, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False, 
+    def __init__(self, iterator, init=None, stepsize=1., max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False, 
                  custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True, constant_stepsize=False, constant_g_param=False):
         super(Unfolded, self).__init__()
 
         self.max_iter = max_iter
-        self.physics = physics
         self.device = device
         self.iterator = iterator
         self.crit_conv = crit_conv
@@ -40,31 +39,26 @@ class Unfolded(nn.Module):
         self.custom_dual_prox = custom_dual_prox
 
         if custom_g_step is not None:
-            self.iterator.g_step = self.custom_g_step
+            self.iterator.g_step = self.custom_g_step # COMMENT : can we avoid the 'primal_prox_step' fct by asking custom_g_step to take the same args as g_step and f_step ?
         if custom_f_step is not None:
             self.iterator.f_step = self.custom_f_step
 
         self.FP = FixedPoint(self.iterator, max_iter=max_iter, early_stop=True, crit_conv=crit_conv, verbose=verbose)
 
+    def get_init(self, y, physics):
+        return physics.A_adjoint(y), y
+
+    def get_primal_variable(x),
+        return x[0]
+
     def forward(self, y, physics, **kwargs):
+        x = self.get_init(y, physics)
+        x = self.FP(x, y, physics, **kwargs)
+        x = self.get_primal_variable(x)
+        return x
 
-        x = self.iterator.get_init(y, physics)
+    # def primal_prox_step(self, x, Atu, it):
+    #     return self.custom_primal_prox[it](x, Atu, it)
 
-        x_out = self.FP(x, y, physics, **kwargs)
-
-        x_out = self.iterator.get_primal_variable(x_out)
-
-        return x_out
-
-    def primal_prox_step(self, x, Atu, it):
-        return self.custom_primal_prox[it](x, Atu, it)
-
-    def dual_prox_step(self, Ax_cur, u, y, it):
-        return self.custom_dual_prox[it](Ax_cur, u, y, it)
-
-    def stepsize(self, it):
-        return self.stepsize_list[it]
-
-    def sigma_denoiser(self, it):
-        print(self.sigma_list[it])
-        return self.sigma_list[it]
+    # def dual_prox_step(self, Ax_cur, u, y, it):
+    #     return self.custom_dual_prox[it](Ax_cur, u, y, it)

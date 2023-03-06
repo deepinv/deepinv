@@ -53,7 +53,7 @@ def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
     Standard gradient descent algorithm to solve min_x f(x)
     :param grad_f: gradient of function to bz minimized as a callable function.
     :param x: input tensor
-    :param step_size: step size of the gradient descent algorithm.
+    :param step_size: (constant) step size of the gradient descent algorithm.
     :param max_iter: maximum number of iterations
     :param tol: absolute tolerance for stopping the algorithm.
     :return: torch tensor x verifying min_x f(x)

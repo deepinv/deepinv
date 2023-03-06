@@ -94,10 +94,10 @@ model_spec = {'name': denoiser_name,
                     'train': True, 
                     'device':dinv.device
                     }}
-                    
+
 denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, g_param=PnP_module.sigma_denoiser)
+iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, g_param=PnP_module.sigma_denoiser)
 model = Unfolded(iterator, max_iter=max_iter, physics=p, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True)
 
 
