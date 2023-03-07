@@ -10,7 +10,7 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
-from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy
+from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
 import os
 
 # num_workers = 4  # set to 0 if using small cpu
@@ -146,9 +146,8 @@ PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_deno
 #                  trainable=denoiser, verbose=True)
 
 
-custom_g_step = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
-custom_f_step = nn.ModuleList([DualBlock() for _ in range(max_iter)])
-
+custom_g_step = PrimalBlock_list(max_it=max_iter)
+custom_f_step = DualBlock_list(max_it=max_iter)
 
 iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
                device=dinv.device, g_param=PnP_module.sigma_denoiser)
