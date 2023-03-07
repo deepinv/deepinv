@@ -8,9 +8,11 @@ class Unfolded(nn.Module):
     '''
     Unfolded module
     '''
-    def __init__(self, iterator, init=None, max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False, trainable = None,
-                 custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True, constant_stepsize=False, constant_g_param=False,
-                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, early_stop=True, deep_equilibrium=False, max_iter_backward=50):
+    def __init__(self, iterator, init=None, max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False,
+                 trainable = None, custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True,
+                 constant_stepsize=False, constant_g_param=False,
+                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, early_stop=True,
+                 deep_equilibrium=False, max_iter_backward=50):
         super(Unfolded, self).__init__()
 
         self.early_stop = early_stop

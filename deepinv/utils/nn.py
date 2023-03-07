@@ -17,3 +17,9 @@ def load_checkpoint(model, path_checkpoint, device):
     checkpoint = torch.load(path_checkpoint, map_location=device)
     model.load_state_dict(checkpoint['state_dict'])
     return model
+
+
+def investigate_model(model, idx_max=1, check_name='out_conv.weight'):
+    for idx, (name, param) in enumerate(model.named_parameters()):
+        if param.requires_grad and (idx<idx_max or check_name in name):
+            print(name, param.data.flatten()[0], 'gradient norm = ', param.grad.detach().data.norm(2))

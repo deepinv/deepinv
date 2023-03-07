@@ -20,7 +20,9 @@ denoiser_name = 'dncnn'
 depth = 7
 ckpt_path = None
 pnp_algo = 'PGD'
+path_datasets = '../../datasets/'
 train_dataset_name = 'drunet'
+# train_dataset_name = 'CBSD68'  # for debugging
 test_dataset_name = 'CBSD68'
 noise_level_img = 0.03
 lamb = 10
@@ -33,11 +35,11 @@ verbose = True
 early_stop = False 
 n_channels = 3
 pretrain = False
-epochs = 10
+epochs = 100
 im_size = 32
 batch_size = 32
 max_datapoints = 100
-deep_equilibrium = True
+deep_equilibrium = False
 anderson_acceleration = False
 anderson_beta=1.
 anderson_history_size=5
@@ -67,7 +69,7 @@ else:
 data_fidelity = L2()
 
 
-if not os.path.exists(f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5'):
+if not os.path.exists(f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5'):
     val_transform = transforms.Compose([
                 transforms.CenterCrop(im_size),
                 transforms.ToTensor(),
@@ -78,14 +80,14 @@ if not os.path.exists(f'../datasets/artificial/{train_dataset_name}/dinv_dataset
                     transforms.RandomVerticalFlip(p=0.5),
                     transforms.ToTensor(),
                 ])
-    train_input_dataset = datasets.ImageFolder(root=f'../datasets/{train_dataset_name}/', transform=train_transform)
-    test_input_dataset = datasets.ImageFolder(root=f'../datasets/{test_dataset_name}/', transform=val_transform)
+    train_input_dataset = datasets.ImageFolder(root=f'{path_datasets}/{train_dataset_name}/', transform=train_transform)
+    test_input_dataset = datasets.ImageFolder(root=f'{path_datasets}/{test_dataset_name}/', transform=val_transform)
     dinv.datasets.generate_dataset(train_dataset=train_input_dataset, test_dataset=test_input_dataset,
-                                physics=p, device=dinv.device, save_dir=f'../datasets/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
+                                physics=p, device=dinv.device, save_dir=f'{path_datasets}/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
                                 num_workers=num_workers)
 
-train_dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5', train=True)
-eval_dataset = dinv.datasets.HDF5Dataset(path=f'../datasets/artificial/{train_dataset_name}/dinv_dataset0.h5', train=False)
+train_dataset = dinv.datasets.HDF5Dataset(path=f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5', train=True)
+eval_dataset = dinv.datasets.HDF5Dataset(path=f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5', train=False)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 eval_dataloader = DataLoader(eval_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
@@ -102,9 +104,13 @@ model_spec = {'name': denoiser_name,
 
 denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, g_param=PnP_module.sigma_denoiser)
-model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True, trainable=denoiser,
-        deep_equilibrium=deep_equilibrium, anderson_acceleration=anderson_acceleration,anderson_beta=anderson_beta, anderson_history_size=anderson_history_size)
+iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
+               device=dinv.device, g_param=PnP_module.sigma_denoiser)
+model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True,
+                 trainable=denoiser,
+                 deep_equilibrium=deep_equilibrium, anderson_acceleration=anderson_acceleration,
+                 anderson_beta=anderson_beta, anderson_history_size=anderson_history_size,
+                 verbose=False)
 
 for name, param in model.named_parameters():
     if param.requires_grad:
@@ -115,7 +121,7 @@ losses = []
 losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(PnP_module.parameters(), lr=1e-4, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs*.8))
 
 train(model=model,
@@ -127,9 +133,10 @@ train(model=model,
         physics=p,
         optimizer=optimizer,
         device=dinv.device,
-        ckp_interval=10,
+        ckp_interval=int(epochs/2.),
         save_path=f'../checkpoints/tests/demo_unrolled',
         plot=False,
         plot_input=True,
         verbose=True,
-        wandb_vis=wandb_vis)
+        wandb_vis=wandb_vis,
+        debug=True)

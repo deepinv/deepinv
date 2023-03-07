@@ -1,4 +1,4 @@
-from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr
+from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr, investigate_model
 from deepinv.utils.plotting import plot_debug, torch2cpu
 import numpy as np
 from tqdm import tqdm
@@ -21,7 +21,8 @@ def train(model,
           unsupervised=False,
           plot=False,
           plot_input=False,
-          wandb_vis=False):
+          wandb_vis=False,
+          debug=False):
     """
     Trains a reconstruction model with the train dataloader.
     ----------
@@ -142,6 +143,9 @@ def train(model,
                 loss_total.backward()
                 optimizer.step()
 
+                if debug and i==0:
+                    investigate_model(model)
+
         if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
             test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis, plot_input=plot_input)
             if verbose : 
@@ -203,7 +207,7 @@ def test(model, test_dataloader,
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
-                print('We exited model ', x1.shape)
+                # print('We exited model ', x1.shape)
 
             if g < show_operators and i == 0 :
                 xlin = physics[g].A_adjoint(y)
