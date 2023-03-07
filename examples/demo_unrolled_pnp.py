@@ -98,12 +98,11 @@ model_spec = {'name': denoiser_name,
 denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, g_param=PnP_module.sigma_denoiser)
-model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True)
+model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True, trainable=denoiser)
 
 for name, param in model.named_parameters():
     if param.requires_grad:
         print(name, ' is trainable')
-
 
 # choose training losses
 losses = []
