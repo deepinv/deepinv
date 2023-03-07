@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
+from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterator import *
 from deepinv.training_utils import test
@@ -26,7 +27,7 @@ stepsize = 1.
 sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
 max_iter = 50
-crit_conv = 1e-5
+crit_conv = 1e-3
 verbose = True
 early_stop = True 
 n_channels = 3
@@ -68,21 +69,20 @@ model_spec = {'name': denoiser_name,
                     'out_channels':n_channels,
                     'ckpt_path': ckpt_path,
                     'pretrain':pretrain, 
-                    'train':train, 
+                    'train': False, 
                     'device':dinv.device
                     }}
-denoiser = Denoiser(model_spec=model_spec)
 
+denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = PGD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device, update_stepsize = PnP_module.update_stepsize)
-FP = FixedPoint(iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,verbose=verbose)
-model = lambda x,physics : FP(x, x, physics) # FP forward arguments are init, input, physics  
+iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, g_param=PnP_module.sigma_denoiser)
+model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4)
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
-    plot=False,
+    plot=True,
     plot_input=True,
     save_img_path='../results/results_pnp.png',
     verbose=verbose)
