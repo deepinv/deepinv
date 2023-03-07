@@ -35,7 +35,7 @@ class FixedPoint(nn.Module):
 class AndersonAcceleration(nn.Module):
     '''
     Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/. 
-    Foward is called with an initialization tensor of shape VxCxHxW and iterator optional arguments. 
+    Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments. 
 
     Args :
         iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
@@ -62,13 +62,14 @@ class AndersonAcceleration(nn.Module):
         
 
     def forward(self, init, *args):
+        init = init[0]
         B, C, H, W = init.shape
         X = torch.zeros(B, self.history_size, C * H * W, dtype=init.dtype, device=init.device)
         F = torch.zeros(B, self.history_size, C * H * W, dtype=init.dtype, device=init.device)
         X[:, 0] = init.reshape(B, -1)
-        F[:, 0] = self.iterator(init, 0, *args).reshape(B, -1)
+        F[:, 0] = self.iterator(init, 0, *args)[0].reshape(B, -1)
         X[:, 1] = F[:, 0]
-        x = self.iterator(F[:, 0].reshape(init.shape),1,*args)
+        x = self.iterator(F[:, 0].reshape(init.shape),1,*args)[0]
         F[:, 1] = x.reshape(B, -1)
 
         H = torch.zeros(B, self.history_size + 1, self.history_size + 1, dtype=init.dtype, device=init.device)
@@ -84,7 +85,7 @@ class AndersonAcceleration(nn.Module):
             alpha = torch.linalg.solve(H[:, :n+1, :n+1],y[:, :n+1])[:, 1:n+1]
 
             X[:, it % self.history_size] = self.beta[it] * (alpha[:, None] @ F[:, :n])[:, 0] + (1 - self.beta[it]) * (alpha[:, None] @ X[:, :n])[:, 0]
-            F[:, it % self.history_size] = self.iterator(X[:, it % self.history_size].reshape(init.shape), it, *args).reshape(B, -1)
+            F[:, it % self.history_size] = self.iterator(X[:, it % self.history_size].reshape(init.shape), it, *args)[0].reshape(B, -1)
 
             x_prev = X[:, it % self.history_size].reshape(init.shape)
             x = F[:, it % self.history_size].reshape(init.shape)
@@ -92,6 +93,6 @@ class AndersonAcceleration(nn.Module):
                 if verbose:
                     print('Convergence reached at iteration ', it)
                 break 
-                
-        return x
+        return (x,)
+
 

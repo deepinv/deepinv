@@ -37,6 +37,11 @@ epochs = 10
 im_size = 32
 batch_size = 32
 max_datapoints = 100
+deep_equilibrium = True
+anderson_acceleration = False
+anderson_beta=1.
+anderson_history_size=5
+max_iter_backward=10
 
 wandb_vis = True
 
@@ -98,7 +103,8 @@ model_spec = {'name': denoiser_name,
 denoiser = Denoiser(model_spec=model_spec)
 PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize, device=dinv.device, g_param=PnP_module.sigma_denoiser)
-model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True, trainable=denoiser)
+model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True, trainable=denoiser,
+        deep_equilibrium=deep_equilibrium, anderson_acceleration=anderson_acceleration,anderson_beta=anderson_beta, anderson_history_size=anderson_history_size)
 
 for name, param in model.named_parameters():
     if param.requires_grad:
@@ -123,7 +129,7 @@ train(model=model,
         device=dinv.device,
         ckp_interval=10,
         save_path=f'../checkpoints/tests/demo_unrolled',
-        plot=True,
+        plot=False,
         plot_input=True,
         verbose=True,
         wandb_vis=wandb_vis)
