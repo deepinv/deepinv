@@ -2,29 +2,31 @@ import torch
 import torch.nn as nn
 from deepinv.optim.utils import gradient_descent
 
+
 class OptimIterator(nn.Module):
     '''
     Optimization algorithms Fixed Point Iterations for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
-    and g is a regularizer either explicit or implicitly given by either its prox or its gradient. 
-    By default, the algorithms starts with a step on f and finishes with step on g. 
+    and g is a regularizer either explicit or implicitly given by either its prox or its gradient.
+    By default, the algorithms starts with a step on f and finishes with step on g.
 
     TODO : adapt PD to the new g_step / f_step stype.
     TODO : update stepize PD removed.
     TODO : add accelerated algorithms.
     TODO : ADMM
 
-    :param data_fidelity: data_fidelity instance modeling the data-fidelity term.   
+    :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param lamb: Regularization parameter.
-    :param g: Regularizing potential. 
+    :param g: Regularizing potential.
     :param prox_g: Proximal operator of the regularizing potential. x, g_param, it -> prox_g(x, g_param, it)
     :param grad_g: Gradient of the regularizing potential. x, g_param, it -> grad_g(x, g_param, it)
     :param g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
     :param stepsize: Step size of the algorithm.
     '''
 
-    def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g = None, prox_g = None,
-                 grad_g = None, g_first = False, stepsize=[1.]*50, g_param=[1.]*50, stepsize_inter = 1., max_iter_inter=50, 
-                 tol_inter=1e-3, beta=1.) :
+    def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=[1.] * 50, stepsize_inter=1.,
+                 max_iter_inter=50,
+                 tol_inter=1e-3, beta=1.):
         super(OptimIterator, self).__init__()
 
         self.data_fidelity = data_fidelity
@@ -39,15 +41,16 @@ class OptimIterator(nn.Module):
 
         if prox_g is None and grad_g is None:
             if g is not None and isinstance(g, nn.Module):
-                def grad_g(self,x,*args):
+                def grad_g(self, x, *args):
                     torch.set_grad_enabled(True)
-                    return torch.autograd.grad(g(x,*args), x, create_graph=True, only_inputs=True)[0]
-                def prox_g(self,x,*args) :
-                    grad = lambda  y : grad_g(y,*args) + (1/2)*(y-x)
+                    return torch.autograd.grad(g(x, *args), x, create_graph=True, only_inputs=True)[0]
+
+                def prox_g(self, x, *args):
+                    grad = lambda y: grad_g(y, *args) + (1 / 2) * (y - x)
                     return gradient_descent(grad, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)
             else:
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
-        
+
     def g_step(self, x, it):
         pass
 
@@ -55,12 +58,12 @@ class OptimIterator(nn.Module):
         pass
 
     def relaxation_step(self, u, v):
-        return self.beta*u + (1-self.beta)*v
+        return self.beta * u + (1 - self.beta) * v
 
     def forward(self, x, it, y, physics):
         '''
         General splitting algorithm for minimizing \lambda f + g. Can be overwritten for specific other forms.
-        Returns primal and dual updates. 
+        Returns primal and dual updates.
         '''
         x_prev = x[0]
         if not self.g_first:
@@ -72,14 +75,16 @@ class OptimIterator(nn.Module):
         x = self.relaxation_step(x, x_prev)
         return (x,)
 
-class GD(OptimIterator): #TODO
+
+class GD(OptimIterator):  # TODO
 
     def __init__(self, **kwargs):
         super(GD, self).__init__(**kwargs)
-    
+
     def forward(self, x, it, y, physics):
         x = x[0]
-        x = x - self.stepsize[it]*(self.lamb*self.data_fidelity.grad(x, y, physics) + self.grad_g(x, g_param[it], it))
+        x = x - self.stepsize[it] * (
+                    self.lamb * self.data_fidelity.grad(x, y, physics) + self.grad_g(x, g_param[it], it))
         return (x,)
 
 
@@ -89,7 +94,7 @@ class HQS(OptimIterator):
         super(HQS, self).__init__(**kwargs)
 
     def f_step(self, x, y, physics, it):
-        return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
+        return self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it])
 
     def g_step(self, z, it):
         return self.prox_g(z, self.g_param[it], it)
@@ -103,14 +108,15 @@ class PGD(OptimIterator):
     def f_step(self, x, y, physics, it):
         if not self.g_first:
             return x - self.stepsize[it] * self.lamb * self.data_fidelity.grad(x, y, physics)
-        else :
-            return self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it])
+        else:
+            return self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it])
 
     def g_step(self, x, it):
         if not self.g_first:
             return self.prox_g(x, self.g_param[it], it)
-        else :
+        else:
             return x - self.stepsize[it] * self.grad_g(x, self.g_param[it], it)
+
 
 class DRS(OptimIterator):
 
@@ -119,10 +125,10 @@ class DRS(OptimIterator):
         self.beta = beta
 
     def f_step(self, x, y, physics, it):
-        return 2*self.data_fidelity.prox(x, y, physics, self.lamb*self.stepsize[it]) - x
+        return 2 * self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it]) - x
 
     def g_step(self, z, it):
-        return 2*self.prox_g(z, self.g_param[it], it) - z
+        return 2 * self.prox_g(z, self.g_param[it], it) - z
 
 
 class ADMM(OptimIterator):
@@ -138,7 +144,7 @@ class ADMM(OptimIterator):
 class PD(OptimIterator):
 
     def __init__(self, data_fidelity, update_stepsize=None, stepsize_2=1.,
-                 g_step=None, f_step=None, **kwargs):
+                 primal_prox=None, dual_prox=None, **kwargs):
         '''
         In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
         primal and dual variables.
@@ -149,15 +155,16 @@ class PD(OptimIterator):
         '''
         super(PD, self).__init__(**kwargs)
 
-        self.update_stepsize = update_stepsize
-        self.stepsize_2 = [stepsize_2/2.] * len(self.stepsize)
-
+        self.stepsize_2 = [stepsize_2/2.]*len(self.stepsize)
         self.data_fidelity = data_fidelity
 
     def g_step(self, x, Atu, y, it):
-        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it]*self.g_param[it], it)
+        print('SHOULD NOT PRINT THIS')
+        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
 
-    def f_step(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
+    def f_step(self, Ax_cur, u, y,
+                  it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
+        print('SHOULD NOT PRINT THIS EITHER')
         v = u + self.stepsize[it] * Ax_cur
         return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
 
@@ -165,14 +172,13 @@ class PD(OptimIterator):
 
         x, u = pd_var
 
-        x_ = self._g_step(x, physics.A_adjoint(u), y, it)
-        Ax_cur = physics.A(2*x_ - x)
-        u_ = self._f_step(Ax_cur, u, y, it)
+        x_ = self.g_step(x, physics.A_adjoint(u), y, it)
+        Ax_cur = physics.A(2 * x_ - x)
+        u_ = self.f_step(Ax_cur, u, y, it)
 
         pd_variable = (x_, u_)
 
         return pd_variable
-        
 
 # def ADMM(self, y, physics, init=None):
 #         '''
