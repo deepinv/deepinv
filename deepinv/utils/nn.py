@@ -19,7 +19,8 @@ def load_checkpoint(model, path_checkpoint, device):
     return model
 
 
-def investigate_model(model, idx_max=1, check_name='out_conv.weight'):
+def investigate_model(model, idx_max=1, check_name='custom_f_step.0.in_conv.weight'):
     for idx, (name, param) in enumerate(model.named_parameters()):
         if param.requires_grad and (idx<idx_max or check_name in name):
+            print(name)
             print(name, param.data.flatten()[0], 'gradient norm = ', param.grad.detach().data.norm(2))

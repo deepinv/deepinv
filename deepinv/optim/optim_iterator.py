@@ -138,7 +138,7 @@ class ADMM(OptimIterator):
 class PD(OptimIterator):
 
     def __init__(self, data_fidelity, update_stepsize=None, stepsize_2=1.,
-                 primal_prox=None, dual_prox=None, **kwargs):
+                 g_step=None, f_step=None, **kwargs):
         '''
         In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
         primal and dual variables.
@@ -149,35 +149,25 @@ class PD(OptimIterator):
         '''
         super(PD, self).__init__(**kwargs)
 
-        self.stepsize_2 = lambda it : update_stepsize[it] if update_stepsize else stepsize_2/2.
+        self.update_stepsize = update_stepsize
+        self.stepsize_2 = [stepsize_2/2.] * len(self.stepsize)
 
         self.data_fidelity = data_fidelity
 
-        if primal_prox is not None:
-            self._primal_prox = primal_prox
-        else:
-            self._primal_prox = self.primal_prox
-
-        if dual_prox is not None:
-            self._dual_prox = dual_prox
-        else:
-            self._dual_prox = self.dual_prox
-
-    def primal_prox(self, x, Atu, y, it):
+    def g_step(self, x, Atu, y, it):
         return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it]*self.g_param[it], it)
 
-    def dual_prox(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
+    def f_step(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
         v = u + self.stepsize[it] * Ax_cur
         return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
-
 
     def forward(self, pd_var, it, y, physics):
 
         x, u = pd_var
 
-        x_ = self._primal_prox(x, physics.A_adjoint(u), y, it)
+        x_ = self._g_step(x, physics.A_adjoint(u), y, it)
         Ax_cur = physics.A(2*x_ - x)
-        u_ = self._dual_prox(Ax_cur, u, y, it)
+        u_ = self._f_step(Ax_cur, u, y, it)
 
         pd_variable = (x_, u_)
 

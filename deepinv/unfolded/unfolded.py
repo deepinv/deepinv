@@ -8,7 +8,7 @@ class Unfolded(nn.Module):
     '''
     Unfolded module
     '''
-    def __init__(self, iterator, init=None, max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False,
+    def __init__(self, iterator, max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False,
                  trainable = None, custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True,
                  constant_stepsize=False, constant_g_param=False,
                  anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, early_stop=True,
@@ -48,9 +48,16 @@ class Unfolded(nn.Module):
             self.iterator.g_param = self.g_param_list
 
         if custom_g_step is not None:
-            self.iterator.g_step = self.custom_g_step # COMMENT : can we avoid the 'primal_prox_step' fct by asking custom_g_step to take the same args as g_step and f_step ?
+            self.custom_g_step = custom_g_step
+            self.iterator._g_step = self.call_custom_g_step # COMMENT : can we avoid the 'primal_prox_step' fct by asking custom_g_step to take the same args as g_step and f_step ?
+        else:
+            self.iterator._g_step = self.iterator.g_step
+
         if custom_f_step is not None:
-            self.iterator.f_step = self.custom_f_step
+            self.custom_f_step = custom_f_step
+            self.iterator._f_step = self.call_custom_f_step
+        else:
+            self.iterator._f_step = self.iterator.f_step
 
         # fixed-point iterations
         self.anderson_acceleration = anderson_acceleration
@@ -68,6 +75,13 @@ class Unfolded(nn.Module):
 
     def get_primal_variable(self, x):
         return x[0]
+
+    def call_custom_f_step(self, Ax_cur, u, y, it):
+        return self.custom_f_step[it](Ax_cur, u, y)
+
+    def call_custom_g_step(self, x, Atu, y, it):
+        return self.custom_g_step[it](x, Atu, y)
+
 
     def forward(self, y, physics, **kwargs):
         x = self.get_init(y, physics)
