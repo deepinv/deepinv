@@ -51,13 +51,13 @@ class Unfolded(nn.Module):
 
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step
-        else:
-            self.iterator.g_step = self.iterator._g_step
+        # else:
+        #     self.iterator.g_step = self.iterator._g_step
 
         if custom_f_step is not None:
             self.iterator.f_step = custom_f_step
-        else:
-            self.iterator.f_step = self.iterator._f_step
+        # else:
+        #     self.iterator.f_step = self.iterator._f_step
 
 
         # fixed-point iterations

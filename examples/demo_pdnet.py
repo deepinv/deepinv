@@ -7,7 +7,8 @@ from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optim_iterator import *
+# from deepinv.optim.optim_iterator import *
+from deepinv.optim.optimizers.primal_dual import PD
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
@@ -49,7 +50,7 @@ sigma_k = 2.
 sigma_denoiser = sigma_k*noise_level_img
 im_size = 256
 epochs = 2
-max_iter = 5
+max_iter = 50
 crit_conv = 1e-5
 verbose = True
 early_stop = True 
