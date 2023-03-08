@@ -131,9 +131,9 @@ for g in range(G):
 #     verbose=verbose)
 
 
-# # STEP 3: TRAIN
-# custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
-# custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
+# STEP 3: TRAIN
+custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
+custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
 
 max_iter = 5
 denoiser = Denoiser(model_spec=model_spec)

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.utils import gradient_descent
+from .steps import PDFStep, PDGStep
 
 
 class OptimIterator(nn.Module):
@@ -51,11 +52,11 @@ class OptimIterator(nn.Module):
             else:
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
 
-    def g_step(self, x, it):
-        pass
-
-    def f_step(self, y, physics, it):
-        pass
+    # def g_step(self, x, it):
+    #     pass
+    #
+    # def f_step(self, y, physics, it):
+    #     pass
 
     def relaxation_step(self, u, v):
         return self.beta * u + (1 - self.beta) * v
@@ -157,22 +158,24 @@ class PD(OptimIterator):
 
         self.stepsize_2 = [stepsize_2/2.]*len(self.stepsize)
         self.data_fidelity = data_fidelity
+        self.g_step = PDGStep(prox_g=self.prox_g, g_param=self.g_param, stepsize_2=self.stepsize_2)
+        self.f_step = PDFStep(data_fidelity=self.data_fidelity, stepsize=self.stepsize, lamb=self.lamb)
 
-    def g_step(self, x, Atu, y, it):
-        print('SHOULD NOT PRINT THIS')
-        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
-
-    def f_step(self, Ax_cur, u, y,
-                  it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
-        print('SHOULD NOT PRINT THIS EITHER')
-        v = u + self.stepsize[it] * Ax_cur
-        return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
+    # def g_step(self, x, Atu, y, it):
+    #     print('SHOULD NOT PRINT THIS')
+    #     return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
+    #
+    # def f_step(self, Ax_cur, u, y,
+    #               it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
+    #     print('SHOULD NOT PRINT THIS EITHER')
+    #     v = u + self.stepsize[it] * Ax_cur
+    #     return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
 
     def forward(self, pd_var, it, y, physics):
 
         x, u = pd_var
 
-        x_ = self.g_step(x, physics.A_adjoint(u), y, it)
+        x_ = self.g_step(x, physics.A_adjoint(u), it)
         Ax_cur = physics.A(2 * x_ - x)
         u_ = self.f_step(Ax_cur, u, y, it)
 

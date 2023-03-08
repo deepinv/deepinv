@@ -82,7 +82,7 @@ class DualBlock(nn.Module):
 
 
 class DualBlock_list(nn.Module):
-    def __init__(self, in_channels=2, out_channels=1, depth=3, bias=True, nf=5, max_it=5):
+    def __init__(self, in_channels=3, out_channels=1, depth=3, bias=True, nf=5, max_it=1):
         """
         TODO: add doc
         """
