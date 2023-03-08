@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
-from deepinv.pnp.pnp import PnP
+from deepinv.pnp.pnp import PnP_prox, RED_grad
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterator import *
@@ -103,15 +103,23 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
+
+# from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
+# custom_g_step = PrimalBlock_list(max_it=max_iter).forward
+# custom_f_step = DualBlock_list(max_it=max_iter).forward
+custom_f_step = None
+custom_g_step = None
+
 denoiser = Denoiser(model_spec=model_spec)
-PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
-               device=dinv.device, g_param=PnP_module.sigma_denoiser)
+prox_g = PnP_prox(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+iterator = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize,
+               device=dinv.device, g_param=prox_g.sigma_denoiser)
 model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True,
-                 trainable=denoiser,
+                 #trainable=denoiser,
                  deep_equilibrium=deep_equilibrium, anderson_acceleration=anderson_acceleration,
                  anderson_beta=anderson_beta, anderson_history_size=anderson_history_size,
-                 verbose=False)
+                 verbose=False,
+                 custom_f_step=custom_f_step, custom_g_step=custom_g_step)
 
 for name, param in model.named_parameters():
     if param.requires_grad:

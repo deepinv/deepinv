@@ -5,8 +5,7 @@ class PnP(nn.Module):
     '''
     Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration. Consists in replacing prox_g or grad_g with a denoiser.
     '''
-    def __init__(self, denoiser, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=50,
-                 device = torch.device('cpu')):
+    def __init__(self, denoiser, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=50, device = torch.device('cpu')):
         super().__init__()
 
         self.denoiser = denoiser
@@ -30,14 +29,22 @@ class PnP(nn.Module):
         else:
             raise ValueError('stepsize must be either float or a list of length max_iter')
 
-    def prox_g(self, x, sigma, it):
+class PnP_prox(PnP):
+    def __init__(self, **kwargs):
+        super(PnP_prox, self).__init__(**kwargs)
+
+    def forward(self, x, sigma, it):
         if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
             out = self.denoiser[it](x, sigma)
         else:
             out = self.denoiser(x, sigma)
         return out
 
-    def grad_g(self, x, sigma, it):
+class RED_grad(PnP):
+    def __init__(self, **kwargs):
+        super(RED_grad, self).__init__(**kwargs)
+
+    def forward(self, x, sigma, it):
         if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
             out = x - self.denoiser[it](x, sigma)
         else:
