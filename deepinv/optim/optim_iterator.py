@@ -27,7 +27,8 @@ class OptimIterator(nn.Module):
     def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
                  grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=[1.] * 50, stepsize_inter=1.,
                  max_iter_inter=50,
-                 tol_inter=1e-3, beta=1.):
+                 tol_inter=1e-3, beta=1.,
+                 f_step=None, g_step=None):
         super(OptimIterator, self).__init__()
 
         self.data_fidelity = data_fidelity
@@ -52,6 +53,14 @@ class OptimIterator(nn.Module):
             else:
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
 
+            # self._f_step = f_step
+            # self._g_step = g_step
+
+    # def g_step(self, *args):
+    #     return self._g_step(*args)
+    #
+    # def f_step(self, *args):
+    #     return self._f_step(*args)
     # def g_step(self, x, it):
     #     pass
     #
@@ -158,18 +167,16 @@ class PD(OptimIterator):
 
         self.stepsize_2 = [stepsize_2/2.]*len(self.stepsize)
         self.data_fidelity = data_fidelity
-        self.g_step = PDGStep(prox_g=self.prox_g, g_param=self.g_param, stepsize_2=self.stepsize_2)
-        self.f_step = PDFStep(data_fidelity=self.data_fidelity, stepsize=self.stepsize, lamb=self.lamb)
+        # self.g_step = PDGStep(prox_g=self.prox_g, g_param=self.g_param, stepsize_2=self.stepsize_2)
+        # self.f_step = PDFStep(data_fidelity=self.data_fidelity, stepsize=self.stepsize, lamb=self.lamb)
 
-    # def g_step(self, x, Atu, y, it):
-    #     print('SHOULD NOT PRINT THIS')
-    #     return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
-    #
-    # def f_step(self, Ax_cur, u, y,
-    #               it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
-    #     print('SHOULD NOT PRINT THIS EITHER')
-    #     v = u + self.stepsize[it] * Ax_cur
-    #     return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
+    def _g_step(self, x, Atu, it):
+        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
+
+    def _f_step(self, Ax_cur, u, y,
+                  it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
+        v = u + self.stepsize[it] * Ax_cur
+        return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
 
     def forward(self, pd_var, it, y, physics):
 

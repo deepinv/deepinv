@@ -50,9 +50,15 @@ class Unfolded(nn.Module):
             self.iterator.g_param = self.g_param_list
 
         if custom_g_step is not None:
-            self.iterator.g_step = custom_g_step  # COMMENT : can we avoid the 'primal_prox_step' fct by asking custom_g_step to take the same args as g_step and f_step ?
+            self.iterator.g_step = custom_g_step
+        else:
+            self.iterator.g_step = self.iterator._g_step
+
         if custom_f_step is not None:
             self.iterator.f_step = custom_f_step
+        else:
+            self.iterator.f_step = self.iterator._f_step
+
 
         # fixed-point iterations
         self.anderson_acceleration = anderson_acceleration
