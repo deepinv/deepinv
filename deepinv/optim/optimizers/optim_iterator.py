@@ -68,5 +68,4 @@ class OptimIterator(nn.Module):
             x = self.g_step(x_prev, it)
             x = self.f_step(x, y, physics, it)
         x = self.relaxation_step(x, x_prev)
-        return (x,)
-
+        return (x, )

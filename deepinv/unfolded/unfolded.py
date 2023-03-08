@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-from deepinv.optim.optim_iterator import PD
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 
 
