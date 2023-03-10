@@ -31,6 +31,20 @@ class PrimalBlock(nn.Module):
         return self.out_conv(x_) + x
 
 
+class PrimalBlock_list(nn.Module):
+    def __init__(self, in_channels=2, out_channels=1, depth=3, bias=True, nf=5, max_it=5):
+        """
+        TODO: add doc
+        """
+        super(PrimalBlock_list, self).__init__()
+
+        self.depth = depth
+        self.list_modules = nn.ModuleList([PrimalBlock(in_channels=in_channels, out_channels=out_channels, depth=depth, bias=bias, nf=nf) for _ in range(max_it)])
+
+    def forward(self, x, Atu, it):
+        return self.list_modules[it](x, Atu, it)
+
+
 class DualBlock(nn.Module):
     def __init__(self, in_channels=3, out_channels=1, depth=3, bias=True, nf=5):
         """
@@ -65,6 +79,21 @@ class DualBlock(nn.Module):
         x_out = self.out_conv(x_) + Ax_cur[:,0:1,...]
 
         return x_out[:,0,...]
+
+
+class DualBlock_list(nn.Module):
+    def __init__(self, in_channels=3, out_channels=1, depth=3, bias=True, nf=5, max_it=1):
+        """
+        TODO: add doc
+        """
+        super(DualBlock_list, self).__init__()
+
+        self.depth = depth
+        self.list_modules = nn.ModuleList([DualBlock(in_channels=in_channels, out_channels=out_channels, depth=depth, bias=bias, nf=nf) for _ in range(max_it)])
+
+    def forward(self, Ax_cur, u, y,
+                  it):
+        return self.list_modules[it](Ax_cur, u, y)
 
 class Toy(nn.Module):
     def __init__(self, in_channels=1, out_channels=1, depth=3, bias=True, nf=5):
