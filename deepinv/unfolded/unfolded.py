@@ -40,12 +40,12 @@ class Unfolded(nn.Module):
             self.iterator.stepsize = self.stepsize_list
         if learn_g_param:
             if constant_g_param:
-                self.g_param = nn.Parameter(torch.tensor(iterator.g_param[0], device=device))
+                self.g_param = nn.Parameter(torch.tensor(iterator.g_step.g_param[0], device=device))
                 self.g_param_list = [self.g_param] * max_iter
             else:
-                self.g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.g_param[i], device=device))
+                self.g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.g_step.g_param[i], device=device))
                                                       for i in range(max_iter)])
-            self.iterator.g_param = self.g_param_list
+            self.iterator.g_step.g_param = self.g_param_list
 
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step

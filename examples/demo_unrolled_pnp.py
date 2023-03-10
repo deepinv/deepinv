@@ -7,7 +7,9 @@ from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP_prox, RED_grad
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optimizers.proximal_gradient_descent import PGD
+from deepinv.optim.optimizers.pgd import PGD
+from deepinv.optim.optimizers.hqs import HQS
+from deepinv.optim.optimizers.drs import DRS
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 import os
@@ -112,8 +114,7 @@ custom_g_step = None
 
 denoiser = Denoiser(model_spec=model_spec)
 prox_g = PnP_prox(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize,
-               device=dinv.device, g_param=prox_g.sigma_denoiser)
+iterator = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
 model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True,
                  #trainable=denoiser,
                  deep_equilibrium=deep_equilibrium, anderson_acceleration=anderson_acceleration,
