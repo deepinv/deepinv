@@ -15,7 +15,7 @@ class PGD(OptimIterator):
 
 class fStepPGD(fStep):
 
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         """
         TODO: add doc
         """
@@ -30,7 +30,7 @@ class fStepPGD(fStep):
 
 class gStepPGD(gStep):
 
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         """
         TODO: add doc
         """

@@ -4,7 +4,7 @@ from deepinv.optim.utils import gradient_descent
 
 
 class fStep(nn.Module):
-    def __init__(self, data_fidelity='L2', lamb=1., g_first=False, stepsize=[1.] * 50, f_step=None):
+    def __init__(self, data_fidelity='L2', lamb=1., g_first=False, stepsize=[1.] * 50, f_step=None, **kwargs):
         super(fStep, self).__init__()
         self.stepsize = stepsize
         self.lamb = lamb
@@ -15,8 +15,8 @@ class fStep(nn.Module):
             pass
 
 class gStep(nn.Module):
-    def __init__(self, prox_g=None, grad_g=None, g_param=None, stepsize=[1.] * 50, g_first=False, max_iter_inter=50,
-                 tol_inter=1e-3, g_step=None):
+    def __init__(self,g=None, prox_g=None, grad_g=None, g_param=None, stepsize=[1.] * 50, g_first=False, max_iter_inter=50,
+                 tol_inter=1e-3, g_step=None, **kwargs):
         super(gStep, self).__init__()
         self.stepsize = stepsize
         self.g_first = g_first
