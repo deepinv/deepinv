@@ -1,34 +1,25 @@
 import torch
 import torch.nn as nn
-from .optim_iterator import OptimIterator
+from .optim_iterator import OptimIterator, fStep, gStep
 
 class PGD(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
-        In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
-        primal and dual variables.
-
-        TODO:
-        - check that there is no conflict with the data_fidelity.prox
-        - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
+        TODO: add doc
         '''
         super(PGD, self).__init__(**kwargs)
-        self.g_step = ProxGradGStep(**kwargs)
-        self.f_step = ProxGradFStep(**kwargs)
+        self.g_step = gStepPGD(**kwargs)
+        self.f_step = fStepPGD(**kwargs)
 
 
-class ProxGradFStep(nn.Module):
+class fStepPGD(fStep):
 
-    def __init__(self, stepsize=None, lamb=1.0, data_fidelity=None, g_first=False,  **kwargs):
+    def __init__(**kwargs):
         """
         TODO: add doc
         """
-        super(ProxGradFStep, self).__init__()
-        self.stepsize = stepsize
-        self.lamb = lamb
-        self.data_fidelity = data_fidelity
-        self.g_first = g_first
+        super(fStepPGD, self).__init__(**kwargs)
 
     def forward(self, x, y, physics, it):
         if not self.g_first:
@@ -37,18 +28,13 @@ class ProxGradFStep(nn.Module):
             return self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it])
 
 
-class ProxGradGStep(nn.Module):
+class gStepPGD(gStep):
 
-    def __init__(self, prox_g=None, grad_g=None, g_param=None, stepsize=None, g_first=False, **kwargs):
+    def __init__(**kwargs):
         """
         TODO: add doc
         """
-        super(ProxGradGStep, self).__init__()
-        self.prox_g = prox_g
-        self.grad_g = grad_g
-        self.g_param = g_param
-        self.stepsize = stepsize
-        self.g_first = g_first
+        super(gStepPGD, self).__init__(**kwargs)
 
     def forward(self, x, it):
         if not self.g_first:

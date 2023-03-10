@@ -7,7 +7,7 @@ from deepinv.optim.data_fidelity import *
 from deepinv.pnp.pnp import PnP_prox, RED_grad
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optim_iterator import *
+from deepinv.optim.optimizers.proximal_gradient_descent import PGD
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 import os
