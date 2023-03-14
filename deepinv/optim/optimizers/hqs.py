@@ -1,5 +1,3 @@
-import torch
-import torch.nn as nn
 from .optim_iterator import OptimIterator, fStep, gStep
 
 class HQS(OptimIterator):
