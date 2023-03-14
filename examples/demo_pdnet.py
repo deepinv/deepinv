@@ -2,9 +2,10 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import Denoiser
+# from deepinv.diffops.models.denoiser import Denoiser
+from deepinv.diffops.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
-from deepinv.pnp.pnp import PnP_prox, RED_grad
+# from deepinv.pnp.pnp import PnP_prox, RED_grad
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
 # from deepinv.optim.optim_iterator import *
@@ -126,8 +127,7 @@ for g in range(G):
 #                  trainable=denoiser, verbose=True)
 
 
-denoiser = Denoiser(model_spec=model_spec)
-prox_g = PnP_prox(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 iterator = ADMM(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
 model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4)
 
