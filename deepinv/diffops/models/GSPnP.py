@@ -67,5 +67,5 @@ def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mo
     denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode, pretrain=False, train=train, device=device)
     model = GSPnP(denoiser, train=train)
     if pretrain and ckpt_path is not None:
-        model.load_state_dict(torch.load(ckpt_path), strict=False)
+        model.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
     return model
