@@ -51,7 +51,7 @@ class DRUNet(nn.Module):
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
         if pretrain and ckpt_path is not None:
-            self.load_state_dict(torch.load(ckpt_path), strict=True)
+            self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
 
         if not train:
             self.eval()

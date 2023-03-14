@@ -20,7 +20,7 @@ class DnCNN(nn.Module):
             self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
         if pretrain and ckpt_path is not None:
-            self.load_state_dict(torch.load(ckpt_path), strict=True)
+            self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
 
         if not train:
             self.eval()
