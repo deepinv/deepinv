@@ -16,7 +16,7 @@ def imsize():
 
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
-operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur_fft', 'deblur', 'super_resolution']
+operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur_fft', 'deblur', 'super_resolution', 'MRI']
 
 def find_operator(name, img_size, device):
     '''
@@ -35,7 +35,7 @@ def find_operator(name, img_size, device):
     elif name == 'inpainting':
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=.5, device=device)
     elif name == 'MRI':
-        p = dinv.physics.MRI(acceleration=2, device=device)
+        p = dinv.physics.MRI(acceleration=2, mask=(torch.rand(1,img_size[-1],1)>1/2).type(torch.int), device=device)
     elif name == 'denoising':
         p = dinv.physics.Denoising(sigma=.2)
     elif name == 'blind_deblur':
