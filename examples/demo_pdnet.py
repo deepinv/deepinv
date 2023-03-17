@@ -129,8 +129,6 @@ for g in range(G):
 
 
 prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-# iterator = ADMM(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
-# model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4)
 model = ADMM(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
              g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4)
 
