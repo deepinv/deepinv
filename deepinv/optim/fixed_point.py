@@ -12,7 +12,7 @@ class FixedPoint(nn.Module):
         crit_conv : stopping criterion.  Default = 1e-5
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False):
+    def __init__(self, iterator=None, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter

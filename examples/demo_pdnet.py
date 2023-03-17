@@ -9,9 +9,10 @@ from deepinv.optim.data_fidelity import *
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
 # from deepinv.optim.optim_iterator import *
-from deepinv.optim.optimizers.primal_dual import PD
-from deepinv.optim.optimizers.admm import ADMM
-from deepinv.optim.optimizers.pgd import PGD
+# from deepinv.optim.optimizers.primal_dual import PD
+# from deepinv.optim.optimizers.admm import ADMM
+# from deepinv.optim.optimizers.pgd import PGD
+from deepinv.optim.optimizers import ADMM
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
@@ -128,8 +129,10 @@ for g in range(G):
 
 
 prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = ADMM(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
-model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4)
+# iterator = ADMM(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
+# model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4)
+model = ADMM(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+             g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4)
 
 
 test(model=model,  # Safe because it has forward
