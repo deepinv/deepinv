@@ -1,12 +1,12 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 
-class PGD(OptimIterator):
+class PGDIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
         TODO: add doc
         '''
-        super(PGD, self).__init__(**kwargs)
+        super(PGDIteration, self).__init__(**kwargs)
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
 

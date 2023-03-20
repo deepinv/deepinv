@@ -1,12 +1,12 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 
-class HQS(OptimIterator):
+class HQSIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
         TODO: add doc
         '''
-        super(HQS, self).__init__(**kwargs)
+        super(HQSIteration, self).__init__(**kwargs)
         self.g_step = gStepHQS(**kwargs)
         self.f_step = fStepHQS(**kwargs)
 

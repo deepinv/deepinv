@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from .optim_iterator import OptimIterator
 
-class GD(OptimIterator):  # TODO
+class GDIteration(OptimIterator):  # TODO
 
     def __init__(self, **kwargs):
         super(GD, self).__init__(**kwargs)

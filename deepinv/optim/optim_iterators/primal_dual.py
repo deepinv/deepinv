@@ -1,6 +1,6 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 
-class PD(OptimIterator):
+class PDIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
@@ -11,7 +11,7 @@ class PD(OptimIterator):
         - check that there is no conflict with the data_fidelity.prox
         - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
         '''
-        super(PD, self).__init__(**kwargs)
+        super(PDIteration, self).__init__(**kwargs)
         self.g_step = gStepPD(**kwargs)
         self.f_step = fStepPD(**kwargs)
 
