@@ -3,9 +3,12 @@
    <div align="center">
      <img src="resources/deepinv_logolarge.png" width="500"/>
      <div>&nbsp;</div>
-     </div>
 
 |Test Status| |Python 3.6+| |codecov|
+
+.. raw:: html
+
+     </div>
 
 Introduction
 -------
