@@ -44,12 +44,12 @@ class fStepPD(fStep):
 
 class gStepPD(gStep):
 
-    def __init__(self, stepsize_2=[1.] * 50, **kwargs):
+    def __init__(self, stepsize=[1.] * 50, **kwargs):
         """
         TODO: add doc
         """
         super(gStepPD, self).__init__(**kwargs)
-        self.stepsize_2 = stepsize_2
+        self.stepsize = stepsize
 
     def forward(self, x, Atu, it):
-        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
+        return self.prox_g(x - self.stepsize[it] * Atu, self.stepsize[it] * self.g_param[it], it)

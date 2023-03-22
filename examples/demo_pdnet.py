@@ -13,6 +13,7 @@ from deepinv.optim.fixed_point import FixedPoint
 # from deepinv.optim.optimizers.admm import ADMM
 # from deepinv.optim.optimizers.pgd import PGD
 from deepinv.optim.optimizers import *
+from deepinv.unfolded.unfolded import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
 from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
@@ -128,35 +129,69 @@ for g in range(G):
 #                  trainable=denoiser, verbose=True)
 
 
-prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-model = PD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
-             g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4)
+# prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+# model = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+#              g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4)
 
 
-test(model=model,
-    test_dataloader=dataloader,
-    physics=p,
-    device=dinv.device,
-    plot=True,
-    plot_input=False,
-    save_img_path='../results/results_pnp_PGD_nonlearned_weights.png',
-    verbose=verbose)
+# test(model=model,
+#     test_dataloader=dataloader,
+#     physics=p,
+#     device=dinv.device,
+#     plot=True,
+#     plot_input=False,
+#     save_img_path='../results/results_pnp_PGD_nonlearned_weights.png',
+#     verbose=verbose)
 
 
-# # STEP 3: TRAIN
+# STEP 3: TRAIN (NEW!)
 # custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
 # custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
 #
 # max_iter = 5
 # denoiser = Denoiser(model_spec=model_spec)
 # PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-# # iterator = PD(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
-# #                device=dinv.device, g_param=PnP_module.sigma_denoiser)
-# # iterator = DRS(prox_g=PnP_module.prox_g, data_fidelity=data_fidelity, stepsize=PnP_module.stepsize,
-# #                device=dinv.device, g_param=PnP_module.sigma_denoiser)
-# # model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True,
-# #                  trainable=denoiser, verbose=True)
+
+max_iter = 5
+prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+model = UnfoldedDRS(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+                   g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
+                   learn_stepsize=True, constant_stepsize=False)
+
+# choose optimizer and scheduler
+
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(name, ' is trainable')
+
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(10000000))
+# choose training losses
+losses = []
+losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 #
+train(model=model,
+        train_dataloader=dataloader,
+        epochs=1000,
+        scheduler=scheduler,
+        loss_closure=losses,
+        physics=p,
+        optimizer=optimizer,
+        device=dinv.device,
+        ckp_interval=2000,
+        save_path=f'{dir}/dinv_moi_demo',
+        plot=True,
+        verbose=True,
+        debug=True)
+
+
+# # STEP 3: TRAIN (OLD!)
+# custom_primal_prox = nn.ModuleList([PrimalBlock() for _ in range(max_iter)])
+# custom_dual_prox = nn.ModuleList([DualBlock() for _ in range(max_iter)])
+#
+# max_iter = 5
+# denoiser = Denoiser(model_spec=model_spec)
+# PnP_module = PnP(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 #
 # custom_g_step = PrimalBlock_list(max_it=max_iter)
 # custom_f_step = DualBlock_list(max_it=max_iter)
