@@ -1,31 +1,48 @@
 .. raw:: html
 
-   <img src="resources/deepinv_logolarge.png" align="center" width="300px" alt="a pytorch library for solving imaging inverse problems using deep learning">
+   <div align="center">
+     <img src="resources/deepinv_logolarge.png" width="500"/>
+     <div>&nbsp;</div>
 
 |Test Status| |Python 3.6+| |codecov|
 
 Introduction
 -------
-DeepInv is a pytorch library for solving imaging inverse problems using deep learning.
-It is built for simplicity, transparency, and reproducibility.
+Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standarizing forward imaging models and simplifying the creation of imaging datasets. 
+
+With ``deepinv`` you can:
+
+* Use deep learning for solving your inverse problem. You only need to create a ``physics`` class that captures your imaging problem. You can try self-supervised learning, unrolled architectures, plug-and-play methods with pretrained denoisers and uncertainty quantification!
+* Test new deep learning-based methods on various standard inverse problems (MRI, CT, deblurring, super-resolution, inpainting, colorization, etc.) and compare with existing state-of-the-art methods.
+* Create and share datasets, which can be seamlessly evaluated by other users.
 
 
 Install
 -------
 
-here how to install
+(To be updated, the first stable release will come soon)
+
+
+Contributing
+-------
+
+The preferred way to contribute to ``deepinv`` is to fork the `main
+repository <https://github.com/deepinv/deepinv/>`__ on GitHub,
+then submit a "Pull Request" (PR).
 
 
 Finding help
 -------------
 
-If you need any help in using ``deepinv`` do this
+(To be updated)
 
 
 Citing DeepInv
 ---------------
 
 If you use ``deepinv`` in a scientific publication, please cite the following paper
+
+(To be updated)
 
 
 
