@@ -19,6 +19,7 @@ class FixedPoint(nn.Module):
         self.crit_conv = crit_conv
         self.verbose = verbose
         self.early_stop = early_stop
+        self.has_converged = False
 
     def forward(self, x, *args):
 
@@ -26,12 +27,12 @@ class FixedPoint(nn.Module):
             x_prev = x 
             x = self.iterator(x, it, *args)
 
-            has_converged = check_conv(x_prev, x, it, self.crit_conv, self.verbose)
-
-            if self.early_stop and has_converged and it>1:
-                if self.verbose:
-                    print('Convergence reached at iteration ', it)
-                break
+            if check_conv(x_prev, x, it, self.crit_conv, self.verbose) and it>1:
+                self.has_converged = True
+                if self.early_stop:
+                    if self.verbose:
+                        print('Convergence reached at iteration ', it)
+                    break
 
         return x
 

@@ -63,7 +63,7 @@ class L2(DataFidelity):
     def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
         return physics.prox_l2(x, y, stepsize)
 
-    def prox_norm(self, x, y, gamma):  # Should be this instead?
+    def prox_f(self, x, y, gamma):  # Should be this instead?
         '''
         computes the proximal operator of \frac{1}{2}*gamma*||x-y||_2^2
         '''

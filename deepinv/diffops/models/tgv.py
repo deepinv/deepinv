@@ -24,6 +24,8 @@ class TGV(nn.Module):
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov (https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb)
+
+    TODO: register appropriate buffers, backprop not possible yet!
     '''
 
     def __init__(self, reg=1., verbose=True, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None):
@@ -119,10 +121,10 @@ class TGV(nn.Module):
 def nabla(I):
     b, c, h, w = I.shape
     G = torch.zeros((b, c, h, w, 2)).type(I.dtype)
-    G[:, :, :-1, :, 0] -= I[:, :, :-1]
-    G[:, :, :-1, :, 0] += I[:, :, 1:]
-    G[:, :, :, :-1, 1] -= I[..., :-1]
-    G[:, :, :, :-1, 1] += I[..., 1:]
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
     return G
 
 
@@ -130,10 +132,10 @@ def nablaT(G):
     b, c, h, w = G.shape[:-1]
     I = torch.zeros(b, c, h, w).type(
         G.dtype)  # note that we just reversed left and right sides of each line to obtain the transposed operator
-    I[:, :, :-1] -= G[:, :, :-1, :, 0]
-    I[:, :, 1:] += G[:, :, :-1, :, 0]
-    I[..., :-1] -= G[..., :-1, 1]
-    I[..., 1:] += G[..., :-1, 1]
+    I[:, :, :-1] = I[:, :, :-1] - G[:, :, :-1, :, 0]
+    I[:, :, 1:] = I[:, :, 1:] + G[:, :, :-1, :, 0]
+    I[..., :-1] = I[..., :-1] - G[..., :-1, 1]
+    I[..., 1:] = I[..., 1:] + G[..., :-1, 1]
     return I
 
 
@@ -149,28 +151,28 @@ def nablaT(G):
 def epsilon(I):  # Simplified
     b, c, h, w, _ = I.shape
     G = torch.zeros((b, c, h, w, 4)).type(I.dtype)
-    G[:, :, 1:, :, 0] -= I[:, :, :-1, :, 0]  # xdy
-    G[..., 0] += I[..., 0]
-    G[..., 1:, 1] -= I[..., :-1, 0]  # xdx
-    G[..., 1:, 1] += I[..., 1:, 0]
-    G[..., 1:, 2] -= I[..., :-1, 1]  # xdx
-    G[..., 2] += I[..., 1]
-    G[:, :, :-1, :, 3] -= I[:, :, :-1, :, 1]  # xdy
-    G[:, :, :-1, :, 3] += I[:, :, 1:, :, 1]
+    G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
+    G[..., 0] = G[..., 0] + I[..., 0]
+    G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
+    G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
+    G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # xdx
+    G[..., 2] = G[..., 2] + I[..., 1]
+    G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # xdy
+    G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
     return G
 
 
 def epsilonT(G):
     b, c, h, w, _ = G.shape
     I = torch.zeros((b, c, h, w, 2)).type(G.dtype)
-    I[:, :, :-1, :, 0] -= G[:, :, 1:, :, 0]
-    I[..., 0] += G[..., 0]
-    I[..., :-1, 0] -= G[..., 1:, 1]
-    I[..., 1:, 0] += G[..., 1:, 1]
-    I[..., :-1, 1] -= G[..., 1:, 2]
-    I[..., 1] += G[..., 2]
-    I[:, :, :-1, :, 1] -= G[:, :, :-1, :, 3]
-    I[:, :, 1:, :, 1] += G[:, :, :-1, :, 3]
+    I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
+    I[..., 0] = I[..., 0] + G[..., 0]
+    I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
+    I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
+    I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
+    I[..., 1] = I[..., 1] + G[..., 2]
+    I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
+    I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
     return I
 
 # # ADJOINTNESS TEST

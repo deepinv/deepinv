@@ -15,13 +15,6 @@ import os
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 
-# PROBLEM SELECTION
-# # EITHER
-# dataset = 'set3c'
-# problem = 'deblur'
-# G = 1
-
-# OR
 problem = 'CS'
 dataset = 'MNIST'
 G = 1
@@ -52,50 +45,21 @@ epochs = 2
 max_iter = 50
 crit_conv = 1e-5
 verbose = True
-early_stop = True 
-
-if problem == 'CS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-elif problem == 'onebitCS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
-elif problem == 'inpainting':
-    p = dinv.physics.Inpainting(tensor_size=(1, 28, 28), mask=.5, device=dinv.device)
-elif problem == 'denoising':
-    p = dinv.physics.Denoising(sigma=.2)
-elif problem == 'blind_deblur':
-    p = dinv.physics.BlindBlur(kernel_size=11)
-elif problem == 'deblur':
-    p = dinv.physics.BlurFFT((3,256,256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
-else:
-    raise Exception("The inverse problem chosen doesn't exist")
+early_stop = True
 
 data_fidelity = L2()
 # data_fidelity = IndicatorL2(radius=2)
 
 val_transform = None
 train_transform = None
-if not os.path.exists(f'{dir}/dinv_dataset0.h5') and not 'MNIST' in dataset:
-    dataset = datasets.ImageFolder(root=dataset_path, transform=val_transform)
-    dinv.datasets.generate_dataset(train_dataset=dataset, test_dataset=None,
-                               physics=p, device=dinv.device, save_dir=dir, max_datapoints=100000,
-                               num_workers=num_workers)
-
 
 physics = []
 for g in range(G):
-    if problem == 'CS':
-        p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
-        p.sensor_model = lambda x: torch.sign(x)
-    elif problem == 'deblur':
-        p = dinv.physics.BlurFFT((3, 256, 256), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.),
-                                 device=dinv.device, noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img))
-    try:
-        p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
-        dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
-    except:
-        p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
-        dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
+    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
+    p.sensor_model = lambda x: torch.sign(x)
+
+    p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
+    dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
     physics.append(p)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
@@ -105,11 +69,12 @@ prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denois
 model = UnfoldedPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                     g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
 
+# STEP 3: Test the model
 test(model=model,
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
     plot=True,
     plot_input=False,
-    save_img_path='../results/results_pnp_UnrolledPGD_nonlearned_weights.png',
+    save_img_path='../results/results_pnp_PGD.png',
     verbose=verbose)

@@ -28,6 +28,9 @@ class OptimAlgo(nn.Module):
         x = self.get_primal_variable(x)
         return x
 
+    def has_converged(self):
+        return self.fixed_point.has_converged
+
 class PGD(OptimAlgo):
     '''
     PGD algorithm.
