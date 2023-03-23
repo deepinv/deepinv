@@ -84,14 +84,7 @@ class IndicatorL2(DataFidelity):
         loss = 0 if dist<radius else 1e16
         return loss
 
-    # def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
-    #     return physics.prox_l2(x, y, stepsize)
-
-    # def project_l2ball(x, centre=torch.tensor([0]), radius=torch.tensor([1])):
-    #     return centre + torch.min(radius, torch.linalg.norm(x.flatten() - centre.flatten())) * (x - centre) / (
-    #                 torch.linalg.norm(x - centre) + 1e-12)
-
-    def prox_norm(self, x, y, gamma, radius=None):
+    def prox_f(self, x, y, gamma, radius=None):
         if radius is None:
             radius = self.radius
         return y + torch.min(torch.tensor([radius]), torch.linalg.norm(x.flatten() - y.flatten())) * (x - y) / \

@@ -4,20 +4,17 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.diffops.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
-# from deepinv.pnp.pnp import PnP_prox, RED_grad
-from deepinv.unfolded.unfolded import Unfolded
-from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optimizers.pgd import PGD
-from deepinv.optim.optimizers.hqs import HQS
-from deepinv.optim.optimizers.drs import DRS
+from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
-denoiser_name = 'gsdrunet'
-ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+# denoiser_name = 'gsdrunet'
+# ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+denoiser_name = 'drunet'
+ckpt_path = '../checkpoints/drunet_color.pth'
 pnp_algo = 'PGD'
 batch_size = 1
 dataset = 'set3c'
@@ -75,11 +72,10 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
-# denoiser = Denoiser(model_spec=model_spec)
-# prox_g = PnP_prox(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = DRS(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
-model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4)
+# STEP 2: Defining the model
+prox_g = ProxDenoiser(model_spec, sigma_denoiser=sigma_denoiser, stepsize=stepsize, max_iter=max_iter)
+model = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+             g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,

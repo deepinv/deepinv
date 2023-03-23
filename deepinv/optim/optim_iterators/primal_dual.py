@@ -39,7 +39,7 @@ class fStepPD(fStep):
 
     def forward(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
        v = u + self.stepsize[it] * Ax_cur
-       return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
+       return v - self.stepsize[it] * self.data_fidelity.prox_f(v / self.stepsize[it], y, self.lamb)
 
 
 class gStepPD(gStep):

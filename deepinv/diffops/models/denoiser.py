@@ -29,7 +29,7 @@ class Denoiser(nn.Module):
     Consists in replacing prox_g or grad_g with a denoiser.
     '''
 
-    def __init__(self, model_spec=None, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=50,
+    def __init__(self, model_spec=None, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=None,
                  device=torch.device('cpu')):
         super(Denoiser, self).__init__()
 
