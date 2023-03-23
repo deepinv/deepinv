@@ -26,7 +26,7 @@ Here quick guide
 Lead Developers
 ==================
 
-`Julian Tachella <https://tachella.github.io/>`_ and `Dongdong Chen <http://dongdongchen.com/>`_.
+`Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_, `Samuel Hurault <https://github.com/samuro95/>`_ and `Matthieu Terris <https://matthieutrs.github.io>`_.
 
 Cite Us
 ==================
