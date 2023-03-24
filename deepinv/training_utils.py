@@ -230,6 +230,7 @@ def test(model, test_dataloader,
 
             if save_folder is not None:
                 imgs = []
+                xlin = physics[g].A_adjoint(y)
                 imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
                 imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
