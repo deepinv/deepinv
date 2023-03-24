@@ -12,23 +12,27 @@ class FixedPoint(nn.Module):
         crit_conv : stopping criterion.  Default = 1e-5
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False):
+    def __init__(self, iterator=None, max_iter=50, early_stop=True, crit_conv=1e-5, verbose=False):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
         self.crit_conv = crit_conv
         self.verbose = verbose
         self.early_stop = early_stop
+        self.has_converged = False
 
     def forward(self, x, *args):
 
         for it in range(self.max_iter):
             x_prev = x 
             x = self.iterator(x, it, *args)
-            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose) and it>1:
-                if self.verbose:
-                    print('Convergence reached at iteration ', it)
-                break
+
+            if check_conv(x_prev, x, it, self.crit_conv, self.verbose) and it>1:
+                self.has_converged = True
+                if self.early_stop:
+                    if self.verbose:
+                        print('Convergence reached at iteration ', it)
+                    break
 
         return x
 

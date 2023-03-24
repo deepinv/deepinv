@@ -50,7 +50,7 @@ class DRUNet(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
-        if pretrain and ckpt_path is not None:
+        if pretrain or ckpt_path is not None:
             self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
 
         if not train:
@@ -76,8 +76,10 @@ class DRUNet(nn.Module):
     def forward(self, x, sigma):
         noise_level_map = torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3)).fill_(sigma).to(x.device)
         x = torch.cat((x, noise_level_map), 1)
-        if x.size(2) // 8 == 0 and x.size(3) // 8 == 0:
+        if x.size(2) // 8 == 0 and x.size(3) // 8 == 0 and x.size(2)>31 and x.size(3)>31:
             x = self.forward_unet(x)
+        elif x.size(2)<32 and x.size(3)<32:
+            x = test_pad(self.forward_unet, x, modulo=16)
         else :
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x
@@ -330,4 +332,14 @@ def test_onesplit(model, L, refield=32, min_size=256, sf=1, modulo=1):
     E[..., :h//2*sf, w//2*sf:w*sf] = Es[1][..., :h//2*sf, (-w + w//2)*sf:]
     E[..., h//2*sf:h*sf, :w//2*sf] = Es[2][..., (-h + h//2)*sf:, :w//2*sf]
     E[..., h//2*sf:h*sf, w//2*sf:w*sf] = Es[3][..., (-h + h//2)*sf:, (-w + w//2)*sf:]
+    return E
+
+
+def test_pad(model, L, modulo=16):
+    h, w = L.size()[-2:]
+    paddingBottom = int(np.ceil(h/modulo)*modulo-h)
+    paddingRight = int(np.ceil(w/modulo)*modulo-w)
+    L = torch.nn.ReplicationPad2d((0, paddingRight, 0, paddingBottom))(L)
+    E = model(L)
+    E = E[..., :h, :w]
     return E

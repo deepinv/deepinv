@@ -126,7 +126,7 @@ def train(model,
 
                 losses.update(loss_total.item())
 
-                if i == 0 and g == 0 and plot:
+                if i == 0 and g == 0 and plot and epoch%499==0:
                     imgs = [physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0),
                             x1[0, :, :, :].unsqueeze(0)]
                     titles = ['Linear Inv.', 'Estimated']
@@ -207,7 +207,6 @@ def test(model, test_dataloader,
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
-                # print('We exited model ', x1.shape)
 
             if g < show_operators and i == 0 :
                 xlin = physics[g].A_adjoint(y)

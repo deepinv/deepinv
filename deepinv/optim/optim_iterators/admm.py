@@ -1,13 +1,13 @@
 import torch
 from .optim_iterator import OptimIterator, fStep, gStep
 
-class ADMM(OptimIterator):
+class ADMMIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
         TODO: add doc
         '''
-        super(ADMM, self).__init__(**kwargs)
+        super(ADMMIteration, self).__init__(**kwargs)
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
 

@@ -1,6 +1,9 @@
 import warnings
 import bm3d
 
+import numpy as np
+
+
 import torch
 import torch.nn as nn
 from .denoiser import register

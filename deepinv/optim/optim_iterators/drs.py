@@ -1,12 +1,12 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 
-class DRS(OptimIterator):
+class DRSIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
         TODO: add doc
         '''
-        super(DRS, self).__init__(**kwargs)
+        super(DRSIteration, self).__init__(**kwargs)
         self.g_step = gStepDRS(**kwargs)
         self.f_step = fStepDRS(**kwargs)
 

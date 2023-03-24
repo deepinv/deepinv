@@ -1,6 +1,6 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 
-class PD(OptimIterator):
+class PDIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         '''
@@ -11,7 +11,7 @@ class PD(OptimIterator):
         - check that there is no conflict with the data_fidelity.prox
         - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
         '''
-        super(PD, self).__init__(**kwargs)
+        super(PDIteration, self).__init__(**kwargs)
         self.g_step = gStepPD(**kwargs)
         self.f_step = fStepPD(**kwargs)
 
@@ -39,17 +39,17 @@ class fStepPD(fStep):
 
     def forward(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
        v = u + self.stepsize[it] * Ax_cur
-       return v - self.stepsize[it] * self.data_fidelity.prox_norm(v / self.stepsize[it], y, self.lamb)
+       return v - self.stepsize[it] * self.data_fidelity.prox_f(v / self.stepsize[it], y, self.lamb)
 
 
 class gStepPD(gStep):
 
-    def __init__(self, stepsize_2=[1.] * 50, **kwargs):
+    def __init__(self, stepsize=[1.] * 50, **kwargs):
         """
         TODO: add doc
         """
         super(gStepPD, self).__init__(**kwargs)
-        self.stepsize_2 = stepsize_2
+        self.stepsize = stepsize
 
     def forward(self, x, Atu, it):
-        return self.prox_g(x - self.stepsize_2[it] * Atu, self.stepsize_2[it] * self.g_param[it], it)
+        return self.prox_g(x - self.stepsize[it] * Atu, self.stepsize[it] * self.g_param[it], it)

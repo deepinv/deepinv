@@ -1,5 +1,5 @@
 from .denoiser import register, make
-
+from .drunet import DRUNet
 from .ae import AE as ae
 from .unet import UNet as unet
 from .dncnn import DnCNN as dncnn

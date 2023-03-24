@@ -1,18 +1,17 @@
 import torch
 import torch.nn as nn
 
-from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
+from deepinv.optim.fixed_point import FixedPoint
+from deepinv.optim.optim_iterators import *
 
 class Unfolded(nn.Module):
     '''
     Unfolded module
     '''
 
-    def __init__(self, iterator, init=None, max_iter=50, crit_conv=1e-3, learn_stepsize=False, learn_g_param=False,
-                 trainable=None, custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=True,
-                 constant_stepsize=False, constant_g_param=False,
-                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, early_stop=True,
-                 deep_equilibrium=False, max_iter_backward=50):
+    def __init__(self, iterator, max_iter=50, crit_conv=1e-3, learn_stepsize=True, learn_g_param=False,
+                 trainable=None, custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=False,
+                 constant_stepsize=False, constant_g_param=False, early_stop=True):
         super(Unfolded, self).__init__()
 
         self.early_stop = early_stop
@@ -24,20 +23,25 @@ class Unfolded(nn.Module):
         if trainable is not None:
             self.trainable = trainable
 
-        self.deep_equilibrium = deep_equilibrium
-        if self.deep_equilibrium:  # DEQ requires a "real" constant fixed-point operator
-            constant_stepsize = True
-            constant_g_param = True
-            self.max_iter_backward = max_iter_backward
-
         if learn_stepsize:
             if constant_stepsize:
-                self.step_size = nn.Parameter(torch.tensor(iterator.stepsize[0], device=device))
-                self.stepsize_list = [self.step_size] * max_iter
+                self.step_size_f = nn.Parameter(torch.tensor(iterator.f_step.stepsize[0], device=device))
+                self.stepsize_list_f = [self.step_size_f] * max_iter
             else:
-                self.stepsize_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.stepsize[i], device=device))
+                self.stepsize_list_f = nn.ParameterList([nn.Parameter(torch.tensor(iterator.f_step.stepsize[i], device=device))
                                                        for i in range(max_iter)])
-            self.iterator.stepsize = self.stepsize_list
+            self.iterator.f_step.stepsize = self.stepsize_list_f
+
+            if hasattr(self.iterator.g_step, 'stepsize'):  # For primal-dual where g_step also has a stepsize
+                if constant_stepsize:
+                    self.step_size_g = nn.Parameter(torch.tensor(iterator.g_step.stepsize[0], device=device))
+                    self.stepsize_list_g = [self.step_size_g] * max_iter
+                else:
+                    self.stepsize_list_g = nn.ParameterList(
+                        [nn.Parameter(torch.tensor(iterator.g_step.stepsize[i], device=device))
+                         for i in range(max_iter)])
+                self.iterator.g_step.stepsize = self.stepsize_list_g
+
         if learn_g_param:
             if constant_g_param:
                 self.g_param = nn.Parameter(torch.tensor(iterator.g_step.g_param[0], device=device))
@@ -52,16 +56,8 @@ class Unfolded(nn.Module):
         if custom_f_step is not None:
             self.iterator.f_step = custom_f_step
 
-        # fixed-point iterations
-        self.anderson_acceleration = anderson_acceleration
-        if anderson_acceleration:
-            self.anderson_beta = anderson_beta
-            self.anderson_history_size = anderson_history_size
-            self.forward_FP = AndersonAcceleration(self.iterator, max_iter=max_iter, history_size=anderson_history_size, beta=anderson_beta,
-                            early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
-        else:
-            self.forward_FP = FixedPoint(self.iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,
-                                         verbose=verbose)
+        self.fixed_point = FixedPoint(self.iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,
+                                     verbose=verbose)
 
     def get_init(self, y, physics):
         return physics.A_adjoint(y), y
@@ -71,27 +67,59 @@ class Unfolded(nn.Module):
 
     def forward(self, y, physics, **kwargs):
         x = self.get_init(y, physics)
-        if self.deep_equilibrium:
-            with torch.no_grad():
-                x = self.forward_FP(x, y, physics, **kwargs)[0]
-            x = self.iterator(x, 0, y, physics)[0]
-            x0 = x.clone().detach().requires_grad_()
-            f0 = self.iterator(x0, 0, y, physics)[0]
-
-            def backward_hook(grad):
-                grad = (grad,)
-                iterator = lambda y,it: (torch.autograd.grad(f0, x0, y, retain_graph=True)[0] + grad[0],)
-                if self.anderson_acceleration :
-                    backward_FP = AndersonAcceleration(iterator, max_iter=self.max_iter_backward, history_size=self.anderson_history_size, beta=self.anderson_beta,
-                                early_stop=self.early_stop, crit_conv=self.crit_conv, verbose=self.verbose)
-                else :
-                    backward_FP = FixedPoint(iterator, max_iter=self.max_iter_backward, early_stop=self.early_stop, crit_conv=self.crit_conv, verbose=self.verbose)
-                g = backward_FP(grad)[0]
-                return g
-
-            if x.requires_grad:
-                x.register_hook(backward_hook)
-        else:
-            x = self.forward_FP(x, y, physics, **kwargs)
-            x = self.get_primal_variable(x)
+        x = self.fixed_point(x, y, physics, **kwargs)
+        x = self.get_primal_variable(x)
         return x
+
+
+def UnfoldedPGD(data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
+                 max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+
+    iterator = PGDIteration(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
+                 grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
+                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
+
+    return Unfolded(iterator, **kwargs)
+
+
+def UnfoldedHQS(data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
+                 max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+
+    iterator = HQSIteration(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
+                 grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
+                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
+
+    return Unfolded(iterator, **kwargs)
+
+
+def UnfoldedPD(data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
+                 max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+
+    iterator = PDIteration(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
+                 grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
+                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
+
+    return Unfolded(iterator, **kwargs)
+
+def UnfoldedADMM(data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
+                 max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+
+    iterator = ADMMIteration(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
+                 grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
+                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
+
+    return Unfolded(iterator, **kwargs)
+
+def UnfoldedDRS(data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
+                 max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+
+    iterator = DRSIteration(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
+                 grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
+                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
+
+    return Unfolded(iterator, **kwargs)
