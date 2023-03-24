@@ -28,11 +28,9 @@ jobs:
         run: |
           sphinx-build docs/source _build
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
-          force_orphan: true
-          enable_jekyll: false
+          folder: _build # The folder the action should deploy.
+          repository-name: deepinv.github.io
+          branch: main
