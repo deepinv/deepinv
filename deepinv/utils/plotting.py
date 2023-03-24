@@ -1,10 +1,28 @@
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
 
 def torch2cpu(img):
     return img[0, :, :, :].clamp(min=0., max=1.).detach().permute(1, 2, 0).cpu().numpy()
+
+
+def tensor2uint(img):
+    img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
+    if img.ndim == 3:
+        img = np.transpose(img, (1, 2, 0))
+    return np.uint8((img*255.0).round())
+
+
+def numpy2uint(img):
+    img = img.clip(0, 1)
+    return np.uint8((img*255.0).round())
+
+
+def imsave(save_img_path, img):
+    img = numpy2uint(img)
+    plt.imsave(save_img_path, img)
 
 
 def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True):
