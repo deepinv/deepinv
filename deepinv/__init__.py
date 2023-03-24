@@ -12,7 +12,7 @@ __all__ = [
     "__license__",
 ]
 
-from .diffops import models, physics, transform
+from deepinv import models
 __all__ += ['models']
 
 from deepinv import optim
@@ -24,24 +24,22 @@ __all__ += ['loss']
 from deepinv import utils
 __all__ += ['utils']
 
-from deepinv.diffops import models
+from deepinv import models
 __all__ += ['iterative']
 
-from deepinv.diffops.models import iterative
-__all__ += ['iterative']
-
-from deepinv.diffops import physics
+from deepinv import physics
 __all__ += ['physics']
 
 from deepinv import datasets
 __all__ += ['datasets']
 
+from deepinv import transform
 __all__ += ['transform']
 
 from deepinv import sampling
 __all__ += ['sampling']
 
-from deepinv.loss import loss as metric
+from deepinv.loss import metric as metric
 __all__ += ['metric']
 
 from deepinv.training_utils import train, test
@@ -59,10 +57,10 @@ def get_freer_gpu():
     return idx
 
 if torch.cuda.is_available():
-    try :
+    try:
         free_gpu_id = get_freer_gpu()
         device = torch.device(f'cuda:{free_gpu_id}')
-    except :
+    except:
         device = torch.device('cuda')
         print('unable to get GPU info')
 else:

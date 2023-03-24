@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from deepinv.diffops.physics.forward import Physics
+from deepinv.physics.forward import Physics
 
 if torch.__version__>'1.2.0':
     affine_grid = lambda theta, size: F.affine_grid(theta, size, align_corners=True)

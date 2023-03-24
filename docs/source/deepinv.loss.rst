@@ -1,7 +1,8 @@
-deepinv.loss
+Loss
 ====================
 
 This package contains popular training losses for supervised and self-supervised learning.
+
 
 Equivariant Imaging
 ----------------------
@@ -14,13 +15,13 @@ Equivariant Imaging
 Other Losses
 ------------------------
 
-.. automodule:: deepinv.loss.loss
+.. automodule:: deepinv.loss.metric
    :members:
    :undoc-members:
    :show-inheritance:
 
 Measurement Consistency
-----------------------
+----------------------------
 
 .. automodule:: deepinv.loss.mc
    :members:
@@ -52,7 +53,7 @@ Supervised Learning
    :show-inheritance:
 
 Stein's Unbiased Risk Estimator (SURE)
-------------------------
+----------------------------------------
 
 .. automodule:: deepinv.loss.sure
    :members:

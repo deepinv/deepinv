@@ -1,7 +1,7 @@
 .. raw:: html
 
    <div align="center">
-     <img src="resources/deepinv_logolarge.png" width="500"/>
+     <img src="docs/source/figures/deepinv_logolarge.png" width="500"/>
      <div>&nbsp;</div>
 
 |Test Status| |Python 3.6+| |codecov|
@@ -20,6 +20,11 @@ With ``deepinv`` you can:
 * Test new deep learning-based methods on various standard inverse problems (MRI, CT, deblurring, super-resolution, inpainting, colorization, etc.) and compare with existing state-of-the-art methods.
 * Create and share datasets, which can be seamlessly evaluated by other users.
 
+.. raw:: html
+
+   <div align="center">
+     <img src="docs/source/figures/deepinv_schematic.png" width="1000"/>
+    </div>
 
 Install
 -------

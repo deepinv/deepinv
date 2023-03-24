@@ -1,20 +1,20 @@
-deepinv.diffops.transform
+Transforms
 =================================
 
 This package contains different transforms which can be used for data augmentation or together with the equivariant imaging loss.
 
-deepinv.diffops.transform.rotate
+Rotate
 ---------------------------------------
 
-.. automodule:: deepinv.diffops.transform.rotate
+.. automodule:: deepinv.transform.rotate
    :members:
    :undoc-members:
    :show-inheritance:
 
-deepinv.diffops.transform.shift
+Shift
 --------------------------------------
 
-.. automodule:: deepinv.diffops.transform.shift
+.. automodule:: deepinv.transform.shift
    :members:
    :undoc-members:
    :show-inheritance:

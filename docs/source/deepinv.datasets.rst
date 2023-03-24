@@ -1,4 +1,4 @@
-deepinv.datasets
+Datasets
 ========================
 
 This subpackage can be used for generating reconstruction datasets from other basedatasets (e.g. MNIST or CelebA).

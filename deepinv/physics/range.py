@@ -1,5 +1,5 @@
 import torch
-from deepinv.diffops.physics.forward import Physics
+from deepinv.physics.forward import Physics
 
 
 class Decolorize(Physics):

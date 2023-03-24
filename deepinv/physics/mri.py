@@ -1,7 +1,7 @@
 import torch
 import fastmri
 from fastmri.data import transforms as T
-from deepinv.diffops.physics.forward import Physics
+from deepinv.physics.forward import Physics
 
 class MRI(Physics):
     r'''

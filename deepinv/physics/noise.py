@@ -1,5 +1,5 @@
 import torch
-from deepinv.diffops.physics.forward import DecomposablePhysics
+from deepinv.physics.forward import DecomposablePhysics
 
 
 class Denoising(DecomposablePhysics):

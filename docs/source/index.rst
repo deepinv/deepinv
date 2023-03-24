@@ -3,20 +3,29 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-DeepInverse Documentation
-=======================================
+DeepInverse: a Pytorch library for imaging with deep learning
+==================================================================
 
-DeepInverse is a Pytorch based library for solving imaging inverse problems with deep learning. This library provides a large collection of predefined imaging operators (magnetic resonance imaging, computed tomography, compressed sensing, blurring, inpainting, etc.), popular supervised and unsupervised learning losses (noise2x, equivariant imaging, etc.) and unrolled architectures (ADMM, forward-backward, deep equilibrium, etc.).
+Deep Inverse is a Pytorch based library for solving imaging inverse problems with deep learning. This library provides a large collection of predefined imaging operators (magnetic resonance imaging, computed tomography, compressed sensing, blurring, inpainting, etc.), popular supervised and unsupervised learning losses (noise2x, equivariant imaging, etc.) and unrolled architectures (ADMM, forward-backward, deep equilibrium, etc.).
+
+
+.. image:: figures/deepinv_schematic.png
+   :width: 1000
+   :align: center
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   deepinv.diffops.models
-   deepinv.diffops.physics
-   deepinv.diffops.transform
-   deepinv.loss
+   deepinv.models
+   deepinv.physics
    deepinv.datasets
+   deepinv.loss
+   deepinv.optim
+   deepinv.unfolded
+   deepinv.pnp
+   deepinv.transform
+
 
 Getting Started
 ==================

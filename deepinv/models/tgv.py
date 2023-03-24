@@ -53,12 +53,12 @@ class TGV(nn.Module):
 
     def prox_tau_fr(self, r):
         left = torch.sqrt(torch.sum(r ** 2, axis=-1)) / (self.tau * self.lambda1)
-        tmp = r - r / (torch.maximum(left, torch.tensor([1]).type(left.dtype)).unsqueeze(-1))
+        tmp = r - r / (torch.maximum(left, torch.tensor([1],device=left.device).type(left.dtype)).unsqueeze(-1))
         return tmp
 
     def prox_sigma_g_conj(self, u):
         return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2,
-                                  torch.tensor([1]).type(u.dtype)).unsqueeze(-1))
+                                  torch.tensor([1], device=u.device).type(u.dtype)).unsqueeze(-1))
 
     def forward(self, y, sigma=None):
 
@@ -70,8 +70,8 @@ class TGV(nn.Module):
 
         if restart:
             self.x2 = y.clone()
-            self.r2 = torch.zeros((*self.x2.shape, 2)).type(self.x2.dtype)
-            self.u2 = torch.zeros((*self.x2.shape, 4)).type(self.x2.dtype)
+            self.r2 = torch.zeros((*self.x2.shape, 2), device=self.x2.device).type(self.x2.dtype)
+            self.u2 = torch.zeros((*self.x2.shape, 4), device=self.x2.device).type(self.x2.dtype)
 
         cy = (y ** 2).sum() / 2
         primalcostlowerbound = 0
@@ -103,7 +103,7 @@ class TGV(nn.Module):
                 tmp = torch.max(torch.sqrt(torch.sum(epsilonT(u) ** 2,
                                                      axis=-1)))  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
                 u3 = u / torch.maximum(tmp / self.lambda1, torch.tensor([
-                    1]).type(
+                    1], device=tmp.device).type(
                     tmp.dtype))  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = cy - torch.sum(
                     (y - nablaT(epsilonT(u3))) ** 2) / 2.  # we display the best value of dualcost2 computed so far.
@@ -120,7 +120,7 @@ class TGV(nn.Module):
 
 def nabla(I):
     b, c, h, w = I.shape
-    G = torch.zeros((b, c, h, w, 2)).type(I.dtype)
+    G = torch.zeros((b, c, h, w, 2), device=I.device).type(I.dtype)
     G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
     G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
     G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
@@ -130,7 +130,7 @@ def nabla(I):
 
 def nablaT(G):
     b, c, h, w = G.shape[:-1]
-    I = torch.zeros(b, c, h, w).type(
+    I = torch.zeros((b, c, h, w), device=G.device).type(
         G.dtype)  # note that we just reversed left and right sides of each line to obtain the transposed operator
     I[:, :, :-1] = I[:, :, :-1] - G[:, :, :-1, :, 0]
     I[:, :, 1:] = I[:, :, 1:] + G[:, :, :-1, :, 0]
@@ -150,7 +150,7 @@ def nablaT(G):
 
 def epsilon(I):  # Simplified
     b, c, h, w, _ = I.shape
-    G = torch.zeros((b, c, h, w, 4)).type(I.dtype)
+    G = torch.zeros((b, c, h, w, 4), device=I.device).type(I.dtype)
     G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
     G[..., 0] = G[..., 0] + I[..., 0]
     G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
@@ -164,7 +164,7 @@ def epsilon(I):  # Simplified
 
 def epsilonT(G):
     b, c, h, w, _ = G.shape
-    I = torch.zeros((b, c, h, w, 2)).type(G.dtype)
+    I = torch.zeros((b, c, h, w, 2), device=G.device).type(G.dtype)
     I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
     I[..., 0] = I[..., 0] + G[..., 0]
     I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]

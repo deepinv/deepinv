@@ -1,4 +1,4 @@
-from deepinv.diffops.physics.forward import Physics
+from deepinv.physics.forward import Physics
 import torch
 import numpy as np
 

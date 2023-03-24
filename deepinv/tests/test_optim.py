@@ -1,7 +1,7 @@
 import pytest
 
 import deepinv as dinv
-from deepinv.diffops.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 import deepinv.optim.optimizers as optimizers
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
@@ -26,7 +26,7 @@ def imsize():
 
 # TODO: use a DummyCircle as dataset and check convergence of optim algorithms (maybe with TV denoiser)
 @pytest.fixture
-def dummy_dataset(imsize):
+def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
@@ -65,17 +65,17 @@ optim_algos = ['PGD']
 def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
 
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)  # 1. Generate a dummy dataset
-    test_sample = next(iter(dataloader))
+    test_sample = next(iter(dataloader)).to(device)
 
     physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)  # 2. Set a physical experiment (here, deblurring)
-    y = physics(test_sample).type(test_sample.dtype).to(device)
+    y = physics(test_sample)
     max_iter = 1000
     sigma_denoiser = 0.01
     stepsize = 1.
 
     data_fidelity = L2()
 
-    model_spec = {'name': 'tgv', 'args': {'n_it_max':100, 'verbose':True}}
+    model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
     denoiser = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
     class_algo = getattr(optimizers, pnp_algo)
     pnp = class_algo(prox_g=denoiser, data_fidelity=data_fidelity, stepsize=denoiser.stepsize, device=dinv.device,

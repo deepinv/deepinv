@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -63,7 +62,7 @@ def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mo
     :param nb: (int) Number of blocks in the DRUNet
     :param nc: (list) Number of channels in the DRUNet
     '''
-    from deepinv.diffops.models.drunet import DRUNet
+    from deepinv.models.drunet import DRUNet
     denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode, pretrain=False, train=train, device=device)
     model = GSPnP(denoiser, train=train)
     if pretrain and ckpt_path is not None:

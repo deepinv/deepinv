@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 import torch.fft as fft
-from deepinv.diffops.physics.forward import Physics, DecomposablePhysics
+from deepinv.physics.forward import Physics, DecomposablePhysics
 
 
 def filter_fft(filter, img_size, device='cpu'):
@@ -58,7 +58,7 @@ def bicubic_filter(factor=2):
     w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
     w += (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
     w = np.outer(w, w)
-    w = w/np.sum(w) #*(factor**2)
+    w = w/np.sum(w)
     return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
 
 
@@ -343,8 +343,6 @@ class BlindBlur(Physics):
 
 
 class Blur(Physics):
-    
-
     def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu', **kwargs):
         r'''
 
@@ -368,8 +366,6 @@ class Blur(Physics):
 
 
 class BlurFFT(DecomposablePhysics):
-
-
     def __init__(self,  img_size, filter=gaussian_blur(), device='cpu', **kwargs):
         '''
         Blur operator based on torch.fft operations. Uses torch.conv2d for performing the convolutions

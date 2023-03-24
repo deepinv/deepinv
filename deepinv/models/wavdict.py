@@ -1,5 +1,3 @@
-import math
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -9,14 +7,14 @@ from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
 
 @register('waveletprior')
 class WaveletPrior(nn.Module):
-    def __init__(self, level=3, wv='db8'):
+    def __init__(self, level=3, wv='db8', device='cpu'):
         super().__init__()
         self.level = level
-        self.dwt = DWTForward(J=self.level, wave=wv)
-        self.iwt = DWTInverse(wave=wv)
+        self.dwt = DWTForward(J=self.level, wave=wv).to(device)
+        self.iwt = DWTInverse(wave=wv).to(device)
 
     def prox_l1(self, x, ths=0.1):
-        return torch.maximum(torch.Tensor([0]).type(x.dtype), x - ths) + torch.minimum(torch.Tensor([0]).type(x.dtype),
+        return torch.maximum(torch.tensor([0], device=x.device).type(x.dtype), x - ths) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype),
                                                                                        x + ths)
 
     def forward(self, x, ths=0.):

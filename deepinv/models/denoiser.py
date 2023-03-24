@@ -55,7 +55,6 @@ class Denoiser(nn.Module):
             raise ValueError('stepsize must be either float or a list of length max_iter')
 
 
-
 class ProxDenoiser(Denoiser):
     def __init__(self, *args, **kwargs):
         super(ProxDenoiser, self).__init__(*args, **kwargs)
