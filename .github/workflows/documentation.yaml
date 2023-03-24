@@ -34,3 +34,4 @@ jobs:
           folder: _build # The folder the action should deploy.
           repository-name: deepinv/deepinv.github.io
           branch: main
+          token: ${{ secrets.GITHUB_TOKEN }}
