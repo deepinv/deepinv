@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 from .denoiser import register
 
 @register('dncnn')
