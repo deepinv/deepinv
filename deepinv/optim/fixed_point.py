@@ -51,7 +51,7 @@ class AndersonAcceleration(nn.Module):
         beta: momentum in Anderson updates. Default = 1.
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator, history_size=5, max_iter=50, early_stop=True, crit_conv=1e-5, ridge=1e-4, beta=1.0, verbose=False) :
+    def __init__(self, iterator, history_size=5, max_iter=50, early_stop=True, crit_conv=1e-5, ridge=1e-4, beta=1.0, verbose=False):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
@@ -94,7 +94,7 @@ class AndersonAcceleration(nn.Module):
             x_prev = X[:, it % self.history_size].reshape(init.shape)
             x = F[:, it % self.history_size].reshape(init.shape)
             if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose):
-                if verbose:
+                if self.verbose:
                     print('Convergence reached at iteration ', it)
                 break 
         return (x,)

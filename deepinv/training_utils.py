@@ -54,7 +54,7 @@ def train(model,
             meters.append(loss)
         meters.append(train_psnr_linear)
         meters.append(train_psnr_net)
-        if eval_dataloader : 
+        if eval_dataloader :
             meters.append(eval_psnr_linear)
             meters.append(eval_psnr_net)
 
@@ -73,7 +73,7 @@ def train(model,
 
     if type(train_dataloader) is not list:
         train_dataloader = [train_dataloader]
-    
+
     if eval_dataloader and type(eval_dataloader) is not list:
         eval_dataloader = [eval_dataloader]
 
@@ -110,15 +110,15 @@ def train(model,
                     if l.name in ['mc']:
                         loss = l(y, x1, physics[g])
                     if l.name in ['ms']:
-                        loss = l(y, physics[g], f)
+                        loss = l(y, physics[g], model)
                     if not unsupervised and l.name in ['sup']:
                         loss = l(x1, x)
                     if l.name in ['moi']:
-                        loss = l(x1, physics, f)
+                        loss = l(x1, physics, model)
                     if l.name.startswith('suremc'):
-                        loss = l(y, x1, physics[g], f)
+                        loss = l(y, x1, physics[g], model)
                     if l.name in ['ei', 'rei']:
-                        loss = l(x1, physics[g], f)
+                        loss = l(x1, physics[g], model)
                     loss_total += loss
 
                     if verbose:
@@ -148,7 +148,7 @@ def train(model,
 
         if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
             test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis, plot_input=plot_input)
-            if verbose : 
+            if verbose :
                 eval_psnr_linear.update(test_psnr)
                 eval_psnr_net.update(pinv_psnr)
 
@@ -161,7 +161,7 @@ def train(model,
 
         progress.display(epoch + 1)
         save_model(epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path)
-        
+
     if wandb_vis :
         wandb.save('model.h5')
 
@@ -195,7 +195,7 @@ def test(model, test_dataloader,
 
     for g in range(G):
         dataloader = test_dataloader[g]
-        if verbose : 
+        if verbose:
             print(f'Processing data of operator {g+1} out of {G}')
         for i, (x, y) in enumerate(tqdm(dataloader)):
 
@@ -209,24 +209,23 @@ def test(model, test_dataloader,
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
 
-            if g < show_operators and i == 0 :
+            if g < show_operators and i == 0:
                 xlin = physics[g].A_adjoint(y)
-                if plot :
-                    if plot_input : 
+                if plot:
+                    if plot_input:
                         imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                     imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
                     imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
                     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-
-                if wandb_vis :
+                if wandb_vis:
                     n_plot = min(8,len(x))
                     imgs = []
-                    if plot_input : 
+                    if plot_input:
                         imgs.append(wandb.Image(y[:n_plot], caption="Input"))
                     imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
                     imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
                     imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
-                    wandb.log({ "images" : imgs})
+                    wandb.log({ "images": imgs})
 
             if save_folder is not None:
                 imgs = []
@@ -247,9 +246,9 @@ def test(model, test_dataloader,
     test_std_psnr = np.std(psnr_net)
     pinv_psnr = np.mean(psnr_linear)
     pinv_std_psnr = np.std(psnr_linear)
-    if verbose : 
+    if verbose:
         print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
-    if wandb_vis : 
+    if wandb_vis:
          wandb.log({
             "Test linear PSNR": pinv_psnr,
             "Test model PSNR": test_psnr})

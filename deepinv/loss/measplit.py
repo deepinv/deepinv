@@ -1,5 +1,5 @@
 import torch
-from deepinv.diffops.physics import Inpainting
+from deepinv.physics import Inpainting
 
 
 class MeaSplitLoss(torch.nn.Module):

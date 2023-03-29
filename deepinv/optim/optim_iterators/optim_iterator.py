@@ -64,7 +64,7 @@ class fStep(nn.Module):
             pass
 
 class gStep(nn.Module):
-    def __init__(self,g=None, prox_g=None, grad_g=None, g_param=None, stepsize=[1.] * 50, g_first=False, max_iter_inter=50,
+    def __init__(self,g=None, prox_g=None, grad_g=None, g_param=None, stepsize=[1.] * 50, g_first=False, max_iter_inter=50, stepsize_inter=1.,
                  tol_inter=1e-3, **kwargs):
         super(gStep, self).__init__()
         self.stepsize = stepsize

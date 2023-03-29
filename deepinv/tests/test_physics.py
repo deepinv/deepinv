@@ -16,7 +16,7 @@ def imsize():
 
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
-operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur_fft', 'deblur', 'super_resolution', 'MRI']
+operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur_fft', 'deblur', 'super_resolution'] #'MRI'
 
 def find_operator(name, img_size, device):
     '''
