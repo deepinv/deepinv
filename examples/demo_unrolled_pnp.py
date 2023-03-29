@@ -4,8 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import *
 from deepinv.training_utils import test, train
-from deepinv.unfolded.unfolded import UnfoldedIterator
-from deepinv.unfolded.deep_equilibrium import DEQPGD
+from deepinv.unfolded.unfolded import Unfolded_algo
+from deepinv.unfolded.deep_equilibrium import DEQ_algo
 from torchvision import datasets, transforms
 import os
 import wandb
@@ -105,14 +105,11 @@ model_spec = {'name': denoiser_name,
 prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 
 if deep_equilibrium: 
-    model = DEQPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+    model = DEQ_algo(pnp_algo, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                     g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                     learn_stepsize=True, constant_stepsize=False, anderson_acceleration=anderson_acceleration, max_iter_backward=max_iter_backward)
 else: 
-    # model = UnfoldedPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
-    #                 g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
-    #                 learn_stepsize=True, constant_stepsize=False)
-    model = UnfoldedIterator('PGD', prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+    model = Unfolded_algo(pnp_algo, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                     g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                     learn_stepsize=True, constant_stepsize=False)
 
