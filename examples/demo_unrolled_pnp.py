@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import *
 from deepinv.training_utils import test, train
-from deepinv.unfolded.unfolded import UnfoldedPGD
+from deepinv.unfolded.unfolded import UnfoldedIterator
 from deepinv.unfolded.deep_equilibrium import DEQPGD
 from torchvision import datasets, transforms
 import os
@@ -38,7 +38,7 @@ epochs = 100
 im_size = 32
 batch_size = 32
 max_datapoints = 100
-deep_equilibrium = True
+deep_equilibrium = False
 anderson_acceleration = True
 anderson_beta=1.
 anderson_history_size=5
@@ -109,7 +109,10 @@ if deep_equilibrium:
                     g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                     learn_stepsize=True, constant_stepsize=False, anderson_acceleration=anderson_acceleration, max_iter_backward=max_iter_backward)
 else: 
-    model = UnfoldedPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+    # model = UnfoldedPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+    #                 g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
+    #                 learn_stepsize=True, constant_stepsize=False)
+    model = UnfoldedIterator('PGD', prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                     g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                     learn_stepsize=True, constant_stepsize=False)
 
