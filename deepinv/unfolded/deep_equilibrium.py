@@ -2,15 +2,15 @@ import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
-from deepinv.unfolded.unfolded import Unfolded
+from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.unfolded import str_to_class
 
-class DEQIterator(Unfolded):
+class BaseDEQ(BaseUnfold):
     '''
     Deep Equilibrium Model. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/. 
     '''
     def __init__(self, *args, max_iter_backward=50, **kwargs):
-        super(DEQ, self).__init__(*args, **kwargs)
+        super(BaseDEQ, self).__init__(*args, **kwargs)
 
         self.max_iter_backward = max_iter_backward
 
@@ -45,4 +45,4 @@ def DEQ(algo_name, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=Non
     iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
                  grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
                  max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
-    return DEQIterator(iterator, **kwargs)
+    return BaseDEQ(iterator, **kwargs)

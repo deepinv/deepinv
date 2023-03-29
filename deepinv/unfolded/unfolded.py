@@ -1,11 +1,10 @@
 import torch
 import torch.nn as nn
-import sys
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
 from deepinv.unfolded import str_to_class
 
-class UnfoldedIterator(nn.Module):
+class BaseUnfold(nn.Module):
     '''
     Unfolded module
     '''
@@ -13,7 +12,7 @@ class UnfoldedIterator(nn.Module):
     def __init__(self, iterator, max_iter=50, crit_conv=1e-3, learn_stepsize=True, learn_g_param=False,
                  custom_g_step=None, custom_f_step=None, constant_stepsize=False, constant_g_param=False, early_stop=True, 
                  anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, device=torch.device('cpu'), verbose=False):
-        super(Unfolded, self).__init__()
+        super(BaseUnfold, self).__init__()
 
         self.early_stop = early_stop
         self.crit_conv = crit_conv
@@ -86,4 +85,4 @@ def Unfolded(algo_name, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_
     iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
                  grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
                  max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
-    return UnfoldedIterator(iterator, **kwargs)
+    return BaseUnfold(iterator, **kwargs)

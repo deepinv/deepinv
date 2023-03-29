@@ -2,9 +2,9 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
-from deepinv.optim.optimizers import *
+from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -15,7 +15,7 @@ G = 1
 # ckpt_path = '../checkpoints/GSDRUNet.ckpt'
 denoiser_name = 'drunet'
 ckpt_path = '../checkpoints/drunet_color.pth'
-pnp_algo = 'PGD'
+algo_name = 'PGD'
 batch_size = 1
 dataset = 'set3c'
 dataset_path = '../../datasets/set3c'
@@ -74,7 +74,7 @@ model_spec = {'name': denoiser_name,
 
 # STEP 2: Defining the model
 prox_g = ProxDenoiser(model_spec, sigma_denoiser=sigma_denoiser, stepsize=stepsize, max_iter=max_iter)
-model = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+model = Optim(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
              g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
 
 test(model=model,  # Safe because it has forward
