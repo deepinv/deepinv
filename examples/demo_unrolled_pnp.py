@@ -17,7 +17,7 @@ G = 1
 denoiser_name = 'dncnn'
 depth = 7
 ckpt_path = None
-pnp_algo = 'PGD'
+algo_name = 'PGD'
 #path_datasets = '../../datasets'
 path_datasets = '../datasets'
 train_dataset_name = 'drunet'
@@ -105,11 +105,11 @@ model_spec = {'name': denoiser_name,
 prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 
 if deep_equilibrium: 
-    model = DEQ_algo(pnp_algo, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+    model = DEQ_algo(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                     g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                     learn_stepsize=True, constant_stepsize=False, anderson_acceleration=anderson_acceleration, max_iter_backward=max_iter_backward)
 else: 
-    model = Unfolded_algo(pnp_algo, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+    model = Unfolded_algo(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                     g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                     learn_stepsize=True, constant_stepsize=False)
 
