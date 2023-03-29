@@ -9,11 +9,6 @@ class OptimIterator(nn.Module):
     and g is a regularizer either explicit or implicitly given by either its prox or its gradient.
     By default, the algorithms starts with a step on f and finishes with step on g.
 
-    TODO : adapt PD to the new g_step / f_step stype.
-    TODO : update stepize PD removed.
-    TODO : add accelerated algorithms.
-    TODO : ADMM
-
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param lamb: Regularization parameter.
     :param g: Regularizing potential.

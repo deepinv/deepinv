@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-
-from deepinv.optim.fixed_point import FixedPoint
+from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
 
 class Unfolded(nn.Module):
@@ -10,54 +9,60 @@ class Unfolded(nn.Module):
     '''
 
     def __init__(self, iterator, max_iter=50, crit_conv=1e-3, learn_stepsize=True, learn_g_param=False,
-                 trainable=None, custom_g_step=None, custom_f_step=None, device=torch.device('cpu'), verbose=False,
-                 constant_stepsize=False, constant_g_param=False, early_stop=True):
+                 custom_g_step=None, custom_f_step=None, constant_stepsize=False, constant_g_param=False, early_stop=True, 
+                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, device=torch.device('cpu'), verbose=False):
         super(Unfolded, self).__init__()
 
         self.early_stop = early_stop
         self.crit_conv = crit_conv
         self.verbose = verbose
-
+        self.max_iter = max_iter
+        self.anderson_acceleration = anderson_acceleration
+        
         # model parameters
         self.iterator = iterator
-        if trainable is not None:
-            self.trainable = trainable
 
         if learn_stepsize:
             if constant_stepsize:
-                self.step_size_f = nn.Parameter(torch.tensor(iterator.f_step.stepsize[0], device=device))
-                self.stepsize_list_f = [self.step_size_f] * max_iter
+                step_size_f = nn.Parameter(torch.tensor(iterator.f_step.stepsize[0], device=device))
+                stepsize_list_f = [step_size_f] * max_iter
             else:
-                self.stepsize_list_f = nn.ParameterList([nn.Parameter(torch.tensor(iterator.f_step.stepsize[i], device=device))
+                stepsize_list_f = nn.ParameterList([nn.Parameter(torch.tensor(iterator.f_step.stepsize[i], device=device))
                                                        for i in range(max_iter)])
-            self.iterator.f_step.stepsize = self.stepsize_list_f
+            self.iterator.f_step.stepsize = stepsize_list_f
 
             if hasattr(self.iterator.g_step, 'stepsize'):  # For primal-dual where g_step also has a stepsize
                 if constant_stepsize:
-                    self.step_size_g = nn.Parameter(torch.tensor(iterator.g_step.stepsize[0], device=device))
-                    self.stepsize_list_g = [self.step_size_g] * max_iter
+                    step_size_g = nn.Parameter(torch.tensor(iterator.g_step.stepsize[0], device=device))
+                    stepsize_list_g = [step_size_g] * max_iter
                 else:
-                    self.stepsize_list_g = nn.ParameterList(
+                    stepsize_list_g = nn.ParameterList(
                         [nn.Parameter(torch.tensor(iterator.g_step.stepsize[i], device=device))
                          for i in range(max_iter)])
-                self.iterator.g_step.stepsize = self.stepsize_list_g
+                self.iterator.g_step.stepsize = stepsize_list_g
 
         if learn_g_param:
             if constant_g_param:
-                self.g_param = nn.Parameter(torch.tensor(iterator.g_step.g_param[0], device=device))
-                self.g_param_list = [self.g_param] * max_iter
+                g_param = nn.Parameter(torch.tensor(iterator.g_step.g_param[0], device=device))
+                g_param_list = [g_param] * max_iter
             else:
-                self.g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.g_step.g_param[i], device=device))
+                g_param_list = nn.ParameterList([nn.Parameter(torch.tensor(iterator.g_step.g_param[i], device=device))
                                                       for i in range(max_iter)])
-            self.iterator.g_step.g_param = self.g_param_list
+            self.iterator.g_step.g_param = g_param_list
 
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step
         if custom_f_step is not None:
             self.iterator.f_step = custom_f_step
 
-        self.fixed_point = FixedPoint(self.iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv,
-                                     verbose=verbose)
+        if self.anderson_acceleration :
+            self.anderson_beta = anderson_beta
+            self.anderson_history_size = anderson_history_size
+            self.fixed_point = AndersonAcceleration(self.iterator, max_iter=self.max_iter, history_size=anderson_history_size, beta=anderson_beta,
+                            early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
+        else :
+            self.fixed_point = FixedPoint(self.iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
+
 
     def get_init(self, y, physics):
         return physics.A_adjoint(y), y

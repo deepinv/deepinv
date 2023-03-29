@@ -2,18 +2,14 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
-from deepinv.pnp.pnp import PnP_prox, RED_grad
-from deepinv.unfolded.unfolded import Unfolded
-from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optimizers.pgd import PGD
-from deepinv.optim.optimizers.hqs import HQS
-from deepinv.optim.optimizers.drs import DRS
 from deepinv.training_utils import test, train
+from deepinv.unfolded.unfolded import UnfoldedPGD
+from deepinv.unfolded.deep_equilibrium import DEQPGD
 from torchvision import datasets, transforms
 import os
 import wandb
+from deepinv.models.denoiser import ProxDenoiser
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
@@ -42,8 +38,8 @@ epochs = 100
 im_size = 32
 batch_size = 32
 max_datapoints = 100
-deep_equilibrium = False
-anderson_acceleration = False
+deep_equilibrium = True
+anderson_acceleration = True
 anderson_beta=1.
 anderson_history_size=5
 max_iter_backward=10
@@ -54,18 +50,19 @@ if wandb_vis :
     wandb.init(project='unrolling')
 
 if problem == 'CS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
+    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, im_size, im_size), device=dinv.device)
 elif problem == 'onebitCS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
+    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, im_size, im_size), device=dinv.device)
     p.sensor_model = lambda x: torch.sign(x)
 elif problem == 'inpainting':
-    p = dinv.physics.Inpainting(tensor_size=(1, 28, 28), mask=.5, device=dinv.device)
+    p = dinv.physics.Inpainting(tensor_size=(1, im_size, im_size), mask=.5, device=dinv.device)
 elif problem == 'denoising':
     p = dinv.physics.Denoising(sigma=.2)
 elif problem == 'blind_deblur':
     p = dinv.physics.BlindBlur(kernel_size=11)
 elif problem == 'deblur':
-    p = dinv.physics.BlurFFT((3,im_size,im_size), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
+    p = dinv.physics.BlurFFT((3, im_size, im_size), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.),
+                                 device=dinv.device, noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img))
 else:
     raise Exception("The inverse problem chosen doesn't exist")
 
@@ -105,22 +102,16 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
+prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
 
-# from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
-# custom_g_step = PrimalBlock_list(max_it=max_iter).forward
-# custom_f_step = DualBlock_list(max_it=max_iter).forward
-custom_f_step = None
-custom_g_step = None
-
-denoiser = Denoiser(model_spec=model_spec)
-prox_g = PnP_prox(denoiser=denoiser, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-iterator = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device, g_param=prox_g.sigma_denoiser)
-model = Unfolded(iterator, max_iter=max_iter, crit_conv=1e-4, learn_g_param=True, learn_stepsize=True,
-                 #trainable=denoiser,
-                 deep_equilibrium=deep_equilibrium, anderson_acceleration=anderson_acceleration,
-                 anderson_beta=anderson_beta, anderson_history_size=anderson_history_size,
-                 verbose=False,
-                 custom_f_step=custom_f_step, custom_g_step=custom_g_step)
+if deep_equilibrium: 
+    model = DEQPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+                    g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
+                    learn_stepsize=True, constant_stepsize=False, anderson_acceleration=anderson_acceleration, max_iter_backward=max_iter_backward)
+else: 
+    model = UnfoldedPGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+                    g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
+                    learn_stepsize=True, constant_stepsize=False)
 
 for name, param in model.named_parameters():
     if param.requires_grad:
@@ -149,4 +140,4 @@ train(model=model,
         plot_input=True,
         verbose=True,
         wandb_vis=wandb_vis,
-        debug=True)
+        debug=False)
