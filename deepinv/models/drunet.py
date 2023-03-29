@@ -52,11 +52,11 @@ class DRUNet(nn.Module):
 
         if pretrain:
             if ckpt_path is not None:
-                ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+                ckpt_drunet = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             else :
                 url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_color.pth'
-                ckpt = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage)
-            self.load_state_dict(ckpt, strict=True)
+                ckpt_drunet = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage, file_name='drunet.pth')
+            self.load_state_dict(ckpt_drunet, strict=True)
 
 
         if not train:
