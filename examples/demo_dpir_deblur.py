@@ -13,10 +13,8 @@ from torchvision import datasets, transforms
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
 G = 1
-# denoiser_name = 'gsdrunet'
-# ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+ckpt_path = None
 denoiser_name = 'drunet'
-ckpt_path = '../checkpoints/drunet_color.pth'
 batch_size = 1
 dataset = 'set3c'
 dataset_path = '../../datasets/set3c'
