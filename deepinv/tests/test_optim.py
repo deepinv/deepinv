@@ -58,8 +58,8 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.backbone_net.has_converged
 
 
-# optim_algos = ['PGD', 'HQS', 'DRS', 'ADMM', 'PD']
-optim_algos = ['PGD']
+optim_algos = ['PGD', 'HQS', 'ADMM', 'PD']
+# optim_algos = ['DRS']
 # optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):

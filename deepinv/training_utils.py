@@ -229,8 +229,8 @@ def test(model, test_dataloader,
                     wandb.log({ "images": imgs})
 
             if save_folder is not None:
-                if not os.path.exists(directory):
-                    os.makedirs(directory)
+                if not os.path.exists(save_folder):
+                    os.makedirs(save_folder)
                 imgs = []
                 xlin = physics[g].A_adjoint(y)
                 imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
