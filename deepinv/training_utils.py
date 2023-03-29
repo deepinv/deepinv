@@ -1,3 +1,4 @@
+import os
 from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr, investigate_model
 from deepinv.utils.plotting import plot_debug, torch2cpu, imsave
 import numpy as np
@@ -228,6 +229,8 @@ def test(model, test_dataloader,
                     wandb.log({ "images": imgs})
 
             if save_folder is not None:
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
                 imgs = []
                 xlin = physics[g].A_adjoint(y)
                 imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
