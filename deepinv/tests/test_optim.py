@@ -3,7 +3,7 @@ import pytest
 import deepinv as dinv
 from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
-import deepinv.optim.optimizers as optimizers
+from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr
 from deepinv.utils.plotting import plot_debug, torch2cpu
@@ -77,8 +77,7 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
 
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
     denoiser = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-    class_algo = getattr(optimizers, pnp_algo)
-    pnp = class_algo(prox_g=denoiser, data_fidelity=data_fidelity, stepsize=denoiser.stepsize, device=dinv.device,
+    pnp = Optim(pnp_algo, prox_g=denoiser, data_fidelity=data_fidelity, stepsize=denoiser.stepsize, device=dinv.device,
              g_param=denoiser.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
 
     x = pnp(y, physics)

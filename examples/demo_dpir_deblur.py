@@ -4,7 +4,7 @@ import deepinv as dinv
 import hdf5storage
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
@@ -91,7 +91,8 @@ def get_rho_sigma(sigma=2.55/255, iter_num=8, modelSigma1=49.0, modelSigma2=2.55
 rhos, sigmas = get_rho_sigma(sigma=max(0.255/255., noise_level_img), iter_num=max_iter, modelSigma1=49.0, modelSigma2=2.55, w=1.0)
 
 prox_g = ProxDenoiser(model_spec, sigma_denoiser=sigmas, stepsize=rhos, max_iter=max_iter)
-model = HQS(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+algo_name = 'HQS'
+model = Optim(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
              g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
 
 test(model=model,  # Safe because it has forward
