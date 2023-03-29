@@ -1,2 +1,2 @@
-from deepinv.diffops.transform.rotate import Rotate
-from deepinv.diffops.transform.shift import Shift
+from deepinv.transform.rotate import Rotate
+from deepinv.transform.shift import Shift
