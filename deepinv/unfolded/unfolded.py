@@ -3,6 +3,7 @@ import torch.nn as nn
 import sys
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
+from deepinv.unfolded import str_to_class
 
 class Unfolded(nn.Module):
     '''
@@ -78,14 +79,10 @@ class Unfolded(nn.Module):
         return x
 
 
-def str_to_class(classname):
-    return getattr(sys.modules[__name__], classname)
-
-
-def UnfoldedIterator(name_iterator, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+def Unfolded_algo(algo_name, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
                  grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
                  max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
-    iterator_fn = str_to_class(name_iterator + 'Iteration')
+    iterator_fn = str_to_class(algo_name + 'Iteration')
     iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
                  grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
                  max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)

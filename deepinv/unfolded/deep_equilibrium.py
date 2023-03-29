@@ -1,9 +1,9 @@
-
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import Unfolded
+from deepinv.unfolded import str_to_class
 
 class DEQ(Unfolded):
     '''
@@ -37,13 +37,12 @@ class DEQ(Unfolded):
             x.register_hook(backward_hook)
         return x
 
-    
-def DEQPGD(data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
-                grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
-                max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
 
-    iterator = PGDIteration(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
-                grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
-                max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
-
+def DEQ_algo(algo_name, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
+                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
+                 max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+    iterator_fn = str_to_class(algo_name + 'Iteration')
+    iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
+                 grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
+                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
     return DEQ(iterator, **kwargs)
