@@ -36,7 +36,6 @@ class gStepPGD(gStep):
 
     def forward(self, x, it):
         if not self.g_first:
-            print(x.shape)
             return self.prox_g(x, self.g_param[it], it)
         else:
             return x - self.stepsize[it] * self.grad_g(x, self.g_param[it], it)

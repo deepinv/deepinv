@@ -1,5 +1,10 @@
 import torch
 import torch.nn as nn
+import sys 
+from deepinv.optim.optim_iterators import *
+
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)
 
 def check_conv(x_prev,x,it,crit_conv,verbose=False):
     x_prev = x_prev if type(x_prev) is not tuple else x_prev[0]
