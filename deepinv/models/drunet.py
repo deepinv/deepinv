@@ -50,8 +50,14 @@ class DRUNet(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
-        if pretrain or ckpt_path is not None:
-            self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
+        if pretrain:
+            if ckpt_path is not None:
+                ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            else :
+                url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_color.pth'
+                ckpt = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt, strict=True)
+
 
         if not train:
             self.eval()
