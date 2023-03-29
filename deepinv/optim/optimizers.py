@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
-from deepinv.optim.optim_iterators import *
-from deepinv.optim import str_to_class
+from deepinv.optim.utils import str_to_class
 
 class BaseOptim(nn.Module):
     '''
