@@ -46,7 +46,7 @@ class BaseOptim(nn.Module):
 
 def Optim(algo_name, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
             grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
-        max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
+            max_iter_inter=50, tol_inter=1e-3, beta=1., **kwargs):
     iterator_fn = str_to_class(algo_name + 'Iteration')
     iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
                  grad_g=grad_g, g_first=g_first, stepsize=stepsize, g_param=g_param, stepsize_inter=stepsize_inter,
