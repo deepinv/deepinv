@@ -20,15 +20,15 @@ G = 1
 
 # PRIOR SELECTION
 # model_spec = {'name': 'tgv', 'args': {'n_it_max':100, 'verbose':True}}
-# model_spec = {'name': 'waveletprior',
-#               'args': {'wv':'db8', 'level': 3}}
+model_spec = {'name': 'waveletprior',
+              'args': {'wv':'db8', 'level': 2}}
 # model_spec = {'name': 'waveletdictprior',
-#               'args': {'max_iter':10, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':2}}
-n_channels = 1
-name_drunet = 'drunet_color' if n_channels == 3 else 'drunet_gray'
-model_spec = {'name': 'drunet',
-              'args': {'in_channels':n_channels+1, 'out_channels':n_channels, 'nb':4, 'nc':[64, 128, 256, 512],
-                       'ckpt_path': '../checkpoints/'+name_drunet+'.pth', 'pretrain': True}}
+#               'args': {'max_iter':10, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':1}}
+# n_channels = 1
+# name_drunet = 'drunet_color' if n_channels == 3 else 'drunet_gray'
+# model_spec = {'name': 'drunet',
+#               'args': {'in_channels':n_channels+1, 'out_channels':n_channels, 'nb':4, 'nc':[64, 128, 256, 512],
+#                        'ckpt_path': '../checkpoints/'+name_drunet+'.pth', 'pretrain': True}}
 
 # PATH, BATCH SIZE ETC
 batch_size = 3
@@ -37,11 +37,11 @@ dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
 lamb = 10
 stepsize = 1.
-sigma_k = 2
+sigma_k = 1.  # For other methods: 2 is good
 sigma_denoiser = sigma_k*noise_level_img
 im_size = 256
 epochs = 2
-max_iter = 50
+max_iter = 1000
 crit_conv = 1e-5
 verbose = True
 early_stop = True
@@ -64,7 +64,7 @@ for g in range(G):
 
 # STEP 2: Defining the model
 prox_g = ProxDenoiser(model_spec, sigma_denoiser=sigma_denoiser, stepsize=stepsize, max_iter=max_iter)
-algo_name = 'PGD'
+algo_name = 'DRS'
 model = Optim(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
              g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=crit_conv, verbose=True)
 
