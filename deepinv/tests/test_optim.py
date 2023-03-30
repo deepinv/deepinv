@@ -38,12 +38,14 @@ def test_denoiser(imsize, dummy_dataset, device):
     physics = dinv.physics.Denoising(sigma=.2)  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
-    backbone = dinv.models.TGV(reg=2, n_it_max=5000, crit=1e-5, verbose=True)
-    model = dinv.models.ArtifactRemoval(backbone)
+    ths = 2.
 
-    x = model(y, physics)  # 3. Apply the model we want to test
+    model_spec = {'name': 'tgv', 'args': {'n_it_max': 1000, 'verbose': False}}
+    model = ProxDenoiser(model_spec, max_iter=1, sigma_denoiser=ths, stepsize=1.)
 
-    plot = False
+    x = model(y, ths, 0)  # 3. Apply the model we want to test
+
+    plot = True
 
     if plot:
         imgs = []
@@ -55,7 +57,7 @@ def test_denoiser(imsize, dummy_dataset, device):
         plot_debug(imgs, shape=(1, num_im), titles=titles,
                    row_order=True, save_dir=None)
 
-    assert model.backbone_net.has_converged
+    assert model.denoiser.has_converged
 
 
 optim_algos = ['PGD', 'HQS', 'DRS', 'ADMM', 'PD']
