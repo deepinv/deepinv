@@ -44,7 +44,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     x = model(y, ths, 0)  # 3. Apply the model we want to test
 
-    plot = True
+    plot = False
 
     if plot:
         imgs = []
@@ -95,4 +95,3 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
                    row_order=True, save_dir=None)
 
     assert pnp.has_converged()
-
