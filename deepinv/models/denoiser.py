@@ -24,11 +24,22 @@ def make(model_spec, args=None):
 
 
 class Denoiser(nn.Module):
-    '''
-    Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration.
-    Consists in replacing prox_g or grad_g with a denoiser.
-    '''
+    r'''
+    Base denoiser class.
 
+    Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration.
+
+    Consists in replacing prox_g or grad_g with a denoiser.
+
+    TODO
+
+    :param model_spec:
+    :param init:
+    :param float stepsize:
+    :param float sigma_denoiser:
+    :param int max_iter:
+    :param str,torch.device device: cpu or gpu
+    '''
     def __init__(self, model_spec=None, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=None,
                  device=torch.device('cpu')):
         super(Denoiser, self).__init__()

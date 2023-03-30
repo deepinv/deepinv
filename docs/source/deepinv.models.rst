@@ -2,18 +2,42 @@ Models
 ==============================
 This package provides vanilla signal reconstruction networks, which can be used for a quick evaluation of a learning setting.
 
-Simple AutoEncoder
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.Denoiser
+   deepinv.models.ArtifactRemoval
+
+Classical Denoisers
 --------------------------------
 
-.. automodule:: deepinv.models.ae
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
 
-Vanilla U-Net
-----------------------------------
+   deepinv.models.WaveletPrior
+   deepinv.models.WaveletDict
+   deepinv.models.TGV
 
-.. automodule:: deepinv.models.unet
-   :members:
-   :undoc-members:
-   :show-inheritance:
+
+Learned Denoisers
+--------------------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.AutoEncoder
+   deepinv.models.UNet
+   deepinv.models.DnCNN
+   deepinv.models.DRUNet
+   deepinv.models.GSDRUNet
+
+
+..
+    this is a code snippet showing how to load a denoiser

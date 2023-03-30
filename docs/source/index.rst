@@ -13,24 +13,28 @@ Deep Inverse is a Pytorch based library for solving imaging inverse problems wit
    :width: 1000
    :align: center
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   deepinv.models
-   deepinv.physics
-   deepinv.datasets
-   deepinv.loss
-   deepinv.optim
-   deepinv.unfolded
-   deepinv.pnp
-   deepinv.transform
-
 
 Getting Started
 ==================
 
 Here quick guide
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   deepinv.physics
+   deepinv.datasets
+   deepinv.models
+   deepinv.loss
+   deepinv.optim
+   deepinv.unfolded
+   deepinv.pnp
+   deepinv.transform
+   deepinv.examples
+
+
 
 Lead Developers
 ==================
@@ -41,10 +45,3 @@ Cite Us
 ==================
 
 Here how to cite us
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

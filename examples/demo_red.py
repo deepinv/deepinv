@@ -2,7 +2,7 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.pnp.denoiser import Denoiser
+from deepinv.pnp import Denoiser
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.pnp.red import RED
 from deepinv.training_utils import test

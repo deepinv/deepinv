@@ -12,6 +12,25 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 @register('drunet')
 class DRUNet(nn.Module):
+    r'''
+    DRUNet denoiser network.
+
+    TODO: add link to paper, finish description and params
+
+    :param int in_channels: input image channels
+    :param int out_channels: output image channels
+    :param list nc: number of convolutional layers
+    :param int nb:
+    :param int nf: number of channels per convolutional layer
+    :param str act_mode:
+    :param str downsample_mode:
+    :param str upsample_mode:
+    :param bool pretrain: use a pretrained network. The weights will be downloaded from an online repository.
+    :param str ckpt_path: Use an existing pretrained checkpoint
+    :param bool train: training or testing mode
+    :param str device: gpu or cpu
+
+    '''
     def __init__(self, in_channels=4, out_channels=3, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose',
                  pretrain=False, ckpt_path=None, train=False, device=None):
         super(DRUNet, self).__init__()

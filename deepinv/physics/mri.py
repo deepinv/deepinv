@@ -13,7 +13,7 @@ class MRI(Physics):
         '''
 
         :param acceleration: (int), downsampling factor, 1/acceleration measurements will be sampled and used.
-        :param mask: (tensor), (0,1) size=[1,img_width,1]
+        :param mask: (tensor), (0,1) size = [1, img_width, 1]
         :param device: (str) options = 'cpu', 'cuda=0'
         :param kwargs:
         '''

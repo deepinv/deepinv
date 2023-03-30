@@ -5,13 +5,21 @@ import torch.nn as nn
 # TV loss
 # --------------------------------------------
 class TVLoss(nn.Module):
+    r'''
+    Total variation loss (:math:`\ell_2` norm).
+
+    It computes
+
+    .. math:
+
+        \|Dx\|_2^2
+
+    where :math:`D` is a normalized linear operator that computes the vertical and horizontal first order differences
+    of the image:math:`x`.
+
+    :param float tv_loss_weight: scalar weight for the TV loss.
+    '''
     def __init__(self, tv_loss_weight=1):
-        """
-        Total variation loss
-        https://github.com/jxgu1016/Total_Variation_Loss.pytorch
-        Args:
-            tv_loss_weight (int):
-        """
         super(TVLoss, self).__init__()
         self.tv_loss_weight = tv_loss_weight
 

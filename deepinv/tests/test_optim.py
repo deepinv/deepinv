@@ -5,7 +5,6 @@ from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 import deepinv.optim.optimizers as optimizers
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr
 from deepinv.utils.plotting import plot_debug, torch2cpu
 
 from torch.utils.data import DataLoader

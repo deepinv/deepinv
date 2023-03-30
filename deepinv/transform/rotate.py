@@ -3,12 +3,14 @@ from torchvision.transforms.functional import rotate
 #from kornia.geometry.transform import rotate
 
 class Rotate(torch.nn.Module):
-    def __init__(self, n_trans, degrees=360):
-        '''
+    r'''
+        2D Rotations.
+
         Generates n_transf randomly rotated versions of 2D images with zero padding.
         :param n_trans: number of rotated versions generated per input image.
         :param degrees: images are rotated in the range of angles (-degrees, degrees)
-        '''
+    '''
+    def __init__(self, n_trans, degrees=360):
         super(Rotate, self).__init__()
         self.n_trans, self.group_size = n_trans, degrees
 

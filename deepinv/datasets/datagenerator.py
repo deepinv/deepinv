@@ -7,17 +7,14 @@ from torch.utils import data
 
 
 class HDF5Dataset(data.Dataset):
-    """
+    r'''
     Represents a DeepInverse HDF5 dataset which stores measurements and (optionally) associated signals.
-    """
 
+    :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
+    :param bool train: Set to True for training and False for testing.
+    :param torchvision.Transform transform: PyTorch transform to apply to every data instance (``default=None``).
+    '''
     def __init__(self, path, train=True, transform=None):
-        '''
-        :param path: (str) Path to the folder containing the dataset (one or multiple HDF5 files).
-        :param train: (bool) Set to True for training and False for testing.
-        :param transform: (torchvision.Transform) PyTorch transform to apply to every data instance (default=None). Only use if the forward operator
-        is equivariant to the transform.
-        '''
         super().__init__()
         self.data_info = []
         self.data_cache = {}
@@ -44,19 +41,25 @@ class HDF5Dataset(data.Dataset):
 
 def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device='cpu', max_datapoints=1e6,
                      dataset_filename='dinv_dataset', batch_size=4, num_workers=0, supervised=True):
-    '''
-        This function generates a dataset of measurement pairs (or measurement only if supervised=False) from a baseline dataset (e.g. MNIST, ImageNet) using the forward operator provided by the user.
-    :param train_dataset: (torch.data.Dataset) base dataset with images used for generating associated measurements via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the HD5Dataset class.
-    :param physics: (deepinv.physics) Forward operator used to generate the measurement data. It can be either a single operator or a list of forward operators. In the latter case, the dataset will be assigned evenly across operators.
-    :param save_dir: (str) folder where the dataset and forward operator will be saved.
-    :param test_dataset: (torch.data.Dataset) if included, the function will also generate measurements associated to the test dataset.
-    :param device: (torch.device) which indicates cpu or gpu.
-    :param max_datapoints: (int) Maximum desired number of datapoints in the dataset. If larger than len(base_dataset),
+    r'''
+    This function generates a dataset of measurement pairs (or measurement only if supervised=False) from a baseline dataset
+    (e.g. MNIST, ImageNet) using the forward operator provided by the user.
+
+    :param torch.data.Dataset train_dataset: base dataset with images used for generating associated measurements
+        via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the HD5Dataset class.
+    :param deepinv.physics.Physics physics: Forward operator used to generate the measurement data.
+        It can be either a single operator or a list of forward operators. In the latter case, the dataset will be assigned evenly across operators.
+    :param str save_dir: folder where the dataset and forward operator will be saved.
+    :param torch.data.Dataset test_dataset: if included, the function will also generate measurements associated to the test dataset.
+    :param torch.device device: which indicates cpu or gpu.
+    :param int max_datapoints: Maximum desired number of datapoints in the dataset. If larger than len(base_dataset),
         the function will use the whole base dataset.
-    :param dataset_filename: (str) desired filename of the dataset.
-    :param batch_size: (int) batch size for generating the measurement data (it only affects the speed of the generating process)
-    :param num_workers: (int) number of workers for generating the measurement data (it only affects the speed of the generating process)
-    :param supervised: (bool) Generates supervised pairs (x,y) of measurements and signals. If set to false, it will generate a training dataset with measurements only (y) and a test dataset with pairs (x,y)
+    :param str dataset_filename: desired filename of the dataset.
+    :param int batch_size: batch size for generating the measurement data (it only affects the speed of the generating process)
+    :param int num_workers: number of workers for generating the measurement data (it only affects the speed of the generating process)
+    :param bool supervised: Generates supervised pairs (x,y) of measurements and signals.
+        If set to false, it will generate a training dataset with measurements only (y) and a test dataset with pairs (x,y)
+
     '''
     if os.path.exists(os.path.join(save_dir,dataset_filename)):
         print("WARNING: Dataset already exists, this will overwrite the previous dataset.")

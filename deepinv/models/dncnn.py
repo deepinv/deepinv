@@ -2,12 +2,26 @@ import torch.nn as nn
 import torch
 from .denoiser import register
 
+
 @register('dncnn')
 class DnCNN(nn.Module):
+    r'''
+    DnCNN convolutional denoiser.
+
+    https://ieeexplore.ieee.org/abstract/document/7839189/
+
+    :param int in_channels: input image channels
+    :param int out_channels: output image channels
+    :param int depth: number of convolutional layers
+    :param str act_mode:
+    :param bool bias: use bias in the convolutional layers
+    :param int nf: number of channels per convolutional layer
+    :param bool pretrain: use a pretrained network. The weights will be downloaded from an online repository.
+    :param str ckpt_path: Use an existing pretrained checkpoint
+    :param bool train: training or testing mode
+    :param str device: gpu or cpu
+    '''
     def __init__(self, in_channels=1, out_channels=1, depth=20, act_mode='R', bias=True, nf=64, pretrain=False, ckpt_path=None, train=False,  device=None):
-        """
-        TODO: add doc
-        """
         super(DnCNN, self).__init__()
 
         self.depth = depth
@@ -32,7 +46,6 @@ class DnCNN(nn.Module):
             self.to(device)
 
     def forward(self, x_in, denoise_level=None):
-
         x = self.in_conv(x_in)
         x = self.nl_list[0](x)
 

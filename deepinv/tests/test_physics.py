@@ -35,7 +35,7 @@ def find_operator(name, img_size, device):
     elif name == 'inpainting':
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=.5, device=device)
     elif name == 'MRI':
-        p = dinv.physics.MRI(acceleration=2, mask=(torch.rand(1,img_size[-1],1)>1/2).type(torch.int), device=device)
+        p = dinv.physics.MRI(acceleration=2, mask=(torch.rand(1, img_size[-1], 1) > 1/2).type(torch.int), device=device)
     elif name == 'denoising':
         p = dinv.physics.Denoising(sigma=.2)
     elif name == 'blind_deblur':
@@ -81,7 +81,7 @@ def test_operators_norm(name, imsize, device):
     '''
     physics = find_operator(name, imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
-    norm = physics.power_method(x)
+    norm = physics.compute_norm(x)
     assert 1.5 > norm > .5
 
 

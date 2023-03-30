@@ -7,23 +7,35 @@ from .denoiser import register
 
 @register('tgv')
 class TGV(nn.Module):
-    '''
-    Implements the proximal operator of the (second order) Total Generalised Variation (TGV) operator.(see K. Bredies,
-    K. Kunisch, and T. Pock, "Total generalized variation," SIAM J. Imaging Sci., 3(3), 492-526, 2010.)
+    r'''
+    Proximal operator of (2nd order) Total Generalised Variation operator.
+
+    (see K. Bredies, K. Kunisch, and T. Pock, "Total generalized variation," SIAM J. Imaging Sci., 3(3), 492-526, 2010.)
 
     This algorithm converges to the unique image x (and the auxiliary vector field r) minimizing
 
-    ||x-y||_2^2/2 + lambda1.||r||_1,2 + lambda2.||J(Dx-r)||_1,Frobenius
+    .. math::
 
-    where D maps an image to its gradient field and J maps a vector field to its Jacobian. For a large value of lambda2,
-    the TGV behaves like the TV. For a small value, it behaves like the l1-Frobenius norm of the Hessian.
+        \frac{1}{2}\|x-y\|_2^2 + \lambda_1 \|r\|_1,2 + \lambda_2 \|J(Dx-r)\|_{1,F}
+
+    where :math:`D` maps an image to its gradient field and :math:`J` maps a vector field to its Jacobian.
+    For a large value of :math:`\lambda_2`, the TGV behaves like the TV.
+    For a small value, it behaves like the :math:`\ell_1`-Frobenius norm of the Hessian.
 
     The problem is solved with an over-relaxed Chambolle-Pock algorithm (see L. Condat, "A primal-dual splitting method
     for convex optimization  involving Lipschitzian, proximable and linear composite terms", J. Optimization Theory and
-   Applications, vol. 158, no. 2, pp. 460-479, 2013.
+    Applications, vol. 158, no. 2, pp. 460-479, 2013.
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov (https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb)
+
+    :param float reg: TODO
+    :param bool verbose:
+    :param int n_it_max:
+    :param float crit:
+    :param torch.tensor, None x2:
+    :param torch.tensor, None u2:
+    :param torch.tensor, None r2:
 
     TODO: register appropriate buffers, backprop not possible yet!
     '''

@@ -5,7 +5,16 @@ import torch.nn as nn
 # from deepinv import models as models
 
 class ArtifactRemoval(nn.Module):
-    '''a.k.a. FBPConvNet (DNN is used to do denoising or artifact removal by having FBP as the input)'''
+    r'''
+        Artifact removal architecture :math:`f(A^{\top}y)`
+
+        The architecture is inspired by the FBPConvNet approach of https://arxiv.org/pdf/1611.03679
+        where a deep network :math:`f` is used to improve the linear reconstruction :math:`A^{\top}y`.
+
+        :param torch.nn.Module backbone_net: Base network :math:`f`, can be pretrained or not
+        :param bool pinv: If ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
+        :param str device: cpu or gpu.
+    '''
     def __init__(self, backbone_net, pinv=False, ckpt_path=None, device=None):
         super(ArtifactRemoval, self).__init__()
         self.pinv = pinv
@@ -21,6 +30,12 @@ class ArtifactRemoval(nn.Module):
             self.backbone_net = self.backbone_net.to(device)
 
     def forward(self, y, physics, **kwargs):
+        r'''
+        Reconstruct measurements y
+
+        :param torch.tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        '''
         print(type(self.backbone_net).__name__)
         y_in = physics.A_adjoint(y) if not self.pinv else physics.A_dagger(y)
         if type(self.backbone_net).__name__ == 'UNetRes':

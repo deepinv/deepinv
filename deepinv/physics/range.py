@@ -4,9 +4,11 @@ from deepinv.physics.forward import Physics
 
 class Decolorize(Physics):
     r'''
+
      Colorization forward operator
      Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
      The measurements are grayscale images.
+
     '''
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

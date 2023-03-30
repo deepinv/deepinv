@@ -1,6 +1,17 @@
 import torch
 
-class AE(torch.nn.Module):
+class AutoEncoder(torch.nn.Module):
+    r'''
+    Simple fully connected autoencoder network.
+
+    Simple architecture that can be used for debugging or fast prototyping.
+
+    :param int dim_input: total number of elements (pixels) of the input.
+    :param int dim_hid: number of features in intermediate layer.
+    :param int dim_hid: latent space dimension.
+    :param int residual: use a residual connection between input and output.
+
+    '''
     def __init__(self, dim_input, dim_mid=1000, dim_hid=32, residual=True):
         super().__init__()
         self.residual = residual

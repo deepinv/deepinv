@@ -6,17 +6,22 @@ from torch.autograd import Variable
 # EI loss
 # --------------------------------------------
 class EILoss(nn.Module):
+    r'''
+
+    Equivariant imaging self-supervised loss
+
+    https://https://arxiv.org/pdf/2103.14756.pdf
+
+    https://https://arxiv.org/pdf/2111.12855.pdf
+
+    :param transform: Transform to generate the virtually augmented measurement. It can be any torch-differentiable
+     function (deepinv.diffops.transform, torchvision.transforms, torch.nn.Modules, etc.)
+    :param metric: Metric used to compute the error between the reconstructed augmented measurement and the reference image.
+    :param noise: Apply noise (of physics) in the virtually augmented measurement.
+    :param weight: Weight of the loss.
+
+    '''
     def __init__(self, transform, metric=torch.nn.MSELoss(), noise=True, weight=1.):
-        '''
-        Equivariant imaging self-supervised loss
-        https://https://arxiv.org/pdf/2103.14756.pdf
-        https://https://arxiv.org/pdf/2111.12855.pdf
-        :param transform: Transform to generate the virtually augmented measurement. It can be any torch-differentiable
-         function (deepinv.diffops.transform, torchvision.transforms, torch.nn.Modules, etc.)
-        :param metric: Metric used to compute the error between the reconstructed augmented measurement and the reference image.
-        :param noise: Apply noise (of physics) in the virtually augmented measurement.
-        :param weight: Weight of the loss.
-        '''
         super(EILoss, self).__init__()
         self.name = 'ei'
         self.metric = metric
@@ -42,144 +47,84 @@ class EILoss(nn.Module):
 # Adversarial EI loss
 # --------------------------------------------
 
-class AdvEILoss(nn.Module):
-    def __init__(self, transform, physics, loss_weight_adv=1.0, loss_weight_ei=1.0, metric_adv=torch.nn.MSELoss(), metric_ei=torch.nn.MSELoss()):
-        """
-        Equivariant imaging loss
-        https://github.com/edongdongchen/Adversarial EI
-        https://https://arxiv.org/pdf/2103.14756.pdf
-        Args:
-            adv_loss_weight (float)
-            ei_loss_weight (float):
-        """
-        super(AdvEILoss, self).__init__()
-        self.loss_weight_ei = loss_weight_ei
-        self.loss_weight_adv = loss_weight_adv
-        self.metric_adv = metric_adv
-        self.metric_ei = metric_ei
+# class AdvEILoss(nn.Module):
+#     def __init__(self, transform, physics, loss_weight_adv=1.0, loss_weight_ei=1.0, metric_adv=torch.nn.MSELoss(), metric_ei=torch.nn.MSELoss()):
+#         r'''
+#
+#         Adversarial equivariant imaging loss
+#         https://github.com/edongdongchen/Adversarial EI
+#         https://https://arxiv.org/pdf/2103.14756.pdf
+#
+#         Args:
+#             adv_loss_weight (float)
+#             ei_loss_weight (float):
+#         '''
+#         super(AdvEILoss, self).__init__()
+#         self.loss_weight_ei = loss_weight_ei
+#         self.loss_weight_adv = loss_weight_adv
+#         self.metric_adv = metric_adv
+#         self.metric_ei = metric_ei
+#
+#         self.T = lambda x: transform(x)
+#         self.n_trans = transform.n_trans
+#         self.A = lambda x: physics.A(x)
+#         self.A_dagger = lambda y: physics.A_dagger(y)
+#
+#     def forward(self, y0, discriminator, generator, optimizer_G, optimizer_D):
+#
+#         x0 = Variable(self.A_dagger(y0))  # range input (pr)
+#
+#         # Adversarial ground truths
+#         valid = torch.ones(y0.shape[0], *discriminator.output_shape).type(y0.dtype).to(y0.device)
+#         valid_ei = torch.ones(y0.shape[0] * self.n_trans, *discriminator.output_shape).type(y0.dtype).to(
+#             y0.device)
+#         fake_ei = torch.zeros(y0.shape[0] * self.n_trans, *discriminator.output_shape).type(y0.dtype).to(
+#             y0.device)
+#
+#         valid = Variable(valid, requires_grad=False)
+#         valid_ei = Variable(valid_ei, requires_grad=False)
+#         fake_ei = Variable(fake_ei, requires_grad=False)
+#         # -----------------
+#         #  Train Generator
+#         # -----------------
+#
+#         optimizer_G.zero_grad()
+#
+#         # Generate a batch of images from range input
+#         x1 = generator(x0)
+#         y1 = self.A(x1)
+#
+#         # TI: x2, x3
+#         x2 = self.T(x1)
+#         x3 = generator(self.A_dagger(self.A(x2)))
+#
+#         # Loss measures generator's ability to forward consistency and TI
+#         loss_mc = self.metric_ei(y1, y0)
+#         loss_eq = self.metric_ei(x3, x2)
+#
+#         # Loss measures generator's ability to fool the discriminator
+#         loss_g = self.metric_adv(discriminator(x2), valid_ei)
+#
+#         loss_G = loss_mc + self.loss_weight_ei * loss_eq + self.loss_weight_adv * loss_g
+#
+#         loss_G.backward()
+#         optimizer_G.step()
+#
+#         # ---------------------
+#         #  Train Discriminator
+#         # ---------------------
+#
+#         optimizer_D.zero_grad()
+#
+#         # Measure discriminator's ability to classify real from generated samples
+#         real_loss = self.metric_adv(discriminator(x1.detach()), valid)
+#         fake_loss = self.metric_adv(discriminator(x2.detach()), fake_ei)
+#
+#         loss_D = 0.5 * self.adv_loss_weight * (real_loss + fake_loss)
+#
+#         loss_D.backward()
+#
+#         optimizer_D.step()
+#
+#         return loss_G, loss_D
 
-        self.T = lambda x: transform(x)
-        self.n_trans = transform.n_trans
-        self.A = lambda x: physics.A(x)
-        self.A_dagger = lambda y: physics.A_dagger(y)
-
-    def forward(self, y0, discriminator, generator, optimizer_G, optimizer_D):
-
-        x0 = Variable(self.A_dagger(y0))  # range input (pr)
-
-        # Adversarial ground truths
-        valid = torch.ones(y0.shape[0], *discriminator.output_shape).type(y0.dtype).to(y0.device)
-        valid_ei = torch.ones(y0.shape[0] * self.n_trans, *discriminator.output_shape).type(y0.dtype).to(
-            y0.device)
-        fake_ei = torch.zeros(y0.shape[0] * self.n_trans, *discriminator.output_shape).type(y0.dtype).to(
-            y0.device)
-
-        valid = Variable(valid, requires_grad=False)
-        valid_ei = Variable(valid_ei, requires_grad=False)
-        fake_ei = Variable(fake_ei, requires_grad=False)
-        # -----------------
-        #  Train Generator
-        # -----------------
-
-        optimizer_G.zero_grad()
-
-        # Generate a batch of images from range input
-        x1 = generator(x0)
-        y1 = self.A(x1)
-
-        # TI: x2, x3
-        x2 = self.T(x1)
-        x3 = generator(self.A_dagger(self.A(x2)))
-
-        # Loss measures generator's ability to forward consistency and TI
-        loss_mc = self.metric_ei(y1, y0)
-        loss_eq = self.metric_ei(x3, x2)
-
-        # Loss measures generator's ability to fool the discriminator
-        loss_g = self.metric_adv(discriminator(x2), valid_ei)
-
-        loss_G = loss_mc + self.loss_weight_ei * loss_eq + self.loss_weight_adv * loss_g
-
-        loss_G.backward()
-        optimizer_G.step()
-
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
-
-        optimizer_D.zero_grad()
-
-        # Measure discriminator's ability to classify real from generated samples
-        real_loss = self.metric_adv(discriminator(x1.detach()), valid)
-        fake_loss = self.metric_adv(discriminator(x2.detach()), fake_ei)
-
-        loss_D = 0.5 * self.adv_loss_weight * (real_loss + fake_loss)
-
-        loss_D.backward()
-
-        optimizer_D.step()
-
-        return loss_G, loss_D
-
-
-# --------------------------------------------
-# EI2 loss
-# --------------------------------------------
-class EI2Loss(nn.Module):
-    def __init__(self, transform, x_size, alpha=1., features=32, noise=True,
-                 metric=torch.nn.MSELoss(), weight=1., device='cuda:0'):
-        '''
-        :param transform: Transform to generate the virtually augmented measurement. It can be any torch-differentiable
-         function (deepinv.diffops.transform, torchvision.transforms, torch.nn.Modules, etc.)
-        :param metric: Metric used to compute the error between the reconstructed augmented measurement and the reference image.
-        :param noise: Apply noise (of physics) in the virtually augmented measurement.
-        :param weight: Weight of the loss.
-        '''
-        super(EI2Loss, self).__init__()
-        self.name = 'ei'
-        self.metric = metric
-        self.weight = weight
-        self.T = transform
-        self.noise = noise
-        self.alpha = alpha
-        self.W = torch.nn.Linear(in_features=x_size, out_features=features,
-                                 bias=False, device=device)
-
-        #self.W = torch.nn.Conv2d(in_channels=1, out_channels=features, kernel_size=3,
-        #                         bias=False, device=device)
-
-    def forward(self,  x1, physics, y):
-        x2 = self.T(x1)
-
-        # project into nullspace of physics
-        #r1 = x1 - physics.A_dagger(physics.A(x1))
-        #r2 = x2 - physics.A_dagger(physics.A(x2))
-
-        if self.noise:
-            r1 = physics(x2)
-        else:
-            r1 = physics.A(x2)
-
-        r2 = y
-
-        r1 = torch.reshape(r1, (r1.shape[0], -1))
-        r2 = torch.reshape(r2, (r2.shape[0], -1))
-
-        # compute random Fourier features
-        r1 = self.W(r1)*self.alpha
-        r2 = self.W(r2)*self.alpha
-
-        #r1 = torch.nn.functional.relu(r1)
-        #r2 = torch.nn.functional.relu(r2)
-        r1 = torch.cat([torch.sin(r1), torch.cos(r1)], dim=1)
-        r2 = torch.cat([torch.sin(r2), torch.cos(r2)], dim=1)
-
-        #r1 = (r1-r1.mean(dim=0).unsqueeze(0)).pow(2)
-        #r2 = (r2-r2.mean(dim=0).unsqueeze(0)).pow(2)
-
-
-        r1 = r1.mean(dim=0)
-        r2 = r2.mean(dim=0)
-
-        loss_ei = self.weight*self.metric(r1, r2)
-        return loss_ei

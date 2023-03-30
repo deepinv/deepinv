@@ -7,6 +7,24 @@ from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
 
 @register('waveletprior')
 class WaveletPrior(nn.Module):
+    r'''
+    Wavelet denoising with the :math:`\ell_1` norm.
+
+
+    This denoiser is defined as the solution to the optimization problem:
+
+    .. math::
+
+        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_1
+
+    where :math:`\Psi` is an orthogonal wavelet transform and :math:`\lambda>0` is a hyperparameter.
+
+    The solution is available in closed-form, thus the denoiser is cheap to compute.
+
+    :param int level: decomposition level of the wavelet transform
+    :param str wv: mother wavelet (options= TODO)
+    :param str device: cpu or gpu
+    '''
     def __init__(self, level=3, wv='db8', device='cpu'):
         super().__init__()
         self.level = level
@@ -14,8 +32,8 @@ class WaveletPrior(nn.Module):
         self.iwt = DWTInverse(wave=wv).to(device)
 
     def prox_l1(self, x, ths=0.1):
-        return torch.maximum(torch.tensor([0], device=x.device).type(x.dtype), x - ths) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype),
-                                                                                       x + ths)
+        return torch.maximum(torch.tensor([0], device=x.device).type(x.dtype), x - ths)\
+               + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths)
 
     def forward(self, x, ths=0.):
         coeffs = self.dwt(x)
@@ -27,6 +45,24 @@ class WaveletPrior(nn.Module):
 
 @register('waveletdictprior')
 class WaveletDict(nn.Module):
+    r'''
+    Overcomplete Wavelet denoising with the :math:`\ell_1` norm.
+
+    This denoiser is defined as the solution to the optimization problem:
+
+    .. math::
+
+        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_1
+
+    where :math:`\Psi` is an overcomplete wavelet transform, composed of 2 or more wavelets, i.e.,
+    :math:`\Psi=[\Psi_1,\Psi_2,\dots,\Psi_L]`, and :math:`\lambda>0` is a hyperparameter.
+
+    The solution is not available in closed-form, thus the denoiser runs an optimization for each test image.
+
+    :param int level: decomposition level of the wavelet transform
+    :param list of str wv: mother wavelets (options= TODO)
+    :param str device: cpu or gpu
+    '''
     def __init__(self, level=3, list_wv=['db8', 'db4'], max_iter=10):
         super().__init__()
         self.level = level
@@ -45,6 +81,6 @@ class WaveletDict(nn.Module):
             for p in range(len(self.list_prox)):
                 z_p[p, ...] = x + z_p[p, ...].clone() - p_p[p, ...]
             rel_crit = torch.linalg.norm((x - x_prev).flatten()) / torch.linalg.norm(x.flatten() + 1e-6)
-            if rel_crit<1e-3:
+            if rel_crit < 1e-3:
                 break
         return x
