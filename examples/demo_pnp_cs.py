@@ -2,13 +2,13 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.unfolded.unfolded import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
-from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
+from deepinv.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
 import os
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
@@ -28,7 +28,7 @@ n_channels = 1
 name_drunet = 'drunet_color' if n_channels == 3 else 'drunet_gray'
 model_spec = {'name': 'drunet',
               'args': {'in_channels':n_channels+1, 'out_channels':n_channels, 'nb':4, 'nc':[64, 128, 256, 512],
-                       'ckpt_path': '../checkpoints/'+name_drunet+'.pth'}}
+                       'ckpt_path': '../checkpoints/'+name_drunet+'.pth', 'pretrain': True}}
 
 # PATH, BATCH SIZE ETC
 batch_size = 3
@@ -37,16 +37,14 @@ dir = f'../datasets/{dataset}/{problem}/'
 noise_level_img = 0.03
 lamb = 10
 stepsize = 1.
-sigma_k = 2.
+sigma_k = 2
 sigma_denoiser = sigma_k*noise_level_img
 im_size = 256
 epochs = 2
 max_iter = 50
 crit_conv = 1e-5
 verbose = True
-early_stop = True 
-
-p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
+early_stop = True
 
 data_fidelity = L2()
 # data_fidelity = IndicatorL2(radius=2)  # Possible to use, in this case, choose primal-dual (PD) solver below for the model
@@ -57,7 +55,7 @@ train_transform = None
 physics = []
 for g in range(G):
     p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
+    # p.sensor_model = lambda x: torch.sign(x)
 
     p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
@@ -66,8 +64,9 @@ for g in range(G):
 
 # STEP 2: Defining the model
 prox_g = ProxDenoiser(model_spec, sigma_denoiser=sigma_denoiser, stepsize=stepsize, max_iter=max_iter)
-model = PGD(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
-             g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
+algo_name = 'PGD'
+model = Optim(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+             g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=crit_conv, verbose=True)
 
 # STEP 3: Test the model
 test(model=model,
@@ -76,5 +75,6 @@ test(model=model,
     device=dinv.device,
     plot=True,
     plot_input=False,
-    save_img_path='../results/results_pnp_PGD.png',
+    save_folder='../results/',
+    save_plot_path='../results/results_pnp.png',
     verbose=verbose)

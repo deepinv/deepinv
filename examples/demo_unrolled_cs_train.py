@@ -2,7 +2,7 @@ import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.optim.fixed_point import FixedPoint
@@ -10,7 +10,7 @@ from deepinv.optim.optimizers import *
 from deepinv.unfolded.unfolded import *
 from deepinv.training_utils import test, train
 from torchvision import datasets, transforms
-from deepinv.diffops.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
+from deepinv.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
 import os
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
@@ -83,7 +83,8 @@ for g in range(G):
 
 max_iter = 5
 prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-model = UnfoldedDRS(prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
+algo_name = 'DRS'
+model = Unfolded(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                    g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                    learn_stepsize=True, constant_stepsize=False)
 

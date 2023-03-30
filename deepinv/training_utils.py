@@ -232,13 +232,19 @@ def test(model, test_dataloader,
                 if not os.path.exists(save_folder):
                     os.makedirs(save_folder)
                 imgs = []
+                name_imgs = []
                 xlin = physics[g].A_adjoint(y)
-                imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                if len(y[0].shape) == 3:
+                    print(y[0].shape)
+                    imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                    name_imgs.append('y')
                 imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
+                name_imgs.append('xlin')
                 imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
+                name_imgs.append('xest')
                 imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                name_imgs.append('x')
 
-                name_imgs = ['y', 'xlin', 'x1', 'x']
                 for img, name_im in zip(imgs, name_imgs):
                     imsave(save_folder + 'G' + str(g) + '/' + name_im + '_' + str(i) + '.png', img)
 

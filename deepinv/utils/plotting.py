@@ -5,7 +5,7 @@ import torch
 
 
 def torch2cpu(img):
-    return img[0, :, :, :].clamp(min=0., max=1.).detach().permute(1, 2, 0).cpu().numpy()
+    return img[0, :, :, :].clamp(min=0., max=1.).detach().permute(1, 2, 0).squeeze().cpu().numpy()
 
 
 def tensor2uint(img):
