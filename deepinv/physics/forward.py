@@ -342,6 +342,6 @@ class Denoising(DecomposablePhysics):
 
     :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
     '''
-    def __init__(self, noise=GaussianNoise(.1), **kwargs):
+    def __init__(self, noise=GaussianNoise(sigma=.1), **kwargs):
         super().__init__(**kwargs)
         self.noise_model = noise

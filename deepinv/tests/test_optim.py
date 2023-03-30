@@ -34,7 +34,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)  # 1. Generate a dummy dataset
     test_sample = next(iter(dataloader))
 
-    physics = dinv.physics.Denoising(sigma=.2)  # 2. Set a physical experiment (here, denoising)
+    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
     backbone = dinv.models.TGV(reg=2, n_it_max=5000, crit=1e-5, verbose=True)

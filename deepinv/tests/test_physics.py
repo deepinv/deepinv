@@ -19,7 +19,7 @@ def imsize():
 operators = ['CS', 'fastCS', 'inpainting', 'denoising', 'deblur_fft', 'deblur', 'super_resolution'] #'MRI'
 
 def find_operator(name, img_size, device):
-    '''
+    r'''
     Chooses operator
 
     :param name:
@@ -37,7 +37,7 @@ def find_operator(name, img_size, device):
     elif name == 'MRI':
         p = dinv.physics.MRI(acceleration=2, mask=(torch.rand(1, img_size[-1], 1) > 1/2).type(torch.int), device=device)
     elif name == 'denoising':
-        p = dinv.physics.Denoising(sigma=.2)
+        p = dinv.physics.Denoising(dinv.physics.GaussianNoise(.1))
     elif name == 'blind_deblur':
         p = dinv.physics.BlindBlur(kernel_size=3)
     elif name == 'deblur':
@@ -54,7 +54,7 @@ def find_operator(name, img_size, device):
 
 @pytest.mark.parametrize("name", operators)
 def test_operators_adjointness(name, imsize, device):
-    '''
+    r'''
     Tests if a linear physics operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
 
