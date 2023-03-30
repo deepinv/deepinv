@@ -2,9 +2,20 @@ import torch
 from deepinv.physics import Inpainting
 
 
-class MeaSplitLoss(torch.nn.Module):
+class SplittingLoss(torch.nn.Module):
+    r'''
+    Measurement splitting loss
+
+    TODO
+
+    :param torch.nn.Module metric: metric used for computing data consistency,
+        which is set as the mean squared error by default.
+    :param float split_ratio: splitting ratio
+    :param bool regular_mask: If True, it will use a regular mask, as in Noise2Void.
+
+    '''
     def __init__(self, metric=torch.nn.MSELoss(), split_ratio=0.9, regular_mask=False):
-        super(MeaSplitLoss, self).__init__()
+        super(SplittingLoss, self).__init__()
         self.name = 'ms'
         self.metric = metric
         self.regular_mask = regular_mask

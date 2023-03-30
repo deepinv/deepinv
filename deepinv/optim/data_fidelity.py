@@ -3,12 +3,14 @@ import torch.nn as nn
 
 
 class DataFidelity(nn.Module):
-    '''
+    r'''
     Data fidelity term for optimization algorithms.
 
-    f(Ax,y)
-    '''
+    .. math:
 
+        f(Ax,y)
+
+    '''
     def __init__(self, f=None, grad_f=None, prox_f=None, prox_norm=None):
         super().__init__()
         self._grad_f = grad_f # TODO: use autograd?
@@ -47,7 +49,7 @@ class DataFidelity(nn.Module):
 
 
 class L2(DataFidelity):
-    '''
+    r'''
     L2 fidelity
 
     '''
@@ -64,14 +66,19 @@ class L2(DataFidelity):
         return physics.prox_l2(x, y, stepsize)
 
     def prox_f(self, x, y, gamma):  # Should be this instead?
-        '''
-        computes the proximal operator of \frac{1}{2}*gamma*||x-y||_2^2
+        r'''
+        computes the proximal operator of
+
+        .. math::
+
+            f(x) = \frac{1}{2}*\gamma*||x-y||_2^2
+
         '''
         return (x+gamma*y)/(1+gamma)
 
 
 class IndicatorL2(DataFidelity):
-    '''
+    r'''
     Indicator of L2 ball with radius r
 
     '''
@@ -92,9 +99,10 @@ class IndicatorL2(DataFidelity):
 
 
 class PoissonLikelihood(DataFidelity):
-    '''
+    r'''
+
     Poisson negative log likelihood
-    Figueiredo Paper
+
     '''
     def __init__(self, bkg=0):
         super().__init__()
@@ -112,7 +120,7 @@ class PoissonLikelihood(DataFidelity):
 
 
 class L1(DataFidelity):
-    '''
+    r'''
     L1 fidelity
 
     '''

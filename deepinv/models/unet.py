@@ -2,9 +2,21 @@ import torch
 import torch.nn as nn
 
 class UNet(nn.Module):
+    r'''
+    U-Net convolutional denoiser.
+
+    :param int in_channels: input image channels
+    :param int out_channels: output image channels
+    :param bool residual: use a skip-connection between output and output.
+    :param bool circular_padding: circular padding for the convolutional layers.
+    :param bool cat: use skip-connections between intermediate levels.
+    :param int scales: Number of downsampling steps used in the U-Net options=2,3,4,5. The input images should have at
+        least :math:`2^{\text{scales}` pixels in the vertical and horizontal directions. The number of trainable parameters
+        increases with the scale.
+
+    '''
     def __init__(self, in_channels=1, out_channels=1, residual=True, circular_padding=False, cat=True, scales=4):
         super(UNet, self).__init__()
-        """compact unet (4 levels)"""
         self.name = 'unet'
 
         self.in_channels = in_channels

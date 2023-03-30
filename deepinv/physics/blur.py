@@ -7,7 +7,7 @@ import torch.fft as fft
 from deepinv.physics.forward import Physics, DecomposablePhysics
 
 
-def filter_fft(filter, img_size, device='cpu'):
+def filter_fft(filter, img_size):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
@@ -17,7 +17,6 @@ def filter_fft(filter, img_size, device='cpu'):
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
     return fft.fft2(filt2)
-
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
@@ -67,15 +66,27 @@ class Downsampling(Physics):
     r'''
     Downsampling operator for super-resolution problems.
 
+    It is defined as
+
+    .. math::
+
+        y = S (h*x)
+
+    where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
+
     :param img_size: (tuple of ints), size of the input image
-    :param factor: (int), downsampling factor
-    :param filter: (torch.Tensor) custom filter. 
-    :param mode: (str) downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
-    :param sigma_gauss: (int or tuple of ints) standard deviation of the gaussian kernel. If int, the same value is used for both dimensions. If None, the standard deviation is set to the downsampling factor.
-    :param padding: (str) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+    :param int factor: downsampling factor
+    :param torch.tensor filter: custom filter.
+    :param str mode: downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
+    :param int, tuple of ints sigma_gauss: standard deviation of the gaussian kernel. If int, the same value is used for
+        both dimensions. If None, the standard deviation is set to the downsampling factor.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image.
 
     '''
-    def __init__(self, img_size, factor=2, filter = None, mode=None, sigma_gauss = None, device='cpu', padding='circular', **kwargs):
+
+    def __init__(self, img_size, factor=2, filter=None, mode=None, sigma_gauss=None, device='cpu', padding='circular', **kwargs):
         super().__init__(**kwargs)
         self.factor = factor
         self.imsize = img_size
@@ -113,7 +124,6 @@ class Downsampling(Physics):
             self.Fh2 = torch.abs(self.Fhc*self.Fh)
 
     def A(self, x):
-
         if self.filter:
             out = conv(x, self.filter, padding=self.padding)
         else:
@@ -135,6 +145,13 @@ class Downsampling(Physics):
         return x
 
     def prox_l2(self, z, y, gamma):
+        r'''
+        If the padding is circular, it computes the proximal operator with the closed-formula of https://arxiv.org/abs/1510.00143.
+
+        Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
+
+        '''
+
         if self.padding == 'circular': # Formula from (Zhao, 2016)
 
             z_hat = gamma*self.A_adjoint(y) + z
@@ -187,13 +204,13 @@ def extend_filter(filter):
 
 
 def conv(x, filter, padding):
-    '''
+    r'''
         Convolution of x and filter. The transposed of this operation is conv_transpose(x, filter, padding)
 
         :param x: (torch.Tensor) Image of size (B,C,W,H).
         :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,1,W,H) for filtering each channel with the same filter.
-        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image.
+        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
+
     '''
     b, c, h, w = x.shape
 
@@ -228,13 +245,14 @@ def conv(x, filter, padding):
 
 
 def conv_transpose(y, filter, padding):
-    '''
+    r'''
         Tranposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
 
-        :param x: (torch.Tensor) Image of size (B,C,W,H).
-        :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
-        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image.
+        :param torch.tensor x: Image of size (B,C,W,H).
+        :param torch.tensor filter: Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
+        :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+            If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+            otherwise the blurred output has the same size as the image.
     '''
 
     b, c, h, w = y.shape
@@ -311,16 +329,28 @@ def conv_transpose(y, filter, padding):
 
 
 class BlindBlur(Physics):
+    r'''
+    Blind blur operator.
+
+    If performs
+
+    .. math::
+
+        y = w*x
+
+    where :math:`*` denotes convolution and :math:`w` is an unknown filter.
+    This class uses ``torch.conv2d`` for performing the convolutions.
+
+    The signal is described by a tuple (x,w) where the first element is the clean image, and the second element
+    is the blurring kernel. The measurements y are a tensor representing the convolution of x and w.
+
+    :param int kernel_size: maximum support size of the (unknown) blurring kernels.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image.
+
+    '''
     def __init__(self, kernel_size=3, padding='circular', **kwargs):
-        r'''
-        Blind blur operator
-
-        The signal is described by a tuple (x,w) where the first element is the clean image, and the second element
-        is the blurring kernel. The measurements y are a tensor representing the convolution of x and w.
-
-        :param kernel_size: (int) maximum support size of the (unknown) blurring kernels
-        :param padding:
-        '''
         super().__init__(**kwargs)
         self.padding = padding
 
@@ -328,11 +358,28 @@ class BlindBlur(Physics):
             self.kernel_size = [kernel_size, kernel_size]
 
     def A(self, s):
+        r'''
+
+        :param tuple, list x: Tuple containing two torch.tensor, x[0] with the image and x[1] with the filter.
+        :return: (torch.tensor) blurred measurement.
+        '''
         x = s[0]
         w = s[1]
         return conv(x, w, self.padding)
 
     def A_adjoint(self, y):
+        r'''
+
+        .. note:
+
+            Since the problem is non-linear, so this is not a well-defined transpose operation,
+            but can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
+
+
+        :param torch.tensor y: blurred measurement.
+        :return: Tuple containing two torch.tensor, x[0] = blurry input and x[1] with a delta filter, such that
+            the convolution of x[0] and x[1] is y.
+        '''
         x = y.clone()
         mid_h = int(self.kernel_size[0]/2)
         mid_w = int(self.kernel_size[1]/2)
@@ -343,16 +390,25 @@ class BlindBlur(Physics):
 
 
 class Blur(Physics):
-    def __init__(self, filter=gaussian_blur(), padding='circular', device='cpu', **kwargs):
-        r'''
+    r'''
 
-        Blur operator. Uses torch.conv2d for performing the convolutions
+    Blur operator
 
-        :param filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter
-        :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding)
+    It performs
+
+    .. math:: y = w*x
+
+    where :math:`*` denotes convolution and :math:`w` is a filter.
+
+    This class uses ``torch.conv2d`` for performing the convolutions.
+
+    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., ``deepinv.physics.gaussian_blur()``
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
-        :param device: cpu or cuda
-        '''
+    :param str device: cpu or cuda.
+
+    '''
+    def __init__(self, filter, padding='circular', device='cpu', **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
@@ -366,14 +422,26 @@ class Blur(Physics):
 
 
 class BlurFFT(DecomposablePhysics):
-    def __init__(self,  img_size, filter=gaussian_blur(), device='cpu', **kwargs):
-        '''
-        Blur operator based on torch.fft operations. Uses torch.conv2d for performing the convolutions
-        The FFT assumes a circular padding of the input
+    '''
 
-        :param filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter
-        :param device: cpu or cuda
-        '''
+    FFT-based Blur operator
+
+    It performs
+
+    .. math:: y = w*x
+
+    where :math:`*` denotes convolution and :math:`w` is a filter.
+
+    Blur operator based on ``torch.fft`` operations, which assumes a circular padding of the input, and allows for
+    the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
+
+    :param tuple img_size: Input image size in the form (C, H, W).
+    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g., ``deepinv.physics.gaussian_blur()``.
+    :param str device: cpu or cuda
+
+    '''
+
+    def __init__(self,  img_size, filter, device='cpu', **kwargs):
         super().__init__(**kwargs)
 
         assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'

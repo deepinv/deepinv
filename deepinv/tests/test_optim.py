@@ -5,7 +5,6 @@ from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr
 from deepinv.utils.plotting import plot_debug, torch2cpu
 
 from torch.utils.data import DataLoader
@@ -35,7 +34,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)  # 1. Generate a dummy dataset
     test_sample = next(iter(dataloader))
 
-    physics = dinv.physics.Denoising(sigma=.2)  # 2. Set a physical experiment (here, denoising)
+    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
     ths = 2.

@@ -1,10 +1,8 @@
-import sys
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
-from deepinv.diffops.models.denoiser import Denoiser
+from deepinv.models.denoiser import Denoiser
 from deepinv.training_utils import test
-from torchvision import datasets, transforms
 
 # num_workers = 4  # set to 0 if using small cpu
 num_workers = 0  # set to 0 if using small cpu
@@ -18,9 +16,9 @@ n_channels = 3
 pretrain = True
 train = False
 model_spec = {'name': 'gsdrunet',
-              'args': {'in_channels':n_channels+1, 'out_channels':n_channels,
+              'args': {'in_channels': n_channels+1, 'out_channels': n_channels,
                        'ckpt_path': '../checkpoints/GSDRUNet.ckpt',
-                        'pretrain':pretrain, 'train':train, 'device':dinv.device}}
+                        'pretrain': pretrain, 'train': train, 'device': dinv.device}}
 # pnp_algo = 'HQS'
 batch_size = 1
 dataset = 'set3c'
@@ -58,10 +56,9 @@ for g in range(G):
     dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
     dataloader.append(DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False))
 
-from deepinv.diffops.models.denoiser import Denoiser
 denoiser = Denoiser(model_spec=model_spec)
-model = lambda x,physics : denoiser(x, sigma)
-plot=True
+model = lambda x, physics: denoiser(x, sigma)
+plot = True
 
 test(model=model,
      test_dataloader=dataloader,
@@ -69,4 +66,4 @@ test(model=model,
      plot=plot,
      device=dinv.device,
      save_img_path='results/example_denoising.png',
-     plot_input = True)
+     plot_input=True)

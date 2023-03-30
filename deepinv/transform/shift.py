@@ -1,11 +1,14 @@
 import torch
 
 class Shift(torch.nn.Module):
-    def __init__(self, n_trans):
-        '''
+    r'''
+        Fast integer 2D translations.
+
         Generates n_transf randomly shifted versions of 2D images with circular padding.
+
         :param n_trans: number of shifted versions generated per input image.
-        '''
+    '''
+    def __init__(self, n_trans):
         super(Shift, self).__init__()
         self.n_trans = n_trans
     def forward(self, data):

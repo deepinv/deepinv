@@ -14,7 +14,7 @@ def train(model,
           physics=None,
           scheduler=None,
           optimizer=None,
-          device=torch.device(f"cuda:0"),
+          device='cpu',
           ckp_interval=100,
           eval_interval=1, 
           save_path='.',
@@ -24,14 +24,6 @@ def train(model,
           plot_input=False,
           wandb_vis=False,
           debug=False):
-    """
-    Trains a reconstruction model with the train dataloader.
-    ----------
-    train_dataloader
-        A string indicating the name of the person.
-    learning_rate
-        learning rate of the optimizer
-    """
 
     if wandb_vis:
         wandb.watch(model)

@@ -27,6 +27,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     :param max_iter: maximum number of CG iterations
     :param tol: absolute tolerance for stopping the CG algorithm.
     :return: torch tensor x verifying Ax=b
+
     '''
 
     def dot(s1, s2):
@@ -62,6 +63,7 @@ def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
     :param max_iter: maximum number of iterations
     :param tol: absolute tolerance for stopping the algorithm.
     :return: torch tensor x verifying min_x f(x)
+
     '''
 
     for i in range(int(max_iter)):

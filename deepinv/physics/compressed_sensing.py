@@ -3,39 +3,41 @@ import torch
 import numpy as np
 
 
-def hadamard(u, normalize=True):
-    """
-    Hadamard Transform
-    The transform is performed across the last dimension of the input signal
-    If normalize=True, the transform is orthogonal and hadamard(hadamard(x)) = x
-    The length of the signal should be a power of 2
-    Parameters:
-        u: Tensor of shape (..., n)
-        normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
-    Returns:
-        product: Tensor of shape (..., n)
-    """
-
-    u_shape = u.shape
-    n = u.shape[-1]
-    u = u.view(-1, u_shape[-1])
-
-    m = int(np.log2(n))
-    assert n == 1 << m, 'n must be a power of 2'
-    x = u[..., np.newaxis]
-    for d in range(m)[::-1]:
-        x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
-    return x.view(*u_shape) / 2**(m / 2) if normalize else x.squeeze(-2)
+# def hadamard(u, normalize=True):
+#     """
+#     Hadamard Transform
+#     The transform is performed across the last dimension of the input signal
+#     If normalize=True, the transform is orthogonal and hadamard(hadamard(x)) = x
+#     The length of the signal should be a power of 2
+#     Parameters:
+#         u: Tensor of shape (..., n)
+#         normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
+#     Returns:
+#         product: Tensor of shape (..., n)
+#     """
+#
+#     u_shape = u.shape
+#     n = u.shape[-1]
+#     u = u.view(-1, u_shape[-1])
+#
+#     m = int(np.log2(n))
+#     assert n == 1 << m, 'n must be a power of 2'
+#     x = u[..., np.newaxis]
+#     for d in range(m)[::-1]:
+#         x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
+#     return x.view(*u_shape) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
 def dst1(x):
-    """
+    r'''
     Orthogonal Discrete Sine Transform, Type I
     The transform is performed across the last dimension of the input signal
-    Due to orthogonality dst1(dst1(x)) = x
-    :param x: the input signal
-    :return: the DST-I of the signal over the last dimension
-    """
+    Due to orthogonality we have ``dst1(dst1(x)) = x``.
+
+    :param torch.tensor x: the input signal
+    :return: (torch.tensor) the DST-I of the signal over the last dimension
+
+    '''
     x_shape = x.shape
 
     b = int(np.prod(x_shape[:-1]))
@@ -50,23 +52,36 @@ def dst1(x):
 
 
 class CompressedSensing(Physics):
-    def __init__(self, m, img_shape, fast=False, channelwise=False, dtype=torch.float, device='cuda:0', **kwargs):
-        """
-        Compressed Sensing forward operator. Creates a random sampling m x n matrix where n= prod(img_shape).
-        This class generates a random iid Gaussian matrix if fast=False or
-        a Subsampled Orthogonal with Random Signs matrix (SORS) if fast=True (see e.g.,
-        "Isometric sketching of any set via the Restricted Isometry Property" by Oymak et al. 2015) where the DCT1
-        is used as a fast orthogonal transform.
-        It is recommended to use fast=True for image sizes bigger than 32 x 32, since the forward computation with
-        fast=False has an O(mn) complexity, whereas with fast=True it has an O(n log n) complexity.
+    r'''
+    Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where n= prod(img_shape).
+    This class generates a random iid Gaussian matrix if ``fast=False``
 
-        :param m: number of measurements.
-        :param img_shape: shape (C, H, W) of inputs.
-        :param fast: A is iid Gaussian if false, otherwise A is a SORS matrix with Hadamard transform.
-        :param channelwise: Channels are processed independently using the same random forward operator.
-        :param dtype: Forward matrix is stored as a dtype.
-        :param device: Device to store the forward matrix.
-        """
+    .. math::
+
+        A_{i,j} \sim \mathcal{N}(0,\frac{1}{\sqrt{n} + \sqrt{m}})
+
+    or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see https://arxiv.org/abs/1506.03521)
+
+    .. math::
+
+        A = \text{diag}(m)D\text{diag}(s)
+
+    where :math:`s\in\{-1,1\}^{n}` is a random sign flip with probability 0.5,
+    :math:`D\in\mathbb{R}^{n\times n}` is a fast orthogonal transform (DST-1) and
+    :math:`\text{diag}(m)\in\mathbb{R}^{m\times n}` is random subsampling matrix, which keeps :math:`m` out of :math:`n` entries.
+
+    It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
+    ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
+
+    :param int m: number of measurements.
+    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
+    :param bool channelwise: Channels are processed independently using the same random forward operator.
+    :param torch.type dtype: Forward matrix is stored as a dtype.
+    :param str device: Device to store the forward matrix.
+
+    '''
+    def __init__(self, m, img_shape, fast=False, channelwise=False, dtype=torch.float, device='cpu', **kwargs):
         super().__init__(**kwargs)
         self.name = f'CS_m{m}'
         self.img_shape = img_shape

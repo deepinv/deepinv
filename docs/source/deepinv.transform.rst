@@ -1,20 +1,12 @@
 Transforms
 =================================
 
-This package contains different transforms which can be used for data augmentation or together with the equivariant imaging loss.
+This package contains different transforms which can be used for data augmentation or together with the equivariant losses.
 
-Rotate
----------------------------------------
+.. autosummary::
+   :toctree: stubs
+   :template: class.rst
+   :nosignatures:
 
-.. automodule:: deepinv.transform.rotate
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Shift
---------------------------------------
-
-.. automodule:: deepinv.transform.shift
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    deepinv.transform.Rotate
+    deepinv.transform.Shift

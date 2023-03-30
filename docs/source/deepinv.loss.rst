@@ -1,69 +1,64 @@
 Loss
 ====================
 
-This package contains popular training losses for supervised and self-supervised learning.
+This package contains popular training losses for supervised and self-supervised learning,
+which are especially designed for inverse problems.
 
-
-Equivariant Imaging
-----------------------
-
-.. automodule:: deepinv.loss.ei
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Other Losses
-------------------------
-
-.. automodule:: deepinv.loss.metric
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Measurement Consistency
-----------------------------
-
-.. automodule:: deepinv.loss.mc
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Measurement Splitting
-----------------------------
-
-.. automodule:: deepinv.loss.measplit
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Multioperator Imaging
------------------------
-
-.. automodule:: deepinv.loss.moi
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Supervised Learning
 -----------------------
+Use a dataset of pairs of signals and measurements (and possibly information about the forward operator),
+i.e., they can be written as :math:`\mathcal{L}(x,f(y))`.
 
-.. automodule:: deepinv.loss.sup
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
 
-Stein's Unbiased Risk Estimator (SURE)
-----------------------------------------
+    deepinv.loss.SupLoss
 
-.. automodule:: deepinv.loss.sure
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
-Total Variation
-----------------------
+Self-Supervised Learning
+---------------------------
+Use a dataset of measurement data alone (and possibly information about the forward operator),
+i.e., they can be written as :math:`\mathcal{L}(y,f(y))` and take into account information
+about the forward measurement process.
 
-.. automodule:: deepinv.loss.tv
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.MCLoss
+    deepinv.loss.EILoss
+    deepinv.loss.MOILoss
+    deepinv.loss.SplittingLoss
+    deepinv.loss.SureGaussianLoss
+    deepinv.loss.SurePoissonLoss
+    deepinv.loss.SurePGLoss
+    deepinv.loss.TVLoss
+
+
+Network Regularization
+---------------------------
+These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.JacobianSpectralNorm
+
+
+Metrics
+------------------------
+A set of popular metrics that can be used by the supervised and self-supervised losses.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.LpNorm
+    deepinv.loss.CharbonnierLoss

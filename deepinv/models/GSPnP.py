@@ -7,15 +7,17 @@ class StudentGrad(nn.Module):
     def __init__(self, denoiser):
         super().__init__()
         self.model = denoiser
+
     def forward(self, x, sigma):
         return self.model(x, sigma)
 
 class GSPnP(nn.Module):
-    '''
+    r'''
     Gradient Step module to use a denoiser architecture as a Gradient Step Denoiser.
-    :param denoiser: (nn.Module) Denoiser module
+
+    :param nn.Module denoiser: Denoiser network.
     '''
-    def __init__(self, denoiser, train = False):
+    def __init__(self, denoiser, train=False):
         super().__init__()
         self.student_grad = StudentGrad(denoiser)
         self.train = train
@@ -25,11 +27,12 @@ class GSPnP(nn.Module):
         return 0.5*torch.norm(x-N)**2
 
     def potential_grad(self, x, sigma):
-        '''
-        Calculate Dg(x) the gradient of the regularizer g at input x
-        :param x: torch.tensor Input image
-        :param sigma: Denoiser level (std)
-        :return: Dg(x), DRUNet output N(x)
+        r'''
+            Calculate Dg(x) the gradient of the regularizer g at input x
+
+            :param torch.tensor x: Input image
+            :param float sigma: Denoiser level (std)
+            :return: Dg(x), DRUNet output N(x)
         '''
         torch.set_grad_enabled(True)
         x = x.float()
@@ -42,10 +45,11 @@ class GSPnP(nn.Module):
         return Dg
 
     def forward(self, x, sigma):
-        '''
+        r'''
         Denoising with Gradient Step Denoiser
-        :param x:  torch.tensor input image
-        :param sigma: Denoiser level (std)
+
+        :param torch.tensor x: input image
+        :param float sigma: Denoiser level (std)
         :return: Denoised image x_hat, Dg(x) gradient of the regularizer g at x
         '''
         Dg = self.potential_grad(x, sigma)
@@ -55,11 +59,13 @@ class GSPnP(nn.Module):
 @register('gsdrunet')
 def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='E', pretrain=False, ckpt_path=None, train=False, device=torch.device('cpu')):
     '''
-    Gradient Step DRUNet
-    :param in_channels: (int) Number of input channels
-    :param out_channels: (int) Number of output channels
-    :param nb: (int) Number of blocks in the DRUNet
-    :param nc: (list) Number of channels in the DRUNet
+        Gradient Step DRUNet.
+
+
+        :param int in_channels: Number of input channels
+        :param int out_channels: Number of output channels
+        :param int nb: Number of blocks in the DRUNet
+        :param list nc: Number of channels in the DRUNet
     '''
     from deepinv.models.drunet import DRUNet
     denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode, pretrain=False, train=train, device=device)
@@ -74,4 +80,3 @@ def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mo
     return GSmodel
 
 
-    

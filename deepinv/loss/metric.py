@@ -7,6 +7,17 @@ from torch import autograd as autograd
 #todo: define an individual noise module (Gaussian, Possion, MPG) DONE
 
 class LpNorm(torch.nn.Module):
+    r'''
+        :math:`\ell_p` metric for :math:`p>0`.
+
+
+        If ``onesided=False`` then the metric is defined as
+        :math:`d(x,y)=\|x-y\|_p^p`.
+
+        otherwise it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
+        :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
+
+    '''
     def __init__(self, p=2, onesided=False):
         super().__init__()
         self.p = p
@@ -30,8 +41,10 @@ def l1():
 # Charbonnier loss
 # --------------------------------------------
 class CharbonnierLoss(nn.Module):
-    """Charbonnier Loss (L1)"""
+    r'''
+        Charbonnier Loss
 
+    '''
     def __init__(self, eps=1e-9):
         super(CharbonnierLoss, self).__init__()
         self.eps = eps

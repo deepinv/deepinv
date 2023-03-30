@@ -20,14 +20,17 @@ With ``deepinv`` you can:
 * Test new deep learning-based methods on various standard inverse problems (MRI, CT, deblurring, super-resolution, inpainting, colorization, etc.) and compare with existing state-of-the-art methods.
 * Create and share datasets, which can be seamlessly evaluated by other users.
 
+
 .. raw:: html
 
    <div align="center">
      <img src="docs/source/figures/deepinv_schematic.png" width="1000"/>
     </div>
 
+Read the documentation and examples at `https://deepinv.github.io/deepinv/ <https://deepinv.github.io/deepinv/>`__.
+
 Install
--------
+----------
 
 (To be updated, the first stable release will come soon)
 

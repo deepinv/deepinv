@@ -1,16 +1,17 @@
 import torch
 import torch.nn as nn
+# --------------------------------------------
+# Supervised loss
+# --------------------------------------------
 
-# --------------------------------------------
-# Supversided loss
-# --------------------------------------------
 class SupLoss(nn.Module):
+    r'''
+    Standard supervised loss
+
+    :param torch.nn.Module metric: metric used for computing data consistency,
+        which is set as the mean squared error by default.
+    '''
     def __init__(self, metric=torch.nn.MSELoss()):
-        """
-        supervised (paired GT x and meas. y) loss
-        Args:
-            sup_loss_weight (int):
-        """
         super(SupLoss, self).__init__()
         self.name = 'sup'
         self.metric = metric

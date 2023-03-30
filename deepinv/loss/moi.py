@@ -6,16 +6,18 @@ import numpy as np
 # MOI loss
 # --------------------------------------------
 class MOILoss(nn.Module):
+    r'''
+    Multi-operator imaging loss
+
+    https://arxiv.org/abs/2201.12151
+
+
+    :param torch.nn.Module metric: metric used for computing data consistency,
+        which is set as the mean squared error by default.
+    :param float weight: total weight of the loss
+    :param bool noise: if True, the augmented measurement is computed with the full sensing model (noise+sensor model), otherwise is generated in a noiseless manner y=A_gx.
+    '''
     def __init__(self, metric=torch.nn.MSELoss(), noise=True, weight=1.):
-        """
-        Equivariant imaging loss
-        https://github.com/edongdongchen/EI
-        https://https://arxiv.org/pdf/2103.14756.pdf
-        Args:
-            metric (torch.nn.Module): metric used to compute the reconstruction error. default is mean squared error
-            weight (float): total weight of the loss
-            noise (bool): if True, the augmented measurement is computed with the full sensing model (noise+sensor model), otherwise is generated in a noiseless manner y=A_gx.
-        """
         super(MOILoss, self).__init__()
         self.name = 'moi'
         self.metric = metric

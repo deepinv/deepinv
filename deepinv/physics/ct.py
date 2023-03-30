@@ -159,8 +159,8 @@ def deg2rad(x):
     return x*PI/180
 
 class IRadon(nn.Module):
-    def __init__(self, in_size=None, theta=None, circle=False,
-                 use_filter=RampFilter(), out_size=None, dtype=torch.float):
+    def __init__(self, use_filter, in_size=None, theta=None, circle=False,
+                 out_size=None, dtype=torch.float):
         super(IRadon, self).__init__()
         self.circle = circle
         self.theta = theta if theta is not None else torch.arange(180)
