@@ -21,8 +21,9 @@ dataset = 'MNIST'
 G = 1
 
 # PRIOR SELECTION
-model_spec = {'name': 'waveletprior',
-              'args': {'wv':'db8', 'level': 3}}
+# model_spec = {'name': 'waveletprior',
+#               'args': {'wv':'db8', 'level': 3}}
+model_spec = {'name': 'tgv', 'args': {'n_it_max':20, 'verbose':False}}
 # model_spec = {'name': 'waveletdictprior',
 #               'args': {'max_iter':2, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':2}}
 # n_channels = 1
@@ -83,7 +84,7 @@ for g in range(G):
 
 max_iter = 5
 prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-algo_name = 'DRS'
+algo_name = 'PGD'
 model = Unfolded(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
                    g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
                    learn_stepsize=True, constant_stepsize=False)

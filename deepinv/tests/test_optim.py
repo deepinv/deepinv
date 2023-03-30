@@ -70,7 +70,7 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
     physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 0.01
+    sigma_denoiser = 0.1
     stepsize = 1.
 
     data_fidelity = L2()
