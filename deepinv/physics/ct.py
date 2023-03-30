@@ -110,6 +110,54 @@ class Radon(nn.Module):
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
         return all_grids
 
+
+class RampFilter(nn.Module):
+    def __init__(self):
+        super(RampFilter, self).__init__()
+
+    def forward(self, x):
+        input_size = x.shape[2]
+        projection_size_padded = \
+            max(64, int(2 ** (2 * torch.tensor(input_size)).float().log2().ceil()))
+        pad_width = projection_size_padded - input_size
+        padded_tensor = F.pad(x, (0,0,0,pad_width))
+        f = self._get_fourier_filter(padded_tensor.shape[2]).to(x.device)
+        fourier_filter = self.create_filter(f)
+        fourier_filter = fourier_filter.unsqueeze(-2)
+        projection = torch.rfft(padded_tensor.transpose(2,3), 1, onesided=False).transpose(2,3) * fourier_filter
+        return torch.irfft(projection.transpose(2,3), 1, onesided=False).transpose(2,3)[:,:,:input_size,:]
+
+    def _get_fourier_filter(self, size):
+        n = torch.cat([
+            torch.arange(1, size / 2 + 1, 2),
+            torch.arange(size / 2 - 1, 0, -2)
+        ])
+
+        f = torch.zeros(size)
+        f[0] = 0.25
+        f[1::2] = -1 / (PI * n) ** 2
+
+        fourier_filter = torch.rfft(f, 1, onesided=False)
+        fourier_filter[:,1] = fourier_filter[:,0]
+
+        return 2*fourier_filter
+
+    def create_filter(self, f):
+        return f
+
+def fftfreq(n):
+    val = 1.0/n
+    results = torch.zeros(n)
+    N = (n-1)//2 + 1
+    p1 = torch.arange(0, N)
+    results[:N] = p1
+    p2 = torch.arange(-(n//2), 0)
+    results[N:] = p2
+    return results*val
+
+def deg2rad(x):
+    return x*PI/180
+
 class IRadon(nn.Module):
     def __init__(self, use_filter, in_size=None, theta=None, circle=False,
                  out_size=None, dtype=torch.float):
@@ -186,49 +234,3 @@ class IRadon(nn.Module):
             all_grids.append(torch.cat((X.unsqueeze(-1), Y.unsqueeze(-1)), dim=-1).unsqueeze(0))
         return all_grids
 
-class RampFilter(nn.Module):
-    def __init__(self):
-        super(RampFilter, self).__init__()
-
-    def forward(self, x):
-        input_size = x.shape[2]
-        projection_size_padded = \
-            max(64, int(2 ** (2 * torch.tensor(input_size)).float().log2().ceil()))
-        pad_width = projection_size_padded - input_size
-        padded_tensor = F.pad(x, (0,0,0,pad_width))
-        f = self._get_fourier_filter(padded_tensor.shape[2]).to(x.device)
-        fourier_filter = self.create_filter(f)
-        fourier_filter = fourier_filter.unsqueeze(-2)
-        projection = torch.rfft(padded_tensor.transpose(2,3), 1, onesided=False).transpose(2,3) * fourier_filter
-        return torch.irfft(projection.transpose(2,3), 1, onesided=False).transpose(2,3)[:,:,:input_size,:]
-
-    def _get_fourier_filter(self, size):
-        n = torch.cat([
-            torch.arange(1, size / 2 + 1, 2),
-            torch.arange(size / 2 - 1, 0, -2)
-        ])
-
-        f = torch.zeros(size)
-        f[0] = 0.25
-        f[1::2] = -1 / (PI * n) ** 2
-
-        fourier_filter = torch.rfft(f, 1, onesided=False)
-        fourier_filter[:,1] = fourier_filter[:,0]
-
-        return 2*fourier_filter
-
-    def create_filter(self, f):
-        return f
-
-def fftfreq(n):
-    val = 1.0/n
-    results = torch.zeros(n)
-    N = (n-1)//2 + 1
-    p1 = torch.arange(0, N)
-    results[:N] = p1
-    p2 = torch.arange(-(n//2), 0)
-    results[N:] = p2
-    return results*val
-
-def deg2rad(x):
-    return x*PI/180

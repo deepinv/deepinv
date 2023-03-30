@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.utils import gradient_descent
 
 
 class OptimIterator(nn.Module):
@@ -8,11 +7,6 @@ class OptimIterator(nn.Module):
     Optimization algorithms Fixed Point Iterations for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
     and g is a regularizer either explicit or implicitly given by either its prox or its gradient.
     By default, the algorithms starts with a step on f and finishes with step on g.
-
-    TODO : adapt PD to the new g_step / f_step stype.
-    TODO : update stepize PD removed.
-    TODO : add accelerated algorithms.
-    TODO : ADMM
 
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param lamb: Regularization parameter.
@@ -75,10 +69,11 @@ class gStep(nn.Module):
 
         if prox_g is None and grad_g is None:
             if g is not None and isinstance(g, nn.Module):
+                
                 def grad_g(self, x, *args):
                     torch.set_grad_enabled(True)
                     return torch.autograd.grad(g(x, *args), x, create_graph=True, only_inputs=True)[0]
-
+                from deepinv.optim.utils import gradient_descent
                 def prox_g(self, x, *args):
                     grad = lambda y: grad_g(y, *args) + (1 / 2) * (y - x)
                     return gradient_descent(grad, x, stepsize_inter, max_iter=max_iter_inter, tol=tol_inter)

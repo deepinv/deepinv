@@ -69,7 +69,14 @@ def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mo
     '''
     from deepinv.models.drunet import DRUNet
     denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode, pretrain=False, train=train, device=device)
-    model = GSPnP(denoiser, train=train)
-    if pretrain and ckpt_path is not None:
-        model.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
-    return model
+    GSmodel = GSPnP(denoiser, train=train)
+    if pretrain:
+        if ckpt_path is not None:
+            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+        else :
+            url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt'
+            ckpt = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage, file_name='GSDRUNet.ckpt')['state_dict']
+        GSmodel.load_state_dict(ckpt, strict=False)
+    return GSmodel
+
+
