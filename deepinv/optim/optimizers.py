@@ -29,6 +29,7 @@ class BaseOptim(nn.Module):
             self.fixed_point = FixedPoint(self.iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
 
     def get_init(self, y, physics):
+        self.iterator.g_step.prox_g.denoiser.restart = True  # reset the variables of the prox at the beginning of each algo
         return physics.A_adjoint(y), y
 
     def get_primal_variable(self, x):

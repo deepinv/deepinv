@@ -52,9 +52,12 @@ class Denoiser(nn.Module):
         if isinstance(sigma_denoiser, float):
             self.sigma_denoiser = [sigma_denoiser] * self.max_iter
         elif isinstance(sigma_denoiser, list):
+            print(len(sigma_denoiser))
+            print('max ister ', self.max_iter)
             assert len(sigma_denoiser) == self.max_iter
             self.sigma_denoiser = sigma_denoiser
         else:
+            print(sigma_denoiser)
             raise ValueError('sigma_denoiser must be either float or a list of length max_iter')
 
         if isinstance(stepsize, float):

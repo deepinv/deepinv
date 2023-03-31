@@ -3,7 +3,7 @@ import pytest
 import deepinv as dinv
 from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
-import deepinv.optim.optimizers as optimizers
+from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot_debug, torch2cpu
 
@@ -37,10 +37,12 @@ def test_denoiser(imsize, dummy_dataset, device):
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
-    backbone = dinv.models.TGV(reg=2, n_it_max=5000, crit=1e-5, verbose=True)
-    model = dinv.models.ArtifactRemoval(backbone)
+    ths = 2.
 
-    x = model(y, physics)  # 3. Apply the model we want to test
+    model_spec = {'name': 'tgv', 'args': {'n_it_max': 1000, 'verbose': False}}
+    model = ProxDenoiser(model_spec, max_iter=1, sigma_denoiser=ths, stepsize=1.)
+
+    x = model(y, ths, 0)  # 3. Apply the model we want to test
 
     plot = False
 
@@ -54,11 +56,11 @@ def test_denoiser(imsize, dummy_dataset, device):
         plot_debug(imgs, shape=(1, num_im), titles=titles,
                    row_order=True, save_dir=None)
 
-    assert model.backbone_net.has_converged
+    assert model.denoiser.has_converged
 
 
-# optim_algos = ['PGD', 'HQS', 'DRS', 'ADMM', 'PD']
-optim_algos = ['PGD']
+optim_algos = ['PGD', 'HQS', 'DRS', 'ADMM', 'PD']
+# optim_algos = ['DRS']
 # optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
@@ -69,15 +71,14 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
     physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 0.01
+    sigma_denoiser = 0.1
     stepsize = 1.
 
     data_fidelity = L2()
 
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
     denoiser = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-    class_algo = getattr(optimizers, pnp_algo)
-    pnp = class_algo(prox_g=denoiser, data_fidelity=data_fidelity, stepsize=denoiser.stepsize, device=dinv.device,
+    pnp = Optim(pnp_algo, prox_g=denoiser, data_fidelity=data_fidelity, stepsize=denoiser.stepsize, device=dinv.device,
              g_param=denoiser.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
 
     x = pnp(y, physics)
@@ -94,4 +95,3 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
                    row_order=True, save_dir=None)
 
     assert pnp.has_converged()
-

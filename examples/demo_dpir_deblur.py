@@ -99,5 +99,6 @@ test(model=model,  # Safe because it has forward
     device=dinv.device,
     plot=True,
     plot_input=True,
-    save_img_path='../results/results_pnp.png',
+    save_folder='../results/',
+    save_plot_path='../results/results_pnp.png',
     verbose=verbose)
