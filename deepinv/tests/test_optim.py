@@ -23,7 +23,6 @@ def imsize():
     return c, h, w
 
 
-# TODO: use a DummyCircle as dataset and check convergence of optim algorithms (maybe with TV denoiser)
 @pytest.fixture
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)

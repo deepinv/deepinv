@@ -4,6 +4,6 @@ from deepinv.loss.moi import MOILoss
 from deepinv.loss.sup import SupLoss
 from deepinv.loss.tv import TVLoss
 from deepinv.loss.sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
-from deepinv.loss.regularisers import JacobianSpectralNorm
+from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.loss.metric import LpNorm, CharbonnierLoss
