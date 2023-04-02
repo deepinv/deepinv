@@ -21,7 +21,7 @@ class Inpainting(DecomposablePhysics):
     :param torch.tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli distribution with probability=mask. If the input is a torch tensor matching tensor_size, the mask will be set to this tensor.
 
     '''
-    def __init__(self, tensor_size, mask=0.3, device='cpu', **kwargs):
+    def __init__(self, tensor_size, mask=0.3, device='cpu', pixelwise=True, **kwargs):
         super().__init__(**kwargs)
         self.tensor_size = tensor_size
 
@@ -30,6 +30,10 @@ class Inpainting(DecomposablePhysics):
         else:# otherwise create new random mask
             mask_rate = mask
             self.mask = torch.ones(tensor_size, device=device)
-            self.mask[torch.rand_like(self.mask) > mask_rate] = 0
+            aux = torch.rand_like(self.mask)
+            if not pixelwise:
+                self.mask[aux > mask_rate] = 0
+            else:
+                self.mask[:, aux[0, :, :] > mask_rate] = 0
 
         self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
