@@ -10,7 +10,6 @@ class HQSIteration(OptimIterator):
         self.g_step = gStepHQS(**kwargs)
         self.f_step = fStepHQS(**kwargs)
 
-
 class fStepHQS(fStep):
 
     def __init__(self, **kwargs):

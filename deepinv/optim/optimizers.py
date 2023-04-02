@@ -37,6 +37,7 @@ class BaseOptim(nn.Module):
 
 
         '''
+        self.iterator.g_step.prox_g.denoiser.restart = True  # reset the variables of the prox at the beginning of each algo
         return physics.A_adjoint(y), y
 
     def get_primal_variable(self, x):

@@ -23,8 +23,8 @@ class OptimIterator(nn.Module):
         super(OptimIterator, self).__init__()
 
         self.f_step = fStep(data_fidelity=data_fidelity, lamb=lamb, g_first=g_first, stepsize=stepsize)
-        self.g_step = gStep(prox_g=prox_g, grad_g=grad_g, g_param=g_param, stepsize=stepsize, g_first=g_first, max_iter_inter=max_iter_inter,
-                 tol_inter=tol_inter)
+        self.g_step = gStep(prox_g=prox_g, grad_g=grad_g, g_param=g_param, stepsize=stepsize, g_first=g_first,
+                            max_iter_inter=max_iter_inter, tol_inter=tol_inter)
         self.beta = beta
         self.g_first = g_first
 

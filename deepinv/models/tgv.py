@@ -40,15 +40,16 @@ class TGV(nn.Module):
     TODO: register appropriate buffers, backprop not possible yet!
     '''
 
-    def __init__(self, reg=1., verbose=True, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None):
+    def __init__(self, verbose=True, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None):
         super(TGV, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
         self.crit = crit
+        self.restart = True
 
-        self.lambda1 = reg * 0.1
-        self.lambda2 = reg * 0.15
+        # lambda1 = reg * 0.1
+        # lambda2 = reg * 0.15
         self.tau = 0.01  # >0
 
         self.rho = 1.99  # in 1,2
@@ -63,27 +64,28 @@ class TGV(nn.Module):
     def prox_tau_fx(self, x, y):
         return (x + self.tau * y) / (1 + self.tau)
 
-    def prox_tau_fr(self, r):
-        left = torch.sqrt(torch.sum(r ** 2, axis=-1)) / (self.tau * self.lambda1)
+    def prox_tau_fr(self, r, lambda1):
+        left = torch.sqrt(torch.sum(r ** 2, axis=-1)) / (self.tau * lambda1)
         tmp = r - r / (torch.maximum(left, torch.tensor([1],device=left.device).type(left.dtype)).unsqueeze(-1))
         return tmp
 
-    def prox_sigma_g_conj(self, u):
-        return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / self.lambda2,
+    def prox_sigma_g_conj(self, u, lambda2):
+        return u / (torch.maximum(torch.sqrt(torch.sum(u ** 2, axis=-1)) / lambda2,
                                   torch.tensor([1], device=u.device).type(u.dtype)).unsqueeze(-1))
 
-    def forward(self, y, sigma=None):
+    def forward(self, y, ths=None):
 
-        restart = True if self.x2 is None or self.x2.shape != y.shape else False
-
-        if sigma is not None:
-            self.lambda1 = sigma * 0.1
-            self.lambda2 = sigma * 0.15
+        restart = True if (self.restart or self.x2 is None or self.x2.shape != y.shape) else False
 
         if restart:
             self.x2 = y.clone()
             self.r2 = torch.zeros((*self.x2.shape, 2), device=self.x2.device).type(self.x2.dtype)
             self.u2 = torch.zeros((*self.x2.shape, 4), device=self.x2.device).type(self.x2.dtype)
+            self.restart = False
+
+        if ths is not None:
+            lambda1 = ths * 0.1
+            lambda2 = ths * 0.15
 
         cy = (y ** 2).sum() / 2
         primalcostlowerbound = 0
@@ -92,8 +94,8 @@ class TGV(nn.Module):
             x_prev = self.x2.clone()
             tmp = self.tau * epsilonT(self.u2)
             x = self.prox_tau_fx(self.x2 - nablaT(tmp), y)
-            r = self.prox_tau_fr(self.r2 + tmp)
-            u = self.prox_sigma_g_conj(self.u2 + self.sigma * epsilon(nabla(2 * x - self.x2) - (2 * r - self.r2)))
+            r = self.prox_tau_fr(self.r2 + tmp, lambda1)
+            u = self.prox_sigma_g_conj(self.u2 + self.sigma * epsilon(nabla(2 * x - self.x2) - (2 * r - self.r2)), lambda2)
             self.x2 = self.x2 + self.rho * (x - self.x2)
             self.r2 = self.r2 + self.rho * (r - self.r2)
             self.u2 = self.u2 + self.rho * (u - self.u2)
@@ -108,13 +110,13 @@ class TGV(nn.Module):
                 break
 
             if self.verbose and _ % 100 == 0:
-                primalcost = torch.linalg.norm(x.flatten() - y.flatten()) ** 2 + self.lambda1 * torch.sum(
-                    torch.sqrt(torch.sum(r ** 2, axis=-1))) + self.lambda2 * torch.sum(
+                primalcost = torch.linalg.norm(x.flatten() - y.flatten()) ** 2 + lambda1 * torch.sum(
+                    torch.sqrt(torch.sum(r ** 2, axis=-1))) + lambda2 * torch.sum(
                     torch.sqrt(torch.sum(epsilon(nabla(x) - r) ** 2, axis=-1)))
                 dualcost = cy - ((y - nablaT(epsilonT(u))) ** 2).sum() / 2.
                 tmp = torch.max(torch.sqrt(torch.sum(epsilonT(u) ** 2,
                                                      axis=-1)))  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
-                u3 = u / torch.maximum(tmp / self.lambda1, torch.tensor([
+                u3 = u / torch.maximum(tmp / lambda1, torch.tensor([
                     1], device=tmp.device).type(
                     tmp.dtype))  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = cy - torch.sum(
