@@ -47,8 +47,6 @@ from deepinv.training_utils import train, test
 # GLOBAL PROPERTY
 dtype = torch.float
 
-
-
 def get_freer_gpu():
     import os
     import numpy as np
