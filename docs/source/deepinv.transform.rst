@@ -5,7 +5,7 @@ This package contains different transforms which can be used for data augmentati
 
 .. autosummary::
    :toctree: stubs
-   :template: class.rst
+   :template: myclass_template.rst
    :nosignatures:
 
     deepinv.transform.Rotate
