@@ -19,8 +19,21 @@ where the first term :math:`f:\mathbb{R}^{m}\times\mathbb{R}^{m} \mapsto \mathbb
    :nosignatures:
 
    deepinv.optim.optimizers
-   deepinv.optim.data_fidelity
    deepinv.optim.utils
+
+Data Fidelity
+-------------------------------------
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.DataFidelity
+   deepinv.optim.L2
+   deepinv.optim.L1
+   deepinv.optim.IndicatorL2
+   deepinv.optim.PoissonLikelihood
+
 
 The module works using iterators... (TODO)
 

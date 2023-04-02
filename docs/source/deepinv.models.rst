@@ -9,6 +9,8 @@ This package provides vanilla signal reconstruction networks, which can be used 
    :nosignatures:
 
    deepinv.models.Denoiser
+   deepinv.models.ScoreDenoiser
+   deepinv.models.ProxDenoiser
    deepinv.models.ArtifactRemoval
 
 Classical Denoisers
@@ -22,6 +24,7 @@ Classical Denoisers
    deepinv.models.WaveletPrior
    deepinv.models.WaveletDict
    deepinv.models.TGV
+   deepinv.models.MedianFilter
 
 
 Learned Denoisers
