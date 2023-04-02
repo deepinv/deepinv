@@ -444,7 +444,8 @@ class BlurFFT(DecomposablePhysics):
     def __init__(self,  img_size, filter, device='cpu', **kwargs):
         super().__init__(**kwargs)
 
-        assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'
+
+        #assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'
 
         self.img_size = img_size
         self.mask = filter_fft(filter, img_size)
