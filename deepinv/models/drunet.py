@@ -1,11 +1,10 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
-
 import numpy as np
 import torch
 import torch.nn as nn
 
-from .denoiser import register
+from .denoiser import register, online_weights_path
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -25,14 +24,13 @@ class DRUNet(nn.Module):
     :param str act_mode:
     :param str downsample_mode:
     :param str upsample_mode:
-    :param bool pretrain: use a pretrained network. The weights will be downloaded from an online repository.
-    :param str ckpt_path: Use an existing pretrained checkpoint
+    :param bool download:
     :param bool train: training or testing mode
     :param str device: gpu or cpu
 
     '''
     def __init__(self, in_channels=4, out_channels=3, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose',
-                 pretrain=False, ckpt_path=None, train=False, device=None):
+                 pretrained='download', ckpt_path=None, train=False, device=None):
         super(DRUNet, self).__init__()
 
         self.m_head = conv(in_channels, nc[0], bias=False, mode='C')
@@ -69,14 +67,15 @@ class DRUNet(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode='C')
 
-        if pretrain:
-            if ckpt_path is not None:
+        if pretrained is not None:
+            if pretrained == 'download':
+                name = 'drunet_color.pth'
+                url = online_weights_path() + name
+                ckpt_drunet = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage, file_name=name)
+            else:
                 ckpt_drunet = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
-            else :
-                url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_color.pth'
-                ckpt_drunet = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage, file_name='drunet.pth')
-            self.load_state_dict(ckpt_drunet, strict=True)
 
+            self.load_state_dict(ckpt_drunet, strict=True)
 
         if not train:
             self.eval()
