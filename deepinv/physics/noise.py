@@ -8,7 +8,9 @@ class GaussianNoise(torch.nn.Module):
 
     It can be added to a physics operator in its construction or by setting
 
-    ``physics.noise = GaussianNoise()``
+    ..
+
+        physics.noise_model = GaussianNoise()
 
     :param float sigma: Standard deviation of the noise.
 
@@ -37,7 +39,9 @@ class PoissonNoise(torch.nn.Module):
 
     It can be added to a physics operator in its construction or by setting
 
-    ``physics.noise = PoissonNoise()``
+    ..
+
+        physics.noise_model = PoissonNoise()
 
     :param float gain: gain of the noise.
     :param bool normalize: normalize the output.
@@ -67,7 +71,9 @@ class PoissonGaussianNoise(torch.nn.Module):
 
     It can be added to a physics operator by setting
 
-    ``physics.noise = PoissonGaussianNoise()``
+    ..
+
+        physics.noise_model = PoissonGaussianNoise()
 
     :param float gain: gain of the noise.
     :param float sigma: Standard deviation of the noise.
@@ -96,8 +102,9 @@ class UniformNoise(torch.nn.Module):
     :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
 
     It can be added to a physics operator by setting
+    ..
 
-    ``physics.noise = UniformNoise()``
+        physics.noise_model = UniformNoise()
 
     :param float a: amplitude of the noise.
     '''
