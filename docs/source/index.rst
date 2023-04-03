@@ -30,9 +30,10 @@ Here quick guide
    deepinv.loss
    deepinv.optim
    deepinv.unfolded
-   deepinv.pnp
+   deepinv.sampling
    deepinv.transform
    deepinv.examples
+   deepinv.notation
 
 
 

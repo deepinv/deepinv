@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 
 
+def online_weights_path():
+    return 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files='
+
 models = {}
 
 # TAKEN FROM https://github.com/jaewon-lee-b/lte/blob/main/models/models.py
@@ -50,7 +53,10 @@ class Denoiser(nn.Module):
         self.init = init
 
         if isinstance(sigma_denoiser, float):
-            self.sigma_denoiser = [sigma_denoiser] * self.max_iter
+            if self.max_iter is not None:
+                self.sigma_denoiser = [sigma_denoiser] * self.max_iter
+            else:
+                self.sigma_denoiser = sigma_denoiser
         elif isinstance(sigma_denoiser, list):
             print(len(sigma_denoiser))
             print('max ister ', self.max_iter)
@@ -61,12 +67,20 @@ class Denoiser(nn.Module):
             raise ValueError('sigma_denoiser must be either float or a list of length max_iter')
 
         if isinstance(stepsize, float):
-            self.stepsize = [stepsize] * max_iter  # Should be a list
+            if self.max_iter is not None:
+                self.stepsize = [stepsize] * max_iter  # Should be a list
+            else:
+                self.stepsize = stepsize
         elif isinstance(stepsize, list):
             assert len(stepsize) == self.max_iter
             self.stepsize = stepsize
         else:
             raise ValueError('stepsize must be either float or a list of length max_iter')
+
+    def forward(self, x, sigma):
+        r'''
+        '''
+        return self.denoiser(x, sigma)
 
 
 class ProxDenoiser(Denoiser):
@@ -82,12 +96,28 @@ class ProxDenoiser(Denoiser):
 
 
 class ScoreDenoiser(Denoiser):
+    r'''
+    Approximates the score of a distribution using an MMSE denoiser.
+
+    This approximates the score of a distribution using Tweedie's formula, i.e.,
+
+    .. math::
+
+        - \nabla \log p_{\sigma}(x) \propto \left(x-D(x,\sigma)\right)/\sigma^2
+
+    where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
+    :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
+    which is typically set to a low value.
+    '''
     def __init__(self, *args, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
 
-    def forward(self, x, sigma, it=None):
-        if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
-            out = x - self.denoiser[it](x, sigma)
+    def forward(self, x, sigma=None, it=None):
+        if sigma is not None:
+            if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
+                out = x - self.denoiser[it](x, sigma)
+            else:
+                out = x - self.denoiser(x, sigma)
         else:
-            out = x - self.denoiser(x, sigma)
+            out = (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2
         return out

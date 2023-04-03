@@ -4,9 +4,13 @@ from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.utils import str_to_class
 
 class BaseOptim(nn.Module):
-    '''
-    Class for optimisation algorithms that iterates the iterator.
+    r'''
+        Class for optimisation algorithms that iterates the iterator.
+
         iterator : ...
+
+        :param deepinv.optim.iterator iterator: description
+
     '''
     def __init__(self, iterator, max_iter=50, crit_conv=1e-3, early_stop=True, 
                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False):
@@ -29,6 +33,10 @@ class BaseOptim(nn.Module):
             self.fixed_point = FixedPoint(self.iterator, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, verbose=verbose)
 
     def get_init(self, y, physics):
+        r'''
+
+
+        '''
         self.iterator.g_step.prox_g.denoiser.restart = True  # reset the variables of the prox at the beginning of each algo
         return physics.A_adjoint(y), y
 

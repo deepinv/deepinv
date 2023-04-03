@@ -10,6 +10,8 @@ class DataFidelity(nn.Module):
 
         f(Ax,y)
 
+    where :math:
+
     '''
     def __init__(self, f=None, grad_f=None, prox_f=None, prox_norm=None):
         super().__init__()
@@ -52,18 +54,30 @@ class L2(DataFidelity):
     r'''
     L2 fidelity
 
+    Describes the following data fidelity loss:
+
+    .. math::
+
+        f(x) = \frac{1}{2}\|x-y\|^2
+
+    It can be used to define a log-likelihood function by setting a noise level
     '''
-    def __init__(self):
+    def __init__(self, sigma=None):
         super().__init__()
 
+        if sigma is not None:
+            self.norm = 1/(sigma**2)
+        else:
+            self.norm = 1.
+
     def f(self, x, y):
-        return (x-y).flatten().pow(2).sum()
+        return self.norm*(x-y).flatten().pow(2).sum()/2
 
     def grad_f(self, x, y):
-        return x-y
+        return self.norm*(x-y)
 
     def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
-        return physics.prox_l2(x, y, stepsize)
+        return physics.prox_l2(x, y, self.norm*stepsize)
 
     def prox_f(self, x, y, gamma):  # Should be this instead?
         r'''

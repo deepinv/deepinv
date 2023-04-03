@@ -81,7 +81,8 @@ or simply as
    deepinv.physics.UniformNoise
 
 
-Defining a new operator only requires a forward function and its transpose operation, inheriting the remaining structure of the ``Physics`` class:
+Defining a new operator only requires a forward function and its transpose operation,
+inheriting the remaining structure of the ``Physics`` class:
 
 ::
 
@@ -101,8 +102,9 @@ Defining a new operator only requires a forward function and its transpose opera
 
 .. note::
 
-    If the operator is linear, it is recommended to verify that the transpose well defined using ``self.adjointness_test()``,
-    and that it has a unit norm using ``self.compute_norm()``
+    If the operator is linear, it is recommended to verify that the transpose well defined using
+    :meth:`deepinv.physics.adjointness_test()`,
+    and that it has a unit norm using :meth:`deepinv.physics.Physics.compute_norm()`
 
     ::
 
