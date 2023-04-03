@@ -15,19 +15,23 @@ class Inpainting(DecomposablePhysics):
 
     where :math:`m` is a binary mask with n entries.
 
-    This operator is linear and has a trivial SVD decomposition, which allows for fast computation of the pseudoinverse and proximal operator.
+    This operator is linear and has a trivial SVD decomposition, which allows for fast computation
+    of the pseudoinverse and proximal operator.
 
     :param tuple tensor_size: size of the input images, e.g., (C, H, W).
-    :param torch.tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli distribution with probability=mask. If the input is a torch tensor matching tensor_size, the mask will be set to this tensor.
-
+    :param torch.tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
+        distribution with probability=mask. If the input is a torch tensor matching tensor_size,
+        the mask will be set to this tensor.
+    :param torch.device device: gpu or cpu
+    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     '''
-    def __init__(self, tensor_size, mask=0.3, device='cpu', pixelwise=True, **kwargs):
+    def __init__(self, tensor_size, mask=0.3, pixelwise=True, device='cpu', **kwargs):
         super().__init__(**kwargs)
         self.tensor_size = tensor_size
 
-        if isinstance(mask, torch.Tensor):# check if the user created mask
+        if isinstance(mask, torch.Tensor): # check if the user created mask
             self.mask = mask
-        else:# otherwise create new random mask
+        else: # otherwise create new random mask
             mask_rate = mask
             self.mask = torch.ones(tensor_size, device=device)
             aux = torch.rand_like(self.mask)
