@@ -33,6 +33,7 @@ Here quick guide
    deepinv.sampling
    deepinv.transform
    deepinv.examples
+   deepinv.notation
 
 
 

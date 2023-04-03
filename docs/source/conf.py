@@ -27,6 +27,23 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 intersphinx_mapping = {'python': ('https://deepinv.github.io/deepinv/', None)}
 
+
+# how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
+mathjax3_config = {
+    "tex": {
+        "macros": {
+            "forw": [r'{A\left({#1}\right)}', 1],
+            "noise": [r'{N\left({#1}\right)}', 1],
+            "inverse": [r'{R\left({#1}\right)}', 1],
+            "reg": [r'{g\left({#1}\right)}', 1],
+            "datafid": [r'{f\left({#1}\right)}', 1],
+            "denoiser": [r'{D\left({#1},{#2}\right)}', 2],
+            "xset": r'\mathcal{X}',
+            "yset":r'\mathcal{Y}',
+            }
+        }
+    }
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
