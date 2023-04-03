@@ -128,7 +128,8 @@ class MCMC(nn.Module):
                     statistics.update(x)
 
             if self.verbose:
-                torch.cuda.synchronize()
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
                 end_time = time.time()
                 elapsed = end_time - start_time
                 print(f'PnP ULA finished! elapsed time={elapsed} seconds')

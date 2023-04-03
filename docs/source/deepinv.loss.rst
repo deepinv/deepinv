@@ -49,6 +49,7 @@ These losses can be used to regularize the learned function, e.g., controlling i
    :nosignatures:
 
     deepinv.loss.JacobianSpectralNorm
+    deepinv.loss.FNEJacobianSpectralNorm
 
 
 Metrics

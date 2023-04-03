@@ -87,7 +87,7 @@ class ProxDenoiser(Denoiser):
     def __init__(self, *args, **kwargs):
         super(ProxDenoiser, self).__init__(*args, **kwargs)
 
-    def forward(self, x, sigma, it):
+    def forward(self, x, sigma, it=None):
         if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
             out = self.denoiser[it](x, sigma)
         else:
@@ -112,15 +112,12 @@ class ScoreDenoiser(Denoiser):
     def __init__(self, *args, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
 
-    def forward(self, x, sigma, it):
-        if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
-            out = x - self.denoiser[it](x, sigma)
+    def forward(self, x, sigma=None, it=None):
+        if sigma is not None:
+            if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
+                out = x - self.denoiser[it](x, sigma)
+            else:
+                out = x - self.denoiser(x, sigma)
         else:
-            out = x - self.denoiser(x, sigma)
+            out = (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2
         return out
-
-    def forward(self, x):
-        r'''
-        Computes the negative score at x.
-        '''
-        return (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2

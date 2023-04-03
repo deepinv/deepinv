@@ -23,7 +23,6 @@ def imsize():
     return c, h, w
 
 
-# TODO: use a DummyCircle as dataset and check convergence of optim algorithms (maybe with TV denoiser)
 @pytest.fixture
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
@@ -39,7 +38,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     ths = 2.
 
-    model_spec = {'name': 'tgv', 'args': {'n_it_max': 1000, 'verbose': False}}
+    model_spec = {'name': 'tgv', 'args': {'n_it_max': 2000, 'verbose': False}}
     model = ProxDenoiser(model_spec, max_iter=1, sigma_denoiser=ths, stepsize=1.)
 
     x = model(y, ths, 0)  # 3. Apply the model we want to test

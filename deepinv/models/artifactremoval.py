@@ -31,7 +31,7 @@ class ArtifactRemoval(nn.Module):
 
     def forward(self, y, physics, **kwargs):
         r'''
-        Reconstruct measurements y
+        Reconstructs a signal estimate from measurements y
 
         :param torch.tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
