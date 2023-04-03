@@ -67,6 +67,8 @@ class L2(DataFidelity):
 
         if sigma is not None:
             self.norm = 1/(sigma**2)
+        else:
+            self.norm = 1.
 
     def f(self, x, y):
         return self.norm*(x-y).flatten().pow(2).sum()/2
