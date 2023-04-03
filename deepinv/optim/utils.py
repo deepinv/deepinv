@@ -3,15 +3,17 @@ import torch.nn as nn
 import sys 
 from deepinv.optim.optim_iterators import *
 
+
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
-def check_conv(x_prev,x,it,crit_conv,verbose=False):
+
+def check_conv(x_prev, x, it, crit_conv, verbose=False):
     x_prev = x_prev if type(x_prev) is not tuple else x_prev[0]
     x = x if type(x) is not tuple else x[0]
     crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
     if verbose:
-        print(it, 'crit = ', crit_cur , '\r')
+        print(f'Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {crit_conv:.2E} \r')
     if crit_conv is not None and crit_cur < crit_conv:
         return True
     else:
