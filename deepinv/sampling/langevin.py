@@ -4,6 +4,7 @@ import numpy as np
 import time as time
 from deepinv.models import ScoreDenoiser
 from tqdm import tqdm
+from deepinv.optim.utils import check_conv
 
 
 class Welford:
@@ -67,18 +68,31 @@ class MCMC(nn.Module):
         # compute posterior mean and variance of reconstruction of measurement y
         mean, var = sampler(y, physics)
 
+        :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
+        :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
+            noise distribution in the acquisition physics.
+        :param int max_iter: number of Monte Carlo iterations.
+        :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.
+            The burn-in samples are discarded constant with a numerical algorithm.
+        :param tuple clip: Tuple containing the box-constraints :math:`\[a,b]`. If None, the algorithm will not project.
+        :param bool verbose: prints progress of the algorithm.
+
     '''
     def __init__(self, iterator:torch.nn.Module, prior:ScoreDenoiser, data_fidelity, max_iter=1e3, burnin_ratio=.2,
-                 clip=(-1., 2.), verbose=False):
+                 thinning=10, clip=(-1., 2.), crit_conv=1e-3, verbose=False):
         super(MCMC, self).__init__()
 
         self.iterator = iterator
         self.prior = prior
         self.likelihood = data_fidelity
         self.C_set = clip
+        self.thinning = thinning
         self.max_iter = int(max_iter)
+        self.crit_conv = crit_conv
         self.burnin_iter = int(burnin_ratio*max_iter)
         self.verbose = verbose
+        self.mean_convergence = False
+        self.var_convergence = False
 
     def forward(self, y, physics, seed=None):
         with torch.no_grad():
@@ -98,6 +112,8 @@ class MCMC(nn.Module):
             start_time = time.time()
             statistics = Welford(x)
 
+            self.mean_convergence = False
+            self.var_convergence = False
             for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
                 x = self.iterator(x, y, physics, likelihood=self.likelihood,
                                   prior=self.prior)
@@ -105,7 +121,10 @@ class MCMC(nn.Module):
                 if self.C_set:
                     x = projbox(x, C_lower_lim, C_upper_lim)
 
-                if it > self.burnin_iter:
+                if it > self.burnin_iter and (it % self.thinning) == 0:
+                    if it >= (self.max_iter - self.thinning):
+                        mean_prev = statistics.mean().clone()
+                        var_prev = statistics.var().clone()
                     statistics.update(x)
 
             if self.verbose:
@@ -114,8 +133,19 @@ class MCMC(nn.Module):
                 elapsed = end_time - start_time
                 print(f'PnP ULA finished! elapsed time={elapsed} seconds')
 
+            if check_conv(mean_prev, statistics.mean(), it, self.crit_conv, self.verbose) and it>1:
+                self.mean_convergence = True
+
+            if check_conv(var_prev, statistics.var(), it, self.crit_conv, self.verbose) and it>1:
+                self.var_convergence = True
+
         return statistics.mean(), statistics.var()
 
+    def mean_has_converged(self):
+        return self.mean_convergence
+
+    def var_has_converged(self):
+        return self.var_convergence
 
 class ULAIterator(nn.Module):
     def __init__(self, step_size, alpha):
@@ -162,15 +192,15 @@ class ULA(MCMC):
         :param int max_iter: number of Monte Carlo iterations.
         :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.
             The burn-in samples are discarded constant with a numerical algorithm.
-        :param tuple clip: Tuple containing the box-constraints :math:`\[a,b]`. If None, the algorithm will not project.
+        :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`. If None, the algorithm will not project.
         :param bool verbose: prints progress of the algorithm.
 
     '''
     def __init__(self, prior, data_fidelity, step_size=1., alpha=1.,  max_iter=1e3, burnin_ratio=.2,
-                 clip=(-1.,2.), verbose=False):
+                 clip=(-1., 2.), crit_conv=1e-3, verbose=False):
 
         iterator = ULAIterator(step_size=step_size, alpha=alpha)
-        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter,
+        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, crit_conv=crit_conv,
                          burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)
 
 
@@ -234,12 +264,11 @@ class SKRock(MCMC):
 
         The step size should be chosen smaller than
 
-        .. math:: \frac{c}{L_f + L_g}
+        .. math::
 
-        where
+            \frac{c}{L_f + L_g}
 
-         - For convergence, PnPULA required step_size smaller than :math:`{1}\frac{\|A|\_2^2}`
-         - PnPULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
+        where the denoiser is :math:`L`-Lipschitz differentiable.
 
         :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
         :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
@@ -249,15 +278,15 @@ class SKRock(MCMC):
         :param int max_iter: Number of iterations
         :param float burnin_ratio: percentage of iterations used for burn-in period. The burn-in samples are discarded
             constant with a numerical algorithm.
-        :param tuple clip: Tuple containing the box-constraints :math:`\[a,b]`. If None, the algorithm will not project.
+        :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`. If None, the algorithm will not project.
         :param bool verbose: prints progress of the algorithm
 
     '''
     def __init__(self, prior: ScoreDenoiser, data_fidelity, step_size=1., inner_iter=10, eta=0.05, alpha=1.,  max_iter=1e3, burnin_ratio=.2,
-                 clip=(-1., 2.), verbose=False):
+                 clip=(-1., 2.), crit_conv=1e-3, verbose=False):
 
         iterator = SKRockIterator(step_size=step_size, alpha=alpha, inner_iter=inner_iter, eta=eta)
-        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter,
+        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, crit_conv=crit_conv,
                          burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)
 
 
@@ -281,19 +310,22 @@ if __name__ == "__main__":
 
     likelihood = L2(sigma=sigma)
 
-    model_spec = {'name': 'median_filter', 'args': {'kernel_size': 3}}
+    #model_spec = {'name': 'median_filter', 'args': {'kernel_size': 3}}
     #model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 4, 'device': dinv.device}}
-    #model_spec = {'name': 'dncnn', 'args': {'device': dinv.device, 'in_channels': 3, 'out_channels': 3,
-    #                                        'pretrained': 'download_lipschitz'}}
+    model_spec = {'name': 'dncnn', 'args': {'device': dinv.device, 'in_channels': 3, 'out_channels': 3,
+                                            'pretrained': 'download_lipschitz'}}
 
     prior = ScoreDenoiser(model_spec=model_spec, sigma_denoiser=2/255)
 
-    #f = ULA(prior, likelihood, max_iter=10000, burnin_ratio=.3, verbose=True,
-    #           alpha=.1, step_size=.1*(sigma**2), clip=(-1, 2))
-    f = SKRock(prior, likelihood, max_iter=100, burnin_ratio=.3, verbose=True,
-               alpha=.1, step_size=.1*(sigma**2), clip=(-1, 2))
+    f = ULA(prior, likelihood, max_iter=10000, burnin_ratio=.3, verbose=True,
+               alpha=.9, step_size=.01*(sigma**2), clip=(-1, 2))
+    #f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,
+    #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))
 
     xmean, xvar = f(y, physics)
+
+    print(str(f.mean_has_converged()))
+    print(str(f.var_has_converged()))
 
     xnstd = xvar.sqrt()
     xnstd = xnstd/xnstd.flatten().max()
