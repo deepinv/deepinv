@@ -9,7 +9,7 @@ from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
-from deepinv.utils.parameters import get_DPIR_params, initialize_stepsizes
+from deepinv.utils.parameters import get_DPIR_params
 
 torch.manual_seed(0)
 
@@ -76,7 +76,6 @@ model_spec = {'name': denoiser_name,
 
 
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
-stepsize, sigma_denoiser = initialize_stepsizes(stepsize, sigma_denoiser, max_iter)
 
 prox_g = ProxDenoiser(model_spec)
 model = Optim(algo_name = 'HQS', prox_g=prox_g, g_first = False, data_fidelity=data_fidelity, lamb=lamb, stepsize=stepsize, device=dinv.device,
