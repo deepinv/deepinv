@@ -47,7 +47,7 @@ for dir in os.walk(dir + trained_net):
     if os.path.exists(ckp_path):
         break
 
-backbone = dinv.models.unet(in_channels=1,
+backbone = dinv.models.UNet(in_channels=1,
                          out_channels=1,
                          circular_padding=True,
                          scales=3).to(dinv.device)

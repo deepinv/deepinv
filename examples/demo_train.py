@@ -21,7 +21,7 @@ losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 #losses.append(dinv.loss.MOILoss(metric=dinv.metric.mse())
 
 # choose backbone denoiser
-backbone = dinv.models.unet(in_channels=1,
+backbone = dinv.models.UNet(in_channels=1,
                          out_channels=1,
                          circular_padding=True,
                          scales=3).to(dinv.device)
