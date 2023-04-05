@@ -19,11 +19,11 @@ class fStepPGD(fStep):
         """
         super(fStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x, y, physics, it):
+    def forward(self, x, cur_params, y, physics):
         if not self.g_first:
-            return x - self.stepsize[it] * self.lamb * self.data_fidelity.grad(x, y, physics)
+            return x - cur_params['stepsize'] * self.lamb * self.data_fidelity.grad(x, y, physics)
         else:
-            return self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it])
+            return self.data_fidelity.prox(x, y, physics, 1/(self.lamb * cur_params['stepsize']))
 
 
 class gStepPGD(gStep):
@@ -34,10 +34,10 @@ class gStepPGD(gStep):
         """
         super(gStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x, it):
+    def forward(self, x, cur_params):
         if not self.g_first:
-            return self.prox_g(x, self.g_param[it], it)
+            return self.prox_g(x, cur_params['g_param'])
         else:
-            return x - self.stepsize[it] * self.grad_g(x, self.g_param[it], it)
+            return x - cur_params['stepsize'] * self.grad_g(x, cur_params['g_param'])
 
 

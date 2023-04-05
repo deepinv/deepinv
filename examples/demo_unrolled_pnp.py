@@ -1,15 +1,17 @@
 import sys
+import numpy as np
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import *
-from deepinv.training_utils import test, train
+from deepinv.training_utils import train
 from deepinv.unfolded.unfolded import Unfolded
 from deepinv.unfolded.deep_equilibrium import DEQ
 from torchvision import datasets, transforms
 import os
 import wandb
 from deepinv.models.denoiser import ProxDenoiser
+import hdf5storage
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'deblur'
@@ -18,64 +20,41 @@ denoiser_name = 'dncnn'
 depth = 7
 ckpt_path = None
 algo_name = 'PGD'
-#path_datasets = '../../datasets'
 path_datasets = '../datasets'
 train_dataset_name = 'drunet'
-# train_dataset_name = 'CBSD68'  # for debugging
 test_dataset_name = 'CBSD68'
 noise_level_img = 0.03
 lamb = 10
-stepsize = 1.
-sigma_k = 2.
-sigma_denoiser = sigma_k*noise_level_img
 max_iter = 5
-crit_conv = 1e-5
 verbose = True
-early_stop = False 
+early_stop = False
 n_channels = 3
 pretrain = False
 epochs = 100
-im_size = 32
+img_size = 32
 batch_size = 32
 max_datapoints = 100
-deep_equilibrium = False
-anderson_acceleration = True
-anderson_beta=1.
-anderson_history_size=5
-max_iter_backward=10
+anderson_acceleration = False
 
 wandb_vis = True
 
 if wandb_vis :
     wandb.init(project='unrolling')
 
-if problem == 'CS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, im_size, im_size), device=dinv.device)
-elif problem == 'onebitCS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, im_size, im_size), device=dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
-elif problem == 'inpainting':
-    p = dinv.physics.Inpainting(tensor_size=(1, im_size, im_size), mask=.5, device=dinv.device)
-elif problem == 'denoising':
-    p = dinv.physics.Denoising(sigma=.2)
-elif problem == 'blind_deblur':
-    p = dinv.physics.BlindBlur(kernel_size=11)
-elif problem == 'deblur':
-    p = dinv.physics.BlurFFT((3, im_size, im_size), filter=dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.),
-                                 device=dinv.device, noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img))
-else:
-    raise Exception("The inverse problem chosen doesn't exist")
-
+kernels = hdf5storage.loadmat('../kernels/Levin09.mat')['kernels']
+filter_np = kernels[0,1].astype(np.float64)
+filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+p = dinv.physics.BlurFFT(img_size = (3,img_size,img_size), filter=filter_torch, device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
 data_fidelity = L2()
 
 
 if not os.path.exists(f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5'):
     val_transform = transforms.Compose([
-                transforms.CenterCrop(im_size),
+                transforms.CenterCrop(img_size),
                 transforms.ToTensor(),
     ])
     train_transform = transforms.Compose([
-                    transforms.RandomCrop(im_size, pad_if_needed=True),
+                    transforms.RandomCrop(img_size, pad_if_needed=True),
                     transforms.RandomHorizontalFlip(p=0.5),
                     transforms.RandomVerticalFlip(p=0.5),
                     transforms.ToTensor(),
@@ -96,22 +75,16 @@ model_spec = {'name': denoiser_name,
                     'in_channels':n_channels, 
                     'out_channels':n_channels,
                     'depth': depth,
-                    'ckpt_path': ckpt_path,
-                    'pretrain':pretrain, 
+                    'pretrained':ckpt_path, 
                     'train': True, 
                     'device':dinv.device
                     }}
 
-prox_g = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
+prox_g = ProxDenoiser(model_spec)
 
-if deep_equilibrium: 
-    model = DEQ(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
-                    g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
-                    learn_stepsize=True, constant_stepsize=False, anderson_acceleration=anderson_acceleration, max_iter_backward=max_iter_backward)
-else: 
-    model = Unfolded(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
-                    g_param=prox_g.sigma_denoiser, learn_g_param=True, max_iter=max_iter, crit_conv=1e-4,
-                    learn_stepsize=True, constant_stepsize=False)
+model = Unfolded(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=1., 
+                    device=dinv.device, g_param=0.01, learn_g_param=True, max_iter=max_iter,
+                    learn_stepsize=True, constant_stepsize=False, constant_g_param=False)
 
 for name, param in model.named_parameters():
     if param.requires_grad:

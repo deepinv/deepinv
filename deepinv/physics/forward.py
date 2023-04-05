@@ -290,11 +290,7 @@ class DecomposablePhysics(Physics):
     def prox_l2(self, z, y, gamma):
         r'''
         Computes proximal operator of :math:`f(x)=\frac{1}{2}\|Ax-y\|^2`
-        i.e.
-
-        .. math::
-
-            \underset{x}{\arg\min} \; \frac{1}{2} \|Ax-y\|^2 + \frac{\gamma}{2} \|x-z\|^2
+        in an efficient manner leveraging the singular vector decomposition.
 
         :param torch.tensor y: measurements tensor
         :param torch.tensor, float z: signal tensor
@@ -303,15 +299,8 @@ class DecomposablePhysics(Physics):
 
         '''
         b = self.A_adjoint(y) + gamma*z
-
-        # scaling = self.mask.pow(2) + gamma
-        if not isinstance(self.mask, float):
-            scaling = self.mask.pow(2) + gamma
-        else:
-            scaling = self.mask ** 2 + gamma
-
+        scaling = torch.conj(self.mask)*self.mask + gamma
         x = self.V(self.V_adjoint(b)/scaling)
-
         return x
 
     def A_dagger(self, y):

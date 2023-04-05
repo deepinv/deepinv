@@ -3,29 +3,23 @@ from .optim_iterator import OptimIterator, fStep, gStep
 class PDIteration(OptimIterator):
 
     def __init__(self, **kwargs):
-        '''
-        In this case the algorithm works on the product space HxH^* so input/output variable is a concatenation of
-        primal and dual variables.
-
-        TODO:
-        - check that there is no conflict with the data_fidelity.prox
-        - check that there is freedom in how to apply replacement of prox operators (see J. Adler works)
+        r'''
+        TODO
         '''
         super(PDIteration, self).__init__(**kwargs)
         self.g_step = gStepPD(**kwargs)
         self.f_step = fStepPD(**kwargs)
 
-    def forward(self, pd_var, it, y, physics):
+    def forward(self, X, cur_params, y, physics):
 
-        x, u = pd_var
+        x_prev, u_prev = X['est']
+        F_prev = X['cost']
 
-        x_ = self.g_step(x, physics.A_adjoint(u), it)
-        Ax_cur = physics.A(2 * x_ - x)
-        u_ = self.f_step(Ax_cur, u, y, it)
+        x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_params)
+        u = self.f_step(physics.A(2 * x - x_prev), u_prev, cur_params, y)
+        F = self.F_fn(x,cur_params, y, physics) if self.F_fn else None
 
-        pd_variable = (x_, u_)
-
-        return pd_variable
+        return {'est': (x,u), 'cost': F}
 
 
 
@@ -39,7 +33,7 @@ class fStepPD(fStep):
 
     def forward(self, Ax_cur, u, y, it):  # Beware this is not the prox of f(A\cdot) but only the prox of f, A is tackled independently in PD
        v = u + self.stepsize[it] * Ax_cur
-       return v - self.stepsize[it] * self.data_fidelity.prox_f(v / self.stepsize[it], y, self.lamb)
+       return v - self.stepsize[it] * self.data_fidelity.prox_f(v, y, 1 / (self.stepsize[it]*self.lamb))
 
 
 class gStepPD(gStep):

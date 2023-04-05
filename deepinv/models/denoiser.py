@@ -30,52 +30,13 @@ class Denoiser(nn.Module):
     r'''
     Base denoiser class.
 
-    Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration.
-
-    Consists in replacing prox_g or grad_g with a denoiser.
-
     TODO
 
     :param model_spec:
-    :param init:
-    :param float stepsize:
-    :param float sigma_denoiser:
-    :param int max_iter:
-    :param str,torch.device device: cpu or gpu
     '''
-    def __init__(self, model_spec=None, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=None,
-                 device=torch.device('cpu')):
+    def __init__(self, model_spec=None):
         super(Denoiser, self).__init__()
-
         self.denoiser = make(model_spec)
-        self.max_iter = max_iter
-        self.device = device  # Is this really needed?
-        self.init = init
-
-        if isinstance(sigma_denoiser, float):
-            if self.max_iter is not None:
-                self.sigma_denoiser = [sigma_denoiser] * self.max_iter
-            else:
-                self.sigma_denoiser = sigma_denoiser
-        elif isinstance(sigma_denoiser, list):
-            print(len(sigma_denoiser))
-            print('max ister ', self.max_iter)
-            assert len(sigma_denoiser) == self.max_iter
-            self.sigma_denoiser = sigma_denoiser
-        else:
-            print(sigma_denoiser)
-            raise ValueError('sigma_denoiser must be either float or a list of length max_iter')
-
-        if isinstance(stepsize, float):
-            if self.max_iter is not None:
-                self.stepsize = [stepsize] * max_iter  # Should be a list
-            else:
-                self.stepsize = stepsize
-        elif isinstance(stepsize, list):
-            assert len(stepsize) == self.max_iter
-            self.stepsize = stepsize
-        else:
-            raise ValueError('stepsize must be either float or a list of length max_iter')
 
     def forward(self, x, sigma):
         r'''
@@ -87,12 +48,8 @@ class ProxDenoiser(Denoiser):
     def __init__(self, *args, **kwargs):
         super(ProxDenoiser, self).__init__(*args, **kwargs)
 
-    def forward(self, x, sigma, it):
-        if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
-            out = self.denoiser[it](x, sigma)
-        else:
-            out = self.denoiser(x, sigma)
-        return out
+    def forward(self, x, sigma):
+        return self.denoiser(x, sigma)
 
 
 class ScoreDenoiser(Denoiser):
@@ -112,15 +69,11 @@ class ScoreDenoiser(Denoiser):
     def __init__(self, *args, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
 
-    def forward(self, x, sigma, it):
-        if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
-            out = x - self.denoiser[it](x, sigma)
-        else:
-            out = x - self.denoiser(x, sigma)
-        return out
+    def forward(self, x, sigma):
+        return x - self.denoiser(x, sigma)
 
-    def forward(self, x):
-        r'''
-        Computes the negative score at x.
-        '''
-        return (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2
+    # def forward(self, x):
+    #     r'''
+    #     Computes the negative score at x.
+    #     '''
+    #     return (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2

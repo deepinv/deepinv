@@ -223,6 +223,8 @@ def test(model, test_dataloader,
             if save_folder is not None:
                 if not os.path.exists(save_folder):
                     os.makedirs(save_folder)
+                if not os.path.exists(save_folder + 'G' + str(g)):
+                    os.makedirs(save_folder + 'G' + str(g))
                 imgs = []
                 name_imgs = []
                 xlin = physics[g].A_adjoint(y)

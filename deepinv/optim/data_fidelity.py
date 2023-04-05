@@ -40,14 +40,14 @@ class DataFidelity(nn.Module):
         else:
             raise ValueError('No gradient defined for this data fidelity term.')
 
-    def prox(self, x, y, physics, stepsize):
+    def prox(self, x, y, physics, gamma):
         if ['Denoising'] in physics.__class__.__name__:
-            return self.prox_f(y, x, stepsize)
+            return self.prox_f(y, x, gamma)
         else:# TODO: use GD?
             raise Exception("no prox operator is implemented for the data fidelity term.")
 
-    def prox_norm(self, x, y, stepsize):
-        return self.prox_norm(x, y, stepsize)
+    def prox_norm(self, x, y, gamma):
+        return self.prox_norm(x, y, gamma)
 
 
 class L2(DataFidelity):
@@ -76,8 +76,8 @@ class L2(DataFidelity):
     def grad_f(self, x, y):
         return self.norm*(x-y)
 
-    def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
-        return physics.prox_l2(x, y, self.norm*stepsize)
+    def prox(self, x, y, physics, gamma):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
+        return physics.prox_l2(x, y, self.norm*gamma)
 
     def prox_f(self, x, y, gamma):  # Should be this instead?
         r'''

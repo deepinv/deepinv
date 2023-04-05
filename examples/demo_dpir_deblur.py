@@ -32,26 +32,10 @@ crit_conv = 'residual'
 thres_conv = 1e-4
 img_size = 256
 
-if problem == 'CS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-elif problem == 'onebitCS':
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-    p.sensor_model = lambda x: torch.sign(x)
-elif problem == 'inpainting':
-    p = dinv.physics.Inpainting(tensor_size=(1, 28, 28), mask=.5, device=dinv.device)
-elif problem == 'denoising':
-    p = dinv.physics.Denoising(sigma=.2)
-elif problem == 'blind_deblur':
-    p = dinv.physics.BlindBlur(kernel_size=11)
-elif problem == 'deblur':
-    kernels = hdf5storage.loadmat('../kernels/Levin09.mat')['kernels']
-    filter_np = kernels[0,1].astype(np.float64)
-    filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
-    p = dinv.physics.BlurFFT(img_size = (3,img_size,img_size), filter=filter_torch, device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
-    #p = dinv.physics.Blur(filter=filter_torch, device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
-else:
-    raise Exception("The inverse problem chosen doesn't exist")
-
+kernels = hdf5storage.loadmat('../kernels/Levin09.mat')['kernels']
+filter_np = kernels[0,1].astype(np.float64)
+filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+p = dinv.physics.BlurFFT(img_size = (3,img_size,img_size), filter=filter_torch, device=dinv.device, noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
 data_fidelity = L2()
 
 val_transform = transforms.Compose([

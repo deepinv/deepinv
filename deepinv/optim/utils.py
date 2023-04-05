@@ -7,18 +7,22 @@ from deepinv.optim.optim_iterators import *
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
-
-def check_conv(x_prev, x, it, crit_conv, verbose=False):
-    x_prev = x_prev if type(x_prev) is not tuple else x_prev[0]
-    x = x if type(x) is not tuple else x[0]
-    crit_cur = (x_prev-x).norm() / (x.norm()+1e-03)
-    if verbose:
-        print(f'Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {crit_conv:.2E} \r')
-    if crit_conv is not None and crit_cur < crit_conv:
-        return True
-    else:
+def check_conv(X_prev, X, it, crit_conv, thres_conv, verbose=False):
+    x_prev = X_prev['est'][0]
+    F_prev = X_prev['cost']
+    x = X['est'][0]
+    F = X['cost']
+    if crit_conv == 'residual' :
+        crit_cur = (x_prev-x).norm() / (x.norm()+1e-06)
+    elif crit_conv == 'cost' :
+        crit_cur = (F_prev-F).norm()  / (F.norm()+1e-06)
+    if crit_cur < thres_conv :
+        if verbose: 
+            print(f'Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {thres_conv:.2E} \r')
+        return True 
+    else :
         return False
-
+   
 
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     '''

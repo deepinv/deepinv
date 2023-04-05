@@ -10,18 +10,18 @@ class DRSIteration(OptimIterator):
         self.g_step = gStepDRS(**kwargs)
         self.f_step = fStepDRS(**kwargs)
 
-    def forward(self, x, it, y, physics):
+    def forward(self, x, cur_params, y, physics):
         '''
         Adapts the generic forward class to the DRS case as an additional relaxation (averaging) step is required before
         the usual relaxation step.
         '''
         x_prev = x[0]
         if not self.g_first:
-            x = self.f_step(x_prev, y, physics, it)
-            x = self.g_step(x, it)
+            x = self.f_step(x_prev, cur_params, y, physics)
+            x = self.g_step(x, cur_params)
         else:
-            x = self.g_step(x_prev, it)
-            x = self.f_step(x, y, physics, it)
+            x = self.g_step(x_prev, cur_params)
+            x = self.f_step(x, cur_params, y, physics)
         x = (x_prev + x) / 2.
         x = self.relaxation_step(x, x_prev)
         return (x,)
@@ -35,8 +35,8 @@ class fStepDRS(fStep):
         """
         super(fStepDRS, self).__init__(**kwargs)
 
-    def forward(self, x, y, physics, it):
-        return 2 * self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it]) - x
+    def forward(self, x, cur_params, y, physics):
+        return 2 * self.data_fidelity.prox(x, y, physics, 1 / (self.lamb * cur_params['stepsize'])) - x
 
 
 class gStepDRS(gStep):
@@ -47,7 +47,7 @@ class gStepDRS(gStep):
         """
         super(gStepDRS, self).__init__(**kwargs)
 
-    def forward(self, z, it):
-        return 2 * self.prox_g(z, self.g_param[it], it) - z
+    def forward(self, z, cur_params):
+        return 2 * self.prox_g(z, cur_params['g_param']) - z
 
 

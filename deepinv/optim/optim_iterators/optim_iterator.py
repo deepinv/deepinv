@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
-
+from deepinv.optim.data_fidelity import L2
 
 class OptimIterator(nn.Module):
     '''
-    Optimization algorithms Fixed Point Iterations for minimizing the sum of two functions \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
-    and g is a regularizer either explicit or implicitly given by either its prox or its gradient.
+    Optimization algorithms Fixed Point Iterations for minimizing the sum of two functions F = \lambda*f + g where f is a data-fidelity term that will me modeled by an instance of physics
+    and g is a regularizer either explicitly or implicitly given by either its prox or its gradient.
     By default, the algorithms starts with a step on f and finishes with step on g.
 
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
@@ -17,59 +17,59 @@ class OptimIterator(nn.Module):
     :param stepsize: Step size of the algorithm.
     '''
 
-    def __init__(self, data_fidelity='L2', lamb=1., device='cpu', g=None, prox_g=None,
-                 grad_g=None, g_first=False, stepsize=[1.] * 50, g_param=None, stepsize_inter=1.,
-                 max_iter_inter=50, tol_inter=1e-3, beta=1.):
+    def __init__(self, data_fidelity=L2(), lamb=1., device='cpu', g=None, prox_g=None, grad_g=None, g_first=False, 
+        stepsize_inter=1., max_iter_inter=50, tol_inter=1e-3, beta=1., F_fn = None):
         super(OptimIterator, self).__init__()
-
-        self.f_step = fStep(data_fidelity=data_fidelity, lamb=lamb, g_first=g_first, stepsize=stepsize)
-        self.g_step = gStep(prox_g=prox_g, grad_g=grad_g, g_param=g_param, stepsize=stepsize, g_first=g_first,
-                            max_iter_inter=max_iter_inter, tol_inter=tol_inter)
+        self.data_fidelity = data_fidelity
+        self.lamb = lamb
         self.beta = beta
         self.g_first = g_first
-
+        self.g = g 
+        self.F_fn = F_fn
+        self.f_step = fStep(data_fidelity=self.data_fidelity, lamb=self.lamb, g_first=self.g_first)
+        self.g_step = gStep(prox_g=prox_g, grad_g=grad_g, g_first=self.g_first,
+                            max_iter_inter=max_iter_inter, tol_inter=tol_inter, stepsize_inter=stepsize_inter)
+        
     def relaxation_step(self, u, v):
         return self.beta * u + (1 - self.beta) * v
 
-    def forward(self, x, it, y, physics):
+    def forward(self, X, cur_params, y, physics):
         '''
-        General splitting algorithm for minimizing \lambda f + g. Can be overwritten for specific other forms.
-        Returns primal and dual updates.
+        General form of a single iteration of splitting algorithms for minimizing $F = \lambda f + g$. Can be overwritten for specific other forms.
+        $X$ is a dictionary of the form {'est': (x,z), 'cost': F} where $x$ and $z$ are respectively the primal and dual variables.
         '''
-        x_prev = x[0]
+        x_prev = X['est'][0]
         if not self.g_first:
-            x = self.f_step(x_prev, y, physics, it)
-            x = self.g_step(x, it)
+            z = self.f_step(x_prev, cur_params, y, physics)
+            x = self.g_step(z, cur_params)
         else:
-            x = self.g_step(x_prev, it)
-            x = self.f_step(x, y, physics, it)
+            z = self.g_step(x_prev, cur_params)
+            x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        return (x, )
+        F = self.F_fn(x,cur_params,y,physics) if self.F_fn else None
+        return {'est': (x,z), 'cost': F}
+
 
 class fStep(nn.Module):
-    def __init__(self, data_fidelity='L2', lamb=1., g_first=False, stepsize=[1.] * 50, **kwargs):
+    def __init__(self, data_fidelity=L2(), lamb=1., g_first=False, **kwargs):
         super(fStep, self).__init__()
-        self.stepsize = stepsize
         self.lamb = lamb
         self.data_fidelity = data_fidelity
         self.g_first = g_first
 
-        def forward(self, x, y, physics, it):
+        def forward(self, x, cur_params, y, physics):
             pass
 
 class gStep(nn.Module):
-    def __init__(self,g=None, prox_g=None, grad_g=None, g_param=None, stepsize=[1.] * 50, g_first=False, max_iter_inter=50, stepsize_inter=1.,
-                 tol_inter=1e-3, **kwargs):
+    def __init__(self,g=None, prox_g=None, grad_g=None, g_first=False, 
+                    max_iter_inter=50, stepsize_inter=1., tol_inter=1e-3, **kwargs):
         super(gStep, self).__init__()
-        self.stepsize = stepsize
         self.g_first = g_first
         self.prox_g = prox_g
         self.grad_g = grad_g
-        self.g_param = g_param
 
         if prox_g is None and grad_g is None:
             if g is not None and isinstance(g, nn.Module):
-                
                 def grad_g(self, x, *args):
                     torch.set_grad_enabled(True)
                     return torch.autograd.grad(g(x, *args), x, create_graph=True, only_inputs=True)[0]
@@ -80,7 +80,7 @@ class gStep(nn.Module):
             else:
                 raise ValueError('Either g is a nn.Module or prox_g and grad_g are provided.')
 
-        def forward(self, x, it):
+        def forward(self, x, cur_params):
             pass
 
 

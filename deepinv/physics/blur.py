@@ -441,7 +441,7 @@ class BlurFFT(DecomposablePhysics):
 
     '''
 
-    def __init__(self,  img_size, filter, device='cpu', **kwargs):
+    def __init__(self, img_size, filter, device='cpu', **kwargs):
         super().__init__(**kwargs)
 
 
@@ -470,13 +470,13 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image('../../../datasets/set3c/0/butterfly.png')
+    x = torchvision.io.read_image('../../datasets/set3c/0/butterfly.png')
     x = x.unsqueeze(0).float().to(device)/255
     
     # test on non symmetric blur kernel 
     import os
     import hdf5storage
-    kernel_path = os.path.join('../../../datasets/kernels', 'Levin09.mat')
+    kernel_path = os.path.join('../../kernels', 'Levin09.mat')
     kernels = hdf5storage.loadmat(kernel_path)['kernels']
     filter = torch.tensor(np.expand_dims(kernels[0,1], axis=(0, 1)))
     # print(filter.shape)
@@ -491,8 +491,8 @@ if __name__ == "__main__":
     #physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='gauss', device=device)
     #physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
 
-    y1 = blurFFT.A(x)
-    y2 = blur.A(x)
+    y1 = blurFFT.prox_l2(x, torch.ones_like(x), gamma=.1)
+    y2 = blur.prox_l2(x, torch.ones_like(x), gamma=.1)
     print(y1)
     print(y2)
     

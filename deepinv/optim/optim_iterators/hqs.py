@@ -18,8 +18,8 @@ class fStepHQS(fStep):
         """
         super(fStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, y, physics, it):
-        return self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it])
+    def forward(self, x, cur_params, y, physics):
+        return self.data_fidelity.prox(x, y, physics, 1/(self.lamb * cur_params['stepsize']))
 
 
 class gStepHQS(gStep):
@@ -30,7 +30,7 @@ class gStepHQS(gStep):
         """
         super(gStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, it):
-        return self.prox_g(x, self.g_param[it], it)
+    def forward(self, x, cur_params):
+        return self.prox_g(x, cur_params['g_param'])
 
 
