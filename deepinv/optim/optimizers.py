@@ -104,11 +104,7 @@ class BaseOptim(nn.Module):
         cur_params = self.get_init_params()
         x = self.get_init(cur_params, y, physics)
         x = self.fixed_point(x, cur_params, y, physics, **kwargs)
-        if not self.return_dual:
-            x = self.get_primal_variable(x)
-        else :
-            x = self.get_dual_variable(x)
-        return x
+        return self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
 
     def has_converged(self):
         return self.fixed_point.has_converged

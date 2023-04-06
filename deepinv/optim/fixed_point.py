@@ -44,7 +44,7 @@ class FixedPoint(nn.Module):
                 cur_params = self.update_params(cur_params, it+1, x, x_prev)
         return x
 
-class AndersonAcceleration(nn.Module):
+class AndersonAcceleration(FixedPoint):
     '''
     Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/. 
     Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments. 
@@ -59,22 +59,17 @@ class AndersonAcceleration(nn.Module):
         beta: momentum in Anderson updates. Default = 1.
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator, history_size=5, max_iter=50, early_stop=True, crit_conv=1e-5, ridge=1e-4, beta=1.0, verbose=False):
-        super().__init__()
-        self.iterator = iterator
-        self.max_iter = max_iter
-        self.crit_conv = crit_conv
-        self.verbose = verbose
-        self.early_stop = early_stop
+    def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
+        super(AndersonAcceleration, self).__init__(**kwargs)
         self.history_size = history_size
         if isinstance(beta, float):
             beta = [beta] * self.max_iter
         self.beta = beta
         self.ridge = ridge
         
-
-    def forward(self, init, *args):
-        init = init[0]
+    def forward(self, x, init_params, *args):
+        cur_params = init_params
+        init =  x['est'][0]
         B, C, H, W = init.shape
         X = torch.zeros(B, self.history_size, C * H * W, dtype=init.dtype, device=init.device)
         F = torch.zeros(B, self.history_size, C * H * W, dtype=init.dtype, device=init.device)
@@ -89,22 +84,22 @@ class AndersonAcceleration(nn.Module):
         y = torch.zeros(B, self.history_size + 1, dtype=init.dtype, device=init.device)
         y[:, 0] = 1
         for it in range(2, self.max_iter):
-
             n = min(it, self.history_size)
             G = F[:, :n] - X[:, :n]
-
             H[:, 1:n+1, 1:n+1] = torch.bmm(G, G.transpose(1, 2)) + self.ridge * torch.eye(n, dtype=init.dtype, device=init.device).unsqueeze(0)
             alpha = torch.linalg.solve(H[:, :n+1, :n+1],y[:, :n+1])[:, 1:n+1]
-
             X[:, it % self.history_size] = self.beta[it] * (alpha[:, None] @ F[:, :n])[:, 0] + (1 - self.beta[it]) * (alpha[:, None] @ X[:, :n])[:, 0]
             F[:, it % self.history_size] = self.iterator(X[:, it % self.history_size].reshape(init.shape), it, *args)[0].reshape(B, -1)
-
             x_prev = X[:, it % self.history_size].reshape(init.shape)
             x = F[:, it % self.history_size].reshape(init.shape)
-            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.verbose):
-                if self.verbose:
-                    print('Convergence reached at iteration ', it)
-                break 
+            if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
+                self.has_converged = True
+                if self.early_stop:
+                    if self.verbose:
+                        print('Convergence reached at iteration ', it)
+                    break
+            if it < self.max_iter - 1 :
+                cur_params = self.update_params(cur_params, it+1, x, x_prev)
         return (x,)
 
 

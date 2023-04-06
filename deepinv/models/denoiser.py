@@ -70,10 +70,14 @@ class ScoreDenoiser(Denoiser):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
 
     def forward(self, x, sigma):
-        return x - self.denoiser(x, sigma)
+        return (x - self.denoiser(x, sigma)) / sigma**2
 
-    # def forward(self, x):
-    #     r'''
-    #     Computes the negative score at x.
-    #     '''
-    #     return (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2
+class REDDenoiser(Denoiser):
+    r'''
+    TODO
+    '''
+    def __init__(self, *args, **kwargs):
+        super(REDDenoiser, self).__init__(*args, **kwargs)
+
+    def forward(self, x, sigma):
+        return x - self.denoiser(x, sigma)
