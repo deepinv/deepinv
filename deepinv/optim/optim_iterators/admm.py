@@ -11,22 +11,21 @@ class ADMMIteration(OptimIterator):
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
 
-    def forward(self, z_u, cur_params, y, physics):
+    def forward(self, X, cur_params, y, physics):
 
-        z, u = z_u
+        x, z = X['est']  # previously z, u
 
-        if u.shape != z.shape:  # In ADMM, the "dual" variable u is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
-            u = torch.zeros_like(z)
+        if z.shape != x.shape:  # In ADMM, the "dual" variable u is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
+            z = torch.zeros_like(x)
 
-        u_prev = u.clone()
+        z_prev = z.clone()
 
-        x = self.g_step(z, u, cur_params)
-        z = self.f_step(x, u, cur_params, y, physics)
-        u = u_prev + self.beta*(x - z)
+        z_temp = self.g_step(x, z, cur_params)  # Used to be x
+        x = self.f_step(z_temp, z, y, physics, cur_params)  # Used to be z
+        z = z_prev + self.beta*(z_temp - x)  # used to be u
 
-        z_u = (z, u)
-
-        return z_u
+        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        return {'est': (x,z), 'cost': F}
 
 class fStepADMM(fStep):
 
@@ -36,7 +35,7 @@ class fStepADMM(fStep):
         """
         super(fStepADMM, self).__init__(**kwargs)
 
-    def forward(self, x, cur_params, u, y, physics):
+    def forward(self, x, u, y, physics, cur_params):
         return self.data_fidelity.prox(x+u, y, physics, 1/(self.lamb*cur_params['stepsize']))
 
 
@@ -48,5 +47,5 @@ class gStepADMM(gStep):
         """
         super(gStepADMM, self).__init__(**kwargs)
 
-    def forward(self, z, cur_params, u):
-        return self.prox_g(z-u, cur_params['g_param'])
+    def forward(self, x, z, cur_params):
+        return self.prox_g(x-z, cur_params['g_param'])

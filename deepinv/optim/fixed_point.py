@@ -34,7 +34,7 @@ class FixedPoint(nn.Module):
         for it in range(self.max_iter):
             x_prev = x
             x = self.iterator(x, cur_params, *args)
-            if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, self.verbose) and it>1:
+            if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
                 self.has_converged = True
                 if self.early_stop:
                     if self.verbose:

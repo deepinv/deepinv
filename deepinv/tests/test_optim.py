@@ -40,9 +40,9 @@ def test_denoiser(imsize, dummy_dataset, device):
     ths = 2.
 
     model_spec = {'name': 'tgv', 'args': {'n_it_max': 1000, 'verbose': False}}
-    model = ProxDenoiser(model_spec, max_iter=1, sigma_denoiser=ths, stepsize=1.)
+    model = ProxDenoiser(model_spec)
 
-    x = model(y, ths, 0)  # 3. Apply the model we want to test
+    x = model(y, ths)  # 3. Apply the model we want to test
 
     plot = False
 
@@ -60,7 +60,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
 
 optim_algos = ['PGD', 'HQS', 'DRS', 'ADMM', 'PD']
-# optim_algos = ['DRS']
+# optim_algos = ['PGD']
 # optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
@@ -77,9 +77,9 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
-    denoiser = ProxDenoiser(model_spec, max_iter=max_iter, sigma_denoiser=sigma_denoiser, stepsize=stepsize)
-    pnp = Optim(pnp_algo, prox_g=denoiser, data_fidelity=data_fidelity, stepsize=denoiser.stepsize, device=dinv.device,
-             g_param=denoiser.sigma_denoiser, max_iter=max_iter, crit_conv=1e-4, verbose=True)
+    denoiser = ProxDenoiser(model_spec)
+    pnp = Optim(pnp_algo, prox_g=denoiser, data_fidelity=data_fidelity, stepsize=stepsize, device=dinv.device,
+             g_param=sigma_denoiser, max_iter=max_iter, thres_conv=1e-4, verbose=True)
 
     x = pnp(y, physics)
 
