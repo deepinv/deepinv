@@ -1,29 +1,34 @@
 import torch
 import torch.nn as nn
 
-# --------------------------------------------
-# TV loss
-# --------------------------------------------
+
 class TVLoss(nn.Module):
     r'''
     Total variation loss (:math:`\ell_2` norm).
 
-    It computes
+    It computes the following loss
 
-    .. math:
+    .. math::
 
-        \|Dx\|_2^2
+        \|D\hat{x}\|_2^2
 
     where :math:`D` is a normalized linear operator that computes the vertical and horizontal first order differences
-    of the image:math:`x`.
+    of the reconstructed image :math:`\hat{x}`.
 
-    :param float tv_loss_weight: scalar weight for the TV loss.
+    :param float weight: scalar weight for the TV loss.
     '''
-    def __init__(self, tv_loss_weight=1):
+    def __init__(self, weight=1.):
         super(TVLoss, self).__init__()
-        self.tv_loss_weight = tv_loss_weight
+        self.tv_loss_weight = weight
+        self.name = 'tv'
 
     def forward(self, x):
+        r'''
+        Computes the TV loss.
+
+        :param torch.tensor x: reconstructed image.
+        :return: (torch.tensor) loss.
+        '''
         batch_size = x.size()[0]
         h_x = x.size()[2]
         w_x = x.size()[3]
@@ -36,3 +41,4 @@ class TVLoss(nn.Module):
     @staticmethod
     def tensor_size(t):
         return t.size()[1] * t.size()[2] * t.size()[3]
+
