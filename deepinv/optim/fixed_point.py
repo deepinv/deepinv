@@ -30,16 +30,20 @@ class FixedPoint(nn.Module):
             return cur_params
 
     def forward(self, x, init_params, *args):
+
         cur_params = init_params
+
         for it in range(self.max_iter):
             x_prev = x
             x = self.iterator(x, cur_params, *args)
+
             if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
                 self.has_converged = True
                 if self.early_stop:
                     if self.verbose:
                         print('Convergence reached at iteration ', it)
                     break
+
             if it < self.max_iter - 1 :
                 cur_params = self.update_params(cur_params, it+1, x, x_prev)
         return x
