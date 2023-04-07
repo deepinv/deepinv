@@ -32,10 +32,10 @@ class PoissonNoise(torch.nn.Module):
     r'''
 
     Poisson noise is defined as
-    :math:`y = \mathcal{P}(\gamma x)`
+    :math:`y = \mathcal{P}(\frac{x}{\gamma})`
     where :math:`\gamma` is the gain.
 
-    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \frac{y}{\gamma}`
+    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`
 
     It can be added to a physics operator in its construction or by setting
 
@@ -58,16 +58,17 @@ class PoissonNoise(torch.nn.Module):
 
         :param torch.tensor x: measurements
         '''
-        y = torch.poisson(self.gain*x)
+        y = torch.poisson(x/self.gain)
         if self.normalize:
-            y /= self.gain
+            y *= self.gain
         return y
 
 
 class PoissonGaussianNoise(torch.nn.Module):
     r'''
     Poisson-Gaussian noise is defined as
-    :math:`y = \frac{z}{\gamma} + \epsilon` where :math:`z\sim\mathcal{P}(\gamma x)` and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
+    :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
+    and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
     It can be added to a physics operator by setting
 
@@ -90,7 +91,7 @@ class PoissonGaussianNoise(torch.nn.Module):
 
         :param torch.tensor x: measurements
         '''
-        y = torch.poisson(self.gain*x)/self.gain
+        y = torch.poisson(x/self.gain)*self.gain
 
         y += torch.randn_like(x)*self.sigma
         return y

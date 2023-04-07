@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 
-# --------------------------------------------
-# Jacobian Spectral Norm loss
-# --------------------------------------------
+
 class JacobianSpectralNorm(nn.Module):
     r'''
     Computes the spectral norm of the Jacobian.
