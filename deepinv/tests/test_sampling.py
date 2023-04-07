@@ -40,8 +40,8 @@ def choose_algo(algo, prior, likelihood, stepsize, crit_conv):
 
     return out
 
-sampling_algo = ['ULA', 'SKRock']
 
+sampling_algo = ['ULA', 'SKRock']
 @pytest.mark.parametrize("algo", sampling_algo)
 def test_sampling_algo(algo, imsize, dummy_dataset, device):
 
@@ -49,7 +49,7 @@ def test_sampling_algo(algo, imsize, dummy_dataset, device):
     test_sample = next(iter(dataloader)).to(device)
 
     sigma = .1
-    physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)  # 2. Set a physical experiment (here, deblurring)
+    physics = dinv.physics.Inpainting(mask=.5, tensor_size=imsize, device=device)  # 2. Set a physical experiment (here, deblurring)
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
