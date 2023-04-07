@@ -35,15 +35,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
         is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
 
     '''
-    def __init__(self, A=lambda x: x, A_adjoint=lambda x: x,
-                 noise_model=lambda x: x, sensor_model=lambda x: x,
+    def __init__(self, A=lambda x: x, noise_model=lambda x: x, sensor_model=lambda x: x,
                  max_iter=50, tol=1e-3):
         super().__init__()
         self.noise_model = noise_model
         self.sensor_model = sensor_model
         self.forw = A
         self.SVD = False  # flag indicating SVD available
-        self.adjoint = A_adjoint
         self.max_iter = max_iter
         self.tol = tol
 
@@ -58,10 +56,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         '''
         A = lambda x: self.A(other.A(x)) # (A' = A_1 A_2)
-        A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x))
         noise = self.noise_model
         sensor = self.sensor_model
-        return Physics(A, A_adjoint, noise, sensor)
+        return Physics(A, noise, sensor)
 
     def forward(self, x):
         r'''
@@ -102,6 +99,33 @@ class Physics(torch.nn.Module):  # parent class for forward models
         '''
         return self.noise_model(x)
 
+    def A_dagger(self, y):
+        r'''
+        Computes :math:`A^{\dagger}y = x` via gradient descent.
+
+        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
+
+        :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :return: (torch.tensor) The reconstructed image :math:`x`.
+
+        '''
+
+        # TODO: gradient descent
+
+        x = y
+        return x
+
+class LinearPhysics(Physics):
+    r'''
+    Parent class for linear operators.
+    '''
+
+    def __init__(self, A=lambda x: x, A_adjoint=lambda x: x, noise_model=lambda x: x, sensor_model=lambda x: x,
+                 max_iter=50, tol=1e-3, **kwargs):
+        super().__init__(A=A, noise_model=noise_model, sensor_model=sensor_model, max_iter=max_iter, tol=tol)
+
+        self.adjoint = A_adjoint
+
     def A_adjoint(self, x):
         r'''
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
@@ -118,68 +142,21 @@ class Physics(torch.nn.Module):  # parent class for forward models
         '''
         return self.adjoint(x)
 
-    def prox_l2(self, z, y, gamma):
+    def __add__(self, other): #  physics3 = physics1 + physics2
         r'''
-        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
+        Concatenates two forward operators :math:`A = A_1\circ A_2` via the add operation
 
-        .. math::
+        The resulting operator keeps the noise and sensor models of :math:`A_1`.
 
-            \underset{x}{\arg\min} \; \frac{1}{2} \|Ax-y\|^2 + \frac{\gamma}{2}\|x-z\|^2
-
-        :param torch.tensor y: measurements tensor
-        :param torch.tensor z: signal tensor
-        :param float gamma: hyperparameter of the proximal operator
-        :return: (torch.tensor) estimated signal tensor
+        :param deepinv.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.Physics) concantenated operator
 
         '''
-        b = self.A_adjoint(y) + gamma*z
-        H = lambda x: self.A_adjoint(self.A(x))+gamma*x
-        x = conjugate_gradient(H, b, self.max_iter, self.tol)
-        return x
-
-    # def prox_l2_norm(self, z, y, gamma):
-    #     r'''
-    #
-    #     Computes the proximal operator of :math:`f(x) = \frac{1}{2}\gamma \|x-y\|_2^2`
-    #
-    #     :param torch.tensor y: measurements tensor
-    #     :param torch.tensor z: signal tensor
-    #     :param float gamma: hyperparameter of the proximal operator
-    #     :return: (torch.tensor) estimated signal tensor
-    #
-    #     '''
-    #     return (z + gamma * y) / (1 + gamma)
-
-    def A_dagger(self, y):
-        r'''
-        Computes :math:`A^{\dagger}y = x` using the conjugate gradient method https://en.wikipedia.org/wiki/Conjugate_gradient_method.
-
-        If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
-        otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
-
-        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
-
-        :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :return: (torch.tensor) The reconstructed image :math:`x`.
-
-        '''
-        Aty = self.A_adjoint(y)
-
-        overcomplete = np.prod(Aty.shape) < np.prod(y.shape)
-
-        if not overcomplete:
-            A = lambda x: self.A(self.A_adjoint(x))
-            b = y
-        else:
-            A = lambda x: self.A_adjoint(self.A(x))
-            b = Aty
-
-        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol)
-
-        if not overcomplete:
-            x = self.A_adjoint(x)
-
-        return x
+        A = lambda x: self.A(other.A(x)) # (A' = A_1 A_2)
+        A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x))
+        noise = self.noise_model
+        sensor = self.sensor_model
+        return Physics(A, A_adjoint, noise, sensor)
 
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True):
         r'''
@@ -233,8 +210,58 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return s1-s2
 
+    def prox_l2(self, z, y, gamma):
+        r'''
+        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
 
-class DecomposablePhysics(Physics):
+        .. math::
+
+            \underset{x}{\arg\min} \; \frac{1}{2} \|Ax-y\|^2 + \frac{\gamma}{2}\|x-z\|^2
+
+        :param torch.tensor y: measurements tensor
+        :param torch.tensor z: signal tensor
+        :param float gamma: hyperparameter of the proximal operator
+        :return: (torch.tensor) estimated signal tensor
+
+        '''
+        b = self.A_adjoint(y) + gamma*z
+        H = lambda x: self.A_adjoint(self.A(x))+gamma*x
+        x = conjugate_gradient(H, b, self.max_iter, self.tol)
+        return x
+
+    def A_dagger(self, y):
+        r'''
+        Computes :math:`A^{\dagger}y = x` using the conjugate gradient method https://en.wikipedia.org/wiki/Conjugate_gradient_method.
+
+        If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
+        otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
+
+        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
+
+        :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :return: (torch.tensor) The reconstructed image :math:`x`.
+
+        '''
+        Aty = self.A_adjoint(y)
+
+        overcomplete = np.prod(Aty.shape) < np.prod(y.shape)
+
+        if not overcomplete:
+            A = lambda x: self.A(self.A_adjoint(x))
+            b = y
+        else:
+            A = lambda x: self.A_adjoint(self.A(x))
+            b = Aty
+
+        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol)
+
+        if not overcomplete:
+            x = self.A_adjoint(x)
+
+        return x
+
+
+class DecomposablePhysics(LinearPhysics):
     r'''
     Parent class for linear operators with SVD decomposition.
 

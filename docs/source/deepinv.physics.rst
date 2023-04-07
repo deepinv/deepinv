@@ -7,16 +7,14 @@ The operators and are of the form
 
 .. math::
 
-    y = N(A(x))
+    y = \noise{\forw{x}}
 
-where :math:`x` is an image of :math:`n` pixels, :math:`y` are the measurements of size :math:`m`,
-:math:`A:\mathbb{R}^{n}\mapsto \mathbb{R}^{m}` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
-and :math:`N:\mathbb{R}^{m}\mapsto \mathbb{R}^{m}` is a stochastic mapping which characterizes the noise affecting the measurements.
+where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are the measurements of size :math:`m`,
+:math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
+and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting the measurements.
 
 
 All forward operators inherit the structure of the ``Physics`` class.
-Linear operators with a closed-form singular value decomposition are defined via ``DecomposablePhysics``, which enables
-the efficient computation of their pseudoinverse and proximal operators.
 
 .. autosummary::
    :toctree: stubs
@@ -24,28 +22,33 @@ the efficient computation of their pseudoinverse and proximal operators.
    :nosignatures:
 
    deepinv.physics.Physics
-   deepinv.physics.DecomposablePhysics
 
 Linear operators
 -------------------------------------
-Operators where :math:`A:\mathbb{R}^{n}\mapsto \mathbb{R}^{m}` is a linear mapping.
+Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
+All linear operators inherit the structure of the ``LinearPhysics`` class.
+Linear operators with a closed-form singular value decomposition are defined via ``DecomposablePhysics``, which enables
+the efficient computation of their pseudo-inverse and proximal operators.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.LinearPhysics
+   deepinv.physics.DecomposablePhysics
    deepinv.physics.Inpainting
    deepinv.physics.Denoising
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
    deepinv.physics.Downsampling
    deepinv.physics.CompressedSensing
+   deepinv.physics.Decolorize
 
 
 Non-linear operators
 -------------------------------------
-Operators where :math:`A:\mathbb{R}^{n}\mapsto \mathbb{R}^{m}` is a non-linear mapping (e.g., bilinear).
+Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
 
 .. autosummary::
    :toctree: stubs
@@ -57,7 +60,7 @@ Operators where :math:`A:\mathbb{R}^{n}\mapsto \mathbb{R}^{m}` is a non-linear m
 
 Noise distributions
 -------------------------------------
-Noise mappings :math:`N:\mathbb{R}^{m}\mapsto \mathbb{R}^{m}` are simple torch.nn.Modules.
+Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module``s.
 The noise of a forward operator can be set in its construction
 or simply as
 
@@ -81,15 +84,15 @@ or simply as
    deepinv.physics.UniformNoise
 
 
-Defining a new operator only requires a forward function and its transpose operation,
-inheriting the remaining structure of the ``Physics`` class:
+Defining a new (linear) operator only requires a forward function and its transpose operation,
+inheriting the remaining structure of the ``LinearPhysics`` class:
 
 ::
 
-    import deepinv.physics.Physics as Physics
+    import deepinv.physics.Physics as LinearPhysics
 
     # define an operator that converts color images into grayscale ones.
-    class Decolorize(Physics):
+    class Decolorize(LinearPhysics):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
 
@@ -103,8 +106,8 @@ inheriting the remaining structure of the ``Physics`` class:
 .. note::
 
     If the operator is linear, it is recommended to verify that the transpose well defined using
-    :meth:`deepinv.physics.adjointness_test()`,
-    and that it has a unit norm using :meth:`deepinv.physics.Physics.compute_norm()`
+    :meth:`deepinv.physics.LinearPhysics.adjointness_test()`,
+    and that it has a unit norm using :meth:`deepinv.physics.LinearPhysics.compute_norm()`
 
     ::
 

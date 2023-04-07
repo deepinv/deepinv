@@ -43,8 +43,8 @@ def find_operator(name, img_size, device):
     elif name == 'deblur':
         p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=device)
     elif name == 'deblur_fft':
-        p = dinv.physics.BlurFFT(img_size=img_size, filter=dinv.physics.blur.gaussian_blur
-        (sigma=(.1, .5), angle=45.), device=device)
+        p = dinv.physics.BlurFFT(img_size=img_size, filter=dinv.physics.blur.gaussian_blur(sigma=(.1, .5), angle=45.),
+                                 device=device)
     elif name == 'super_resolution':
         p = dinv.physics.Downsampling(img_size=img_size, factor=2)
     else:
@@ -70,7 +70,7 @@ def test_operators_adjointness(name, imsize, device):
 
 @pytest.mark.parametrize("name", operators)
 def test_operators_norm(name, imsize, device):
-    '''
+    r'''
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
 
@@ -87,7 +87,7 @@ def test_operators_norm(name, imsize, device):
 
 @pytest.mark.parametrize("name", operators)
 def test_pseudo_inverse(name, imsize, device):
-    '''
+    r'''
     Tests if a linear physics operator has a well defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
 
