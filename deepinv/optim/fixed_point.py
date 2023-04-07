@@ -29,7 +29,7 @@ class FixedPoint(nn.Module):
         else :
             return cur_params
 
-    def forward(self, x, init_params, *args):
+    def forward(self, x, init_params, optim_params, *args):
 
         cur_params = init_params
 
@@ -45,7 +45,7 @@ class FixedPoint(nn.Module):
                     break
 
             if it < self.max_iter - 1 :
-                cur_params = self.update_params(cur_params, it+1, x, x_prev)
+                cur_params = self.update_params(optim_params, it+1, x, x_prev)
         return x
 
 class AndersonAcceleration(FixedPoint):

@@ -17,7 +17,7 @@ class BaseOptim(nn.Module):
     def __init__(self, iterator, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
                 stepsize = 1., g_param=None, backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9,
-                stepsize_g = None, params_algo={'stepsize': None, 'sigma': None}):
+                params_algo={'stepsize': None, 'sigma': None}):
 
         super(BaseOptim, self).__init__()
 
@@ -43,28 +43,10 @@ class BaseOptim(nn.Module):
         else :
             self.g_param_iterable = False
 
-        # self.stepsize = torch.tensor(stepsize)
-        # self.g_param = torch.tensor(g_param) if g_param else None
-        # self.stepsize_g = torch.tensor(stepsize_g) if stepsize_g else None
-
-        self.params_dict = {key: torch.tensor(value) if value is not None else None
+        self.params_dict = {key: value if isinstance(value, Iterable) else torch.tensor(value)
                             for key, value in zip(params_algo.keys(), params_algo.values())}
-
         # Now we have self.params_dict['stepsize']
 
-        # def update_params_fn(cur_params, it, X, X_prev):
-        #     if backtracking:
-        #         x_prev, x = X_prev['est'][0], X['est'][0]
-        #         F_prev, F = X_prev['cost'], X['cost']
-        #         diff_F, diff_x = F_prev - F, (torch.norm(x - x_prev, p=2) ** 2).item()
-        #         stepsize = cur_params['stepsize']
-        #         if diff_F < (gamma_backtracking / stepsize) * diff_x :
-        #             cur_params['stepsize'] = eta_backtracking * stepsize
-        #     if self.stepsize_iterable:
-        #         cur_params['stepsize'] = self.stepsize[it]
-        #     if self.g_param_iterable:
-        #         cur_params['g_param'] = self.g_param[it]
-        #     return cur_params
 
         def update_params_fn(params_dict, it, X, X_prev):
 
@@ -91,7 +73,7 @@ class BaseOptim(nn.Module):
             self.fixed_point = FixedPoint(self.iterator, update_params_fn=update_params_fn, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
 
     def get_params_it(self, params_dict, it):
-        cur_params_dict = {key: value[it] if isinstance(value, nn.ModuleList) else value
+        cur_params_dict = {key: value[it] if isinstance(value, Iterable) else value
                        for key, value in zip(params_dict.keys(), params_dict.values())}
         return cur_params_dict
 
@@ -111,7 +93,7 @@ class BaseOptim(nn.Module):
     def forward(self, y, physics, **kwargs):
         init_params = self.get_params_it(self.params_dict, 0)
         x = self.get_init(init_params, y, physics)
-        x = self.fixed_point(x, self.params_dict, y, physics, **kwargs)
+        x = self.fixed_point(x, init_params, self.params_dict, y, physics, **kwargs)
         return self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
 
     def has_converged(self):
