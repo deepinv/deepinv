@@ -60,10 +60,13 @@ model_spec = {'name': denoiser_name,
 
 
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
+params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser}
 
 prox_g = ProxDenoiser(model_spec)
-model = Optim(algo_name = 'HQS', prox_g=prox_g, g_first = False, data_fidelity=data_fidelity, lamb=lamb, stepsize=stepsize, device=dinv.device,
-             g_param=sigma_denoiser, early_stop=early_stop, max_iter=max_iter, crit_conv=crit_conv, thres_conv=thres_conv, backtracking=False, F_fn=None, verbose=True)
+model = Optim(algo_name = 'HQS', prox_g=prox_g, g_first = False, data_fidelity=data_fidelity, lamb=lamb,
+              stepsize=stepsize, device=dinv.device, g_param=sigma_denoiser, early_stop=early_stop,
+              max_iter=max_iter, crit_conv=crit_conv, thres_conv=thres_conv, backtracking=False, F_fn=None,
+              verbose=True, params_algo=params_algo)
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,

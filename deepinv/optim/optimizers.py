@@ -17,7 +17,7 @@ class BaseOptim(nn.Module):
     def __init__(self, iterator, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
                 stepsize = 1., g_param=None, backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9,
-                stepsize_g = None, params_dict={'stepsize': None, 'sigma': None}):
+                stepsize_g = None, params_algo={'stepsize': None, 'sigma': None}):
 
         super(BaseOptim, self).__init__()
 
@@ -48,7 +48,7 @@ class BaseOptim(nn.Module):
         # self.stepsize_g = torch.tensor(stepsize_g) if stepsize_g else None
 
         self.params_dict = {key: torch.tensor(value) if value is not None else None
-                            for key, value in zip(params_dict.keys, params_dict.values)}
+                            for key, value in zip(params_algo.keys(), params_algo.values())}
 
         # Now we have self.params_dict['stepsize']
 
@@ -92,7 +92,7 @@ class BaseOptim(nn.Module):
 
     def get_params_it(self, params_dict, it):
         cur_params_dict = {key: value[it] if isinstance(value, nn.ModuleList) else value
-                       for key, value in zip(params_dict.keys, params_dict.values)}
+                       for key, value in zip(params_dict.keys(), params_dict.values())}
         return cur_params_dict
 
     def get_init(self, cur_params, y, physics):
