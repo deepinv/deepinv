@@ -8,9 +8,9 @@ class DataFidelity(nn.Module):
 
     .. math:
 
-        f(Ax,y)
+        \datafid{Ax}{y}
 
-    where :math:
+    where ... TODO
 
     '''
     def __init__(self, f=None, grad_f=None, prox_f=None, prox_norm=None):
@@ -52,7 +52,7 @@ class DataFidelity(nn.Module):
 
 class L2(DataFidelity):
     r'''
-    L2 fidelity
+    :math:`\ell_2` fidelity.
 
     Describes the following data fidelity loss:
 
@@ -85,7 +85,7 @@ class L2(DataFidelity):
 
         .. math::
 
-            f(x) = \frac{1}{2}*\gamma*||x-y||_2^2
+            f(x) = \frac{1}{2}\gamma\|x-y\|_2^2
 
         '''
         return (x+gamma*y)/(1+gamma)
@@ -93,7 +93,7 @@ class L2(DataFidelity):
 
 class IndicatorL2(DataFidelity):
     r'''
-    Indicator of L2 ball with radius r
+    Indicator of :math:`\ell_2` ball with radius :math:`r`.
 
     '''
     def __init__(self, radius=None):
@@ -115,10 +115,22 @@ class IndicatorL2(DataFidelity):
 class PoissonLikelihood(DataFidelity):
     r'''
 
-    Poisson negative log likelihood
+    Poisson negative log-likelihood.
 
+    .. math::
+
+        \datafid{z}{y} =  -y^{\top} \log(z+\beta)+1^{\top}z
+
+    where :math:`y` are the measurements, :math:`z` is the estimated (positive) density and :math:`beta\geq 0` is
+    an optional background level.
+
+    .. note::
+
+        This loss is not Lipschitz smooth w.r.t. :math:`z` in the absence of background :math:`beta=0`.
+
+    :param float bkg: Background level .:math:`beta`.
     '''
-    def __init__(self, bkg=0):
+    def __init__(self, bkg=0.):
         super().__init__()
         self.bkg = bkg
 
@@ -135,7 +147,7 @@ class PoissonLikelihood(DataFidelity):
 
 class L1(DataFidelity):
     r'''
-    L1 fidelity
+    :math:`\ell_1` fidelity.
 
     '''
     def __init__(self):

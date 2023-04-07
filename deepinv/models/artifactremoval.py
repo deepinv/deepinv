@@ -6,14 +6,14 @@ import torch.nn as nn
 
 class ArtifactRemoval(nn.Module):
     r'''
-        Artifact removal architecture :math:`f(A^{\top}y)`
+        Artifact removal architecture :math:`\phi(A^{\top}y)`
 
         The architecture is inspired by the FBPConvNet approach of https://arxiv.org/pdf/1611.03679
-        where a deep network :math:`f` is used to improve the linear reconstruction :math:`A^{\top}y`.
+        where a deep network :math:`phi` is used to improve the linear reconstruction :math:`A^{\top}y`.
 
         :param torch.nn.Module backbone_net: Base network :math:`f`, can be pretrained or not
         :param bool pinv: If ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
-        :param str device: cpu or gpu.
+        :param torch.device device: cpu or gpu.
     '''
     def __init__(self, backbone_net, pinv=False, ckpt_path=None, device=None):
         super(ArtifactRemoval, self).__init__()
@@ -36,7 +36,7 @@ class ArtifactRemoval(nn.Module):
         :param torch.tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         '''
-        print(type(self.backbone_net).__name__)
+        #print(type(self.backbone_net).__name__)
         y_in = physics.A_adjoint(y) if not self.pinv else physics.A_dagger(y)
         if type(self.backbone_net).__name__ == 'UNetRes':
             noise_level_map = torch.FloatTensor(y_in.size(0), 1, y_in.size(2), y_in.size(3)).fill_(kwargs['sigma']).to(y_in.dtype)
