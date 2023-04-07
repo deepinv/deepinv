@@ -16,7 +16,8 @@ class BaseOptim(nn.Module):
     '''
     def __init__(self, iterator, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
-                stepsize = 1., g_param=None, backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9):
+                stepsize = 1., g_param=None, backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9,
+                stepsize_g = None, params_dict={'stepsize': None, 'sigma': None}):
 
         super(BaseOptim, self).__init__()
 
@@ -42,8 +43,12 @@ class BaseOptim(nn.Module):
         else :
             self.g_param_iterable = False
 
-        self.stepsize = torch.tensor(stepsize)
-        self.g_param = torch.tensor(g_param) if g_param else None
+        # self.stepsize = torch.tensor(stepsize)
+        # self.g_param = torch.tensor(g_param) if g_param else None
+        # self.stepsize_g = torch.tensor(stepsize_g) if stepsize_g else None
+
+        self.params_dict = {key: torch.tensor(value) if values is not None else None
+                            for key, value in zip(params_dict.keys, params_dict.values)}
     
         def update_params_fn(cur_params, it, X, X_prev):
             if backtracking:
@@ -117,5 +122,8 @@ def Optim(algo_name, data_fidelity=L2(), lamb=1., device='cpu', g=None, prox_g=N
     iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
                 grad_g=grad_g, g_first=g_first, stepsize_inter=stepsize_inter,
                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta, F_fn = F_fn)
-    return BaseOptim(iterator, F_fn = F_fn,  g_param=g_param,stepsize=stepsize, backtracking=backtracking, 
+
+    optimizer = BaseOptim(iterator, F_fn = F_fn,  g_param=g_param,stepsize=stepsize, backtracking=backtracking,
                     gamma_backtracking = gamma_backtracking, eta_backtracking = eta_backtracking, **kwargs)
+
+    return optimizer
