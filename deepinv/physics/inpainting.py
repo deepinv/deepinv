@@ -18,6 +18,9 @@ class Inpainting(DecomposablePhysics):
     This operator is linear and has a trivial SVD decomposition, which allows for fast computation
     of the pseudoinverse and proximal operator.
 
+    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
+    in a similar fashion to torch.nn.Module.
+
     :param tuple tensor_size: size of the input images, e.g., (C, H, W).
     :param torch.tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
         distribution with probability=mask. If the input is a torch tensor matching tensor_size,
