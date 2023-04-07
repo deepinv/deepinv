@@ -1,35 +1,45 @@
 import os
 from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr, investigate_model
-from deepinv.utils.plotting import plot_debug, torch2cpu, imsave
+from deepinv.utils import plot_debug, torch2cpu, im_save
 import numpy as np
 from tqdm import tqdm
 import torch
 import wandb
 
-def train(model,
-          train_dataloader,
-          epochs,
-          loss_closure,
-          eval_dataloader=None,
-          physics=None,
-          scheduler=None,
-          optimizer=None,
-          device='cpu',
-          ckp_interval=100,
-          eval_interval=1, 
-          save_path='.',
-          verbose=False,
-          unsupervised=False,
-          plot=False,
-          plot_input=False,
-          wandb_vis=False,
-          debug=False):
+
+def train(model, train_dataloader, epochs, losses, eval_dataloader=None, physics=None, scheduler=None, optimizer=None,
+          device='cpu', ckp_interval=100, eval_interval=1, save_path='.', verbose=False, unsupervised=False,
+          plot=False, plot_input=False, wandb_vis=False, debug=False):
+    r'''
+    Trains a reconstruction network.
+
+    TODO
+
+    :param torch.nn.Module model:
+    :param deepinv.datasets.HDF5Dataset train_dataloader:
+    :param int epochs:
+    :param torch.nn.Module, list of torch.nn.Module losses:
+    :param deepinv.datasets.HDF5Dataset eval_dataloader:
+    :param deepinv.physics.Physics physics:
+    :param torch.nn.optim scheduler:
+    :param torch.nn.optim optimizer:
+    :param torch.device device:
+    :param int ckp_interval:
+    :param int eval_interval:
+    :param str save_path:
+    :param bool verbose:
+    :param bool unsupervised:
+    :param bool plot:
+    :param bool plot_input:
+    :param bool wandb_vis:
+    :param bool debug:
+    '''
 
     if wandb_vis:
         wandb.watch(model)
 
-    losses = AverageMeter('loss', ':.2e')
-    meters = [losses]
+    loss_meter = AverageMeter('loss', ':.2e')
+    meters = [loss_meter]
     losses_verbose = []
     train_psnr_net = []
     train_psnr_linear = []
@@ -37,7 +47,7 @@ def train(model,
     eval_psnr_linear = []
 
     if verbose:
-        losses_verbose = [AverageMeter('loss_' + l.name, ':.2e') for l in loss_closure]
+        losses_verbose = [AverageMeter('loss_' + l.name, ':.2e') for l in losses]
         train_psnr_net = AverageMeter('train_psnr_net', ':.2f')
         train_psnr_linear = AverageMeter('train_psnr_linear', ':.2f')
         eval_psnr_net = AverageMeter('eval_psnr_net', ':.2f')
@@ -47,13 +57,13 @@ def train(model,
             meters.append(loss)
         meters.append(train_psnr_linear)
         meters.append(train_psnr_net)
-        if eval_dataloader :
+        if eval_dataloader:
             meters.append(eval_psnr_linear)
             meters.append(eval_psnr_net)
 
     progress = ProgressMeter(epochs, meters)
 
-    save_path = save_path + f'/{get_timestamp()}'
+    save_path = f'{save_path}/{get_timestamp()}'
 
     params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'The model has {params} trainable parameters')
@@ -61,8 +71,8 @@ def train(model,
     if type(physics) is not list:
         physics = [physics]
 
-    if type(loss_closure) is not list:
-        loss_closure = [loss_closure]
+    if type(losses) is not list:
+        losses = [losses]
 
     if type(train_dataloader) is not list:
         train_dataloader = [train_dataloader]
@@ -77,9 +87,9 @@ def train(model,
     for epoch in range(epochs):
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
-
         for i in range(batches):
             G_perm = np.random.permutation(G)
+
             for g in G_perm:
                 if unsupervised:
                     y = next(iterators[g])
@@ -95,33 +105,34 @@ def train(model,
 
                 x1 = model(y, physics[g])   # Requires grad ok
 
-
-
                 loss_total = 0
-                for k, l in enumerate(loss_closure):
-                    loss = 0
+                for k, l in enumerate(losses):
                     if l.name in ['mc']:
                         loss = l(y, x1, physics[g])
-                    if l.name in ['ms']:
+                    elif l.name in ['ms']:
                         loss = l(y, physics[g], model)
-                    if not unsupervised and l.name in ['sup']:
+                    elif not unsupervised and l.name in ['sup']:
                         loss = l(x1, x)
-                    if l.name in ['moi']:
+                    elif l.name in ['moi']:
                         loss = l(x1, physics, model)
-                    if l.name.startswith('suremc'):
+                    elif l.name in ['tv']:
+                        loss = l(x1)
+                    elif l.name.startswith('suremc'):
                         loss = l(y, x1, physics[g], model)
-                    if l.name in ['ei', 'rei']:
+                    elif l.name in ['ei', 'rei']:
                         loss = l(x1, physics[g], model)
+                    else:
+                        raise Exception("The loss used is not recognized by the train function.")
+
                     loss_total += loss
 
                     if verbose:
                         losses_verbose[k].update(loss.item())
 
-                losses.update(loss_total.item())
+                loss_meter.update(loss_total.item())
 
-                if i == 0 and g == 0 and plot and epoch%499==0:
-                    imgs = [physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0),
-                            x1[0, :, :, :].unsqueeze(0)]
+                if i == 0 and g == 0 and plot and epoch % 499 == 0:
+                    imgs = [physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0), x1[0, :, :, :].unsqueeze(0)]
                     titles = ['Linear Inv.', 'Estimated']
                     if not unsupervised:
                         imgs.append(x[0, :, :, :].unsqueeze(0))
@@ -136,12 +147,14 @@ def train(model,
                 loss_total.backward()
                 optimizer.step()
 
-                if debug and i==0:
+                if debug and i == 0:
                     investigate_model(model)
 
         if (not unsupervised) and eval_dataloader and (epoch+1) % eval_interval == 0:
-            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader, physics, device, verbose=False, wandb_vis=wandb_vis, plot_input=plot_input)
-            if verbose :
+            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(model, eval_dataloader,
+                                                                      physics, device, verbose=False,
+                                                                      wandb_vis=wandb_vis, plot_input=plot_input)
+            if verbose:
                 eval_psnr_linear.update(test_psnr)
                 eval_psnr_net.update(pinv_psnr)
 
@@ -149,28 +162,37 @@ def train(model,
             scheduler.step()
 
         loss_history.append(loss_total.detach().cpu().numpy())
-        if wandb_vis :
+
+        if wandb_vis:
             wandb.log({"training loss": loss_total})
 
         progress.display(epoch + 1)
         save_model(epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path)
 
-    if wandb_vis :
+    if wandb_vis:
         wandb.save('model.h5')
 
     return model
 
 
-def test(model, test_dataloader,
-          physics,
-          device=torch.device(f"cuda:0"),
-          plot=False,
-          plot_input=False,
-          save_folder=None,
-          save_plot_path=None,
-          verbose=True,
-          wandb_vis=False,
-          **kwargs):
+def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=False, plot_input=False,
+         save_folder=None, save_plot_path=None, verbose=True, wandb_vis=False, **kwargs):
+    r'''
+    Tests a reconstruction network.
+
+    TODO
+
+    :param torch.nn.Module model:
+    :param deepinv.datasets.HDF5Dataset test_dataloader:
+    :param deepinv.physics.Physics physics:
+    :param torch.device device:
+    :param bool plot:
+    :param bool plot_input:
+    :param str save_folder:
+    :param str save_plot_path:
+    :param bool verbose:
+    :param bool wandb_vis:
+    '''
 
     psnr_linear = []
     psnr_net = []
@@ -238,7 +260,7 @@ def test(model, test_dataloader,
                 name_imgs.append('x')
 
                 for img, name_im in zip(imgs, name_imgs):
-                    imsave(save_folder + 'G' + str(g) + '/' + name_im + '_' + str(i) + '.png', img)
+                    im_save(save_folder + 'G' + str(g) + '/' + name_im + '_' + str(i) + '.png', img)
 
             psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
             psnr_net.append(cal_psnr(x1, x))
