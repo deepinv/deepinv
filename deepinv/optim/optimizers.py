@@ -43,7 +43,8 @@ class BaseOptim(nn.Module):
         else :
             self.g_param_iterable = False
 
-        self.params_dict = {key: value if isinstance(value, Iterable) else torch.tensor(value)
+        self.params_dict = {key: value if (isinstance(value, list) or isinstance(value, nn.ParameterList))
+                                           else torch.tensor(value)
                             for key, value in zip(params_algo.keys(), params_algo.values())}
         # Now we have self.params_dict['stepsize']
 
@@ -73,8 +74,8 @@ class BaseOptim(nn.Module):
             self.fixed_point = FixedPoint(self.iterator, update_params_fn=update_params_fn, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
 
     def get_params_it(self, params_dict, it):
-        cur_params_dict = {key: value[it] if isinstance(value, Iterable) else value
-                       for key, value in zip(params_dict.keys(), params_dict.values())}
+        cur_params_dict = {key: value[it] if (isinstance(value, list) or isinstance(value, nn.ParameterList)) else value
+                            for key, value in zip(params_dict.keys(), params_dict.values())}
         return cur_params_dict
 
     def get_init(self, cur_params, y, physics):
