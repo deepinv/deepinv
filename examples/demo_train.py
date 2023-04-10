@@ -29,6 +29,8 @@ dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
 
 # choose a forward operator
 physics = dinv.physics.Inpainting(tensor_size=(1, 28, 28), mask=.5, device=dinv.device)
+# loads the random mask used to generate dataset
+physics.load_state_dict(torch.load(f'{dir}/physics0.pt'))
 
 # train the network
 dinv.train(model=model,
