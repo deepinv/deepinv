@@ -10,7 +10,7 @@ from deepinv.unfolded.deep_equilibrium import DEQ
 from torchvision import datasets, transforms
 import os
 import wandb
-from deepinv.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import Denoiser
 import hdf5storage
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
@@ -80,11 +80,11 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
-prox_g = ProxDenoiser(model_spec)
-
-model = Unfolded(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=1., 
-                    device=dinv.device, g_param=0.01, learn_g_param=True, max_iter=max_iter,
-                    learn_stepsize=True, constant_stepsize=False, constant_g_param=False)
+prox_g = Denoiser(model_spec)
+params_algo={'stepsize': [1.]*max_iter, 'g_param':  [0.01]*max_iter, 'lambda' : 1.}
+trainable_params = ['stepsize', 'g_param']
+model = Unfolded(algo_name, params_algo=params_algo, trainable_params = trainable_params, prox_g=prox_g, data_fidelity=data_fidelity,
+                    device=dinv.device, max_iter=max_iter)
 
 for name, param in model.named_parameters():
     if param.requires_grad:

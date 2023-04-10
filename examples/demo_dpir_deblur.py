@@ -4,7 +4,7 @@ import deepinv as dinv
 import hdf5storage
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
@@ -62,7 +62,7 @@ model_spec = {'name': denoiser_name,
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
 params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda' : lamb}
 
-prox_g = ProxDenoiser(model_spec)
+prox_g = Denoiser(model_spec)
 model = Optim(algo_name = 'HQS', prox_g=prox_g, g_first = False, data_fidelity=data_fidelity, 
               device=dinv.device, early_stop=early_stop,
               max_iter=max_iter, crit_conv=crit_conv, thres_conv=thres_conv, backtracking=False, F_fn=None,

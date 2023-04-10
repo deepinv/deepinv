@@ -14,7 +14,7 @@ class BaseOptim(nn.Module):
         :param deepinv.optim.iterator iterator: description
 
     '''
-    def __init__(self, iterator, params_algo={'stepsize': 1.}, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
+    def __init__(self, iterator, params_algo={'lambda' : 1., 'stepsize': 1.}, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9):
 
@@ -28,17 +28,19 @@ class BaseOptim(nn.Module):
         self.F_fn = F_fn
         self.return_dual = return_dual
         self.iterator = iterator
-
-        self.params_dict = {key: torch.tensor(value) for key, value in zip(params_algo.keys(), params_algo.values())}
-
+        self.params_algo = params_algo
+        for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
+            if not isinstance(value, Iterable):
+                self.params_algo[key] = [value]
+            
         def update_params_fn(it, X, X_prev):
             if backtracking:
                 x_prev, x = X_prev['est'][0], X['est'][0]
                 F_prev, F = X_prev['cost'], X['cost']
                 diff_F, diff_x = F_prev - F, (torch.norm(x - x_prev, p=2) ** 2).item()
-                stepsize = self.params_dict['stepsize']
+                stepsize = self.params_algo['stepsize'][0]
                 if diff_F < (gamma_backtracking / stepsize) * diff_x :
-                    self.params_dict['stepsize'] = eta_backtracking * stepsize
+                    self.params_algo['stepsize'] = [eta_backtracking * stepsize]
             cur_params = self.get_params_it(it)
             return cur_params
 
@@ -51,8 +53,8 @@ class BaseOptim(nn.Module):
             self.fixed_point = FixedPoint(self.iterator, update_params_fn=update_params_fn, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
 
     def get_params_it(self, it):
-        cur_params_dict = {key: value[it] if value.dim()>0 else value.item()
-                            for key, value in zip(self.params_dict.keys(), self.params_dict.values())}
+        cur_params_dict = {key: value[it] if len(value)>1 else value[0]
+                            for key, value in zip(self.params_algo.keys(), self.params_algo.values())}
         return cur_params_dict
 
     def get_init(self, cur_params, y, physics):
