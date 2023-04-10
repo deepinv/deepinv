@@ -23,6 +23,20 @@ where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved wit
 :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
 which is typically set to a low value.
 
+.. note::
+
+    The approximation of the prior obtained via
+    :meth:`deepinv.models.ScoreDenoiser` is also valid for maximum-a-posteriori (MAP) denoisers,
+    but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather
+    given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,
+
+    .. math::
+
+        p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
+
+
+
+
 Markov Chain Monte Carlo
 --------------------------------
 
