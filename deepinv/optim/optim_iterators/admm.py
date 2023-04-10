@@ -13,16 +13,16 @@ class ADMMIteration(OptimIterator):
 
     def forward(self, X, cur_params, y, physics):
 
-        x, z = X['est']  # previously z, u
+        x, z = X['est']
 
         if z.shape != x.shape:  # In ADMM, the "dual" variable u is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
 
         z_prev = z.clone()
 
-        z_temp = self.g_step(x, z, cur_params)  # Used to be x
-        x = self.f_step(z_temp, z, y, physics, cur_params)  # Used to be z
-        z = z_prev + self.beta*(z_temp - x)  # used to be u
+        z_temp = self.g_step(x, z, cur_params)
+        x = self.f_step(z_temp, z, y, physics, cur_params)
+        z = z_prev + self.beta*(z_temp - x)
 
         F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
         return {'est': (x,z), 'cost': F}
