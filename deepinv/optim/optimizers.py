@@ -14,10 +14,9 @@ class BaseOptim(nn.Module):
         :param deepinv.optim.iterator iterator: description
 
     '''
-    def __init__(self, iterator, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
+    def __init__(self, iterator, params_algo={'stepsize': 1.}, max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None, 
                 anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
-                stepsize = 1., g_param=None, backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9,
-                params_algo={'stepsize': None, 'sigma': None}):
+                backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9):
 
         super(BaseOptim, self).__init__()
 
@@ -30,40 +29,18 @@ class BaseOptim(nn.Module):
         self.return_dual = return_dual
         self.iterator = iterator
 
-        if isinstance(stepsize, Iterable):
-            assert len(stepsize) >= max_iter, "stepsize must have at least max_iter elements"
-            self.stepsize_iterable = True
-            backtracking = False
-        else :
-            self.stepsize_iterable = False
+        self.params_dict = {key: torch.tensor(value) for key, value in zip(params_algo.keys(), params_algo.values())}
 
-        if isinstance(g_param, Iterable):
-            assert len(g_param) >= max_iter, "g_param must have at least max_iter elements"
-            self.g_param_iterable = True
-        else :
-            self.g_param_iterable = False
-
-        self.params_dict = {key: value if (isinstance(value, list) or isinstance(value, nn.ParameterList))
-                                           else torch.tensor(value)
-                            for key, value in zip(params_algo.keys(), params_algo.values())}
-        # Now we have self.params_dict['stepsize']
-
-
-        def update_params_fn(params_dict, it, X, X_prev):
-
-            cur_params = self.get_params_it(params_dict, it)
-
+        def update_params_fn(it, X, X_prev):
             if backtracking:
                 x_prev, x = X_prev['est'][0], X['est'][0]
                 F_prev, F = X_prev['cost'], X['cost']
                 diff_F, diff_x = F_prev - F, (torch.norm(x - x_prev, p=2) ** 2).item()
-                stepsize = cur_params['stepsize']
+                stepsize = self.params_dict['stepsize']
                 if diff_F < (gamma_backtracking / stepsize) * diff_x :
-                    cur_params['stepsize'] = eta_backtracking * stepsize
-
+                    self.params_dict['stepsize'] = eta_backtracking * stepsize
+            cur_params = self.get_params_it(it)
             return cur_params
-
-
 
         if self.anderson_acceleration :
             self.anderson_beta = anderson_beta
@@ -73,9 +50,9 @@ class BaseOptim(nn.Module):
         else :
             self.fixed_point = FixedPoint(self.iterator, update_params_fn=update_params_fn, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
 
-    def get_params_it(self, params_dict, it):
-        cur_params_dict = {key: value[it] if (isinstance(value, list) or isinstance(value, nn.ParameterList)) else value
-                            for key, value in zip(params_dict.keys(), params_dict.values())}
+    def get_params_it(self, it):
+        cur_params_dict = {key: value[it] if value.dim()>0 else value.item()
+                            for key, value in zip(self.params_dict.keys(), self.params_dict.values())}
         return cur_params_dict
 
     def get_init(self, cur_params, y, physics):
@@ -92,24 +69,21 @@ class BaseOptim(nn.Module):
         return X['est'][1]
 
     def forward(self, y, physics, **kwargs):
-        init_params = self.get_params_it(self.params_dict, 0)
+        init_params = self.get_params_it(0)
         x = self.get_init(init_params, y, physics)
-        x = self.fixed_point(x, init_params, self.params_dict, y, physics, **kwargs)
+        x = self.fixed_point(x, init_params, y, physics, **kwargs)
         return self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
 
     def has_converged(self):
         return self.fixed_point.has_converged
 
-def Optim(algo_name, data_fidelity=L2(), lamb=1., device='cpu', g=None, prox_g=None,
-            grad_g=None, g_first=False, stepsize=1., g_param=None, stepsize_inter=1.,
-            max_iter_inter=50, tol_inter=1e-3, beta=1., backtracking=False, gamma_backtracking = 0.1, 
-            eta_backtracking = 0.9, F_fn=None, **kwargs):
+def Optim(algo_name, params_algo, data_fidelity=L2(), F_fn=None, lamb=1., device='cpu', g=None, prox_g=None,
+            grad_g=None, g_first=False, stepsize_inter=1., max_iter_inter=50, tol_inter=1e-3, 
+            beta=1., backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, **kwargs):
     iterator_fn = str_to_class(algo_name + 'Iteration')
     iterator = iterator_fn(data_fidelity=data_fidelity, lamb=lamb, device=device, g=g, prox_g=prox_g,
                 grad_g=grad_g, g_first=g_first, stepsize_inter=stepsize_inter,
                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta, F_fn = F_fn)
-
-    optimizer = BaseOptim(iterator, F_fn = F_fn,  g_param=g_param,stepsize=stepsize, backtracking=backtracking,
-                    gamma_backtracking = gamma_backtracking, eta_backtracking = eta_backtracking, **kwargs)
-
+    optimizer = BaseOptim(iterator, params_algo = params_algo, F_fn = F_fn, backtracking=backtracking,
+                gamma_backtracking = gamma_backtracking, eta_backtracking = eta_backtracking, **kwargs)
     return optimizer
