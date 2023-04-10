@@ -26,19 +26,20 @@ class SureGaussianLoss(nn.Module):
 
     .. math::
 
-        \frac{1}{m}\|y - Af(y)\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(Af(y+\tau b_i) - Af(y)\right)
+        \frac{1}{m}\|y - A\inverse{y}\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(A\inverse{y+\tau b_i} -
+        A\inverse{y}\right)
 
-    where :math:`f` is the trainable network, :math:`A` is the forward operator,
+    where :math:`R` is the trainable network, :math:`A` is the forward operator,
     :math:`y` is the noisy measurement vector of size :math:`m`, :math:`A` is the forward operator,
     :math:`b\sim\mathcal{N}(0,I)` and :math:`\tau\geq 0` is a hyperparameter controlling the
     Monte Carlo approximation of the divergence.
 
-    This loss approximates the divergence of :math:`Af(y)` (in the original SURE loss)
+    This loss approximates the divergence of :math:`A\inverse{y}` (in the original SURE loss)
     using the Monte Carlo approximation in
     https://ieeexplore.ieee.org/abstract/document/4099398/
 
     If the measurement data is truly Gaussian with standard deviation :math:`\sigma`,
-    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-Af(y)\|_2^2`
+    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
     :param float sigma: Standard deviation of the Gaussian noise.
@@ -46,6 +47,7 @@ class SureGaussianLoss(nn.Module):
     '''
     def __init__(self, sigma, tau=1e-3):
         super(SureGaussianLoss, self).__init__()
+        self.name = 'sure'
         self.sigma2 = sigma ** 2
         self.tau = tau
 
@@ -83,16 +85,16 @@ class SurePoissonLoss(nn.Module):
 
     .. math::
 
-        \frac{1}{m}\|y-Af(y)\|_2^2-\frac{\gamma}{m} 1^{\top}y
-        +\frac{2\gamma}{m\tau}(b\odot y)^{\top} \left(Af(y+\tau b)-Af(y)\right)
+        \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y
+        +\frac{2\gamma}{m\tau}(b\odot y)^{\top} \left(A\inverse{y+\tau b}-A\inverse{y}\right)
 
-    where :math:`f` is the trainable network, :math:`y` is the noisy measurement vector,
+    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,
     :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
     :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
     See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.
     If the measurement data is truly Poisson
-    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-Af(y)\|_2^2`
+    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
     :param float gain: Gain of the Poisson Noise.
@@ -148,16 +150,16 @@ class SurePGLoss(nn.Module):
 
     .. math::
 
-        & \frac{1}{m}\|y-Af(y)\|_2^2-\frac{\gamma}{m} 1^{\top}y-\sigma^2
-        +\frac{2}{m\tau_1}(b\odot (\gamma y + \sigma^2 I))^{\top} \left(Af(y+\tau b)-Af(y) \right) \\\\
-        & +\frac{2\gamma \sigma^2}{m\tau_2^2}c^{\top} \left( Af(y+\tau c) + Af(y-\tau c) - 2Af(y) \right)
+        & \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y-\sigma^2
+        +\frac{2}{m\tau_1}(b\odot (\gamma y + \sigma^2 I))^{\top} \left(A\inverse{y+\tau b}-A\inverse{y} \right) \\\\
+        & +\frac{2\gamma \sigma^2}{m\tau_2^2}c^{\top} \left( A\inverse{y+\tau c} + A\inverse{y-\tau c} - 2A\inverse{y} \right)
 
-    where :math:`f` is the trainable network, :math:`y` is the noisy measurement vector,
+    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,
     :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
     :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
     If the measurement data is truly Poisson-Gaussian
-    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-Af(y)\|_2^2`
+    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
     See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.

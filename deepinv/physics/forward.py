@@ -15,24 +15,20 @@ class Physics(torch.nn.Module):  # parent class for forward models
         y = N(A(x))
 
     where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,
-    :math:`A:\mathbb{R}^{n}\mapsto \mathbb{R}^{m}` is a deterministic mapping capturing the physics of the acquisition
-    and :math:`N:\mathbb{R}^{m}\mapsto \mathbb{R}^{m}` is a stochastic mapping which characterizes the noise affecting
+    :math:`A:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
+    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
     :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
-        If A is linear, it is recommended to normalize it to have unit norm, which can be verified via
-        ``self.adjointness_test``.
-    :param callable A_adjoint: transpose of the forward operator, which maps measurement to the image space.
-        If the operator is linear, A_adjoint should verify the adjointness test.
     :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
     :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
         such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
         :math:`y=\eta\left(N(A(x))\right)`. By default, the sensor_model is set to the identity :math:`\eta(z)=z`.
-    :param int max_iter: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
-        is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
-    :param float tol: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
-        is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
+    :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
+        is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
+    :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
+        is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.
 
     '''
     def __init__(self, A=lambda x: x, noise_model=lambda x: x, sensor_model=lambda x: x,
@@ -101,7 +97,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def A_dagger(self, y):
         r'''
-        Computes :math:`A^{\dagger}y = x` via gradient descent.
+        Computes an inverse of :math:`y = Ax` via gradient descent.
 
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
@@ -118,6 +114,32 @@ class Physics(torch.nn.Module):  # parent class for forward models
 class LinearPhysics(Physics):
     r'''
     Parent class for linear operators.
+
+    It describes the linear forward measurement process of the form
+
+    .. math::
+
+        y = N(A(x))
+
+    where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,
+    :math:`A:\xset\mapsto \yset` is a deterministic linear mapping capturing the physics of the acquisition
+    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
+    the measurements.
+
+    :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
+        It is recommended to normalize it to have unit norm, which can be verified via
+        ``self.adjointness_test``.
+    :param callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+    :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
+        See the noise module for some predefined functions.
+    :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
+        such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
+        :math:`y=\eta\left(N(A(x))\right)`. By default, the sensor_model is set to the identity :math:`\eta(z)=z`.
+    :param int max_iter: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
+        is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
+    :param float tol: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
+        is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
+
     '''
 
     def __init__(self, A=lambda x: x, A_adjoint=lambda x: x, noise_model=lambda x: x, sensor_model=lambda x: x,
@@ -129,7 +151,7 @@ class LinearPhysics(Physics):
     def A_adjoint(self, x):
         r'''
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
-        If A is linear, it should be the exact transpose of the forward matrix.
+        If :math:`A` is linear, it should be the exact transpose of the forward matrix.
 
         .. note:
 

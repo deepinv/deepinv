@@ -16,10 +16,10 @@ def train(model, train_dataloader, epochs, losses, eval_dataloader=None, physics
     TODO
 
     :param torch.nn.Module model:
-    :param deepinv.datasets.HDF5Dataset train_dataloader:
+    :param train_dataloader:
     :param int epochs:
     :param torch.nn.Module, list of torch.nn.Module losses:
-    :param deepinv.datasets.HDF5Dataset eval_dataloader:
+    :param eval_dataloader:
     :param deepinv.physics.Physics physics:
     :param torch.nn.optim scheduler:
     :param torch.nn.optim optimizer:
@@ -117,7 +117,7 @@ def train(model, train_dataloader, epochs, losses, eval_dataloader=None, physics
                         loss = l(x1, physics, model)
                     elif l.name in ['tv']:
                         loss = l(x1)
-                    elif l.name.startswith('suremc'):
+                    elif l.name.startswith('sure'):
                         loss = l(y, x1, physics[g], model)
                     elif l.name in ['ei', 'rei']:
                         loss = l(x1, physics[g], model)

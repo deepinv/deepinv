@@ -47,7 +47,11 @@ class Denoiser(nn.Module):
                  device=torch.device('cpu')):
         super(Denoiser, self).__init__()
 
-        self.denoiser = make(model_spec)
+        if isinstance(model_spec, dict):
+            self.denoiser = make(model_spec)
+        else:
+            self.denoiser = model_spec
+
         self.max_iter = max_iter
         self.device = device  # Is this really needed?
         self.init = init
@@ -108,6 +112,18 @@ class ScoreDenoiser(Denoiser):
     where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
     :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
     which is typically set to a low value.
+
+    .. note::
+
+        This class can also be used with maximum-a-posteriori (MAP) denoisers,
+        but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather
+        given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,
+
+        .. math::
+
+            p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
+
+
     '''
     def __init__(self, *args, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)

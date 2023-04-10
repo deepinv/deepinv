@@ -16,9 +16,9 @@ class MOILoss(nn.Module):
 
     .. math::
 
-        \| \hat{x} - \inverse{A_g \hat{x} \|^2
+        \| \hat{x} - \inverse{\hat{x},A_g} \|^2
 
-    where :math:`\hat{x}=\inverse{y}` is a reconstructed signal and
+    where :math:`\hat{x}=\inverse{y,A_s}` is a reconstructed signal (observed via operator :math:`A_s`) and
     :math:`A_g` is a forward operator sampled at random from a set :math:`\{A_g\}_{g=1}^{G}`.
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)

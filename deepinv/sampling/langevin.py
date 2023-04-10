@@ -62,7 +62,8 @@ class MCMC(nn.Module):
                     return new_x
 
             class MySampler(MCMC):
-                def __init__(self, prior, data_fidelity, iterator_params, max_iter=1e3, burnin_ratio=.1, clip=(-1,2), verbose=True):
+                def __init__(self, prior, data_fidelity, iterator_params,
+                             max_iter=1e3, burnin_ratio=.1, clip=(-1,2), verbose=True):
                     # generate an iterator
                     iterator = MyKernel(step_size=step_size, alpha=alpha)
                     # set the params of the base class
@@ -204,7 +205,7 @@ class ULA(MCMC):
             x_{k+1} = \Pi_{[a,b]} \left(x_{k} + \eta \nabla \log p(y|A,x_k) +
             \eta \alpha \nabla \log p(x_{k}) + \sqrt{2\eta}z_{k+1} \right).
 
-        where :math:`x_{k}` is the :math:`k`th sample of the Markov chain,
+        where :math:`x_{k}` is the :math:`k` th sample of the Markov chain,
         :math:`\log p(y|x)` is the log-likelihood function, :math:`\log p(x)` is the log-prior
         :math:`\eta>0` is the step size, :math:`\alpha>0` controls the amount of regularization,
         :math:`\Pi_{[a,b]}(x)` projects the entries of :math:`x` to the interval :math:`[a,b]` and

@@ -30,6 +30,10 @@ class DataFidelity(nn.Module):
         return self._prox_f(x, y, gamma)
 
     def forward(self, x, y, physics):
+        r'''
+        Computes the data fidelity :math:`\datafid{Ax}{y}`.
+
+        '''
         Ax = physics.A(x)
         return self.f(Ax, y)
 
@@ -58,26 +62,26 @@ class L2(DataFidelity):
 
     .. math::
 
-        f(x) = \frac{1}{2}\|x-y\|^2
+        f(x) = \frac{1}{2\sigma^2}\|x-y\|^2
 
-    It can be used to define a log-likelihood function by setting a noise level
+    It can be used to define a log-likelihood function associated with additive Gaussian noise
+    by setting an appropriate noise level :math:`\sigma`.
+
+    :param float sigma: Standard deviation of the noise.
     '''
-    def __init__(self, sigma=None):
+    def __init__(self, sigma=1):
         super().__init__()
 
-        if sigma is not None:
-            self.norm = 1/(sigma**2)
-        else:
-            self.norm = 1.
+        self.sigma2 = 1/(sigma**2)
 
     def f(self, x, y):
-        return self.norm*(x-y).flatten().pow(2).sum()/2
+        return self.sigma2*(x-y).flatten().pow(2).sum()/2
 
     def grad_f(self, x, y):
-        return self.norm*(x-y)
+        return self.sigma2*(x-y)
 
     def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
-        return physics.prox_l2(x, y, self.norm*stepsize)
+        return physics.prox_l2(x, y, self.sigma2*stepsize)
 
     def prox_f(self, x, y, gamma):  # Should be this instead?
         r'''
@@ -85,10 +89,10 @@ class L2(DataFidelity):
 
         .. math::
 
-            f(x) = \frac{1}{2}\gamma\|x-y\|_2^2
+            f(x) = \frac{1}{2\sigma^2}\gamma\|x-y\|_2^2
 
         '''
-        return (x+gamma*y)/(1+gamma)
+        return (x+gamma*y)/(1+gamma) # TODO: fix sigma
 
 
 class IndicatorL2(DataFidelity):
@@ -121,14 +125,14 @@ class PoissonLikelihood(DataFidelity):
 
         \datafid{z}{y} =  -y^{\top} \log(z+\beta)+1^{\top}z
 
-    where :math:`y` are the measurements, :math:`z` is the estimated (positive) density and :math:`beta\geq 0` is
+    where :math:`y` are the measurements, :math:`z` is the estimated (positive) density and :math:`\beta\geq 0` is
     an optional background level.
 
     .. note::
 
-        This loss is not Lipschitz smooth w.r.t. :math:`z` in the absence of background :math:`beta=0`.
+        The function is not Lipschitz smooth w.r.t. :math:`z` in the absence of background (:math:`\beta=0`).
 
-    :param float bkg: Background level .:math:`beta`.
+    :param float bkg: background level :math:`\beta`.
     '''
     def __init__(self, bkg=0.):
         super().__init__()

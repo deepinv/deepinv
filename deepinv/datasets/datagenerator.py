@@ -61,7 +61,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
         If set to false, it will generate a training dataset with measurements only (y) and a test dataset with pairs (x,y)
 
     '''
-    if os.path.exists(os.path.join(save_dir,dataset_filename)):
+    if os.path.exists(os.path.join(save_dir, dataset_filename)):
         print("WARNING: Dataset already exists, this will overwrite the previous dataset.")
 
     if not os.path.exists(save_dir):

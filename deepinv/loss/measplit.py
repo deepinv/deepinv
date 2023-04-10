@@ -12,9 +12,9 @@ class SplittingLoss(torch.nn.Module):
 
     .. math::
 
-        \frac{m}{m_2}\| y_2 - A_2f(y_1,A_1)\|^2
+        \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1,A_1}\|^2
 
-    where :math:`f` is the trainable network. See https://pubmed.ncbi.nlm.nih.gov/32614100/.
+    where :math:`R` is the trainable network. See https://pubmed.ncbi.nlm.nih.gov/32614100/.
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.

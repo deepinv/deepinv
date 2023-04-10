@@ -8,7 +8,7 @@ which are especially designed for inverse problems.
 Supervised Learning
 -----------------------
 Use a dataset of pairs of signals and measurements (and possibly information about the forward operator),
-i.e., they can be written as :math:`\mathcal{L}(x,f(y))`.
+i.e., they can be written as :math:`\mathcal{L}(x,\inverse{y})`.
 
 .. autosummary::
    :toctree: stubs
@@ -21,7 +21,7 @@ i.e., they can be written as :math:`\mathcal{L}(x,f(y))`.
 Self-Supervised Learning
 ---------------------------
 Use a dataset of measurement data alone (and possibly information about the forward operator),
-i.e., they can be written as :math:`\mathcal{L}(y,f(y))` and take into account information
+i.e., they can be written as :math:`\mathcal{L}(y,\inverse{y})` and take into account information
 about the forward measurement process.
 
 .. autosummary::

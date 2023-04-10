@@ -10,3 +10,4 @@ Add Google Colab link if possible.
    deepinv.examples.basics
    deepinv.examples.pnp
    deepinv.examples.unrolled
+   deepinv.examples.sampling
