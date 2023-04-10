@@ -37,7 +37,7 @@ class fStepDRS(fStep):
         super(fStepDRS, self).__init__(**kwargs)
 
     def forward(self, x, y, physics, cur_params):
-        return 2 * self.data_fidelity.prox(x, y, physics, 1 / (self.lamb * cur_params['stepsize'])) - x
+        return 2 * self.data_fidelity.prox(x, y, physics, 1 / (cur_params['lambda'] * cur_params['stepsize'])) - x
 
 
 class gStepDRS(gStep):

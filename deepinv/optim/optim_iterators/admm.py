@@ -36,7 +36,7 @@ class fStepADMM(fStep):
         super(fStepADMM, self).__init__(**kwargs)
 
     def forward(self, x, u, y, physics, cur_params):
-        return self.data_fidelity.prox(x+u, y, physics, 1/(self.lamb*cur_params['stepsize']))
+        return self.data_fidelity.prox(x+u, y, physics, 1/(cur_params['lambda']*cur_params['stepsize']))
 
 
 class gStepADMM(gStep):

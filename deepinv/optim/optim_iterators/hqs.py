@@ -19,7 +19,7 @@ class fStepHQS(fStep):
         super(fStepHQS, self).__init__(**kwargs)
 
     def forward(self, x, cur_params, y, physics):
-        return self.data_fidelity.prox(x, y, physics, 1/(self.lamb * cur_params['stepsize']))
+        return self.data_fidelity.prox(x, y, physics, 1/(cur_params['lambda'] * cur_params['stepsize']))
 
 
 class gStepHQS(gStep):

@@ -17,16 +17,15 @@ class OptimIterator(nn.Module):
     :param stepsize: Step size of the algorithm.
     '''
 
-    def __init__(self, data_fidelity=L2(), lamb=1., device='cpu', g=None, prox_g=None, grad_g=None, g_first=False, 
+    def __init__(self, data_fidelity=L2(), device='cpu', g=None, prox_g=None, grad_g=None, g_first=False, 
         stepsize_inter=1., max_iter_inter=50, tol_inter=1e-3, beta=1., F_fn = None):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity
-        self.lamb = lamb
         self.beta = beta
         self.g_first = g_first
         self.g = g 
         self.F_fn = F_fn
-        self.f_step = fStep(data_fidelity=self.data_fidelity, lamb=self.lamb, g_first=self.g_first)
+        self.f_step = fStep(data_fidelity=self.data_fidelity, g_first=self.g_first)
         self.g_step = gStep(prox_g=prox_g, grad_g=grad_g, g_first=self.g_first,
                             max_iter_inter=max_iter_inter, tol_inter=tol_inter, stepsize_inter=stepsize_inter)
         
@@ -51,9 +50,8 @@ class OptimIterator(nn.Module):
 
 
 class fStep(nn.Module):
-    def __init__(self, data_fidelity=L2(), lamb=1., g_first=False, **kwargs):
+    def __init__(self, data_fidelity=L2(), g_first=False, **kwargs):
         super(fStep, self).__init__()
-        self.lamb = lamb
         self.data_fidelity = data_fidelity
         self.g_first = g_first
 

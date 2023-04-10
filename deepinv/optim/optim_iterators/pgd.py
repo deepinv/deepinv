@@ -21,9 +21,9 @@ class fStepPGD(fStep):
 
     def forward(self, x, cur_params, y, physics):
         if not self.g_first:
-            return x - cur_params['stepsize'] * self.lamb * self.data_fidelity.grad(x, y, physics)
+            return x - cur_params['stepsize'] * cur_params['lambda'] * self.data_fidelity.grad(x, y, physics)
         else:
-            return self.data_fidelity.prox(x, y, physics, 1/(self.lamb * cur_params['stepsize']))
+            return self.data_fidelity.prox(x, y, physics, 1/(cur_params['lambda'] * cur_params['stepsize']))
 
 
 class gStepPGD(gStep):
