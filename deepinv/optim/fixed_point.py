@@ -23,11 +23,11 @@ class FixedPoint(nn.Module):
         self.has_converged = False
         self.update_params_fn = update_params_fn
 
-    def forward(self, x, init_params, *args):
+    def forward(self, x, init_params, *args, return_params=False, **kwargs):
         cur_params = init_params
         for it in range(self.max_iter):
             x_prev = x
-            x = self.iterator(x, cur_params, *args)
+            x = self.iterator(x, cur_params, *args, **kwargs)
             if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
                 self.has_converged = True
                 if self.early_stop:
@@ -36,7 +36,10 @@ class FixedPoint(nn.Module):
                     break
             if it < self.max_iter - 1 and self.update_params_fn:
                 cur_params = self.update_params_fn(it, x, x_prev)
-        return x
+        if return_params : 
+            return x, cur_params
+        else: 
+            return x
 
 class AndersonAcceleration(FixedPoint):
     '''

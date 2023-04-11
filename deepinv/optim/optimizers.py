@@ -70,10 +70,10 @@ class BaseOptim(nn.Module):
     def get_dual_variable(self, X):
         return X['est'][1]
 
-    def forward(self, y, physics, **kwargs):
+    def forward(self, y, physics):
         init_params = self.get_params_it(0)
         x = self.get_init(init_params, y, physics)
-        x = self.fixed_point(x, init_params, y, physics, **kwargs)
+        x = self.fixed_point(x, init_params, y, physics)
         return self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
 
     def has_converged(self):

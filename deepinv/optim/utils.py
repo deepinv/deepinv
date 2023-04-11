@@ -8,13 +8,13 @@ def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
 def check_conv(X_prev, X, it, crit_conv, thres_conv, verbose=False):
-    x_prev = X_prev['est'][0]
-    F_prev = X_prev['cost']
-    x = X['est'][0]
-    F = X['cost']
     if crit_conv == 'residual' :
+        x_prev = X_prev['est'][0]
+        x = X['est'][0]
         crit_cur = (x_prev-x).norm() / (x.norm()+1e-06)
     elif crit_conv == 'cost' :
+        F_prev = X_prev['cost']
+        F = X['cost']
         crit_cur = (F_prev-F).norm()  / (F.norm()+1e-06)
     if crit_cur < thres_conv :
         if verbose: 
