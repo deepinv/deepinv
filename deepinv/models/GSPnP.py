@@ -80,3 +80,24 @@ def GSDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mo
     return GSmodel
 
 
+def ProxDRUNet(in_channels=4, out_channels=3, nb=2, nc=[64, 128, 256, 512], act_mode='S', pretrained=None, train=False, device=torch.device('cpu')):
+    '''
+        Proximal Gradient Step Denoiser with DRUNet architecture
+
+        :param int in_channels: Number of input channels
+        :param int out_channels: Number of output channels
+        :param int nb: Number of blocks in the DRUNet
+        :param list nc: Number of channels in the DRUNet
+    '''
+    from deepinv.models.drunet import DRUNet
+    denoiser = DRUNet(in_channels=in_channels, out_channels=out_channels, nb=nb, nc=nc, act_mode=act_mode, pretrained=None, train=train, device=device)
+    GSmodel = GSPnP(denoiser, train=train)
+    if pretrained:
+        if pretrained == 'download':
+            url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt'
+            ckpt = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage, file_name='GSDRUNet.ckpt')['state_dict']
+        else:
+            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+        GSmodel.load_state_dict(ckpt, strict=False)
+    return GSmodel
+

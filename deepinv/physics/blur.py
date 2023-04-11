@@ -89,11 +89,12 @@ class Downsampling(Physics):
     def __init__(self, img_size, factor=2, filter=None, mode=None, sigma_gauss=None, device='cpu', padding='circular', **kwargs):
         super().__init__(**kwargs)
         self.factor = factor
+        assert isinstance(factor, int), 'downsampling factor should be an integer'
         self.imsize = img_size
         self.padding = padding
         self.mode = mode
-        if filter:
-            self.filter = filter
+        if filter is not None:
+            self.filter = filter.to(device)
         elif mode:
             if mode == 'gauss':
                 if sigma_gauss is None:
@@ -116,45 +117,34 @@ class Downsampling(Physics):
                 raise Exception("The downsampling mode chosen doesn't exist")
         else:
             self.filter = None
-            
-        assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
-        if self.filter : 
-            self.Fh = filter_fft(self.filter, x.shape, real=False, device=device)
+    
+        if self.filter is not None: 
+            self.Fh =  filter_fft(filter, img_size).to(device)
             self.Fhc = torch.conj(self.Fh)
-            self.Fh2 = torch.abs(self.Fhc*self.Fh)
+            self.Fh2 = self.Fhc*self.Fh
 
     def A(self, x):
-        if self.filter:
-            out = conv(x, self.filter, padding=self.padding)
-        else:
-            out = x
-
-        y = out[:, :, ::self.factor, ::self.factor]  # downsample
-
-        return y
-
-    def A_adjoint(self, y):
-
-        x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
-
-        x[:, :, ::self.factor, ::self.factor] = y  # upsample
-
-        if self.filter:
-            x = conv_transpose(x, self.filter, padding=self.padding)
-
+        if self.filter is not None: 
+            x = conv(x, self.filter, padding=self.padding)
+        x = x[:, :, ::self.factor, ::self.factor]  # downsample
         return x
 
-    def prox_l2(self, z, y, gamma):
+    def A_adjoint(self, y):
+        x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
+        x[:, :, ::self.factor, ::self.factor] = y  # upsample
+        if self.filter is not None: 
+            x = conv_transpose(x, self.filter, padding=self.padding)
+        return x
+
+    def prox_l2(self, z, y, gamma, use_fft = True):
         r'''
         If the padding is circular, it computes the proximal operator with the closed-formula of https://arxiv.org/abs/1510.00143.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
-
         '''
 
-        if self.padding == 'circular': # Formula from (Zhao, 2016)
-
-            z_hat = gamma*self.A_adjoint(y) + z
+        if use_fft and self.padding == 'circular' : # Formula from (Zhao, 2016)
+            z_hat = self.A_adjoint(y) + gamma*z
             Fz_hat = fft.fft2(z_hat)
 
             def splits(a, sf):
@@ -170,10 +160,10 @@ class Downsampling(Physics):
                 return b
 
             top = torch.mean(splits(self.Fh*Fz_hat, self.factor),dim=-1)
-            below = gamma*torch.mean(splits(self.Fh2, self.factor),dim=-1) + 1
+            below = torch.mean(splits(self.Fh2, self.factor),dim=-1) + gamma
             rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
-            return z_hat - r
+            return (z_hat - r)/gamma
         else:
             return Physics.prox_l2(self, z, y, gamma)
 
@@ -443,10 +433,6 @@ class BlurFFT(DecomposablePhysics):
 
     def __init__(self, img_size, filter, device='cpu', **kwargs):
         super().__init__(**kwargs)
-
-
-        #assert img_size[-2] > filter.shape[-2] and img_size[-3] > filter.shape[-3], 'filter should be smaller than the image'
-
         self.img_size = img_size
         self.mask = filter_fft(filter, img_size)
         self.mask = self.mask.requires_grad_(False).to(device)
@@ -470,29 +456,25 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image('../../datasets/set3c/0/butterfly.png')
+    x = torchvision.io.read_image('../../datasets/set3c/images/0/butterfly.png')
     x = x.unsqueeze(0).float().to(device)/255
     
     # test on non symmetric blur kernel 
     import os
     import hdf5storage
-    kernel_path = os.path.join('../../kernels', 'Levin09.mat')
-    kernels = hdf5storage.loadmat(kernel_path)['kernels']
-    filter = torch.tensor(np.expand_dims(kernels[0,1], axis=(0, 1)))
+    kernels = hdf5storage.loadmat('../../kernels/Levin09.mat')['kernels']
+    filter_np = kernels[0,1].astype(np.float64)
+    filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
     # print(filter.shape)
     # plt.imshow(filter[0,0,:,:].cpu().numpy())
     # plt.show()
     # filter = filter.flip(-1).flip(-2)
     # plt.imshow(filter[0,0,:,:].cpu().numpy())
     # plt.show()
-    blurFFT = BlurFFT(filter=filter, img_size=x.shape[1:], device=device)
-    blur = Blur(filter=filter, device=device)
-
-    #physics = Downsampling(factor=factor, img_size=(3, pix, pix), mode='gauss', device=device)
-    #physics.noise_model = dinv.physics.GaussianNoise(sigma=.1)
-
-    y1 = blurFFT.prox_l2(x, torch.ones_like(x), gamma=.1)
-    y2 = blur.prox_l2(x, torch.ones_like(x), gamma=.1)
+    blur = Downsampling(factor=2, filter=filter_torch, img_size=x.shape[1:], device=device)
+    y = blur.A(torch.ones_like(x))
+    y1 = blur.prox_l2(x, y, gamma=.1, use_fft = True)
+    y2 = blur.prox_l2(x, y, gamma=.1, use_fft = False)
     print(y1)
     print(y2)
     

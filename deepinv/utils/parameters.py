@@ -14,7 +14,7 @@ def get_GSPnP_params(problem, noise_level_img, k_index=0):
     elif problem == 'super_resolution' :
         max_iter = 500
         sigma_denoiser = 2. * noise_level_img
-        lamb = 0.065
+        lamb = 1/0.065
     elif problem == 'inpaint' :
         max_iter = 100
         sigma_denoiser = 10./255

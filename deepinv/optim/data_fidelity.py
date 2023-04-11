@@ -41,7 +41,7 @@ class DataFidelity(nn.Module):
             raise ValueError('No gradient defined for this data fidelity term.')
 
     def prox(self, x, y, physics, gamma):
-        if ['Denoising'] in physics.__class__.__name__:
+        if 'Denoising' in physics.__class__.__name__:
             return self.prox_f(y, x, gamma)
         else:# TODO: use GD?
             raise Exception("no prox operator is implemented for the data fidelity term.")
@@ -118,18 +118,26 @@ class PoissonLikelihood(DataFidelity):
     Poisson negative log likelihood
 
     '''
-    def __init__(self, bkg=0):
+    def __init__(self, gain=1., bkg=0, normalize=True):
         super().__init__()
         self.bkg = bkg
+        self.gain = gain
+        self.normalize = normalize
 
     def f(self, x, y):
-        return (- y * torch.log(x + self.bkg)).flatten().sum() + x.flatten().sum()
+        if self.normalize:
+            y = y*self.gain
+        return (- y * torch.log(self.gain*x + self.bkg)).flatten().sum() + (self.gain*x).flatten().sum()
 
     def grad_f(self, x, y):
-        return - y/(x+self.bkg) + x.numel()
+        if self.normalize:
+            y = y*self.gain
+        return (1/self.gain)*(torch.ones_like(x) - y/(self.gain*x+self.bkg))
 
     def prox_f(self, x, y, gamma):
-        out = x - 1/gamma * ((x-1/gamma).pow(2) + 4*y/gamma).sqrt()
+        if self.normalize:
+            y = y*self.gain
+        out = x - (self.gain/gamma) * ((x-self.gain/gamma).pow(2) + 4*y/gamma).sqrt()
         return out/2
 
 

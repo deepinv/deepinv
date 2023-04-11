@@ -191,7 +191,8 @@ def test(model, test_dataloader,
         if verbose:
             print(f'Processing data of operator {g+1} out of {G}')
         for i, (x, y) in enumerate(tqdm(dataloader)):
-
+            if verbose:
+                print(f'Processing batch {i+1} out of {len(dataloader)}')
             if type(x) is list or type(x) is tuple:
                 x = [s.to(device) for s in x]
             else:
@@ -229,7 +230,6 @@ def test(model, test_dataloader,
                 name_imgs = []
                 xlin = physics[g].A_adjoint(y)
                 if len(y[0].shape) == 3:
-                    print(y[0].shape)
                     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                     name_imgs.append('y')
                 imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
@@ -242,8 +242,12 @@ def test(model, test_dataloader,
                 for img, name_im in zip(imgs, name_imgs):
                     imsave(save_folder + 'G' + str(g) + '/' + name_im + '_' + str(i) + '.png', img)
 
-            psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
-            psnr_net.append(cal_psnr(x1, x))
+            cur_psnr_linear = cal_psnr(physics[g].A_adjoint(y), x)
+            cur_psnr = cal_psnr(x1, x)
+            psnr_linear.append(cur_psnr_linear)
+            psnr_net.append(cur_psnr)
+            if verbose:
+                print(f'Test PSNR: Linear Inv: {cur_psnr_linear:.2f}| Model: {cur_psnr:.2f} dB. ')
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

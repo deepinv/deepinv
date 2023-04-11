@@ -44,14 +44,6 @@ class Denoiser(nn.Module):
         return self.denoiser(x, sigma)
 
 
-class ProxDenoiser(Denoiser):
-    def __init__(self, *args, **kwargs):
-        super(ProxDenoiser, self).__init__(*args, **kwargs)
-
-    def forward(self, x, sigma):
-        return self.denoiser(x, sigma)
-
-
 class ScoreDenoiser(Denoiser):
     r'''
     Approximates the score of a distribution using an MMSE denoiser.

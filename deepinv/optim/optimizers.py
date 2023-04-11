@@ -81,11 +81,11 @@ class BaseOptim(nn.Module):
 
 def Optim(algo_name, params_algo, data_fidelity=L2(), F_fn=None, device='cpu', g=None, prox_g=None,
             grad_g=None, g_first=False, stepsize_inter=1., max_iter_inter=50, tol_inter=1e-3, 
-            beta=1., backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, **kwargs):
+            beta=1., backtracking=False, gamma_backtracking=0.1, eta_backtracking=0.9, bregman_potential='L2', **kwargs):
     iterator_fn = str_to_class(algo_name + 'Iteration')
     iterator = iterator_fn(data_fidelity=data_fidelity, device=device, g=g, prox_g=prox_g,
                 grad_g=grad_g, g_first=g_first, stepsize_inter=stepsize_inter,
-                max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta, F_fn = F_fn)
+                max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta, F_fn = F_fn, bregman_potential=bregman_potential)
     optimizer = BaseOptim(iterator, params_algo = params_algo, F_fn = F_fn, backtracking=backtracking,
                 gamma_backtracking = gamma_backtracking, eta_backtracking = eta_backtracking, **kwargs)
     return optimizer
