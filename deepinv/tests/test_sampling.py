@@ -28,13 +28,13 @@ def imsize():
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
-def choose_algo(algo, prior, likelihood, stepsize, crit_conv):
+def choose_algo(algo, prior, likelihood, stepsize, thresh_conv, sigma):
     if algo == 'ULA':
         out = ULA(prior, likelihood, max_iter=1000,  verbose=True,
-               alpha=.9, step_size=.01*stepsize, clip=(-1, 2), crit_conv=crit_conv)
+               alpha=.9, step_size=.01*stepsize, clip=(-1, 2), thresh_conv=thresh_conv, sigma=sigma)
     elif algo == 'SKRock':
-        out = SKRock(prior, likelihood, max_iter=500, verbose=True, crit_conv=crit_conv,
-                          alpha=.9, step_size=stepsize, clip=(-1, 2))
+        out = SKRock(prior, likelihood, max_iter=500, verbose=True, thresh_conv=thresh_conv,
+                          alpha=.9, step_size=stepsize, clip=(-1, 2), sigma=sigma)
     else:
         raise Exception('The sampling algorithm doesnt exist')
 
@@ -57,8 +57,9 @@ def test_sampling_algo(algo, imsize, dummy_dataset, device):
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
     stepsize = (sigma**2)
     likelihood = L2(sigma=sigma)
-    prior = ScoreDenoiser(model_spec=model_spec, sigma_denoiser=2 / 255)
-    f = choose_algo(algo, prior, likelihood, stepsize=stepsize, crit_conv=convergence_crit)
+    prior = ScoreDenoiser(model_spec=model_spec)
+    sigma_denoiser = 2/255.
+    f = choose_algo(algo, prior, likelihood, stepsize=stepsize, thresh_conv=convergence_crit, sigma=sigma_denoiser)
 
     xmean, xvar = f(y, physics)
 

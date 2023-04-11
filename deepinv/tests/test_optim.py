@@ -1,7 +1,7 @@
 import pytest
 
 import deepinv as dinv
-from deepinv.models.denoiser import ProxDenoiser
+from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
@@ -40,7 +40,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     ths = 2.
 
     model_spec = {'name': 'tgv', 'args': {'n_it_max': 1000, 'verbose': False}}
-    model = ProxDenoiser(model_spec)
+    model = Denoiser(model_spec)
 
     x = model(y, ths)  # 3. Apply the model we want to test
 
@@ -78,7 +78,7 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
-    denoiser = ProxDenoiser(model_spec)
+    denoiser = Denoiser(model_spec)
     params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda': lamb}
     pnp = Optim(pnp_algo, prox_g=denoiser, data_fidelity=data_fidelity, device=dinv.device,
                 max_iter=max_iter, thres_conv=1e-4, verbose=True, params_algo=params_algo)
