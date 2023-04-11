@@ -27,7 +27,6 @@ class BaseOptim(nn.Module):
         self.anderson_acceleration = anderson_acceleration
         self.F_fn = F_fn
         self.return_dual = return_dual
-        self.iterator = iterator
         self.params_algo = params_algo
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
@@ -47,10 +46,10 @@ class BaseOptim(nn.Module):
         if self.anderson_acceleration :
             self.anderson_beta = anderson_beta
             self.anderson_history_size = anderson_history_size
-            self.fixed_point = AndersonAcceleration(self.iterator, update_params_fn=update_params_fn, max_iter=self.max_iter, history_size=anderson_history_size, beta=anderson_beta,
+            self.fixed_point = AndersonAcceleration(iterator, update_params_fn=update_params_fn, max_iter=self.max_iter, history_size=anderson_history_size, beta=anderson_beta,
                             early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
         else :
-            self.fixed_point = FixedPoint(self.iterator, update_params_fn=update_params_fn, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
+            self.fixed_point = FixedPoint(iterator, update_params_fn=update_params_fn, max_iter=max_iter, early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
 
     def get_params_it(self, it):
         cur_params_dict = {key: value[it] if len(value)>1 else value[0]

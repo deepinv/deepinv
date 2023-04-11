@@ -17,13 +17,12 @@ class BaseUnfold(BaseOptim):
             if param_key in self.params_algo.keys():
                 param_value = self.params_algo[param_key]
                 self.params_algo[param_key] = nn.ParameterList([nn.Parameter(torch.tensor(el).to(device)) for el in param_value])    
+        self.params_algo = nn.ParameterDict(self.params_algo)
 
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step
         if custom_f_step is not None:
             self.iterator.f_step = custom_f_step
-
-        print(self.parameters)
 
 def Unfolded(algo_name, params_algo, data_fidelity=L2(), F_fn=None, device='cpu', g=None, prox_g=None,
             grad_g=None, g_first=False, stepsize_inter=1., max_iter_inter=50, tol_inter=1e-3, 
