@@ -116,9 +116,9 @@ class Downsampling(LinearPhysics):
                 raise Exception("The downsampling mode chosen doesn't exist")
         else:
             self.filter = None
-            
+
         assert int(factor) == factor and factor > 1, 'downsampling factor should be a positive integer bigger than 1'
-        if self.filter : 
+        if self.filter :
             self.Fh = filter_fft(self.filter, x.shape, real=False, device=device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = torch.abs(self.Fhc*self.Fh)
@@ -263,7 +263,7 @@ def conv_transpose(y, filter, padding):
 
     ph = (filter.shape[2] - 1)/2
     pw = (filter.shape[3] - 1)/2
-    
+
 
     h_out = int(h + 2 * ph)
     w_out = int(w + 2 * pw)
@@ -401,7 +401,7 @@ class Blur(LinearPhysics):
 
     This class uses ``torch.conv2d`` for performing the convolutions.
 
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., ``deepinv.physics.gaussian_blur()``
+    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., ``deepinv.physics.blur.gaussian_blur()``
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
@@ -435,7 +435,7 @@ class BlurFFT(DecomposablePhysics):
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g., ``deepinv.physics.gaussian_blur()``.
+    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g., ``deepinv.physics.blur.gaussian_blur()``.
     :param str device: cpu or cuda
 
     '''
@@ -471,8 +471,8 @@ if __name__ == "__main__":
 
     x = torchvision.io.read_image('../../../datasets/set3c/0/butterfly.png')
     x = x.unsqueeze(0).float().to(device)/255
-    
-    # test on non symmetric blur kernel 
+
+    # test on non symmetric blur kernel
     import os
     import hdf5storage
     kernel_path = os.path.join('../../../datasets/kernels', 'Levin09.mat')
@@ -494,7 +494,7 @@ if __name__ == "__main__":
     y2 = blur.A(x)
     print(y1)
     print(y2)
-    
+
     # print(physics.power_method(x))
     #x = [x, w]
     #xhat = physics.A_adjoint(y)
