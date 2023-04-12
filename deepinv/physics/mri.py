@@ -1,7 +1,7 @@
 import torch
 import torch.fft
 from typing import List, Optional
-from deepinv.diffops.physics.forward import Physics
+from deepinv.physics.forward import Physics
 
 class MRI(Physics):
     r'''
