@@ -1,6 +1,7 @@
 import os
+import math
 from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr, investigate_model
-from deepinv.utils.plotting import plot_debug, torch2cpu, imsave
+from deepinv.utils.plotting import plot_debug, torch2cpu, imsave, make_grid
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -215,10 +216,14 @@ def test(model, test_dataloader,
                     n_plot = min(8,len(x))
                     imgs = []
                     if plot_input:
-                        imgs.append(wandb.Image(y[:n_plot], caption="Input"))
-                    imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
-                    imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
-                    imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
+                        imgs.append(wandb.Image(make_grid(y[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                                caption="Input"))
+                    imgs.append(wandb.Image(make_grid(xlin[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                            caption="Linear"))
+                    imgs.append(wandb.Image(make_grid(x1[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                            caption="Estimated"))
+                    imgs.append(wandb.Image(make_grid(x[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                            caption="Ground Truth"))
                     wandb.log({ "images": imgs})
 
             if save_folder is not None:

@@ -27,7 +27,8 @@ class FixedPoint(nn.Module):
         cur_params = init_params
         for it in range(self.max_iter):
             x_prev = x
-            x = self.iterator(x, cur_params, *args, **kwargs)
+            cur_prior = self.get_prior(it)
+            x = self.iterator(x, cur_prior, cur_params, *args, **kwargs)
             if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
                 self.has_converged = True
                 if self.early_stop:
@@ -40,6 +41,14 @@ class FixedPoint(nn.Module):
             return x, cur_params
         else: 
             return x
+
+    def get_prior(self, it):
+        if isinstance(next(iter(self.iterator.prior.items()))[1], nn.ModuleList):
+            prior_cur = {key: value[it] if len(value) > 1 else value[0]
+                               for key, value in zip(self.iterator.prior.keys(), self.iterator.prior.values())}
+        else:
+            prior_cur = self.iterator.prior
+        return prior_cur
 
 class AndersonAcceleration(FixedPoint):
     '''
