@@ -20,7 +20,7 @@ denoiser_name = 'dncnn'
 depth = 7
 ckpt_path = None
 algo_name = 'PGD'
-path_datasets = '../datasets'
+path_datasets = '/storage/store/work/mterris/datasets'  # '../datasets'
 train_dataset_name = 'drunet'
 test_dataset_name = 'CBSD68'
 noise_level_img = 0.03
@@ -36,7 +36,7 @@ batch_size = 32
 max_datapoints = 100
 anderson_acceleration = False
 
-wandb_vis = False
+wandb_vis = True
 
 if wandb_vis :
     wandb.init(project='unrolling')
@@ -80,11 +80,15 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
-prox_g = Denoiser(model_spec)
+# prior = nn.ModuleDict({'prox_g': Denoiser(model_spec)})
+prior = nn.ModuleDict({'prox_g': nn.ModuleList([Denoiser(model_spec) for i in range(max_iter)])})
 params_algo={'stepsize': [1.]*max_iter, 'g_param':  [0.01]*max_iter, 'lambda' : 1.}
 trainable_params = ['stepsize', 'g_param']
+# print(prior)
+# print(sdasdasdasd)
+prox_g = None
 model = Unfolded(algo_name, params_algo=params_algo, trainable_params = trainable_params, prox_g=prox_g, data_fidelity=data_fidelity,
-                    device=dinv.device, max_iter=max_iter)
+                    device=dinv.device, max_iter=max_iter, prior=prior)
 
 for name, param in model.named_parameters():
     if param.requires_grad:

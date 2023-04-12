@@ -11,7 +11,7 @@ class ADMMIteration(OptimIterator):
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
 
-    def forward(self, X, cur_params, y, physics):
+    def forward(self, X, cur_prior, cur_params, y, physics):
 
         x, z = X['est']
 
@@ -20,7 +20,7 @@ class ADMMIteration(OptimIterator):
 
         z_prev = z.clone()
 
-        z_temp = self.g_step(x, z, cur_params)
+        z_temp = self.g_step(x, z, cur_prior, cur_params)
         x = self.f_step(z_temp, z, y, physics, cur_params)
         z = z_prev + self.beta*(z_temp - x)
 
@@ -47,5 +47,5 @@ class gStepADMM(gStep):
         """
         super(gStepADMM, self).__init__(**kwargs)
 
-    def forward(self, x, z, cur_params):
-        return self.prox_g(x-z, cur_params['g_param'])
+    def forward(self, x, z, cur_prior, cur_params):
+        return cur_prior['prox_g'](x-z, cur_params['g_param'])

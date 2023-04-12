@@ -30,7 +30,7 @@ class gStepHQS(gStep):
         """
         super(gStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, cur_params):
-        return self.prox_g(x, cur_params['g_param'])
+    def forward(self, x, prior, cur_params):
+        return prior['prox_g'](x, cur_params['g_param'])
 
 

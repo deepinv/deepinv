@@ -10,11 +10,11 @@ class PDIteration(OptimIterator):
         self.g_step = gStepPD(**kwargs)
         self.f_step = fStepPD(**kwargs)
 
-    def forward(self, X, cur_params, y, physics):
+    def forward(self, X, cur_prior, cur_params, y, physics):
 
         x_prev, u_prev = X['est']
 
-        x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_params)
+        x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_prior, cur_params)
         u = self.f_step(physics.A(2 * x - x_prev), u_prev, y, cur_params)
 
         F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
@@ -44,5 +44,5 @@ class gStepPD(gStep):
         """
         super(gStepPD, self).__init__(**kwargs)
 
-    def forward(self, x, Atu, cur_params):
-        return self.prox_g(x - cur_params['stepsize'] * Atu, cur_params['g_param'])  # Beware, this is not correct: we should have a product of stepsize / reg param
+    def forward(self, x, Atu, prior, cur_params):
+        return prior['prox_g'](x - cur_params['stepsize'] * Atu, cur_params['g_param'])  # Beware, this is not correct: we should have a product of stepsize / reg param

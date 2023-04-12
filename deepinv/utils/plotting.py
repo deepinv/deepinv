@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from torchvision.utils import make_grid
 
 
 def torch2cpu(img):

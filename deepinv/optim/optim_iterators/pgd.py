@@ -37,11 +37,11 @@ class gStepPGD(gStep):
         """
         super(gStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x, cur_params):
+    def forward(self, x, prior, cur_params):
         if not self.g_first:
-            return self.prox_g(x, cur_params['g_param'])
+            return prior['prox_g'](x, cur_params['g_param'])
         else:
-            grad = cur_params['stepsize'] * self.grad_g(x, cur_params['g_param'])
+            grad = cur_params['stepsize'] * prior['grad_g'](x, cur_params['g_param'])
             return gradient_descent_step(x, grad, self.bregman_potential)
 
 

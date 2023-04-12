@@ -78,9 +78,9 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
-    denoiser = Denoiser(model_spec)
+    prior = {'prox_g': Denoiser(model_spec)}
     params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda': lamb}
-    pnp = Optim(pnp_algo, prox_g=denoiser, data_fidelity=data_fidelity, device=dinv.device,
+    pnp = Optim(pnp_algo, prior=prior, data_fidelity=data_fidelity, device=dinv.device,
                 max_iter=max_iter, thres_conv=1e-4, verbose=True, params_algo=params_algo)
 
     x = pnp(y, physics)

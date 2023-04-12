@@ -10,11 +10,11 @@ class GDIteration(OptimIterator):
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
 
-    def forward(self, X, cur_params, y, physics):
+    def forward(self, X, cur_prior, cur_params, y, physics):
         '''
         '''
         x_prev = X['est'][0]
-        grad = cur_params['stepsize']*(self.g_step(x_prev, cur_params) + self.f_step(x_prev, cur_params, y, physics))
+        grad = cur_params['stepsize']*(self.g_step(x_prev, cur_prior, cur_params) + self.f_step(x_prev, cur_params, y, physics))
         x = gradient_descent_step(x_prev, grad, self.bregman_potential)
         x = self.relaxation_step(x, x_prev)
         F = self.F_fn(x,cur_params,y,physics) if self.F_fn else None
@@ -39,6 +39,6 @@ class gStepGD(gStep):
         """
         super(gStepGD, self).__init__(**kwargs)
 
-    def forward(self, x, cur_params):
-        return self.grad_g(x, cur_params['g_param'])
+    def forward(self, x, prior, cur_params):
+        return prior['grad_g'](x, cur_params['g_param'])
 
