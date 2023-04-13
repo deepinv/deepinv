@@ -7,32 +7,32 @@ import torch
 import wandb
 
 
-def train(model, train_dataloader, epochs, losses, eval_dataloader=None, physics=None, scheduler=None, optimizer=None,
+def train(model, train_dataloader, epochs, losses, eval_dataloader=None, physics=None, optimizer=None, scheduler=None,
           device='cpu', ckp_interval=100, eval_interval=1, save_path='.', verbose=False, unsupervised=False,
           plot=False, plot_input=False, wandb_vis=False, debug=False):
     r'''
     Trains a reconstruction network.
 
-    TODO
 
-    :param torch.nn.Module model:
-    :param train_dataloader:
-    :param int epochs:
-    :param torch.nn.Module, list of torch.nn.Module losses:
-    :param eval_dataloader:
-    :param deepinv.physics.Physics physics:
-    :param torch.nn.optim scheduler:
-    :param torch.nn.optim optimizer:
-    :param torch.device device:
-    :param int ckp_interval:
-    :param int eval_interval:
-    :param str save_path:
-    :param bool verbose:
-    :param bool unsupervised:
-    :param bool plot:
-    :param bool plot_input:
-    :param bool wandb_vis:
-    :param bool debug:
+    :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network.
+    :param torch.utils.data.DataLoader train_dataloader: Train dataloader.
+    :param int epochs: Number of training epochs.
+    :param torch.nn.Module, list of torch.nn.Module losses: Loss or list of losses used for training the model.
+    :param torch.utils.data.DataLoader eval_dataloader: Evaluation dataloader.
+    :param deepinv.physics.Physics physics: Forward operator containing the physics of the inverse problem.
+    :param torch.nn.optim optimizer: Torch optimizer for training the network.
+    :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
+    :param torch.device device: gpu or cpu.
+    :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
+    :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
+    :param str save_path: Directory in which to save the trained model.
+    :param bool verbose: Output training progress information in the console.
+    :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
+    :param bool plot: Plots reconstructions every ``ckp_interval`` epochs.
+    :param bool plot_input: TODO
+    :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param bool debug: TODO
     '''
 
     if wandb_vis:
@@ -96,10 +96,10 @@ def train(model, train_dataloader, epochs, losses, eval_dataloader=None, physics
                 else:
                     x, y = next(iterators[g])
 
-                if type(x) is list or type(x) is tuple:
-                    x = [s.to(device) for s in x]
-                else:
-                    x = x.to(device)
+                    if type(x) is list or type(x) is tuple:
+                        x = [s.to(device) for s in x]
+                    else:
+                        x = x.to(device)
 
                 y = y.to(device)
 
@@ -180,18 +180,17 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
     r'''
     Tests a reconstruction network.
 
-    TODO
-
-    :param torch.nn.Module model:
-    :param deepinv.datasets.HDF5Dataset test_dataloader:
+    :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network.
+    :param torch.utils.data.DataLoader test_dataloader:
     :param deepinv.physics.Physics physics:
-    :param torch.device device:
-    :param bool plot:
-    :param bool plot_input:
-    :param str save_folder:
-    :param str save_plot_path:
-    :param bool verbose:
-    :param bool wandb_vis:
+    :param torch.device device: gpu or cpu.
+    :param bool plot: Plots reconstructions of the first test batch.
+    :param bool plot_input: TODO
+    :param str save_folder: Directory in which to save plotted reconstructions.
+    :param str save_plot_path: TODO
+    :param bool verbose: Output training progress information in the console.
+    :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     '''
 
     psnr_linear = []
@@ -219,7 +218,9 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
             else:
                 x = x.to(device)
 
-            y = y.to(device)
+            y = physics[g](x)
+
+            #y = y.to(device)
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
