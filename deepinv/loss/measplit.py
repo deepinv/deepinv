@@ -2,6 +2,7 @@ import torch
 from deepinv.physics import Inpainting
 import numpy as np
 
+
 class SplittingLoss(torch.nn.Module):
     r'''
     Measurement splitting loss
@@ -57,8 +58,8 @@ class SplittingLoss(torch.nn.Module):
         inp2 = Inpainting(tsize, 1-mask)
 
         # concatenate operators
-        physics1 = inp + physics  # A_1 = P*A
-        physics2 = inp2 + physics  # A_2 = (I-P)*A
+        physics1 = inp * physics  # A_1 = P*A
+        physics2 = inp2 * physics  # A_2 = (I-P)*A
 
         # divide measurements
         y1 = inp.A(y)
