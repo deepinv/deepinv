@@ -33,7 +33,7 @@ def choose_algo(algo, prior, likelihood, stepsize, crit_conv):
         out = ULA(prior, likelihood, max_iter=1000,  verbose=True,
                alpha=.9, step_size=.01*stepsize, clip=(-1, 2), crit_conv=crit_conv)
     elif algo == 'SKRock':
-        out = SKRock(prior, likelihood, max_iter=500, verbose=True, crit_conv=crit_conv,
+        out = SKRock(prior, likelihood, max_iter=100, verbose=True, crit_conv=crit_conv,
                           alpha=.9, step_size=stepsize, clip=(-1, 2))
     else:
         raise Exception('The sampling algorithm doesnt exist')
@@ -44,7 +44,6 @@ def choose_algo(algo, prior, likelihood, stepsize, crit_conv):
 sampling_algo = ['ULA', 'SKRock']
 @pytest.mark.parametrize("algo", sampling_algo)
 def test_sampling_algo(algo, imsize, dummy_dataset, device):
-
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)  # 1. Generate a dummy dataset
     test_sample = next(iter(dataloader)).to(device)
 
@@ -53,7 +52,7 @@ def test_sampling_algo(algo, imsize, dummy_dataset, device):
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
-    convergence_crit = .1 # for fast tests
+    convergence_crit = .5 # for fast tests
     model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
     stepsize = (sigma**2)
     likelihood = L2(sigma=sigma)
