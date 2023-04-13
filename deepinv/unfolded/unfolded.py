@@ -24,11 +24,8 @@ class BaseUnfold(BaseOptim):
         if custom_f_step is not None:
             self.iterator.f_step = custom_f_step
 
-def Unfolded(algo_name, params_algo, data_fidelity=L2(), F_fn=None, device='cpu', g=None, prox_g=None,
-            grad_g=None, g_first=False, prior=None, stepsize_inter=1., max_iter_inter=50, tol_inter=1e-3,
-            beta=1., trainable_params=[], **kwargs):
+def Unfolded(algo_name, params_algo, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.,
+             trainable_params=[], **kwargs):
     iterator_fn = str_to_class(algo_name + 'Iteration')
-    iterator = iterator_fn(data_fidelity=data_fidelity, device=device, g=g, prior=prior, prox_g=prox_g,
-                 grad_g=grad_g, g_first=g_first, stepsize_inter=stepsize_inter,
-                 max_iter_inter=max_iter_inter, tol_inter=tol_inter, beta=beta)
+    iterator = iterator_fn(data_fidelity=data_fidelity,  g_first=g_first, beta=beta)
     return BaseUnfold(iterator, params_algo = params_algo, trainable_params = trainable_params, F_fn = F_fn, **kwargs)

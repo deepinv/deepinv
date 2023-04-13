@@ -36,7 +36,7 @@ batch_size = 32
 max_datapoints = 100
 anderson_acceleration = False
 
-wandb_vis = True
+wandb_vis = False
 
 if wandb_vis :
     wandb.init(project='unrolling')
@@ -87,8 +87,8 @@ trainable_params = ['stepsize', 'g_param']
 # print(prior)
 # print(sdasdasdasd)
 prox_g = None
-model = Unfolded(algo_name, params_algo=params_algo, trainable_params = trainable_params, prox_g=prox_g, data_fidelity=data_fidelity,
-                    device=dinv.device, max_iter=max_iter, prior=prior)
+model = Unfolded(algo_name, params_algo=params_algo, trainable_params=trainable_params, data_fidelity=data_fidelity,
+                 max_iter=max_iter, prior=prior)
 
 for name, param in model.named_parameters():
     if param.requires_grad:

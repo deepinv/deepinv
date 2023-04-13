@@ -12,7 +12,7 @@ class FixedPoint(nn.Module):
         crit_conv : stopping criterion.  Default = 1e-5
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator=None, update_params_fn=None, max_iter=50, early_stop=True, crit_conv='residual', thres_conv=1e-5, verbose=False):
+    def __init__(self, iterator=None, update_params_fn_pre=None, update_prior_fn=None, max_iter=50, early_stop=True, crit_conv='residual', thres_conv=1e-5, verbose=False):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
@@ -21,34 +21,30 @@ class FixedPoint(nn.Module):
         self.verbose = verbose
         self.early_stop = early_stop
         self.has_converged = False
-        self.update_params_fn = update_params_fn
+        self.update_params_fn_pre = update_params_fn_pre
+        self.update_prior_fn = update_prior_fn
 
-    def forward(self, x, init_params, *args, return_params=False, **kwargs):
-        cur_params = init_params
+    def forward(self, x, *args, return_params=False, **kwargs):
+        x_prev = None
+
         for it in range(self.max_iter):
+
+            cur_prior = self.update_prior_fn(it)
+            cur_params = self.update_params_fn_pre(it, x, x_prev)
+
             x_prev = x
-            cur_prior = self.get_prior(it)
             x = self.iterator(x, cur_prior, cur_params, *args, **kwargs)
+
             if check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
                 self.has_converged = True
                 if self.early_stop:
                     if self.verbose:
                         print('Convergence reached at iteration ', it)
                     break
-            if it < self.max_iter - 1 and self.update_params_fn:
-                cur_params = self.update_params_fn(it, x, x_prev)
         if return_params : 
             return x, cur_params
         else: 
             return x
-
-    def get_prior(self, it):
-        if isinstance(next(iter(self.iterator.prior.items()))[1], nn.ModuleList):
-            prior_cur = {key: value[it] if len(value) > 1 else value[0]
-                               for key, value in zip(self.iterator.prior.keys(), self.iterator.prior.values())}
-        else:
-            prior_cur = self.iterator.prior
-        return prior_cur
 
 class AndersonAcceleration(FixedPoint):
     '''
