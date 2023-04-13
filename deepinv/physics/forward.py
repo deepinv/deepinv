@@ -54,7 +54,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         A = lambda x: self.A(other.A(x)) # (A' = A_1 A_2)
         noise = self.noise_model
         sensor = self.sensor_model
-        return Physics(A, noise, sensor)
+        return Physics(A=A, noise_model=noise, sensor_model=sensor, max_iter=self.max_iter, tol=self.tol)
 
     def forward(self, x):
         r'''
@@ -95,6 +95,21 @@ class Physics(torch.nn.Module):  # parent class for forward models
         '''
         return self.noise_model(x)
 
+    def __mul__(self, other): #  physics3 = physics1 * physics2
+        r'''
+        Concatenates two forward operators :math:`A = A_1\circ A_2` via the add operation
+
+        The resulting operator keeps the noise and sensor models of :math:`A_1`.
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.Physics) concantenated operator
+
+        '''
+        A = lambda x: self.A(other.A(x)) # (A' = A_1 A_2)
+        noise = self.noise_model
+        sensor = self.sensor_model
+        return Physics(A, noise, sensor)
+
     def A_dagger(self, y):
         r'''
         Computes an inverse of :math:`y = Ax` via gradient descent.
@@ -110,6 +125,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         x = y
         return x
+
 
 class LinearPhysics(Physics):
     r'''
@@ -148,7 +164,7 @@ class LinearPhysics(Physics):
 
         self.adjoint = A_adjoint
 
-    def A_adjoint(self, x):
+    def A_adjoint(self, y):
         r'''
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
         If :math:`A` is linear, it should be the exact transpose of the forward matrix.
@@ -158,27 +174,28 @@ class LinearPhysics(Physics):
             If problem is non-linear, there is not a well-defined transpose operation,
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
-        :param torch.tensor x: noiseless measurements
-        :return: (torch.tensor) or list of (torch.tensors), describing the linearly reconstructed signal/image
+        :param torch.tensor y: measurements.
+        :return: (torch.tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         '''
-        return self.adjoint(x)
+        return self.adjoint(y)
 
-    def __add__(self, other): #  physics3 = physics1 + physics2
+    def __mul__(self, other): #  physics3 = physics1 * physics2
         r'''
-        Concatenates two forward operators :math:`A = A_1\circ A_2` via the add operation
+        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the add operation
 
-        The resulting operator keeps the noise and sensor models of :math:`A_1`.
+        The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
 
-        :param deepinv.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.Physics) concantenated operator
+        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.LinearPhysics) concantenated operator
 
         '''
         A = lambda x: self.A(other.A(x)) # (A' = A_1 A_2)
         A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x))
         noise = self.noise_model
         sensor = self.sensor_model
-        return Physics(A, A_adjoint, noise, sensor)
+        return LinearPhysics(A=A, A_adjoint=A_adjoint,
+                             noise_model=noise, sensor_model=sensor, max_iter=self.max_iter, tol=self.tol)
 
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True):
         r'''
@@ -334,7 +351,7 @@ class DecomposablePhysics(LinearPhysics):
         else:
             mask = torch.conj(self.mask)
 
-        return self.V(mask*self.V_adjoint(y))
+        return self.V(mask*self.U_adjoint(y))
 
     def prox_l2(self, z, y, gamma):
         r'''
