@@ -37,13 +37,14 @@ the efficient computation of their pseudo-inverse and proximal operators.
 
    deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
-   deepinv.physics.Inpainting
-   deepinv.physics.Denoising
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
-   deepinv.physics.Downsampling
    deepinv.physics.CompressedSensing
    deepinv.physics.Decolorize
+   deepinv.physics.Denoising
+   deepinv.physics.Downsampling
+   deepinv.physics.MRI
+   deepinv.physics.Inpainting
 
 
 Non-linear operators
@@ -82,6 +83,7 @@ or simply as
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
+
 
 
 Defining a new (linear) operator only requires a forward function and its transpose operation,
