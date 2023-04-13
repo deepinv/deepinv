@@ -289,7 +289,8 @@ class SKRock(MCMC):
         Obtains samples of the posterior distribution using an orthogonal Runge-Kutta-Chebyshev stochastic
         approximation to accelerate the standard Unadjusted Langevin Algorithm.
 
-        https://arxiv.org/abs/1908.08845
+        The algorithm was introduced in "Accelerating proximal Markov chain Monte Carlo by using an explicit stabilised method"
+        by L. Vargas, M. Pereyra and K. Zygalakis (https://arxiv.org/abs/1908.08845)
 
         - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
         - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
@@ -298,7 +299,7 @@ class SKRock(MCMC):
         :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
             noise distribution in the acquisition physics.
         :param float step_size: Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz
-        :param float eta: :math:`\eta` SKROCK parameter.
+        :param float eta: :math:`\eta` SKROCK damping parameter.
         :param float alpha: regularization parameter :math:`\alpha`.
         :param int inner_iter: Number of inner SKROCK iterations.
         :param int max_iter: Number of outer iterations.
