@@ -1,68 +1,68 @@
 import torch
 import torch.fft
 from typing import List, Optional
-from deepinv.physics.forward import Physics
+from deepinv.physics.forward import DecomposablePhysics
 
-class MRI(Physics):
+
+class MRI(DecomposablePhysics):
     r'''
-    Undersampled FFT operator for MRI image reconstruction problems.
+    Single-coil accelerated magnetic resonance imaging.
+
+    The linear operator operates in 2D slices and is defined as
+
+    .. math::
+
+        y = SFx
+
+    where :math:`S` applies a mask (subsampling operator), and :math:`F` is the 2D discrete Fourier Transform.
+    This operator has a simple singular value decomposition, so it inherits the structure of
+    :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
+
+    The complex images :math:`x` should be of size (B, 2, H, W) where the first channel corresponds to the real part
+    and the second channel corresponds to the imaginary part.
+
+    The measurements :math:`y` are also tensors of size (B, 2, H, W) where the first channel corresponds to the real
+    part and the second channel corresponds to the imaginary part.
+
+    :param torch.tensor mask: the mask values should be binary.
+        The mask size should be of the form size=[img_width,img_height].
+    :param torch.device device: cpu or gpu.
     '''
     def __init__(self, mask=None, device='cpu', **kwargs):
-        '''
-        :param mask: (tensor), (0,1) size=[img_width,img_height]
-        :param device: (str) options = 'cpu', 'cuda=0'
-        :param kwargs:
-        '''
         super().__init__(**kwargs)
-        self.mask = mask.to(device)
+        self.mask = torch.nn.Parameter(mask.to(device).unsqueeze(0).unsqueeze(0), requires_grad=False)
         self.device = device
 
+    def V_adjoint(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
+        y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        return y
 
-    def forward(self, x):
-        '''
-        :param x: (Tensor) Complex valued input data (N*2*H*W) containing at least
-                  3 dimensions: dimensions -2 & -1 are spatial dimensions and dimension -3
-                  has size 2. All other dimensions are assumed to be batch dimensions.
-        :return: The (undersampled & noised) FFT of the x.
-        '''
-        y = fft2c_new(x.permute(0, 2, 3, 1)) # N2HW -> NHW2
-        y = self.noise(y)
-        y = apply_mask(y, self.mask)
-        return y.permute(0,3,1,2)
+    def U(self, x):
+        return x
 
-    def A(self, x):
-        '''
-        :param x: (Tensor) Complex valued input data (N*2*H*W) containing at least
-                  3 dimensions: dimensions -2 & -1 are spatial dimensions and dimension -3
-                  has size 2. All other dimensions are assumed to be batch dimensions.
-        :return: The (undersampled & clean) FFT of the x.
-        '''
-        y = fft2c_new(x.permute(0, 2, 3, 1))
-        y = apply_mask(y, self.mask)
-        return y.permute(0,3,1,2)
+    def U_adjoint(self, x):
+        return x
 
+    def V(self, x): # (B, 2, H, W) -> (B, H, W, 2)
+        x = x.permute(0, 2, 3, 1)
+        return ifft2c_new(x).permute(0, 3, 1, 2)
 
-    def A_adjoint(self, y):
-        y = apply_mask(y.permute(0, 2, 3, 1), self.mask)
-        x = ifft2c_new(y)
-        return x.permute(0, 3, 1, 2)
-
-
-    def A_dagger(self, x):
-        return self.A_adjoint(x)
 
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
-    """
+    r'''
     Apply centered 2 dimensional Fast Fourier Transform.
-    Args:
-        data: Complex valued input data containing at least 3 dimensions:
-            dimensions -2 & -1 are spatial dimensions and dimension -3 has size
-            2. All other dimensions are assumed to be batch dimensions.
-        norm: Normalization mode. See ``torch.fft.fft``.
-    Returns:
-        The FFT of the input.
-    """
+
+    .. math::
+
+        y = \forw{x}
+
+    :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
+        dimensions -2 & -1 are spatial dimensions and dimension -3 has size
+        2. All other dimensions are assumed to be batch dimensions.
+    :param bool norm: Normalization mode. See ``torch.fft.fft``.
+    :return: (torch.tensor) the FFT of the input.
+    '''
     if not data.shape[-1] == 2:
         raise ValueError("Tensor does not have separate complex dim.")
 
@@ -191,27 +191,29 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
 
     return roll(x, shift, dim)
 
+
 def apply_mask(data, mask):
     # masked_data = data * mask + 0.0  # the + 0.0 removes the sign of the zeros
     masked_data = torch.einsum('hw, nhwc->nhwc', mask, data) + 0.0
     return masked_data
 
+
 if __name__ == '__main__':
     # deepinv test
     from deepinv.tests.test_physics import test_operators_norm, test_operators_adjointness, test_pseudo_inverse, device
+    import deepinv as dinv
+
+    physics = MRI(mask=torch.ones(320, 320), device=dinv.device)
+
+    for i in range(40):
+        x = torch.randn((1,2,320,320), device=dinv.device)
+        print(physics.adjointness_test(x))
+    print('adjoint test....')
+    test_operators_adjointness('MRI', (2, 320, 320), dinv.device) #pass, tensor(0., device='cuda:0')
 
     print('norm test....')
-    test_operators_norm('MRI', (2, 320, 320), 'cuda:0') #pass
+    test_operators_norm('MRI', (2, 320, 320), dinv.device)  #pass
     print('pinv test....')
-    test_pseudo_inverse('MRI', (2, 320, 320), 'cuda:0') #pass
-    print('adjoint test....')
-    test_operators_adjointness('MRI', (2,320,320), 'cuda:0')#pass, tensor(0., device='cuda:0')
+    test_pseudo_inverse('MRI', (2, 320, 320), dinv.device)  #pass
 
     print('pass all...')
-
-    # norm test....
-    # Power iteration converged at iteration 1, value=1.00
-    # pinv test....
-    # adjoint test....
-    # adjoint error= tensor(0., device='cuda:0')
-    # pass all...
