@@ -20,7 +20,7 @@ denoiser_name = 'dncnn'
 depth = 7
 ckpt_path = None
 algo_name = 'PGD'
-path_datasets = '/storage/store/work/mterris/datasets'  # '../datasets'
+dataset_path = f'../datasets/'
 train_dataset_name = 'drunet'
 test_dataset_name = 'CBSD68'
 noise_level_img = 0.03
@@ -48,7 +48,7 @@ p = dinv.physics.BlurFFT(img_size = (3,img_size,img_size), filter=filter_torch, 
 data_fidelity = L2()
 
 
-if not os.path.exists(f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5'):
+if not os.path.exists(f'{dataset_path}/artificial/{train_dataset_name}/dinv_dataset0.h5'):
     val_transform = transforms.Compose([
                 transforms.CenterCrop(img_size),
                 transforms.ToTensor(),
@@ -59,14 +59,14 @@ if not os.path.exists(f'{path_datasets}/artificial/{train_dataset_name}/dinv_dat
                     transforms.RandomVerticalFlip(p=0.5),
                     transforms.ToTensor(),
                 ])
-    train_input_dataset = datasets.ImageFolder(root=f'{path_datasets}/{train_dataset_name}/', transform=train_transform)
-    test_input_dataset = datasets.ImageFolder(root=f'{path_datasets}/{test_dataset_name}/', transform=val_transform)
+    train_input_dataset = datasets.ImageFolder(root=f'{dataset_path}/{train_dataset_name}/', transform=train_transform)
+    test_input_dataset = datasets.ImageFolder(root=f'{dataset_path}/{test_dataset_name}/', transform=val_transform)
     dinv.datasets.generate_dataset(train_dataset=train_input_dataset, test_dataset=test_input_dataset,
-                                physics=p, device=dinv.device, save_dir=f'{path_datasets}/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
+                                physics=p, device=dinv.device, save_dir=f'{dataset_path}/artificial/{train_dataset_name}/', max_datapoints=max_datapoints,
                                 num_workers=num_workers)
 
-train_dataset = dinv.datasets.HDF5Dataset(path=f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5', train=True)
-eval_dataset = dinv.datasets.HDF5Dataset(path=f'{path_datasets}/artificial/{train_dataset_name}/dinv_dataset0.h5', train=False)
+train_dataset = dinv.datasets.HDF5Dataset(path=f'{dataset_path}/artificial/{train_dataset_name}/dinv_dataset0.h5', train=True)
+eval_dataset = dinv.datasets.HDF5Dataset(path=f'{dataset_path}/artificial/{train_dataset_name}/dinv_dataset0.h5', train=False)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 eval_dataloader = DataLoader(eval_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
@@ -80,13 +80,10 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
-# prior = nn.ModuleDict({'prox_g': Denoiser(model_spec)})
+# prior = {'prox_g': Denoiser(model_spec)}
 prior = nn.ModuleDict({'prox_g': nn.ModuleList([Denoiser(model_spec) for i in range(max_iter)])})
 params_algo={'stepsize': [1.]*max_iter, 'g_param':  [0.01]*max_iter, 'lambda' : 1.}
 trainable_params = ['stepsize', 'g_param']
-# print(prior)
-# print(sdasdasdasd)
-prox_g = None
 model = Unfolded(algo_name, params_algo=params_algo, trainable_params=trainable_params, data_fidelity=data_fidelity,
                  max_iter=max_iter, prior=prior)
 
@@ -107,7 +104,7 @@ train(model=model,
         eval_dataloader=eval_dataloader,
         epochs=epochs,
         scheduler=scheduler,
-        loss_closure=losses,
+        losses=losses,
         physics=p,
         optimizer=optimizer,
         device=dinv.device,

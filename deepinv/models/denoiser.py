@@ -36,12 +36,7 @@ class Denoiser(nn.Module):
 
     TODO
 
-    :param model_spec:
-    :param init:
-    :param float stepsize:
-    :param float sigma_denoiser:
-    :param int max_iter:
-    :param str,torch.device device: cpu or gpu
+    :param model_spec: a dictionary must contain the necessary information for generating the model.
     '''
     def __init__(self, model_spec=None):
         super(Denoiser, self).__init__()
