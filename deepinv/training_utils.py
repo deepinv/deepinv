@@ -1,6 +1,7 @@
 import os
+import math
 from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr, investigate_model
-from deepinv.utils import plot_debug, torch2cpu, im_save
+from deepinv.utils import plot_debug, torch2cpu, im_save, make_grid
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -212,15 +213,14 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
         if verbose:
             print(f'Processing data of operator {g+1} out of {G}')
         for i, (x, y) in enumerate(tqdm(dataloader)):
-
+            if verbose:
+                print(f'Processing batch {i+1} out of {len(dataloader)}')
             if type(x) is list or type(x) is tuple:
                 x = [s.to(device) for s in x]
             else:
                 x = x.to(device)
 
             y = physics[g](x)
-
-            #y = y.to(device)
 
             with torch.no_grad():
                 x1 = model(y, physics[g], **kwargs)
@@ -237,20 +237,25 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
                     n_plot = min(8,len(x))
                     imgs = []
                     if plot_input:
-                        imgs.append(wandb.Image(y[:n_plot], caption="Input"))
-                    imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
-                    imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
-                    imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
+                        imgs.append(wandb.Image(make_grid(y[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                                caption="Input"))
+                    imgs.append(wandb.Image(make_grid(xlin[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                            caption="Linear"))
+                    imgs.append(wandb.Image(make_grid(x1[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                            caption="Estimated"))
+                    imgs.append(wandb.Image(make_grid(x[:n_plot], nrow=int(math.sqrt(n_plot))+1),
+                                            caption="Ground Truth"))
                     wandb.log({ "images": imgs})
 
             if save_folder is not None:
                 if not os.path.exists(save_folder):
                     os.makedirs(save_folder)
+                if not os.path.exists(save_folder + 'G' + str(g)):
+                    os.makedirs(save_folder + 'G' + str(g))
                 imgs = []
                 name_imgs = []
                 xlin = physics[g].A_adjoint(y)
                 if len(y[0].shape) == 3:
-                    print(y[0].shape)
                     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                     name_imgs.append('y')
                 imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
@@ -263,8 +268,12 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
                 for img, name_im in zip(imgs, name_imgs):
                     im_save(save_folder + 'G' + str(g) + '/' + name_im + '_' + str(i) + '.png', img)
 
-            psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
-            psnr_net.append(cal_psnr(x1, x))
+            cur_psnr_linear = cal_psnr(physics[g].A_adjoint(y), x)
+            cur_psnr = cal_psnr(x1, x)
+            psnr_linear.append(cur_psnr_linear)
+            psnr_net.append(cur_psnr)
+            if verbose:
+                print(f'Test PSNR: Linear Inv: {cur_psnr_linear:.2f}| Model: {cur_psnr:.2f} dB. ')
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

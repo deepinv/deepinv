@@ -30,7 +30,7 @@ class DRUNet(nn.Module):
 
     '''
     def __init__(self, in_channels=4, out_channels=3, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode='strideconv', upsample_mode='convtranspose',
-                 pretrained='download', ckpt_path=None, train=False, device=None):
+                 pretrained='download', train=False, device=None):
         super(DRUNet, self).__init__()
 
         self.m_head = conv(in_channels, nc[0], bias=False, mode='C')
@@ -73,7 +73,7 @@ class DRUNet(nn.Module):
                 url = online_weights_path() + name
                 ckpt_drunet = torch.hub.load_state_dict_from_url(url, map_location=lambda storage, loc: storage, file_name=name)
             else:
-                ckpt_drunet = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+                ckpt_drunet = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
             self.load_state_dict(ckpt_drunet, strict=True)
 

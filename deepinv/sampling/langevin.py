@@ -94,8 +94,8 @@ class MCMC(nn.Module):
         :param bool verbose: prints progress of the algorithm.
 
     '''
-    def __init__(self, iterator: torch.nn.Module, prior: ScoreDenoiser, data_fidelity: deepinv.optim.DataFidelity,
-                 max_iter=1e3, burnin_ratio=.2, thinning=10, clip=(-1., 2.), crit_conv=1e-3, verbose=False):
+    def __init__(self, iterator:torch.nn.Module, prior:ScoreDenoiser, data_fidelity: deepinv.optim.DataFidelity, max_iter=1e3, burnin_ratio=.2,
+                 thinning=10, clip=(-1., 2.), thresh_conv=1e-3, crit_conv='residual', verbose=False):
         super(MCMC, self).__init__()
 
         self.iterator = iterator
@@ -104,6 +104,7 @@ class MCMC(nn.Module):
         self.C_set = clip
         self.thinning = thinning
         self.max_iter = int(max_iter)
+        self.thresh_conv = thresh_conv
         self.crit_conv = crit_conv
         self.burnin_iter = int(burnin_ratio*max_iter)
         self.verbose = verbose
@@ -158,10 +159,10 @@ class MCMC(nn.Module):
                 elapsed = end_time - start_time
                 print(f'MCMC sampling finished! elapsed time={elapsed} seconds')
 
-            if check_conv(mean_prev, statistics.mean(), it, self.crit_conv, self.verbose) and it>1:
+            if check_conv({'est': (mean_prev, )}, {'est': (statistics.mean(), )}, it, self.crit_conv, self.thresh_conv, self.verbose) and it>1:
                 self.mean_convergence = True
 
-            if check_conv(var_prev, statistics.var(), it, self.crit_conv, self.verbose) and it>1:
+            if check_conv({'est': (var_prev, )}, {'est': ( statistics.var(), )}, it, self.crit_conv, self.thresh_conv, self.verbose) and it>1:
                 self.var_convergence = True
 
         return statistics.mean(), statistics.var()
@@ -180,16 +181,17 @@ class MCMC(nn.Module):
 
 
 class ULAIterator(nn.Module):
-    def __init__(self, step_size, alpha):
+    def __init__(self, step_size, alpha, sigma):
         super().__init__()
         self.step_size = step_size
         self.alpha = alpha
         self.noise_std = np.sqrt(2*step_size)
+        self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
         noise = torch.randn_like(x)*self.noise_std
         lhood = - likelihood.grad(x, y, physics)
-        lprior = - prior(x) * self.alpha
+        lprior = - prior(x, self.sigma) * self.alpha
         return x + self.step_size * (lhood+lprior) + noise
 
 
@@ -233,25 +235,26 @@ class ULA(MCMC):
 
     '''
     def __init__(self, prior, data_fidelity, step_size=1., alpha=1.,  max_iter=1e3, thinning=5, burnin_ratio=.2,
-                 clip=(-1., 2.), crit_conv=1e-3, verbose=False):
+                 clip=(-1., 2.), thresh_conv=1e-3, verbose=False, sigma=None):
 
-        iterator = ULAIterator(step_size=step_size, alpha=alpha)
-        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, thinning=thinning, crit_conv=crit_conv,
+        iterator = ULAIterator(step_size=step_size, alpha=alpha, sigma=sigma)
+        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, thresh_conv=thresh_conv,
                          burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)
 
 
 class SKRockIterator(nn.Module):
-    def __init__(self, step_size, alpha, inner_iter, eta):
+    def __init__(self, step_size, alpha, inner_iter, eta, sigma):
         super().__init__()
         self.step_size = step_size
         self.alpha = alpha
         self.eta = eta
         self.inner_iter = inner_iter
         self.noise_std = np.sqrt(2*step_size)
+        self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
         posterior = lambda u:  likelihood.grad(u, y, physics) \
-                               + self.alpha * prior(u)
+                               + self.alpha * prior(u, self.sigma)
 
         # First kind Chebyshev function
         T_s = lambda s, u: np.cosh(s*np.arccosh(u))
@@ -312,11 +315,11 @@ class SKRock(MCMC):
         :param bool verbose: prints progress of the algorithm.
 
     '''
-    def __init__(self, prior: ScoreDenoiser, data_fidelity, step_size=1., eta=0.05, alpha=1., inner_iter=10,
-                 max_iter=1e3, thinning=10, burnin_ratio=.2, clip=(-1., 2.), crit_conv=1e-3, verbose=False):
+    def __init__(self, prior: ScoreDenoiser, data_fidelity, step_size=1., inner_iter=10, eta=0.05, alpha=1.,  max_iter=1e3, burnin_ratio=.2, thinning=10,
+                 clip=(-1., 2.), thresh_conv=1e-3, verbose=False, sigma=None):
 
-        iterator = SKRockIterator(step_size=step_size, alpha=alpha, inner_iter=inner_iter, eta=eta)
-        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, crit_conv=crit_conv, thinning=thinning,
+        iterator = SKRockIterator(step_size=step_size, alpha=alpha, inner_iter=inner_iter, eta=eta, sigma=sigma)
+        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, thresh_conv=thresh_conv, thinning=thinning,
                          burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)
 
 

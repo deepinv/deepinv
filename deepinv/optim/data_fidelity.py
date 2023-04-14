@@ -44,14 +44,14 @@ class DataFidelity(nn.Module):
         else:
             raise ValueError('No gradient defined for this data fidelity term.')
 
-    def prox(self, x, y, physics, stepsize):
-        if ['Denoising'] in physics.__class__.__name__:
-            return self.prox_f(y, x, stepsize)
+    def prox(self, x, y, physics, gamma):
+        if 'Denoising' in physics.__class__.__name__:
+            return self.prox_f(y, x, gamma)
         else:# TODO: use GD?
             raise Exception("no prox operator is implemented for the data fidelity term.")
 
-    def prox_norm(self, x, y, stepsize):
-        return self.prox_norm(x, y, stepsize)
+    def prox_norm(self, x, y, gamma):
+        return self.prox_norm(x, y, gamma)
 
 
 class L2(DataFidelity):
@@ -69,19 +69,19 @@ class L2(DataFidelity):
 
     :param float sigma: Standard deviation of the noise.
     '''
-    def __init__(self, sigma=1):
+    def __init__(self, sigma=1.):
         super().__init__()
 
-        self.sigma2 = 1/(sigma**2)
+        self.norm = 1/(sigma**2)
 
     def f(self, x, y):
-        return self.sigma2*(x-y).flatten().pow(2).sum()/2
+        return self.norm*(x-y).flatten().pow(2).sum()/2
 
     def grad_f(self, x, y):
-        return self.sigma2*(x-y)
+        return self.norm*(x-y)
 
-    def prox(self, x, y, physics, stepsize):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
-        return physics.prox_l2(x, y, self.sigma2*stepsize)
+    def prox(self, x, y, physics, gamma):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
+        return physics.prox_l2(x, y, self.norm*gamma)
 
     def prox_f(self, x, y, gamma):  # Should be this instead?
         r'''
@@ -134,18 +134,26 @@ class PoissonLikelihood(DataFidelity):
 
     :param float bkg: background level :math:`\beta`.
     '''
-    def __init__(self, bkg=0.):
+    def __init__(self, gain=1., bkg=0, normalize=True):
         super().__init__()
         self.bkg = bkg
+        self.gain = gain
+        self.normalize = normalize
 
     def f(self, x, y):
-        return (- y * torch.log(x + self.bkg)).flatten().sum() + x.flatten().sum()
+        if self.normalize:
+            y = y*self.gain
+        return (- y * torch.log(self.gain*x + self.bkg)).flatten().sum() + (self.gain*x).flatten().sum()
 
     def grad_f(self, x, y):
-        return - y/(x+self.bkg) + x.numel()
+        if self.normalize:
+            y = y*self.gain
+        return (1/self.gain)*(torch.ones_like(x) - y/(self.gain*x+self.bkg))
 
     def prox_f(self, x, y, gamma):
-        out = x - 1/gamma * ((x-1/gamma).pow(2) + 4*y/gamma).sqrt()
+        if self.normalize:
+            y = y*self.gain
+        out = x - (self.gain/gamma) * ((x-self.gain/gamma).pow(2) + 4*y/gamma).sqrt()
         return out/2
 
 
