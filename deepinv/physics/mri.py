@@ -18,14 +18,11 @@ class MRI(DecomposablePhysics):
     This operator has a simple singular value decomposition, so it inherits the structure of
     :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
-    The complex images :math:`x` should be of size (B, 2, H, W) where the first channel corresponds to the real part
+    The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    The measurements :math:`y` are also tensors of size (B, 2, H, W) where the first channel corresponds to the real
-    part and the second channel corresponds to the imaginary part.
-
     :param torch.tensor mask: the mask values should be binary.
-        The mask size should be of the form size=[img_width,img_height].
+        The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
     '''
     def __init__(self, mask=None, device='cpu', **kwargs):
@@ -52,10 +49,6 @@ class MRI(DecomposablePhysics):
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
     r'''
     Apply centered 2 dimensional Fast Fourier Transform.
-
-    .. math::
-
-        y = \forw{x}
 
     :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
         dimensions -2 & -1 are spatial dimensions and dimension -3 has size

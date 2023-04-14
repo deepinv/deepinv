@@ -1,6 +1,7 @@
 import torch
-from torchvision.transforms.functional import rotate
-#from kornia.geometry.transform import rotate
+#from torchvision.transforms.functional import rotate
+from kornia.geometry.transform import rotate
+
 
 class Rotate(torch.nn.Module):
     r'''

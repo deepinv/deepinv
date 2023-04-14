@@ -25,6 +25,41 @@ def im_save(save_img_path, img):
     plt.imsave(save_img_path, img)
 
 
+def plot_batch(imgs_in, titles=None, save_dir=None, tight=True, max_imgs=8):
+    if save_dir:
+        if not os.path.exists(save_dir.split('/')[0]):
+            print('Creating ', save_dir.split('/')[0], ' folder...')
+            os.makedirs(save_dir.split('/')[0])
+
+    imgs = []
+    for im in imgs_in:
+        col_imgs = []
+        for i in range(min(im.shape[0], max_imgs)):
+            col_imgs.append(im[i, :, :, :].clamp(min=0., max=1.).detach().permute(1, 2, 0).squeeze().cpu().numpy())
+
+        imgs.append(col_imgs)
+
+    plt.figure(figsize=(len(imgs), len(imgs[0])*1.3))
+
+    for i, row_imgs in enumerate(imgs):
+        for r, img in enumerate(row_imgs):
+            plt.subplot(len(imgs[0]), len(imgs),  r*len(imgs)+i+1)
+
+            plt.imshow(img, cmap='gray')
+            if titles and r == 0:
+                plt.title(titles[i], size=8)
+            plt.axis('off')
+
+
+    if tight:
+        plt.subplots_adjust(hspace=0.01, wspace=0.05)
+
+    if save_dir:
+        plt.savefig(save_dir, dpi=1200)
+
+    plt.show()
+
+
 def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True):
     if save_dir:
         if not os.path.exists(save_dir.split('/')[0]):
@@ -32,7 +67,7 @@ def plot_debug(imgs, shape=None, titles=None, row_order=False, save_dir=None, ti
             os.makedirs(save_dir.split('/')[0])
 
     if torch.is_tensor(imgs[0]):
-        imgs = [torch2cpu(i) for i in imgs]
+        imgs = [torch2cpu(im) for im in imgs]
 
     if not shape:
         shape = (1, len(imgs))

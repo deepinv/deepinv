@@ -215,8 +215,8 @@ class ULA(MCMC):
         - PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
         - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-        :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
-        :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
+        :param deepinv.models.ScoreDenoiser, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
+        :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
             noise distribution in the acquisition physics.
         :param float step_size: step size :math:`\eta>0` of the algorithm.
             Tip: use :meth:`deepinv.physics.Physics.compute_norm()` to compute the Lipschitz constant of the forward operator.
@@ -295,8 +295,8 @@ class SKRock(MCMC):
         - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
         - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-        :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
-        :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
+        :param deepinv.models.ScoreDenoiser, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
+        :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
             noise distribution in the acquisition physics.
         :param float step_size: Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz
         :param float eta: :math:`\eta` SKROCK damping parameter.
