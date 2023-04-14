@@ -19,6 +19,10 @@ class BaseUnfold(BaseOptim):
                 self.params_algo[param_key] = nn.ParameterList([nn.Parameter(torch.tensor(el).to(device)) for el in param_value])    
         self.params_algo = nn.ParameterDict(self.params_algo)
 
+        for key, value in zip(self.prior.keys(), self.prior.values()):
+            self.prior[key] = nn.ModuleList(value)
+        self.prior = nn.ModuleDict(self.prior)
+
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step
         if custom_f_step is not None:

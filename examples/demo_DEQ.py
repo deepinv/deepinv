@@ -33,8 +33,7 @@ epochs = 100
 img_size = 32
 batch_size = 32
 max_datapoints = 100
-anderson_acceleration = False # To be fixed 
-
+anderson_acceleration = False # For now anderson_acceleration does not work
 wandb_vis = False
 
 if wandb_vis :
@@ -79,11 +78,11 @@ model_spec = {'name': denoiser_name,
                     'device':dinv.device
                     }}
 
-prox_g = Denoiser(model_spec)
-params_algo={'stepsize': [1.]*max_iter, 'g_param':  [0.01]*max_iter, 'lambda' : 1.}
+prior = {'prox_g': Denoiser(model_spec)}
+params_algo={'stepsize': [1.], 'g_param':  [0.01], 'lambda' : 1.}
 trainable_params = ['stepsize', 'g_param']
-model = DEQ(algo_name, params_algo=params_algo, trainable_params = trainable_params, prox_g=prox_g, data_fidelity=data_fidelity,
-                    device=dinv.device, max_iter=max_iter)
+model = DEQ(algo_name, params_algo=params_algo, trainable_params=trainable_params, data_fidelity=data_fidelity,
+                 max_iter=max_iter, prior=prior)
 
 for name, param in model.named_parameters():
     if param.requires_grad:
@@ -102,7 +101,7 @@ train(model=model,
         eval_dataloader=eval_dataloader,
         epochs=epochs,
         scheduler=scheduler,
-        loss_closure=losses,
+        losses=losses,
         physics=p,
         optimizer=optimizer,
         device=dinv.device,

@@ -24,7 +24,7 @@ class FixedPoint(nn.Module):
         self.update_params_fn_pre = update_params_fn_pre
         self.update_prior_fn = update_prior_fn
 
-    def forward(self, x, *args, return_params=False, **kwargs):
+    def forward(self, x, *args, **kwargs):
         x_prev = None
         for it in range(self.max_iter):
             cur_prior = self.update_prior_fn(it)
@@ -37,10 +37,7 @@ class FixedPoint(nn.Module):
                     if self.verbose:
                         print('Convergence reached at iteration ', it)
                     break
-        if return_params : 
-            return x, cur_params
-        else: 
-            return x
+        return x
 
 class AndersonAcceleration(FixedPoint):
     '''

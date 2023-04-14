@@ -81,7 +81,7 @@ model_spec = {'name': denoiser_name,
                     }}
 
 # prior = {'prox_g': Denoiser(model_spec)}
-prior = nn.ModuleDict({'prox_g': nn.ModuleList([Denoiser(model_spec) for i in range(max_iter)])})
+prior = {'prox_g': [Denoiser(model_spec) for i in range(max_iter)]}
 params_algo={'stepsize': [1.]*max_iter, 'g_param':  [0.01]*max_iter, 'lambda' : 1.}
 trainable_params = ['stepsize', 'g_param']
 model = Unfolded(algo_name, params_algo=params_algo, trainable_params=trainable_params, data_fidelity=data_fidelity,
