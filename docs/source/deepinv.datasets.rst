@@ -37,10 +37,20 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pyt
     dataset = dinv.datasets.HDF5Dataset(path=f'{save_dir}/dinv_dataset.h5', train=True)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
-Data Generator
+HD5Dataset
 -------------------------------------
 
 .. automodule:: deepinv.datasets.datagenerator
    :members:
    :no-undoc-members:
    :show-inheritance:
+
+Training
+-------------------------------------
+
+.. autofunction:: deepinv.train
+
+Testing
+-------------------------------------
+
+.. autofunction:: deepinv.test

@@ -19,13 +19,13 @@ The documentation of ``deepinv`` uses a unified mathematical notation that is su
      - Distribution of measurements :math:`y`.
    * - :math:`\forw{x}`
      - Deterministic mapping that captures the physics of the imaging system.
-   * - :math:`\noise{\cdot}`
+   * - :math:`\noise{y}`
      - Stochastic mapping adding noise to measurements.
    * - :math:`\inverse{y}`
      - Reconstruction network that maps measurements to images :math:`y\mapsto x`.
    * - :math:`\denoiser{x}{\sigma}`
      - Gaussian denoiser for noise of standard deviation :math:`\sigma`.
-   * - :math:`\datafid{y,A(x)}`
+   * - :math:`\datafid{A(x)}{y}`
      - Data fidelity term, enforcing measurement consistency :math:`y\approx A(x)`.
        It is linked to the noise model (likelihood).
    * - :math:`\reg{x}`

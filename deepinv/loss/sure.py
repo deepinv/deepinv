@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 
 def mc_div(x, y, f, tau):
@@ -19,46 +20,54 @@ class SureGaussianLoss(nn.Module):
 
     .. math::
 
-        y \sim\mathcal{N}(u,\sigma^2I) \quad \text{with}\quad u= A(x).
+        y \sim\mathcal{N}(u,\sigma^2 I) \quad \text{with}\quad u= A(x).
 
     The loss is computed as
 
     .. math::
 
-        \|y - Af(y)\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(Af(y+\tau b_i) - Af(y)\right)
+        \frac{1}{m}\|y - A\inverse{y}\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(A\inverse{y+\tau b_i} -
+        A\inverse{y}\right)
 
-    where :math:`f` is the trainable network, :math:`y` is the noisy measurement vector and :math:`\text{div}`.
+    where :math:`R` is the trainable network, :math:`A` is the forward operator,
+    :math:`y` is the noisy measurement vector of size :math:`m`, :math:`A` is the forward operator,
+    :math:`b\sim\mathcal{N}(0,I)` and :math:`\tau\geq 0` is a hyperparameter controlling the
+    Monte Carlo approximation of the divergence.
 
-    This loss approximates the divergence of :math:`Af(y)` (in the original SURE loss)
+    This loss approximates the divergence of :math:`A\inverse{y}` (in the original SURE loss)
     using the Monte Carlo approximation in
     https://ieeexplore.ieee.org/abstract/document/4099398/
 
     If the measurement data is truly Gaussian with standard deviation :math:`\sigma`,
-    this loss is an unbiased estimator of :math:`\|u-Af(y)\|_2^2`
+    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
-
     '''
-    def __init__(self, sigma, tau=1e-2):
+    def __init__(self, sigma, tau=1e-3):
         super(SureGaussianLoss, self).__init__()
+        self.name = 'sure'
         self.sigma2 = sigma ** 2
         self.tau = tau
 
-    # TODO: leave denoising as default
-    def forward(self, y, physics, f):
+    def forward(self, y, x_net, physics, f):
         r'''
-        :param torch.tensor y: Measurements
-        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        Computes the SURE Loss.
+
+        :param torch.tensor y: Measurements.
+        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
         :return: (float) SURE loss.
         '''
+
         # compute loss_sure
-        y1 = physics.A(f(y))
-        div = mc_div(y, y1, lambda x: physics.A(f(x, physics)), self.tau)
+        y1 = physics.A(x_net)
+        div = mc_div(y, y1, lambda u: physics.A(f(u, physics)), self.tau)
         loss_sure = (y1 - y).pow(2).flatten().mean() - self.sigma2\
                     + 2 * self.sigma2 * div
+
         return loss_sure
 
 
@@ -76,50 +85,51 @@ class SurePoissonLoss(nn.Module):
 
     .. math::
 
-        \|y-Af(y)\|_2^2-\gamma 1^{\top}y
-        +\frac{2\gamma}{\tau}(b\odot y)^{\top} \left(Af(y+\tau b)-Af(y)\right)
+        \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y
+        +\frac{2\gamma}{m\tau}(b\odot y)^{\top} \left(A\inverse{y+\tau b}-A\inverse{y}\right)
 
-    where :math:`f` is the trainable network, :math:`y` is the noisy measurement vector,
-    :math:`b` to be a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
+    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,
+    :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
     :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
+    See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.
     If the measurement data is truly Poisson
-    this loss is an unbiased estimator of :math:`\|u-Af(y)\|_2^2`
+    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
-    :param float gamma: Gain of the Poisson Noise.
+    :param float gain: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
     '''
-    def __init__(self, gamma, tau=1e-2):
+    def __init__(self, gain, tau=1e-3):
         super(SurePoissonLoss, self).__init__()
         self.name = 'SurePoisson'
-        self.gamma = gamma
+        self.gain = gain
         self.tau = tau
 
-    def forward(self, y, f, physics):
-        '''
-        :param torch.tensor y: Measurements
-        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
+    def forward(self, y, x_net, physics, f):
+        r'''
+        Computes the SURE loss.
+
+        :param torch.tensor y: measurements.
+        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
         :return: (float) SURE loss.
         '''
+
         # generate a random vector b
-
         b = torch.rand_like(y) > 0.5
-        # b = torch.rand_like(self.physics.A_dagger(y0)) > 0.5
+        b = (2 * b - 1) * 1.0  # binary [-1, 1]
 
-        b = (2 * b.int() - 1) * 1.0  # binary [-1, 1]
-        b = physics.A(b * 1.0)
-
-        y1 = physics.A(f(y))
-        y2 = physics.A(f(self.physics.A_dagger(y + self.tau * b)))
+        y1 = physics.A(x_net)
+        y2 = physics.A(f(y + self.tau * b, physics))
 
         # compute m (size of y)
-        m = (torch.abs(y) > 1e-5).flatten().sum()
+        # m = y.numel() #(torch.abs(y) > 1e-5).flatten().sum()
 
-        loss_sure = torch.sum((y1 - y).pow(2)) / m \
-                    - self.gamma * y.sum() / m \
-                    + 2 * self.gamma / (self.tau * m) * ((b * y) * (y2 - y1)).sum()
+        loss_sure = (y1 - y).pow(2).mean() - self.gain * y.mean() \
+                    + 2. * self.gain / self.tau * (b * y * (y2 - y1)).mean()
+
         return loss_sure
 
 
@@ -140,62 +150,68 @@ class SurePGLoss(nn.Module):
 
     .. math::
 
-        & \|y-Af(y)\|_2^2-\gamma 1^{\top}y-\sigma^2
-        +\frac{2}{\tau}(b\odot (\gamma y + \sigma^2 I))^{\top} \left(Af(y+\tau b)-Af(y) \right) \\\\
-        & +\frac{2\gamma \sigma^2}{\tau}c^{\top} \left( Af(y+\tau c) + Af(y-\tau c) - 2Af(y) \right)
+        & \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y-\sigma^2
+        +\frac{2}{m\tau_1}(b\odot (\gamma y + \sigma^2 I))^{\top} \left(A\inverse{y+\tau b}-A\inverse{y} \right) \\\\
+        & +\frac{2\gamma \sigma^2}{m\tau_2^2}c^{\top} \left( A\inverse{y+\tau c} + A\inverse{y-\tau c} - 2A\inverse{y} \right)
 
-    where :math:`f` is the trainable network, :math:`y` is the noisy measurement vector,
-    :math:`b` to be a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
+    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,
+    :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
     :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
     If the measurement data is truly Poisson-Gaussian
-    this loss is an unbiased estimator of :math:`\|u-Af(y)\|_2^2`
+    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
+
+    See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.
 
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float gamma: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
     '''
-    def __init__(self, sigma, gamma, tau=1e-2):
+    def __init__(self, sigma, gain, tau1=1e-3, tau2=1e-2):
         super(SurePGLoss, self).__init__()
         self.name = 'sure'
         # self.sure_loss_weight = sure_loss_weight
-        self.sigma = sigma
-        self.gamma = gamma
-        self.tau = tau
+        self.sigma2 = sigma ** 2
+        self.gain = gain
+        self.tau1 = tau1
+        self.tau2 = tau2
 
-    def forward(self, y, f, physics):
+    def forward(self, y, x_net, physics, f):
         r'''
+        Computes the SURE loss.
 
-        :param torch.tensor y: Measurements
-        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
+        :param torch.tensor y: measurements.
+        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
         :return: (float) SURE loss.
         '''
-        sigma2 = self.sigma ** 2
-        b1 = torch.randn_like(y)
-        b2 = torch.rand_like(y) > 0.5
-        b2 = (2 * b2.int() - 1) * 1.0  # binary [-1, 1]
 
-        meas1 = physics.A(f(y))
-        meas2 = physics.A(f(y + self.tau * b1))
-        meas2p = physics.A(f(y + self.tau * b2))
-        meas2n = physics.A(f(y - self.tau * b2))
+        b1 = torch.rand_like(y) > 0.5
+        b1 = (2 * b1 - 1) * 1.0  # binary [-1, 1]
+
+        p = 0.7236  #.5 + .5*np.sqrt(1/5.)
+
+        b2 = torch.ones_like(b1)*np.sqrt(p/(1-p))
+        b2[torch.rand_like(b2) < p] = -np.sqrt((1-p)/p)
+
+        meas1 = physics.A(x_net)
+        meas2 = physics.A(f(y + self.tau1 * b1, physics))
+        meas2p = physics.A(f(y + self.tau2 * b2, physics))
+        meas2n = physics.A(f(y - self.tau2 * b2, physics))
 
         # compute m (size of y)
-        m = (torch.abs(y) > 1e-5).flatten().sum()
+        #m = (torch.abs(y) > 1e-5).flatten().sum()
 
-        loss_A = torch.sum((meas1 - y).pow(2)) / m - sigma2
-        loss_div1 = 2 / (self.tau * m) * ((b1 * (self.gamma * y + sigma2)) * (meas2 - meas1)).sum()
-        loss_div2 = 2 * sigma2 * self.gamma / (self.tau ** 2 * m) \
-                    * (b2 * (meas2p + meas2n - 2 * meas1)).sum()
+        loss_mc = (meas1 - y).pow(2).mean()
 
-        loss_sure = loss_A + loss_div1 + loss_div2
+        loss_div1 = 2 / self.tau1 * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).mean()
+
+        offset = - self.gain * y.mean() - self.sigma2
+
+        loss_div2 = - 2 * self.sigma2 * self.gain / (self.tau2 ** 2) * (b2 * (meas2p + meas2n - 2 * meas1)).mean()
+
+        loss_sure = loss_mc + loss_div1 + loss_div2 + offset
         return loss_sure
 
-
-
-# test code
-if __name__ == "__main__":
-    device = 'cuda:0'
-    #TODO test SURE

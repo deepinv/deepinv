@@ -8,9 +8,10 @@ class Shift(torch.nn.Module):
 
         :param n_trans: number of shifted versions generated per input image.
     '''
-    def __init__(self, n_trans):
+    def __init__(self, n_trans=1):
         super(Shift, self).__init__()
         self.n_trans = n_trans
+
     def forward(self, data):
         H, W = data.shape[-2:]
         assert self.n_trans <= H - 1 and self.n_trans <= W - 1

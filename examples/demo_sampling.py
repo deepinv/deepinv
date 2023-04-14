@@ -1,83 +1,53 @@
 import deepinv as dinv
-import torch
-from torch.utils.data import DataLoader
 from deepinv.utils.plotting import plot_debug
+import torch
+import requests
+from imageio.v2 import imread
+from io import BytesIO
 
-G = 1  # number of operators
-epochs = 2  # number of training epochs
-num_workers = 0  # set to 0 if using small cpu
-images = 4
-plot = True
-dataset = 'MNIST'
-problem = 'deblur'
-dir = f'../datasets/{dataset}/{problem}/G{G}/'
+# load image from the internet
+url = 'https://upload.wikimedia.org/wikipedia/commons/b/b4/' \
+      'Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg'
+res = requests.get(url)
+x = imread(BytesIO(res.content))/255.
+x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
+x = torch.nn.functional.interpolate(x, scale_factor=.5)  # reduce the image size for faster eval
 
-physics = []
-dataloader = []
-for g in range(G):
-    if problem == 'CS':
-        p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-    elif problem == 'onebitCS':
-        p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-        p.sensor_model = lambda x: torch.sign(x)
-    elif problem == 'inpainting':
-        p = dinv.physics.Inpainting(tensor_size=(1, 28, 28), mask=.5, device=dinv.device)
-    elif problem == 'denoising':
-        p = dinv.physics.Denoising(sigma=.2)
-    elif problem == 'blind_deblur':
-        p = dinv.physics.BlindBlur(kernel_size=11)
-    elif problem == 'super_resolution':
-        p = dinv.physics.Downsampling(factor=4)
-    elif problem == 'deblur':
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, .1), angle=45.), device=dinv.device)
-    else:
-        raise Exception("The inverse problem chosen doesn't exist")
+# define forward operator
+sigma = .1  # noise level
+physics = dinv.physics.Inpainting(mask=.5, tensor_size=x.shape[1:], device=dinv.device)
+physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
-    p.load_state_dict(torch.load(f'{dir}/physics{g}.pt', map_location=dinv.device))
-    physics.append(p)
-    dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset{g}.h5', train=False)
-    dataloader.append(DataLoader(dataset, batch_size=images, num_workers=num_workers, shuffle=False))
+# load pretrained dncnn denoiser
+model_spec = {'name': 'dncnn', 'args': {'device': dinv.device, 'in_channels': 3, 'out_channels': 3,
+                                        'pretrained': 'download_lipschitz'}}
+prior = dinv.models.ScoreDenoiser(model_spec=model_spec, sigma_denoiser=2/255, device=dinv.device)
 
-# FNE DnCNN from Terris et al.
-denoiser = dinv.models.dncnn(in_channels=1,
-                         out_channels=1).to(dinv.device)
+# load Gaussian Likelihood
+likelihood = dinv.optim.L2(sigma=sigma)
 
-ckp_path = '../saved_models/DNCNN_nch_1_sigma_2.0_ljr_0.001.ckpt'
+# choose MCMC sampling algorithm
+regularization = .9
+step_size = .01*(sigma**2)
+iterations = int(5e3)
+f = dinv.sampling.ULA(prior=prior, data_fidelity=likelihood, max_iter=iterations,
+                      alpha=regularization, step_size=step_size, verbose=True)
 
-u = torch.randn((1, 28, 28), device=dinv.device) #.type(dtype)
+# generate measurements
+y = physics(x)
 
-norm = physics[0].power_method(u.unsqueeze(0), tol=1e-5)
-print('Lip cte = ', norm)
+# run algo
+mean, var = f(y, physics)
 
-testadj = physics[0].adjointness_test(u.unsqueeze(0))
-print('Adj test : ', testadj)
+# compute linear inverse
+x_lin = physics.A_adjoint(y)
 
-denoiser.load_state_dict(torch.load(ckp_path, map_location=dinv.device)['state_dict'])
-denoiser = denoiser.eval()
+# compute PSNR
+print(f'Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB')
+print(f'Posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, mean):.2f} dB')
 
-sigma = .1
-regularization = 100
-iterations = 5000
-
-lip = norm / (sigma**2)
-f = dinv.sampling.PnPULA(denoiser, sigma=sigma, max_iter=iterations,
-                         alpha=regularization, step_size=1./lip, verbose=True)
-
-for g in range(G):
-    iterator = iter(dataloader[g])
-    x, y = next(iterator)
-    x = x.to(dinv.device)
-    y = y.to(dinv.device)
-
-    mean, var = f(y, physics[g])
-
-    error = (mean-x).abs()
-    imgs = []
-    for i in range(images):
-        imgs.append(y[i, :, :, :].unsqueeze(0))
-        imgs.append(x[i, :, :, :].unsqueeze(0))
-        imgs.append(mean[i, :, :, :].unsqueeze(0))
-        imgs.append(var[i, :, :, :].unsqueeze(0).sqrt())
-        imgs.append(error[i, :, :, :].unsqueeze(0))
-
-    plot_debug(imgs, shape=(images, 5), titles=['measurement', 'ground truth', 'mean', 'standard dev.', 'error'])
+# plot results
+error = (mean-x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
+std = var.sum(dim=1).unsqueeze(1).sqrt()  # per pixel average standard dev.
+imgs = [x_lin, x, mean, std/std.flatten().max(), error/error.flatten().max()]
+plot_debug(imgs, titles=['measurement', 'ground truth', 'post. mean', 'post. std', 'abs. error'])

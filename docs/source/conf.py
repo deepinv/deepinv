@@ -35,11 +35,16 @@ mathjax3_config = {
             "forw": [r'{A\left({#1}\right)}', 1],
             "noise": [r'{N\left({#1}\right)}', 1],
             "inverse": [r'{R\left({#1}\right)}', 1],
+            "inversef": [r'{R\left({#1},{#2}\right)}', 2],
             "reg": [r'{g\left({#1}\right)}', 1],
-            "datafid": [r'{f\left({#1}\right)}', 1],
+            "sensor": [r'{\eta\left({#1}\right)}', 1],
+            "datafid": [r'{f\left({#1},{#2}\right)}', 2],
             "denoiser": [r'{D\left({#1},{#2}\right)}', 2],
             "xset": r'\mathcal{X}',
-            "yset":r'\mathcal{Y}',
+            "yset": r'\mathcal{Y}',
+            "group": r'\mathcal{G}',
+            "metric": [r'{d\left({#1},{#2}\right)}', 2],
+            "loss": [r'{\mathcal\left({#1}\right)}', 1],
             }
         }
     }

@@ -42,12 +42,11 @@ class DDRM(nn.Module):
             mean = torch.zeros_like(y_bar)
             std = torch.ones_like(y_bar)*self.sigmas[0]
             mean[case] = y_bar[case]
-            std[case] = self.sigmas[0]-nsr.pow(2)[case]
+            std[case] = (self.sigmas[0]**2-nsr[case].pow(2)).sqrt()
             x_bar = mean + std * torch.randn_like(y_bar)
             x_bar_prev = x_bar.clone()
             # denoise
             x = self.denoiser(physics.V(x_bar), self.sigmas[0])
-            print(nsr)
             for t in tqdm(range(1, self.max_iter), disable=(not self.verbose)):
                 # add noise in transformed domain
                 x_bar = physics.V_adjoint(x)
@@ -55,19 +54,21 @@ class DDRM(nn.Module):
                 case2 = case + (self.sigmas[t] < nsr)
                 case3 = case + (self.sigmas[t] >= nsr)
 
-                print(case2)
                 mean = x_bar + c*self.sigmas[t]*(x_bar_prev-x_bar)/self.sigmas[t-1]
-                mean[case2] = x_bar[case2] + c*self.sigmas[t]*(y_bar[case2]-x_bar[case2])/nsr[case2]
-                mean[case3] = (1-self.etab)*x_bar[case3] + self.etab*y_bar[case3]
+                #mean[case2] = x_bar[case2] + c*self.sigmas[t]*(y_bar[case2]-x_bar[case2])/nsr[case2]
+                #mean[case3] = (1.-self.etab)*x_bar[case3] + self.etab*y_bar[case3]
 
                 std = torch.ones_like(x)*self.eta*self.sigmas[t]
-                std[case3] = (self.sigmas[t]**2 - nsr[case3].pow(2)*self.etab**2).sqrt()
+                #std[case3] = (self.sigmas[t]**2 - (nsr[case3]*self.etab).pow(2)).sqrt()
 
+                #print(f'std: {std.isnan().sum()}')
+                #print(f'mean: {mean.isnan().sum()}')
                 x_bar = mean + std*torch.randn_like(x_bar)
                 x_bar_prev = x_bar.clone()
                 # denoise
-                x = self.denoiser(physics.V(x_bar), self.sigmas[0])
+                x = self.denoiser(physics.V(x_bar), self.sigmas[t])
 
+                #dinv.utils.plot_debug([x], titles=f'it {t}')
         return x
 
 
@@ -82,18 +83,16 @@ if __name__ == "__main__":
 
     sigma_noise = .05
     #physics = dinv.physics.Denoising()
-    physics = dinv.physics.Inpainting(mask=.9, tensor_size=(3, 218, 178), device=dinv.device)
-    #physics = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(sigma=(2, 2)), img_size=x.shape[1:], device=dinv.device)
+    physics = dinv.physics.Inpainting(mask=.5, tensor_size=(3, 218, 178), device=dinv.device)
     physics.noise_model = dinv.physics.GaussianNoise(sigma_noise)
 
     y = physics(x)
-    model_spec = {'name': 'drunet', 'args': {'device': dinv.device,
-                                            'pretrained': 'download'}}
+    model_spec = {'name': 'drunet', 'args': {'device': dinv.device, 'pretrained': 'download'}}
 
-    denoiser = Denoiser(model_spec=model_spec, sigma_denoiser=10/255)
+    denoiser = Denoiser(model_spec=model_spec)
 
-    sigmas = np.linspace(1, 0, 10)
-    f = DDRM(denoiser=denoiser, sigma_noise=sigma_noise, sigmas=sigmas, verbose=True)
+    sigmas = np.linspace(1, 0, 100)
+    f = DDRM(denoiser=denoiser, etab=1., sigma_noise=sigma_noise, sigmas=sigmas, verbose=True)
 
     xmean = f(y, physics)
 

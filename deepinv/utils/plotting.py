@@ -21,7 +21,7 @@ def numpy2uint(img):
     return np.uint8((img*255.0).round())
 
 
-def imsave(save_img_path, img):
+def im_save(save_img_path, img):
     img = numpy2uint(img)
     plt.imsave(save_img_path, img)
 

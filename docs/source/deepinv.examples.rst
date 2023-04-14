@@ -3,17 +3,11 @@ Examples
 
 Add Google Colab link if possible.
 
-Denoising
--------------------------------------
-.. literalinclude:: ../../examples/demo_denoising.py
-   :language: python
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-Training a model
--------------------------------------
-.. literalinclude:: ../../examples/demo_train.py
-   :language: python
-
-Testing a model
--------------------------------------
-.. literalinclude:: ../../examples/demo_train.py
-   :language: python
+   deepinv.examples.basics
+   deepinv.examples.pnp
+   deepinv.examples.unrolled
+   deepinv.examples.sampling

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 import torch.fft as fft
-from deepinv.physics.forward import Physics, DecomposablePhysics
+from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 
 
 def filter_fft(filter, img_size):
@@ -62,7 +62,7 @@ def bicubic_filter(factor=2):
 
 
 # TODO: fix bilinear filter
-class Downsampling(Physics):
+class Downsampling(LinearPhysics):
     r'''
     Downsampling operator for super-resolution problems.
 
@@ -165,7 +165,7 @@ class Downsampling(Physics):
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r)/gamma
         else:
-            return Physics.prox_l2(self, z, y, gamma)
+            return LinearPhysics.prox_l2(self, z, y, gamma)
 
 
 def extend_filter(filter):
@@ -357,18 +357,17 @@ class BlindBlur(Physics):
         w = s[1]
         return conv(x, w, self.padding)
 
-    def A_adjoint(self, y):
+    def A_dagger(self, y):
         r'''
+        Returns the trivial inverse where x[0] = blurry input and x[1] with a delta filter, such that
+        the convolution of x[0] and x[1] is y.
 
         .. note:
 
-            Since the problem is non-linear, so this is not a well-defined transpose operation,
-            but can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
-
+            This trivial inverse can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
         :param torch.tensor y: blurred measurement.
-        :return: Tuple containing two torch.tensor, x[0] = blurry input and x[1] with a delta filter, such that
-            the convolution of x[0] and x[1] is y.
+        :return: Tuple containing the trivial inverse.
         '''
         x = y.clone()
         mid_h = int(self.kernel_size[0]/2)
@@ -379,12 +378,12 @@ class BlindBlur(Physics):
         return x, w
 
 
-class Blur(Physics):
+class Blur(LinearPhysics):
     r'''
 
-    Blur operator
+    Blur operator.
 
-    It performs
+    This forward operator performs
 
     .. math:: y = w*x
 
@@ -414,7 +413,7 @@ class Blur(Physics):
 class BlurFFT(DecomposablePhysics):
     '''
 
-    FFT-based Blur operator
+    FFT-based blur operator.
 
     It performs
 

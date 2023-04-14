@@ -11,8 +11,8 @@ class HDF5Dataset(data.Dataset):
     Represents a DeepInverse HDF5 dataset which stores measurements and (optionally) associated signals.
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
-    :param bool train: Set to True for training and False for testing.
-    :param torchvision.Transform transform: PyTorch transform to apply to every data instance (``default=None``).
+    :param bool train: Set to ``True`` for training and ``False`` for testing.
+    :param torchvision.Transform transform: PyTorch transform to apply to every data instance (default=``None``).
     '''
     def __init__(self, path, train=True, transform=None):
         super().__init__()
@@ -58,10 +58,10 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     :param int batch_size: batch size for generating the measurement data (it only affects the speed of the generating process)
     :param int num_workers: number of workers for generating the measurement data (it only affects the speed of the generating process)
     :param bool supervised: Generates supervised pairs (x,y) of measurements and signals.
-        If set to false, it will generate a training dataset with measurements only (y) and a test dataset with pairs (x,y)
+        If set to ``False``, it will generate a training dataset with measurements only (y) and a test dataset with pairs (x,y)
 
     '''
-    if os.path.exists(os.path.join(save_dir,dataset_filename)):
+    if os.path.exists(os.path.join(save_dir, dataset_filename)):
         print("WARNING: Dataset already exists, this will overwrite the previous dataset.")
 
     if not os.path.exists(save_dir):

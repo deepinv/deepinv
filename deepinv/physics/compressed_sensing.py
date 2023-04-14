@@ -1,31 +1,6 @@
-from deepinv.physics.forward import Physics
+from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
-
-
-# def hadamard(u, normalize=True):
-#     """
-#     Hadamard Transform
-#     The transform is performed across the last dimension of the input signal
-#     If normalize=True, the transform is orthogonal and hadamard(hadamard(x)) = x
-#     The length of the signal should be a power of 2
-#     Parameters:
-#         u: Tensor of shape (..., n)
-#         normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
-#     Returns:
-#         product: Tensor of shape (..., n)
-#     """
-#
-#     u_shape = u.shape
-#     n = u.shape[-1]
-#     u = u.view(-1, u_shape[-1])
-#
-#     m = int(np.log2(n))
-#     assert n == 1 << m, 'n must be a power of 2'
-#     x = u[..., np.newaxis]
-#     for d in range(m)[::-1]:
-#         x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
-#     return x.view(*u_shape) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
 def dst1(x):
@@ -51,7 +26,7 @@ def dst1(x):
     return x.view(*x_shape)
 
 
-class CompressedSensing(Physics):
+class CompressedSensing(LinearPhysics):
     r'''
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where n= prod(img_shape).
     This class generates a random iid Gaussian matrix if ``fast=False``
@@ -72,6 +47,9 @@ class CompressedSensing(Physics):
 
     It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
+
+    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
+    in a similar fashion to torch.nn.Module.
 
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.

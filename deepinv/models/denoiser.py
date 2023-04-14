@@ -30,9 +30,18 @@ class Denoiser(nn.Module):
     r'''
     Base denoiser class.
 
+    Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration.
+
+    Consists in replacing prox_g or grad_g with a denoiser.
+
     TODO
 
     :param model_spec:
+    :param init:
+    :param float stepsize:
+    :param float sigma_denoiser:
+    :param int max_iter:
+    :param str,torch.device device: cpu or gpu
     '''
     def __init__(self, model_spec=None):
         super(Denoiser, self).__init__()
@@ -57,6 +66,18 @@ class ScoreDenoiser(Denoiser):
     where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
     :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
     which is typically set to a low value.
+
+    .. note::
+
+        This class can also be used with maximum-a-posteriori (MAP) denoisers,
+        but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather
+        given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,
+
+        .. math::
+
+            p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
+
+
     '''
     def __init__(self, *args, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)

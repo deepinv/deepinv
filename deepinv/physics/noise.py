@@ -7,8 +7,7 @@ class GaussianNoise(torch.nn.Module):
     Additive gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
     It can be added to a physics operator in its construction or by setting
-
-    ..
+    ::
 
         physics.noise_model = GaussianNoise()
 
@@ -17,13 +16,14 @@ class GaussianNoise(torch.nn.Module):
     '''
     def __init__(self, sigma=.1):
         super().__init__()
-        self.sigma = sigma
+        self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
 
     def forward(self, x):
         r'''
         Adds the noise to measurements x
 
         :param torch.tensor x: measurements
+        :returns: noisy measurements
         '''
         return x + torch.randn_like(x)*self.sigma
 
@@ -32,14 +32,13 @@ class PoissonNoise(torch.nn.Module):
     r'''
 
     Poisson noise is defined as
-    :math:`y = \mathcal{P}(\gamma x)`
+    :math:`y = \mathcal{P}(\frac{x}{\gamma})`
     where :math:`\gamma` is the gain.
 
-    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \frac{y}{\gamma}`
+    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`.
 
-    It can be added to a physics operator in its construction or by setting
-
-    ..
+    It can be added to a physics operator in its construction or by setting:
+    ::
 
         physics.noise_model = PoissonNoise()
 
@@ -49,29 +48,31 @@ class PoissonNoise(torch.nn.Module):
     '''
     def __init__(self, gain=1., normalize=True):
         super().__init__()
-        self.gain = gain
-        self.normalize = normalize
+        self.normalize = torch.nn.Parameter(torch.tensor(normalize), requires_grad=False)
+        self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
 
     def forward(self, x):
         r'''
         Adds the noise to measurements x
 
         :param torch.tensor x: measurements
+        :returns: noisy measurements
         '''
-        y = torch.poisson(self.gain*x)
+        y = torch.poisson(x/self.gain)
         if self.normalize:
-            y /= self.gain
+            y *= self.gain
         return y
 
 
 class PoissonGaussianNoise(torch.nn.Module):
     r'''
     Poisson-Gaussian noise is defined as
-    :math:`y = \frac{z}{\gamma} + \epsilon` where :math:`z\sim\mathcal{P}(\gamma x)` and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
+    :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
+    and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
     It can be added to a physics operator by setting
 
-    ..
+    ::
 
         physics.noise_model = PoissonGaussianNoise()
 
@@ -81,16 +82,17 @@ class PoissonGaussianNoise(torch.nn.Module):
     '''
     def __init__(self, gain=1., sigma=.1):
         super().__init__()
-        self.gain = gain
-        self.sigma = sigma
+        self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
+        self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
 
     def forward(self, x):
         r'''
         Adds the noise to measurements x
 
         :param torch.tensor x: measurements
+        :returns: noisy measurements
         '''
-        y = torch.poisson(self.gain*x)/self.gain
+        y = torch.poisson(x/self.gain)*self.gain
 
         y += torch.randn_like(x)*self.sigma
         return y
@@ -102,7 +104,7 @@ class UniformNoise(torch.nn.Module):
     :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
 
     It can be added to a physics operator by setting
-    ..
+    ::
 
         physics.noise_model = UniformNoise()
 
@@ -110,13 +112,14 @@ class UniformNoise(torch.nn.Module):
     '''
     def __init__(self, a=.1):
         super().__init__()
-        self.amplitude = a
+        self.a = torch.nn.Parameter(torch.tensor(a), requires_grad=False)
 
     def forward(self, x):
         r'''
         Adds the noise to measurements x
 
         :param torch.tensor x: measurements
+        :returns: noisy measurements
         '''
-        return x + (self.rand_like(x)-.5)*2*self.amplitude
+        return x + (self.rand_like(x)-.5)*2*self.a
 

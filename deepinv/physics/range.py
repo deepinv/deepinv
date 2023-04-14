@@ -1,11 +1,11 @@
 import torch
-from deepinv.physics.forward import Physics
+from deepinv.physics.forward import LinearPhysics
 
 
-class Decolorize(Physics):
+class Decolorize(LinearPhysics):
     r'''
+     Converts RGB images to grayscale.
 
-     Colorization forward operator
      Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
      The measurements are grayscale images.
 

@@ -42,16 +42,19 @@ class Haze(Physics):
         y = t*im + (1-t)*A
         return y
 
-    def A_adjoint(self, y):
+    def A_dagger(self, y):
         r'''
+
+        Returns the trivial inverse where x[0] = y (trivial estimate of the image :math:`I`),
+        x[1] = tensor of depth :math:`d` equal to one, x[2] = 1 for :math:`a`.
 
         .. note:
 
-            Since the problem is non-linear, so this is not a well-defined transpose operation,
-            but can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
+            This trivial inverse can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
+
 
         :param torch.tensor y: Hazy image.
-        :return: (list, tuple) where x[0] = y (trivial estimate of the image :math:`I`), x[1] = tensor of depth :math:`d` equal to one, x[2] = 1 for :math:`a`.
+        :return: (list, tuple) trivial inverse.
 
         '''
         b, c, h, w = y.shape

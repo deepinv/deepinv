@@ -16,7 +16,7 @@ class TGV(nn.Module):
 
     .. math::
 
-        \frac{1}{2}\|x-y\|_2^2 + \lambda_1 \|r\|_1,2 + \lambda_2 \|J(Dx-r)\|_{1,F}
+        \frac{1}{2}\|x-y\|_2^2 + \lambda_1 \|r\|_{1,2} + \lambda_2 \|J(Dx-r)\|_{1,F}
 
     where :math:`D` maps an image to its gradient field and :math:`J` maps a vector field to its Jacobian.
     For a large value of :math:`\lambda_2`, the TGV behaves like the TV.

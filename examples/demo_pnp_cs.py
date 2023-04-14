@@ -1,22 +1,13 @@
-import sys
 import deepinv as dinv
-import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import ProxDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.unfolded.unfolded import *
-from deepinv.training_utils import test, train
-from torchvision import datasets, transforms
-from deepinv.models.pd_modules import PrimalBlock, DualBlock, Toy, PrimalBlock_list, DualBlock_list
-import os
+from deepinv.training_utils import test
 
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 
-# PROBLEM SELECTION
-problem = 'CS'
-dataset = 'MNIST'
-G = 1
 
 # PRIOR SELECTION
 # model_spec = {'name': 'tgv', 'args': {'n_it_max':100, 'verbose':True}}
@@ -24,16 +15,15 @@ model_spec = {'name': 'waveletprior',
               'args': {'wv':'db8', 'level': 2}}
 # model_spec = {'name': 'waveletdictprior',
 #               'args': {'max_iter':10, 'list_wv': ['db1', 'db2', 'db3', 'db4', 'db5', 'db6', 'db7', 'db8'], 'level':1}}
-# n_channels = 1
 # name_drunet = 'drunet_color' if n_channels == 3 else 'drunet_gray'
 # model_spec = {'name': 'drunet',
-#               'args': {'in_channels':n_channels+1, 'out_channels':n_channels, 'nb':4, 'nc':[64, 128, 256, 512],
+#               'args': {'in_channels':2, 'out_channels':1, 'nb':4, 'nc':[64, 128, 256, 512],
 #                        'ckpt_path': '../checkpoints/'+name_drunet+'.pth', 'pretrain': True}}
 
 # PATH, BATCH SIZE ETC
 batch_size = 3
-dataset_path = f'../../datasets/{dataset}/'
-dir = f'../datasets/{dataset}/{problem}/'
+dataset_path = f'../../datasets/MNIST/'
+dir = f'../datasets/MNIST/CS/'
 noise_level_img = 0.03
 lamb = 10
 stepsize = 1.
@@ -44,7 +34,7 @@ epochs = 2
 max_iter = 1000
 crit_conv = 1e-5
 verbose = True
-early_stop = True
+algo_name = 'DRS'
 
 data_fidelity = L2()
 # data_fidelity = IndicatorL2(radius=2)  # Possible to use, in this case, choose primal-dual (PD) solver below for the model
@@ -52,29 +42,18 @@ data_fidelity = L2()
 val_transform = None
 train_transform = None
 
-physics = []
-for g in range(G):
-    p = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
-    # p.sensor_model = lambda x: torch.sign(x)
+physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device).to(dinv.device)
+p.sensor_model = lambda x: torch.sign(x) # one-bit sensor
 
-    p.load_state_dict(torch.load(f'{dir}/G{G}/physics{g}.pt', map_location=dinv.device))
-    dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/G{G}/dinv_dataset0.h5', train=True)
-    physics.append(p)
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+physics.load_state_dict(torch.load(f'{dir}/physics0.pt', map_location=dinv.device))
+dataset = dinv.datasets.HDF5Dataset(path=f'{dir}/dinv_dataset0.h5', train=True)
+dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
 # STEP 2: Defining the model
 prox_g = ProxDenoiser(model_spec, sigma_denoiser=sigma_denoiser, stepsize=stepsize, max_iter=max_iter)
-algo_name = 'DRS'
 model = Optim(algo_name, prox_g=prox_g, data_fidelity=data_fidelity, stepsize=prox_g.stepsize, device=dinv.device,
              g_param=prox_g.sigma_denoiser, max_iter=max_iter, crit_conv=crit_conv, verbose=True)
 
 # STEP 3: Test the model
-test(model=model,
-    test_dataloader=dataloader,
-    physics=p,
-    device=dinv.device,
-    plot=True,
-    plot_input=False,
-    save_folder='../results/',
-    save_plot_path='../results/results_pnp.png',
-    verbose=verbose)
+test(model=model, test_dataloader=dataloader, physics=physics, device=dinv.device, plot=True, plot_input=False,
+    save_folder='../results/', save_plot_path='../results/results_pnp.png', verbose=verbose)

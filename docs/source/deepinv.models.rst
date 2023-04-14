@@ -10,7 +10,6 @@ This package provides vanilla signal reconstruction networks, which can be used 
 
    deepinv.models.Denoiser
    deepinv.models.ScoreDenoiser
-   deepinv.models.ProxDenoiser
    deepinv.models.ArtifactRemoval
 
 Classical Denoisers
