@@ -38,7 +38,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     ths = 2.
 
-    model_spec = {'name': 'tgv', 'args': {'n_it_max': 1000, 'verbose': False}}
+    model_spec = {'name': 'tgv', 'args': {'n_it_max': 5000, 'verbose': True, 'crit': 1e-4}}
     model = Denoiser(model_spec)
 
     x = model(y, ths)  # 3. Apply the model we want to test

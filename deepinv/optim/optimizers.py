@@ -38,6 +38,10 @@ class BaseOptim(nn.Module):
             if not isinstance(value, Iterable):
                 self.params_algo[key] = [value]
 
+        for key, value in zip(self.prior.keys(), self.prior.values()):
+            if not isinstance(value, Iterable):
+                self.prior[key] = [value]
+
         if self.anderson_acceleration :
             self.anderson_beta = anderson_beta
             self.anderson_history_size = anderson_history_size
@@ -68,11 +72,8 @@ class BaseOptim(nn.Module):
 
 
     def update_prior_fn(self, it):
-        if isinstance(next(iter(self.prior.items()))[1], nn.ModuleList):
-            prior_cur = {key: value[it] if len(value) > 1 else value[0]
-                               for key, value in zip(self.prior.keys(), self.prior.values())}
-        else:
-            prior_cur = self.prior
+        prior_cur = {key: value[it] if len(value) > 1 else value[0]
+                           for key, value in zip(self.prior.keys(), self.prior.values())}
         return prior_cur
 
     def get_init(self, cur_params, y, physics):
