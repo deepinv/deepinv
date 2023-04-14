@@ -57,6 +57,8 @@ class ScoreDenoiser(Denoiser):
     r'''
     Approximates the score of a distribution using an MMSE denoiser.
 
+    TODO : talk about sigma_normalize paramter with RED 
+
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 
     .. math::
@@ -79,18 +81,12 @@ class ScoreDenoiser(Denoiser):
 
 
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, sigma_normalize=True, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
+        self.sigma_normalize = sigma_normalize
 
     def forward(self, x, sigma):
-        return (x - self.denoiser(x, sigma)) / sigma**2
-
-class REDDenoiser(Denoiser):
-    r'''
-    TODO
-    '''
-    def __init__(self, *args, **kwargs):
-        super(REDDenoiser, self).__init__(*args, **kwargs)
-
-    def forward(self, x, sigma):
-        return x - self.denoiser(x, sigma)
+        if self.sigma_normalize :
+            return (x - self.denoiser(x, sigma)) / sigma**2
+        else :
+            return (x - self.denoiser(x, sigma))

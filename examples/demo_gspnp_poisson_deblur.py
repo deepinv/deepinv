@@ -4,7 +4,7 @@ import hdf5storage
 import torch
 import os
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import REDDenoiser
+from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
@@ -74,9 +74,9 @@ stepsize = 1.
 lamb = 2
 
 params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda': lamb}
-grad_g = REDDenoiser(model_spec)
-F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + grad_g.denoiser.potential(x,cur_params['g_param'])
-model = Optim(algo_name = 'GD', grad_g=grad_g, data_fidelity=data_fidelity, device=dinv.device,
+prior = {'grad_g': ScoreDenoiser(model_spec, sigma_normalize=False)}
+F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + prior['grad_g'].denoiser.potential(x,cur_params['g_param'])
+model = Optim(algo_name = 'GD', prior=prior, data_fidelity=data_fidelity, 
              params_algo=params_algo, early_stop = early_stop, max_iter=max_iter, crit_conv=crit_conv, thres_conv=thres_conv, backtracking=False, 
              F_fn=F_fn, return_dual=False, verbose=True, bregman_potential=bregman_potential)
 

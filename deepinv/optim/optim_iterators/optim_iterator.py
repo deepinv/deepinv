@@ -63,7 +63,7 @@ class gStep(nn.Module):
         self.g_first = g_first
         self.bregman_potential = bregman_potential
 
-        def forward(self, x, cur_params):
+        def forward(self, x, prior, cur_params):
             pass
 
 

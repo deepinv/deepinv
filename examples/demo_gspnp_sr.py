@@ -4,7 +4,7 @@ import hdf5storage
 import torch
 import os
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import REDDenoiser
+from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import *
 from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
@@ -66,9 +66,9 @@ model_spec = {'name': denoiser_name,
 
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img, k_index)
 params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda': lamb}
-grad_g = REDDenoiser(model_spec)
-F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + grad_g.denoiser.potential(x,cur_params['g_param'])
-model = Optim(algo_name = 'PGD', grad_g=grad_g, g_first = True, data_fidelity=data_fidelity, device=dinv.device,
+prior = {'grad_g': ScoreDenoiser(model_spec, sigma_normalize=False)}
+F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + prior['grad_g'].denoiser.potential(x,cur_params['g_param'])
+model = Optim(algo_name = 'PGD', prior=prior, g_first = True, data_fidelity=data_fidelity, 
              params_algo=params_algo, early_stop = early_stop, max_iter=max_iter, crit_conv=crit_conv, thres_conv=thres_conv, backtracking=True, 
              F_fn=F_fn, return_dual=True, verbose=True)
 
