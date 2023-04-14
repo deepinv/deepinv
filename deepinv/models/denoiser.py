@@ -36,50 +36,11 @@ class Denoiser(nn.Module):
 
     TODO
 
-    :param model_spec:
-    :param init:
-    :param float stepsize:
-    :param float sigma_denoiser:
-    :param int max_iter:
-    :param str,torch.device device: cpu or gpu
+    :param model_spec: a dictionary must contain the necessary information for generating the model.
     '''
-    def __init__(self, model_spec=None, init=None, stepsize=1., sigma_denoiser=0.05, max_iter=None,
-                 device=torch.device('cpu')):
+    def __init__(self, model_spec=None):
         super(Denoiser, self).__init__()
-
-        if isinstance(model_spec, dict):
-            self.denoiser = make(model_spec)
-        else:
-            self.denoiser = model_spec
-
-        self.max_iter = max_iter
-        self.device = device  # Is this really needed?
-        self.init = init
-
-        if isinstance(sigma_denoiser, float):
-            if self.max_iter is not None:
-                self.sigma_denoiser = [sigma_denoiser] * self.max_iter
-            else:
-                self.sigma_denoiser = sigma_denoiser
-        elif isinstance(sigma_denoiser, list):
-            print(len(sigma_denoiser))
-            print('max ister ', self.max_iter)
-            assert len(sigma_denoiser) == self.max_iter
-            self.sigma_denoiser = sigma_denoiser
-        else:
-            print(sigma_denoiser)
-            raise ValueError('sigma_denoiser must be either float or a list of length max_iter')
-
-        if isinstance(stepsize, float):
-            if self.max_iter is not None:
-                self.stepsize = [stepsize] * max_iter  # Should be a list
-            else:
-                self.stepsize = stepsize
-        elif isinstance(stepsize, list):
-            assert len(stepsize) == self.max_iter
-            self.stepsize = stepsize
-        else:
-            raise ValueError('stepsize must be either float or a list of length max_iter')
+        self.denoiser = make(model_spec)
 
     def forward(self, x, sigma):
         r'''
@@ -87,21 +48,11 @@ class Denoiser(nn.Module):
         return self.denoiser(x, sigma)
 
 
-class ProxDenoiser(Denoiser):
-    def __init__(self, *args, **kwargs):
-        super(ProxDenoiser, self).__init__(*args, **kwargs)
-
-    def forward(self, x, sigma, it=None):
-        if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
-            out = self.denoiser[it](x, sigma)
-        else:
-            out = self.denoiser(x, sigma)
-        return out
-
-
 class ScoreDenoiser(Denoiser):
     r'''
     Approximates the score of a distribution using an MMSE denoiser.
+
+    TODO : talk about sigma_normalize paramter with RED 
 
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 
@@ -125,15 +76,12 @@ class ScoreDenoiser(Denoiser):
 
 
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, sigma_normalize=True, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
+        self.sigma_normalize = sigma_normalize
 
-    def forward(self, x, sigma=None, it=None):
-        if sigma is not None:
-            if isinstance(self.denoiser, list) or isinstance(self.denoiser, nn.ModuleList):
-                out = x - self.denoiser[it](x, sigma)
-            else:
-                out = x - self.denoiser(x, sigma)
-        else:
-            out = (x - self.denoiser(x, self.sigma_denoiser))/self.sigma_denoiser**2
-        return out
+    def forward(self, x, sigma):
+        if self.sigma_normalize :
+            return (x - self.denoiser(x, sigma)) / sigma**2
+        else :
+            return (x - self.denoiser(x, sigma))

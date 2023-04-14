@@ -1,4 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
+from .utils import gradient_descent_step
 
 class PGDIteration(OptimIterator):
 
@@ -18,26 +19,29 @@ class fStepPGD(fStep):
         TODO: add doc
         """
         super(fStepPGD, self).__init__(**kwargs)
+        
 
-    def forward(self, x, y, physics, it):
+    def forward(self, x, cur_params, y, physics):
         if not self.g_first:
-            return x - self.stepsize[it] * self.lamb * self.data_fidelity.grad(x, y, physics)
+            grad = cur_params['stepsize'] * self.data_fidelity.grad(x, y, physics)
+            return gradient_descent_step(x, grad, self.bregman_potential)
         else:
-            return self.data_fidelity.prox(x, y, physics, self.lamb * self.stepsize[it])
+            return self.data_fidelity.prox(x, y, physics, 1/(cur_params['lambda'] * cur_params['stepsize']))
 
 
 class gStepPGD(gStep):
 
-    def __init__(self, **kwargs):
+    def __init__(self,**kwargs):
         """
         TODO: add doc
         """
         super(gStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x, it):
+    def forward(self, x, prior, cur_params):
         if not self.g_first:
-            return self.prox_g(x, self.g_param[it], it)
+            return prior['prox_g'](x, cur_params['g_param'])
         else:
-            return x - self.stepsize[it] * self.grad_g(x, self.g_param[it], it)
+            grad = cur_params['stepsize'] * prior['grad_g'](x, cur_params['g_param'])
+            return gradient_descent_step(x, grad, self.bregman_potential)
 
 

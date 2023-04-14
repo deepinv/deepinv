@@ -1,6 +1,7 @@
 import os
+import math
 from deepinv.utils import save_model, AverageMeter, ProgressMeter, get_timestamp, cal_psnr, investigate_model
-from deepinv.utils import plot_debug, torch2cpu, im_save
+from deepinv.utils import plot_debug, torch2cpu, im_save, make_grid
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -227,42 +228,40 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
 
             if g < show_operators and i == 0:
                 xlin = physics[g].A_adjoint(y)
-
                 if plot:
                     if plot_input:
                         imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                     imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
                     imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
                     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-
                 if wandb_vis:
-                    n_plot = min(8, len(x))
-                    imgs_wdb = []
+                    n_plot = min(8,len(x))
+                    imgs = []
                     if plot_input:
-                        imgs_wdb.append(wandb.Image(y[:n_plot], caption="Input"))
-                    imgs_wdb.append(wandb.Image(xlin[:n_plot], caption="Linear"))
-                    imgs_wdb.append(wandb.Image(x1[:n_plot], caption="Estimated"))
-                    imgs_wdb.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
-                    wandb.log({"images": imgs_wdb})
+                        imgs.append(wandb.Image(y[:n_plot], caption="Input"))
+                    imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
+                    imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
+                    imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
+                    wandb.log({ "images": imgs})
 
             if save_folder is not None:
                 if not os.path.exists(save_folder):
                     os.makedirs(save_folder)
-                imgs_save = []
+                imgs = []
                 name_imgs = []
                 xlin = physics[g].A_adjoint(y)
                 if len(y[0].shape) == 3:
                     print(y[0].shape)
-                    imgs_save.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                    imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                     name_imgs.append('y')
-                imgs_save.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
+                imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
                 name_imgs.append('xlin')
-                imgs_save.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
+                imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
                 name_imgs.append('xest')
-                imgs_save.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
                 name_imgs.append('x')
 
-                for img, name_im in zip(imgs_save, name_imgs):
+                for img, name_im in zip(imgs, name_imgs):
                     im_save(save_folder + 'G' + str(g) + '/' + name_im + '_' + str(i) + '.png', img)
 
             psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
@@ -272,11 +271,8 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot=F
     test_std_psnr = np.std(psnr_net)
     pinv_psnr = np.mean(psnr_linear)
     pinv_std_psnr = np.std(psnr_linear)
-
     if verbose:
-        print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB |'
-              f' Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
-
+        print(f'Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. ')
     if wandb_vis:
          wandb.log({
             "Test linear PSNR": pinv_psnr,
