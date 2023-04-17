@@ -77,13 +77,16 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
     n_train = min(len(train_dataset), max_datapoints)
     n_train_g = int(n_train/G)
-    
+
     if test_dataset is not None:
         n_test = min(len(test_dataset), max_datapoints)
         n_test_g = int(n_test/G)
 
+    datasets = []
     for g in range(G):
-        hf = h5py.File(f"{save_dir}/{dataset_filename}{g}.h5", 'w')
+        dataset_name = f"{save_dir}/{dataset_filename}{g}.h5"
+        hf = h5py.File(dataset_name, 'w')
+        datasets.append(dataset_name)
 
         hf.attrs['operator'] = physics[g].__class__.__name__
 
@@ -101,7 +104,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
         for i, x in enumerate(tqdm(train_dataloader)):
             x = x[0] if isinstance(x, list) else x
             x = x.to(device)
-            
+
             # choose operator and generate measurement
             y = physics[g](x)
 
@@ -146,7 +149,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
                 index = index + bsize
         hf.close()
 
-    print('Dataset has been saved in ' + str(save_dir))
+    print(f"Dataset has been saved in {save_dir}")
 
-    return
+    return datasets
 
