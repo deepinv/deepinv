@@ -116,9 +116,11 @@ class BaseOptim(nn.Module):
     def get_dual_variable(self, X):
         return X['est'][1]
 
-    def init_metrics_fn(self):
+    def init_metrics_fn(self, X_init, x_gt=None):
         if self.return_metrics :
-            init = {'cost' : [], 'residual' : [], 'psnr' : []}
+            x_init = self.get_primal_variable(X_init) if not self.return_dual else self.get_dual_variable(X_init)
+            psnr = cal_psnr(x_init,x_gt)
+            init = {'cost' : [], 'residual' : [], 'psnr' : [psnr]}
             if self.custom_metrics is not None :
                 for custom_metric_name in self.custom_metrics.keys() : 
                     init[custom_metric_name] = []

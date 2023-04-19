@@ -26,7 +26,7 @@ class FixedPoint(nn.Module):
 
     def forward(self, x, *args, **kwargs):
         x_prev = None
-        metrics = self.init_metrics_fn()
+        metrics = self.init_metrics_fn(x,**kwargs)
         for it in range(self.max_iter):
             cur_prior = self.update_prior_fn(it)
             cur_params = self.update_params_fn_pre(it, x, x_prev)
