@@ -4,6 +4,7 @@ from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.utils import str_to_class
 from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
+from deepinv.utils import cal_psnr
 
 class BaseOptim(nn.Module):
     r'''
@@ -17,7 +18,7 @@ class BaseOptim(nn.Module):
     def __init__(self, iterator, params_algo={'lambda' : 1., 'stepsize': 1.}, prior=None,
                  max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None,
                  anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
-                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, return_metrics = True):
+                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, return_metrics = True, custom_metrics = None):
 
         super(BaseOptim, self).__init__()
 
@@ -36,6 +37,7 @@ class BaseOptim(nn.Module):
         self.return_metrics = return_metrics
         self.has_converged = False
         self.thres_conv = thres_conv
+        self.custom_metrics = custom_metrics
 
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
@@ -94,18 +96,27 @@ class BaseOptim(nn.Module):
 
     def init_metrics_fn(self):
         if self.return_metrics :
-            return {'cost' : [], 'residual' : []}
-
-    def update_metrics_fn(self, metrics, X_prev, X):
-        #TODO : add custom metric ? Merge with check_conv_fn ? ‡
+            init = {'cost' : [], 'residual' : [], 'psnr' : []}
+            if self.custom_metrics is not None :
+                for custom_metric_name in self.custom_metrics.keys() : 
+                    init[custom_metric_name] = []
+            return init
+            
+    def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
         if metrics is not None: 
             x_prev = self.get_primal_variable(X_prev) if not self.return_dual else self.get_dual_variable(X_prev)
             x = self.get_primal_variable(X) if not self.return_dual else self.get_dual_variable(X)
-            residual = (x_prev-x).norm()
+            residual = (x_prev-x).norm() / (x.norm()+1e-06)
             metrics['residual'].append(residual.detach().cpu().item())
+            if x_gt is not None :
+                psnr = cal_psnr(x,x_gt)
+                metrics['psnr'].append(psnr)
             if self.F_fn is not None:
                 cost = X['cost']
-            metrics['cost'].append(cost.detach().cpu().item())
+                metrics['cost'].append(cost.detach().cpu().item())
+            if self.custom_metrics is not None :
+                for custom_metric_name, custom_metric_fn in zip(self.custom_metrics.keys(),self.custom_metrics.values()):
+                    metrics[custom_metric_name].append(custom_metric_fn(metrics[custom_metric_name], X_prev, X))
         return metrics
 
     def check_conv_fn(self, it, X_prev, X):
@@ -128,10 +139,10 @@ class BaseOptim(nn.Module):
             return False
 
 
-    def forward(self, y, physics):
+    def forward(self, y, physics, x_gt = None):
         init_params = self.get_params_it(0)
         x = self.get_init(init_params, y, physics)
-        x, metrics = self.fixed_point(x, y, physics)
+        x, metrics = self.fixed_point(x, y, physics, x_gt=x_gt)
         x = self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
         if self.return_metrics:
             return x, metrics

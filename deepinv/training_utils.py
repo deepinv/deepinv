@@ -239,7 +239,7 @@ def test(model, test_dataloader, physics, device=torch.device(f"cuda:0"), plot_i
 
             with torch.no_grad():
                 if plot_metrics:
-                    output_model = model(y, physics[g], **kwargs)
+                    output_model = model(y, physics[g], x, **kwargs)
                     assert len(output_model) == 2, 'plot_metrics is set to True but model does not returns metrics'
                     x1, metrics = output_model
                 else :

@@ -31,8 +31,8 @@ class FixedPoint(nn.Module):
             cur_prior = self.update_prior_fn(it)
             cur_params = self.update_params_fn_pre(it, x, x_prev)
             x_prev = x
-            x = self.iterator(x, cur_prior, cur_params, *args, **kwargs)
-            metrics = self.update_metrics_fn(metrics,x_prev,x)
+            x = self.iterator(x, cur_prior, cur_params, *args)
+            metrics = self.update_metrics_fn(metrics, x_prev, x, **kwargs)
             if self.early_stop and self.check_conv_fn(it, x_prev, x) and it>1:
                 break
         return x, metrics
