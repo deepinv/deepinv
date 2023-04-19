@@ -144,7 +144,6 @@ def train(
                         loss = l(x1)
                     elif l.name.startswith("Sure"):
                         loss = l(y, x1, physics[g], model)
-                        print(loss)
                     elif l.name in ["ei", "rei"]:
                         loss = l(x1, physics[g], model)
                     else:
