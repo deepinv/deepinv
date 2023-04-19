@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class MCLoss(nn.Module):
-    r'''
+    r"""
     Measurement consistency loss
 
     This loss enforces that the reconstructions are measurement-consistent, i.e., :math:`y=\forw{\inverse{y}}`.
@@ -20,19 +20,20 @@ class MCLoss(nn.Module):
     can be used as well.
 
     :param int metric: metric used for computing data consistency, which is set as the mean squared error by default.
-    '''
+    """
+
     def __init__(self, metric=torch.nn.MSELoss()):
         super(MCLoss, self).__init__()
-        self.name = 'mc'
+        self.name = "mc"
         self.metric = metric
 
     def forward(self, y, x_net, physics):
-        r'''
+        r"""
         Computes the measurement splitting loss
 
         :param torch.tensor y: measurements.
         :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: forward operator associated with the measurements.
         :return: (torch.tensor) loss.
-        '''
+        """
         return self.metric(physics.A(x_net), y)

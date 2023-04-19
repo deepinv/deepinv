@@ -5,7 +5,7 @@ from deepinv.physics.forward import DecomposablePhysics
 
 
 class MRI(DecomposablePhysics):
-    r'''
+    r"""
     Single-coil accelerated magnetic resonance imaging.
 
     The linear operator operates in 2D slices and is defined as
@@ -27,10 +27,13 @@ class MRI(DecomposablePhysics):
     :param torch.tensor mask: the mask values should be binary.
         The mask size should be of the form size=[img_width,img_height].
     :param torch.device device: cpu or gpu.
-    '''
-    def __init__(self, mask=None, device='cpu', **kwargs):
+    """
+
+    def __init__(self, mask=None, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.mask = torch.nn.Parameter(mask.to(device).unsqueeze(0).unsqueeze(0), requires_grad=False)
+        self.mask = torch.nn.Parameter(
+            mask.to(device).unsqueeze(0).unsqueeze(0), requires_grad=False
+        )
         self.device = device
 
     def V_adjoint(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
@@ -43,14 +46,14 @@ class MRI(DecomposablePhysics):
     def U_adjoint(self, x):
         return x
 
-    def V(self, x): # (B, 2, H, W) -> (B, H, W, 2)
+    def V(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         x = x.permute(0, 2, 3, 1)
         return ifft2c_new(x).permute(0, 3, 1, 2)
 
 
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
-    r'''
+    r"""
     Apply centered 2 dimensional Fast Fourier Transform.
 
     .. math::
@@ -62,7 +65,7 @@ def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
         2. All other dimensions are assumed to be batch dimensions.
     :param bool norm: Normalization mode. See ``torch.fft.fft``.
     :return: (torch.tensor) the FFT of the input.
-    '''
+    """
     if not data.shape[-1] == 2:
         raise ValueError("Tensor does not have separate complex dim.")
 
@@ -140,7 +143,7 @@ def roll(
     if len(shift) != len(dim):
         raise ValueError("len(shift) must match len(dim)")
 
-    for (s, d) in zip(shift, dim):
+    for s, d in zip(shift, dim):
         x = roll_one_dim(x, s, d)
 
     return x
@@ -194,26 +197,33 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
 
 def apply_mask(data, mask):
     # masked_data = data * mask + 0.0  # the + 0.0 removes the sign of the zeros
-    masked_data = torch.einsum('hw, nhwc->nhwc', mask, data) + 0.0
+    masked_data = torch.einsum("hw, nhwc->nhwc", mask, data) + 0.0
     return masked_data
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # deepinv test
-    from deepinv.tests.test_physics import test_operators_norm, test_operators_adjointness, test_pseudo_inverse, device
+    from deepinv.tests.test_physics import (
+        test_operators_norm,
+        test_operators_adjointness,
+        test_pseudo_inverse,
+        device,
+    )
     import deepinv as dinv
 
     physics = MRI(mask=torch.ones(320, 320), device=dinv.device)
 
     for i in range(40):
-        x = torch.randn((1,2,320,320), device=dinv.device)
+        x = torch.randn((1, 2, 320, 320), device=dinv.device)
         print(physics.adjointness_test(x))
-    print('adjoint test....')
-    test_operators_adjointness('MRI', (2, 320, 320), dinv.device) #pass, tensor(0., device='cuda:0')
+    print("adjoint test....")
+    test_operators_adjointness(
+        "MRI", (2, 320, 320), dinv.device
+    )  # pass, tensor(0., device='cuda:0')
 
-    print('norm test....')
-    test_operators_norm('MRI', (2, 320, 320), dinv.device)  #pass
-    print('pinv test....')
-    test_pseudo_inverse('MRI', (2, 320, 320), dinv.device)  #pass
+    print("norm test....")
+    test_operators_norm("MRI", (2, 320, 320), dinv.device)  # pass
+    print("pinv test....")
+    test_pseudo_inverse("MRI", (2, 320, 320), dinv.device)  # pass
 
-    print('pass all...')
+    print("pass all...")

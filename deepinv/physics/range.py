@@ -3,13 +3,14 @@ from deepinv.physics.forward import LinearPhysics
 
 
 class Decolorize(LinearPhysics):
-    r'''
-     Converts RGB images to grayscale.
+    r"""
+    Converts RGB images to grayscale.
 
-     Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
-     The measurements are grayscale images.
+    Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
+    The measurements are grayscale images.
 
-    '''
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -18,19 +19,20 @@ class Decolorize(LinearPhysics):
         return y.unsqueeze(1)
 
     def A_adjoint(self, y):
-        return torch.cat([y*0.2989, y*0.5870, y*0.1140], dim=1)
-
+        return torch.cat([y * 0.2989, y * 0.5870, y * 0.1140], dim=1)
 
 
 # test code
 if __name__ == "__main__":
-    device = 'cuda:0'
+    device = "cuda:0"
 
     import matplotlib.pyplot as plt
     import torchvision
 
-    x = torchvision.io.read_image('../../../datasets/celeba/img_align_celeba/010214.jpg')
-    x = x.unsqueeze(0).float()/256
+    x = torchvision.io.read_image(
+        "../../../datasets/celeba/img_align_celeba/010214.jpg"
+    )
+    x = x.unsqueeze(0).float() / 256
 
     pix = 128
     factor = 3

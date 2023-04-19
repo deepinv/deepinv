@@ -1,7 +1,8 @@
 import torch
 
+
 class AutoEncoder(torch.nn.Module):
-    r'''
+    r"""
     Simple fully connected autoencoder network.
 
     Simple architecture that can be used for debugging or fast prototyping.
@@ -11,7 +12,8 @@ class AutoEncoder(torch.nn.Module):
     :param int dim_hid: latent space dimension.
     :param int residual: use a residual connection between input and output.
 
-    '''
+    """
+
     def __init__(self, dim_input, dim_mid=1000, dim_hid=32, residual=True):
         super().__init__()
         self.residual = residual
@@ -24,11 +26,11 @@ class AutoEncoder(torch.nn.Module):
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(dim_hid, dim_mid),
             torch.nn.ReLU(),
-            torch.nn.Linear(dim_mid, dim_input)
+            torch.nn.Linear(dim_mid, dim_input),
         )
 
     def forward(self, x):
-        N,C,H,W = x.shape
+        N, C, H, W = x.shape
         x = x.view(N, -1)
 
         encoded = self.encoder(x)

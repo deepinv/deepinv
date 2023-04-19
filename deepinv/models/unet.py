@@ -3,15 +3,17 @@ import torch.nn as nn
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
-    r'''
+    r"""
     From Mohan et al.
     "Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks"
     S. Mohan, Z. Kadkhodaie, E. P. Simoncelli, C. Fernandez-Granda
     Int'l. Conf. on Learning Representations (ICLR), Apr 2020.
 
-    '''
+    """
 
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, use_bias=False, affine=True):
+    def __init__(
+        self, num_features, eps=1e-5, momentum=0.1, use_bias=False, affine=True
+    ):
         super(BFBatchNorm2d, self).__init__(num_features, eps, momentum)
         self.use_bias = use_bias
 
@@ -31,11 +33,15 @@ class BFBatchNorm2d(nn.BatchNorm2d):
             if self.track_running_stats is True:
                 with torch.no_grad():
                     if self.use_bias:
-                        self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mu
-                    self.running_var = (1 - self.momentum) * self.running_var + self.momentum * sigma2
+                        self.running_mean = (
+                            1 - self.momentum
+                        ) * self.running_mean + self.momentum * mu
+                    self.running_var = (
+                        1 - self.momentum
+                    ) * self.running_var + self.momentum * sigma2
             if self.use_bias:
                 y = y - mu.view(-1, 1)
-            y = y / (sigma2.view(-1, 1) ** .5 + self.eps)
+            y = y / (sigma2.view(-1, 1) ** 0.5 + self.eps)
         if self.affine:
             y = self.weight.view(-1, 1) * y
             if self.use_bias:
@@ -45,7 +51,7 @@ class BFBatchNorm2d(nn.BatchNorm2d):
 
 
 class UNet(nn.Module):
-    r'''
+    r"""
     U-Net convolutional denoiser.
 
     :param int in_channels: input image channels
@@ -58,12 +64,20 @@ class UNet(nn.Module):
         least :math:`2^{\text{scales}` pixels in the vertical and horizontal directions. The number of trainable parameters
         increases with the scale.
 
-    '''
+    """
 
-    def __init__(self, in_channels=1, out_channels=1, residual=True, circular_padding=False,
-                 cat=True, bias=True, scales=4):
+    def __init__(
+        self,
+        in_channels=1,
+        out_channels=1,
+        residual=True,
+        circular_padding=False,
+        cat=True,
+        bias=True,
+        scales=4,
+    ):
         super(UNet, self).__init__()
-        self.name = 'unet'
+        self.name = "unet"
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -75,13 +89,22 @@ class UNet(nn.Module):
 
         def conv_block(ch_in, ch_out):
             return nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias,
-                          padding_mode='circular' if circular_padding else 'zeros'),
+                nn.Conv2d(
+                    ch_in,
+                    ch_out,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=bias,
+                    padding_mode="circular" if circular_padding else "zeros",
+                ),
                 BFBatchNorm2d(ch_out, use_bias=bias),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
+                nn.Conv2d(
+                    ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                ),
                 BFBatchNorm2d(ch_out, use_bias=bias),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             )
 
         def up_conv(ch_in, ch_out):
@@ -89,29 +112,45 @@ class UNet(nn.Module):
                 nn.Upsample(scale_factor=2),
                 nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
                 BFBatchNorm2d(ch_out, use_bias=bias),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             )
 
         self.Conv1 = conv_block(ch_in=in_channels, ch_out=64)
         self.Conv2 = conv_block(ch_in=64, ch_out=128)
-        self.Conv3 = conv_block(ch_in=128, ch_out=256) if self.compact in [3, 4, 5] else None
-        self.Conv4 = conv_block(ch_in=256, ch_out=512) if self.compact in [4, 5] else None
+        self.Conv3 = (
+            conv_block(ch_in=128, ch_out=256) if self.compact in [3, 4, 5] else None
+        )
+        self.Conv4 = (
+            conv_block(ch_in=256, ch_out=512) if self.compact in [4, 5] else None
+        )
         self.Conv5 = conv_block(ch_in=512, ch_out=1024) if self.compact in [5] else None
 
         self.Up5 = up_conv(ch_in=1024, ch_out=512) if self.compact in [5] else None
-        self.Up_conv5 = conv_block(ch_in=1024, ch_out=512) if self.compact in [5] else None
+        self.Up_conv5 = (
+            conv_block(ch_in=1024, ch_out=512) if self.compact in [5] else None
+        )
 
         self.Up4 = up_conv(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
-        self.Up_conv4 = conv_block(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
+        self.Up_conv4 = (
+            conv_block(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
+        )
 
         self.Up3 = up_conv(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
-        self.Up_conv3 = conv_block(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
+        self.Up_conv3 = (
+            conv_block(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
+        )
 
         self.Up2 = up_conv(ch_in=128, ch_out=64)
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64)
 
-        self.Conv_1x1 = nn.Conv2d(in_channels=64, out_channels=out_channels, bias=bias,
-                                  kernel_size=1, stride=1, padding=0)
+        self.Conv_1x1 = nn.Conv2d(
+            in_channels=64,
+            out_channels=out_channels,
+            bias=bias,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+        )
 
         if self.compact == 5:
             self._forward = self.forward_standard

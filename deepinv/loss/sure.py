@@ -8,12 +8,12 @@ def mc_div(x, y, f, tau):
     # computes the divergence of f at x using a montecarlo approx.
     b = torch.randn_like(x)
     y2 = f(x + tau * b)
-    div = (b * (y2 - y)).flatten().mean()/tau
+    div = (b * (y2 - y)).flatten().mean() / tau
     return div
 
 
 class SureGaussianLoss(nn.Module):
-    r'''
+    r"""
     SURE loss for Gaussian noise
 
     The loss is designed for the following noise model:
@@ -44,15 +44,16 @@ class SureGaussianLoss(nn.Module):
 
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
-    '''
+    """
+
     def __init__(self, sigma, tau=1e-3):
         super(SureGaussianLoss, self).__init__()
-        self.name = 'sure'
-        self.sigma2 = sigma ** 2
+        self.name = "sure"
+        self.sigma2 = sigma**2
         self.tau = tau
 
     def forward(self, y, x_net, physics, f):
-        r'''
+        r"""
         Computes the SURE Loss.
 
         :param torch.tensor y: Measurements.
@@ -60,19 +61,20 @@ class SureGaussianLoss(nn.Module):
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
         :return: (float) SURE loss.
-        '''
+        """
 
         # compute loss_sure
         y1 = physics.A(x_net)
         div = mc_div(y, y1, lambda u: physics.A(f(u, physics)), self.tau)
-        loss_sure = (y1 - y).pow(2).flatten().mean() - self.sigma2\
-                    + 2 * self.sigma2 * div
+        loss_sure = (
+            (y1 - y).pow(2).flatten().mean() - self.sigma2 + 2 * self.sigma2 * div
+        )
 
         return loss_sure
 
 
 class SurePoissonLoss(nn.Module):
-    r'''
+    r"""
     SURE loss for Poisson noise
 
     The loss is designed for the following noise model:
@@ -99,15 +101,16 @@ class SurePoissonLoss(nn.Module):
 
     :param float gain: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
-    '''
+    """
+
     def __init__(self, gain, tau=1e-3):
         super(SurePoissonLoss, self).__init__()
-        self.name = 'SurePoisson'
+        self.name = "SurePoisson"
         self.gain = gain
         self.tau = tau
 
     def forward(self, y, x_net, physics, f):
-        r'''
+        r"""
         Computes the SURE loss.
 
         :param torch.tensor y: measurements.
@@ -115,7 +118,7 @@ class SurePoissonLoss(nn.Module):
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
         :return: (float) SURE loss.
-        '''
+        """
 
         # generate a random vector b
         b = torch.rand_like(y) > 0.5
@@ -127,14 +130,17 @@ class SurePoissonLoss(nn.Module):
         # compute m (size of y)
         # m = y.numel() #(torch.abs(y) > 1e-5).flatten().sum()
 
-        loss_sure = (y1 - y).pow(2).mean() - self.gain * y.mean() \
-                    + 2. * self.gain / self.tau * (b * y * (y2 - y1)).mean()
+        loss_sure = (
+            (y1 - y).pow(2).mean()
+            - self.gain * y.mean()
+            + 2.0 * self.gain / self.tau * (b * y * (y2 - y1)).mean()
+        )
 
         return loss_sure
 
 
 class SurePGLoss(nn.Module):
-    r'''
+    r"""
     SURE loss for Poisson-Gaussian noise
 
     The loss is designed for the following noise model:
@@ -167,18 +173,19 @@ class SurePGLoss(nn.Module):
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float gamma: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
-    '''
+    """
+
     def __init__(self, sigma, gain, tau1=1e-3, tau2=1e-2):
         super(SurePGLoss, self).__init__()
-        self.name = 'sure'
+        self.name = "sure"
         # self.sure_loss_weight = sure_loss_weight
-        self.sigma2 = sigma ** 2
+        self.sigma2 = sigma**2
         self.gain = gain
         self.tau1 = tau1
         self.tau2 = tau2
 
     def forward(self, y, x_net, physics, f):
-        r'''
+        r"""
         Computes the SURE loss.
 
         :param torch.tensor y: measurements.
@@ -186,15 +193,15 @@ class SurePGLoss(nn.Module):
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
         :return: (float) SURE loss.
-        '''
+        """
 
         b1 = torch.rand_like(y) > 0.5
         b1 = (2 * b1 - 1) * 1.0  # binary [-1, 1]
 
-        p = 0.7236  #.5 + .5*np.sqrt(1/5.)
+        p = 0.7236  # .5 + .5*np.sqrt(1/5.)
 
-        b2 = torch.ones_like(b1)*np.sqrt(p/(1-p))
-        b2[torch.rand_like(b2) < p] = -np.sqrt((1-p)/p)
+        b2 = torch.ones_like(b1) * np.sqrt(p / (1 - p))
+        b2[torch.rand_like(b2) < p] = -np.sqrt((1 - p) / p)
 
         meas1 = physics.A(x_net)
         meas2 = physics.A(f(y + self.tau1 * b1, physics))
@@ -202,16 +209,25 @@ class SurePGLoss(nn.Module):
         meas2n = physics.A(f(y - self.tau2 * b2, physics))
 
         # compute m (size of y)
-        #m = (torch.abs(y) > 1e-5).flatten().sum()
+        # m = (torch.abs(y) > 1e-5).flatten().sum()
 
         loss_mc = (meas1 - y).pow(2).mean()
 
-        loss_div1 = 2 / self.tau1 * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).mean()
+        loss_div1 = (
+            2
+            / self.tau1
+            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).mean()
+        )
 
-        offset = - self.gain * y.mean() - self.sigma2
+        offset = -self.gain * y.mean() - self.sigma2
 
-        loss_div2 = - 2 * self.sigma2 * self.gain / (self.tau2 ** 2) * (b2 * (meas2p + meas2n - 2 * meas1)).mean()
+        loss_div2 = (
+            -2
+            * self.sigma2
+            * self.gain
+            / (self.tau2**2)
+            * (b2 * (meas2p + meas2n - 2 * meas1)).mean()
+        )
 
         loss_sure = loss_mc + loss_div1 + loss_div2 + offset
         return loss_sure
-

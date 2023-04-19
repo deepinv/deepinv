@@ -2,10 +2,12 @@ import os
 import csv
 from datetime import datetime
 
-#utils
+
+# utils
 class AverageMeter(object):
     """Computes and stores the average and current value"""
-    def __init__(self, name, fmt=':f'):
+
+    def __init__(self, name, fmt=":f"):
         self.name = name
         self.fmt = fmt
         self.reset()
@@ -23,8 +25,9 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
     def __str__(self):
-        fmtstr = '{name}={avg' + self.fmt + '}'
+        fmtstr = "{name}={avg" + self.fmt + "}"
         return fmtstr.format(**self.__dict__)
+
 
 class ProgressMeter(object):
     def __init__(self, num_epochs, meters, surfix="", prefix=""):
@@ -39,20 +42,20 @@ class ProgressMeter(object):
         entries += [self.epoch_fmtstr.format(epoch)]
         entries += [str(meter) for meter in self.meters]
         entries += [self.prefix]
-        print('\t'.join(entries))
+        print("\t".join(entries))
 
     def _get_epoch_fmtstr(self, num_epochs):
         num_digits = len(str(num_epochs // 1))
-        fmt = '{:' + str(num_digits) + 'd}'
-        return '[' + fmt + '/' + fmt.format(num_epochs) + ']'
-
+        fmt = "{:" + str(num_digits) + "d}"
+        return "[" + fmt + "/" + fmt.format(num_epochs) + "]"
 
 
 # --------------------------------
 # logger
 # --------------------------------
 def get_timestamp():
-    return datetime.now().strftime('%y-%m-%d-%H:%M:%S')
+    return datetime.now().strftime("%y-%m-%d-%H:%M:%S")
+
 
 class LOG(object):
     def __init__(self, filepath, filename, field_name):
@@ -60,13 +63,15 @@ class LOG(object):
         self.filename = filename
         self.field_name = field_name
 
-        self.logfile, self.logwriter = csv_log(file_name=os.path.join(filepath, filename+'.csv'), field_name=field_name)
+        self.logfile, self.logwriter = csv_log(
+            file_name=os.path.join(filepath, filename + ".csv"), field_name=field_name
+        )
         self.logwriter.writeheader()
 
     def record(self, *args):
         dict = {}
         for i in range(len(self.field_name)):
-            dict[self.field_name[i]]=args[i]
+            dict[self.field_name[i]] = args[i]
         self.logwriter.writerow(dict)
 
     def close(self):
@@ -75,12 +80,14 @@ class LOG(object):
     def print(self, msg):
         logT(msg)
 
+
 def csv_log(file_name, field_name):
     assert file_name is not None
     assert field_name is not None
-    logfile = open(file_name, 'w')
+    logfile = open(file_name, "w")
     logwriter = csv.DictWriter(logfile, fieldnames=field_name)
     return logfile, logwriter
 
+
 def logT(*args, **kwargs):
-     print(get_timestamp(), *args, **kwargs)
+    print(get_timestamp(), *args, **kwargs)
