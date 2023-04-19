@@ -472,10 +472,10 @@ if __name__ == "__main__":
     # plt.show()
     blur = Downsampling(factor=2, filter=filter_torch, img_size=x.shape[1:], device=device)
     y = blur.A(torch.ones_like(x))
+    z = blur.A_adjoint(y)
     y1 = blur.prox_l2(x, y, gamma=.1, use_fft = True)
     y2 = blur.prox_l2(x, y, gamma=.1, use_fft = False)
-    print(y1)
-    print(y2)
+    print(z)
     
     # print(physics.power_method(x))
     #x = [x, w]

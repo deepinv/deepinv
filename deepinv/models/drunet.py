@@ -191,6 +191,8 @@ def conv(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1, bi
             L.append(nn.LeakyReLU(negative_slope=negative_slope, inplace=False))
         elif t == 'E':
             L.append(nn.ELU(inplace=False))
+        elif t == 's':
+            L.append(nn.Softplus())
         elif t == '2':
             L.append(nn.PixelShuffle(upscale_factor=2))
         elif t == '3':

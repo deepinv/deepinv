@@ -16,6 +16,8 @@ def check_conv(X_prev, X, it, crit_conv, thres_conv, verbose=False):
         F_prev = X_prev['cost']
         F = X['cost']
         crit_cur = (F_prev-F).norm()  / (F.norm()+1e-06)
+    else :
+        raise ValueError('convergence criteria not implemented')
     if crit_cur < thres_conv :
         if verbose: 
             print(f'Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {thres_conv:.2E} \r')

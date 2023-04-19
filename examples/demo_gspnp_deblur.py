@@ -66,10 +66,10 @@ model_spec = {'name': denoiser_name,
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img, k_index)
 params_algo={'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda': lamb}
 prior = {'grad_g': ScoreDenoiser(model_spec, sigma_normalize=False)}
-F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + prior['grad_g'].denoiser.potential(x,cur_params['g_param'])
+F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + prior['grad_g'][0].denoiser.potential(x,cur_params['g_param'])
 model = Optim(algo_name = 'PGD', prior=prior, g_first = True, data_fidelity=data_fidelity,
-             params_algo=params_algo, early_stop = early_stop, max_iter=max_iter, crit_conv=crit_conv, thres_conv=thres_conv, backtracking=True, 
-             F_fn=F_fn, return_dual=True, verbose=True)
+             params_algo=params_algo, early_stop = early_stop, max_iter=max_iter, crit_conv=crit_conv, 
+             thres_conv=thres_conv, backtracking=True, F_fn=F_fn, return_dual=True, verbose=True)
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,

@@ -2,8 +2,6 @@ import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
-from deepinv.optim.data_fidelity import *
-from deepinv.optim.optimizers import *
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
@@ -11,8 +9,6 @@ from torchvision import datasets, transforms
 num_workers = 4 if torch.cuda.is_available() else 0  # set to 0 if using small cpu, else 4
 problem = 'denoise'
 G = 1
-ckpt_path = '../checkpoints/drunet_color.pth'
-denoiser_name = 'drunet'
 batch_size = 1
 dataset = 'set3c'
 dataset_path = f'../../datasets/{dataset}'
@@ -22,6 +18,10 @@ verbose = True
 n_channels = 3
 train = False
 img_size = 256
+ckpt_path = '../checkpoints/Prox_DRUNet.ckpt'
+denoiser_name = 'proxdrunet'
+ckpt_path = '../checkpoints/GSDRUNet.ckpt'
+denoiser_name = 'gsdrunet'
 
 p = dinv.physics.LinearPhysics(noise_model = dinv.physics.GaussianNoise(sigma=noise_level_img))
 
