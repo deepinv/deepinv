@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
+
 class EILoss(nn.Module):
-    r'''
+    r"""
     Equivariant imaging self-supervised loss.
 
     Assumes that the set of signals is invariant to a group of transformations (rotations, translations, etc.)
@@ -29,24 +30,27 @@ class EILoss(nn.Module):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
-    '''
-    def __init__(self, transform, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.):
+    """
+
+    def __init__(
+        self, transform, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.0
+    ):
         super(EILoss, self).__init__()
-        self.name = 'ei'
+        self.name = "ei"
         self.metric = metric
         self.weight = weight
         self.T = transform
         self.noise = apply_noise
 
     def forward(self, x_net, physics, f):
-        r'''
+        r"""
         Computes the EI loss
 
         :param torch.tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module f: Reconstruction function.
         :return: (torch.tensor) loss.
-        '''
+        """
 
         x2 = self.T(x_net)
 
@@ -57,6 +61,5 @@ class EILoss(nn.Module):
 
         x3 = f(y, physics)
 
-        loss_ei = self.weight*self.metric(x3, x2)
+        loss_ei = self.weight * self.metric(x3, x2)
         return loss_ei
-

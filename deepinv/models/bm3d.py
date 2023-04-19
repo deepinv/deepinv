@@ -6,11 +6,11 @@ import torch.nn as nn
 from .denoiser import register
 
 
-@register('bm3d')
+@register("bm3d")
 class BM3D(nn.Module):
-    '''
+    """
     BM3D denoiser
-    '''
+    """
 
     def __init__(self):
         super(BM3D, self).__init__()

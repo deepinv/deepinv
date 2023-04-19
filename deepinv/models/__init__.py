@@ -8,4 +8,3 @@ from .tgv import TGV as TGV
 from .wavdict import WaveletPrior, WaveletDict
 from .GSPnP import GSDRUNet
 from .median import MedianFilter
-

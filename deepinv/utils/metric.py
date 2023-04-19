@@ -6,10 +6,10 @@ def norm(a):
 
 
 def cal_angle(a, b):
-    norm_a = (a*a).flatten().sum().sqrt()
-    norm_b = (b*b).flatten().sum().sqrt()
-    angle = (a*b).flatten().sum()/(norm_a*norm_b)
-    angle = angle.acos()/3.14159265359
+    norm_a = (a * a).flatten().sum().sqrt()
+    norm_b = (b * b).flatten().sum().sqrt()
+    angle = (a * b).flatten().sum() / (norm_a * norm_b)
+    angle = angle.acos() / 3.14159265359
     return angle.detach().cpu().numpy()
 
 
@@ -18,13 +18,12 @@ def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):
     # a: prediction
     # b: groundtruth
     with torch.no_grad():
-
         if type(a) is list or type(a) is tuple:
             a = a[0]
             b = b[0]
 
         if normalize:
-            an = a/norm(a)*norm(b)
+            an = a / norm(a) * norm(b)
         else:
             an = a
 
@@ -38,7 +37,7 @@ def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):
         else:
             psnr = 20 * torch.log10(max_pixel / mse.sqrt())
 
-        return psnr.detach().cpu().numpy() #if psnr.device=='cpu' else psnr
+        return psnr.detach().cpu().numpy()  # if psnr.device=='cpu' else psnr
 
 
 def cal_mse(a, b):
@@ -57,7 +56,7 @@ def cal_psnr_complex(a, b):
     """
     a = complex_abs(a.permute(0, 2, 3, 1))
     b = complex_abs(b.permute(0, 2, 3, 1))
-    return cal_psnr(a,b)
+    return cal_psnr(a, b)
 
 
 def complex_abs(data):
@@ -70,9 +69,12 @@ def complex_abs(data):
         torch.Tensor: Absolute value of data
     """
     assert data.size(-1) == 2
-    return (data ** 2).sum(dim=-1).sqrt()
+    return (data**2).sum(dim=-1).sqrt()
 
 
 def norm_psnr(a, b, complex=False):
-    return cal_psnr((a - a.min()) / (a.max() - a.min()),
-                    (b - b.min()) / (b.max() - b.min()), complex=complex)
+    return cal_psnr(
+        (a - a.min()) / (a.max() - a.min()),
+        (b - b.min()) / (b.max() - b.min()),
+        complex=complex,
+    )

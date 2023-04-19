@@ -28,37 +28,72 @@ def imsize():
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
+
 def choose_algo(algo, prior, likelihood, stepsize, thresh_conv, sigma):
-    if algo == 'ULA':
-        out = ULA(prior, likelihood, max_iter=1000,  verbose=True,
-               alpha=.9, step_size=.01*stepsize, clip=(-1, 2), thresh_conv=thresh_conv, sigma=sigma)
-    elif algo == 'SKRock':
-        out = SKRock(prior, likelihood, max_iter=100, verbose=True, thresh_conv=thresh_conv,
-                          alpha=.9, step_size=stepsize, clip=(-1, 2), sigma=sigma)
+    if algo == "ULA":
+        out = ULA(
+            prior,
+            likelihood,
+            max_iter=1000,
+            verbose=True,
+            alpha=0.9,
+            step_size=0.01 * stepsize,
+            clip=(-1, 2),
+            thresh_conv=thresh_conv,
+            sigma=sigma,
+        )
+    elif algo == "SKRock":
+        out = SKRock(
+            prior,
+            likelihood,
+            max_iter=100,
+            verbose=True,
+            thresh_conv=thresh_conv,
+            alpha=0.9,
+            step_size=stepsize,
+            clip=(-1, 2),
+            sigma=sigma,
+        )
     else:
-        raise Exception('The sampling algorithm doesnt exist')
+        raise Exception("The sampling algorithm doesnt exist")
 
     return out
 
 
-sampling_algo = ['ULA', 'SKRock']
+sampling_algo = ["ULA", "SKRock"]
+
+
 @pytest.mark.parametrize("algo", sampling_algo)
 def test_sampling_algo(algo, imsize, dummy_dataset, device):
-    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)  # 1. Generate a dummy dataset
+    dataloader = DataLoader(
+        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    )  # 1. Generate a dummy dataset
     test_sample = next(iter(dataloader)).to(device)
 
-    sigma = .1
-    physics = dinv.physics.Inpainting(mask=.5, tensor_size=imsize, device=device)  # 2. Set a physical experiment (here, deblurring)
+    sigma = 0.1
+    physics = dinv.physics.Inpainting(
+        mask=0.5, tensor_size=imsize, device=device
+    )  # 2. Set a physical experiment (here, deblurring)
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
-    convergence_crit = .5 # for fast tests
-    model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 3, 'device': device}}
-    stepsize = (sigma**2)
+    convergence_crit = 0.5  # for fast tests
+    model_spec = {
+        "name": "waveletprior",
+        "args": {"wv": "db8", "level": 3, "device": device},
+    }
+    stepsize = sigma**2
     likelihood = L2(sigma=sigma)
     prior = ScoreDenoiser(model_spec=model_spec)
-    sigma_denoiser = 2/255.
-    f = choose_algo(algo, prior, likelihood, stepsize=stepsize, thresh_conv=convergence_crit, sigma=sigma_denoiser)
+    sigma_denoiser = 2 / 255.0
+    f = choose_algo(
+        algo,
+        prior,
+        likelihood,
+        stepsize=stepsize,
+        thresh_conv=convergence_crit,
+        sigma=sigma_denoiser,
+    )
 
     xmean, xvar = f(y, physics)
 

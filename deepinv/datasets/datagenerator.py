@@ -22,7 +22,7 @@ class HDF5Dataset(data.Dataset):
 
         hd5 = h5py.File(path, 'r')
         if train:
-            self.x = hd5['x_train']
+            self.x = hd5['x_train']  # TODO : fails if unsupervised
             self.y = hd5['y_train']
         else:
             self.x = hd5['x_test']

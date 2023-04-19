@@ -5,13 +5,13 @@ import numpy as np
 
 def create_circular_mask(imsize, center=None, radius=None):
     h, w = imsize
-    if center is None: # use the middle of the image
-        center = (int(h/2), int(w/2))
-    if radius is None: # use the smallest distance between the center and image walls
-        radius = min(center[0], center[1], h-center[0], w-center[1])
+    if center is None:  # use the middle of the image
+        center = (int(h / 2), int(w / 2))
+    if radius is None:  # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], h - center[0], w - center[1])
 
     X, Y = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
+    dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
     mask = dist_from_center <= radius
     return mask
 
@@ -20,9 +20,9 @@ class DummyCircles(Dataset):
     def __init__(self, samples, imsize=(3, 32, 28), max_circles=10):
         super().__init__()
 
-        self.x = torch.zeros((samples, ) + imsize)
+        self.x = torch.zeros((samples,) + imsize)
 
-        max_rad = max(imsize[0], imsize[1])/2
+        max_rad = max(imsize[0], imsize[1]) / 2
         for i in range(samples):
             circles = np.random.randint(low=1, high=max_circles)
 
@@ -30,9 +30,10 @@ class DummyCircles(Dataset):
                 pos = np.random.uniform(high=imsize[1:])
                 colour = torch.rand((imsize[0], 1))
                 r = np.random.uniform(high=max_rad)
-                mask = torch.from_numpy(create_circular_mask(imsize[1:], center=pos, radius=r))
+                mask = torch.from_numpy(
+                    create_circular_mask(imsize[1:], center=pos, radius=r)
+                )
                 self.x[i, :, mask] = colour
-
 
     def __getitem__(self, index):
         return self.x[index, :, :, :]
@@ -42,12 +43,13 @@ class DummyCircles(Dataset):
 
 
 if __name__ == "__main__":
-    device = 'cuda:0'
+    device = "cuda:0"
     imsize = (3, 23, 100)
     dataset = DummyCircles(10, imsize=imsize)
 
     x = dataset[0]
 
     import matplotlib.pyplot as plt
+
     plt.imshow(x.permute(1, 2, 0).cpu().numpy())
     plt.show()

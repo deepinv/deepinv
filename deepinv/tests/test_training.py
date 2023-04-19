@@ -22,12 +22,19 @@ def test_generate_dataset(tmp_path, imsize, device):
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = dinv.physics.Inpainting(mask=.5, tensor_size=imsize, device=device)
+    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
 
-    dinv.datasets.generate_dataset(train_dataset, physics, tmp_path, test_dataset=test_dataset, device=device,
-                     dataset_filename='dinv_dataset', max_datapoints=max_N)
+    dinv.datasets.generate_dataset(
+        train_dataset,
+        physics,
+        tmp_path,
+        test_dataset=test_dataset,
+        device=device,
+        dataset_filename="dinv_dataset",
+        max_datapoints=max_N,
+    )
 
-    dataset = dinv.datasets.HDF5Dataset(path=f'{tmp_path}/dinv_dataset0.h5', train=True)
+    dataset = dinv.datasets.HDF5Dataset(path=f"{tmp_path}/dinv_dataset0.h5", train=True)
 
     assert len(dataset) == min(max_N, N)
 

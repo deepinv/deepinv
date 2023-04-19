@@ -3,7 +3,7 @@ from deepinv.physics.forward import Physics
 
 
 class Haze(Physics):
-    r'''
+    r"""
     Standard haze model
 
     The operator is defined as https://ieeexplore.ieee.org/abstract/document/5567108/
@@ -21,29 +21,30 @@ class Haze(Physics):
     :param float beta: constant :math:`\beta>0`
     :param float offset: constant :math:`o`
 
-    '''
+    """
+
     def __init__(self, beta=0.1, offset=0, **kwargs):
         super().__init__(**kwargs)
         self.beta = beta
         self.offset = offset
 
     def A(self, x):
-        r'''
+        r"""
         :param list, tuple x:  The input x should be a tuple/list such that x[0] = image torch.tensor :math:`I`,
          x[1] = depth torch.tensor :math:`d`, x[2] = scalar or torch.tensor of one element :math:`a`.
         :return: (torch.tensor) hazy image.
 
-        '''
+        """
         im = x[0]
         d = x[1]
         A = x[2]
 
-        t = torch.exp(-self.beta*(d+self.offset))
-        y = t*im + (1-t)*A
+        t = torch.exp(-self.beta * (d + self.offset))
+        y = t * im + (1 - t) * A
         return y
 
     def A_dagger(self, y):
-        r'''
+        r"""
 
         Returns the trivial inverse where x[0] = y (trivial estimate of the image :math:`I`),
         x[1] = tensor of depth :math:`d` equal to one, x[2] = 1 for :math:`a`.
@@ -56,8 +57,8 @@ class Haze(Physics):
         :param torch.tensor y: Hazy image.
         :return: (list, tuple) trivial inverse.
 
-        '''
+        """
         b, c, h, w = y.shape
         d = torch.ones((b, 1, h, w), device=y.device)
-        A = 1.
+        A = 1.0
         return y, d, A

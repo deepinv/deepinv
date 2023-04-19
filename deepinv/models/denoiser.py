@@ -4,30 +4,33 @@ import torch.nn as nn
 
 
 def online_weights_path():
-    return 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files='
+    return "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files="
+
 
 models = {}
+
 
 # TAKEN FROM https://github.com/jaewon-lee-b/lte/blob/main/models/models.py
 def register(name):
     def decorator(cls):
         models[name] = cls
         return cls
+
     return decorator
 
 
 def make(model_spec, args=None):
     if args is not None:
-        model_args = copy.deepcopy(model_spec['args'])
+        model_args = copy.deepcopy(model_spec["args"])
         model_args.update(args)
     else:
-        model_args = model_spec['args']
-    model = models[model_spec['name']](**model_args)
+        model_args = model_spec["args"]
+    model = models[model_spec["name"]](**model_args)
     return model
 
 
 class Denoiser(nn.Module):
-    r'''
+    r"""
     Base denoiser class.
 
     Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration.
@@ -37,22 +40,22 @@ class Denoiser(nn.Module):
     TODO
 
     :param model_spec: a dictionary must contain the necessary information for generating the model.
-    '''
+    """
+
     def __init__(self, model_spec=None):
         super(Denoiser, self).__init__()
         self.denoiser = make(model_spec)
 
     def forward(self, x, sigma):
-        r'''
-        '''
+        r""" """
         return self.denoiser(x, sigma)
 
 
 class ScoreDenoiser(Denoiser):
-    r'''
+    r"""
     Approximates the score of a distribution using an MMSE denoiser.
 
-    TODO : talk about sigma_normalize paramter with RED 
+    TODO : talk about sigma_normalize paramter with RED
 
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 
@@ -75,13 +78,14 @@ class ScoreDenoiser(Denoiser):
             p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
 
-    '''
+    """
+
     def __init__(self, *args, sigma_normalize=True, **kwargs):
         super(ScoreDenoiser, self).__init__(*args, **kwargs)
         self.sigma_normalize = sigma_normalize
 
     def forward(self, x, sigma):
-        if self.sigma_normalize :
+        if self.sigma_normalize:
             return (x - self.denoiser(x, sigma)) / sigma**2
-        else :
-            return (x - self.denoiser(x, sigma))
+        else:
+            return x - self.denoiser(x, sigma)

@@ -4,17 +4,19 @@ import torch.nn as nn
 
 # from deepinv import models as models
 
+
 class ArtifactRemoval(nn.Module):
-    r'''
-        Artifact removal architecture :math:`\phi(A^{\top}y)`
+    r"""
+    Artifact removal architecture :math:`\phi(A^{\top}y)`
 
-        The architecture is inspired by the FBPConvNet approach of https://arxiv.org/pdf/1611.03679
-        where a deep network :math:`phi` is used to improve the linear reconstruction :math:`A^{\top}y`.
+    The architecture is inspired by the FBPConvNet approach of https://arxiv.org/pdf/1611.03679
+    where a deep network :math:`phi` is used to improve the linear reconstruction :math:`A^{\top}y`.
 
-        :param torch.nn.Module backbone_net: Base network :math:`f`, can be pretrained or not
-        :param bool pinv: If ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
-        :param torch.device device: cpu or gpu.
-    '''
+    :param torch.nn.Module backbone_net: Base network :math:`f`, can be pretrained or not
+    :param bool pinv: If ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
+    :param torch.device device: cpu or gpu.
+    """
+
     def __init__(self, backbone_net, pinv=False, ckpt_path=None, device=None):
         super(ArtifactRemoval, self).__init__()
         self.pinv = pinv
@@ -24,21 +26,25 @@ class ArtifactRemoval(nn.Module):
             self.backbone_net.load_state_dict(torch.load(ckpt_path), strict=True)
             self.backbone_net.eval()
 
-        if type(self.backbone_net).__name__ == 'UNetRes':
+        if type(self.backbone_net).__name__ == "UNetRes":
             for _, v in self.backbone_net.named_parameters():
                 v.requires_grad = False
             self.backbone_net = self.backbone_net.to(device)
 
     def forward(self, y, physics, **kwargs):
-        r'''
+        r"""
         Reconstructs a signal estimate from measurements y
 
         :param torch.tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        '''
-        #print(type(self.backbone_net).__name__)
+        """
+        # print(type(self.backbone_net).__name__)
         y_in = physics.A_adjoint(y) if not self.pinv else physics.A_dagger(y)
-        if type(self.backbone_net).__name__ == 'UNetRes':
-            noise_level_map = torch.FloatTensor(y_in.size(0), 1, y_in.size(2), y_in.size(3)).fill_(kwargs['sigma']).to(y_in.dtype)
+        if type(self.backbone_net).__name__ == "UNetRes":
+            noise_level_map = (
+                torch.FloatTensor(y_in.size(0), 1, y_in.size(2), y_in.size(3))
+                .fill_(kwargs["sigma"])
+                .to(y_in.dtype)
+            )
             y_in = torch.cat((y_in, noise_level_map), 1)
         return self.backbone_net(y_in)

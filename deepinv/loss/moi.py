@@ -4,7 +4,7 @@ import numpy as np
 
 
 class MOILoss(nn.Module):
-    r'''
+    r"""
     Multi-operator imaging loss
 
     This loss can be used to learn when signals are observed via multiple (possibly incomplete)
@@ -30,16 +30,17 @@ class MOILoss(nn.Module):
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
-    '''
-    def __init__(self, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.):
+    """
+
+    def __init__(self, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.0):
         super(MOILoss, self).__init__()
-        self.name = 'moi'
+        self.name = "moi"
         self.metric = metric
         self.weight = weight
         self.noise = apply_noise
 
     def forward(self, x_net, physics, f):
-        r'''
+        r"""
         Computes the MOI loss.
 
         :param torch.tensor x_net: Reconstructed image :math:`\inverse{y}`.
@@ -47,7 +48,7 @@ class MOILoss(nn.Module):
             associated with the measurements.
         :param torch.nn.Module f: Reconstruction function.
         :return: (torch.tensor) loss.
-        '''
+        """
         j = np.random.randint(len(physics))
 
         if self.noise:
@@ -57,4 +58,4 @@ class MOILoss(nn.Module):
 
         x2 = f(y, physics[j])
 
-        return self.weight*self.metric(x2, x_net)
+        return self.weight * self.metric(x2, x_net)

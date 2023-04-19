@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class SupLoss(nn.Module):
-    r'''
+    r"""
     Standard supervised loss
 
     The supervised loss is defined as
@@ -19,18 +19,19 @@ class SupLoss(nn.Module):
 
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
-    '''
+    """
+
     def __init__(self, metric=torch.nn.MSELoss()):
         super(SupLoss, self).__init__()
-        self.name = 'sup'
+        self.name = "sup"
         self.metric = metric
 
     def forward(self, x_net, x_ref):
-        r'''
+        r"""
         Computes the loss.
 
         :param torch.tensor x_net: Reconstructed image :math:\inverse{y}.
         :param torch.tensor x_ref: Target (ground-truth) image.
         :return: (torch.tensor) loss.
-        '''
+        """
         return self.metric(x_net, x_ref)

@@ -10,4 +10,4 @@ from .mri import MRI
 try:
     from deepinv.physics.ct import CT
 except:
-    print('ERROR with CT, to correct')
+    print("ERROR with CT, to correct")

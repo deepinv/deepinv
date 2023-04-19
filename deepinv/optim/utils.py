@@ -1,31 +1,34 @@
 import torch
 import torch.nn as nn
-import sys 
+import sys
 from deepinv.optim.optim_iterators import *
 
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
+
 def check_conv(X_prev, X, it, crit_conv, thres_conv, verbose=False):
-    if crit_conv == 'residual' :
-        x_prev = X_prev['est'][0]
-        x = X['est'][0]
-        crit_cur = (x_prev-x).norm() / (x.norm()+1e-06)
-    elif crit_conv == 'cost' :
-        F_prev = X_prev['cost']
-        F = X['cost']
-        crit_cur = (F_prev-F).norm()  / (F.norm()+1e-06)
-    if crit_cur < thres_conv :
-        if verbose: 
-            print(f'Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {thres_conv:.2E} \r')
-        return True 
-    else :
+    if crit_conv == "residual":
+        x_prev = X_prev["est"][0]
+        x = X["est"][0]
+        crit_cur = (x_prev - x).norm() / (x.norm() + 1e-06)
+    elif crit_conv == "cost":
+        F_prev = X_prev["cost"]
+        F = X["cost"]
+        crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+    if crit_cur < thres_conv:
+        if verbose:
+            print(
+                f"Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {thres_conv:.2E} \r"
+            )
+        return True
+    else:
         return False
-   
+
 
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
-    '''
+    """
     Standard conjugate gradient algorithm to solve Ax=b
         see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
     :param A: Linear operator as a callable function, has to be square!
@@ -34,7 +37,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     :param tol: absolute tolerance for stopping the CG algorithm.
     :return: torch tensor x verifying Ax=b
 
-    '''
+    """
 
     def dot(s1, s2):
         return (s1 * s2).flatten().sum()
@@ -51,7 +54,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
         x = x + alpha * p
         r = r - alpha * Ap
         rsnew = dot(r, r)
-        #print(rsnew.sqrt())
+        # print(rsnew.sqrt())
         if rsnew.sqrt() < tol:
             break
         p = r + (rsnew / rsold) * p
@@ -60,8 +63,8 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     return x
 
 
-def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
-    '''
+def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
+    """
     Standard gradient descent algorithm to solve min_x f(x)
     :param grad_f: gradient of function to bz minimized as a callable function.
     :param x: input tensor
@@ -70,11 +73,11 @@ def gradient_descent(grad_f, x, step_size=1., max_iter=1e2, tol=1e-5):
     :param tol: absolute tolerance for stopping the algorithm.
     :return: torch tensor x verifying min_x f(x)
 
-    '''
+    """
 
     for i in range(int(max_iter)):
         x_prev = x
         x = x - step_size * grad_f(x)
-        if check_conv(x_prev, x, i, crit_conv=tol) :
+        if check_conv(x_prev, x, i, crit_conv=tol):
             break
     return x
