@@ -215,20 +215,19 @@ if __name__ == "__main__":
     mask[mask > 1] = 1
 
     physics = MRI(mask=mask, device=dinv.device)
-    physics.noise_model = dinv.physics.GaussianNoise(.1)
-
+    physics.noise_model = dinv.physics.GaussianNoise(0.1)
 
     # choose a reconstruction architecture
     backbone = dinv.models.MedianFilter()
     f = dinv.models.ArtifactRemoval(backbone)
 
     # choose training losses
-    loss = dinv.loss.SureGaussianLoss(.1)
+    loss = dinv.loss.SureGaussianLoss(0.1)
 
     batch_size = 4
 
     for i in range(10):
-        x = torch.randn((batch_size, 2) + imsize, device=dinv.device)*100
+        x = torch.randn((batch_size, 2) + imsize, device=dinv.device) * 100
         y = physics(x)
 
         x_net = f(y, physics)
