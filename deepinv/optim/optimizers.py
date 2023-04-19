@@ -17,7 +17,7 @@ class BaseOptim(nn.Module):
     def __init__(self, iterator, params_algo={'lambda' : 1., 'stepsize': 1.}, prior=None,
                  max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None,
                  anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
-                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9):
+                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, return_metrics = True):
 
         super(BaseOptim, self).__init__()
 
@@ -33,6 +33,9 @@ class BaseOptim(nn.Module):
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
+        self.return_metrics = return_metrics
+        self.has_converged = False
+        self.thres_conv = thres_conv
 
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
@@ -47,12 +50,12 @@ class BaseOptim(nn.Module):
             self.anderson_history_size = anderson_history_size
             self.fixed_point = AndersonAcceleration(iterator, update_params_fn_pre=self.update_params_fn_pre,
                             update_prior_fn=self.update_prior_fn, max_iter=self.max_iter, history_size=anderson_history_size, beta=anderson_beta,
-                            early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv, verbose=verbose)
+                            early_stop=early_stop, check_conv_fn = self.check_conv_fn, init_metrics = self.init_metrics, update_metrics = self.update_metrics)
         else :
             self.fixed_point = FixedPoint(iterator, update_params_fn_pre=self.update_params_fn_pre,
                                           update_prior_fn=self.update_prior_fn, max_iter=max_iter,
-                                          early_stop=early_stop, crit_conv=crit_conv, thres_conv=thres_conv,
-                                          verbose=verbose)
+                                          early_stop=early_stop, check_conv_fn = self.check_conv_fn,
+                                          init_metrics_fn = self.init_metrics_fn, update_metrics_fn = self.update_metrics_fn)
 
     def update_params_fn_pre(self, it, X, X_prev):
         if self.backtracking and X_prev is not None:
@@ -89,19 +92,55 @@ class BaseOptim(nn.Module):
     def get_dual_variable(self, X):
         return X['est'][1]
 
+    def init_metrics_fn(self):
+        if self.return_metrics :
+            return {'cost' : [], 'residual' : []}
+
+    def update_metrics_fn(self, metrics, X_prev, X):
+        #TODO : add custom metric ? Merge with check_conv_fn ? ‡
+        if metrics is not None: 
+            x_prev = self.get_primal_variable(X_prev) if not self.return_dual else self.get_dual_variable(X_prev)
+            x = self.get_primal_variable(X) if not self.return_dual else self.get_dual_variable(X)
+            residual = (x_prev-x).norm()
+            metrics['residual'].append(residual.detach().cpu().item())
+            if self.F_fn is not None:
+                cost = X['cost']
+            metrics['cost'].append(cost.detach().cpu().item())
+        return metrics
+
+    def check_conv_fn(self, it, X_prev, X):
+        if self.crit_conv == 'residual' :
+            x_prev = self.get_primal_variable(X_prev) if not self.return_dual else self.get_dual_variable(X_prev)
+            x = self.get_primal_variable(X) if not self.return_dual else self.get_dual_variable(X)
+            crit_cur = (x_prev-x).norm() / (x.norm()+1e-06)
+        elif self.crit_conv == 'cost' :
+            F_prev = X_prev['cost']
+            F = X['cost']
+            crit_cur = (F_prev-F).norm()  / (F.norm()+1e-06)
+        else :
+            raise ValueError('convergence criteria not implemented')
+        if crit_cur < self.thres_conv :
+            self.has_converged = True
+            if self.verbose: 
+                print(f'Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {self.thres_conv:.2E} \r')
+            return True 
+        else :
+            return False
+
+
     def forward(self, y, physics):
         init_params = self.get_params_it(0)
         x = self.get_init(init_params, y, physics)
-        x = self.fixed_point(x, y, physics)
-        return self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
+        x, metrics = self.fixed_point(x, y, physics)
+        x = self.get_primal_variable(x) if not self.return_dual else self.get_dual_variable(x)
+        if self.return_metrics:
+            return x, metrics
+        else:
+            return x
+    
 
-    def has_converged(self):
-        return self.fixed_point.has_converged
-
-def Optim(algo_name, params_algo, data_fidelity=L2(), F_fn=None, prior=None, g_first=False,
-            beta=1., backtracking=False, gamma_backtracking=0.1, eta_backtracking=0.9, bregman_potential='L2', **kwargs):
+def Optim(algo_name, data_fidelity=L2(), F_fn=None, g_first=False, beta=1., bregman_potential='L2', **kwargs):
     iterator_fn = str_to_class(algo_name + 'Iteration')
     iterator = iterator_fn(data_fidelity=data_fidelity, g_first=g_first, beta=beta, F_fn = F_fn, bregman_potential=bregman_potential)
-    optimizer = BaseOptim(iterator, params_algo = params_algo, prior=prior, F_fn = F_fn, backtracking=backtracking,
-                gamma_backtracking = gamma_backtracking, eta_backtracking = eta_backtracking, **kwargs)
+    optimizer = BaseOptim(iterator, F_fn = F_fn, **kwargs)
     return optimizer

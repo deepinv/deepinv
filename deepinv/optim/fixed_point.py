@@ -12,31 +12,30 @@ class FixedPoint(nn.Module):
         crit_conv : stopping criterion.  Default = 1e-5
         verbose: if True, print the relative error at each iteration. Default = False
     '''
-    def __init__(self, iterator=None, update_params_fn_pre=None, update_prior_fn=None, max_iter=50, early_stop=True, crit_conv='residual', thres_conv=1e-5, verbose=False):
+    def __init__(self, iterator=None, update_params_fn_pre=None, update_prior_fn=None, max_iter=50, early_stop=True, 
+                    init_metrics_fn = None, update_metrics_fn = None, check_conv_fn = None):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
-        self.crit_conv = crit_conv
-        self.thres_conv = thres_conv
-        self.verbose = verbose
         self.early_stop = early_stop
-        self.has_converged = False
         self.update_params_fn_pre = update_params_fn_pre
         self.update_prior_fn = update_prior_fn
+        self.init_metrics_fn = init_metrics_fn
+        self.update_metrics_fn = update_metrics_fn
+        self.check_conv_fn = check_conv_fn
 
     def forward(self, x, *args, **kwargs):
         x_prev = None
+        metrics = self.init_metrics_fn()
         for it in range(self.max_iter):
             cur_prior = self.update_prior_fn(it)
             cur_params = self.update_params_fn_pre(it, x, x_prev)
             x_prev = x
             x = self.iterator(x, cur_prior, cur_params, *args, **kwargs)
-            if self.early_stop and check_conv(x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose) and it>1:
-                self.has_converged = True
-                if self.verbose:
-                    print('Convergence reached at iteration ', it)
+            metrics = self.update_metrics_fn(metrics,x_prev,x)
+            if self.early_stop and self.check_conv_fn(it, x_prev, x) and it>1:
                 break
-        return x
+        return x, metrics
 
 class AndersonAcceleration(FixedPoint):
     '''
