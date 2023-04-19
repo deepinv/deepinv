@@ -34,6 +34,7 @@ thres_conv = 1e-5
 early_stop = True
 verbose = True
 k_index = 1
+plot_metrics = True
 
 #TODO : add kernel downloading code
 kernels = hdf5storage.loadmat('../kernels/Levin09.mat')['kernels']
@@ -69,7 +70,7 @@ prior = {'grad_g': ScoreDenoiser(model_spec, sigma_normalize=False)}
 F_fn = lambda x,cur_params,y,physics : lamb*data_fidelity.f(physics.A(x), y) + prior['grad_g'][0].denoiser.potential(x,cur_params['g_param'])
 model = Optim(algo_name = 'PGD', prior=prior, g_first = True, data_fidelity=data_fidelity,
              params_algo=params_algo, early_stop = early_stop, max_iter=max_iter, crit_conv=crit_conv, 
-             thres_conv=thres_conv, backtracking=True, F_fn=F_fn, return_dual=True, verbose=True)
+             thres_conv=thres_conv, backtracking=True, F_fn=F_fn, return_dual=True, verbose=True, return_metrics = plot_metrics)
 
 test(model=model,  # Safe because it has forward
     test_dataloader=dataloader,
@@ -79,4 +80,5 @@ test(model=model,  # Safe because it has forward
     plot_input=True,
     save_folder='../results/',
     save_plot_path='../results/results_pnp.png',
+    plot_metrics = plot_metrics,
     verbose=verbose)
