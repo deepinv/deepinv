@@ -62,6 +62,8 @@ class gStep(nn.Module):
         super(gStep, self).__init__()
         self.g_first = g_first
         self.bregman_potential = bregman_potential
+        self.requires_grad_g = False
+        self.requires_prox_g = False
 
         def forward(self, x, prior, cur_params):
             pass

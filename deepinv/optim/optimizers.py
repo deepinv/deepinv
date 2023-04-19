@@ -5,6 +5,7 @@ from deepinv.optim.utils import str_to_class
 from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
+from deepinv.optim.utils import gradient_descent
 
 class BaseOptim(nn.Module):
     r'''
@@ -18,7 +19,8 @@ class BaseOptim(nn.Module):
     def __init__(self, iterator, params_algo={'lambda' : 1., 'stepsize': 1.}, prior=None,
                  max_iter=50, crit_conv='residual', thres_conv=1e-5, early_stop=True, F_fn = None,
                  anderson_acceleration=False, anderson_beta=1., anderson_history_size=5, verbose=False, return_dual=False,
-                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, return_metrics = True, custom_metrics = None):
+                 backtracking=False, gamma_backtracking = 0.1, eta_backtracking = 0.9, return_metrics = True, custom_metrics = None,
+                 stepsize_prox_inter = 1., max_iter_prox_inter = 50, tol_prox_inter = 1e-3):
 
         super(BaseOptim, self).__init__()
 
@@ -47,6 +49,27 @@ class BaseOptim(nn.Module):
             if not isinstance(value, Iterable):
                 self.prior[key] = [value]
 
+        # handle priors without explicit prox or grad 
+        if (iterator.requires_prox_g and 'prox_g' not in self.prior.keys()) or iterator.requires_grad_g : 
+            # we need at least the grad 
+            if 'grad_g' not in self.prior.keys():
+                if 'g' in self.prior.keys():
+                    self.prior['grad_g'] = []
+                    for g in self.prior['g']:
+                        assert isinstance(g, nn.Module), 'The given prior must be an instance of nn.Module'
+                        def grad_g(x, *args):
+                            torch.set_grad_enabled(True)
+                            x = x.requires_grad_()
+                            return torch.autograd.grad(g(x, *args), x, create_graph=True, only_inputs=True)[0]
+                        self.prior['grad_g'].append(grad_g)
+            if (iterator.requires_prox_g and 'prox_g' not in self.prior.keys()):
+                self.prior['prox_g'] = []
+                for grad_g in self.prior['grad_g']:
+                    def prox_g(x, *args):
+                        grad = lambda y: grad_g(y, *args) + (1 / 2) * (y - x)
+                        return gradient_descent(grad, x, stepsize_prox_inter, max_iter=max_iter_prox_inter, tol=tol_prox_inter)
+                    self.prior['prox_g'].append(prox_g)
+
         if self.anderson_acceleration :
             self.anderson_beta = anderson_beta
             self.anderson_history_size = anderson_history_size
@@ -74,7 +97,6 @@ class BaseOptim(nn.Module):
         cur_params_dict = {key: value[it] if len(value)>1 else value[0]
                             for key, value in zip(self.params_algo.keys(), self.params_algo.values())}
         return cur_params_dict
-
 
     def update_prior_fn(self, it):
         prior_cur = {key: value[it] if len(value) > 1 else value[0]
