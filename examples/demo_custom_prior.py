@@ -10,6 +10,7 @@ from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 
+
 # create a nn.Module class to parametrize the custom prior
 class L2Prior(nn.Module):
     def __init__(self, prior_params=None):
@@ -17,6 +18,7 @@ class L2Prior(nn.Module):
 
     def forward(self, x, g_param):
         return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path("..")
@@ -45,9 +47,6 @@ img_size = 256
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 crit_conv = "residual"
 thres_conv = 1e-3
-
-
-
 
 
 torch.manual_seed(0)

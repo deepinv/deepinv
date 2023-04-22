@@ -45,10 +45,10 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
-n_images_max = 3 # Maximal number of images to restore from the input dataset
-batch_size = 1 
-noise_level_img = 0.03 # Gaussian Noise standart deviation for the degradation
-early_stop = False # Do not stop algorithm with convergence criteria
+n_images_max = 3  # Maximal number of images to restore from the input dataset
+batch_size = 1
+noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
+early_stop = False  # Do not stop algorithm with convergence criteria
 img_size = 256
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 
@@ -84,7 +84,7 @@ data_fidelity = L2()
 
 
 # Specify the Denoising prior
-model_spec = { # specifies the parameters of the DRUNet model
+model_spec = {  # specifies the parameters of the DRUNet model
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels + 1,
