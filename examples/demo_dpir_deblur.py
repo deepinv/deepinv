@@ -24,11 +24,11 @@ torch.manual_seed(0)
 
 
 # Setup the variable to fetch dataset and operators.
-denoiser_name = 'drunet'
-dataset = 'set3c'
-ckpt_path = CKPT_DIR / 'drunet_color.pth'
+denoiser_name = "drunet"
+dataset = "set3c"
+ckpt_path = CKPT_DIR / "drunet_color.pth"
 dataset_path = ORIGINAL_DATA_DIR / dataset
-measurement_dir = DATA_DIR / dataset / 'deblur'
+measurement_dir = DATA_DIR / dataset / "deblur"
 
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
@@ -42,24 +42,24 @@ noise_level_img = 0.03
 early_stop = False
 train = False
 img_size = 256
-n_channels = 3 #3 for color images, 1 for gray-scale images
+n_channels = 3  # 3 for color images, 1 for gray-scale images
 
 
 # Logging parameters
 verbose = True
-plot_metrics = True #compute performance and convergence metrics along the algorithm
-wandb_vis = True #extract curves and images in Weight&Bias
-plot_images = True #save images in RESULTS_DIR
+plot_metrics = True  # compute performance and convergence metrics along the algorithm
+wandb_vis = True  # extract curves and images in Weight&Bias
+plot_images = True  # save images in RESULTS_DIR
 
 # load opti
-# mal parameters for DPIR 
+# mal parameters for DPIR
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
-params_algo = {'stepsize': stepsize, 'g_param': sigma_denoiser, 'lambda': lamb}
+params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
 
 # Generate a motion blur operator.
-kernel_index = 1 # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_path = DEG_DIR / 'kernels' / 'Levin09.mat'
+kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
+kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
 kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
 filter_np = kernels[0, kernel_index].astype(np.float64)
 filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
@@ -77,16 +77,16 @@ data_fidelity = L2()
 
 # Specify the prior
 model_spec = {
-    'name': denoiser_name,
-    'args': {
-        'in_channels': n_channels+1,
-        'out_channels': n_channels,
-        'pretrained': ckpt_path,
-        'train': False,
-        'device': dinv.device
-    }
+    "name": denoiser_name,
+    "args": {
+        "in_channels": n_channels + 1,
+        "out_channels": n_channels,
+        "pretrained": ckpt_path,
+        "train": False,
+        "device": dinv.device,
+    },
 }
-prior = {'prox_g': Denoiser(model_spec)}
+prior = {"prox_g": Denoiser(model_spec)}
 
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
@@ -99,7 +99,7 @@ generated_datasets_paths = dinv.datasets.generate_dataset(
     device=dinv.device,
     save_dir=measurement_dir,
     max_datapoints=n_images_max,
-    num_workers=num_workers
+    num_workers=num_workers,
 )
 dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_paths[0], train=True)
 dataloader = DataLoader(
@@ -122,7 +122,7 @@ model = Optim(
 
 # Evaluate the model on the problem.
 test(
-    model=model, 
+    model=model,
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
