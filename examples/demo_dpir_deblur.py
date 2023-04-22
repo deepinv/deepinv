@@ -12,12 +12,12 @@ from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
 
 # Setup paths for data loading, results and checkpoints.
-BASE_DIR = Path('..')
-ORIGINAL_DATA_DIR = BASE_DIR / 'datasets'
-DATA_DIR = BASE_DIR / 'measurements'
-RESULTS_DIR = BASE_DIR / 'results'
-CKPT_DIR = BASE_DIR / 'checkpoints'
-DEG_DIR = BASE_DIR / 'degradations'
+BASE_DIR = Path("..")
+ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
+DATA_DIR = BASE_DIR / "measurements"
+RESULTS_DIR = BASE_DIR / "results"
+CKPT_DIR = BASE_DIR / "checkpoints"
+DEG_DIR = BASE_DIR / "degradations"
 
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
