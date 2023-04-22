@@ -29,6 +29,7 @@ max_iter = 8
 verbose = True
 early_stop = False
 n_channels = 3
+
 train = False
 crit_conv = "residual"
 thres_conv = 1e-4
