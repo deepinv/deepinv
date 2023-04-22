@@ -5,7 +5,10 @@ from .optim_iterator import OptimIterator, fStep, gStep
 class ADMMIteration(OptimIterator):
     def __init__(self, **kwargs):
         """
-        TODO: add doc
+        Implements one iteration of the ADMM algorithm for solving
+
+        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
+        :math:
         """
         super(ADMMIteration, self).__init__(**kwargs)
         self.g_step = gStepADMM(**kwargs)

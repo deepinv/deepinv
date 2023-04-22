@@ -92,7 +92,7 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
     }
     prior = {"prox_g": Denoiser(model_spec)}
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
-    pnp = Optim(
+    pnp = optimbuilder(
         pnp_algo,
         prior=prior,
         data_fidelity=data_fidelity,

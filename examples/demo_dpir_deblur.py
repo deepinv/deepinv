@@ -82,7 +82,7 @@ lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
 prior = {"prox_g": Denoiser(model_spec)}
-model = Optim(
+model = optimbuilder(
     algo_name="HQS",
     prior=prior,
     data_fidelity=data_fidelity,

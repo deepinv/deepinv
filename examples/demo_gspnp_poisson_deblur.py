@@ -96,7 +96,7 @@ prior = {"grad_g": ScoreDenoiser(model_spec, sigma_normalize=False)}
 F_fn = lambda x, cur_params, y, physics: lamb * data_fidelity.f(
     physics.A(x), y
 ) + prior["grad_g"].denoiser.potential(x, cur_params["g_param"])
-model = Optim(
+model = optimbuilder(
     algo_name="GD",
     prior=prior,
     data_fidelity=data_fidelity,
