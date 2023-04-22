@@ -49,7 +49,6 @@ class FixedPoint(nn.Module):
         return x, metrics
 
 
-
 class AndersonAcceleration(FixedPoint):
     """
     TO DO: TO BE FIXED.

@@ -55,11 +55,7 @@ class ScoreDenoiser(Denoiser):
     r"""
     Approximates the score of a distribution using an MMSE denoiser.
 
-<<<<<<< HEAD
     TODO : talk about sigma_normalize paramter with RED and alpha relaxation parameter.
-=======
-    TODO : talk about sigma_normalize paramter with RED
->>>>>>> main
 
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 
@@ -90,10 +86,6 @@ class ScoreDenoiser(Denoiser):
 
     def forward(self, x, sigma):
         if self.sigma_normalize:
-<<<<<<< HEAD
             return (1 / sigma**2)(x - self.denoiser(x, sigma))
-=======
-            return (x - self.denoiser(x, sigma)) / sigma**2
->>>>>>> main
         else:
             return x - self.denoiser(x, sigma)

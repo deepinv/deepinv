@@ -34,19 +34,11 @@ def im_save(save_img_path, img):
     plt.imsave(save_img_path, img)
 
 
-<<<<<<< HEAD
-def plot_debug(
-    imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True
-):
-=======
 def plot_batch(imgs_in, titles=None, save_dir=None, tight=True, max_imgs=8):
->>>>>>> main
     if save_dir:
         if not os.path.exists(save_dir.split("/")[0]):
             print("Creating ", save_dir.split("/")[0], " folder...")
             os.makedirs(save_dir.split("/")[0])
-<<<<<<< HEAD
-=======
 
     imgs = []
     for im in imgs_in:
@@ -95,7 +87,6 @@ def plot_debug(
         if not os.path.exists(save_dir.split("/")[0]):
             print("Creating ", save_dir.split("/")[0], " folder...")
             os.makedirs(save_dir.split("/")[0])
->>>>>>> main
 
     if torch.is_tensor(imgs[0]):
         imgs = [torch2cpu(im) for im in imgs]
