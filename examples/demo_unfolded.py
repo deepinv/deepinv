@@ -127,7 +127,7 @@ model = Unfolded(
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior
+    prior=prior,
 )
 
 for name, param in model.named_parameters():
@@ -157,5 +157,5 @@ train(
     plot_images=False,
     verbose=True,
     wandb_vis=wandb_vis,
-    debug=False
+    debug=False,
 )

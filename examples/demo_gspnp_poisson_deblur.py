@@ -111,7 +111,7 @@ model = Optim(
     return_dual=False,
     verbose=True,
     bregman_potential=bregman_potential,
-    return_metrics=plot_metrics
+    return_metrics=plot_metrics,
 )
 
 test(

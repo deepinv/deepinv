@@ -73,5 +73,5 @@ test(
     plot_input=True,
     save_folder="../results/",
     verbose=verbose,
-    wandb_vis = True,
+    wandb_vis=True,
 )

@@ -19,6 +19,7 @@ class L2Prior(nn.Module):
     def forward(self, x, g_param):
         return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
+
 torch.manual_seed(0)
 num_workers = (
     4 if torch.cuda.is_available() else 0

@@ -57,8 +57,4 @@ def Unfolded(
         F_fn=F_fn,
         bregman_potential=bregman_potential,
     )
-    return BaseUnfold(
-        iterator,
-        F_fn=F_fn,
-        **kwargs
-    )
+    return BaseUnfold(iterator, F_fn=F_fn, **kwargs)

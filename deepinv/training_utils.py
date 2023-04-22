@@ -195,7 +195,7 @@ def train(
                 physics,
                 device,
                 verbose=False,
-                wandb_vis=wandb_vis
+                wandb_vis=wandb_vis,
             )
             if verbose:
                 eval_psnr_linear.update(test_psnr)
