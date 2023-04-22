@@ -69,9 +69,9 @@ test(
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
-    plot=True,
+    plot_images=True,
     plot_input=True,
     save_folder="../results/",
-    save_plot_path="../results/results_denoising.png",
     verbose=verbose,
+    wandb_vis = True,
 )

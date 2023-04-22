@@ -38,6 +38,7 @@ verbose = True
 k_index = 2
 factor = 2
 algo_name = "PGD"
+plot_metrics = True
 
 # TODO : add kernel downloading code
 kernels = hdf5storage.loadmat("../kernels/kernels_12.mat")["kernels"]
@@ -106,6 +107,7 @@ model = Optim(
     F_fn=None,
     return_dual=False,
     verbose=True,
+    return_metrics=plot_metrics,
 )
 
 test(
@@ -113,9 +115,10 @@ test(
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
-    plot=True,
+    plot_images=True,
     plot_input=True,
     save_folder="../results/",
-    save_plot_path="../results/results_pnp.png",
     verbose=verbose,
+    plot_metrics=plot_metrics,
+    wandb_vis=True,
 )

@@ -19,7 +19,6 @@ class L2Prior(nn.Module):
     def forward(self, x, g_param):
         return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
-
 torch.manual_seed(0)
 num_workers = (
     4 if torch.cuda.is_available() else 0
@@ -78,6 +77,7 @@ max_iter_prox_inter = 50
 tol_prox_inter = 1e-3
 
 prior = {"g": L2Prior()}
+
 F_fn = lambda x, cur_params, y, physics: params_algo["lamb"][0] * data_fidelity.f(
     physics.A(x), y
 ) + prior["g"][0](x, cur_params["g_param"])

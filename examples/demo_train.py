@@ -49,6 +49,6 @@ dinv.train(
     device=dinv.device,
     ckp_interval=int(epochs / 2),
     save_path=f"{dir}/dinv_demo",
-    plot=False,
+    plot_images=False,
     verbose=False,
 )

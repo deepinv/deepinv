@@ -36,6 +36,6 @@ dinv.test(
     model=model,
     test_dataloader=dataloader,
     physics=physics,
-    plot=True,
+    plot_images=True,
     device=dinv.device,
 )
