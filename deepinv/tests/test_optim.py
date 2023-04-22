@@ -116,4 +116,4 @@ def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
             imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
         )
 
-    assert pnp.has_converged()
+    assert pnp.has_converged

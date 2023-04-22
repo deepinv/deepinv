@@ -164,7 +164,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
-        plot=False,
+        plot_images=False,
         device=dinv.device,
     )
 
@@ -188,7 +188,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
-        plot=False,
+        plot_images=False,
         device=dinv.device,
     )
 
