@@ -13,6 +13,10 @@ The documentation of ``deepinv`` uses a unified mathematical notation that is su
      - Underlying image or signal to reconstruct of :math:`n` elements.
    * - :math:`y\in\yset`
      - Observed measurement vector of size :math:`m`.
+   * - :math:`A\colon\xset\to\yset`
+     - Measurement operator.
+   * - :math:`A^*\colon\yset\to\xset`
+     - Adjoint of the measurement operator.
    * - :math:`p(x)`
      - Distribution of images :math:`x` (often referred to as prior distribution).
    * - :math:`p(y)`
