@@ -107,6 +107,8 @@ class MCMC(nn.Module):
         clip=(-1.0, 2.0),
         thresh_conv=1e-3,
         crit_conv="residual",
+        save_chain=False,
+        g_statistic=lambda x: x,
         verbose=False,
     ):
         super(MCMC, self).__init__()
@@ -123,6 +125,9 @@ class MCMC(nn.Module):
         self.verbose = verbose
         self.mean_convergence = False
         self.var_convergence = False
+        self.g_function = g_statistic
+        self.save_chain = save_chain
+        self.chain = []
 
     def forward(self, y, physics, seed=None):
         r"""
@@ -148,7 +153,7 @@ class MCMC(nn.Module):
 
             # MCMC loop
             start_time = time.time()
-            statistics = Welford(x)
+            statistics = Welford(self.g_function(x))
 
             self.mean_convergence = False
             self.var_convergence = False
@@ -164,7 +169,10 @@ class MCMC(nn.Module):
                     if it >= (self.max_iter - self.thinning):
                         mean_prev = statistics.mean().clone()
                         var_prev = statistics.var().clone()
-                    statistics.update(x)
+                    statistics.update(self.g_function(x))
+
+                    if self.save_chain:
+                        self.chain.append(x.clone())
 
             if self.verbose:
                 if torch.cuda.is_available():
@@ -200,6 +208,12 @@ class MCMC(nn.Module):
                 self.var_convergence = True
 
         return statistics.mean(), statistics.var()
+
+    def get_chain(self):
+        r"""
+        Returns the thinned MCMC chain (after burn-in iterations)
+        """
+        return self.chain
 
     def mean_has_converged(self):
         r"""
@@ -251,8 +265,8 @@ class ULA(MCMC):
     - PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-    :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
-    :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
+    :param deepinv.models.ScoreDenoiser, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
+    :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param float step_size: step size :math:`\eta>0` of the algorithm.
         Tip: use :meth:`deepinv.physics.Physics.compute_norm()` to compute the Lipschitz constant of the forward operator.
@@ -280,6 +294,8 @@ class ULA(MCMC):
         burnin_ratio=0.2,
         clip=(-1.0, 2.0),
         thresh_conv=1e-3,
+        save_chain=False,
+        g_statistic=lambda x: x,
         verbose=False,
         sigma=None,
     ):
@@ -290,8 +306,11 @@ class ULA(MCMC):
             data_fidelity,
             max_iter=max_iter,
             thresh_conv=thresh_conv,
+            g_statistic=g_statistic,
             burnin_ratio=burnin_ratio,
             clip=clip,
+            thinning=thinning,
+            save_chain=save_chain,
             verbose=verbose,
         )
 
@@ -361,8 +380,8 @@ class SKRock(MCMC):
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-    :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
-    :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
+    :param deepinv.models.ScoreDenoiser, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
+    :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param float step_size: Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz
     :param float eta: :math:`\eta` SKROCK damping parameter.
@@ -392,6 +411,7 @@ class SKRock(MCMC):
         thinning=10,
         clip=(-1.0, 2.0),
         thresh_conv=1e-3,
+        save_chain=False,
         verbose=False,
         sigma=None,
     ):
@@ -411,6 +431,7 @@ class SKRock(MCMC):
             thinning=thinning,
             burnin_ratio=burnin_ratio,
             clip=clip,
+            save_chain=save_chain,
             verbose=verbose,
         )
 

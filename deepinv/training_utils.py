@@ -150,7 +150,7 @@ def train(
                         loss = l(x1, physics, model)
                     elif l.name in ["tv"]:
                         loss = l(x1)
-                    elif l.name.startswith("sure"):
+                    elif l.name.startswith("Sure"):
                         loss = l(y, x1, physics[g], model)
                     elif l.name in ["ei", "rei"]:
                         loss = l(x1, physics[g], model)
@@ -158,7 +158,6 @@ def train(
                         raise Exception(
                             "The loss used is not recognized by the train function."
                         )
-
                     loss_total += loss
 
                     if verbose:
@@ -272,14 +271,14 @@ def test(
         if verbose:
             print(f"Processing data of operator {g+1} out of {G}")
         for i, (x, y) in enumerate(tqdm(dataloader)):
-            if verbose:
-                print(f"Processing batch {i+1} out of {len(dataloader)}")
             if type(x) is list or type(x) is tuple:
                 x = [s.to(device) for s in x]
             else:
                 x = x.to(device)
 
             y = physics[g](x)
+
+            # y = y.to(device)
 
             with torch.no_grad():
                 if plot_metrics:

@@ -4,7 +4,7 @@
      <img src="docs/source/figures/deepinv_logolarge.png" width="500"/>
      <div>&nbsp;</div>
 
-|Test Status| |Python 3.6+| |codecov|
+|Test Status| |Python 3.6+| |codecov| |Black|
 
 .. raw:: html
 
@@ -27,7 +27,7 @@ With ``deepinv`` you can:
      <img src="docs/source/figures/deepinv_schematic.png" width="1000"/>
     </div>
 
-Read the documentation and examples at `https://deepinv.github.io/deepinv/ <https://deepinv.github.io/deepinv/>`__.
+Read the documentation and examples at `https://deepinv.github.io <https://deepinv.github.io>`__.
 
 Install
 ----------
@@ -57,7 +57,8 @@ If you use ``deepinv`` in a scientific publication, please cite the following pa
 (To be updated)
 
 
-
+.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue

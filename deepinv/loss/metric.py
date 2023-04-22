@@ -40,9 +40,6 @@ def l1():
     return nn.L1Loss()
 
 
-# --------------------------------------------
-# Charbonnier loss
-# --------------------------------------------
 class CharbonnierLoss(nn.Module):
     r"""
     Charbonnier Loss

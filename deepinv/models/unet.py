@@ -16,6 +16,7 @@ class BFBatchNorm2d(nn.BatchNorm2d):
     ):
         super(BFBatchNorm2d, self).__init__(num_features, eps, momentum)
         self.use_bias = use_bias
+        self.affine = affine
 
     def forward(self, x):
         self._check_input_dim(x)
@@ -61,8 +62,13 @@ class UNet(nn.Module):
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
     :param int scales: Number of downsampling steps used in the U-Net options=2,3,4,5. The input images should have at
+<<<<<<< HEAD
         least :math:`2^{\text{scales}` pixels in the vertical and horizontal directions. The number of trainable parameters
         increases with the scale.
+=======
+        least :math:`2^{\text{scales}` pixels in the vertical and horizontal directions.
+        The number of trainable parameters increases with the scale.
+>>>>>>> main
 
     """
 

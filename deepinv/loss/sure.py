@@ -48,7 +48,7 @@ class SureGaussianLoss(nn.Module):
 
     def __init__(self, sigma, tau=1e-3):
         super(SureGaussianLoss, self).__init__()
-        self.name = "sure"
+        self.name = "SureGaussian"
         self.sigma2 = sigma**2
         self.tau = tau
 
@@ -177,7 +177,7 @@ class SurePGLoss(nn.Module):
 
     def __init__(self, sigma, gain, tau1=1e-3, tau2=1e-2):
         super(SurePGLoss, self).__init__()
-        self.name = "sure"
+        self.name = "SurePG"
         # self.sure_loss_weight = sure_loss_weight
         self.sigma2 = sigma**2
         self.gain = gain

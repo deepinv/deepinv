@@ -18,14 +18,11 @@ class MRI(DecomposablePhysics):
     This operator has a simple singular value decomposition, so it inherits the structure of
     :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
-    The complex images :math:`x` should be of size (B, 2, H, W) where the first channel corresponds to the real part
+    The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    The measurements :math:`y` are also tensors of size (B, 2, H, W) where the first channel corresponds to the real
-    part and the second channel corresponds to the imaginary part.
-
     :param torch.tensor mask: the mask values should be binary.
-        The mask size should be of the form size=[img_width,img_height].
+        The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
     """
 
@@ -55,10 +52,6 @@ class MRI(DecomposablePhysics):
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
     r"""
     Apply centered 2 dimensional Fast Fourier Transform.
-
-    .. math::
-
-        y = \forw{x}
 
     :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
         dimensions -2 & -1 are spatial dimensions and dimension -3 has size
@@ -210,17 +203,49 @@ if __name__ == "__main__":
         device,
     )
     import deepinv as dinv
+    from fastmri.data import subsample
 
-    physics = MRI(mask=torch.ones(320, 320), device=dinv.device)
+    imsize = (250, 320)
+    # Create a mask function
+    mask_func = subsample.RandomMaskFunc(center_fractions=[0.08], accelerations=[4])
+    m = mask_func.sample_mask((imsize[1], imsize[0]), offset=None)
 
-    for i in range(40):
-        x = torch.randn((1, 2, 320, 320), device=dinv.device)
-        print(physics.adjointness_test(x))
+    mask = torch.ones((imsize[0], 1)) * (m[0] + m[1]).permute(1, 0)
+
+    mask[mask > 1] = 1
+
+    physics = MRI(mask=mask, device=dinv.device)
+    physics.noise_model = dinv.physics.GaussianNoise(0.1)
+
+    # choose a reconstruction architecture
+    backbone = dinv.models.MedianFilter()
+    f = dinv.models.ArtifactRemoval(backbone)
+
+    # choose training losses
+    loss = dinv.loss.SureGaussianLoss(0.1)
+
+    batch_size = 4
+
+    for i in range(10):
+        x = torch.randn((batch_size, 2) + imsize, device=dinv.device) * 100
+        y = physics(x)
+
+        x_net = f(y, physics)
+        mse = dinv.metric.mse()(x, x_net)
+        sure = loss(y, x_net, physics, f)
+
+        rel_error = (sure - mse).abs() / mse
+        print(rel_error)
+
+    x = torch.randn((1, 2) + imsize, device=dinv.device)
+
+    y = physics(x)
+    dinv.utils.plot_batch([y.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
+
     print("adjoint test....")
     test_operators_adjointness(
         "MRI", (2, 320, 320), dinv.device
     )  # pass, tensor(0., device='cuda:0')
-
     print("norm test....")
     test_operators_norm("MRI", (2, 320, 320), dinv.device)  # pass
     print("pinv test....")

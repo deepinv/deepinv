@@ -35,12 +35,13 @@ class DDRM(nn.Module):
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
+            mask = physics.mask.abs().type(y.dtype)
             c = np.sqrt(1 - self.eta**2)
             y_bar = physics.U_adjoint(y)
-            case = physics.mask > 1e-6
-            y_bar[case] = y_bar[case] / physics.mask[case]
-            nsr = torch.zeros_like(physics.mask)
-            nsr[case] = self.sigma_noise / physics.mask[case]
+            case = mask > 1e-6
+            y_bar[case] = y_bar[case] / mask[case]
+            nsr = torch.zeros_like(mask)
+            nsr[case] = self.sigma_noise / mask[case]
 
             # iteration 1
             # compute init noise
@@ -52,6 +53,7 @@ class DDRM(nn.Module):
             x_bar_prev = x_bar.clone()
             # denoise
             x = self.denoiser(physics.V(x_bar), self.sigmas[0])
+
             for t in tqdm(range(1, self.max_iter), disable=(not self.verbose)):
                 # add noise in transformed domain
                 x_bar = physics.V_adjoint(x)
@@ -63,11 +65,18 @@ class DDRM(nn.Module):
                     x_bar
                     + c * self.sigmas[t] * (x_bar_prev - x_bar) / self.sigmas[t - 1]
                 )
-                # mean[case2] = x_bar[case2] + c*self.sigmas[t]*(y_bar[case2]-x_bar[case2])/nsr[case2]
-                # mean[case3] = (1.-self.etab)*x_bar[case3] + self.etab*y_bar[case3]
+                mean[case2] = (
+                    x_bar[case2]
+                    + c * self.sigmas[t] * (y_bar[case2] - x_bar[case2]) / nsr[case2]
+                )
+                mean[case3] = (1.0 - self.etab) * x_bar[case3] + self.etab * y_bar[
+                    case3
+                ]
 
                 std = torch.ones_like(x) * self.eta * self.sigmas[t]
-                # std[case3] = (self.sigmas[t]**2 - (nsr[case3]*self.etab).pow(2)).sqrt()
+                std[case3] = (
+                    self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
+                ).sqrt()
 
                 # print(f'std: {std.isnan().sum()}')
                 # print(f'mean: {mean.isnan().sum()}')

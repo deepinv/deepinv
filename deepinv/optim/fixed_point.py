@@ -49,8 +49,10 @@ class FixedPoint(nn.Module):
         return x, metrics
 
 
+
 class AndersonAcceleration(FixedPoint):
     """
+    TO DO: TO BE FIXED.
     Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/.
     Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments.
 

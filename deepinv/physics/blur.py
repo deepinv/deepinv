@@ -425,7 +425,7 @@ class Blur(LinearPhysics):
 
     This class uses ``torch.conv2d`` for performing the convolutions.
 
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., ``deepinv.physics.gaussian_blur()``
+    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., ``deepinv.physics.blur.gaussian_blur()``.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
@@ -460,7 +460,8 @@ class BlurFFT(DecomposablePhysics):
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g., ``deepinv.physics.gaussian_blur()``.
+    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g.,
+        ``deepinv.physics.blur.gaussian_blur()``..
     :param str device: cpu or cuda
 
     """
