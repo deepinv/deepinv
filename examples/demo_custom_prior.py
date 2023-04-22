@@ -3,13 +3,12 @@ import deepinv as dinv
 import hdf5storage
 import torch
 import torch.nn as nn
-import os
+from pathlib import Path
 from torch.utils.data import DataLoader
-from deepinv.optim.data_fidelity import *
-from deepinv.optim.optimizers import *
+from deepinv.optim.data_fidelity import L2
+from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
-
 
 # create a nn.Module class to parametrize the custom prior
 class L2Prior(nn.Module):
@@ -18,6 +17,37 @@ class L2Prior(nn.Module):
 
     def forward(self, x, g_param):
         return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+
+# Setup paths for data loading, results and checkpoints.
+BASE_DIR = Path("..")
+ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
+DATA_DIR = BASE_DIR / "measurements"
+RESULTS_DIR = BASE_DIR / "results"
+DEG_DIR = BASE_DIR / "degradations"
+
+# Setup the variable to fetch dataset and operators.
+denoiser_name = "drunet"
+dataset = "set3c"
+dataset_path = ORIGINAL_DATA_DIR / dataset
+measurement_dir = DATA_DIR / dataset / "deblur"
+
+# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
+num_workers = 4 if torch.cuda.is_available() else 0
+
+# Parameters of the algorithm to solve the inverse problem
+n_images_max = 3
+batch_size = 1
+noise_level_img = 0.03
+early_stop = True
+backtracking = True
+train = False
+img_size = 256
+n_channels = 3  # 3 for color images, 1 for gray-scale images
+crit_conv = "residual"
+thres_conv = 1e-3
+
+
+
 
 
 torch.manual_seed(0)

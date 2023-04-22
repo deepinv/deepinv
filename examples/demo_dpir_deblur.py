@@ -1,3 +1,10 @@
+"""
+Implementation of the DPIR Plug-and-Play method.
+
+Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
+Learning deep CNN denoiser prior for image restoration. 
+In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
+"""
 import numpy as np
 import deepinv as dinv
 import hdf5storage
@@ -10,9 +17,10 @@ from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
+from deepinv.utils.demo import get_git_root
 
 # Setup paths for data loading, results and checkpoints.
-BASE_DIR = Path("..")
+BASE_DIR = Path(get_git_root())
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -37,11 +45,10 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
-n_images_max = 3
-batch_size = 1
-noise_level_img = 0.03
-early_stop = False
-train = False
+n_images_max = 3 # Maximal number of images to restore from the input dataset
+batch_size = 1 
+noise_level_img = 0.03 # Gaussian Noise standart deviation for the degradation
+early_stop = False # Do not stop algorithm with convergence criteria
 img_size = 256
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 
@@ -52,8 +59,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 wandb_vis = True  # extract curves and images in Weight&Bias
 plot_images = True  # save images in RESULTS_DIR
 
-# load opti
-# mal parameters for DPIR
+# load specific parameters for DPIR
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
@@ -64,6 +70,7 @@ kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
 kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
 filter_np = kernels[0, kernel_index].astype(np.float64)
 filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+# The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=filter_torch,
@@ -76,8 +83,8 @@ p = dinv.physics.BlurFFT(
 data_fidelity = L2()
 
 
-# Specify the prior
-model_spec = {
+# Specify the Denoising prior
+model_spec = { # specifies the parameters of the DRUNet model
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels + 1,
@@ -87,6 +94,8 @@ model_spec = {
         "device": dinv.device,
     },
 }
+# The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
+# For Plug-an-Play image restoration, the denoiser replaces "prox_g".
 prior = {"prox_g": Denoiser(model_spec)}
 
 
