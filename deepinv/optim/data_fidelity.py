@@ -76,7 +76,7 @@ class L2(DataFidelity):
     def __init__(self, sigma=1.0):
         super().__init__()
 
-        self.norm = 1 / (sigma**2)
+        self.norm = 1 / (sigma ** 2)
 
     def f(self, x, y):
         return self.norm * (x - y).flatten().pow(2).sum() / 2

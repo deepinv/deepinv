@@ -36,7 +36,7 @@ class DDRM(nn.Module):
                 torch.manual_seed(seed)
 
             mask = physics.mask.abs().type(y.dtype)
-            c = np.sqrt(1 - self.eta**2)
+            c = np.sqrt(1 - self.eta ** 2)
             y_bar = physics.U_adjoint(y)
             case = mask > 1e-6
             y_bar[case] = y_bar[case] / mask[case]

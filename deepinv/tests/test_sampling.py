@@ -82,7 +82,7 @@ def test_sampling_algo(algo, imsize, dummy_dataset, device):
         "name": "waveletprior",
         "args": {"wv": "db8", "level": 3, "device": device},
     }
-    stepsize = sigma**2
+    stepsize = sigma ** 2
     likelihood = L2(sigma=sigma)
     prior = ScoreDenoiser(model_spec=model_spec)
     sigma_denoiser = 2 / 255.0

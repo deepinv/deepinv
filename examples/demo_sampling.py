@@ -52,7 +52,7 @@ likelihood = dinv.optim.L2(sigma=sigma)
 
 # choose MCMC sampling algorithm
 regularization = 0.9
-step_size = 0.01 * (sigma**2)
+step_size = 0.01 * (sigma ** 2)
 iterations = int(5e3)
 f = dinv.sampling.ULA(
     prior=prior,

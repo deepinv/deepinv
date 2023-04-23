@@ -1,5 +1,5 @@
 """
-Implementation of the DPIR Plug-and-Play method for image deblurring. Here deblurring is applied to the 3 images from the set3c dataset blurred with one motion kernel.
+Implementation of the DPIR method for Plug-and-Play image deblurring. 
 
 Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
 Learning deep CNN denoiser prior for image restoration. 
@@ -47,7 +47,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
-n_images_max = 1  # Maximal number of images to restore from the input dataset
+n_images_max = 3  # Maximal number of images to restore from the input dataset
 batch_size = 1
 noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
 early_stop = False  # Do not stop algorithm with convergence criteria
@@ -123,7 +123,7 @@ dataloader = DataLoader(
 )
 
 
-# isntanciate the algorithm class to solve the IP problem.
+# instanciate the algorithm class to solve the IP problem.
 model = Optim(
     algo_name="HQS",
     prior=prior,
