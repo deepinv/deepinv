@@ -71,6 +71,8 @@ def train(
     :param bool debug: TODO
     """
 
+    save_path = Path(save_path)
+
     if wandb_vis:
         wandb.watch(model)
 
@@ -216,7 +218,7 @@ def train(
 
         progress.display(epoch + 1)
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path
+            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
         )
 
     if wandb_vis:
@@ -255,6 +257,7 @@ def test(
     :param bool verbose: Output training progress information in the console.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     """
+    save_folder = Path(save_folder)
 
     psnr_linear = []
     psnr_net = []
