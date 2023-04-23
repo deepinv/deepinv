@@ -36,13 +36,16 @@ where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradie
 on :math:`f` and :math:`g`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
 relaxation parameters, etc...
 
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
    deepinv.optim.BaseOptim
+   deepinv.optim.FixedPoint
    deepinv.optim.optimbuilder
+
 
 Data Fidelity
 -------------------------------------
@@ -57,8 +60,6 @@ Data Fidelity
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
 
-
-The module works using iterators... (TODO)
 
 Iterators
 -------------------------------------

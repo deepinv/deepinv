@@ -33,7 +33,7 @@ intersphinx_mapping = {"python": ("https://deepinv.github.io/deepinv/", None)}
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
 mathjax3_config = {
     "tex": {
-        'equationNumbers': {'autoNumber': 'AMS', 'useLabelIds': True},
+        "equationNumbers": {"autoNumber": "AMS", "useLabelIds": True},
         "macros": {
             "forw": [r"{A\left({#1}\right)}", 1],
             "noise": [r"{N\left({#1}\right)}", 1],
@@ -48,7 +48,7 @@ mathjax3_config = {
             "group": r"\mathcal{G}",
             "metric": [r"{d\left({#1},{#2}\right)}", 2],
             "loss": [r"{\mathcal\left({#1}\right)}", 1],
-        }
+        },
     }
 }
 

@@ -5,13 +5,26 @@ from deepinv.optim.utils import check_conv
 
 class FixedPoint(nn.Module):
     """
-    Fixed-point iterations.
+    Fixed-point iterations module.
 
-        iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
-        max_iter : maximum number of iterations. Default = 50
-        early_stop : if True, the acceleration stops when the convergence criterion is reached. Default = True
-        crit_conv : stopping criterion.  Default = 1e-5
-        verbose: if True, print the relative error at each iteration. Default = False
+    This module implements the fixed-point iteration algorithm given a specific fixed-point iterator (e.g.
+    proximal gradient iteration, the ADMM iteration, see :meth:`deepinv.optim.optim_iterators`), that is
+    for :math:`k=1,2,...`
+
+    .. math::
+        \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...) \hspace{2cm} (1)
+
+    :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
+                                        well as parameters of the optimisation problem (prior, measurements, etc.)
+    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
+    :param function update_params_fn_pre: function that returns the parameters to be used at each iteration. Default: None.
+    :param int max_iter: maximum number of iterations. Default: 50.
+    :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: True.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
+                          of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
+    :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
+    :param bool verbose: if True, prints the current iteration number and the current value of the
+                            stopping criterion. Default: False.
     """
 
     def __init__(
@@ -36,16 +49,31 @@ class FixedPoint(nn.Module):
         self.update_params_fn_pre = update_params_fn_pre
         self.update_prior_fn = update_prior_fn
 
-    def forward(self, x, *args, **kwargs):
-        x_prev = None
+    def forward(self, X, *args, **kwargs):
+        r"""
+        Loops over the fixed-point iterator as (1) and returns the fixed point.
+
+        The iterates are stored in a dictionary of the form ``X = {'est': (x_k, u_k), 'cost': F_k}`` where:
+        * `est` is a tuple containing the current primal and dual iterates,
+        * `cost` is the value of the cost function at the current iterate.
+
+        Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
+        the prior and parameters are updated before each call to the iterator.
+
+        :param dict X: dictionary containing the current iterate.
+        :param args: optional arguments for the iterator.
+        :param kwargs: optional keyword arguments for the iterator.
+        :return: the fixed-point.
+        """
+        X_prev = None
         for it in range(self.max_iter):
             cur_prior = self.update_prior_fn(it)
-            cur_params = self.update_params_fn_pre(it, x, x_prev)
-            x_prev = x
-            x = self.iterator(x, cur_prior, cur_params, *args, **kwargs)
+            cur_params = self.update_params_fn_pre(it, X, X_prev)
+            X_prev = X
+            X = self.iterator(X, cur_prior, cur_params, *args, **kwargs)
             if (
                 check_conv(
-                    x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose
+                    X_prev, X, it, self.crit_conv, self.thres_conv, verbose=self.verbose
                 )
                 and it > 1
             ):
@@ -54,23 +82,20 @@ class FixedPoint(nn.Module):
                     if self.verbose:
                         print("Convergence reached at iteration ", it)
                     break
-        return x
+        return X
 
 
 class AndersonAcceleration(FixedPoint):
     """
-    Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/.
+    Anderson Acceleration for accelerated fixed-point resolution.
+
+    The implementation is strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/.
     Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments.
 
-    Args :
-        iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
-        history_size : size of the history used for the acceleration. Default = 5
-        max_iter : maximum number of iterations. Default = 50
-        early_stop : if True, the acceleration stops when the convergence criterion is reached. Default = True
-        crit_conv : stopping criterion.  Default = 1e-5
-        ridge: ridge regularization in solver. Default = 1e-4
-        beta: momentum in Anderson updates. Default = 1.
-        verbose: if True, print the relative error at each iteration. Default = False
+    :param int history_size: size of the history used for the acceleration. Default: 5.
+    :param float ridge: ridge regularization in solver. Default: 1e-4.
+    :param float beta: momentum in Anderson updates. Default: 1.0.
+    :param kwargs: optional keyword arguments for the iterator.
     """
 
     def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
@@ -82,6 +107,14 @@ class AndersonAcceleration(FixedPoint):
         self.ridge = ridge
 
     def forward(self, x, init_params, *args):
+        r"""
+        Computes the fixed-point iterations with Anderson acceleration.
+
+        :param dict x: dictionary with key "est" and value the initial estimate.
+        :param init_params: initial parameters for the iterator.
+        :param args: optional arguments for the iterator.
+        :return: the fixed-point iterate.
+        """
         cur_params = init_params
         init = x["est"][0]
         B, C, H, W = init.shape

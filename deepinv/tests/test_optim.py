@@ -1,8 +1,9 @@
+import math
 import pytest
 
 import deepinv as dinv
 from deepinv.models.denoiser import Denoiser
-from deepinv.optim.data_fidelity import *
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot_debug, torch2cpu
@@ -26,6 +27,97 @@ def imsize():
 @pytest.fixture
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
+
+
+def test_data_fidelity_l2():
+
+    data_fidelity = L2()
+
+    # 1. Testing value of the loss for a simple case
+    # Define two points
+    x = torch.Tensor([1, 4])
+    y = torch.Tensor([1, 1])
+
+    # Create a measurement operator
+    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A_forward = lambda v:A@v
+    A_adjoint = lambda v: A.transpose(0,1)@v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    assert data_fidelity(x, y, physics) == 1.0
+
+    # 2. Testing trivial operations on f and not f\circ A
+    gamma = 1.0
+    assert torch.allclose(data_fidelity.prox_f(x, y, gamma), (x+gamma*y)/(1+gamma))
+    assert torch.allclose(data_fidelity.grad_f(x, y), x-y)
+
+    # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
+    # Create a measurement operator
+    B = torch.Tensor([[2, 1], [-1, 0.5]])
+    B_forward = lambda v:B@v
+    B_adjoint = lambda v: B.transpose(0,1)@v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+
+    # Compute the proximity operator manually (closed form formula)
+    Id = torch.eye(2)
+    manual_prox = (Id+gamma*B.transpose(0,1)@B).inverse()@(x+gamma*B.transpose(0,1)@y)
+
+    # Compute the deepinv proximity operator
+    deepinv_prox = data_fidelity.prox(x, y, physics, gamma)
+
+    assert torch.allclose(deepinv_prox, manual_prox)
+
+    # 4. Testing the gradient of the loss
+    grad_deepinv = data_fidelity.grad(x, y, physics)
+    grad_manual = B.transpose(0,1)@(B@x-y)
+
+    assert torch.allclose(grad_deepinv, grad_manual)
+
+
+def test_data_fidelity_indicator():
+
+    # Define two points
+    x = torch.Tensor([1, 4])
+    y = torch.Tensor([1, 1])
+
+    # Redefine the data fidelity with a different radius
+    radius = 0.5
+    data_fidelity = IndicatorL2(radius=radius)
+
+
+    # Create a measurement operator
+    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A_forward = lambda v:A@v
+    A_adjoint = lambda v: A.transpose(0,1)@v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+
+    # Test values of the loss for points inside and outside the l2 ball
+    assert data_fidelity(x, y, physics) == 1e16
+    assert data_fidelity(x/2, y, physics) == 0
+    assert data_fidelity.f(x, y, radius=1) == 1e16
+    assert data_fidelity.f(x, y, radius=3.1) == 0
+
+    # 2. Testing trivial operations on f (and not f \circ A)
+    x_proj = torch.Tensor([1.,1+radius])
+    assert torch.allclose(data_fidelity.prox_f(x, y, gamma=None), x_proj)
+
+
+    # 3. Testing the proximity operator of the f \circ A
+    A = torch.Tensor([[2, 0], [0, 2]])
+    A_forward = lambda v:A@v
+    A_adjoint = lambda v: A.transpose(0,1)@v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    x_proj = torch.Tensor([1,1.5])
+    assert torch.allclose(data_fidelity.prox(x, y, physics), x_proj)
+
+
 
 
 def test_denoiser(imsize, dummy_dataset, device):

@@ -4,13 +4,17 @@ import torch.nn as nn
 
 class DataFidelity(nn.Module):
     r"""
-    Data fidelity term for optimization algorithms.
+    Data fidelity term :math:`\datafid{Ax}{y}`.
+
+    This is the base class for the data fidelity term
 
     .. math:
 
         \datafid{Ax}{y}
 
-    where ... TODO
+
+    where :math:`A` is a linear operator, :math:`x` is a variable in :math: and :math:`y` is the data, and where
+    :math:`f` is a convex function.
 
     """
 
@@ -22,23 +26,59 @@ class DataFidelity(nn.Module):
         self._prox_norm = prox_norm
 
     def f(self, x, y):
+        r"""
+        Computes the data fidelity :math:`\datafid{x}{y}`.
+
+        :param torch.tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :return: (torch.tensor) data fidelity :math:`\datafid{x}{y}`.
+        """
         return self._f(x)
 
-    def grad_f(self, x, y):
-        return self._grad_f(x, y)
+    def grad_f(self, u, y):
+        r"""
+        Computes the gradient :math:`\nabla_u\datafid{u}{y}`, computed in :math:`u`. Note that this is the gradient of
+        :math:`f` and not :math:`f\circ A`.
 
-    def prox_f(self, x, y, gamma):
-        return self._prox_f(x, y, gamma)
+        :param torch.tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (torch.tensor) gradient of :math:`f` in :math:`u`, i.e. :math:`\nabla_u\datafid{u}{y}`.
+        """
+        return self._grad_f(u, y)
+
+    def prox_f(self, u, y, gamma):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\datafid{.}{y}}(u)`, computed in :math:`u`.Note
+        that this is the proximity operator of :math:`f` and not :math:`f\circ A`.
+
+        :param torch.tensor u: Variable :math:`u` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :param float gamma: step-size.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma f(.,y)}(u)`.
+        """
+        return self._prox_f(u, y, gamma)
 
     def forward(self, x, y, physics):
         r"""
         Computes the data fidelity :math:`\datafid{Ax}{y}`.
 
+        :param torch.tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (torch.tensor) data fidelity :math:`\datafid{Ax}{y}`.
         """
         Ax = physics.A(x)
         return self.f(Ax, y)
 
     def grad(self, x, y, physics):
+        r"""
+        Computes the gradient of the data fidelity :math:`\nabla_x\datafid{Ax}{y}`, computed in :math:`x`.
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (torch.tensor) gradient :math:`\nabla_x\datafid{Ax}{y}`, computed in :math:`x`.
+        """
         Ax = physics.A(x)
         if self.grad_f is not None:
             return physics.A_adjoint(self.grad_f(Ax, y))
@@ -46,22 +86,31 @@ class DataFidelity(nn.Module):
             raise ValueError("No gradient defined for this data fidelity term.")
 
     def prox(self, x, y, physics, gamma):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\datafid{A.}{y}}(x)`,
+        computed in :math:`x`.
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: step-size.
+        :return: (torch.tensor) gradient :math:`\operatorname{prox}_{\datafid{A.}{y}}(x)`, computed in :math:`x`.
+        """
         if "Denoising" in physics.__class__.__name__:
-            return self.prox_f(y, x, gamma)
-        else:  # TODO: use GD?
+            return self.prox_f(y, x, gamma)  # TODO: clarify
+        else:
             raise Exception(
                 "no prox operator is implemented for the data fidelity term."
             )
 
-    def prox_norm(self, x, y, gamma):
-        return self.prox_norm(x, y, gamma)
+    # DEPRECATED
+    # def prox_norm(self, x, y, gamma):
+    #     return self.prox_norm(x, y, gamma)
 
 
 class L2(DataFidelity):
     r"""
-    :math:`\ell_2` fidelity.
-
-    Describes the following data fidelity loss:
+    Implementation of :math:`f` in :meth:`deepinv.optim.DataFidelity` as the normalized :math:`\ell_2` norm:
 
     .. math::
 
@@ -70,7 +119,7 @@ class L2(DataFidelity):
     It can be used to define a log-likelihood function associated with additive Gaussian noise
     by setting an appropriate noise level :math:`\sigma`.
 
-    :param float sigma: Standard deviation of the noise.
+    :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
     """
 
     def __init__(self, sigma=1.0):
@@ -86,10 +135,10 @@ class L2(DataFidelity):
 
     def prox(
         self, x, y, physics, gamma
-    ):  # used to be in L2 but needs to be moved at the level of the data fidelity!!
+    ):
         return physics.prox_l2(x, y, self.norm * gamma)
 
-    def prox_f(self, x, y, gamma):  # Should be this instead?
+    def prox_f(self, x, y, gamma):
         r"""
         computes the proximal operator of
 
@@ -98,7 +147,8 @@ class L2(DataFidelity):
             f(x) = \frac{1}{2\sigma^2}\gamma\|x-y\|_2^2
 
         """
-        return (x + gamma * y) / (1 + gamma)  # TODO: fix sigma
+        gamma_ = self.norm * gamma
+        return (x + gamma_ * y) / (1 + gamma_)
 
 
 class IndicatorL2(DataFidelity):
@@ -111,18 +161,63 @@ class IndicatorL2(DataFidelity):
         super().__init__()
         self.radius = radius
 
-    def f(self, x, y, radius=0.0):
-        dist = (x - y).flatten().pow(2).sum()
+    def f(self, x, y, radius=None):
+        r"""
+        Computes the indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(x)`
+
+        ..:math::
+
+            \iota_{\mathcal{B}(y,r)}(x) = \begin{cases}
+
+        """
+        dist = (x - y).flatten().pow(2).sum().sqrt()
+        radius = self.radius if radius is None else radius
         loss = 0 if dist < radius else 1e16
         return loss
 
-    def prox_f(self, x, y, gamma, radius=None):
+    def prox_f(self, x, y, gamma=None, radius=None):
+        r"""
+        Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`.
+
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
+        :param float gamma: step-size. Note that this parameter is not used in this function.
+        :param float radius: radius of the :math:`\ell_2` ball.
+        :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        """
         if radius is None:
             radius = self.radius
         return y + torch.min(
             torch.tensor([radius]), torch.linalg.norm(x.flatten() - y.flatten())
         ) * (x - y) / (torch.linalg.norm(x - y) + 1e-6)
 
+    def prox(self, x, y, physics, radius=None, stepsize=None, crit_conv=1e-5, max_iter=100):
+        r"""
+        Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`.
+
+        Since no closed form is available for general measurement operators, we use a dual forward-backward algorithm.
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`A(x)`.
+        :param torch.tensor radius: radius of the :math:`\ell_2` ball.
+        :param float stepsize: step-size of the dual-forward-backward algorithm.
+        :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
+        :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
+        :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        """
+        radius = self.radius if radius is None else radius
+        norm_A = physics.compute_norm(x)
+        stepsize = 1.0 / norm_A if stepsize is None else stepsize
+        u = x.clone()
+        for it in range(max_iter):
+            u_prev = u.clone()
+
+            t = x - physics.A_adjoint(u)
+            u_ = u + stepsize * physics.A(t)
+            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, radius=radius)
+            rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
+            if rel_crit < crit_conv and it > 10:
+                break
+        return t
 
 class PoissonLikelihood(DataFidelity):
     r"""
