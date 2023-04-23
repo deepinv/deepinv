@@ -117,5 +117,5 @@ def plot_debug(
 
     if save_dir:
         plt.savefig(save_dir, dpi=1200)
-    if show :
+    if show:
         plt.show()

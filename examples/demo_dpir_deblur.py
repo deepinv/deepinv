@@ -32,7 +32,7 @@ torch.manual_seed(0)
 
 
 # Setup the variable to fetch dataset and operators.
-method = 'DPIR'
+method = "DPIR"
 denoiser_name = "drunet"
 dataset_name = "set3c"
 operation = "deblur"
@@ -57,10 +57,10 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR 
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 wandb_vis = True  # plot curves and images in Weight&Bias
-plot_images = True # plot results
-save_images = True # save images in RESULTS_DIR
+plot_images = True  # plot results
+save_images = True  # save images in RESULTS_DIR
 
 
 # load specific parameters for DPIR

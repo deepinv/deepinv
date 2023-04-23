@@ -197,9 +197,9 @@ def train(
                 physics,
                 device,
                 verbose=False,
-                plot_images = plot_images,
-                save_images = save_images,
-                plot_metrics = plot_metrics,
+                plot_images=plot_images,
+                save_images=save_images,
+                plot_metrics=plot_metrics,
                 wandb_vis=wandb_vis,
             )
             if verbose:
@@ -327,7 +327,7 @@ def test(
                     name_imgs.append("xest")
                     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
                     name_imgs.append("x")
-                    if save_images : 
+                    if save_images:
                         for img, name_im in zip(imgs, name_imgs):
                             im_save(
                                 save_folder_G / (name_im + "_" + str(i) + ".png"),
@@ -371,7 +371,7 @@ def test(
 
             if plot_metrics:
                 for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
-                    if len(metric_val) > 0 :
+                    if len(metric_val) > 0:
                         plt.figure(metric_name)
                         fig, ax = plt.subplots()
                         ax.spines["right"].set_visible(False)
@@ -381,7 +381,8 @@ def test(
                         plt.ylabel(metric_name)
                         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
                         plt.savefig(
-                            save_folder_G / (metric_name + "_" + "im_" + str(i) + ".png"),
+                            save_folder_G
+                            / (metric_name + "_" + "im_" + str(i) + ".png"),
                             bbox_inches="tight",
                         )
                         if wandb_vis:
