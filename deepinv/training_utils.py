@@ -16,6 +16,7 @@ import wandb
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import matplotlib
+from pathlib import Path
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
@@ -41,6 +42,8 @@ def train(
     verbose=False,
     unsupervised=False,
     plot_images=False,
+    save_images=False,
+    plot_metrics=False,
     wandb_vis=False,
     debug=False,
 ):
@@ -194,6 +197,9 @@ def train(
                 physics,
                 device,
                 verbose=False,
+                plot_images = plot_images,
+                save_images = save_images,
+                plot_metrics = plot_metrics,
                 wandb_vis=wandb_vis,
             )
             if verbose:
@@ -226,6 +232,7 @@ def test(
     device=torch.device(f"cuda:0"),
     plot_images=False,
     plot_input=True,
+    save_images=True,
     save_folder="results",
     plot_metrics=False,
     verbose=True,
@@ -240,10 +247,11 @@ def test(
     :param torch.utils.data.DataLoader test_dataloader:
     :param deepinv.physics.Physics physics:
     :param torch.device device: gpu or cpu.
-    :param bool plot_images: Plot and save estimated images.
+    :param bool plot_images: Plot the ground-truth and estimated images.
     :param bool plot_input: Plot the input image along with the estimated images.
+    :param bool save_images: Save the images.
     :param str save_folder: Directory in which to save plotted reconstructions.
-    :param bool plot_metrics: the model returns a dictionary with metrics to be plotted w.r.t iteration.
+    :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     """
@@ -301,14 +309,11 @@ def test(
             if wandb_vis:
                 psnr_data.append([g, i, cur_psnr_linear, cur_psnr])
 
-            if plot_images or plot_metrics:
-                if not os.path.exists(save_folder):
-                    os.makedirs(save_folder)
-                save_folder_G = save_folder + "G" + str(g)
-                if not os.path.exists(save_folder_G):
-                    os.makedirs(save_folder_G)
+            if save_images or plot_metrics:
+                save_folder_G = save_folder / ("G" + str(g))
+                save_folder_G.mkdir(parents=True, exist_ok=True)
 
-            if plot_images:
+            if plot_images or save_images or wandb_vis:
                 if g < show_operators:
                     imgs = []
                     name_imgs = []
@@ -322,13 +327,14 @@ def test(
                     name_imgs.append("xest")
                     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
                     name_imgs.append("x")
-                    for img, name_im in zip(imgs, name_imgs):
-                        im_save(
-                            os.path.join(
-                                save_folder_G, name_im + "_" + str(i) + ".png"
-                            ),
-                            img,
-                        )
+                    if save_images : 
+                        for img, name_im in zip(imgs, name_imgs):
+                            im_save(
+                                save_folder_G / (name_im + "_" + str(i) + ".png"),
+                                img,
+                            )
+                    if plot_images:
+                        plot_debug(imgs, titles=name_imgs, show=False)
                     if wandb_vis:
                         n_plot = min(8, len(x))
                         imgs = []
@@ -365,22 +371,22 @@ def test(
 
             if plot_metrics:
                 for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
-                    plt.figure()
-                    fig, ax = plt.subplots()
-                    ax.spines["right"].set_visible(False)
-                    ax.spines["top"].set_visible(False)
-                    plt.plot(metric_val, "o-")
-                    plt.xlabel("iteration")
-                    plt.ylabel(metric_name)
-                    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-                    plt.savefig(
-                        os.path.join(
-                            save_folder_G, metric_name + "_" + "im_" + str(i) + ".png"
-                        ),
-                        bbox_inches="tight",
-                    )
-                    if wandb_vis:
-                        wandb.log({f"Plot {metric_name}": fig}, step=i)
+                    if len(metric_val) > 0 :
+                        plt.figure(metric_name)
+                        fig, ax = plt.subplots()
+                        ax.spines["right"].set_visible(False)
+                        ax.spines["top"].set_visible(False)
+                        plt.plot(metric_val, "o-")
+                        plt.xlabel("iteration")
+                        plt.ylabel(metric_name)
+                        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                        plt.savefig(
+                            save_folder_G / (metric_name + "_" + "im_" + str(i) + ".png"),
+                            bbox_inches="tight",
+                        )
+                        if wandb_vis:
+                            wandb.log({f"Plot {metric_name}": fig}, step=i)
+                plt.show()
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

@@ -5,5 +5,7 @@ dependencies:
   - pip
   - pytorch
   - torchvision
+  - plotly
+  - hdf5storage
   - pip:
     - fastmri

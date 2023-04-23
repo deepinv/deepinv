@@ -1,5 +1,5 @@
 """
-Implementation of the DPIR Plug-and-Play method.
+Implementation of the DPIR Plug-and-Play method for image deblurring. Here deblurring is applied to the 3 images from the set3c dataset blurred with one motion kernel.
 
 Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
 Learning deep CNN denoiser prior for image restoration. 
@@ -17,14 +17,13 @@ from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
-from deepinv.utils.demo import get_git_root
+from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(get_git_root())
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
-CKPT_DIR = BASE_DIR / "checkpoints"
 DEG_DIR = BASE_DIR / "degradations"
 
 
@@ -33,11 +32,14 @@ torch.manual_seed(0)
 
 
 # Setup the variable to fetch dataset and operators.
+method = 'DPIR'
 denoiser_name = "drunet"
-dataset = "set3c"
-ckpt_path = CKPT_DIR / "drunet_color.pth"
-dataset_path = ORIGINAL_DATA_DIR / dataset
-measurement_dir = DATA_DIR / dataset / "deblur"
+dataset_name = "set3c"
+operation = "deblur"
+dataset_path = ORIGINAL_DATA_DIR / dataset_name
+if not dataset_path.exists():
+    download_dataset(dataset_name, ORIGINAL_DATA_DIR)
+measurement_dir = DATA_DIR / dataset_name / operation
 
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
@@ -45,7 +47,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
-n_images_max = 3  # Maximal number of images to restore from the input dataset
+n_images_max = 1  # Maximal number of images to restore from the input dataset
 batch_size = 1
 noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
 early_stop = False  # Do not stop algorithm with convergence criteria
@@ -55,9 +57,11 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm
-wandb_vis = True  # extract curves and images in Weight&Bias
-plot_images = True  # save images in RESULTS_DIR
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR 
+wandb_vis = True  # plot curves and images in Weight&Bias
+plot_images = True # plot results
+save_images = True # save images in RESULTS_DIR
+
 
 # load specific parameters for DPIR
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
@@ -67,6 +71,8 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
 kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
+if not kernel_path.exists():
+    download_degradation("Levin09.mat", DEG_DIR / "kernels")
 kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
 filter_np = kernels[0, kernel_index].astype(np.float64)
 filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
@@ -89,7 +95,7 @@ model_spec = {  # specifies the parameters of the DRUNet model
     "args": {
         "in_channels": n_channels + 1,
         "out_channels": n_channels,
-        "pretrained": ckpt_path,
+        "pretrained": "download",
         "train": False,
         "device": dinv.device,
     },
@@ -137,8 +143,9 @@ test(
     physics=p,
     device=dinv.device,
     plot_images=plot_images,
+    save_images=save_images,
     plot_input=True,
-    save_folder=str(RESULTS_DIR),
+    save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,
     wandb_vis=wandb_vis,
