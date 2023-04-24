@@ -20,7 +20,6 @@ from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
 
-torch.manual_seed(0)
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(get_git_root())
@@ -96,19 +95,22 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 data_fidelity = L2()
 
 # Specify the Denoising prior
+ckpt_path = "../ckpts/gsdrunet.ckpt"
 model_spec = {
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels + 1,
         "out_channels": n_channels,
-        "pretrained": "pretrained",
+        "pretrained": ckpt_path,
         "train": False,
         "device": dinv.device,
     },
 }
 # The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
 # For RED image restoration, the denoiser replaces "grad_g".
-prior = {"grad_g": ScoreDenoiser(model_spec, sigma_normalize=False)}
+
+denoiser = ScoreDenoiser(model_spec, sigma_normalize=False)
+prior = {"grad_g": denoiser, "g": denoiser.denoiser.potential}
 
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
@@ -133,19 +135,11 @@ dataloader = DataLoader(
 # By default the algorithm is initialized with the adjoint of the degradation matrix applied to the degraded image.
 # For custom initialization, we need to write a a function of the degraded image.
 if use_bicubic_init:
-
-    def custom_init(y):
-        init = torch.nn.functional.interpolate(y, scale_factor=factor, mode="bicubic")
-        return init
-
+    custom_init = lambda y: torch.nn.functional.interpolate(
+        y, scale_factor=factor, mode="bicubic"
+    )
 else:
     custom_init = None
-
-# Desine the cost function that is minimized by the algorithm. For GSPnP the prior g is explicit.
-F_fn = lambda x, cur_params, y, physics: lamb * data_fidelity.f(
-    physics.A(x), y
-) + prior["grad_g"][0].denoiser.potential(x, cur_params["g_param"])
-
 
 # instanciate the algorithm class to solve the IP problem.
 model = Optim(
@@ -159,7 +153,6 @@ model = Optim(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    F_fn=F_fn,
     return_dual=True,
     verbose=verbose,
     return_metrics=plot_metrics,

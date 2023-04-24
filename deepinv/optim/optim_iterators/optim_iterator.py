@@ -59,7 +59,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x, z), "cost": F}
 
 

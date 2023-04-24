@@ -30,3 +30,8 @@ dist
 datasets
 wandb/
 kernels
+measurements/
+degradations/
+datasets/
+results/
+
