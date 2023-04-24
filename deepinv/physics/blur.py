@@ -496,12 +496,15 @@ if __name__ == "__main__":
 
     # test on non symmetric blur kernel
     import hdf5storage
+
     kernel_index = 2
-    kernels = hdf5storage.loadmat("../../degradations/kernels/kernels_12.mat")["kernels"]
+    kernels = hdf5storage.loadmat("../../degradations/kernels/kernels_12.mat")[
+        "kernels"
+    ]
     filter_np = kernels[0, kernel_index].astype(np.float64)
     filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
     blur = Downsampling(
-        factor=2, filter=filter_torch, img_size=(3,256,256), device=device
+        factor=2, filter=filter_torch, img_size=(3, 256, 256), device=device
     )
     y = blur.A(x)
     y1 = blur.prox_l2(x, y, gamma=10, use_fft=True)

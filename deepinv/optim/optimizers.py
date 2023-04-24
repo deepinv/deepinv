@@ -41,7 +41,7 @@ class BaseOptim(nn.Module):
         stepsize_prox_inter=1.0,
         max_iter_prox_inter=50,
         tol_prox_inter=1e-3,
-        custom_init=None
+        custom_init=None,
     ):
         super(BaseOptim, self).__init__()
 
@@ -162,9 +162,9 @@ class BaseOptim(nn.Module):
 
     def get_init(self, cur_params, y, physics):
         r""" """
-        if self.custom_init :
+        if self.custom_init:
             x_init = self.custom_init(y)
-        else :
+        else:
             x_init = physics.A_adjoint(y)
         init_X = {
             "est": (x_init, x_init),

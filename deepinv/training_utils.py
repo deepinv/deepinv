@@ -302,14 +302,14 @@ def test(
                 else:
                     x1 = model(y, physics[g], **kwargs)
 
-                if model.custom_init : 
+                if model.custom_init:
                     x_init = model.custom_init(y)
-                else :
+                else:
                     x_init = physics[g].A_adjoint(y)
 
             cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)
-            
+
             psnr_init.append(cur_psnr_init)
             psnr_net.append(cur_psnr)
             if verbose:
