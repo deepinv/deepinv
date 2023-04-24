@@ -41,6 +41,7 @@ class BaseOptim(nn.Module):
         stepsize_prox_inter=1.0,
         max_iter_prox_inter=50,
         tol_prox_inter=1e-3,
+        custom_init=None
     ):
         super(BaseOptim, self).__init__()
 
@@ -60,6 +61,7 @@ class BaseOptim(nn.Module):
         self.has_converged = False
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
+        self.custom_init = custom_init
 
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
@@ -160,7 +162,10 @@ class BaseOptim(nn.Module):
 
     def get_init(self, cur_params, y, physics):
         r""" """
-        x_init = physics.A_adjoint(y)
+        if self.custom_init :
+            x_init = self.custom_init(y)
+        else :
+            x_init = physics.A_adjoint(y)
         init_X = {
             "est": (x_init, x_init),
             "cost": self.F_fn(x_init, cur_params, y, physics) if self.F_fn else None,

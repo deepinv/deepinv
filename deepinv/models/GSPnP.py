@@ -107,7 +107,9 @@ def GSDRUNet(
                 file_name="GSDRUNet.ckpt",
             )
         else:
-            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)[
+                "state_dict"
+            ]
         GSmodel.load_state_dict(ckpt, strict=False)
     return GSmodel
 

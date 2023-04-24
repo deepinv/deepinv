@@ -50,7 +50,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
-n_images_max = 10  # Maximal number of images to restore from the input dataset
+n_images_max = 3  # Maximal number of images to restore from the input dataset
 batch_size = 1
 noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
 img_size = 256
@@ -60,7 +60,7 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 thres_conv = 1e-5
 backtracking = True  # use backtraking to automatically adjust the stepsize
 factor = 2  # down-sampling factor
-
+use_bicubic_init = False # Use bicobic interpolation to initialize the algorithm
 
 # Logging parameters
 verbose = True
@@ -96,12 +96,13 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 data_fidelity = L2()
 
 # Specify the Denoising prior
+ckpt_path = str(BASE_DIR / 'ckpts' / 'gsdrunet.ckpt')
 model_spec = {
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels + 1,
         "out_channels": n_channels,
-        "pretrained": "download",
+        "pretrained": ckpt_path,
         "train": False,
         "device": dinv.device,
     },
@@ -130,6 +131,14 @@ dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
+# By default the algorithm is initialized with the adjoint of the degradation matrix applied to the degraded image. 
+# For custom initialization, we need to write a a function of the degraded image.
+if use_bicubic_init:
+    def custom_init(y):
+        init = torch.nn.functional.interpolate(y, scale_factor = factor, mode='bicubic')
+        return init
+else :
+    custom_init = None
 
 # Desine the cost function that is minimized by the algorithm. For GSPnP the prior g is explicit.
 F_fn = lambda x, cur_params, y, physics: lamb * data_fidelity.f(
@@ -153,6 +162,7 @@ model = Optim(
     return_dual=True,
     verbose=verbose,
     return_metrics=plot_metrics,
+    custom_init=custom_init 
 )
 
 
