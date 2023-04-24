@@ -86,6 +86,6 @@ class ScoreDenoiser(Denoiser):
 
     def forward(self, x, sigma):
         if self.sigma_normalize:
-            return (1 / sigma ** 2) * (x - self.denoiser(x, sigma))
+            return (1 / sigma**2) * (x - self.denoiser(x, sigma))
         else:
             return x - self.denoiser(x, sigma)

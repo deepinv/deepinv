@@ -69,7 +69,7 @@ def complex_abs(data):
         torch.Tensor: Absolute value of data
     """
     assert data.size(-1) == 2
-    return (data ** 2).sum(dim=-1).sqrt()
+    return (data**2).sum(dim=-1).sqrt()
 
 
 def norm_psnr(a, b, complex=False):
