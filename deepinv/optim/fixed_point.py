@@ -21,44 +21,37 @@ class FixedPoint(nn.Module):
         update_prior_fn=None,
         max_iter=50,
         early_stop=True,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        verbose=False,
+        init_metrics_fn=None,
+        update_metrics_fn=None,
+        check_conv_fn=None,
     ):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
-        self.crit_conv = crit_conv
-        self.thres_conv = thres_conv
-        self.verbose = verbose
         self.early_stop = early_stop
-        self.has_converged = False
         self.update_params_fn_pre = update_params_fn_pre
         self.update_prior_fn = update_prior_fn
+        self.init_metrics_fn = init_metrics_fn
+        self.update_metrics_fn = update_metrics_fn
+        self.check_conv_fn = check_conv_fn
 
     def forward(self, x, *args, **kwargs):
         x_prev = None
+        metrics = self.init_metrics_fn(x, **kwargs)
         for it in range(self.max_iter):
             cur_prior = self.update_prior_fn(it)
             cur_params = self.update_params_fn_pre(it, x, x_prev)
             x_prev = x
-            x = self.iterator(x, cur_prior, cur_params, *args, **kwargs)
-            if (
-                check_conv(
-                    x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose
-                )
-                and it > 1
-            ):
-                self.has_converged = True
-                if self.early_stop:
-                    if self.verbose:
-                        print("Convergence reached at iteration ", it)
-                    break
-        return x
+            x = self.iterator(x, cur_prior, cur_params, *args)
+            metrics = self.update_metrics_fn(metrics, x_prev, x, **kwargs)
+            if self.early_stop and self.check_conv_fn(it, x_prev, x) and it > 1:
+                break
+        return x, metrics
 
 
 class AndersonAcceleration(FixedPoint):
     """
+    TO DO: TO BE FIXED.
     Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/.
     Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments.
 

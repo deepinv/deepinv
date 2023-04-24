@@ -6,5 +6,5 @@ from .dncnn import DnCNN
 from .artifactremoval import ArtifactRemoval
 from .tgv import TGV as TGV
 from .wavdict import WaveletPrior, WaveletDict
-from .GSPnP import GSDRUNet
+from .GSPnP import GSDRUNet, ProxDRUNet
 from .median import MedianFilter

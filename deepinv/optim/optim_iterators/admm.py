@@ -10,6 +10,7 @@ class ADMMIteration(OptimIterator):
         super(ADMMIteration, self).__init__(**kwargs)
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
+        self.requires_prox_g = True
 
     def forward(self, X, cur_prior, cur_params, y, physics):
         x, z = X["est"]

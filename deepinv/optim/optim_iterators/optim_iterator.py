@@ -40,6 +40,8 @@ class OptimIterator(nn.Module):
         self.g_step = gStep(
             g_first=self.g_first, bregman_potential=self.bregman_potential
         )
+        self.requires_grad_g = False
+        self.requires_prox_g = False
 
     def relaxation_step(self, u, v):
         return self.beta * u + (1 - self.beta) * v

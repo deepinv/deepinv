@@ -42,20 +42,19 @@ class BaseUnfold(BaseOptim):
 
 def Unfolded(
     algo_name,
-    params_algo,
     data_fidelity=L2(),
     F_fn=None,
     g_first=False,
     beta=1.0,
-    trainable_params=[],
+    bregman_potential="L2",
     **kwargs
 ):
     iterator_fn = str_to_class(algo_name + "Iteration")
-    iterator = iterator_fn(data_fidelity=data_fidelity, g_first=g_first, beta=beta)
-    return BaseUnfold(
-        iterator,
-        params_algo=params_algo,
-        trainable_params=trainable_params,
+    iterator = iterator_fn(
+        data_fidelity=data_fidelity,
+        g_first=g_first,
+        beta=beta,
         F_fn=F_fn,
-        **kwargs
+        bregman_potential=bregman_potential,
     )
+    return BaseUnfold(iterator, F_fn=F_fn, **kwargs)

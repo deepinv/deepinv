@@ -81,7 +81,7 @@ def plot_batch(imgs_in, titles=None, save_dir=None, tight=True, max_imgs=8):
 
 
 def plot_debug(
-    imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True
+    imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True, show=True
 ):
     if save_dir:
         if not os.path.exists(save_dir.split("/")[0]):
@@ -117,5 +117,5 @@ def plot_debug(
 
     if save_dir:
         plt.savefig(save_dir, dpi=1200)
-
-    plt.show()
+    if show:
+        plt.show()

@@ -13,6 +13,17 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import wandb
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+import matplotlib
+from pathlib import Path
+
+matplotlib.rcParams.update({"font.size": 17})
+matplotlib.rcParams["lines.linewidth"] = 2
+matplotlib.style.use("seaborn-darkgrid")
+use_tex = matplotlib.checkdep_usetex(True)
+if use_tex:
+    plt.rcParams["text.usetex"] = True
 
 
 def train(
@@ -30,8 +41,9 @@ def train(
     save_path=".",
     verbose=False,
     unsupervised=False,
-    plot=False,
-    plot_input=False,
+    plot_images=False,
+    save_images=False,
+    plot_metrics=False,
     wandb_vis=False,
     debug=False,
 ):
@@ -54,11 +66,12 @@ def train(
     :param str save_path: Directory in which to save the trained model.
     :param bool verbose: Output training progress information in the console.
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
-    :param bool plot: Plots reconstructions every ``ckp_interval`` epochs.
-    :param bool plot_input: TODO
+    :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param bool debug: TODO
     """
+
+    save_path = Path(save_path)
 
     if wandb_vis:
         wandb.watch(model)
@@ -157,7 +170,7 @@ def train(
 
                 loss_meter.update(loss_total.item())
 
-                if i == 0 and g == 0 and plot and epoch % 499 == 0:
+                if i == 0 and g == 0 and plot_images and epoch % 499 == 0:
                     imgs = [
                         physics[g].A_adjoint(y)[0, :, :, :].unsqueeze(0),
                         x1[0, :, :, :].unsqueeze(0),
@@ -186,8 +199,10 @@ def train(
                 physics,
                 device,
                 verbose=False,
+                plot_images=plot_images,
+                save_images=save_images,
+                plot_metrics=plot_metrics,
                 wandb_vis=wandb_vis,
-                plot_input=plot_input,
             )
             if verbose:
                 eval_psnr_linear.update(test_psnr)
@@ -203,7 +218,7 @@ def train(
 
         progress.display(epoch + 1)
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, save_path
+            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
         )
 
     if wandb_vis:
@@ -217,10 +232,11 @@ def test(
     test_dataloader,
     physics,
     device=torch.device(f"cuda:0"),
-    plot=False,
-    plot_input=False,
-    save_folder=None,
-    save_plot_path=None,
+    plot_images=False,
+    plot_input=True,
+    save_images=True,
+    save_folder="results",
+    plot_metrics=False,
     verbose=True,
     wandb_vis=False,
     **kwargs,
@@ -233,13 +249,15 @@ def test(
     :param torch.utils.data.DataLoader test_dataloader:
     :param deepinv.physics.Physics physics:
     :param torch.device device: gpu or cpu.
-    :param bool plot: Plots reconstructions of the first test batch.
-    :param bool plot_input: TODO
+    :param bool plot_images: Plot the ground-truth and estimated images.
+    :param bool plot_input: Plot the input image along with the estimated images.
+    :param bool save_images: Save the images.
     :param str save_folder: Directory in which to save plotted reconstructions.
-    :param str save_plot_path: TODO
+    :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     """
+    save_folder = Path(save_folder)
 
     psnr_linear = []
     psnr_net = []
@@ -254,6 +272,10 @@ def test(
     imgs = []
 
     show_operators = 5
+
+    if wandb_vis:
+        wandb.init()
+        psnr_data = []
 
     for g in range(G):
         dataloader = test_dataloader[g]
@@ -270,58 +292,105 @@ def test(
             # y = y.to(device)
 
             with torch.no_grad():
-                x1 = model(y, physics[g], **kwargs)
+                if plot_metrics:
+                    output_model = model(y, physics[g], x, **kwargs)
+                    assert (
+                        len(output_model) == 2
+                    ), "plot_metrics is set to True but model does not returns metrics"
+                    x1, metrics = output_model
+                else:
+                    x1 = model(y, physics[g], **kwargs)
 
-            if g < show_operators and i == 0:
-                xlin = physics[g].A_adjoint(y)
-                if plot:
-                    if plot_input:
-                        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-                    imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
-                    imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
-                    imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-                if wandb_vis:
-                    n_plot = min(8, len(x))
+            cur_psnr_linear = cal_psnr(physics[g].A_adjoint(y), x)
+            cur_psnr = cal_psnr(x1, x)
+            psnr_linear.append(cur_psnr_linear)
+            psnr_net.append(cur_psnr)
+            if verbose:
+                print(
+                    f"Test PSNR: Linear Inv: {cur_psnr_linear:.2f}| Model: {cur_psnr:.2f} dB. "
+                )
+            if wandb_vis:
+                psnr_data.append([g, i, cur_psnr_linear, cur_psnr])
+
+            if save_images or plot_metrics:
+                save_folder_G = save_folder / ("G" + str(g))
+                save_folder_G.mkdir(parents=True, exist_ok=True)
+
+            if plot_images or save_images or wandb_vis:
+                if g < show_operators:
                     imgs = []
-                    if plot_input:
-                        imgs.append(wandb.Image(y[:n_plot], caption="Input"))
-                    imgs.append(wandb.Image(xlin[:n_plot], caption="Linear"))
-                    imgs.append(wandb.Image(x1[:n_plot], caption="Estimated"))
-                    imgs.append(wandb.Image(x[:n_plot], caption="Ground Truth"))
-                    wandb.log({"images": imgs})
+                    name_imgs = []
+                    xlin = physics[g].A_adjoint(y)
+                    if len(y[0].shape) == 3:
+                        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+                        name_imgs.append("y")
+                    imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
+                    name_imgs.append("xlin")
+                    imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
+                    name_imgs.append("xest")
+                    imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+                    name_imgs.append("x")
+                    if save_images:
+                        for img, name_im in zip(imgs, name_imgs):
+                            im_save(
+                                save_folder_G / (name_im + "_" + str(i) + ".png"),
+                                img,
+                            )
+                    if plot_images:
+                        plot_debug(imgs, titles=name_imgs, show=False)
+                    if wandb_vis:
+                        n_plot = min(8, len(x))
+                        imgs = []
+                        if plot_input:
+                            imgs.append(
+                                wandb.Image(
+                                    make_grid(
+                                        y[:n_plot], nrow=int(math.sqrt(n_plot)) + 1
+                                    ),
+                                    caption="Input",
+                                )
+                            )
+                        imgs.append(
+                            wandb.Image(
+                                make_grid(
+                                    xlin[:n_plot], nrow=int(math.sqrt(n_plot)) + 1
+                                ),
+                                caption=f"Linear PSNR:{cur_psnr_linear:.2f}",
+                            )
+                        )
+                        imgs.append(
+                            wandb.Image(
+                                make_grid(x1[:n_plot], nrow=int(math.sqrt(n_plot)) + 1),
+                                caption=f"Estimated PSNR:{cur_psnr:.2f}",
+                            )
+                        )
+                        imgs.append(
+                            wandb.Image(
+                                make_grid(x[:n_plot], nrow=int(math.sqrt(n_plot)) + 1),
+                                caption="Ground Truth",
+                            )
+                        )
+                        wandb.log({f"Image (G={g}) ": imgs}, step=i)
 
-            if save_folder is not None:
-                if not os.path.exists(save_folder):
-                    os.makedirs(save_folder)
-                imgs = []
-                name_imgs = []
-                xlin = physics[g].A_adjoint(y)
-                if len(y[0].shape) == 3:
-                    print(y[0].shape)
-                    imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-                    name_imgs.append("y")
-                imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
-                name_imgs.append("xlin")
-                imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
-                name_imgs.append("xest")
-                imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-                name_imgs.append("x")
-
-                for img, name_im in zip(imgs, name_imgs):
-                    im_save(
-                        save_folder
-                        + "G"
-                        + str(g)
-                        + "/"
-                        + name_im
-                        + "_"
-                        + str(i)
-                        + ".png",
-                        img,
-                    )
-
-            psnr_linear.append(cal_psnr(physics[g].A_adjoint(y), x))
-            psnr_net.append(cal_psnr(x1, x))
+            if plot_metrics:
+                for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
+                    if len(metric_val) > 0:
+                        plt.figure(metric_name)
+                        fig, ax = plt.subplots()
+                        ax.spines["right"].set_visible(False)
+                        ax.spines["top"].set_visible(False)
+                        plt.plot(metric_val, "o-")
+                        plt.xlabel("iteration")
+                        plt.ylabel(metric_name)
+                        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                        plt.savefig(
+                            save_folder_G
+                            / (metric_name + "_" + "im_" + str(i) + ".png"),
+                            bbox_inches="tight",
+                        )
+                        if wandb_vis:
+                            wandb.log({f"Plot {metric_name}": fig}, step=i)
+                plt.show()
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
@@ -332,20 +401,10 @@ def test(
             f"Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
         )
     if wandb_vis:
-        wandb.log({"Test linear PSNR": pinv_psnr, "Test model PSNR": test_psnr})
-
-    if plot:
-        titles = ["Linear", "Network", "Ground Truth"]
-        num_im = 3
-        if plot_input:
-            titles = ["Input"] + titles
-            num_im = 4
-        plot_debug(
-            imgs,
-            shape=(min(show_operators, G), num_im),
-            titles=titles,
-            row_order=True,
-            save_dir=save_plot_path,
+        table_psnr = wandb.Table(
+            data=np.array(psnr_data),
+            columns=["operator", "image", "Linear PSNR", "Estimated PSNR"],
         )
+        wandb.log({"table_psnr": table_psnr})
 
     return test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr

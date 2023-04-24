@@ -4,6 +4,8 @@ from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.utils import str_to_class
 from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
+from deepinv.utils import cal_psnr
+from deepinv.optim.utils import gradient_descent
 
 
 class BaseOptim(nn.Module):
@@ -34,6 +36,11 @@ class BaseOptim(nn.Module):
         backtracking=False,
         gamma_backtracking=0.1,
         eta_backtracking=0.9,
+        return_metrics=False,
+        custom_metrics=None,
+        stepsize_prox_inter=1.0,
+        max_iter_prox_inter=50,
+        tol_prox_inter=1e-3,
     ):
         super(BaseOptim, self).__init__()
 
@@ -49,6 +56,10 @@ class BaseOptim(nn.Module):
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
+        self.return_metrics = return_metrics
+        self.has_converged = False
+        self.thres_conv = thres_conv
+        self.custom_metrics = custom_metrics
 
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
@@ -57,6 +68,43 @@ class BaseOptim(nn.Module):
         for key, value in zip(self.prior.keys(), self.prior.values()):
             if not isinstance(value, Iterable):
                 self.prior[key] = [value]
+
+        # handle priors without explicit prox or grad
+        if (
+            iterator.requires_prox_g and "prox_g" not in self.prior.keys()
+        ) or iterator.requires_grad_g:
+            # we need at least the grad
+            if "grad_g" not in self.prior.keys():
+                if "g" in self.prior.keys():
+                    self.prior["grad_g"] = []
+                    for g in self.prior["g"]:
+                        assert isinstance(
+                            g, nn.Module
+                        ), "The given prior must be an instance of nn.Module"
+
+                        def grad_g(x, *args):
+                            torch.set_grad_enabled(True)
+                            x = x.requires_grad_()
+                            return torch.autograd.grad(
+                                g(x, *args), x, create_graph=True, only_inputs=True
+                            )[0]
+
+                        self.prior["grad_g"].append(grad_g)
+            if iterator.requires_prox_g and "prox_g" not in self.prior.keys():
+                self.prior["prox_g"] = []
+                for grad_g in self.prior["grad_g"]:
+
+                    def prox_g(x, *args):
+                        grad = lambda y: grad_g(y, *args) + (1 / 2) * (y - x)
+                        return gradient_descent(
+                            grad,
+                            x,
+                            stepsize_prox_inter,
+                            max_iter=max_iter_prox_inter,
+                            tol=tol_prox_inter,
+                        )
+
+                    self.prior["prox_g"].append(prox_g)
 
         if self.anderson_acceleration:
             self.anderson_beta = anderson_beta
@@ -69,9 +117,9 @@ class BaseOptim(nn.Module):
                 history_size=anderson_history_size,
                 beta=anderson_beta,
                 early_stop=early_stop,
-                crit_conv=crit_conv,
-                thres_conv=thres_conv,
-                verbose=verbose,
+                check_conv_fn=self.check_conv_fn,
+                init_metrics=self.init_metrics,
+                update_metrics=self.update_metrics,
             )
         else:
             self.fixed_point = FixedPoint(
@@ -80,9 +128,9 @@ class BaseOptim(nn.Module):
                 update_prior_fn=self.update_prior_fn,
                 max_iter=max_iter,
                 early_stop=early_stop,
-                crit_conv=crit_conv,
-                thres_conv=thres_conv,
-                verbose=verbose,
+                check_conv_fn=self.check_conv_fn,
+                init_metrics_fn=self.init_metrics_fn,
+                update_metrics_fn=self.update_metrics_fn,
             )
 
     def update_params_fn_pre(self, it, X, X_prev):
@@ -114,7 +162,7 @@ class BaseOptim(nn.Module):
         r""" """
         x_init = physics.A_adjoint(y)
         init_X = {
-            "est": (x_init, y),
+            "est": (x_init, x_init),
             "cost": self.F_fn(x_init, cur_params, y, physics) if self.F_fn else None,
         }
         return init_X
@@ -125,33 +173,99 @@ class BaseOptim(nn.Module):
     def get_dual_variable(self, X):
         return X["est"][1]
 
-    def forward(self, y, physics):
+    def init_metrics_fn(self, X_init, x_gt=None):
+        if self.return_metrics:
+            if not self.return_dual:
+                psnr = [cal_psnr(self.get_primal_variable(X_init), x_gt)]
+            else:
+                psnr = []
+            init = {"cost": [], "residual": [], "psnr": psnr}
+            if self.custom_metrics is not None:
+                for custom_metric_name in self.custom_metrics.keys():
+                    init[custom_metric_name] = []
+            return init
+
+    def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
+        if metrics is not None:
+            x_prev = (
+                self.get_primal_variable(X_prev)
+                if not self.return_dual
+                else self.get_dual_variable(X_prev)
+            )
+            x = (
+                self.get_primal_variable(X)
+                if not self.return_dual
+                else self.get_dual_variable(X)
+            )
+            residual = (x_prev - x).norm() / (x.norm() + 1e-06)
+            metrics["residual"].append(residual.detach().cpu().item())
+            if x_gt is not None:
+                psnr = cal_psnr(x, x_gt)
+                metrics["psnr"].append(psnr)
+            if self.F_fn is not None:
+                cost = X["cost"]
+                metrics["cost"].append(cost.detach().cpu().item())
+            if self.custom_metrics is not None:
+                for custom_metric_name, custom_metric_fn in zip(
+                    self.custom_metrics.keys(), self.custom_metrics.values()
+                ):
+                    metrics[custom_metric_name].append(
+                        custom_metric_fn(metrics[custom_metric_name], X_prev, X)
+                    )
+        return metrics
+
+    def check_conv_fn(self, it, X_prev, X):
+        if self.crit_conv == "residual":
+            x_prev = (
+                self.get_primal_variable(X_prev)
+                if not self.return_dual
+                else self.get_dual_variable(X_prev)
+            )
+            x = (
+                self.get_primal_variable(X)
+                if not self.return_dual
+                else self.get_dual_variable(X)
+            )
+            crit_cur = (x_prev - x).norm() / (x.norm() + 1e-06)
+        elif self.crit_conv == "cost":
+            F_prev = X_prev["cost"]
+            F = X["cost"]
+            crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+        else:
+            raise ValueError("convergence criteria not implemented")
+        if crit_cur < self.thres_conv:
+            self.has_converged = True
+            if self.verbose:
+                print(
+                    f"Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {self.thres_conv:.2E} \r"
+                )
+            return True
+        else:
+            return False
+
+    def forward(self, y, physics, x_gt=None):
         init_params = self.get_params_it(0)
         x = self.get_init(init_params, y, physics)
-        x = self.fixed_point(x, y, physics)
-        return (
+        x, metrics = self.fixed_point(x, y, physics, x_gt=x_gt)
+        x = (
             self.get_primal_variable(x)
             if not self.return_dual
             else self.get_dual_variable(x)
         )
-
-    def has_converged(self):
-        return self.fixed_point.has_converged
+        if self.return_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def Optim(
     algo_name,
-    params_algo,
     data_fidelity=L2(),
     F_fn=None,
-    prior=None,
     g_first=False,
     beta=1.0,
-    backtracking=False,
-    gamma_backtracking=0.1,
-    eta_backtracking=0.9,
     bregman_potential="L2",
-    **kwargs
+    **kwargs,
 ):
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
@@ -161,14 +275,5 @@ def Optim(
         F_fn=F_fn,
         bregman_potential=bregman_potential,
     )
-    optimizer = BaseOptim(
-        iterator,
-        params_algo=params_algo,
-        prior=prior,
-        F_fn=F_fn,
-        backtracking=backtracking,
-        gamma_backtracking=gamma_backtracking,
-        eta_backtracking=eta_backtracking,
-        **kwargs
-    )
+    optimizer = BaseOptim(iterator, F_fn=F_fn, **kwargs)
     return optimizer

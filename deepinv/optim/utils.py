@@ -8,15 +8,19 @@ def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
 
-def check_conv(X_prev, X, it, crit_conv, thres_conv, verbose=False):
+def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
     if crit_conv == "residual":
-        x_prev = X_prev["est"][0]
-        x = X["est"][0]
-        crit_cur = (x_prev - x).norm() / (x.norm() + 1e-06)
+        if isinstance(X_prev, dict):
+            X_prev = X_prev["est"][0]
+        if isinstance(X, dict):
+            X = X["est"][0]
+        crit_cur = (X_prev - X).norm() / (X.norm() + 1e-06)
     elif crit_conv == "cost":
         F_prev = X_prev["cost"]
         F = X["cost"]
         crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+    else:
+        raise ValueError("convergence criteria not implemented")
     if crit_cur < thres_conv:
         if verbose:
             print(
@@ -78,6 +82,6 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
     for i in range(int(max_iter)):
         x_prev = x
         x = x - step_size * grad_f(x)
-        if check_conv(x_prev, x, i, crit_conv=tol):
+        if check_conv(x_prev, x, i, thres_conv=tol):
             break
     return x

@@ -20,16 +20,18 @@ class GSPnP(nn.Module):
     Code from https://github.com/samuro95/GSPnP.
 
     :param nn.Module denoiser: Denoiser model.
+    :param float alpha: Relaxation parameter
     """
 
-    def __init__(self, denoiser, train=False):
+    def __init__(self, denoiser, alpha=1.0, train=False):
         super().__init__()
         self.student_grad = StudentGrad(denoiser)
+        self.alpha = alpha
         self.train = train
 
     def potential(self, x, sigma):
         N = self.student_grad(x, sigma)
-        return 0.5 * torch.norm(x - N) ** 2
+        return 0.5 * self.alpha * torch.norm(x - N) ** 2
 
     def potential_grad(self, x, sigma):
         r"""
@@ -48,7 +50,7 @@ class GSPnP(nn.Module):
         if not self.train:
             torch.set_grad_enabled(False)
         Dg = x - N - JN
-        return Dg
+        return self.alpha * Dg
 
     def forward(self, x, sigma):
         r"""
@@ -64,6 +66,7 @@ class GSPnP(nn.Module):
 
 @register("gsdrunet")
 def GSDRUNet(
+    alpha=1.0,
     in_channels=4,
     out_channels=3,
     nb=2,
@@ -76,7 +79,7 @@ def GSDRUNet(
     """
     Gradient Step Denoiser with DRUNet architecture
 
-
+    :param float alpha: Relaxation parameter
     :param int in_channels: Number of input channels
     :param int out_channels: Number of output channels
     :param int nb: Number of blocks in the DRUNet
@@ -94,7 +97,7 @@ def GSDRUNet(
         train=train,
         device=device,
     )
-    GSmodel = GSPnP(denoiser, train=train)
+    GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
             url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt"
@@ -102,19 +105,21 @@ def GSDRUNet(
                 url,
                 map_location=lambda storage, loc: storage,
                 file_name="GSDRUNet.ckpt",
-            )["state_dict"]
+            )
         else:
             ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
         GSmodel.load_state_dict(ckpt, strict=False)
     return GSmodel
 
 
+@register("proxdrunet")
 def ProxDRUNet(
+    alpha=1.0,
     in_channels=4,
     out_channels=3,
     nb=2,
     nc=[64, 128, 256, 512],
-    act_mode="S",
+    act_mode="s",
     pretrained=None,
     train=False,
     device=torch.device("cpu"),
@@ -122,6 +127,7 @@ def ProxDRUNet(
     """
     Proximal Gradient Step Denoiser with DRUNet architecture
 
+    :param float alpha: Relaxation parameter
     :param int in_channels: Number of input channels
     :param int out_channels: Number of output channels
     :param int nb: Number of blocks in the DRUNet
@@ -139,16 +145,18 @@ def ProxDRUNet(
         train=train,
         device=device,
     )
-    GSmodel = GSPnP(denoiser, train=train)
+    GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
-            url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt"
+            url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=Prox-DRUNet.ckpt"
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
-                file_name="GSDRUNet.ckpt",
+                file_name="ProxDRUNet.ckpt",
             )["state_dict"]
         else:
-            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)[
+                "state_dict"
+            ]
         GSmodel.load_state_dict(ckpt, strict=False)
     return GSmodel

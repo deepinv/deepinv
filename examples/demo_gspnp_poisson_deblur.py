@@ -38,6 +38,7 @@ k_index = 1
 noise_model = "poisson"
 poisson_gain = 10
 bregman_potential = "Burg_entropy"
+plot_metrics = True
 
 
 # TODO : add kernel downloading code
@@ -95,7 +96,7 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 prior = {"grad_g": ScoreDenoiser(model_spec, sigma_normalize=False)}
 F_fn = lambda x, cur_params, y, physics: lamb * data_fidelity.f(
     physics.A(x), y
-) + prior["grad_g"].denoiser.potential(x, cur_params["g_param"])
+) + prior["grad_g"][0].denoiser.potential(x, cur_params["g_param"])
 model = Optim(
     algo_name="GD",
     prior=prior,
@@ -110,6 +111,7 @@ model = Optim(
     return_dual=False,
     verbose=True,
     bregman_potential=bregman_potential,
+    return_metrics=plot_metrics,
 )
 
 test(
@@ -117,9 +119,10 @@ test(
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
-    plot=True,
+    plot_images=True,
     plot_input=True,
     save_folder="../results/",
-    save_plot_path="../results/results_pnp.png",
+    plot_metrics=plot_metrics,
     verbose=verbose,
+    wandb_vis=True,
 )

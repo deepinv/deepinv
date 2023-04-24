@@ -2,28 +2,59 @@ import numpy as np
 import deepinv as dinv
 import hdf5storage
 import torch
-import os
+import torch.nn as nn
+from pathlib import Path
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import ScoreDenoiser
-from deepinv.optim.data_fidelity import *
-from deepinv.optim.optimizers import *
+from deepinv.optim.data_fidelity import L2
+from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
-from deepinv.utils.parameters import get_GSPnP_params
+
+
+# create a nn.Module class to parametrize the custom prior
+class L2Prior(nn.Module):
+    def __init__(self, prior_params=None):
+        super(L2Prior, self).__init__()
+
+    def forward(self, x, g_param):
+        return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+
+
+# Setup paths for data loading, results and checkpoints.
+BASE_DIR = Path("..")
+ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
+DATA_DIR = BASE_DIR / "measurements"
+RESULTS_DIR = BASE_DIR / "results"
+DEG_DIR = BASE_DIR / "degradations"
+
+# Setup the variable to fetch dataset and operators.
+denoiser_name = "drunet"
+dataset = "set3c"
+dataset_path = ORIGINAL_DATA_DIR / dataset
+measurement_dir = DATA_DIR / dataset / "deblur"
+
+# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
+num_workers = 4 if torch.cuda.is_available() else 0
+
+# Parameters of the algorithm to solve the inverse problem
+n_images_max = 3
+batch_size = 1
+noise_level_img = 0.03
+early_stop = True
+backtracking = True
+train = False
+img_size = 256
+n_channels = 3  # 3 for color images, 1 for gray-scale images
+crit_conv = "residual"
+thres_conv = 1e-3
+
 
 torch.manual_seed(0)
-
 num_workers = (
     4 if torch.cuda.is_available() else 0
 )  # set to 0 if using small cpu, else 4
 train = False
-ckpt_path = "../checkpoints/GSDRUNet.ckpt"
-if not os.path.exists(ckpt_path):
-    ckpt_path = None
-denoiser_name = "gsdrunet"
 batch_size = 1
-n_channels = 3
-pretrain = True
 problem = "deblur"
 G = 1
 img_size = 256
@@ -31,17 +62,17 @@ dataset = "set3c"
 dataset_path = f"../datasets/{dataset}/images"
 save_dir = f"../datasets/{dataset}/{problem}/"
 noise_level_img = 0.03
-crit_conv = "cost"
-thres_conv = 1e-5
+crit_conv = "residual"
+thres_conv = 1e-3
 early_stop = True
 verbose = True
 k_index = 1
+plot_metrics = True
+max_iter = 200
 
-# TODO : add kernel downloading code
 kernels = hdf5storage.loadmat("../kernels/Levin09.mat")["kernels"]
 filter_np = kernels[0, k_index].astype(np.float64)
 filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
-
 p = dinv.physics.BlurFFT(
     img_size=(3, img_size, img_size),
     filter=filter_torch,
@@ -49,13 +80,11 @@ p = dinv.physics.BlurFFT(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 data_fidelity = L2()
-
 val_transform = transforms.Compose(
     [
         transforms.ToTensor(),
     ]
 )
-
 dataset = datasets.ImageFolder(root=dataset_path, transform=val_transform)
 dinv.datasets.generate_dataset(
     train_dataset=dataset,
@@ -71,29 +100,21 @@ dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-model_spec = {
-    "name": denoiser_name,
-    "args": {
-        "in_channels": n_channels + 1,
-        "out_channels": n_channels,
-        "pretrained": ckpt_path,
-        "train": False,
-        "device": dinv.device,
-    },
-}
+params_algo = {"stepsize": 1, "g_param": 1.0, "lamb": 1}
 
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
-    problem, noise_level_img, k_index
-)
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
-prior = {"grad_g": ScoreDenoiser(model_spec, sigma_normalize=False)}
-F_fn = lambda x, cur_params, y, physics: lamb * data_fidelity.f(
+stepsize_prox_inter = 1.0
+max_iter_prox_inter = 50
+tol_prox_inter = 1e-3
+
+prior = {"g": L2Prior()}
+
+F_fn = lambda x, cur_params, y, physics: params_algo["lamb"][0] * data_fidelity.f(
     physics.A(x), y
-) + prior["grad_g"].denoiser.potential(x, cur_params["g_param"])
+) + prior["g"][0](x, cur_params["g_param"])
 model = Optim(
     algo_name="PGD",
     prior=prior,
-    g_first=True,
+    g_first=False,
     data_fidelity=data_fidelity,
     params_algo=params_algo,
     early_stop=early_stop,
@@ -102,8 +123,12 @@ model = Optim(
     thres_conv=thres_conv,
     backtracking=True,
     F_fn=F_fn,
-    return_dual=True,
+    return_dual=False,
     verbose=True,
+    return_metrics=plot_metrics,
+    stepsize_prox_inter=stepsize_prox_inter,
+    max_iter_prox_inter=max_iter_prox_inter,
+    tol_prox_inter=tol_prox_inter,
 )
 
 test(
@@ -111,9 +136,10 @@ test(
     test_dataloader=dataloader,
     physics=p,
     device=dinv.device,
-    plot=True,
+    plot_images=True,
     plot_input=True,
     save_folder="../results/",
-    save_plot_path="../results/results_pnp.png",
+    plot_metrics=plot_metrics,
     verbose=verbose,
+    wandb_vis=True,
 )
