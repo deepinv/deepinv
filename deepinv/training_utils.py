@@ -36,7 +36,7 @@ def train(
     optimizer=None,
     scheduler=None,
     device="cpu",
-    ckp_interval=100,
+    ckp_interval=1,
     eval_interval=1,
     save_path=".",
     verbose=False,
@@ -70,10 +70,10 @@ def train(
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param bool debug: TODO
     """
-
     save_path = Path(save_path)
 
     if wandb_vis:
+        wandb.init()
         wandb.watch(model)
 
     loss_meter = AverageMeter("loss", ":.2e")
@@ -205,8 +205,9 @@ def train(
                 wandb_vis=wandb_vis,
             )
             if verbose:
-                eval_psnr_linear.update(test_psnr)
-                eval_psnr_net.update(pinv_psnr)
+                eval_psnr_linear.update(pinv_psnr)
+                eval_psnr_net.update(test_psnr)
+                wandb.log({"Eval PSNR": test_psnr})
 
         if scheduler:
             scheduler.step()
@@ -215,7 +216,7 @@ def train(
 
         if wandb_vis:
             wandb.log({"training loss": loss_total})
-
+            
         progress.display(epoch + 1)
         save_model(
             epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
@@ -295,14 +296,16 @@ def test(
             with torch.no_grad():
                 if plot_metrics:
                     output_model = model(y, physics[g], x, **kwargs)
-                    assert (
-                        len(output_model) == 2
-                    ), "plot_metrics is set to True but model does not returns metrics"
-                    x1, metrics = output_model
+                    if len(output_model) == 1 :
+                        plot_metrics = False
+                        print("plot_metrics is set to True but model does not returns metrics")
+                        x1 = model(y, physics[g], **kwargs)
+                    else :
+                        x1, metrics = output_model
                 else:
                     x1 = model(y, physics[g], **kwargs)
 
-                if model.custom_init:
+                if hasattr(model, 'custom_init') and model.custom_init:
                     x_init = model.custom_init(y)
                 else:
                     x_init = physics[g].A_adjoint(y)

@@ -1,17 +1,43 @@
-import sys
 import numpy as np
 import deepinv as dinv
+import hdf5storage
+from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.optim.data_fidelity import *
-from deepinv.training_utils import train
-from deepinv.unfolded.unfolded import Unfolded
-from deepinv.unfolded.deep_equilibrium import DEQ
-from torchvision import datasets, transforms
-import os
-import wandb
 from deepinv.models.denoiser import Denoiser
-import hdf5storage
+from deepinv.optim.data_fidelity import L2
+from deepinv.optim.optimizers import Unfolded
+from deepinv.training_utils import test
+from torchvision import datasets, transforms
+from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
+
+# Setup paths for data loading, results and checkpoints.
+BASE_DIR = Path(get_git_root())
+ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
+DATA_DIR = BASE_DIR / "measurements"
+RESULTS_DIR = BASE_DIR / "results"
+DEG_DIR = BASE_DIR / "degradations"
+
+
+# Set the global random seed from pytorch to ensure reproducibility of the example.
+torch.manual_seed(0)
+
+
+# Setup the variable to fetch dataset and operators.
+denoiser_name = "dncnn"
+train_dataset_name = "set3c"
+val_dataset_name = "CBSD68"
+operation = "super-resolution"
+
+
+dataset_path = ORIGINAL_DATA_DIR / dataset_name
+if not dataset_path.exists():
+    download_dataset(dataset_name, ORIGINAL_DATA_DIR)
+measurement_dir = DATA_DIR / dataset_name / operation
+
+
+
+
 
 num_workers = (
     4 if torch.cuda.is_available() else 0
@@ -24,7 +50,7 @@ ckpt_path = None
 algo_name = "PGD"
 dataset_path = f"../datasets/"
 train_dataset_name = "drunet"
-test_dataset_name = "CBSD68"
+test_dataset_name = "CSBD68"
 noise_level_img = 0.03
 lamb = 10
 max_iter = 5
