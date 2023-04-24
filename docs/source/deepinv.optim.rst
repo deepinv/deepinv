@@ -44,6 +44,13 @@ relaxation parameters, etc...
 
    deepinv.optim.BaseOptim
    deepinv.optim.FixedPoint
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
    deepinv.optim.optimbuilder
 
 
