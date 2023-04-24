@@ -106,7 +106,9 @@ prior = {"prox_g": Denoiser(model_spec)}
 
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
-val_transform = transforms.Compose([transforms.ToTensor()])
+val_transform = transforms.Compose(
+    [transforms.CenterCrop(img_size), transforms.ToTensor()]
+)
 dataset = datasets.ImageFolder(root=dataset_path, transform=val_transform)
 generated_datasets_paths = dinv.datasets.generate_dataset(
     train_dataset=dataset,

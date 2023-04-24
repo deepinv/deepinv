@@ -23,7 +23,7 @@ def get_GSPnP_params(problem, noise_level_img, k_index=0):
             lamb = 1 / 0.075
         else:  # Motion blur
             lamb = 1 / 0.1
-    elif problem == "super_resolution":
+    elif problem == "super-resolution":
         max_iter = 500
         sigma_denoiser = 2.0 * noise_level_img
         lamb = 1 / 0.065

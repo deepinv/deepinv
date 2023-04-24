@@ -37,7 +37,7 @@ torch.manual_seed(0)
 # Setup the variable to fetch dataset and operators.
 method = "GSPnP"
 denoiser_name = "gsdrunet"
-dataset_name = "csdb68"
+dataset_name = "CBSD68"
 operation = "super-resolution"
 dataset_path = ORIGINAL_DATA_DIR / dataset_name
 if not dataset_path.exists():
@@ -72,9 +72,9 @@ save_images = True  # save images in RESULTS_DIR
 
 # Generate the degradation operator.
 kernel_index = 2  # which kernel to chose
-kernel_path = DEG_DIR / "kernels" / "kernet_12.mat"
+kernel_path = DEG_DIR / "kernels" / "kernels_12.mat"
 if not kernel_path.exists():
-    download_degradation("kernet_12.mat", DEG_DIR / "kernels")
+    download_degradation("kernels_12.mat", DEG_DIR / "kernels")
 kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
 filter_np = kernels[0, kernel_index].astype(np.float64)
 filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
@@ -91,7 +91,6 @@ lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
     operation, noise_level_img, kernel_index
 )
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
-
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -113,7 +112,9 @@ prior = {"grad_g": ScoreDenoiser(model_spec, sigma_normalize=False)}
 
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
-val_transform = transforms.Compose([transforms.ToTensor()])
+val_transform = transforms.Compose(
+    [transforms.CenterCrop(img_size), transforms.ToTensor()]
+)
 dataset = datasets.ImageFolder(root=dataset_path, transform=val_transform)
 generated_datasets_paths = dinv.datasets.generate_dataset(
     train_dataset=dataset,

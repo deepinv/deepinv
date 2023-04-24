@@ -162,7 +162,7 @@ class BaseOptim(nn.Module):
         r""" """
         x_init = physics.A_adjoint(y)
         init_X = {
-            "est": (x_init, y),
+            "est": (x_init, x_init),
             "cost": self.F_fn(x_init, cur_params, y, physics) if self.F_fn else None,
         }
         return init_X
@@ -175,13 +175,11 @@ class BaseOptim(nn.Module):
 
     def init_metrics_fn(self, X_init, x_gt=None):
         if self.return_metrics:
-            x_init = (
-                self.get_primal_variable(X_init)
-                if not self.return_dual
-                else self.get_dual_variable(X_init)
-            )
-            psnr = cal_psnr(x_init, x_gt)
-            init = {"cost": [], "residual": [], "psnr": [psnr]}
+            if not self.return_dual:
+                psnr = [cal_psnr(self.get_primal_variable(X_init), x_gt)]
+            else:
+                psnr = []
+            init = {"cost": [], "residual": [], "psnr": psnr}
             if self.custom_metrics is not None:
                 for custom_metric_name in self.custom_metrics.keys():
                     init[custom_metric_name] = []
