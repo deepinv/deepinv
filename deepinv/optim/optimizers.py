@@ -10,6 +10,64 @@ class BaseOptim(nn.Module):
     r"""
     Class for optimization algorithms iterating the fixed-point iterator.
 
+    Module solving the problem
+
+    .. math::
+        \begin{equation}
+        \underset{x}{\arg\min} \quad \datafid{\forw{x}}{y} + \reg{x}
+        \end{equation}
+
+
+    where the first term :math:`f:\yset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity
+    (:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization, and
+    :math:`A:\xset\mapsto \yset` is the forward operator (see :meth:`deepinv.physics.Physics`).
+
+    Optimization algorithms for minimising the problem above can be written as fixed point algorithms,
+    i.e. for :math:`k=1,2,...`
+
+    .. math::
+        \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...)
+
+
+    where :math:`x_k` is a primal variable converging to the solution of the minimisation problem, and
+    :math:`u_k` is a dual variable.
+
+
+    ::
+
+            # Generate the data
+            x = torch.ones(1, 1, 1, 3)
+            A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
+            A_forward = lambda v: A @ v
+            A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+            # Define the physics model associated to this operator and the data
+            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+            y = physics.A(x)
+
+            # Select the data fidelity term
+            data_fidelity = L2()
+
+            # Specify the prior and the algorithm parameters
+            model_spec = {"name": "waveletprior", "args": {"wv": "db8", "level": 3, "device": device}}
+            prior = {"prox_g": Denoiser(model_spec)}
+            params_algo = {"stepsize": 0.1, "g_param": 1.0}
+
+            # Choose the iterator associated to a specific algorithm
+            iterator = PGDIteration(data_fidelity=data_fidelity)
+
+            # Iterate the iterator
+            max_iter = 50
+            for it in range(max_iter):
+                X = iterator(X, params)
+
+            # Return the solution
+            sol = X["est"]
+            cost = X["cost"]
+
+
+
+
     :param deepinv.optim.iterator iterator: Fixed-point iterator of the class of the algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                              e.g. the stepsize, regularisation parameters, denoising power...

@@ -14,6 +14,43 @@ class FixedPoint(nn.Module):
     .. math::
         \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...) \hspace{2cm} (1)
 
+
+
+    ::
+
+            # Generate the data
+            x = torch.ones(1, 1, 1, 3)
+            A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
+            A_forward = lambda v: A @ v
+            A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+            # Define the physics model associated to this operator and the data
+            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+            y = physics.A(x)
+
+            # Select the data fidelity term
+            data_fidelity = L2()
+
+            # Specify the prior and the algorithm parameters
+            model_spec = {"name": "waveletprior", "args": {"wv": "db8", "level": 3, "device": device}}
+            prior = {"prox_g": Denoiser(model_spec)}
+            params_algo = {"stepsize": 0.1, "g_param": 1.0}
+
+            # Choose the iterator associated to a specific algorithm
+            iterator = PGDIteration(data_fidelity=data_fidelity)
+
+            # Create the optimizer
+            optimizer = BaseOptim(
+                iterator,
+                params_algo=params_algo,
+                prior=prior,
+                max_iter=max_iter,
+            )
+
+            # Run the optimization algorithm
+            x = optimizer(y, physics)
+
+
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
                                         well as parameters of the optimisation problem (prior, measurements, etc.)
     :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
