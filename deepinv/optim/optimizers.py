@@ -26,7 +26,7 @@ class BaseOptim(nn.Module):
         max_iter=50,
         crit_conv="residual",
         thres_conv=1e-5,
-        early_stop=True,
+        early_stop=False,
         F_fn=None,
         anderson_acceleration=False,
         anderson_beta=1.0,

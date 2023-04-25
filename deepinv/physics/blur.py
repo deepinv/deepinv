@@ -147,7 +147,7 @@ class Downsampling(LinearPhysics):
             self.filter = None
 
         if self.filter is not None:
-            self.Fh = filter_fft(filter, img_size).to(device)
+            self.Fh = filter_fft(self.filter, img_size).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
 

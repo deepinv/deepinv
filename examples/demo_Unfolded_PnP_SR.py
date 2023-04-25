@@ -1,10 +1,15 @@
+import numpy as np
 import deepinv as dinv
-from torch.utils.data import DataLoader
-import torch
+import hdf5storage
 from pathlib import Path
-from torchvision import datasets, transforms
-from deepinv.utils.demo import get_git_root, download_dataset
+import torch
+from torch.utils.data import DataLoader
+from deepinv.models.denoiser import Denoiser
+from deepinv.optim.data_fidelity import L2
+from deepinv.unfolded.unfolded import Unfolded
 from deepinv.training_utils import train
+from torchvision import datasets, transforms
+from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(get_git_root())
@@ -20,31 +25,26 @@ torch.manual_seed(0)
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Parameters
-epochs = 10 # choose training epochs
-learning_rate = 5e-4
-train_batch_size = 32
-test_batch_size = 32
+
+# Degradation parameters
 img_size = 128
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-n_images_max = 1000 # maximal number of images used for training
-probability_mask = 0.5 # probability to mask pixel
-
-# Logging parameters
-verbose = True
-wandb_vis = True  # plot curves and images in Weight&Bias
+factor = 2
+noise_level_img = 0.03
 
 
-# Generate a degradation operator, for inpainting here
-p = dinv.physics.Inpainting(
-    (n_channels, img_size, img_size),
-    mask = probability_mask,
-    device=dinv.device
+# Generate the gaussian blur downsampling operator.
+p = dinv.physics.Downsampling(
+    img_size=(n_channels, img_size, img_size),
+    factor=factor,
+    mode='gauss',
+    device=dinv.device,
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
 
 # Setup the variable to fetch dataset and operators.
-operation = "inpaint"
+operation = "super-resolution"
 train_dataset_name = "DRUNET"
 val_dataset_name = "CBSD68"
 train_dataset_path = ORIGINAL_DATA_DIR / train_dataset_name
@@ -55,6 +55,17 @@ if not test_dataset_path.exists():
     download_dataset(test_dataset_path, ORIGINAL_DATA_DIR)
 measurement_dir = DATA_DIR / train_dataset_name / operation
 
+# training parameters
+epochs = 10 # choose training epochs
+learning_rate = 5e-4
+train_batch_size = 32
+test_batch_size = 32
+n_images_max = 1000 # maximal number of images used for training
+
+# Logging parameters
+verbose = True
+wandb_vis = True  # plot curves and images in Weight&Bias
+
 
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -63,7 +74,7 @@ test_transform = transforms.Compose(
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-my_dataset_name = 'demo_training_inpainting'
+my_dataset_name = 'demo_unfolded_sr'
 generated_datasets_path = measurement_dir / str(my_dataset_name + "0.h5")
 if not generated_datasets_path.exists():
     train_dataset = datasets.ImageFolder(root=train_dataset_path, transform=train_transform)
@@ -88,21 +99,64 @@ test_dataloader = DataLoader(
 )
 
 
-# choose training losses
-losses = []
-losses.append(dinv.loss.MCLoss(metric=dinv.metric.mse()))  # self-supervised loss
-losses.append(dinv.loss.EILoss(transform=dinv.transform.Shift(n_trans=1)))
+# Select the data fidelity term
+data_fidelity = L2()
 
-# choose backbone model
-backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=3).to(dinv.device)
 
-# choose a reconstruction architecture
-model = dinv.models.ArtifactRemoval(backbone)
+# prior parameters
+denoiser_name = "dncnn"
+depth = 7
+ckpt_path = None
+
+# algorithm parameters
+max_iter = 5 # number of unfolded layers
+lamb = 1. # initialization of the regularization parameter
+# For both 'stepsize' and 'g_param', if initialized with a table of lenght max_iter, then a distinct stepsize/g_param value is trained for each iteration.
+# For fixed trained 'stepsize' and 'g_param' values across iterations, initialize them with a single float.
+stepsize = [1.0] * max_iter # ininitialization of the stepsizes. 
+sigma_denoiser = [0.01] * max_iter # initialization of the denoiser parameters
+params_algo = { # wrap all the restoration parameters in a 'params_algo' dictionary 
+    "stepsize": stepsize,
+    "g_param": sigma_denoiser,
+    "lambda": lamb,
+}
+trainable_params = ["lambda", "stepsize", "g_param"] # define which parameters from 'params_algo' are trainable
+
+# Set up the trainable denoising prior
+model_spec = {
+    "name": denoiser_name,
+    "args": {
+        "in_channels": n_channels,
+        "out_channels": n_channels,
+        "depth": depth,
+        "pretrained": ckpt_path,
+        "train": True,
+        "device": dinv.device,
+    },
+}
+# If the prior dict value is initialized with a table of lenght max_iter, then a distinct model is trained for each iteration.
+# For fixed trained model prior across iterations, initialize with a single model.
+prior = {"prox_g": Denoiser(model_spec)} # here the prior model is common for all iterations 
+
+
+# Define the unfolded trainable model.
+model = Unfolded(
+    'DRS',
+    params_algo=params_algo,
+    trainable_params=trainable_params,
+    data_fidelity=data_fidelity,
+    max_iter=max_iter,
+    prior=prior,
+    verbose=verbose
+)
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
+# choose training losses
+losses = []
+losses.append(dinv.loss.SupLoss(metric=dinv.metric.mse()))
 
 # train the network
 train(
