@@ -8,7 +8,7 @@ import hdf5storage
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import ScoreDenoiser
+import torch.nn as nn
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import Optim
 from deepinv.training_utils import test
