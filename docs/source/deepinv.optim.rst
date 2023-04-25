@@ -21,16 +21,16 @@ Optimisation algorithms for minimising the problem above can be written as fixed
 i.e. for :math:`k=1,2,...`
 
 .. math::
-    \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...)
+    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
 where :math:`x` is a primal variable converging to the solution of the minimisation problem, and
-:math:`u` is a dual variable.
+:math:`z` is a dual variable.
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimisation theory, is split in two steps:
 
 .. math::
-    u_{k+1} = \operatorname{step}_f(x_k, u_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_g(x_k, u_k, y, A, ...)
+    z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
+    x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)
 
 where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradient and/or proximal steps
 on :math:`f` and :math:`g`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
@@ -56,6 +56,12 @@ relaxation parameters, etc...
 
 Data Fidelity
 -------------------------------------
+This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
+:math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
+
+This class comes with methods such as :math:`\operatorname{prox}_{f\circ A}` and :math:`\nabla f` among others on which
+optimisation algorithms rely.
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -70,14 +76,48 @@ Data Fidelity
 
 Iterators
 -------------------------------------
+An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
+:math:`F = \lambda*f + g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+and g is a regularizer. The fixed point iteration takes the form
+
+.. math::
+    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
+
+where :math:`x` is a "primal" variable converging to the solution of the minimisation problem, and
+:math:`z` is a "dual" variable.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.optim.optim_iterators.OptimIterator
    deepinv.optim.optim_iterators.ADMMIteration
    deepinv.optim.optim_iterators.PGDIteration
    deepinv.optim.optim_iterators.PDIteration
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.DRSIteration
+
+
+
+`fStep` and `gStep`
+-------------------------------------
+The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
+following standard optimisation theory, is split in two steps:
+
+.. math::
+    u_{k+1} = \operatorname{step}_f(x_k, u_k, y, A, ...)\\
+    x_{k+1} = \operatorname{step}_g(x_k, u_k, y, A, ...)
+
+where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradient and/or proximal steps
+on :math:`f` and :math:`g`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
+relaxation parameters, etc...
+
+The fStep and gStep classes precisely implement these steps.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.OptimIterator.fStep
