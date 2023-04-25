@@ -21,14 +21,14 @@ torch.manual_seed(0)
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Parameters
-epochs = 10 # choose training epochs
+epochs = 10  # choose training epochs
 learning_rate = 5e-4
 train_batch_size = 32
 test_batch_size = 32
 img_size = 128
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-n_images_max = 1000 # maximal number of images used for training
-probability_mask = 0.5 # probability to mask pixel
+n_images_max = 1000  # maximal number of images used for training
+probability_mask = 0.5  # probability to mask pixel
 
 # Logging parameters
 verbose = True
@@ -37,9 +37,7 @@ wandb_vis = True  # plot curves and images in Weight&Bias
 
 # Generate a degradation operator, for inpainting here
 p = dinv.physics.Inpainting(
-    (n_channels, img_size, img_size),
-    mask = probability_mask,
-    device=dinv.device
+    (n_channels, img_size, img_size), mask=probability_mask, device=dinv.device
 )
 
 
@@ -63,11 +61,15 @@ test_transform = transforms.Compose(
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-my_dataset_name = 'demo_training_inpainting'
+my_dataset_name = "demo_training_inpainting"
 generated_datasets_path = measurement_dir / str(my_dataset_name + "0.h5")
 if not generated_datasets_path.exists():
-    train_dataset = datasets.ImageFolder(root=train_dataset_path, transform=train_transform)
-    test_dataset = datasets.ImageFolder(root=test_dataset_path, transform=test_transform)
+    train_dataset = datasets.ImageFolder(
+        root=train_dataset_path, transform=train_transform
+    )
+    test_dataset = datasets.ImageFolder(
+        root=test_dataset_path, transform=test_transform
+    )
     generated_datasets_paths = dinv.datasets.generate_dataset(
         train_dataset=train_dataset,
         test_dataset=test_dataset,
@@ -76,7 +78,7 @@ if not generated_datasets_path.exists():
         save_dir=measurement_dir,
         max_datapoints=n_images_max,
         num_workers=num_workers,
-        dataset_filename=str(my_dataset_name)
+        dataset_filename=str(my_dataset_name),
     )
 train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)

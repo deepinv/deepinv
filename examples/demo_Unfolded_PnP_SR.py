@@ -37,7 +37,7 @@ noise_level_img = 0.03
 p = dinv.physics.Downsampling(
     img_size=(n_channels, img_size, img_size),
     factor=factor,
-    mode='gauss',
+    mode="gauss",
     device=dinv.device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
@@ -56,11 +56,11 @@ if not test_dataset_path.exists():
 measurement_dir = DATA_DIR / train_dataset_name / operation
 
 # training parameters
-epochs = 10 # choose training epochs
+epochs = 10  # choose training epochs
 learning_rate = 5e-4
 train_batch_size = 32
 test_batch_size = 32
-n_images_max = 1000 # maximal number of images used for training
+n_images_max = 1000  # maximal number of images used for training
 
 # Logging parameters
 verbose = True
@@ -74,11 +74,15 @@ test_transform = transforms.Compose(
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-my_dataset_name = 'demo_unfolded_sr'
+my_dataset_name = "demo_unfolded_sr"
 generated_datasets_path = measurement_dir / str(my_dataset_name + "0.h5")
 if not generated_datasets_path.exists():
-    train_dataset = datasets.ImageFolder(root=train_dataset_path, transform=train_transform)
-    test_dataset = datasets.ImageFolder(root=test_dataset_path, transform=test_transform)
+    train_dataset = datasets.ImageFolder(
+        root=train_dataset_path, transform=train_transform
+    )
+    test_dataset = datasets.ImageFolder(
+        root=test_dataset_path, transform=test_transform
+    )
     generated_datasets_paths = dinv.datasets.generate_dataset(
         train_dataset=train_dataset,
         test_dataset=test_dataset,
@@ -87,7 +91,7 @@ if not generated_datasets_path.exists():
         save_dir=measurement_dir,
         max_datapoints=n_images_max,
         num_workers=num_workers,
-        dataset_filename=str(my_dataset_name)
+        dataset_filename=str(my_dataset_name),
     )
 train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
@@ -109,18 +113,22 @@ depth = 7
 ckpt_path = None
 
 # algorithm parameters
-max_iter = 5 # number of unfolded layers
-lamb = 1. # initialization of the regularization parameter
+max_iter = 5  # number of unfolded layers
+lamb = 1.0  # initialization of the regularization parameter
 # For both 'stepsize' and 'g_param', if initialized with a table of lenght max_iter, then a distinct stepsize/g_param value is trained for each iteration.
 # For fixed trained 'stepsize' and 'g_param' values across iterations, initialize them with a single float.
-stepsize = [1.0] * max_iter # ininitialization of the stepsizes. 
-sigma_denoiser = [0.01] * max_iter # initialization of the denoiser parameters
-params_algo = { # wrap all the restoration parameters in a 'params_algo' dictionary 
+stepsize = [1.0] * max_iter  # ininitialization of the stepsizes.
+sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
+params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
     "lambda": lamb,
 }
-trainable_params = ["lambda", "stepsize", "g_param"] # define which parameters from 'params_algo' are trainable
+trainable_params = [
+    "lambda",
+    "stepsize",
+    "g_param",
+]  # define which parameters from 'params_algo' are trainable
 
 # Set up the trainable denoising prior
 model_spec = {
@@ -136,18 +144,20 @@ model_spec = {
 }
 # If the prior dict value is initialized with a table of lenght max_iter, then a distinct model is trained for each iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
-prior = {"prox_g": Denoiser(model_spec)} # here the prior model is common for all iterations 
+prior = {
+    "prox_g": Denoiser(model_spec)
+}  # here the prior model is common for all iterations
 
 
 # Define the unfolded trainable model.
 model = Unfolded(
-    'DRS',
+    "DRS",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    verbose=verbose
+    verbose=verbose,
 )
 
 # choose optimizer and scheduler

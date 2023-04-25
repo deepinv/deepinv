@@ -216,7 +216,7 @@ def train(
 
         if wandb_vis:
             wandb.log({"training loss": loss_total})
-            
+
         progress.display(epoch + 1)
         save_model(
             epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
@@ -296,16 +296,18 @@ def test(
             with torch.no_grad():
                 if plot_metrics:
                     output_model = model(y, physics[g], x, **kwargs)
-                    if len(output_model) == 1 :
+                    if len(output_model) == 1:
                         plot_metrics = False
-                        print("plot_metrics is set to True but model does not returns metrics")
+                        print(
+                            "plot_metrics is set to True but model does not returns metrics"
+                        )
                         x1 = model(y, physics[g], **kwargs)
-                    else :
+                    else:
                         x1, metrics = output_model
                 else:
                     x1 = model(y, physics[g], **kwargs)
 
-                if hasattr(model, 'custom_init') and model.custom_init:
+                if hasattr(model, "custom_init") and model.custom_init:
                     x_init = model.custom_init(y)
                 else:
                     x_init = physics[g].A_adjoint(y)
