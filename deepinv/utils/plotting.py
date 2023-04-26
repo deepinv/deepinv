@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torchvision.utils import make_grid
+import wandb
+import math
 
 
 def torch2cpu(img):
@@ -119,3 +121,15 @@ def plot_debug(
         plt.savefig(save_dir, dpi=1200)
     if show:
         plt.show()
+
+
+def wandb_imgs(imgs, captions, n_plot):
+    wandb_imgs = []
+    for i in range(len(imgs)):
+        wandb_imgs.append(
+            wandb.Image(
+                make_grid(imgs[i][:n_plot], nrow=int(math.sqrt(n_plot)) + 1),
+                caption=captions[i],
+            )
+        )
+    return wandb_imgs
