@@ -15,6 +15,7 @@ import wandb
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import matplotlib
+import torchvision
 from pathlib import Path
 
 matplotlib.rcParams.update({"font.size": 17})
@@ -23,7 +24,6 @@ matplotlib.style.use("seaborn-darkgrid")
 use_tex = matplotlib.checkdep_usetex(True)
 if use_tex:
     plt.rcParams["text.usetex"] = True
-
 
 def train(
     model,
@@ -335,7 +335,7 @@ def test(
                         n_plot = min(n_plot_max_wandb, len(x))
                         captions = [
                             "Input",
-                            f"Init PSNR:{cur_psnr_init:.2f}",
+                            f"Init (or Linear) PSNR:{cur_psnr_init:.2f}",
                             f"Estimated PSNR:{cur_psnr:.2f}",
                             "Ground Truth",
                         ]
@@ -375,7 +375,7 @@ def test(
             f"Test PSNR: Init: {init_psnr:.2f}+-{init_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
         )
     if wandb_vis:
-        wandb.log({"Rest PSNR": test_psnr}, step=step)
+        wandb.log({"Test PSNR": test_psnr}, step=step)
 
     if wandb_vis:
         table_psnr = wandb.Table(

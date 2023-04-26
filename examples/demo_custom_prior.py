@@ -153,7 +153,6 @@ test(
     device=dinv.device,
     plot_images=plot_images,
     save_images=save_images,
-    plot_input=True,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,
