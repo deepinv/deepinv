@@ -56,7 +56,7 @@ class ADMMIteration(OptimIterator):
 
 class fStepADMM(fStep):
     r"""
-    ADMM fStep module
+    ADMM fStep module.
     """
 
     def __init__(self, **kwargs):
@@ -79,7 +79,7 @@ class fStepADMM(fStep):
 
 class gStepADMM(gStep):
     r"""
-    ADMM gStep module
+    ADMM gStep module.
     """
 
     def __init__(self, **kwargs):

@@ -51,7 +51,7 @@ class DRSIteration(OptimIterator):
 
 class fStepDRS(fStep):
     r"""
-    DRS fStep module
+    DRS fStep module.
     """
 
     def __init__(self, **kwargs):
@@ -77,7 +77,7 @@ class fStepDRS(fStep):
 
 class gStepDRS(gStep):
     r"""
-    DRS gStep module
+    DRS gStep module.
     """
 
     def __init__(self, **kwargs):

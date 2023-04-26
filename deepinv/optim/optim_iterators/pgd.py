@@ -29,7 +29,7 @@ class PGDIteration(OptimIterator):
 
 class fStepPGD(fStep):
     r"""
-    PGD fStep module
+    PGD fStep module.
     """
 
     def __init__(self, **kwargs):
@@ -55,7 +55,7 @@ class fStepPGD(fStep):
 
 class gStepPGD(gStep):
     r"""
-    PGD gStep module
+    PGD gStep module.
     """
 
     def __init__(self, **kwargs):

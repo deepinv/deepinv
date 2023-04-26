@@ -77,7 +77,7 @@ optimisation algorithms rely.
 Iterators
 -------------------------------------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \lambda*f + g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+:math:`F = \lambda f + g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
 and g is a regularizer. The fixed point iteration takes the form
 
 .. math::
@@ -86,22 +86,6 @@ and g is a regularizer. The fixed point iteration takes the form
 where :math:`x` is a "primal" variable converging to the solution of the minimisation problem, and
 :math:`z` is a "dual" variable.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.optim.optim_iterators.OptimIterator
-   deepinv.optim.optim_iterators.ADMMIteration
-   deepinv.optim.optim_iterators.PGDIteration
-   deepinv.optim.optim_iterators.PDIteration
-   deepinv.optim.optim_iterators.HQSIteration
-   deepinv.optim.optim_iterators.DRSIteration
-
-
-
-fStep and gStep
--------------------------------------
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimisation theory, is split in two steps:
 
@@ -115,23 +99,100 @@ relaxation parameters, etc...
 
 The fStep and gStep classes precisely implement these steps.
 
+
+Generic optimizers
+^^^^^^^^^^^^^^^^^^
+
+The following files contain the base classes on which optimisation algorithms rely.
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.optim.optim_iterators.OptimIterator
    deepinv.optim.optim_iterators.optim_iterator.fStep
    deepinv.optim.optim_iterators.optim_iterator.gStep
+
+
+ADMM
+^^^^
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.ADMMIteration
    deepinv.optim.optim_iterators.admm.fStepADMM
    deepinv.optim.optim_iterators.admm.gStepADMM
+
+
+Douglas-Rachford Splitting
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.drs.fStepDRS
    deepinv.optim.optim_iterators.drs.gStepDRS
-   deepinv.optim.optim_iterators.gradient_descent.fStepGD
-   deepinv.optim.optim_iterators.gradient_descent.gStepGD
-   deepinv.optim.optim_iterators.hqs.fStepHQS
-   deepinv.optim.optim_iterators.hqs.gStepHQS
+
+
+Gradient Descent
+^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.PGDIteration
    deepinv.optim.optim_iterators.pgd.fStepPGD
    deepinv.optim.optim_iterators.pgd.gStepPGD
+
+
+Proximal Gradient Descent
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.PGDIteration
+   deepinv.optim.optim_iterators.pgd.fStepPGD
+   deepinv.optim.optim_iterators.pgd.gStepPGD
+
+
+
+Half-Quadratic Splitting
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.HQSIteration
+   deepinv.optim.optim_iterators.hqs.fStepHQS
+   deepinv.optim.optim_iterators.hqs.gStepHQS
+
+
+
+Primal-Dual Splitting
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.optim_iterators.PDIteration
    deepinv.optim.optim_iterators.primal_dual.fStepPD
    deepinv.optim.optim_iterators.primal_dual.gStepPD
+
+
 

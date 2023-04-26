@@ -52,7 +52,7 @@ class GDIteration(OptimIterator):
 
 class fStepGD(fStep):
     r"""
-    GD fStep module
+    GD fStep module.
     """
 
     def __init__(self, **kwargs):
@@ -72,7 +72,7 @@ class fStepGD(fStep):
 
 class gStepGD(gStep):
     r"""
-    GD gStep module
+    GD gStep module.
     """
 
     def __init__(self, **kwargs):
