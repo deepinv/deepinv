@@ -164,7 +164,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
-        plot=False,
+        plot_images=False,
         device=dinv.device,
     )
 
@@ -180,7 +180,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         device=dinv.device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot=False,
+        plot_images=False,
         verbose=False,
     )
 
@@ -188,7 +188,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
-        plot=False,
+        plot_images=False,
         device=dinv.device,
     )
 

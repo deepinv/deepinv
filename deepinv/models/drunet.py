@@ -289,6 +289,8 @@ def conv(
             L.append(nn.LeakyReLU(negative_slope=negative_slope, inplace=False))
         elif t == "E":
             L.append(nn.ELU(inplace=False))
+        elif t == "s":
+            L.append(nn.Softplus())
         elif t == "2":
             L.append(nn.PixelShuffle(upscale_factor=2))
         elif t == "3":

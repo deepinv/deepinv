@@ -63,6 +63,8 @@ class OptimIterator(nn.Module):
         self.g_step = gStep(
             g_first=self.g_first, bregman_potential=self.bregman_potential
         )
+        self.requires_grad_g = False
+        self.requires_prox_g = False
 
     def relaxation_step(self, u, v):
         r"""
@@ -96,7 +98,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x, z), "cost": F}
 
 

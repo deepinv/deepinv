@@ -25,6 +25,10 @@ class PGDIteration(OptimIterator):
         super(PGDIteration, self).__init__(**kwargs)
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
+        if self.g_first:
+            self.requires_grad_g = True
+        else:
+            self.requires_prox_g = True
 
 
 class fStepPGD(fStep):

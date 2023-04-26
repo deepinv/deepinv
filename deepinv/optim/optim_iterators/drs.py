@@ -24,6 +24,7 @@ class DRSIteration(OptimIterator):
         super(DRSIteration, self).__init__(**kwargs)
         self.g_step = gStepDRS(**kwargs)
         self.f_step = fStepDRS(**kwargs)
+        self.requires_prox_g = True
 
     def forward(self, X, cur_prior, cur_params, y, physics):
         r"""

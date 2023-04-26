@@ -481,7 +481,6 @@ if __name__ == "__main__":
         step_size=0.01 * (sigma**2),
         clip=(-1, 2),
     )
-
     # f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,
     #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))
 

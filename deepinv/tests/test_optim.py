@@ -275,6 +275,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         thres_conv=1e-4,
         verbose=True,
         params_algo=params_algo,
+        early_stop=True,
     )
 
     x = pnp(y, physics)
@@ -291,4 +292,4 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
             imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
         )
 
-    assert pnp.has_converged()
+    assert pnp.has_converged

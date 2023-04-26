@@ -28,6 +28,7 @@ class GDIteration(OptimIterator):
         super(GDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
+        self.requires_grad_g = True
 
     def forward(self, X, cur_prior, cur_params, y, physics):
         r"""

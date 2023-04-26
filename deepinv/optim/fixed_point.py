@@ -71,20 +71,19 @@ class FixedPoint(nn.Module):
         update_prior_fn=None,
         max_iter=50,
         early_stop=True,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        verbose=False,
+        init_metrics_fn=None,
+        update_metrics_fn=None,
+        check_conv_fn=None,
     ):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
-        self.crit_conv = crit_conv
-        self.thres_conv = thres_conv
-        self.verbose = verbose
         self.early_stop = early_stop
-        self.has_converged = False
         self.update_params_fn_pre = update_params_fn_pre
         self.update_prior_fn = update_prior_fn
+        self.init_metrics_fn = init_metrics_fn
+        self.update_metrics_fn = update_metrics_fn
+        self.check_conv_fn = check_conv_fn
 
     def forward(self, X, *args, **kwargs):
         r"""
@@ -103,22 +102,16 @@ class FixedPoint(nn.Module):
         :return: the fixed-point.
         """
         X_prev = None
+        metrics = self.init_metrics_fn(X, **kwargs)
         for it in range(self.max_iter):
             cur_prior = self.update_prior_fn(it)
             cur_params = self.update_params_fn_pre(it, X, X_prev)
             X_prev = X
-            X = self.iterator(X, cur_prior, cur_params, *args, **kwargs)
-
-            has_converged = check_conv(
-                    X_prev, X, it, self.crit_conv, self.thres_conv, verbose=self.verbose
-                )
-            if (has_converged and it > 1):
-                self.has_converged = True
-                if self.early_stop:
-                    if self.verbose:
-                        print("Convergence reached at iteration ", it)
-                    break
-        return X
+            X = self.iterator(X, cur_prior, cur_params, *args)
+            metrics = self.update_metrics_fn(metrics, X_prev, X, **kwargs)
+            if self.early_stop and self.check_conv_fn(it, X_prev, X) and it > 1:
+                break
+        return X, metrics
 
 
 class AndersonAcceleration(FixedPoint):
