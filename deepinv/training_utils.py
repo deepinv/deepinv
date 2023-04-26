@@ -116,7 +116,8 @@ def train(
     loss_history = []
 
     for epoch in range(epochs):
-        eval_psnr_net.reset()
+        if eval_dataloader:
+            eval_psnr_net.reset()
         train_psnr_net.reset()
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
