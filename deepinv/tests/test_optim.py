@@ -3,6 +3,7 @@ import pytest
 
 import deepinv as dinv
 from deepinv.models.denoiser import Denoiser
+from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
@@ -160,6 +161,51 @@ def test_data_fidelity_l1():
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
+
+optim_algos = ["PGD"]
+# other algos: check constraints on the stepsize
+@pytest.mark.parametrize("name_algo", optim_algos)
+def test_optim_algo(name_algo, imsize, dummy_dataset, device):
+    # Define two points
+    x = torch.Tensor([10, 10])
+    
+    # Create a measurement operator
+    B = torch.Tensor([[2, 1], [-1, 0.5]])
+    B_forward = lambda v: B @ v
+    B_adjoint = lambda v: B.transpose(0, 1) @ v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+    y = physics(x)
+
+    data_fidelity = L2()
+
+    prior = {"prox_g": ProxL1Prior()}
+    stepsize = 1.0/physics.compute_norm(x, tol=1e-4).item()
+    reg_param = 1.0*stepsize
+    lamb = 1.5
+    max_iter = 1000
+    params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
+    optimalgo = optimbuilder(
+        name_algo,
+        prior=prior,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        thres_conv=1e-9,
+        verbose=True,
+        params_algo=params_algo,
+    )
+
+    x = optimalgo(y, physics)
+
+    grad_deepinv = data_fidelity.grad(x, y, physics)
+
+    print(x)
+
+    assert torch.allclose(lamb*grad_deepinv, -torch.ones_like(grad_deepinv))
+    assert optimalgo.has_converged()
+
+
 def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
@@ -195,13 +241,10 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.denoiser.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "PD"]
-
-
-# optim_algos = ['PGD']
+optim_algos = ["PGD", "HQS", "DRS", "ADMM", "PD", "PGD"]
 # optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
-def test_optim_algo(pnp_algo, imsize, dummy_dataset, device):
+def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset

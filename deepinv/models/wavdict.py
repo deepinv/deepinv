@@ -5,7 +5,6 @@ from .denoiser import register
 
 from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
 
-
 @register("waveletprior")
 class WaveletPrior(nn.Module):
     r"""
@@ -18,12 +17,12 @@ class WaveletPrior(nn.Module):
 
         \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_1
 
-    where :math:`\Psi` is an orthogonal wavelet transform and :math:`\lambda>0` is a hyperparameter.
+    where :math:`\Psi` is an orthonormal wavelet transform and :math:`\lambda>0` is a hyperparameter.
 
     The solution is available in closed-form, thus the denoiser is cheap to compute.
 
     :param int level: decomposition level of the wavelet transform
-    :param str wv: mother wavelet (options= TODO)
+    :param str wv: mother wavelet (follows the `PyWavelets convention <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_)
     :param str device: cpu or gpu
     """
 

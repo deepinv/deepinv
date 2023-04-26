@@ -45,7 +45,9 @@ class fStepPGD(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
-            grad = cur_params["stepsize"] * self.data_fidelity.grad(x, y, physics)
+            if cur_params["lambda"]>=2:
+                raise ValueError("lambda must be smaller than 2")
+            grad = cur_params["lambda"] * cur_params["stepsize"] * self.data_fidelity.grad(x, y, physics)
             return gradient_descent_step(x, grad, self.bregman_potential)
         else:
             return self.data_fidelity.prox(

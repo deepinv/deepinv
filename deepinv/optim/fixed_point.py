@@ -108,12 +108,11 @@ class FixedPoint(nn.Module):
             cur_params = self.update_params_fn_pre(it, X, X_prev)
             X_prev = X
             X = self.iterator(X, cur_prior, cur_params, *args, **kwargs)
-            if (
-                check_conv(
+
+            has_converged = check_conv(
                     X_prev, X, it, self.crit_conv, self.thres_conv, verbose=self.verbose
                 )
-                and it > 1
-            ):
+            if (has_converged and it > 1):
                 self.has_converged = True
                 if self.early_stop:
                     if self.verbose:
