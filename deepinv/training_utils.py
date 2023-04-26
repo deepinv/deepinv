@@ -25,6 +25,7 @@ use_tex = matplotlib.checkdep_usetex(True)
 if use_tex:
     plt.rcParams["text.usetex"] = True
 
+
 def train(
     model,
     train_dataloader,
