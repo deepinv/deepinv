@@ -147,7 +147,7 @@ class Downsampling(LinearPhysics):
             self.filter = None
 
         if self.filter is not None:
-            self.Fh = filter_fft(filter, img_size).to(device)
+            self.Fh = filter_fft(self.filter, img_size).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
 
@@ -491,30 +491,26 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image("../../datasets/set3c/images/0/butterfly.png")
+    x = torchvision.io.read_image("../../datasets/set3c/0/butterfly.png")
     x = x.unsqueeze(0).float().to(device) / 255
 
     # test on non symmetric blur kernel
-    import os
     import hdf5storage
 
-    kernels = hdf5storage.loadmat("../../kernels/Levin09.mat")["kernels"]
-    filter_np = kernels[0, 1].astype(np.float64)
+    kernel_index = 2
+    kernels = hdf5storage.loadmat("../../degradations/kernels/kernels_12.mat")[
+        "kernels"
+    ]
+    filter_np = kernels[0, kernel_index].astype(np.float64)
     filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
-    # print(filter.shape)
-    # plt.imshow(filter[0,0,:,:].cpu().numpy())
-    # plt.show()
-    # filter = filter.flip(-1).flip(-2)
-    # plt.imshow(filter[0,0,:,:].cpu().numpy())
-    # plt.show()
     blur = Downsampling(
-        factor=2, filter=filter_torch, img_size=x.shape[1:], device=device
+        factor=2, filter=filter_torch, img_size=(3, 256, 256), device=device
     )
-    y = blur.A(torch.ones_like(x))
-    z = blur.A_adjoint(y)
-    y1 = blur.prox_l2(x, y, gamma=0.1, use_fft=True)
-    y2 = blur.prox_l2(x, y, gamma=0.1, use_fft=False)
-    print(z)
+    y = blur.A(x)
+    y1 = blur.prox_l2(x, y, gamma=10, use_fft=True)
+    y2 = blur.prox_l2(x, y, gamma=10, use_fft=False)
+    print(y1)
+    print(y2)
 
     # print(physics.power_method(x))
     # x = [x, w]

@@ -19,7 +19,7 @@ from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
 
-# Setup paths for data loading, results and checkpoints.
+# Setup paths for data loading and results.
 BASE_DIR = Path(get_git_root())
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"

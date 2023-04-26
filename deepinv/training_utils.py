@@ -36,7 +36,7 @@ def train(
     optimizer=None,
     scheduler=None,
     device="cpu",
-    ckp_interval=100,
+    ckp_interval=1,
     eval_interval=1,
     save_path=".",
     verbose=False,
@@ -70,10 +70,10 @@ def train(
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param bool debug: TODO
     """
-
     save_path = Path(save_path)
 
     if wandb_vis:
+        wandb.init()
         wandb.watch(model)
 
     loss_meter = AverageMeter("loss", ":.2e")
@@ -205,8 +205,9 @@ def train(
                 wandb_vis=wandb_vis,
             )
             if verbose:
-                eval_psnr_linear.update(test_psnr)
-                eval_psnr_net.update(pinv_psnr)
+                eval_psnr_linear.update(pinv_psnr)
+                eval_psnr_net.update(test_psnr)
+                wandb.log({"Eval PSNR": test_psnr})
 
         if scheduler:
             scheduler.step()
@@ -234,6 +235,7 @@ def test(
     device=torch.device(f"cuda:0"),
     plot_images=False,
     plot_input=True,
+    plot_init=True,
     save_images=True,
     save_folder="results",
     plot_metrics=False,
@@ -259,7 +261,7 @@ def test(
     """
     save_folder = Path(save_folder)
 
-    psnr_linear = []
+    psnr_init = []
     psnr_net = []
 
     if type(physics) is not list:
@@ -294,23 +296,33 @@ def test(
             with torch.no_grad():
                 if plot_metrics:
                     output_model = model(y, physics[g], x, **kwargs)
-                    assert (
-                        len(output_model) == 2
-                    ), "plot_metrics is set to True but model does not returns metrics"
-                    x1, metrics = output_model
+                    if len(output_model) == 1:
+                        plot_metrics = False
+                        print(
+                            "plot_metrics is set to True but model does not returns metrics"
+                        )
+                        x1 = model(y, physics[g], **kwargs)
+                    else:
+                        x1, metrics = output_model
                 else:
                     x1 = model(y, physics[g], **kwargs)
 
-            cur_psnr_linear = cal_psnr(physics[g].A_adjoint(y), x)
+                if hasattr(model, "custom_init") and model.custom_init:
+                    x_init = model.custom_init(y)
+                else:
+                    x_init = physics[g].A_adjoint(y)
+
+            cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)
-            psnr_linear.append(cur_psnr_linear)
+
+            psnr_init.append(cur_psnr_init)
             psnr_net.append(cur_psnr)
             if verbose:
                 print(
-                    f"Test PSNR: Linear Inv: {cur_psnr_linear:.2f}| Model: {cur_psnr:.2f} dB. "
+                    f"Test PSNR: Init: {cur_psnr_init:.2f}| Model: {cur_psnr:.2f} dB. "
                 )
             if wandb_vis:
-                psnr_data.append([g, i, cur_psnr_linear, cur_psnr])
+                psnr_data.append([g, i, cur_psnr_init, cur_psnr])
 
             if save_images or plot_metrics:
                 save_folder_G = save_folder / ("G" + str(g))
@@ -320,12 +332,11 @@ def test(
                 if g < show_operators:
                     imgs = []
                     name_imgs = []
-                    xlin = physics[g].A_adjoint(y)
                     if len(y[0].shape) == 3:
                         imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
                         name_imgs.append("y")
-                    imgs.append(torch2cpu(xlin[0, :, :, :].unsqueeze(0)))
-                    name_imgs.append("xlin")
+                    imgs.append(torch2cpu(x_init[0, :, :, :].unsqueeze(0)))
+                    name_imgs.append("xinit")
                     imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
                     name_imgs.append("xest")
                     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
@@ -353,9 +364,9 @@ def test(
                         imgs.append(
                             wandb.Image(
                                 make_grid(
-                                    xlin[:n_plot], nrow=int(math.sqrt(n_plot)) + 1
+                                    x_init[:n_plot], nrow=int(math.sqrt(n_plot)) + 1
                                 ),
-                                caption=f"Linear PSNR:{cur_psnr_linear:.2f}",
+                                caption=f"Init PSNR:{cur_psnr_init:.2f}",
                             )
                         )
                         imgs.append(
@@ -394,17 +405,17 @@ def test(
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
-    pinv_psnr = np.mean(psnr_linear)
-    pinv_std_psnr = np.std(psnr_linear)
+    init_psnr = np.mean(psnr_init)
+    init_std_psnr = np.std(psnr_init)
     if verbose:
         print(
-            f"Test PSNR: Linear Inv: {pinv_psnr:.2f}+-{pinv_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
+            f"Test PSNR: Init: {init_psnr:.2f}+-{init_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
         )
     if wandb_vis:
         table_psnr = wandb.Table(
             data=np.array(psnr_data),
-            columns=["operator", "image", "Linear PSNR", "Estimated PSNR"],
+            columns=["operator", "image", "Init PSNR", "Estimated PSNR"],
         )
         wandb.log({"table_psnr": table_psnr})
 
-    return test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr
+    return test_psnr, test_std_psnr, init_psnr, init_std_psnr

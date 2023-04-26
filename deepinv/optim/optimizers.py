@@ -22,11 +22,11 @@ class BaseOptim(nn.Module):
         self,
         iterator,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
-        prior=None,
+        prior={},
         max_iter=50,
         crit_conv="residual",
         thres_conv=1e-5,
-        early_stop=True,
+        early_stop=False,
         F_fn=None,
         anderson_acceleration=False,
         anderson_beta=1.0,
@@ -41,6 +41,7 @@ class BaseOptim(nn.Module):
         stepsize_prox_inter=1.0,
         max_iter_prox_inter=50,
         tol_prox_inter=1e-3,
+        custom_init=None,
     ):
         super(BaseOptim, self).__init__()
 
@@ -60,6 +61,7 @@ class BaseOptim(nn.Module):
         self.has_converged = False
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
+        self.custom_init = custom_init
 
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
@@ -158,12 +160,17 @@ class BaseOptim(nn.Module):
         }
         return prior_cur
 
-    def get_init(self, cur_params, y, physics):
+    def get_init(self, prior, cur_params, y, physics):
         r""" """
-        x_init = physics.A_adjoint(y)
+        if self.custom_init:
+            x_init = self.custom_init(y)
+        else:
+            x_init = physics.A_adjoint(y)
         init_X = {
             "est": (x_init, x_init),
-            "cost": self.F_fn(x_init, cur_params, y, physics) if self.F_fn else None,
+            "cost": self.F_fn(x_init, prior, cur_params, y, physics)
+            if self.F_fn
+            else None,
         }
         return init_X
 
@@ -245,7 +252,8 @@ class BaseOptim(nn.Module):
 
     def forward(self, y, physics, x_gt=None):
         init_params = self.get_params_it(0)
-        x = self.get_init(init_params, y, physics)
+        init_pior = self.update_prior_fn(0)
+        x = self.get_init(init_pior, init_params, y, physics)
         x, metrics = self.fixed_point(x, y, physics, x_gt=x_gt)
         x = (
             self.get_primal_variable(x)
@@ -265,8 +273,15 @@ def Optim(
     g_first=False,
     beta=1.0,
     bregman_potential="L2",
+    prior={},
     **kwargs,
 ):
+    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
+    if F_fn is None and "g" in prior.keys():
+        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
+            "lambda"
+        ] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
+
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,
@@ -275,5 +290,5 @@ def Optim(
         F_fn=F_fn,
         bregman_potential=bregman_potential,
     )
-    optimizer = BaseOptim(iterator, F_fn=F_fn, **kwargs)
+    optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
     return optimizer
