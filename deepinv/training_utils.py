@@ -45,7 +45,7 @@ def train(
     save_images=False,
     plot_metrics=False,
     wandb_vis=False,
-    n_plot_max_wandb=1,
+    n_plot_max_wandb=8,
 ):
     r"""
     Trains a reconstruction network.
@@ -73,7 +73,6 @@ def train(
 
     if wandb_vis:
         wandb.init()
-        wandb.watch(model)
 
     loss_meter = AverageMeter("loss", ":.2e")
     meters = [loss_meter]
@@ -116,6 +115,8 @@ def train(
     loss_history = []
 
     for epoch in range(epochs):
+        eval_psnr_net.reset()
+        train_psnr_net.reset()
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
         for i in range(batches):
@@ -172,9 +173,9 @@ def train(
         if (
             (not unsupervised)
             and eval_dataloader
-            and ((epoch + 1) % eval_interval == 0 or epoch + 1 == epochs)
+            and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
         ):
-            test_psnr, test_std_psnr, pinv_psnr, pinv_std_psnr = test(
+            test_psnr, _, _, _ = test(
                 model,
                 eval_dataloader,
                 physics,
@@ -189,9 +190,6 @@ def train(
             )
 
             eval_psnr_net.update(test_psnr)
-
-            if wandb_vis:
-                wandb.log({"Eval PSNR": test_psnr}, step=epoch)
 
         if scheduler:
             scheduler.step()
@@ -220,8 +218,6 @@ def test(
     physics,
     device=torch.device(f"cuda:0"),
     plot_images=False,
-    plot_input=True,
-    plot_init=True,
     save_images=True,
     save_folder="results",
     plot_metrics=False,
@@ -240,7 +236,6 @@ def test(
     :param deepinv.physics.Physics physics:
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
-    :param bool plot_input: Plot the input image along with the estimated images.
     :param bool save_images: Save the images.
     :param str save_folder: Directory in which to save plotted reconstructions.
     :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
@@ -380,10 +375,13 @@ def test(
             f"Test PSNR: Init: {init_psnr:.2f}+-{init_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
         )
     if wandb_vis:
+        wandb.log({"Rest PSNR": test_psnr}, step=step)
+
+    if wandb_vis:
         table_psnr = wandb.Table(
             data=np.array(psnr_data),
             columns=["operator", "image", "Init PSNR", "Estimated PSNR"],
         )
-        wandb.log({"table_psnr": table_psnr})
+        wandb.log({"table_psnr": table_psnr}, step=step)
 
     return test_psnr, test_std_psnr, init_psnr, init_std_psnr
