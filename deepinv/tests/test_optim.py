@@ -161,14 +161,15 @@ def test_data_fidelity_l1():
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
-
 optim_algos = ["PGD"]
+
+
 # other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     # Define two points
     x = torch.Tensor([10, 10])
-    
+
     # Create a measurement operator
     B = torch.Tensor([[2, 1], [-1, 0.5]])
     B_forward = lambda v: B @ v
@@ -181,8 +182,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     prior = {"prox_g": ProxL1Prior()}
-    stepsize = 1.0/physics.compute_norm(x, tol=1e-4).item()
-    reg_param = 1.0*stepsize
+    stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
+    reg_param = 1.0 * stepsize
     lamb = 1.5
     max_iter = 1000
     params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
@@ -194,16 +195,17 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         thres_conv=1e-9,
         verbose=True,
         params_algo=params_algo,
+        early_stop=True,
     )
 
     x = optimalgo(y, physics)
 
     grad_deepinv = data_fidelity.grad(x, y, physics)
 
-    print(x)
-
-    assert torch.allclose(lamb*grad_deepinv, -torch.ones_like(grad_deepinv))
-    assert optimalgo.has_converged()
+    assert torch.allclose(
+        lamb * grad_deepinv, -torch.ones_like(grad_deepinv)
+    )  # Optimality condition
+    assert optimalgo.has_converged
 
 
 def test_denoiser(imsize, dummy_dataset, device):
@@ -242,6 +244,8 @@ def test_denoiser(imsize, dummy_dataset, device):
 
 
 optim_algos = ["PGD", "HQS", "DRS", "ADMM", "PD", "PGD"]
+
+
 # optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):

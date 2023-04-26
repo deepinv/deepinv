@@ -270,7 +270,9 @@ class BaseOptim(nn.Module):
             x_init = self.custom_init(y)
         else:
             x_init = physics.A_adjoint(y)
-        cost_init = self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
+        cost_init = (
+            self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
+        )
         init_X = {
             "est": (x_init, x_init),
             "cost": cost_init,
@@ -296,6 +298,13 @@ class BaseOptim(nn.Module):
         return X["est"][1]
 
     def init_metrics_fn(self, X_init, x_gt=None):
+        r"""
+        Initialises the metrics functions.
+
+        :param dict X_init: dictionary containing the primal and dual initial iterates.
+        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
+        :return dict: A dictionary containing the metrics.
+        """
         if self.return_metrics:
             if not self.return_dual:
                 psnr = [cal_psnr(self.get_primal_variable(X_init), x_gt)]
@@ -308,6 +317,15 @@ class BaseOptim(nn.Module):
             return init
 
     def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
+        r"""
+        Updates the metrics functions.
+
+        :param dict metrics: dictionary containing the metrics.
+        :param dict X_prev: dictionary containing the primal and dual previous iterates.
+        :param dict X: dictionary containing the current primal and dual iterates.
+        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
+        :return dict: a dictionary containing the updated metrics.
+        """
         if metrics is not None:
             x_prev = (
                 self.get_primal_variable(X_prev)
@@ -337,6 +355,14 @@ class BaseOptim(nn.Module):
         return metrics
 
     def check_conv_fn(self, it, X_prev, X):
+        r"""
+        Checks the convergence of the algorithm.
+
+        :param int it: iteration number.
+        :param dict X_prev: dictionary containing the primal and dual previous iterates.
+        :param dict X: dictionary containing the current primal and dual iterates.
+        :return bool: `True` if the algorithm has converged, `False` otherwise.
+        """
         if self.crit_conv == "residual":
             x_prev = (
                 self.get_primal_variable(X_prev)
@@ -416,7 +442,9 @@ def optimbuilder(
 
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and "g" in prior.keys():
-        F_fn = lambda x, prior, cur_params, y, physics: cur_params["lambda"] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
+        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
+            "lambda"
+        ] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
 
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(

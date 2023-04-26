@@ -5,6 +5,7 @@ from .denoiser import register
 
 from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
 
+
 @register("waveletprior")
 class WaveletPrior(nn.Module):
     r"""

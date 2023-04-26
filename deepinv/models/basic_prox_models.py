@@ -3,6 +3,7 @@ from torch import nn
 
 from .denoiser import register
 
+
 @register("prox_l1")
 class ProxL1Prior(nn.Module):
     r"""
@@ -30,4 +31,3 @@ class ProxL1Prior(nn.Module):
 
     def forward(self, x, sigma):
         return self.prox_l1(x, sigma)
-    
