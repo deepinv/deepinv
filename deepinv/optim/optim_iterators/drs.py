@@ -19,6 +19,7 @@ class DRSIteration(OptimIterator):
         \end{aligned}
         \end{equation*}
     """
+
     def __init__(self, **kwargs):
         super(DRSIteration, self).__init__(**kwargs)
         self.g_step = gStepDRS(**kwargs)
@@ -49,6 +50,10 @@ class DRSIteration(OptimIterator):
 
 
 class fStepDRS(fStep):
+    r"""
+    DRS fStep module
+    """
+
     def __init__(self, **kwargs):
         super(fStepDRS, self).__init__(**kwargs)
 
@@ -61,12 +66,20 @@ class fStepDRS(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
-        return 2 * self.data_fidelity.prox(
+        return (
+            2
+            * self.data_fidelity.prox(
                 x, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
-                ) - x
+            )
+            - x
+        )
 
 
 class gStepDRS(gStep):
+    r"""
+    DRS gStep module
+    """
+
     def __init__(self, **kwargs):
         super(gStepDRS, self).__init__(**kwargs)
 

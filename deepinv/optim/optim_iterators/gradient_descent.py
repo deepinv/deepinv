@@ -23,6 +23,7 @@ class GDIteration(OptimIterator):
     where :math:`\phi` is the Bregman potential of :math:`g`.
 
     """
+
     def __init__(self, **kwargs):
         super(GDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
@@ -50,6 +51,10 @@ class GDIteration(OptimIterator):
 
 
 class fStepGD(fStep):
+    r"""
+    GD fStep module
+    """
+
     def __init__(self, **kwargs):
         super(fStepGD, self).__init__(**kwargs)
 
@@ -66,6 +71,10 @@ class fStepGD(fStep):
 
 
 class gStepGD(gStep):
+    r"""
+    GD gStep module
+    """
+
     def __init__(self, **kwargs):
         super(gStepGD, self).__init__(**kwargs)
 

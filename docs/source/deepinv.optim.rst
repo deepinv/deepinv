@@ -100,14 +100,14 @@ where :math:`x` is a "primal" variable converging to the solution of the minimis
 
 
 
-`fStep` and `gStep`
+fStep and gStep
 -------------------------------------
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimisation theory, is split in two steps:
 
 .. math::
-    u_{k+1} = \operatorname{step}_f(x_k, u_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_g(x_k, u_k, y, A, ...)
+    z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
+    x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)
 
 where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradient and/or proximal steps
 on :math:`f` and :math:`g`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
@@ -120,4 +120,18 @@ The fStep and gStep classes precisely implement these steps.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.optim_iterators.OptimIterator.fStep
+   deepinv.optim.optim_iterators.optim_iterator.fStep
+   deepinv.optim.optim_iterators.optim_iterator.gStep
+   deepinv.optim.optim_iterators.admm.fStepADMM
+   deepinv.optim.optim_iterators.admm.gStepADMM
+   deepinv.optim.optim_iterators.drs.fStepDRS
+   deepinv.optim.optim_iterators.drs.gStepDRS
+   deepinv.optim.optim_iterators.gradient_descent.fStepGD
+   deepinv.optim.optim_iterators.gradient_descent.gStepGD
+   deepinv.optim.optim_iterators.hqs.fStepHQS
+   deepinv.optim.optim_iterators.hqs.gStepHQS
+   deepinv.optim.optim_iterators.pgd.fStepPGD
+   deepinv.optim.optim_iterators.pgd.gStepPGD
+   deepinv.optim.optim_iterators.primal_dual.fStepPD
+   deepinv.optim.optim_iterators.primal_dual.gStepPD
+

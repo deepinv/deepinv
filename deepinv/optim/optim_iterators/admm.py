@@ -20,6 +20,7 @@ class ADMMIteration(OptimIterator):
         \end{equation*}
 
     """
+
     def __init__(self, **kwargs):
         super(ADMMIteration, self).__init__(**kwargs)
         self.g_step = gStepADMM(**kwargs)
@@ -38,7 +39,9 @@ class ADMMIteration(OptimIterator):
         """
         x, z = X["est"]
 
-        if z.shape != x.shape:  # In ADMM, the "dual" variable u is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
+        if (
+            z.shape != x.shape
+        ):  # In ADMM, the "dual" variable u is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
 
         z_prev = z.clone()
@@ -52,6 +55,10 @@ class ADMMIteration(OptimIterator):
 
 
 class fStepADMM(fStep):
+    r"""
+    ADMM fStep module
+    """
+
     def __init__(self, **kwargs):
         super(fStepADMM, self).__init__(**kwargs)
 
@@ -71,6 +78,10 @@ class fStepADMM(fStep):
 
 
 class gStepADMM(gStep):
+    r"""
+    ADMM gStep module
+    """
+
     def __init__(self, **kwargs):
         super(gStepADMM, self).__init__(**kwargs)
 

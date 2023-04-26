@@ -19,6 +19,7 @@ class HQSIteration(OptimIterator):
 
 
     """
+
     def __init__(self, **kwargs):
         super(HQSIteration, self).__init__(**kwargs)
         self.g_step = gStepHQS(**kwargs)
@@ -26,6 +27,10 @@ class HQSIteration(OptimIterator):
 
 
 class fStepHQS(fStep):
+    r"""
+    HQS fStep module
+    """
+
     def __init__(self, **kwargs):
         super(fStepHQS, self).__init__(**kwargs)
 
@@ -44,6 +49,10 @@ class fStepHQS(fStep):
 
 
 class gStepHQS(gStep):
+    r"""
+    HQS gStep module
+    """
+
     def __init__(self, **kwargs):
         super(gStepHQS, self).__init__(**kwargs)
 

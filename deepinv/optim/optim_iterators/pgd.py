@@ -20,6 +20,7 @@ class PGDIteration(OptimIterator):
 
 
     """
+
     def __init__(self, **kwargs):
         super(PGDIteration, self).__init__(**kwargs)
         self.g_step = gStepPGD(**kwargs)
@@ -27,12 +28,16 @@ class PGDIteration(OptimIterator):
 
 
 class fStepPGD(fStep):
+    r"""
+    PGD fStep module
+    """
+
     def __init__(self, **kwargs):
         super(fStepPGD, self).__init__(**kwargs)
 
     def forward(self, x, cur_params, y, physics):
         r"""
-        Single iteration step on the data-fidelity term :math:`f`.
+        Single PGD iteration step on the data-fidelity term :math:`f`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
@@ -49,6 +54,10 @@ class fStepPGD(fStep):
 
 
 class gStepPGD(gStep):
+    r"""
+    PGD gStep module
+    """
+
     def __init__(self, **kwargs):
         super(gStepPGD, self).__init__(**kwargs)
 
@@ -63,5 +72,7 @@ class gStepPGD(gStep):
         if not self.g_first:
             return cur_prior["prox_g"](x, cur_params["g_param"])
         else:
-            grad = cur_params["stepsize"] * cur_prior["grad_g"](x, cur_params["g_param"])
+            grad = cur_params["stepsize"] * cur_prior["grad_g"](
+                x, cur_params["g_param"]
+            )
             return gradient_descent_step(x, grad, self.bregman_potential)

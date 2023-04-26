@@ -22,6 +22,7 @@ class PDIteration(OptimIterator):
 
     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
     """
+
     def __init__(self, **kwargs):
         super(PDIteration, self).__init__(**kwargs)
         self.g_step = gStepPD(**kwargs)
@@ -49,12 +50,16 @@ class PDIteration(OptimIterator):
 
 
 class fStepPD(fStep):
+    r"""
+    PD fStep module
+    """
+
     def __init__(self, **kwargs):
         super(fStepPD, self).__init__(**kwargs)
 
     def forward(self, Ax_cur, u, y, cur_params):
         r"""
-        Single iteration step on the data-fidelity term :math:`f`.
+        Single PD iteration step on the data-fidelity term :math:`f`.
 
         :param torch.Tensor Ax_cur: Current iterate :math:`2Ax_{k+1}-x_k`
         :param torch.Tensor u: Current iterate :math:`u_k`.
@@ -68,6 +73,10 @@ class fStepPD(fStep):
 
 
 class gStepPD(gStep):
+    r"""
+    PD gStep module
+    """
+
     def __init__(self, **kwargs):
         super(gStepPD, self).__init__(**kwargs)
 

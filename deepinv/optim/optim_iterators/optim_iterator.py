@@ -40,6 +40,7 @@ class OptimIterator(nn.Module):
     :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
     :param str bregman_potential: Bregman potential to be used for the step on g. Default: "L2".
     """
+
     def __init__(
         self,
         data_fidelity=L2(),
@@ -108,6 +109,7 @@ class fStep(nn.Module):
     :param str bregman_potential: Bregman potential to be used for the step on g. Default: "L2".
     :param kwargs: Additional keyword arguments.
     """
+
     def __init__(
         self, data_fidelity=L2(), g_first=False, bregman_potential="L2", **kwargs
     ):
@@ -136,6 +138,7 @@ class gStep(nn.Module):
     :param str bregman_potential: Bregman potential to be used for the step on g. Default: "L2".
     :param kwargs: Additional keyword arguments.
     """
+
     def __init__(self, g_first=False, bregman_potential="L2", **kwargs):
         super(gStep, self).__init__()
         self.g_first = g_first
