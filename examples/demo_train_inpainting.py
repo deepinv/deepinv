@@ -4,7 +4,7 @@ import torch
 from pathlib import Path
 from torchvision import datasets, transforms
 from deepinv.utils.demo import get_git_root, download_dataset
-from deepinv.training_utils import train
+from deepinv.training_utils import train, test
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(get_git_root())
@@ -21,7 +21,7 @@ torch.manual_seed(0)
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Parameters
-epochs = 10  # choose training epochs
+epochs = 4  # choose training epochs
 learning_rate = 5e-4
 train_batch_size = 32
 test_batch_size = 32
@@ -120,4 +120,7 @@ train(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
+    log_interval=2,
+    eval_interval=2,
+    ckp_interval=2,
 )

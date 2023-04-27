@@ -170,8 +170,8 @@ class BaseOptim(nn.Module):
                 self.prior["prox_g"] = []
                 for grad_g in self.prior["grad_g"]:
 
-                    def prox_g(x, *args):
-                        grad = lambda y: grad_g(y, *args) + (1 / 2) * (y - x)
+                    def prox_g(x, *args, gamma=1):
+                        grad = lambda y: gamma * grad_g(y, *args) + (1 / 2) * (y - x)
                         return gradient_descent(
                             grad,
                             x,
