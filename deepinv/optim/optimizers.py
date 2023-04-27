@@ -10,12 +10,86 @@ from deepinv.optim.utils import gradient_descent
 
 class BaseOptim(nn.Module):
     r"""
-    Class for optimisation algorithms that iterates the iterator.
+    Class for optimization algorithms iterating the fixed-point iterator.
 
-    iterator : ...
+    Module solving the problem
 
-    :param deepinv.optim.iterator iterator: description
+    .. math::
+        \begin{equation}
+        \underset{x}{\arg\min} \quad \datafid{\forw{x}}{y} + \reg{x}
+        \end{equation}
 
+
+    where the first term :math:`f:\yset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity
+    (:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization, and
+    :math:`A:\xset\mapsto \yset` is the forward operator (see :meth:`deepinv.physics.Physics`).
+
+    Optimization algorithms for minimising the problem above can be written as fixed point algorithms,
+    i.e. for :math:`k=1,2,...`
+
+    .. math::
+        \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...)
+
+
+    where :math:`x_k` is a primal variable converging to the solution of the minimisation problem, and
+    :math:`u_k` is a dual variable.
+
+
+    ::
+
+            # Generate the data
+            x = torch.ones(1, 1, 1, 3)
+            A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
+            A_forward = lambda v: A @ v
+            A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+            # Define the physics model associated to this operator and the data
+            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+            y = physics.A(x)
+
+            # Select the data fidelity term
+            data_fidelity = L2()
+
+            # Specify the prior and the algorithm parameters
+            model_spec = {"name": "waveletprior", "args": {"wv": "db8", "level": 3, "device": device}}
+            prior = {"prox_g": Denoiser(model_spec)}
+            params_algo = {"stepsize": 0.1, "g_param": 1.0}
+
+            # Choose the iterator associated to a specific algorithm
+            iterator = PGDIteration(data_fidelity=data_fidelity)
+
+            # Iterate the iterator
+            max_iter = 50
+            for it in range(max_iter):
+                X = iterator(X, params)
+
+            # Return the solution
+            sol = X["est"]
+            cost = X["cost"]
+
+
+
+
+    :param deepinv.optim.iterator iterator: Fixed-point iterator of the class of the algorithm of interest.
+    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
+                             e.g. the stepsize, regularisation parameters, denoising power...
+    :param dict prior: dictionary containing the regularization prior under the form of a denoiser, proximity operator,
+                       gradient, or simply an auto-differentiable function. Default: {}
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
+                          of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
+    :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
+    :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: `True`.
+    :param function F_fn: cost function to be minimised by the optimization algorithm. Default: `None`.
+    :param bool anderson_acceleration: whether to use anderson acceleration or not. Default: `False`.
+    :param float anderson_beta: :math:`\beta` parameter in the anderson accleration. Default: `1.0`.
+    :param int anderson_history_size: size of the history in anderson acceleration. Default: `5`.
+    :param bool verbose: whether to print relevant information of the algorithm during its run,
+                         such as convergence criterion at each iterate. Default: `False`.
+    :param bool return_dual: whether to return the dual variable or not at the end of the algorithm. Default: `False`.
+    :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
+    :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
+    :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
     """
 
     def __init__(
@@ -136,6 +210,15 @@ class BaseOptim(nn.Module):
             )
 
     def update_params_fn_pre(self, it, X, X_prev):
+        r"""
+        Selects the parameters of the fixed-point algorithm before each iteration, with potential re-computation in the
+        case of backtracking.
+
+        :param int it: iteration number.
+        :param dict X: current iterate.
+        :param dict X_prev: previous iterate.
+        :return: a dictionary containing the parameters of iteration `it`.
+        """
         if self.backtracking and X_prev is not None:
             x_prev, x = X_prev["est"][0], X["est"][0]
             F_prev, F = X_prev["cost"], X["cost"]
@@ -147,6 +230,12 @@ class BaseOptim(nn.Module):
         return cur_params
 
     def get_params_it(self, it):
+        r"""
+        Selects the appropriate algorithm parameters if the parameters depend on the iteration number.
+
+        :param int it: iteration number.
+        :return: a dictionary containing the parameters of iteration `it`.
+        """
         cur_params_dict = {
             key: value[it] if len(value) > 1 else value[0]
             for key, value in zip(self.params_algo.keys(), self.params_algo.values())
@@ -154,6 +243,12 @@ class BaseOptim(nn.Module):
         return cur_params_dict
 
     def update_prior_fn(self, it):
+        r"""
+        Selects the appropriate prior if the prior varies with the iteration number.
+
+        :param int it: iteration number.
+        :return: a dictionary containing the prior of iteration `it`.
+        """
         prior_cur = {
             key: value[it] if len(value) > 1 else value[0]
             for key, value in zip(self.prior.keys(), self.prior.values())
@@ -161,26 +256,55 @@ class BaseOptim(nn.Module):
         return prior_cur
 
     def get_init(self, prior, cur_params, y, physics):
-        r""" """
+        r"""
+        Initialises the parameters of the algorithm.
+
+        By default, the first (primal, dual) iterate of the algorithm is chosen as :math:`(A^*(y), y)`.
+
+        :param dict cur_params: dictionary containing the parameters related to the optimisation problem.
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics: physics of the problem.
+        :return: a dictionary containing: `"est"`, the primal-dual initialised variables; `"cost"`: the initial cost function.
+        """
         if self.custom_init:
             x_init = self.custom_init(y)
         else:
             x_init = physics.A_adjoint(y)
+        cost_init = (
+            self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
+        )
         init_X = {
             "est": (x_init, x_init),
-            "cost": self.F_fn(x_init, prior, cur_params, y, physics)
-            if self.F_fn
-            else None,
+            "cost": cost_init,
         }
         return init_X
 
     def get_primal_variable(self, X):
+        r"""
+        Returns the primal variable.
+
+        :param dict X: dictionary containing the primal and dual iterates.
+        :return: the primal variable.
+        """
         return X["est"][0]
 
     def get_dual_variable(self, X):
+        r"""
+        Returns the dual variable.
+
+        :param dict X: dictionary containing the primal and dual iterates.
+        :return torch.Tensor X["est"][1]: the dual variable.
+        """
         return X["est"][1]
 
     def init_metrics_fn(self, X_init, x_gt=None):
+        r"""
+        Initialises the metrics functions.
+
+        :param dict X_init: dictionary containing the primal and dual initial iterates.
+        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
+        :return dict: A dictionary containing the metrics.
+        """
         if self.return_metrics:
             if not self.return_dual:
                 psnr = [cal_psnr(self.get_primal_variable(X_init), x_gt)]
@@ -193,6 +317,15 @@ class BaseOptim(nn.Module):
             return init
 
     def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
+        r"""
+        Updates the metrics functions.
+
+        :param dict metrics: dictionary containing the metrics.
+        :param dict X_prev: dictionary containing the primal and dual previous iterates.
+        :param dict X: dictionary containing the current primal and dual iterates.
+        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
+        :return dict: a dictionary containing the updated metrics.
+        """
         if metrics is not None:
             x_prev = (
                 self.get_primal_variable(X_prev)
@@ -222,6 +355,14 @@ class BaseOptim(nn.Module):
         return metrics
 
     def check_conv_fn(self, it, X_prev, X):
+        r"""
+        Checks the convergence of the algorithm.
+
+        :param int it: iteration number.
+        :param dict X_prev: dictionary containing the primal and dual previous iterates.
+        :param dict X: dictionary containing the current primal and dual iterates.
+        :return bool: `True` if the algorithm has converged, `False` otherwise.
+        """
         if self.crit_conv == "residual":
             x_prev = (
                 self.get_primal_variable(X_prev)
@@ -251,6 +392,12 @@ class BaseOptim(nn.Module):
             return False
 
     def forward(self, y, physics, x_gt=None):
+        r"""
+        Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
+        """
         init_params = self.get_params_it(0)
         init_pior = self.update_prior_fn(0)
         x = self.get_init(init_pior, init_params, y, physics)
@@ -266,7 +413,7 @@ class BaseOptim(nn.Module):
             return x
 
 
-def Optim(
+def optimbuilder(
     algo_name,
     data_fidelity=L2(),
     F_fn=None,
@@ -276,6 +423,23 @@ def Optim(
     prior={},
     **kwargs,
 ):
+    r"""
+    Function building the appropriate Optimizer.
+
+    :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.
+    :param dict params_algo: dictionary containing the algorithm's relevant parameter.
+    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
+    :param F_fn: cost function. default: None.
+    :param dict prior: dictionary containing the regularisation prior under the form of a denoiser, proximity operator,
+                       gradient, or simply an auto-differentiable function.
+    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+    :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
+    :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
+    :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
+    :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
+    :param str bregman_potential: default: `"L2"`
+    """
+
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and "g" in prior.keys():
         F_fn = lambda x, prior, cur_params, y, physics: cur_params[
