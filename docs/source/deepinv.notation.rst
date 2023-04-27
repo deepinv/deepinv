@@ -19,6 +19,8 @@ The documentation of ``deepinv`` uses a unified mathematical notation that is su
      - Distribution of measurements :math:`y`.
    * - :math:`\forw{x}`
      - Deterministic mapping that captures the physics of the imaging system.
+   * - :math:`A^\top\colon\yset\to\xset`
+     - Adjoint of the measurement operator.
    * - :math:`\noise{y}`
      - Stochastic mapping adding noise to measurements.
    * - :math:`\inverse{y}`

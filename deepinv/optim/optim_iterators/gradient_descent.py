@@ -3,17 +3,43 @@ from .utils import gradient_descent_step
 
 
 class GDIteration(OptimIterator):
+    r"""
+    Single iteration of Gradient Descent.
+
+    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`\lambda f(x) + g(x)`.
+
+    The iteration is given by
+
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \phi}(x_k-\gamma v_{k})
+        \end{aligned}
+        \end{equation*}
+
+
+    where :math:`\phi` is the Bregman potential of :math:`g`.
+
+    """
+
     def __init__(self, **kwargs):
-        r"""
-        TODO
-        """
         super(GDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
         self.requires_grad_g = True
 
     def forward(self, X, cur_prior, cur_params, y, physics):
-        """ """
+        r"""
+        Single gradient descent iteration on the objective :math:`\lambda f(x) + g(x)`.
+
+        :param dict X: Dictionary containing the current iterate :math:`x_k`.
+        :param dict cur_prior: Dictionary containing the current prior.
+        :param dict cur_params: Dictionary containing the current parameters.
+        :param torch.Tensor y: Input data.
+        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
+        """
         x_prev = X["est"][0]
         grad = cur_params["stepsize"] * (
             self.g_step(x_prev, cur_prior, cur_params)
@@ -26,22 +52,39 @@ class GDIteration(OptimIterator):
 
 
 class fStepGD(fStep):
+    r"""
+    GD fStep module.
+    """
+
     def __init__(self, **kwargs):
-        """
-        TODO: add doc
-        """
         super(fStepGD, self).__init__(**kwargs)
 
     def forward(self, x, cur_params, y, physics):
+        r"""
+        Single gradient descent iteration on the data fit term :math:`f`.
+
+        :param torch.Tensor x: Dictionary containing the current iterate :math:`x_k`.
+        :param dict cur_params: Dictionary containing the current parameters (key `"lambda"`).
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        """
         return cur_params["lambda"] * self.data_fidelity.grad(x, y, physics)
 
 
 class gStepGD(gStep):
+    r"""
+    GD gStep module.
+    """
+
     def __init__(self, **kwargs):
-        """
-        TODO: add doc
-        """
         super(gStepGD, self).__init__(**kwargs)
 
-    def forward(self, x, prior, cur_params):
-        return prior["grad_g"](x, cur_params["g_param"])
+    def forward(self, x, cur_prior, cur_params):
+        r"""
+        Single iteration step on the prior term :math:`g`.
+
+        :param torch.Tensor x: Current iterate :math:`x_k`.
+        :param dict cur_prior: Dictionary containing the current prior.
+        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
+        """
+        return cur_prior["grad_g"](x, cur_params["g_param"])

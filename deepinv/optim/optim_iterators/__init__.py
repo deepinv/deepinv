@@ -1,3 +1,4 @@
+from .optim_iterator import OptimIterator
 from .admm import ADMMIteration
 from .pgd import PGDIteration
 from .primal_dual import PDIteration
