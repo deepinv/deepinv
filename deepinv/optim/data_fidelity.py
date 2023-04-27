@@ -51,7 +51,7 @@ class DataFidelity(nn.Module):
         :param torch.tensor y: Data :math:`y`.
         :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}`.
         """
-        return self._f(x)
+        return self._f(u)
 
     def grad_f(self, u, y):
         r"""
@@ -481,7 +481,7 @@ class L1(DataFidelity):
         aux = torch.sign(d) * torch.maximum(d.abs() - gamma, torch.tensor([0]))
         return aux + y
 
-    def prox(self, x, y, physics, stepsize=None, crit_conv=1e-5, max_iter=100):
+    def prox(self, x, y, physics, gamma, stepsize=None, crit_conv=1e-5, max_iter=100):
         r"""
         Proximal operator of the :math:`\ell_1` norm composed with A, i.e.
 
@@ -502,7 +502,6 @@ class L1(DataFidelity):
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
-        radius = self.radius if radius is None else radius
         norm_AtA = physics.compute_norm(x)
         stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
         u = x.clone()
@@ -511,7 +510,7 @@ class L1(DataFidelity):
 
             t = x - physics.A_adjoint(u)
             u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, radius=radius)
+            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, gamma / stepsize)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
             print(rel_crit)
             if rel_crit < crit_conv and it > 2:
