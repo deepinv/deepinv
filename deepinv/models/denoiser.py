@@ -31,15 +31,28 @@ def make(model_spec, args=None):
 
 class Denoiser(nn.Module):
     r"""
-    Base denoiser class.
+    Builds a (possibly pretrained) denoiser.
 
-    Plug-and-Play (PnP) / Regularization bu Denoising (RED) algorithms for Image Restoration.
+    The input should be a dictionary containing the inputs to a denoiser in :ref:`denoiser-docs`.
 
-    Consists in replacing prox_g or grad_g with a denoiser.
+    For example:
 
-    TODO
+    ::
 
-    :param model_spec: a dictionary must contain the necessary information for generating the model.
+        # Load the DnCNN denoiser with weights trained using the Lipschitz constraints.
+        model_spec = {
+        "name": "dncnn",
+        "args": {
+            "device": dinv.device,
+            "in_channels": 3,
+            "out_channels": 3,
+            "pretrained": "download_lipschitz",
+            },
+        }
+
+        model = Denoiser(model_spec)
+
+    :param dict model_spec: a dictionary containing the necessary information for generating the model.
     """
 
     def __init__(self, model_spec=None):
@@ -53,9 +66,7 @@ class Denoiser(nn.Module):
 
 class ScoreDenoiser(Denoiser):
     r"""
-    Approximates the score of a distribution using an MMSE denoiser.
-
-    TODO : talk about sigma_normalize paramter with RED and alpha relaxation parameter.
+    Approximates the score of a distribution using a denoiser.
 
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 
@@ -66,6 +77,11 @@ class ScoreDenoiser(Denoiser):
     where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
     :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
     which is typically set to a low value.
+
+    If ``sigma_normalize=False``, the score is computed without normalization, i.e.,
+    :math:`x-D(x,\sigma)`. This can be useful when using this class in the context of
+    `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>` which doesn't require the normalization.
+
 
     .. note::
 
@@ -85,6 +101,12 @@ class ScoreDenoiser(Denoiser):
         self.sigma_normalize = sigma_normalize
 
     def forward(self, x, sigma):
+        r"""
+        Applies the denoiser to the input signal.
+
+        :param torch.Tensor x: the input tensor.
+        :param float sigma: the noise level.
+        """
         if self.sigma_normalize:
             return (1 / sigma**2) * (x - self.denoiser(x, sigma))
         else:
