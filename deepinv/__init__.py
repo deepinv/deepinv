@@ -48,9 +48,13 @@ from deepinv import sampling
 
 __all__ += ["sampling"]
 
-from deepinv.loss import metric as metric
+from deepinv.loss import metric
 
 __all__ += ["metric"]
+
+__all__ += ["unfolded"]
+
+from deepinv import unfolded
 
 from deepinv.training_utils import train, test
 
