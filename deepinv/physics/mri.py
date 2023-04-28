@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.fft
 from typing import List, Optional
@@ -28,8 +29,9 @@ class MRI(DecomposablePhysics):
 
     def __init__(self, mask=None, device="cpu", **kwargs):
         super().__init__(**kwargs)
+        mask = mask.to(device).unsqueeze(0).unsqueeze(0)
         self.mask = torch.nn.Parameter(
-            mask.to(device).unsqueeze(0).unsqueeze(0), requires_grad=False
+            torch.cat([mask, mask], dim=1), requires_grad=False
         )
         self.device = device
 
@@ -38,21 +40,24 @@ class MRI(DecomposablePhysics):
         return y
 
     def U(self, x):
-        return x
+        return x[:, self.mask.squeeze(0) > 0]
 
     def U_adjoint(self, x):
-        return x
+        _, c, h, w = self.mask.shape
+        out = torch.zeros((x.shape[0], c, h, w), device=x.device)
+        out[:, self.mask.squeeze(0) > 0] = x
+        return out
 
     def V(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         x = x.permute(0, 2, 3, 1)
         return ifft2c_new(x).permute(0, 3, 1, 2)
 
 
+#
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
     r"""
     Apply centered 2 dimensional Fast Fourier Transform.
-
     :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
         dimensions -2 & -1 are spatial dimensions and dimension -3 has size
         2. All other dimensions are assumed to be batch dimensions.
@@ -188,12 +193,6 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
     return roll(x, shift, dim)
 
 
-def apply_mask(data, mask):
-    # masked_data = data * mask + 0.0  # the + 0.0 removes the sign of the zeros
-    masked_data = torch.einsum("hw, nhwc->nhwc", mask, data) + 0.0
-    return masked_data
-
-
 if __name__ == "__main__":
     # deepinv test
     from deepinv.tests.test_physics import (
@@ -205,42 +204,51 @@ if __name__ == "__main__":
     import deepinv as dinv
     from fastmri.data import subsample
 
-    imsize = (250, 320)
+    imsize = (25, 32)
     # Create a mask function
     mask_func = subsample.RandomMaskFunc(center_fractions=[0.08], accelerations=[4])
     m = mask_func.sample_mask((imsize[1], imsize[0]), offset=None)
 
-    mask = torch.ones((imsize[0], 1)) * (m[0] + m[1]).permute(1, 0)
-
+    # mask = torch.ones((imsize[0], 1)) * (m[0] + m[1]).permute(1, 0)
+    mask = torch.ones(imsize)
     mask[mask > 1] = 1
 
-    physics = MRI(mask=mask, device=dinv.device)
-    physics.noise_model = dinv.physics.GaussianNoise(0.1)
+    sigma = 0.1
+    #physics = MRI(mask=mask, device=dinv.device)
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
 
     # choose a reconstruction architecture
     backbone = dinv.models.MedianFilter()
+
+    class denoiser(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+
+        def forward(self,x, sigma=None):
+            return x
+
     f = dinv.models.ArtifactRemoval(backbone)
 
-    # choose training losses
-    loss = dinv.loss.SureGaussianLoss(0.1)
 
-    batch_size = 4
+    batch_size = 1
 
-    for i in range(10):
-        x = torch.randn((batch_size, 2) + imsize, device=dinv.device) * 100
+    for tau in np.logspace(-5, 3, 1):
+        x = torch.ones((batch_size, 2) + imsize, device=dinv.device)
         y = physics(x)
 
+        # choose training losses
+        loss = dinv.loss.SureGaussianLoss(sigma, tau=tau)
         x_net = f(y, physics)
-        mse = dinv.metric.mse()(x, x_net)
+        mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
         sure = loss(y, x_net, physics, f)
 
+        print(f'tau:{tau:.2e}  mse: {mse:.2e}, sure: {sure:.2e}')
         rel_error = (sure - mse).abs() / mse
-        print(rel_error)
+        print(f'rel_error: {rel_error:.2e}')
 
-    x = torch.randn((1, 2) + imsize, device=dinv.device)
-
-    y = physics(x)
-    dinv.utils.plot_batch([y.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
+    d = physics.A_adjoint(y)
+    dinv.utils.plot_batch([d.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
 
     print("adjoint test....")
     test_operators_adjointness(
