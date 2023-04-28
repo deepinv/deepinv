@@ -90,6 +90,7 @@ class BaseOptim(nn.Module):
     :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
+    :param function custom_init:  intializes the algorithm with `custom_init(y)`. If `None` (default value) algorithm is initilialized with :math:`A^Ty`. Default: `None`.
     """
 
     def __init__(
@@ -229,7 +230,7 @@ class BaseOptim(nn.Module):
 
     def update_params_fn(self, it):
         r"""
-        Selects the appropriate algorithm parameters if the parameters depend on the iteration number.
+        For each parameter `params_algo`, selects the parameter value for iteration `it` (if this parameter depends on the iteration number).
 
         :param int it: iteration number.
         :return: a dictionary containing the parameters of iteration `it`.
@@ -241,9 +242,12 @@ class BaseOptim(nn.Module):
         return cur_params_dict
 
     def init_params_fn(self):
-        self.params_algo = (
-            self.init_params_algo.copy()
-        )  # reset params_algo to its intialization.
+        r"""
+        Get initialization parameters and re-initialized the parameters dictionary to its initial value. This is necessary if the parameters have been updated during optimizaiton, for example via backtracking.
+
+        :return: a dictionary containing the parameters of iteration `0`.
+        """
+        self.params_algo = self.init_params_algo.copy()
         init_params = {
             key: value[0]
             for key, value in zip(
@@ -254,7 +258,7 @@ class BaseOptim(nn.Module):
 
     def update_prior_fn(self, it):
         r"""
-        Selects the appropriate prior if the prior varies with the iteration number.
+        For each prior function in `prior`, selects the prior value for iteration `it` (if this prior depends on the iteration number).
 
         :param int it: iteration number.
         :return: a dictionary containing the prior of iteration `it`.
@@ -266,6 +270,11 @@ class BaseOptim(nn.Module):
         return prior_cur
 
     def init_prior_fn(self):
+        r"""
+        Get initialization prior.
+
+        :return: a dictionary containing the parameters of iteration `0`.
+        """
         return self.update_prior_fn(0)
 
     def get_init(self, prior, cur_params, y, physics):
@@ -422,7 +431,9 @@ class BaseOptim(nn.Module):
                     )
             else:
                 check_iteration = True
-        return check_iteration
+            return check_iteration
+        else :
+            return True
 
     def check_conv_fn(self, it, X_prev, X):
         r"""
@@ -511,7 +522,7 @@ def optimbuilder(
     :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
-    :param str bregman_potential: default: `"L2"`
+    :param str bregman_potential: possibility to perform optimization with another bregman geometry. Default: `"L2"`
     """
 
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.

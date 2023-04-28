@@ -55,13 +55,13 @@ class FixedPoint(nn.Module):
                                         well as parameters of the optimisation problem (prior, measurements, etc.)
     :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
     :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: None.
+    :param function check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: None.
+    :param function check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: None.
     :param int max_iter: maximum number of iterations. Default: 50.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: True.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
                           of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
     :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
-    :param bool verbose: if True, prints the current iteration number and the current value of the
-                            stopping criterion. Default: False.
     """
 
     def __init__(
@@ -135,15 +135,7 @@ class FixedPoint(nn.Module):
 
 class AndersonAcceleration(FixedPoint):
     """
-    Anderson Acceleration for accelerated fixed-point resolution.
-
-    The implementation is strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/.
-    Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments.
-
-    :param int history_size: size of the history used for the acceleration. Default: 5.
-    :param float ridge: ridge regularization in solver. Default: 1e-4.
-    :param float beta: momentum in Anderson updates. Default: 1.0.
-    :param kwargs: optional keyword arguments for the iterator.
+    TO DO
     """
 
     def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
@@ -156,12 +148,7 @@ class AndersonAcceleration(FixedPoint):
 
     def forward(self, x, init_params, *args):
         r"""
-        Computes the fixed-point iterations with Anderson acceleration.
-
-        :param dict x: dictionary with key "est" and value the initial estimate.
-        :param init_params: initial parameters for the iterator.
-        :param args: optional arguments for the iterator.
-        :return: the fixed-point iterate.
+        TODO
         """
         cur_params = init_params
         init = x["est"][0]
