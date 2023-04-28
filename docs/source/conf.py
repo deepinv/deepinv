@@ -36,6 +36,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
 mathjax3_config = {
     "tex": {
+        "equationNumbers": {"autoNumber": "AMS", "useLabelIds": True},
         "macros": {
             "forw": [r"{A\left({#1}\right)}", 1],
             "noise": [r"{N\left({#1}\right)}", 1],
@@ -50,9 +51,13 @@ mathjax3_config = {
             "group": r"\mathcal{G}",
             "metric": [r"{d\left({#1},{#2}\right)}", 2],
             "loss": [r"{\mathcal\left({#1}\right)}", 1],
-        }
+        },
     }
 }
+
+math_numfig = True
+numfig = True
+numfig_secnum_depth = 3
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

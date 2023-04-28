@@ -14,13 +14,12 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import Optim
+from deepinv.optim.optimizers import optimbuilder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
 
-torch.manual_seed(0)
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(get_git_root())
@@ -28,6 +27,7 @@ ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
+CKPT_DIR = BASE_DIR / "ckpts"
 
 # Set the global random seed from pytorch to ensure reprod
 # ucibility of the example.
@@ -50,7 +50,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
-n_images_max = 10  # Maximal number of images to restore from the input dataset
+n_images_max = 3  # Maximal number of images to restore from the input dataset
 batch_size = 1
 noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
 img_size = 256
@@ -60,6 +60,7 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 thres_conv = 1e-5
 backtracking = True  # use backtraking to automatically adjust the stepsize
 factor = 2  # down-sampling factor
+use_bicubic_init = False  # Use bicobic interpolation to initialize the algorithm
 
 
 # Logging parameters
@@ -90,25 +91,29 @@ p = dinv.physics.Downsampling(
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
     operation, noise_level_img, kernel_index
 )
+
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Specify the Denoising prior
+ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
 model_spec = {
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels + 1,
         "out_channels": n_channels,
-        "pretrained": "download",
+        "pretrained": str(ckpt_path) if ckpt_path.exists() else "download",
         "train": False,
         "device": dinv.device,
     },
 }
 # The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
 # For RED image restoration, the denoiser replaces "grad_g".
-prior = {"grad_g": ScoreDenoiser(model_spec, sigma_normalize=False)}
+
+denoiser = ScoreDenoiser(model_spec, sigma_normalize=False)
+prior = {"grad_g": denoiser, "g": denoiser.denoiser.potential}
 
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
@@ -130,15 +135,17 @@ dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-
-# Desine the cost function that is minimized by the algorithm. For GSPnP the prior g is explicit.
-F_fn = lambda x, cur_params, y, physics: lamb * data_fidelity.f(
-    physics.A(x), y
-) + prior["grad_g"][0].denoiser.potential(x, cur_params["g_param"])
-
+# By default the algorithm is initialized with the adjoint of the degradation matrix applied to the degraded image.
+# For custom initialization, we need to write a a function of the degraded image.
+if use_bicubic_init:
+    custom_init = lambda y: torch.nn.functional.interpolate(
+        y, scale_factor=factor, mode="bicubic"
+    )
+else:
+    custom_init = None
 
 # instanciate the algorithm class to solve the IP problem.
-model = Optim(
+model = optimbuilder(
     algo_name="PGD",
     prior=prior,
     g_first=True,
@@ -149,10 +156,10 @@ model = Optim(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    F_fn=F_fn,
     return_dual=True,
     verbose=verbose,
     return_metrics=plot_metrics,
+    custom_init=custom_init,
 )
 
 
@@ -164,7 +171,6 @@ test(
     device=dinv.device,
     plot_images=plot_images,
     save_images=save_images,
-    plot_input=True,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,

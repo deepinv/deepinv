@@ -5,65 +5,137 @@ from deepinv.optim.utils import check_conv
 
 class FixedPoint(nn.Module):
     """
-    Fixed-point iterations.
+    Fixed-point iterations module.
 
-        iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
-        max_iter : maximum number of iterations. Default = 50
-        early_stop : if True, the acceleration stops when the convergence criterion is reached. Default = True
-        crit_conv : stopping criterion.  Default = 1e-5
-        verbose: if True, print the relative error at each iteration. Default = False
+    This module implements the fixed-point iteration algorithm given a specific fixed-point iterator (e.g.
+    proximal gradient iteration, the ADMM iteration, see :meth:`deepinv.optim.optim_iterators`), that is
+    for :math:`k=1,2,...`
+
+    .. math::
+        \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...) \hspace{2cm} (1)
+
+
+
+    ::
+
+            # Generate the data
+            x = torch.ones(1, 1, 1, 3)
+            A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
+            A_forward = lambda v: A @ v
+            A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+            # Define the physics model associated to this operator and the data
+            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+            y = physics.A(x)
+
+            # Select the data fidelity term
+            data_fidelity = L2()
+
+            # Specify the prior and the algorithm parameters
+            model_spec = {"name": "waveletprior", "args": {"wv": "db8", "level": 3, "device": device}}
+            prior = {"prox_g": Denoiser(model_spec)}
+            params_algo = {"stepsize": 0.1, "g_param": 1.0}
+
+            # Choose the iterator associated to a specific algorithm
+            iterator = PGDIteration(data_fidelity=data_fidelity)
+
+            # Create the optimizer
+            optimizer = BaseOptim(
+                iterator,
+                params_algo=params_algo,
+                prior=prior,
+                max_iter=max_iter,
+            )
+
+            # Run the optimization algorithm
+            x = optimizer(y, physics)
+
+
+    :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
+                                        well as parameters of the optimisation problem (prior, measurements, etc.)
+    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
+    :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: None.
+    :param function check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: None.
+    :param function check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: None.
+    :param int max_iter: maximum number of iterations. Default: 50.
+    :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: True.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
+                          of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
+    :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
     """
 
     def __init__(
         self,
         iterator=None,
-        update_params_fn_pre=None,
+        update_params_fn=None,
         update_prior_fn=None,
         max_iter=50,
         early_stop=True,
         init_metrics_fn=None,
         update_metrics_fn=None,
+        check_iteration_fn=None,
         check_conv_fn=None,
     ):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
         self.early_stop = early_stop
-        self.update_params_fn_pre = update_params_fn_pre
+        self.update_params_fn = update_params_fn
         self.update_prior_fn = update_prior_fn
         self.init_metrics_fn = init_metrics_fn
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
+        self.check_iteration_fn = check_iteration_fn
 
-    def forward(self, x, *args, **kwargs):
-        x_prev = None
-        metrics = self.init_metrics_fn(x, **kwargs)
-        for it in range(self.max_iter):
-            cur_prior = self.update_prior_fn(it)
-            cur_params = self.update_params_fn_pre(it, x, x_prev)
-            x_prev = x
-            x = self.iterator(x, cur_prior, cur_params, *args)
-            metrics = self.update_metrics_fn(metrics, x_prev, x, **kwargs)
-            if self.early_stop and self.check_conv_fn(it, x_prev, x) and it > 1:
-                break
-        return x, metrics
+        if self.check_conv_fn is None:
+            raise Warning(
+                "early_stop is set to True but no check_conv_fn has been defined. Seeting early_stop to False"
+            )
+            self.early_stop = False
+
+    def forward(self, X, *args, **kwargs):
+        r"""
+        Loops over the fixed-point iterator as (1) and returns the fixed point.
+
+        The iterates are stored in a dictionary of the form ``X = {'est': (x_k, u_k), 'cost': F_k}`` where:
+            - `est` is a tuple containing the current primal and dual iterates,
+            - `cost` is the value of the cost function at the current iterate.
+
+        Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
+        the prior and parameters are updated before each call to the iterator.
+
+        :param dict X: dictionary containing the current iterate.
+        :param args: optional arguments for the iterator.
+        :param kwargs: optional keyword arguments for the iterator.
+        :return: the fixed-point.
+        """
+        metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn else None
+        it = 0
+        while it < self.max_iter:
+            cur_params = self.update_params_fn(it) if self.update_params_fn else None
+            cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
+            X_prev = X
+            X = self.iterator(X_prev, cur_prior, cur_params, *args)
+            check_iteration = (
+                self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+            )
+            if check_iteration:
+                metrics = (
+                    self.update_metrics_fn(metrics, X_prev, X, **kwargs)
+                    if self.update_metrics_fn
+                    else None
+                )
+                if self.early_stop and it > 1 and self.check_conv_fn(it, X_prev, X):
+                    break
+                it += 1
+            else:
+                X = X_prev
+        return X, metrics
 
 
 class AndersonAcceleration(FixedPoint):
     """
-    TO DO: TO BE FIXED.
-    Anderson Acceleration for accelerated fixed-point resolution. Strongly inspired from http://implicit-layers-tutorial.org/deep_equilibrium_models/.
-    Foward is called with init a tuple (x,) with x the initialization tensor of shape BxCxHxW and iterator optional arguments.
-
-    Args :
-        iterator : function that takes as input the current iterate and the iteration number and returns the next iterate.
-        history_size : size of the history used for the acceleration. Default = 5
-        max_iter : maximum number of iterations. Default = 50
-        early_stop : if True, the acceleration stops when the convergence criterion is reached. Default = True
-        crit_conv : stopping criterion.  Default = 1e-5
-        ridge: ridge regularization in solver. Default = 1e-4
-        beta: momentum in Anderson updates. Default = 1.
-        verbose: if True, print the relative error at each iteration. Default = False
+    TO DO
     """
 
     def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
@@ -75,6 +147,9 @@ class AndersonAcceleration(FixedPoint):
         self.ridge = ridge
 
     def forward(self, x, init_params, *args):
+        r"""
+        TODO
+        """
         cur_params = init_params
         init = x["est"][0]
         B, C, H, W = init.shape

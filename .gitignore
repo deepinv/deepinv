@@ -18,6 +18,7 @@ results/
 *tmp
 *.tar
 /docs/build/
+/docs/source/stubs/*
 /onebitcs/
 /experimental/
 /deepinv/datasets/reside/
@@ -30,3 +31,7 @@ dist
 datasets
 wandb/
 kernels
+measurements/
+degradations/
+datasets/
+results/
