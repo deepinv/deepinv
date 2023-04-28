@@ -1,3 +1,5 @@
+.. _denoiser-docs:
+
 Models
 ==============================
 This package provides vanilla signal reconstruction networks, which can be used for a quick evaluation of a learning setting.
