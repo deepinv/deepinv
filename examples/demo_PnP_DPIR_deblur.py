@@ -93,7 +93,7 @@ data_fidelity = L2()
 model_spec = {  # specifies the parameters of the DRUNet model
     "name": denoiser_name,
     "args": {
-        "in_channels": n_channels + 1,
+        "in_channels": n_channels,
         "out_channels": n_channels,
         "pretrained": "download",
         "train": False,
