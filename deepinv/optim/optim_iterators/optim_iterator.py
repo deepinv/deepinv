@@ -48,6 +48,7 @@ class OptimIterator(nn.Module):
         beta=1.0,
         F_fn=None,
         bregman_potential="L2",
+        F_eval_dual=False,
     ):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity
@@ -98,7 +99,18 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, prior, cur_params, y, physics) if self.F_fn else None
+        F = (
+            torch.tensor(
+                [
+                    self.F_fn(
+                        x[i].unsqueeze(0), prior, cur_params, y[i].unsqueeze(0), physics
+                    )
+                    for i in range(len(x))
+                ]
+            )
+            if self.F_fn
+            else None
+        )
         return {"est": (x, z), "cost": F}
 
 

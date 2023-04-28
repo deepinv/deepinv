@@ -37,7 +37,7 @@ def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):
         else:
             psnr = 20 * torch.log10(max_pixel / mse.sqrt())
 
-        return psnr.detach().cpu().numpy()  # if psnr.device=='cpu' else psnr
+        return psnr.detach().cpu().item()
 
 
 def cal_mse(a, b):

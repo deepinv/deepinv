@@ -13,7 +13,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import Optim
+from deepinv.optim.optimizers import optimbuilder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
@@ -25,6 +25,7 @@ ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
+CKPT_DIR = BASE_DIR / "ckpts"
 
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -126,7 +127,7 @@ dataloader = DataLoader(
 
 
 # instanciate the algorithm class to solve the IP problem.
-model = Optim(
+model = optimbuilder(
     algo_name="HQS",
     prior=prior,
     data_fidelity=data_fidelity,

@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import Optim
+from deepinv.optim.optimizers import optimbuilder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_GSPnP_params
@@ -27,6 +27,7 @@ ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
+CKPT_DIR = BASE_DIR / "ckpts"
 
 # Set the global random seed from pytorch to ensure reprod
 # ucibility of the example.
@@ -61,6 +62,7 @@ backtracking = True  # use backtraking to automatically adjust the stepsize
 factor = 2  # down-sampling factor
 use_bicubic_init = False  # Use bicobic interpolation to initialize the algorithm
 
+
 # Logging parameters
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
@@ -89,19 +91,20 @@ p = dinv.physics.Downsampling(
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
     operation, noise_level_img, kernel_index
 )
+
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Specify the Denoising prior
-ckpt_path = "../ckpts/gsdrunet.ckpt"
+ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
 model_spec = {
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels + 1,
         "out_channels": n_channels,
-        "pretrained": ckpt_path,
+        "pretrained": str(ckpt_path) if ckpt_path.exists() else "download",
         "train": False,
         "device": dinv.device,
     },
@@ -142,7 +145,7 @@ else:
     custom_init = None
 
 # instanciate the algorithm class to solve the IP problem.
-model = Optim(
+model = optimbuilder(
     algo_name="PGD",
     prior=prior,
     g_first=True,

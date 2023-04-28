@@ -332,7 +332,7 @@ def test(
                                 img,
                             )
                     if plot_images:
-                        plot_debug(imgs, titles=name_imgs, show=False)
+                        plot_debug(imgs, titles=name_imgs, show=True)
                     if wandb_vis:
                         n_plot = min(n_plot_max_wandb, len(x))
                         captions = [
@@ -349,24 +349,18 @@ def test(
             if plot_metrics:
                 for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
                     if len(metric_val) > 0:
-                        plt.figure(metric_name)
-                        fig, ax = plt.subplots()
-                        ax.spines["right"].set_visible(False)
-                        ax.spines["top"].set_visible(False)
-                        plt.plot(metric_val, "o-")
-                        plt.xlabel("iteration")
-                        plt.ylabel(metric_name)
-                        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-                        plt.savefig(
-                            save_folder_G
-                            / (metric_name + "_" + "im_" + str(i) + ".png"),
-                            bbox_inches="tight",
+                        batch_size, n_iter = len(metric_val), len(metric_val[0])
+                        wandb.log(
+                            {
+                                f"{metric_name} batch {i}": wandb.plot.line_series(
+                                    xs=range(n_iter),
+                                    ys=metric_val,
+                                    keys=[f"image {j}" for j in range(batch_size)],
+                                    title=f"{metric_name} batch {i}",
+                                    xname="iteration",
+                                )
+                            }
                         )
-                        if wandb_vis:
-                            wandb.log(
-                                {f"Plots {metric_name} batch {i}": fig}, step=step
-                            )
-                plt.show()
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
@@ -378,12 +372,5 @@ def test(
         )
     if wandb_vis:
         wandb.log({"Test PSNR": test_psnr}, step=step)
-
-    if wandb_vis:
-        table_psnr = wandb.Table(
-            data=np.array(psnr_data),
-            columns=["operator", "image", "Init PSNR", "Estimated PSNR"],
-        )
-        wandb.log({"table_psnr": table_psnr}, step=step)
 
     return test_psnr, test_std_psnr, init_psnr, init_std_psnr

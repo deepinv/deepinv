@@ -54,7 +54,7 @@ class FixedPoint(nn.Module):
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
                                         well as parameters of the optimisation problem (prior, measurements, etc.)
     :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
-    :param function update_params_fn_pre: function that returns the parameters to be used at each iteration. Default: None.
+    :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: None.
     :param int max_iter: maximum number of iterations. Default: 50.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: True.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
@@ -67,23 +67,31 @@ class FixedPoint(nn.Module):
     def __init__(
         self,
         iterator=None,
-        update_params_fn_pre=None,
+        update_params_fn=None,
         update_prior_fn=None,
         max_iter=50,
         early_stop=True,
         init_metrics_fn=None,
         update_metrics_fn=None,
+        check_iteration_fn=None,
         check_conv_fn=None,
     ):
         super().__init__()
         self.iterator = iterator
         self.max_iter = max_iter
         self.early_stop = early_stop
-        self.update_params_fn_pre = update_params_fn_pre
+        self.update_params_fn = update_params_fn
         self.update_prior_fn = update_prior_fn
         self.init_metrics_fn = init_metrics_fn
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
+        self.check_iteration_fn = check_iteration_fn
+
+        if self.check_conv_fn is None:
+            raise Warning(
+                "early_stop is set to True but no check_conv_fn has been defined. Seeting early_stop to False"
+            )
+            self.early_stop = False
 
     def forward(self, X, *args, **kwargs):
         r"""
@@ -101,16 +109,27 @@ class FixedPoint(nn.Module):
         :param kwargs: optional keyword arguments for the iterator.
         :return: the fixed-point.
         """
-        X_prev = None
-        metrics = self.init_metrics_fn(X, **kwargs)
-        for it in range(self.max_iter):
-            cur_prior = self.update_prior_fn(it)
-            cur_params = self.update_params_fn_pre(it, X, X_prev)
+        metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn else None
+        it = 0
+        while it < self.max_iter:
+            cur_params = self.update_params_fn(it) if self.update_params_fn else None
+            cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
             X_prev = X
-            X = self.iterator(X, cur_prior, cur_params, *args)
-            metrics = self.update_metrics_fn(metrics, X_prev, X, **kwargs)
-            if self.early_stop and self.check_conv_fn(it, X_prev, X) and it > 1:
-                break
+            X = self.iterator(X_prev, cur_prior, cur_params, *args)
+            check_iteration = (
+                self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+            )
+            if check_iteration:
+                metrics = (
+                    self.update_metrics_fn(metrics, X_prev, X, **kwargs)
+                    if self.update_metrics_fn
+                    else None
+                )
+                if self.early_stop and it > 1 and self.check_conv_fn(it, X_prev, X):
+                    break
+                it += 1
+            else:
+                X = X_prev
         return X, metrics
 
 

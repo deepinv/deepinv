@@ -140,10 +140,26 @@ class BaseOptim(nn.Module):
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
                 self.params_algo[key] = [value]
+            else:
+                if len(self.params_algo[key]) < self.max_iter:
+                    raise ValueError(
+                        f"The number of elements in the parameter {key} is inferior to max_iter."
+                    )
+
+        self.init_params_algo = (
+            self.params_algo.copy()
+        )  # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
 
         for key, value in zip(self.prior.keys(), self.prior.values()):
             if not isinstance(value, Iterable):
                 self.prior[key] = [value]
+
+        if len(self.params_algo["stepsize"]) > 1:
+            if self.backtracking:
+                self.backtracking = False
+                raise Warning(
+                    "Backtraking impossible when stepsize is predefined as a list. Setting backtrakcing to False."
+                )
 
         # handle priors without explicit prox or grad
         if (
@@ -187,12 +203,13 @@ class BaseOptim(nn.Module):
             self.anderson_history_size = anderson_history_size
             self.fixed_point = AndersonAcceleration(
                 iterator,
-                update_params_fn_pre=self.update_params_fn_pre,
+                update_params_fn=self.update_params_fn,
                 update_prior_fn=self.update_prior_fn,
                 max_iter=self.max_iter,
                 history_size=anderson_history_size,
                 beta=anderson_beta,
                 early_stop=early_stop,
+                check_iteration_fn=self.check_iteration_fn,
                 check_conv_fn=self.check_conv_fn,
                 init_metrics=self.init_metrics,
                 update_metrics=self.update_metrics,
@@ -200,36 +217,17 @@ class BaseOptim(nn.Module):
         else:
             self.fixed_point = FixedPoint(
                 iterator,
-                update_params_fn_pre=self.update_params_fn_pre,
+                update_params_fn=self.update_params_fn,
                 update_prior_fn=self.update_prior_fn,
                 max_iter=max_iter,
                 early_stop=early_stop,
+                check_iteration_fn=self.check_iteration_fn,
                 check_conv_fn=self.check_conv_fn,
                 init_metrics_fn=self.init_metrics_fn,
                 update_metrics_fn=self.update_metrics_fn,
             )
 
-    def update_params_fn_pre(self, it, X, X_prev):
-        r"""
-        Selects the parameters of the fixed-point algorithm before each iteration, with potential re-computation in the
-        case of backtracking.
-
-        :param int it: iteration number.
-        :param dict X: current iterate.
-        :param dict X_prev: previous iterate.
-        :return: a dictionary containing the parameters of iteration `it`.
-        """
-        if self.backtracking and X_prev is not None:
-            x_prev, x = X_prev["est"][0], X["est"][0]
-            F_prev, F = X_prev["cost"], X["cost"]
-            diff_F, diff_x = F_prev - F, (torch.norm(x - x_prev, p=2) ** 2).item()
-            stepsize = self.params_algo["stepsize"][0]
-            if diff_F < (self.gamma_backtracking / stepsize) * diff_x:
-                self.params_algo["stepsize"] = [self.eta_backtracking * stepsize]
-        cur_params = self.get_params_it(it)
-        return cur_params
-
-    def get_params_it(self, it):
+    def update_params_fn(self, it):
         r"""
         Selects the appropriate algorithm parameters if the parameters depend on the iteration number.
 
@@ -241,6 +239,18 @@ class BaseOptim(nn.Module):
             for key, value in zip(self.params_algo.keys(), self.params_algo.values())
         }
         return cur_params_dict
+
+    def init_params_fn(self):
+        self.params_algo = (
+            self.init_params_algo.copy()
+        )  # reset params_algo to its intialization.
+        init_params = {
+            key: value[0]
+            for key, value in zip(
+                self.init_params_algo.keys(), self.init_params_algo.values()
+            )
+        }
+        return init_params
 
     def update_prior_fn(self, it):
         r"""
@@ -254,6 +264,9 @@ class BaseOptim(nn.Module):
             for key, value in zip(self.prior.keys(), self.prior.values())
         }
         return prior_cur
+
+    def init_prior_fn(self):
+        return self.update_prior_fn(0)
 
     def get_init(self, prior, cur_params, y, physics):
         r"""
@@ -271,7 +284,20 @@ class BaseOptim(nn.Module):
         else:
             x_init = physics.A_adjoint(y)
         cost_init = (
-            self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
+            torch.tensor(
+                [
+                    self.F_fn(
+                        x_init[i].unsqueeze(0),
+                        prior,
+                        cur_params,
+                        y[i].unsqueeze(0),
+                        physics,
+                    )
+                    for i in range(len(x_init))
+                ]
+            )
+            if self.F_fn
+            else None
         )
         init_X = {
             "est": (x_init, x_init),
@@ -299,28 +325,36 @@ class BaseOptim(nn.Module):
 
     def init_metrics_fn(self, X_init, x_gt=None):
         r"""
-        Initialises the metrics functions.
+        Initialises the metrics.
+        Metrics are computed for each batch and for each iteration.
+        They are reprenseted by a list of list, and metrics[metric_name][i,j] constains the metric metric_name computed for batch i, at iteration j.
 
         :param dict X_init: dictionary containing the primal and dual initial iterates.
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
         :return dict: A dictionary containing the metrics.
         """
+        self.batch_size = self.get_primal_variable(X_init).shape[0]
         if self.return_metrics:
+            init = {}
             if not self.return_dual:
-                psnr = [cal_psnr(self.get_primal_variable(X_init), x_gt)]
+                x_init = self.get_primal_variable(X_init)
+                psnr = [cal_psnr(x_init[i], x_gt[i]) for i in range(self.batch_size)]
             else:
-                psnr = []
-            init = {"cost": [], "residual": [], "psnr": psnr}
+                psnr = [[] for i in range(self.batch_size)]
+            init["psnr"] = psnr
+            if self.F_fn is not None:
+                init["cost"] = [[] for i in range(self.batch_size)]
+            init["residual"] = [[] for i in range(self.batch_size)]
             if self.custom_metrics is not None:
                 for custom_metric_name in self.custom_metrics.keys():
-                    init[custom_metric_name] = []
+                    init[custom_metric_name] = [[] for i in range(self.batch_size)]
             return init
 
     def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
         r"""
-        Updates the metrics functions.
+        Function that compute all the metrics, across all batches, for the current iteration.
 
-        :param dict metrics: dictionary containing the metrics.
+        :param dict metrics: dictionary containing the metrics. Each metric is computed for each batch.
         :param dict X_prev: dictionary containing the primal and dual previous iterates.
         :param dict X: dictionary containing the current primal and dual iterates.
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
@@ -337,22 +371,58 @@ class BaseOptim(nn.Module):
                 if not self.return_dual
                 else self.get_dual_variable(X)
             )
-            residual = (x_prev - x).norm() / (x.norm() + 1e-06)
-            metrics["residual"].append(residual.detach().cpu().item())
-            if x_gt is not None:
-                psnr = cal_psnr(x, x_gt)
-                metrics["psnr"].append(psnr)
-            if self.F_fn is not None:
-                cost = X["cost"]
-                metrics["cost"].append(cost.detach().cpu().item())
-            if self.custom_metrics is not None:
-                for custom_metric_name, custom_metric_fn in zip(
-                    self.custom_metrics.keys(), self.custom_metrics.values()
-                ):
-                    metrics[custom_metric_name].append(
-                        custom_metric_fn(metrics[custom_metric_name], X_prev, X)
-                    )
+            for i in range(self.batch_size):
+                residual = (
+                    ((x_prev[i] - x[i]).norm() / (x[i].norm() + 1e-06))
+                    .detach()
+                    .cpu()
+                    .item()
+                )
+                metrics["residual"][i].append(residual)
+                if x_gt is not None:
+                    psnr = cal_psnr(x[i], x_gt[i])
+                    metrics["psnr"][i].append(psnr)
+                if self.F_fn is not None:
+                    F = X["cost"][i]
+                    metrics["cost"][i].append(F.detach().cpu().item())
+                if self.custom_metrics is not None:
+                    for custom_metric_name, custom_metric_fn in zip(
+                        self.custom_metrics.keys(), self.custom_metrics.values()
+                    ):
+                        metrics[custom_metric_name][i].append(
+                            custom_metric_fn(
+                                metrics[custom_metric_name], x_prev[i], x[i]
+                            )
+                        )
         return metrics
+
+    def check_iteration_fn(self, X_prev, X):
+        r"""
+        Check that the previous iteration decreases the objective function and perform stepsize backtraking.
+
+        :param dict X_prev: dictionary containing the primal and dual previous iterates.
+        :param dict X: dictionary containing the current primal and dual iterates.
+        """
+        if self.backtracking and X_prev is not None:
+            x_prev = self.get_primal_variable(X_prev)
+            x = self.get_primal_variable(X)
+            x_prev = x_prev.reshape((x_prev.shape[0], -1))
+            x = x.reshape((x.shape[0], -1))
+            F_prev, F = X_prev["cost"], X["cost"]
+            diff_F, diff_x = (F_prev - F).mean(), (
+                torch.norm(x - x_prev, p=2, dim=-1) ** 2
+            ).mean()
+            stepsize = self.params_algo["stepsize"][0]
+            if diff_F < (self.gamma_backtracking / stepsize) * diff_x:
+                check_iteration = False
+                self.params_algo["stepsize"] = [self.eta_backtracking * stepsize]
+                if self.verbose:
+                    print(
+                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.3f}'
+                    )
+            else:
+                check_iteration = True
+        return check_iteration
 
     def check_conv_fn(self, it, X_prev, X):
         r"""
@@ -369,16 +439,20 @@ class BaseOptim(nn.Module):
                 if not self.return_dual
                 else self.get_dual_variable(X_prev)
             )
+            x_prev = x_prev.view(x_prev.shape[0], -1)
             x = (
                 self.get_primal_variable(X)
                 if not self.return_dual
                 else self.get_dual_variable(X)
             )
-            crit_cur = (x_prev - x).norm() / (x.norm() + 1e-06)
+            x = x.view(x.shape[0], -1)
+            crit_cur = (
+                (x_prev - x).norm(p=2, dim=-1) / (x.norm(p=2, dim=-1) + 1e-06)
+            ).mean()
         elif self.crit_conv == "cost":
             F_prev = X_prev["cost"]
             F = X["cost"]
-            crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+            crit_cur = ((F_prev - F).norm(dim=-1) / (F.norm(dim=-1) + 1e-06)).mean()
         else:
             raise ValueError("convergence criteria not implemented")
         if crit_cur < self.thres_conv:
@@ -398,8 +472,8 @@ class BaseOptim(nn.Module):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         """
-        init_params = self.get_params_it(0)
-        init_pior = self.update_prior_fn(0)
+        init_params = self.init_params_fn()
+        init_pior = self.init_prior_fn()
         x = self.get_init(init_pior, init_params, y, physics)
         x, metrics = self.fixed_point(x, y, physics, x_gt=x_gt)
         x = (
@@ -429,7 +503,7 @@ def optimbuilder(
     :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
     :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
-    :param F_fn: cost function. default: None.
+    :param F_fn: Custom user input cost function. default: None.
     :param dict prior: dictionary containing the regularisation prior under the form of a denoiser, proximity operator,
                        gradient, or simply an auto-differentiable function.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
@@ -445,7 +519,6 @@ def optimbuilder(
         F_fn = lambda x, prior, cur_params, y, physics: cur_params[
             "lambda"
         ] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
-
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,
