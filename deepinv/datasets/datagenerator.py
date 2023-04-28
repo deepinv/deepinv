@@ -19,19 +19,25 @@ class HDF5Dataset(data.Dataset):
         self.data_info = []
         self.data_cache = {}
         self.transform = transform
+        self.unsupervised = False
 
         hd5 = h5py.File(path, 'r')
         if train:
-            self.x = hd5['x_train']  # TODO : fails if unsupervised
+            if 'x_train' in hd5:
+                self.x = hd5['x_train']
+            else:
+                self.unsupervised = True
             self.y = hd5['y_train']
         else:
             self.x = hd5['x_test']
             self.y = hd5['y_test']
 
     def __getitem__(self, index):
-        # get signal
-        x = torch.from_numpy(self.x[index]).type(torch.float)
         y = torch.from_numpy(self.y[index]).type(torch.float)
+
+        x = y
+        if not self.unsupervised:
+            x = torch.from_numpy(self.x[index]).type(torch.float)
 
         return x, y
 
