@@ -159,7 +159,7 @@ class UNet(nn.Module):
         if self.compact == 2:
             self._forward = self.forward_compact2
 
-    def forward(self, x):
+    def forward(self, x, sigma=None):
         return self._forward(x)
 
     def forward_standard(self, x):
