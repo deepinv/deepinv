@@ -23,12 +23,15 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx"
 ]
+
+intersphinx_mapping = {"numpy": ('http://docs.scipy.org/doc/numpy/', None),
+                       "torch": ('https://docs.pytorch.org/2.0/', None),
+                       "python": ('https://docs.python.org/3.4', None)}
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-intersphinx_mapping = {"python": ("https://deepinv.github.io/deepinv/", None)}
-
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
 mathjax3_config = {
