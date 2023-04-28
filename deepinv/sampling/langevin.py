@@ -179,7 +179,7 @@ class MCMC(nn.Module):
                     torch.cuda.synchronize()
                 end_time = time.time()
                 elapsed = end_time - start_time
-                print(f"MCMC sampling finished! elapsed time={elapsed} seconds")
+                print(f"MCMC sampling finished! elapsed time={elapsed:.2f} seconds")
 
             if (
                 check_conv(
@@ -412,6 +412,7 @@ class SKRock(MCMC):
         clip=(-1.0, 2.0),
         thresh_conv=1e-3,
         save_chain=False,
+        g_statistic=lambda x: x,
         verbose=False,
         sigma=None,
     ):
@@ -431,6 +432,7 @@ class SKRock(MCMC):
             thinning=thinning,
             burnin_ratio=burnin_ratio,
             clip=clip,
+            g_statistic=g_statistic,
             save_chain=save_chain,
             verbose=verbose,
         )
