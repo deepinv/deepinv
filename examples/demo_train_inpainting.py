@@ -21,7 +21,7 @@ torch.manual_seed(0)
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Parameters
-epochs = 10  # choose training epochs
+epochs = 4  # choose training epochs
 learning_rate = 5e-4
 train_batch_size = 32
 test_batch_size = 32
