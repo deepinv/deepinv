@@ -49,7 +49,7 @@ class SplittingLoss(torch.nn.Module):
         mask = torch.ones(tsize).to(y.get_device())
         if not self.regular_mask:
             mask[torch.rand_like(mask) > self.split_ratio] = 0
-        else:  # TODO: add regular mask
+        else:
             stride = int(1 / (1 - self.split_ratio))
             start = np.random.randint(stride)
             mask[..., start::stride, start::stride] = 0.0
@@ -70,3 +70,31 @@ class SplittingLoss(torch.nn.Module):
         loss_ms /= 1 - self.split_ratio  # normalize loss
 
         return loss_ms
+
+
+if __name__ == "__main__":
+    import deepinv as dinv
+
+    sigma = 0.1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+
+    # choose a reconstruction architecture
+    backbone = dinv.models.MedianFilter()
+    f = dinv.models.ArtifactRemoval(backbone)
+    batch_size = 1
+    imsize = (3, 128, 128)
+
+    for split_ratio in np.linspace(.7, .99, 10):
+        x = torch.ones((batch_size,) + imsize, device=dinv.device)
+        y = physics(x)
+
+        # choose training losses
+        loss = SplittingLoss(split_ratio=split_ratio, regular_mask=True)
+        x_net = f(y, physics)
+        mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
+        split_loss = loss(y, physics, f)
+
+        print(f'split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}')
+        rel_error = (split_loss - mse).abs() / mse
+        print(f'rel_error: {rel_error:.2f}')
