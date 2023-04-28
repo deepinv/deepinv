@@ -432,7 +432,7 @@ class BaseOptim(nn.Module):
             else:
                 check_iteration = True
             return check_iteration
-        else :
+        else:
             return True
 
     def check_conv_fn(self, it, X_prev, X):
