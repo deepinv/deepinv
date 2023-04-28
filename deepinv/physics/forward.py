@@ -73,7 +73,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Computes forward operator :math:`y = N(A(x))` (with noise and/or sensor non-linearities)
 
-        :param torch.tensor,list of torch.tensor x: signal/image
+        :param torch.tensor,list[torch.tensor] x: signal/image
         :return: (torch.tensor) noisy measurements
 
         """
@@ -83,7 +83,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Computes forward operator :math:`y = A(x)` (without noise and/or sensor non-linearities)
 
-        :param torch.tensor,list of torch.tensor x: signal/image
+        :param torch.tensor,list[torch.tensor] x: signal/image
         :return: (torch.tensor) clean measurements
 
         """
@@ -93,7 +93,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Computes sensor non-linearities :math:`y = \eta(y)`
 
-        :param torch.tensor,list of torch.tensor x: signal/image
+        :param torch.tensor,list[torch.tensor] x: signal/image
         :return: (torch.tensor) clean measurements
         """
         return self.sensor_model(x)
@@ -123,21 +123,31 @@ class Physics(torch.nn.Module):  # parent class for forward models
         sensor = self.sensor_model
         return Physics(A, noise, sensor)
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, x_init):
         r"""
         Computes an inverse of :math:`y = Ax` via gradient descent.
 
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :param torch.tensor x_init: initial guess for the reconstruction.
         :return: (torch.tensor) The reconstructed image :math:`x`.
 
         """
 
-        # TODO: gradient descent
+        x = torch.nn.Parameter(x_init, requires_grad=True)
 
-        x = y
-        return x
+        optimizer = torch.optim.SGD([x], lr=1e-1)
+        loss = torch.nn.MSELoss()
+        for i in range(self.max_iter):
+            err = loss(self.A(x), y)
+            optimizer.zero_grad()
+            err.backward(retain_graph=True)
+            optimizer.step()
+            if err < self.tol:
+                break
+
+        return x.clone()
 
 
 class LinearPhysics(Physics):
@@ -444,3 +454,4 @@ class Denoising(DecomposablePhysics):
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(**kwargs)
         self.noise_model = noise
+
