@@ -360,7 +360,7 @@ def test(
                                     xname="iteration",
                                 )
                             },
-                            step=step
+                            step=step,
                         )
 
     test_psnr = np.mean(psnr_net)
