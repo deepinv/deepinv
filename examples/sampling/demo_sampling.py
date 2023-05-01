@@ -1,3 +1,11 @@
+r"""
+Uncertainty quantification with PnP-ULA.
+====================================================================================================
+
+This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction.
+
+"""
+
 import deepinv as dinv
 from deepinv.utils.plotting import plot_debug
 import torch
@@ -16,7 +24,7 @@ try:
     x = imread(BytesIO(res.content)) / 255.0
     pretrained = "download_lipschitz"
 except:
-    BASE_DIR = Path("..")
+    BASE_DIR = Path("../..")
     ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
     im_path = ORIGINAL_DATA_DIR / "set3c" / "images/0/butterfly.png"
     x = imread(str(im_path)) / 255.0
