@@ -4,6 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
+from sphinx_gallery.sorting import ExplicitOrder
 
 sys.path.insert(0, os.path.abspath("../.."))
 
@@ -23,7 +24,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "sphinx.ext.intersphinx"
+    "sphinx.ext.intersphinx",
+    "sphinx_gallery.gen_gallery",
 ]
 
 intersphinx_mapping = {"numpy": ('http://docs.scipy.org/doc/numpy/', None),
@@ -32,6 +34,17 @@ intersphinx_mapping = {"numpy": ('http://docs.scipy.org/doc/numpy/', None),
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+sphinx_gallery_conf = {
+    'examples_dirs': '../../examples',   # path to your example scripts
+    'subsection_order': ExplicitOrder(['../../examples/basics',
+                                       '../../examples/plug-and-play',
+                                       '../../examples/sampling']),
+    'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+    'filename_pattern': "/demo_",
+    'run_stale_examples': True,
+    'ignore_pattern': r"__init__\.py",
+}
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
 mathjax3_config = {

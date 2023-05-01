@@ -1,3 +1,9 @@
+r"""
+Unfolded PnP algorithms for super-resolution
+====================================================================================================
+
+"""
+
 import numpy as np
 import deepinv as dinv
 import hdf5storage

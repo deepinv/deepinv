@@ -32,7 +32,7 @@ Here quick guide
    deepinv.unfolded
    deepinv.sampling
    deepinv.transform
-   deepinv.examples
+   auto_examples/index
    deepinv.notation
 
 
