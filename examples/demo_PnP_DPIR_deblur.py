@@ -7,7 +7,7 @@ In Proceedings of the IEEE conference on computer vision and pattern recognition
 """
 import numpy as np
 import deepinv as dinv
-import hdf5storage
+import h5py
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
@@ -71,12 +71,11 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
+kernel_path = DEG_DIR / "kernels" / "Levin09.npy"
 if not kernel_path.exists():
-    download_degradation("Levin09.mat", DEG_DIR / "kernels")
-kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
-filter_np = kernels[0, kernel_index].astype(np.float64)
-filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+    download_degradation("Levin09.npy", DEG_DIR / "kernels")
+kernels = np.load(kernel_path, allow_pickle=True)
+filter_torch = torch.from_numpy(kernels[kernel_index]).unsqueeze(0).unsqueeze(0)
 # The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
