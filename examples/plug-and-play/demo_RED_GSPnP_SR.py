@@ -74,12 +74,11 @@ save_images = True  # save images in RESULTS_DIR
 
 # Generate the degradation operator.
 kernel_index = 2  # which kernel to chose
-kernel_path = DEG_DIR / "kernels" / "kernels_12.mat"
+kernel_path = DEG_DIR / "kernels" / "kernels_12.npy"
 if not kernel_path.exists():
-    download_degradation("kernels_12.mat", DEG_DIR / "kernels")
-kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
-filter_np = kernels[0, kernel_index].astype(np.float64)
-filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+    download_degradation("kernels_12.npy", DEG_DIR / "kernels")
+kernels = np.load(kernel_path)
+filter_torch = torch.from_numpy(kernels[kernel_index]).unsqueeze(0).unsqueeze(0)
 p = dinv.physics.Downsampling(
     img_size=(n_channels, img_size, img_size),
     factor=factor,

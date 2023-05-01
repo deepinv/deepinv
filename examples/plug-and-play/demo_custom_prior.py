@@ -1,18 +1,15 @@
 """
-Image deblurring with explicit deep prior
-==============================================
-
+Image deblurring with custom deep explicit prior function.
 """
 
 import numpy as np
 import deepinv as dinv
-import hdf5storage
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import Optim
+from deepinv.optim.optimizers import optimbuilder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
@@ -75,20 +72,16 @@ tol_prox_inter = 1e-3  # Convergence criteria for gradient descent calculation o
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 wandb_vis = True  # plot curves and images in Weight&Bias
-plot_images = True  # plot results
-save_images = True  # save images in RESULTS_DIR
+plot_images = False  # plot results
+save_images = False  # save images in RESULTS_DIR
 
 
-# Generate a motion blur operator.
-kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
-if not kernel_path.exists():
-    download_degradation("Levin09.mat", DEG_DIR / "kernels")
-kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
-filter_np = kernels[0, kernel_index].astype(np.float64)
-filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+# Generate a Gaussian blur filter.
+sigma_gauss_x = 3
+sigma_gauss_y = 3
+filter = dinv.physics.blur.gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
 
-# The BlurFFT instance from physics enables to compute efficiently backward operators with Fourier transform.
+# The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=filter_torch,
@@ -134,7 +127,7 @@ dataloader = DataLoader(
 )
 
 # Instantiate the algorithm class to solve the IP problem.
-model = Optim(
+model = optimbuilder(
     algo_name="PGD",
     prior=prior,
     g_first=True,

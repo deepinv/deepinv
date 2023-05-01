@@ -1,20 +1,19 @@
 """
-Image deblurring with DPIR PnP.
-=================================================================================
+Implementation of the DPIR method for Plug-and-Play image deblurring. 
 
-Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017).
-Learning deep CNN denoiser prior for image restoration.
+Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
+Learning deep CNN denoiser prior for image restoration. 
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
-
 import numpy as np
 import deepinv as dinv
+import h5py
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim import optim_builder
+from deepinv.optim.optimizers import optimbuilder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
@@ -72,15 +71,11 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
+kernel_path = DEG_DIR / "kernels" / "Levin09.npy"
 if not kernel_path.exists():
-    download_degradation("Levin09.mat", DEG_DIR / "kernels")
-
-f = h5py.File(str(kernel_path), 'r')  # hdf5storage.loadmat(str(kernel_path))["kernels"]
-filter_np = f.get('kernels')[kernel_index]
-filter_np = np.array(filter_np).astype(np.float64)
-filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
-
+    download_degradation("Levin09.npy", DEG_DIR / "kernels")
+kernels = np.load(kernel_path, allow_pickle=True)
+filter_torch = torch.from_numpy(kernels[kernel_index]).unsqueeze(0).unsqueeze(0)
 # The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
