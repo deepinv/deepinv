@@ -359,7 +359,8 @@ def test(
                                     title=f"{metric_name} batch {i}",
                                     xname="iteration",
                                 )
-                            }
+                            },
+                            step=step
                         )
 
     test_psnr = np.mean(psnr_net)

@@ -347,7 +347,7 @@ class BaseOptim(nn.Module):
             init = {}
             if not self.return_dual:
                 x_init = self.get_primal_variable(X_init)
-                psnr = [cal_psnr(x_init[i], x_gt[i]) for i in range(self.batch_size)]
+                psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
             else:
                 psnr = [[] for i in range(self.batch_size)]
             init["psnr"] = psnr
@@ -527,9 +527,7 @@ def optimbuilder(
 
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and "g" in prior.keys():
-        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
-            "lambda"
-        ] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
+        F_fn = lambda x, prior, cur_params, y, physics: cur_params["lambda"] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,

@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import Optim
+from deepinv.optim.optimizers import optimbuilder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
@@ -70,22 +70,19 @@ tol_prox_inter = 1e-3  # Convergence criteria for gradient descent calculation o
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 wandb_vis = True  # plot curves and images in Weight&Bias
-plot_images = True  # plot results
-save_images = True  # save images in RESULTS_DIR
+plot_images = False  # plot results
+save_images = False  # save images in RESULTS_DIR
 
 
-# Generate a motion blur operator.
-kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_path = DEG_DIR / "kernels" / "Levin09.mat"
-if not kernel_path.exists():
-    download_degradation("Levin09.mat", DEG_DIR / "kernels")
-kernels = hdf5storage.loadmat(str(kernel_path))["kernels"]
-filter_np = kernels[0, kernel_index].astype(np.float64)
-filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
+# Generate a Gaussian blur filter.
+sigma_gauss_x = 3
+sigma_gauss_y = 3
+filter = dinv.physics.blur.gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
+
 # The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
-    filter=filter_torch,
+    filter=filter,
     device=dinv.device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
@@ -100,13 +97,8 @@ prior = {"g": L2Prior()}
 
 
 # Specific parameters for restoration with the given prior (Note that these parameters have not been optimized here)
-params_algo = {"stepsize": 1, "g_param": 1.0, "lamb": 1}
+params_algo = {"stepsize": 1, "g_param": 1.0, "lambda": 1}
 
-
-# Desine the cost function that is minimized by the algorithm.
-F_fn = lambda x, cur_params, y, physics: params_algo["lamb"][0] * data_fidelity.f(
-    physics.A(x), y
-) + prior["g"][0](x, cur_params["g_param"])
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
 val_transform = transforms.Compose(
@@ -128,7 +120,7 @@ dataloader = DataLoader(
 )
 
 # instanciate the algorithm class to solve the IP problem.
-model = Optim(
+model = optimbuilder(
     algo_name="PGD",
     prior=prior,
     g_first=True,
@@ -139,7 +131,6 @@ model = Optim(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    F_fn=F_fn,
     verbose=verbose,
     return_metrics=plot_metrics,
 )
