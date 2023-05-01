@@ -48,12 +48,12 @@ def test_data_fidelity_l2():
     assert data_fidelity(x, y, physics) == 1.0
 
     # Compute the gradient of f
-    grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+    grad_fA = data_fidelity.grad(x, y, physics)  # print(grad_f) gives [2.0000, 0.5000]
 
     # Compute the proximity operator of f
     prox_fA = data_fidelity.prox(
         x, y, physics, gamma=1.0
-    )  # print prox_fA gives [0.6000, 3.6000]
+    )  # print(prox_fA) gives [0.6000, 3.6000]
 
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
@@ -161,17 +161,16 @@ def test_data_fidelity_l1():
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
-optim_algos = ["PGD"]
-
+optim_algos = ["PGD", "ADMM", "DRS", "PD"]
 
 # other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     # Define two points
-    x = torch.Tensor([10, 10])
+    x = torch.tensor([10, 10], dtype=torch.float64)
 
     # Create a measurement operator
-    B = torch.Tensor([[2, 1], [-1, 0.5]])
+    B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
     B_forward = lambda v: B @ v
     B_adjoint = lambda v: B.transpose(0, 1) @ v
 
@@ -182,8 +181,14 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     prior = {"prox_g": ProxL1Prior()}
-    stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
-    reg_param = 1.0 * stepsize
+
+    if name_algo == "PD":  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+        stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+        reg_param = 1.0
+    else:
+        stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
+        reg_param = 1.0 * stepsize
+
     lamb = 1.5
     max_iter = 1000
     params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
@@ -192,7 +197,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        thres_conv=1e-9,
+        crit_conv='residual',
+        thres_conv=1e-11,
         verbose=True,
         params_algo=params_algo,
         early_stop=True,
@@ -203,7 +209,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     grad_deepinv = data_fidelity.grad(x, y, physics)
 
     assert torch.allclose(
-        lamb * grad_deepinv, -torch.ones_like(grad_deepinv)
+        lamb * grad_deepinv, -torch.ones_like(grad_deepinv), atol=1e-12
     )  # Optimality condition
     assert optimalgo.has_converged
 

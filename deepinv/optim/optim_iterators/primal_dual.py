@@ -68,7 +68,7 @@ class fStepPD(fStep):
         """
         v = u + cur_params["stepsize"] * Ax_cur
         return v - cur_params["stepsize"] * self.data_fidelity.prox_f(
-            v, y, 1 / (cur_params["stepsize"] * cur_params["lambda"])
+            v / cur_params["stepsize"], y,  cur_params["lambda"] / cur_params["stepsize"]
         )
 
 
@@ -90,5 +90,5 @@ class gStepPD(gStep):
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
         """
         return cur_prior["prox_g"](
-            x - cur_params["stepsize"] * Atu, cur_params["g_param"]
+            x - cur_params["g_param"] * Atu, cur_params["g_param"]
         )

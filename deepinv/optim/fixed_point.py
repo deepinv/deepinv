@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.utils import check_conv
 
 
 class FixedPoint(nn.Module):
@@ -125,7 +124,7 @@ class FixedPoint(nn.Module):
                     if self.update_metrics_fn
                     else None
                 )
-                if self.early_stop and it > 1 and self.check_conv_fn(it, X_prev, X):
+                if ((self.early_stop and it > 1) or (it == self.max_iter - 1)) and self.check_conv_fn(it, X_prev, X) :
                     break
                 it += 1
             else:
@@ -198,7 +197,7 @@ class AndersonAcceleration(FixedPoint):
             x_prev = X[:, it % self.history_size].reshape(init.shape)
             x = F[:, it % self.history_size].reshape(init.shape)
             if (
-                check_conv(
+                self.check_conv_fn(
                     x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose
                 )
                 and it > 1

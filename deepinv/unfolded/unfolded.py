@@ -8,10 +8,18 @@ from deepinv.optim.optimizers import BaseOptim
 
 
 class BaseUnfold(BaseOptim):
-    """
-    Unfolded module
-    """
+    r"""
+    Base class for unfolded algorithms.
 
+    Enables to turn any proximal algorithm into an unfolded algorithm, i.e. an algorithm
+    that can be trained end-to-end, with learnable parameters. Recall that the algorithms have the
+    following form:
+
+    .. math::
+
+
+
+    """
     def __init__(
         self,
         *args,

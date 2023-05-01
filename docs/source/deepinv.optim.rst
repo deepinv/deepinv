@@ -17,7 +17,7 @@ where the first term :math:`f:\yset\times\yset \mapsto \mathbb{R}_{+}` enforces 
 (:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization, and
 :math:`A:\xset\mapsto \yset` is the forward operator (see :meth:`deepinv.physics.Physics`).
 
-Optimisation algorithms for minimising the problem above can be written as fixed point algorithms,
+Optimisation algorithms for minimizing the problem above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
 
 .. math::
