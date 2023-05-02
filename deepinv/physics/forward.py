@@ -455,3 +455,4 @@ class Denoising(DecomposablePhysics):
         super().__init__(**kwargs)
         self.noise_model = noise
 
+

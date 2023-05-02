@@ -498,7 +498,7 @@ class BaseOptim(nn.Module):
             return x
 
 
-def optimbuilder(
+def optim_builder(
     algo_name,
     data_fidelity=L2(),
     F_fn=None,

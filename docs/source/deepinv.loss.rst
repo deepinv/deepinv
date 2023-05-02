@@ -38,6 +38,18 @@ about the forward measurement process.
     deepinv.loss.SurePGLoss
     deepinv.loss.TVLoss
 
+Transforms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This submodule contains different transforms which can be used for data augmentation or together with the equivariant losses.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.transform.Rotate
+    deepinv.transform.Shift
 
 Network Regularization
 ---------------------------

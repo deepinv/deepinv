@@ -39,8 +39,8 @@ def gaussian_blur(sigma=(1, 1), angle=0):
             angle,
             interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
         )
-        .squeeze(0)
-        .squeeze(0)
+            .squeeze(0)
+            .squeeze(0)
     )
 
     filt = filt / filt.flatten().sum()
@@ -62,9 +62,9 @@ def bicubic_filter(factor=2):
     x = np.abs(x)
     w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
     w += (
-        (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
-        * (x > 1)
-        * (x < 2)
+            (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
+            * (x > 1)
+            * (x < 2)
     )
     w = np.outer(w, w)
     w = w / np.sum(w)
@@ -97,15 +97,15 @@ class Downsampling(LinearPhysics):
     """
 
     def __init__(
-        self,
-        img_size,
-        factor=2,
-        filter=None,
-        mode=None,
-        sigma_gauss=None,
-        device="cpu",
-        padding="circular",
-        **kwargs
+            self,
+            img_size,
+            factor=2,
+            filter=None,
+            mode=None,
+            sigma_gauss=None,
+            device="cpu",
+            padding="circular",
+            **kwargs
     ):
         super().__init__(**kwargs)
         self.factor = factor
@@ -130,8 +130,8 @@ class Downsampling(LinearPhysics):
                     raise Exception("sigma_gauss should be an int or a tuple of ints")
                 self.filter = (
                     gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
-                    .requires_grad_(False)
-                    .to(device)
+                        .requires_grad_(False)
+                        .to(device)
                 )
             elif mode == "bilinear":
                 self.filter = (
@@ -150,6 +150,9 @@ class Downsampling(LinearPhysics):
             self.Fh = filter_fft(self.filter, img_size).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
+            self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
+            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
     def A(self, x):
         if self.filter is not None:
@@ -166,7 +169,8 @@ class Downsampling(LinearPhysics):
 
     def prox_l2(self, z, y, gamma, use_fft=True):
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of https://arxiv.org/abs/1510.00143.
+        If the padding is circular, it computes the proximal operator with the closed-formula of
+        https://arxiv.org/abs/1510.00143.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
         """
@@ -217,7 +221,7 @@ def extend_filter(filter):
         h_new += 1
 
     out = torch.zeros((b, c, h_new, w_new), device=filter.device)
-    out[:, :, offset_h : h + offset_h, offset_w : w + offset_w] = filter
+    out[:, :, offset_h: h + offset_h, offset_w: w + offset_w] = filter
     return out
 
 
@@ -326,15 +330,15 @@ def conv_transpose(y, filter, padding):
     elif padding == "reflect":
         out = x[:, :, ph:-ph, pw:-pw]
         # sides
-        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
-        out[:, :, -ph - 1 : -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
-        out[:, :, :, 1 : 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
-        out[:, :, :, -pw - 1 : -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
+        out[:, :, 1: 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
+        out[:, :, -ph - 1: -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
+        out[:, :, :, 1: 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
+        out[:, :, :, -pw - 1: -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
         # corners
-        out[:, :, 1 : 1 + ph, 1 : 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
-        out[:, :, -ph - 1 : -1, -pw - 1 : -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
-        out[:, :, -ph - 1 : -1, 1 : 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
-        out[:, :, 1 : 1 + ph, -pw - 1 : -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
+        out[:, :, 1: 1 + ph, 1: 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
+        out[:, :, -ph - 1: -1, -pw - 1: -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
+        out[:, :, -ph - 1: -1, 1: 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
+        out[:, :, 1: 1 + ph, -pw - 1: -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
 
     elif padding == "replicate":
         out = x[:, :, ph:-ph, pw:-pw]
@@ -436,7 +440,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
-        self.filter = filter.requires_grad_(False).to(device)
+        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
 
     def A(self, x):
         return conv(x, self.filter, self.padding)
@@ -450,7 +454,7 @@ class BlurFFT(DecomposablePhysics):
 
     FFT-based blur operator.
 
-    It performs
+    It performs the operation
 
     .. math:: y = w*x
 
@@ -460,8 +464,8 @@ class BlurFFT(DecomposablePhysics):
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g.,
-        ``deepinv.physics.blur.gaussian_blur()``..
+    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
+        ``deepinv.physics.blur.gaussian_blur()``.
     :param str device: cpu or cuda
 
     """
@@ -469,11 +473,15 @@ class BlurFFT(DecomposablePhysics):
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.img_size = img_size
-        self.mask = filter_fft(filter, img_size)
-        self.mask = self.mask.requires_grad_(False).to(device)
+
+        if img_size[0] > filter.shape[1]:
+            filter = filter.repeat(1, img_size[0], 1, 1)
+
+        self.mask = filter_fft(filter, img_size).to(device)
+        self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
-        return fft.fft2(x, norm="ortho")
+        return fft.fft2(x, norm="ortho")  # TODO: make it a true SVD (see J. Romberg notes)
 
     def U(self, x):
         return fft.irfft2(x, norm="ortho", s=self.img_size[-2:])
@@ -491,26 +499,6 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    x = torchvision.io.read_image("../../datasets/set3c/0/butterfly.png")
-    x = x.unsqueeze(0).float().to(device) / 255
-
-    # test on non symmetric blur kernel
-    import hdf5storage
-
-    kernel_index = 2
-    kernels = hdf5storage.loadmat("../../degradations/kernels/kernels_12.mat")[
-        "kernels"
-    ]
-    filter_np = kernels[0, kernel_index].astype(np.float64)
-    filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
-    blur = Downsampling(
-        factor=2, filter=filter_torch, img_size=(3, 256, 256), device=device
-    )
-    y = blur.A(x)
-    y1 = blur.prox_l2(x, y, gamma=10, use_fft=True)
-    y2 = blur.prox_l2(x, y, gamma=10, use_fft=False)
-    print(y1)
-    print(y2)
 
     # print(physics.power_method(x))
     # x = [x, w]

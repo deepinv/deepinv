@@ -350,18 +350,20 @@ def test(
                 for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
                     if len(metric_val) > 0:
                         batch_size, n_iter = len(metric_val), len(metric_val[0])
-                        wandb.log(
-                            {
-                                f"{metric_name} batch {i}": wandb.plot.line_series(
-                                    xs=range(n_iter),
-                                    ys=metric_val,
-                                    keys=[f"image {j}" for j in range(batch_size)],
-                                    title=f"{metric_name} batch {i}",
-                                    xname="iteration",
-                                )
-                            },
-                            step=step,
-                        )
+
+                        if wandb_vis:
+                            wandb.log(
+                                {
+                                    f"{metric_name} batch {i}": wandb.plot.line_series(
+                                        xs=range(n_iter),
+                                        ys=metric_val,
+                                        keys=[f"image {j}" for j in range(batch_size)],
+                                        title=f"{metric_name} batch {i}",
+                                        xname="iteration",
+                                    )
+                                },
+                                step=step,
+                            )
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

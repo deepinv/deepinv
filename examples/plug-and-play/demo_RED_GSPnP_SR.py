@@ -9,13 +9,12 @@ In International Conference on Learning Representations.
 
 import numpy as np
 import deepinv as dinv
-import hdf5storage
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optimbuilder
+from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_GSPnP_params
@@ -23,7 +22,7 @@ from deepinv.utils.demo import get_git_root, download_dataset, download_degradat
 
 
 # Setup paths for data loading, results and checkpoints.
-BASE_DIR = Path(get_git_root())
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -67,7 +66,7 @@ use_bicubic_init = False  # Use bicobic interpolation to initialize the algorith
 # Logging parameters
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-wandb_vis = True  # plot curves and images in Weight&Bias
+wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
 save_images = True  # save images in RESULTS_DIR
 
@@ -102,7 +101,7 @@ ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
 model_spec = {
     "name": denoiser_name,
     "args": {
-        "in_channels": n_channels + 1,
+        "in_channels": n_channels,
         "out_channels": n_channels,
         "pretrained": str(ckpt_path) if ckpt_path.exists() else "download",
         "train": False,
@@ -114,7 +113,6 @@ model_spec = {
 
 denoiser = ScoreDenoiser(model_spec, sigma_normalize=False)
 prior = {"grad_g": denoiser, "g": denoiser.denoiser.potential}
-
 
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
 val_transform = transforms.Compose(
@@ -145,7 +143,7 @@ else:
     custom_init = None
 
 # instanciate the algorithm class to solve the IP problem.
-model = optimbuilder(
+model = optim_builder(
     algo_name="PGD",
     prior=prior,
     g_first=True,

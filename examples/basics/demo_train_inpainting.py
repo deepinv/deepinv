@@ -13,7 +13,7 @@ from deepinv.utils.demo import get_git_root, download_dataset
 from deepinv.training_utils import train, test
 
 # Setup paths for data loading, results and checkpoints.
-BASE_DIR = Path(get_git_root())
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -23,7 +23,8 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
+# Use parallel dataloader if using a GPU to fasten training,
+# otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Parameters
@@ -48,9 +49,9 @@ p = dinv.physics.Inpainting(
 
 
 # Setup the variable to fetch dataset and operators.
-operation = "inpaint"
-train_dataset_name = "DRUNET"
-val_dataset_name = "CBSD68"
+operation = "inpainting"
+train_dataset_name = "set3c"
+val_dataset_name = "set3c"
 train_dataset_path = ORIGINAL_DATA_DIR / train_dataset_name
 test_dataset_path = ORIGINAL_DATA_DIR / val_dataset_name
 if not train_dataset_path.exists():

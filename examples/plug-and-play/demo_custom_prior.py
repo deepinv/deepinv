@@ -1,5 +1,8 @@
 """
-Image deblurring with custom deep explicit prior function.
+Image deblurring with custom deep explicit prior.
+====================================================================================================
+
+
 """
 
 import numpy as np
@@ -9,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optimbuilder
+from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
@@ -25,7 +28,7 @@ class L2Prior(nn.Module):
 
 
 # Setup paths for data loading, results and checkpoints.
-BASE_DIR = Path(get_git_root())
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -71,7 +74,7 @@ tol_prox_inter = 1e-3  # Convergence criteria for gradient descent calculation o
 # Logging parameters
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-wandb_vis = True  # plot curves and images in Weight&Bias
+wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = False  # plot results
 save_images = False  # save images in RESULTS_DIR
 
@@ -79,7 +82,7 @@ save_images = False  # save images in RESULTS_DIR
 # Generate a Gaussian blur filter.
 sigma_gauss_x = 3
 sigma_gauss_y = 3
-filter = dinv.physics.blur.gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
+filter_torch = dinv.physics.blur.gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
 
 # The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
@@ -127,7 +130,7 @@ dataloader = DataLoader(
 )
 
 # Instantiate the algorithm class to solve the IP problem.
-model = optimbuilder(
+model = optim_builder(
     algo_name="PGD",
     prior=prior,
     g_first=True,

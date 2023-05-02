@@ -51,7 +51,7 @@ relaxation parameters, etc...
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.optim.optimbuilder
+   deepinv.optim.optim_builder
 
 
 Data Fidelity

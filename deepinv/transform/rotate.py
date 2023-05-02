@@ -1,7 +1,7 @@
 import torch
-from torchvision.transforms.functional import rotate
+# from torchvision.transforms.functional import rotate
 
-# from kornia.geometry.transform import rotate  TODO: fix rotation bug
+from kornia.geometry.transform import rotate  # TODO: fix rotation bug
 
 
 class Rotate(torch.nn.Module):

@@ -1,5 +1,6 @@
 """
-Implementation of the DPIR method for Plug-and-Play image deblurring. 
+DPIR method for PnP image deblurring.
+====================================================================================================
 
 Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
 Learning deep CNN denoiser prior for image restoration. 
@@ -7,13 +8,12 @@ In Proceedings of the IEEE conference on computer vision and pattern recognition
 """
 import numpy as np
 import deepinv as dinv
-import h5py
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optimbuilder
+from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import datasets, transforms
 from deepinv.utils.parameters import get_DPIR_params
@@ -32,7 +32,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 torch.manual_seed(0)
 
 
-# Setup the variable to fetch dataset and operators.
+# Set up the variable to fetch dataset and operators.
 method = "DPIR"
 denoiser_name = "drunet"
 dataset_name = "set3c"
@@ -43,14 +43,15 @@ if not dataset_path.exists():
 measurement_dir = DATA_DIR / dataset_name / operation
 
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
+# Use parallel dataloader if using a GPU to fasten training,
+# otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Parameters of the algorithm to solve the inverse problem
 n_images_max = 3  # Maximal number of images to restore from the input dataset
 batch_size = 1
-noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
+noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 early_stop = False  # Do not stop algorithm with convergence criteria
 img_size = 256
 n_channels = 3  # 3 for color images, 1 for gray-scale images
@@ -59,7 +60,7 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 # Logging parameters
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-wandb_vis = True  # plot curves and images in Weight&Bias
+wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
 save_images = True  # save images in RESULTS_DIR
 
@@ -76,7 +77,7 @@ if not kernel_path.exists():
     download_degradation("Levin09.npy", DEG_DIR / "kernels")
 kernels = np.load(kernel_path, allow_pickle=True)
 filter_torch = torch.from_numpy(kernels[kernel_index]).unsqueeze(0).unsqueeze(0)
-# The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
+# The BlurFFT instance from physics enables to compute efficiently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=filter_torch,
@@ -126,7 +127,7 @@ dataloader = DataLoader(
 
 
 # instanciate the algorithm class to solve the IP problem.
-model = optimbuilder(
+model = optim_builder(
     algo_name="HQS",
     prior=prior,
     data_fidelity=data_fidelity,

@@ -72,6 +72,7 @@ class UNet(nn.Module):
         circular_padding=False,
         cat=True,
         bias=True,
+        batch_norm=True,
         scales=4,
     ):
         super(UNet, self).__init__()
@@ -86,32 +87,57 @@ class UNet(nn.Module):
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
         def conv_block(ch_in, ch_out):
-            return nn.Sequential(
-                nn.Conv2d(
-                    ch_in,
-                    ch_out,
-                    kernel_size=3,
-                    stride=1,
-                    padding=1,
-                    bias=bias,
-                    padding_mode="circular" if circular_padding else "zeros",
-                ),
-                BFBatchNorm2d(ch_out, use_bias=bias),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(
-                    ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
-                ),
-                BFBatchNorm2d(ch_out, use_bias=bias),
-                nn.ReLU(inplace=True),
-            )
+            if batch_norm:
+                return nn.Sequential(
+                    nn.Conv2d(
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
+                    ),
+                    BFBatchNorm2d(ch_out, use_bias=bias),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(
+                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    ),
+                    BFBatchNorm2d(ch_out, use_bias=bias),
+                    nn.ReLU(inplace=True),
+                )
+            else:
+                return nn.Sequential(
+                    nn.Conv2d(
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
+                    ),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(
+                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    ),
+                    nn.ReLU(inplace=True),
+                )
 
         def up_conv(ch_in, ch_out):
-            return nn.Sequential(
-                nn.Upsample(scale_factor=2),
-                nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
-                BFBatchNorm2d(ch_out, use_bias=bias),
-                nn.ReLU(inplace=True),
-            )
+            if batch_norm:
+                return nn.Sequential(
+                    nn.Upsample(scale_factor=2),
+                    nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
+                    BFBatchNorm2d(ch_out, use_bias=bias),
+                    nn.ReLU(inplace=True),
+                )
+            else:
+                return nn.Sequential(
+                    nn.Upsample(scale_factor=2),
+                    nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
+                    nn.ReLU(inplace=True),
+                )
 
         self.Conv1 = conv_block(ch_in=in_channels, ch_out=64)
         self.Conv2 = conv_block(ch_in=64, ch_out=128)

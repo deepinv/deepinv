@@ -61,7 +61,7 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
 
 Noise distributions
 -------------------------------------
-Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module`` s.
+Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module``.
 The noise of a forward operator can be set in its construction
 or simply as
 

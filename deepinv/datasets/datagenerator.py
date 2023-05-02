@@ -14,6 +14,7 @@ class HDF5Dataset(data.Dataset):
     :param bool train: Set to ``True`` for training and ``False`` for testing.
     :param torchvision.Transform transform: PyTorch transform to apply to every data instance (default=``None``).
     '''
+
     def __init__(self, path, train=True, transform=None):
         super().__init__()
         self.data_info = []
@@ -82,11 +83,11 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     max_datapoints = int(max_datapoints)
 
     n_train = min(len(train_dataset), max_datapoints)
-    n_train_g = int(n_train/G)
-    
+    n_train_g = int(n_train / G)
+
     if test_dataset is not None:
         n_test = min(len(test_dataset), max_datapoints)
-        n_test_g = int(n_test/G)
+        n_test_g = int(n_test / G)
 
     hf_paths = []
 
@@ -99,11 +100,12 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
-        train_dataloader = DataLoader(Subset(train_dataset, indices=list(range(g*n_train_g, (g+1)*n_train_g))),
-                                      batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+        train_dataloader = DataLoader(Subset(train_dataset, indices=list(range(g * n_train_g, (g + 1) * n_train_g))),
+                                      batch_size=batch_size, num_workers=num_workers,
+                                      pin_memory=False if device == 'cpu' else True)
 
         if G > 1:
-            print(f'Computing train measurement vectors from base dataset of operator {g+1} out of {G}...')
+            print(f'Computing train measurement vectors from base dataset of operator {g + 1} out of {G}...')
         else:
             print('Computing train measurement vectors from base dataset...')
 
@@ -111,7 +113,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
         for i, x in enumerate(tqdm(train_dataloader)):
             x = x[0] if isinstance(x, list) else x
             x = x.to(device)
-            
+
             # choose operator and generate measurement
             y = physics[g](x)
 
@@ -122,9 +124,9 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
             # Add new data to it
             bsize = x.size()[0]
-            hf['y_train'][index:index+bsize] = y.to('cpu').numpy()
+            hf['y_train'][index:index + bsize] = y.to('cpu').numpy()
             if supervised:
-                hf['x_train'][index:index+bsize] = x.to('cpu').numpy()
+                hf['x_train'][index:index + bsize] = x.to('cpu').numpy()
             index = index + bsize
 
         if test_dataset is not None:
@@ -134,7 +136,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
                 batch_size=batch_size, num_workers=num_workers, pin_memory=True)
 
             if G > 1:
-                print(f'Computing test measurement vectors from base dataset of operator {g+1} out of {G}...')
+                print(f'Computing test measurement vectors from base dataset of operator {g + 1} out of {G}...')
             else:
                 print('Computing test measurement vectors from base dataset...')
 
@@ -151,12 +153,11 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
                 # Add new data to it
                 bsize = x.size()[0]
-                hf['x_test'][index:index+bsize] = x.to('cpu').numpy()
-                hf['y_test'][index:index+bsize] = y.to('cpu').numpy()
+                hf['x_test'][index:index + bsize] = x.to('cpu').numpy()
+                hf['y_test'][index:index + bsize] = y.to('cpu').numpy()
                 index = index + bsize
         hf.close()
 
     print('Dataset has been saved in ' + str(save_dir))
 
     return hf_paths
-

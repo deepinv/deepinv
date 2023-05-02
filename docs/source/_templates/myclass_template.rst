@@ -8,3 +8,7 @@
    :no-undoc-members:
    :special-members: __mul__
 
+.. _sphx_glr_backref_{{module}}.{{objname}}:
+
+.. minigallery:: {{module}}.{{objname}}
+    :add-heading: Examples using ``{{module}}.{{objname}}``:

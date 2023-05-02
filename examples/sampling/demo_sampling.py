@@ -2,7 +2,8 @@ r"""
 Uncertainty quantification with PnP-ULA.
 ====================================================================================================
 
-This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction.
+This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction
+from incomplete and noisy measurements.
 
 """
 
@@ -14,34 +15,55 @@ from imageio.v2 import imread
 from io import BytesIO
 from pathlib import Path
 
-# load image from the internet or from set3c dataset if no connection
-try:
-    url = (
-        "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
-        "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
-    )
-    res = requests.get(url)
-    x = imread(BytesIO(res.content)) / 255.0
-    pretrained = "download_lipschitz"
-except:
-    BASE_DIR = Path("../..")
-    ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-    im_path = ORIGINAL_DATA_DIR / "set3c" / "images/0/butterfly.png"
-    x = imread(str(im_path)) / 255.0
-    CKPT_DIR = BASE_DIR / "checkpoints"
-    pretrained = str(CKPT_DIR / "dncnn_sigma2_lipschitz_color.pth")
+# %%
+# Load image from the internet
+# ------------------------
+#
+# This example uses an image of Lionel Messi from Wikipedia.
+
+url = (
+    "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
+    "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
+)
+res = requests.get(url)
+x = imread(BytesIO(res.content)) / 255.0
+pretrained = "download_lipschitz"
 
 x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(
     x, scale_factor=0.5
 )  # reduce the image size for faster eval
 
-# define forward operator
+
+# %%
+# Define forward operator and noise model
+# ------------------------
+#
+# This example uses inpainting as the forward operator and Gaussian noise as the noise model.
+
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=dinv.device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
-# load pretrained dncnn denoiser
+# %%
+# Define the likelihood
+# ------------------------
+#
+# Since the noise model is Gaussian, the negative log-likelihood is the L2 loss.
+
+# load Gaussian Likelihood
+likelihood = dinv.optim.L2(sigma=sigma)
+
+# %%
+# Define the prior
+# ------------------------
+#
+# The score a distribution can be approximated using Tweedie's formula via the
+# :class:`deepinv.models.ScoreDenoiser` class. This example uses a pretrained DnCNN model.
+# From a Bayesian point of view, the score plays the role of the gradient of the
+# negative log prior.
+# The hyperparameter ``sigma_denoiser`` controls the strength of the prior.
+
 model_spec = {
     "name": "dncnn",
     "args": {
@@ -55,10 +77,16 @@ model_spec = {
 sigma_denoiser = 2 / 255
 prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 
-# load Gaussian Likelihood
-likelihood = dinv.optim.L2(sigma=sigma)
+# %%
+# Create the MCMC sampler
+# ------------------------
+#
+# Here we use the Unadjusted Langevin Algorithm (ULA) to sample from the posterior defined in
+# :class:`deepinv.sampling.ULA`.
+# The hyperparameter ``step_size`` controls the step size of the MCMC sampler,
+# ``regularization`` controls the strength of the prior and
+# ``iterations`` controls the number of iterations of the sampler.
 
-# choose MCMC sampling algorithm
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
 iterations = int(5e3)
@@ -72,10 +100,20 @@ f = dinv.sampling.ULA(
     sigma=sigma_denoiser,
 )
 
-# generate measurements
+# %%
+# Generate the measurement
+# ------------------------
+# We apply the forward model to generate the noisy measurement.
+
 y = physics(x)
 
-# run algo
+
+# %%
+# Run sampling algorithm and plot results
+# ------------------------
+# The sampling algorithm returns the posterior mean and variance.
+# We compare the posterior mean with a simple linear reconstruction.
+
 mean, var = f(y, physics)
 
 # compute linear inverse

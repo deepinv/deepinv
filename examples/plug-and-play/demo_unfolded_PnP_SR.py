@@ -6,7 +6,6 @@ Unfolded PnP algorithms for super-resolution
 
 import numpy as np
 import deepinv as dinv
-import hdf5storage
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
@@ -18,7 +17,7 @@ from torchvision import datasets, transforms
 from deepinv.utils.demo import get_git_root, download_dataset, download_degradation
 
 # Setup paths for data loading, results and checkpoints.
-BASE_DIR = Path(get_git_root())
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -51,8 +50,8 @@ p = dinv.physics.Downsampling(
 
 # Setup the variable to fetch dataset and operators.
 operation = "super-resolution"
-train_dataset_name = "DRUNET"
-val_dataset_name = "CBSD68"
+train_dataset_name = "CBSD68"
+val_dataset_name = "set3c"
 train_dataset_path = ORIGINAL_DATA_DIR / train_dataset_name
 test_dataset_path = ORIGINAL_DATA_DIR / val_dataset_name
 if not train_dataset_path.exists():
@@ -70,8 +69,7 @@ n_images_max = 1000  # maximal number of images used for training
 
 # Logging parameters
 verbose = True
-wandb_vis = True  # plot curves and images in Weight&Bias
-
+wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -123,7 +121,7 @@ max_iter = 5  # number of unfolded layers
 lamb = 1.0  # initialization of the regularization parameter
 # For both 'stepsize' and 'g_param', if initialized with a table of lenght max_iter, then a distinct stepsize/g_param value is trained for each iteration.
 # For fixed trained 'stepsize' and 'g_param' values across iterations, initialize them with a single float.
-stepsize = [1.0] * max_iter  # ininitialization of the stepsizes.
+stepsize = [1.0] * max_iter  # initialization of the stepsizes.
 sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,

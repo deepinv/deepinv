@@ -22,6 +22,7 @@ Here quick guide
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Contents:
 
    deepinv.physics
@@ -31,10 +32,8 @@ Here quick guide
    deepinv.optim
    deepinv.unfolded
    deepinv.sampling
-   deepinv.transform
    auto_examples/index
    deepinv.notation
-
 
 
 Lead Developers

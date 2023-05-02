@@ -36,14 +36,20 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 sphinx_gallery_conf = {
-    'examples_dirs': '../../examples',   # path to your example scripts
-    'subsection_order': ExplicitOrder(['../../examples/basics',
-                                       '../../examples/plug-and-play',
-                                       '../../examples/sampling']),
+    'examples_dirs': ['../../examples'],
     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
     'filename_pattern': "/demo_",
     'run_stale_examples': True,
     'ignore_pattern': r"__init__\.py",
+    # directory where function/class granular galleries are stored
+    'backreferences_dir': 'gen_modules/backreferences',
+    # Modules for which function/class level galleries are created. In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    'doc_module': ('deepinv'),
+    # objects to exclude from implicit backreferences. The default option
+    # is an empty set, i.e. exclude nothing.
+    'exclude_implicit_doc': {},
+    'nested_sections': False
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
