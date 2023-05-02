@@ -163,6 +163,7 @@ def test_data_fidelity_l1():
 
 optim_algos = ["PGD", "ADMM", "DRS", "PD"]
 
+
 # other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
@@ -182,7 +183,9 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
     prior = {"prox_g": ProxL1Prior()}
 
-    if name_algo == "PD":  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+    if (
+        name_algo == "PD"
+    ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
         stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
         reg_param = 1.0
     else:
@@ -197,7 +200,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        crit_conv='residual',
+        crit_conv="residual",
         thres_conv=1e-11,
         verbose=True,
         params_algo=params_algo,

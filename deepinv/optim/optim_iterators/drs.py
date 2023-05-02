@@ -40,10 +40,10 @@ class DRSIteration(OptimIterator):
         x_prev = X["est"][1]
         if not self.g_first:
             x_ = self.f_step(x_prev, y, physics, cur_params)
-            z = self.g_step(2*x_-x_prev, cur_prior, cur_params)
+            z = self.g_step(2 * x_ - x_prev, cur_prior, cur_params)
         else:
             x_ = self.g_step(x_prev, cur_prior, cur_params)
-            z = self.f_step(2*x_-x_prev, y, physics, cur_params)
+            z = self.f_step(2 * x_ - x_prev, y, physics, cur_params)
         x = x_prev + z - x_
         x = self.relaxation_step(x, x_prev)
         F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None

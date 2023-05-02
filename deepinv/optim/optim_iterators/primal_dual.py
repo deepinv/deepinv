@@ -68,7 +68,7 @@ class fStepPD(fStep):
         """
         v = u + cur_params["stepsize"] * Ax_cur
         return v - cur_params["stepsize"] * self.data_fidelity.prox_f(
-            v / cur_params["stepsize"], y,  cur_params["lambda"] / cur_params["stepsize"]
+            v / cur_params["stepsize"], y, cur_params["lambda"] / cur_params["stepsize"]
         )
 
 
