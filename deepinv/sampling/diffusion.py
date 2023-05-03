@@ -1,12 +1,42 @@
 import torch.nn as nn
 import torch
 import numpy as np
-import time as time
 from tqdm import tqdm
 
 import deepinv.physics
-from deepinv.sampling.utils import Welford, projbox, refl_projbox
-from deepinv.sampling.langevin import MCMC
+from deepinv.sampling.langevin import MonteCarlo
+
+
+class DiffusionSampler(MonteCarlo):
+    r"""
+    Convert a diffusion method into a full Monte Carlo sampler
+
+    Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
+    by running the diffusion multiple times.
+
+    :param torch.nn.Module diffusion: a diffusion model
+    :param int max_iter: the maximum number of iterations
+    :param tuple clip: the clip range
+    :param callable g_statistic: the g-statistic
+    :param bool verbose: whether to print the progress
+    :param bool save_chain: whether to save the chain
+    :param int thinning: the thinning factor
+    :param float burnin_ratio: the burnin ratio
+    """
+    def __init__(self, diffusion, max_iter=1e2, clip=(-1, 2), g_statistic=lambda x: x, verbose=True):
+        # generate an iterator
+        # set the params of the base class
+        data_fidelity = None
+        diffusion.verbose = False
+        prior = diffusion
+
+        def iterator(x, y, physics, likelihood, prior):
+            # run one sampling kernel iteration
+            x = prior(y, physics)
+            return x
+
+        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, thinning=1,
+                         burnin_ratio=0., clip=clip, verbose=verbose, g_statistic=g_statistic)
 
 
 class DDRM(nn.Module):
@@ -21,8 +51,9 @@ class DDRM(nn.Module):
     it is :meth:`deepinv.Physics.DecomposablePhysics` class.
 
     :param deepinv.models.Denoiser, torch.nn.Module denoiser: a denoiser model
-    :param list[int], numpy.array sigmas: a list of noise levels
     :param float sigma_noise: the noise level of the data
+    :param list[int], numpy.array sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
+        order from 1 to 0.
     :param float eta: hyperparameter
     :param float etab: hyperparameter
     :param bool verbose: if True, print progress
@@ -31,8 +62,8 @@ class DDRM(nn.Module):
     def __init__(
             self,
             denoiser,
-            sigmas,
             sigma_noise,
+            sigmas=np.linspace(1, 0, 100),
             eta=0.85,
             etab=1.0,
             verbose=False,
@@ -50,9 +81,10 @@ class DDRM(nn.Module):
         r"""
         Runs the diffusion to obtain a random sample of the posterior distribution.
 
-        :param torch.Tensor y: the measurements
-        :param deepinv.physics.DecomposablePhysics physics: the physics operator
-        :param int seed: the seed for the random number generator
+        :param torch.Tensor y: the measurements.
+        :param deepinv.physics.DecomposablePhysics physics: the physics operator, which must have a singular value
+            decomposition.
+        :param int seed: the seed for the random number generator.
         """
         # assert physics.__class__ == deepinv.physics.DecomposablePhysics, 'The forward operator requires a singular value decomposition'
         with torch.no_grad():
@@ -63,7 +95,7 @@ class DDRM(nn.Module):
             if physics.__class__ == deepinv.physics.Denoising:
                 mask = torch.ones_like(y)
             else:
-                mask = physics.mask.abs()
+                mask = torch.cat([physics.mask.abs()]*y.shape[0], dim=0)
 
             c = np.sqrt(1 - self.eta ** 2)
             y_bar = physics.U_adjoint(y)
@@ -105,7 +137,7 @@ class DDRM(nn.Module):
                     case3
                 ]
 
-                std = torch.ones_like(x) * self.eta * self.sigmas[t]
+                std = torch.ones_like(x_bar) * self.eta * self.sigmas[t]
                 std[case3] = (
                         self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
                 ).sqrt()
@@ -117,22 +149,6 @@ class DDRM(nn.Module):
 
         return x
 
-
-class DiffusionSampler(MCMC):
-    def __init__(self, diffusion, max_iter=1e2, clip=(-1, 2), g_statistic=lambda x: x, verbose=True):
-        # generate an iterator
-        # set the params of the base class
-        data_fidelity = None
-        diffusion.verbose = False
-        prior = diffusion
-
-        def iterator(x, y, physics, likelihood, prior):
-            # run one sampling kernel iteration
-            x = prior(y, physics)
-            return x
-
-        super().__init__(iterator, prior, data_fidelity, max_iter=max_iter, thinning=1,
-                         burnin_ratio=0., clip=clip, verbose=verbose, g_statistic=g_statistic)
 
 
 if __name__ == "__main__":
@@ -160,7 +176,7 @@ if __name__ == "__main__":
 
     denoiser = Denoiser(model_spec=model_spec)
 
-    sigmas = np.linspace(1, 0, 300)
+    sigmas = np.linspace(1, 0, 100)
     f = DDRM(
         denoiser=denoiser,
         etab=1.0,
@@ -169,8 +185,16 @@ if __name__ == "__main__":
         verbose=True,
     )
 
-    xhat = f(y, physics)
+    sampler = dinv.sampling.DiffusionSampler(f, verbose=True)
+    xmean, xvar = sampler(y, physics)
 
+    xstdn = xvar.sqrt()
+    xstdn_plot = xstdn.sum(dim=1).unsqueeze(1)
+
+    error = (xmean - x).abs()  # per pixel average abs. error
+
+    print(f'Correct std: {(3*xstdn>error).sum()/np.prod(xstdn.shape)*100:.1f}%')
+    error = (xmean - x)
     dinv.utils.plot_debug(
-        [physics.A_adjoint(y), x, xhat], titles=["meas.", "ground-truth", "mean"]
+        [physics.A_adjoint(y), x, xmean, xstdn_plot], titles=["meas.", "ground-truth", "mean", "std"]
     )

@@ -10,27 +10,26 @@ from deepinv.optim.utils import check_conv
 from deepinv.sampling.utils import Welford, projbox, refl_projbox
 
 
-
-class MCMC(nn.Module):
+class MonteCarlo(nn.Module):
     r"""
-    Base class for Markov Chain Monte Carlo sampling.
+    Base class for Monte Carlo sampling.
 
-    This class can be used to create new MCMC samplers, by only defining their kernel inside a torch.nn.Module:
+    This class can be used to create new Monte Carlo samplers, by only defining their kernel inside a torch.nn.Module:
 
     ::
 
-        # define custom Markov kernel
+        # define custom sampling kernel (possibly a Markov kernel which depends on the previous sanple).
         class MyKernel(torch.nn.Module):
             def __init__(self, iterator_params)
                 super().__init__()
                 self.iterator_params = iterator_params
 
-            def forward(self, x):
+            def forward(self, x, y, physics, likelihood, prior):
                 # run one sampling kernel iteration
-                new_x = f(x, iterator_params)
+                new_x = f(x, y, physics, likelihood, prior, self.iterator_params)
                 return new_x
 
-        class MySampler(MCMC):
+        class MySampler(MonteCarlo):
             def __init__(self, prior, data_fidelity, iterator_params,
                          max_iter=1e3, burnin_ratio=.1, clip=(-1,2), verbose=True):
                 # generate an iterator
@@ -47,13 +46,13 @@ class MCMC(nn.Module):
 
 
     This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
-    MCMC chain.
+    Monte Carlo samples.
 
     :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param int max_iter: number of Monte Carlo iterations.
-    :param int thinning: Thins the Markov Chain by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``
+    :param int thinning: thins the Monte Carlo samples by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``
         samples to compute posterior statistics).
     :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.
         The burn-in samples are discarded constant with a numerical algorithm.
@@ -79,7 +78,7 @@ class MCMC(nn.Module):
         g_statistic=lambda x: x,
         verbose=False,
     ):
-        super(MCMC, self).__init__()
+        super(MonteCarlo, self).__init__()
 
         self.iterator = iterator
         self.prior = prior
@@ -99,11 +98,11 @@ class MCMC(nn.Module):
 
     def forward(self, y, physics, seed=None):
         r"""
-        Runs an MCMC chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
+        Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
         :param torch.tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param float seed: Random seed for generating the MCMC samples
+        :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         with torch.no_grad():
@@ -119,7 +118,7 @@ class MCMC(nn.Module):
             # Initialization
             x = physics.A_adjoint(y)  # .cuda(device).detach().clone()
 
-            # MCMC loop
+            # Monte Carlo loop
             start_time = time.time()
             statistics = Welford(self.g_function(x))
 
@@ -147,7 +146,7 @@ class MCMC(nn.Module):
                     torch.cuda.synchronize()
                 end_time = time.time()
                 elapsed = end_time - start_time
-                print(f"MCMC sampling finished! elapsed time={elapsed:.2f} seconds")
+                print(f"Monte Carlo sampling finished! elapsed time={elapsed:.2f} seconds")
 
             if (
                 check_conv(
@@ -179,7 +178,8 @@ class MCMC(nn.Module):
 
     def get_chain(self):
         r"""
-        Returns the thinned MCMC chain (after burn-in iterations)
+        Returns the thinned Monte Carlo samples (after burn-in iterations).
+        Requires ``save_chain=True``.
         """
         return self.chain
 
@@ -211,7 +211,7 @@ class ULAIterator(nn.Module):
         return x + self.step_size * (lhood + lprior) + noise
 
 
-class ULA(MCMC):
+class ULA(MonteCarlo):
     r"""
     Plug-and-Play Unadjusted Langevin Algorithm.
 
@@ -335,7 +335,7 @@ class SKRockIterator(nn.Module):
         return xts  # new sample produced by the SK-ROCK algorithm
 
 
-class SKRock(MCMC):
+class SKRock(MonteCarlo):
     r"""
     Plug-and-Play SKROCK algorithm.
 

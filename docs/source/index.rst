@@ -13,6 +13,7 @@ Deep Inverse is a Pytorch based library for solving imaging inverse problems wit
    :width: 1000
    :align: center
 
+Github repository: `<https://github.com/deepinv/deepinv>`_.
 
 Getting Started
 ==================

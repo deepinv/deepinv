@@ -408,7 +408,8 @@ class DecomposablePhysics(LinearPhysics):
 
     def prox_l2(self, z, y, gamma):
         r"""
-        Computes proximal operator of :math:`f(x)=\frac{1}{2}\|Ax-y\|^2`
+        Computes proximal operator of :math:`f(x)=\frac{1}{2}\|Ax-y\|^2`, i.e.
+        :math:`\underset{x}{\arg\min} \; \frac{1}{2} \|Ax-y\|^2 + \frac{\gamma}{2}\|x-z\|^2`
         in an efficient manner leveraging the singular vector decomposition.
 
         :param torch.tensor y: measurements tensor
@@ -433,12 +434,12 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
 
-        mask = self.mask
+        mask = torch.zeros_like(self.mask)
 
         if not isinstance(self.mask, float):
-            mask[mask == 0] = 1
+            mask[self.mask > 1e-5] = 1/self.mask[self.mask > 1e-5]
 
-        return self.V(self.U_adjoint(y) / mask)
+        return self.V(self.U_adjoint(y) * mask)
 
 
 class Denoising(DecomposablePhysics):

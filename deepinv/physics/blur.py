@@ -16,7 +16,7 @@ def filter_fft(filter, img_size):
     filt2[:, : filter.shape[1], : filter.shape[2], : filter.shape[3]] = filter
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
-    return fft.fft2(filt2)
+    return fft.rfft2(filt2)
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
@@ -477,14 +477,19 @@ class BlurFFT(DecomposablePhysics):
         if img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, img_size[0], 1, 1)
 
-        self.mask = filter_fft(filter, img_size).to(device)
+        self.mask = filter_fft(filter, img_size).to('cpu')
+        self.angle = torch.angle(self.mask)
+        self.angle = torch.exp(-1j * self.angle).to(device)
+        self.mask = torch.abs(self.mask).unsqueeze(-1)
+        self.mask = torch.cat([self.mask, self.mask], dim=-1)
+
         self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
-        return fft.fft2(x, norm="ortho")  # TODO: make it a true SVD (see J. Romberg notes)
+        return torch.view_as_real(fft.rfft2(x, norm="ortho"))  # make it a true SVD (see J. Romberg notes)
 
     def U(self, x):
-        return fft.irfft2(x, norm="ortho", s=self.img_size[-2:])
+        return fft.irfft2(torch.view_as_complex(x)*self.angle, norm="ortho", s=self.img_size[-2:])
 
     def U_adjoint(self, x):
         return self.V_adjoint(x)
@@ -498,24 +503,40 @@ if __name__ == "__main__":
     device = "cuda:0"
 
     import matplotlib.pyplot as plt
+    import deepinv as dinv
+
+    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+    x = x.unsqueeze(0).float().to(dinv.device) / 255
+
+    sigma_noise = 0.
+    kernel = torch.zeros((1, 1, 15, 15), device=dinv.device)
+    kernel[:, :, 7, :] = 1 / 15
+    physics = BlurFFT(img_size=x.shape[1:], filter=kernel,
+                                  device=dinv.device)
+    physics2 = Blur(img_size=x.shape[1:], filter=kernel,
+                                  device=dinv.device)
+
+    y = physics(x)
+    y2 = physics2(x)
+
+    xhat = physics.A_dagger(y)
+    xhat2 = physics2.A_dagger(y2)
+    print(torch.sum((y - y2).pow(2)))
+    print(torch.sum((xhat - xhat2).pow(2)))
 
 
-    # print(physics.power_method(x))
-    # x = [x, w]
-    # xhat = physics.A_adjoint(y)
+    print(physics.compute_norm(x))
+    print(physics.adjointness_test(x))
+    xhat = physics.prox_l2(y, torch.zeros_like(y), gamma=1.)
 
-    # xhat = physics.A_dagger(y)
-    # xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=.1)
+    #xhat = physics.A_dagger(y)
 
-    # x = x[0]
-    # xhat = xhat[0]
+    plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
+    plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
+    plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
 
-    # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-
-    # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
+    plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
