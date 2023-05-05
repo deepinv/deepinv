@@ -492,10 +492,11 @@ class BlurFFT(DecomposablePhysics):
         return fft.irfft2(torch.view_as_complex(x)*self.angle, norm="ortho", s=self.img_size[-2:])
 
     def U_adjoint(self, x):
-        return self.V_adjoint(x)
+        return torch.view_as_real(fft.rfft2(x, norm="ortho")*torch.conj(self.angle))  # make it a true SVD (see J.
+        # Romberg notes)
 
     def V(self, x):
-        return self.U(x)
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho")
 
 
 # test code
@@ -519,15 +520,17 @@ if __name__ == "__main__":
     y = physics(x)
     y2 = physics2(x)
 
-    xhat = physics.A_dagger(y)
+    xhat = physics.V(physics.U_adjoint(y)/physics.mask)
     xhat2 = physics2.A_dagger(y2)
     print(torch.sum((y - y2).pow(2)))
     print(torch.sum((xhat - xhat2).pow(2)))
 
+    print(torch.sum((x - xhat).pow(2)))
+    print(torch.sum((x - xhat2).pow(2)))
 
     print(physics.compute_norm(x))
     print(physics.adjointness_test(x))
-    xhat = physics.prox_l2(y, torch.zeros_like(y), gamma=1.)
+    xhat = physics.prox_l2(y, y, gamma=0.)
 
     #xhat = physics.A_dagger(y)
 
@@ -536,6 +539,8 @@ if __name__ == "__main__":
     plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
     plt.show()
     plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    plt.show()
+    plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
     plt.show()
 
     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
