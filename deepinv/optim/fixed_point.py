@@ -153,6 +153,7 @@ class AndersonAcceleration(FixedPoint):
     :param float or list beta: parameter :math:`\beta` in the above equation. If a float is provided, the same value is used for all iterations. If a list is provided, the value is updated at each iteration. Default: 1.0.
     :param kwargs: additional keyword arguments for FixedPoint.
     """
+
     def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
         super(AndersonAcceleration, self).__init__(**kwargs)
         self.history_size = history_size
