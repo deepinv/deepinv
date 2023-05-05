@@ -20,7 +20,7 @@ class BaseDEQ(BaseUnfold):
         x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, \sigma, ...)
 
 
-    where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` can be either learnable modules or
+    where :math:`\operatorname{step}_f`, :math:`\operatorname{step}_g` as well as the external parameters can be either learnable modules or
     proximal / gradient steps.
 
     :param args: Arguments to be passed to the :class:`deepinv.optim.optim_iterators.BaseIterator` class.

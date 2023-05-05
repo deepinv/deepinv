@@ -135,10 +135,24 @@ class FixedPoint(nn.Module):
 
 
 class AndersonAcceleration(FixedPoint):
-    """
-    TO DO
-    """
+    r"""
 
+    Implements the Anderson Acceleration algorithm for fixed-point algorithms, see <https://users.wpi.edu/~walker/Papers/Walker-Ni,SINUM,V49,1715-1735.pdf>_.
+
+    Considering a fixed-point algorithm of the form $x_{k+1} = T(x_k)$, the Anderson algorithm is defined as:
+
+    .. math::
+
+        x_{k+1} = (1-\beta) \sum_{i=0}^{m} \alpha_i x_{k-m+i} + \beta \sum_{i=0}^{m} \alpha_i T(x_{k-m+i})
+
+
+    where :math:`T` is the fixed-point iterator and the coefficients :math:`\alpha_i` are such that :math:`\sum_{i=0}^{m} \alpha_i = 1`.
+
+    :param int history_size: number of previous iterates to be used for the acceleration (parameter :math:`m` in the above equation). Default: 5.
+    :param float ridge: ridge parameter for the least-squares problem. Default: 1e-4.
+    :param float or list beta: parameter :math:`\beta` in the above equation. If a float is provided, the same value is used for all iterations. If a list is provided, the value is updated at each iteration. Default: 1.0.
+    :param kwargs: additional keyword arguments for FixedPoint.
+    """
     def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
         super(AndersonAcceleration, self).__init__(**kwargs)
         self.history_size = history_size
@@ -149,7 +163,12 @@ class AndersonAcceleration(FixedPoint):
 
     def forward(self, x, init_params, *args):
         r"""
-        TODO
+        Computes the fixed point of :math:`x_{k+1}=T(x_k)` using Anderson acceleration.
+
+        :param dict x: dictionary containing the current iterate.
+        :param dict init_params: dictionary containing the initial parameters.
+        :param args: optional arguments for the iterator.
+        :return: a tuple containing the fixed-point.
         """
         cur_params = init_params
         init = x["est"][0]
