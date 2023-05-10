@@ -14,6 +14,9 @@ class FixedPoint(nn.Module):
         \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...) \hspace{2cm} (1)
 
 
+    where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the
+    data.
+
 
     ::
 

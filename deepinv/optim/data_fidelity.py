@@ -7,7 +7,7 @@ class DataFidelity(nn.Module):
     Data fidelity term :math:`\datafid{Ax}{y}`.
 
     This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
-    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
+    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a function.
 
     ::
 
@@ -190,7 +190,7 @@ class L2(DataFidelity):
 
     def prox(self, x, y, physics, gamma):
         r"""
-        Proximal operator of :math:`f(x) = \frac{1}{2\sigma^2}\|Ax-y\|^2`.
+        Proximal operator of :math:`\gamma f(x) = \frac{\gamma}{2\sigma^2}\|Ax-y\|^2`.
 
         Computes :math:`\operatorname{prox}_{\gamma f}`, i.e.
 
@@ -224,7 +224,7 @@ class L2(DataFidelity):
 
     def prox_f(self, x, y, gamma):
         r"""
-        Proximal operator of :math:`f(x) = \frac{1}{2\sigma^2}\|x-y\|^2`.
+        Proximal operator of :math:`\gamma f(x) = \frac{\gamma}{2\sigma^2}\|x-y\|^2`.
 
         Computes :math:`\operatorname{prox}_{\gamma f}`, i.e.
 
@@ -459,6 +459,23 @@ class L1(DataFidelity):
         return (x - y).flatten().abs().sum()
 
     def grad_f(self, x, y):
+        r"""
+        Gradient of the gradient of the :math:`\ell_1` norm, i.e.
+
+        .. math::
+
+            \partial f(x) = \operatorname{sign}(x-y)
+
+
+        .. note::
+
+            The gradient is not defined at :math:`x=y`.
+
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
+        :return: (torch.tensor) gradient of the :math:`\ell_1` norm at `x`.
+        """
         return torch.sign(x - y)
 
     def prox_f(self, u, y, gamma):

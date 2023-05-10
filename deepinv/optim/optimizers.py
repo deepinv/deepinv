@@ -16,7 +16,7 @@ class BaseOptim(nn.Module):
 
     .. math::
         \begin{equation}
-        \underset{x}{\arg\min} \quad \datafid{\forw{x}}{y} + \reg{x}
+        \underset{x}{\arg\min} \quad \lambda \datafid{\forw{x}}{y} + \reg{x}
         \end{equation}
 
 
@@ -28,11 +28,11 @@ class BaseOptim(nn.Module):
     i.e. for :math:`k=1,2,...`
 
     .. math::
-        \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...)
+        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
 
-    where :math:`x_k` is a primal variable converging to the solution of the minimisation problem, and
-    :math:`u_k` is a dual variable.
+    where :math:`x_k` is a variable converging to the solution of the minimisation problem, and
+    :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
 
 
     ::
