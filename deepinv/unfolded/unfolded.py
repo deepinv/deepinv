@@ -17,8 +17,10 @@ class BaseUnfold(BaseOptim):
 
 
     .. math::
-        z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, \lambda, \gamma, ...)\\
-        x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, \sigma, ...)
+        \begin{aligned}
+        z_{k+1} &= \operatorname{step}_f(x_k, z_k, y, A, \lambda, \gamma, ...)\\
+        x_{k+1} &= \operatorname{step}_g(x_k, z_k, y, A, \sigma, ...)
+        \end{aligned}
 
 
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are learnable modules encompassing external

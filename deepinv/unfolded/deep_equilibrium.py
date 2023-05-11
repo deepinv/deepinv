@@ -16,8 +16,10 @@ class BaseDEQ(BaseUnfold):
     These algorithms take the following form (see :meth:`deepinv.unfolded`):
 
     .. math::
-        z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, \lambda, \gamma, ...)\\
-        x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, \sigma, ...)
+        \begin{aligned}
+        z_{k+1} &= \operatorname{step}_f(x_k, z_k, y, A, \lambda, \gamma, ...)\\
+        x_{k+1} &= \operatorname{step}_g(x_k, z_k, y, A, \sigma, ...)
+        \end{aligned}
 
 
     where :math:`\operatorname{step}_f`, :math:`\operatorname{step}_g` as well as the external parameters can be either learnable modules or

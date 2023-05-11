@@ -122,10 +122,6 @@ class DataFidelity(nn.Module):
                 "no prox operator is implemented for the data fidelity term."
             )
 
-    # DEPRECATED
-    # def prox_norm(self, x, y, gamma):
-    #     return self.prox_norm(x, y, gamma)
-
 
 class L2(DataFidelity):
     r"""
