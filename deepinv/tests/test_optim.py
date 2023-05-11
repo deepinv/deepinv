@@ -162,45 +162,46 @@ def test_data_fidelity_l1():
 
 
 optim_algos = ["PGD", "ADMM", "DRS", "PD", "HQS"]
-
-
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
-    # Define two points
-    x = torch.tensor([10, 10], dtype=torch.float64)
-
-    # Create a measurement operator
-    B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
-    B_forward = lambda v: B @ v
-    B_adjoint = lambda v: B.transpose(0, 1) @ v
-
-    # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
-    y = physics(x)
-
-    data_fidelity = L2()  # The data fidelity term
-    reg = L1()  # The regularization term
-
-    def prox_g(x, ths=0.1):
-        return reg.prox_f(x, 0, ths)
-
-    prior = {"prox_g": prox_g}
-
-    if (
-        name_algo == "PD"
-    ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-        stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
-        reg_param = 1.0
-    else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-        stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
-        reg_param = 1.0 * stepsize
-
-    lamb = 1.5
-    max_iter = 1000
-    params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
 
     for g_first in [True, False]:  # Test both g first and f first
+
         if not g_first or (g_first and not ("HQS" in name_algo or "PGD" in name_algo)):
+
+            # Define two points
+            x = torch.tensor([10, 10], dtype=torch.float64)
+
+            # Create a measurement operator
+            B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
+            B_forward = lambda v: B @ v
+            B_adjoint = lambda v: B.transpose(0, 1) @ v
+
+            # Define the physics model associated to this operator
+            physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+            y = physics(x)
+
+            data_fidelity = L2()  # The data fidelity term
+            reg = L1()  # The regularization term
+
+            def prox_g(x, ths=0.1):
+                return reg.prox_f(x, 0, ths)
+
+            prior = {"prox_g": prox_g}
+
+            if (
+                name_algo == "PD"
+            ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+                stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+                reg_param = 1.0
+            else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
+                stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
+                reg_param = 1.0 * stepsize
+
+            lamb = 1.5
+            max_iter = 1000
+            params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
+
             optimalgo = optimbuilder(
                 name_algo,
                 prior=prior,
