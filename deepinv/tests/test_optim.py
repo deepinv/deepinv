@@ -231,25 +231,12 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 stepsize_f = 1 / (lamb * stepsize)
                 stepsize_g = reg_param
 
-                if not g_first:
-                    moreau_grad = (
-                        x - data_fidelity.prox(x, y, physics, stepsize_f)
-                    ) / stepsize_f  # Gradient of the moreau envelope
-                    assert torch.allclose(
-                        moreau_grad * stepsize_f, -subdiff * stepsize_g, atol=1e-12
-                    )  # Optimality condition
-                else:
-                    grad_f = data_fidelity.grad(x, y, physics)
-                    moreau_grad = (
-                        x - reg.prox_f(x, 0, stepsize_g)
-                    ) / stepsize_g  # Gradient of the moreau envelope
-
-                    print(stepsize_g)
-                    print(stepsize_f)
-                    print(lamb)
-                    assert torch.allclose(
-                        grad_f * stepsize_f, -moreau_grad * stepsize_g, atol=1e-12
-                    )  # Optimality condition
+                moreau_grad = (
+                    x - data_fidelity.prox(x, y, physics, stepsize_f)
+                ) / stepsize_f  # Gradient of the moreau envelope
+                assert torch.allclose(
+                    moreau_grad * stepsize_f, -subdiff * stepsize_g, atol=1e-12
+                )  # Optimality condition
             else:
                 # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
                 # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
@@ -278,18 +265,18 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     x = model(y, ths)  # 3. Apply the model we want to test
 
-    plot = False
-
-    if plot:
-        imgs = []
-        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-        imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-
-        titles = ["Input", "Output"]
-        num_im = 2
-        plot_debug(
-            imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
-        )
+    # For debugging
+    # plot = False
+    # if plot:
+    #     imgs = []
+    #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+    #
+    #     titles = ["Input", "Output"]
+    #     num_im = 2
+    #     plot_debug(
+    #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+    #     )
 
     assert model.denoiser.has_converged
 
@@ -335,16 +322,17 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     x = pnp(y, physics)
 
-    plot = False
-    if plot:
-        imgs = []
-        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-        imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-
-        titles = ["Input", "Output"]
-        num_im = 2
-        plot_debug(
-            imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
-        )
+    # For debugging
+    # plot = False
+    # if plot:
+    #     imgs = []
+    #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+    #
+    #     titles = ["Input", "Output"]
+    #     num_im = 2
+    #     plot_debug(
+    #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+    #     )
 
     assert pnp.has_converged
