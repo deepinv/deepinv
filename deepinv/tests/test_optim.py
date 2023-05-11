@@ -162,13 +162,12 @@ def test_data_fidelity_l1():
 
 
 optim_algos = ["PGD", "ADMM", "DRS", "PD", "HQS"]
+
+
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
-
     for g_first in [True, False]:  # Test both g first and f first
-
         if not g_first or (g_first and not ("HQS" in name_algo or "PGD" in name_algo)):
-
             # Define two points
             x = torch.tensor([10, 10], dtype=torch.float64)
 
