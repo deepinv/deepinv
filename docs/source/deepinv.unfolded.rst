@@ -7,8 +7,10 @@ where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}
 The resulting fixed-point algorithms for solving these problems are of the form (see :meth:`deepinv.optim`)
 
 .. math::
-    z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)
+    \begin{aligned}
+    z_{k+1} &= \operatorname{step}_f(x_k, z_k, y, A, ...)\\
+    x_{k+1} &= \operatorname{step}_g(x_k, z_k, y, A, ...)
+    \end{aligned}
 
 where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradient and/or proximal steps on
 :math:`f` and :math:`g` respectively.
