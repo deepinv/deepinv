@@ -347,7 +347,7 @@ class BaseOptim(nn.Module):
             init = {}
             if not self.return_dual:
                 x_init = self.get_primal_variable(X_init)
-                psnr = [cal_psnr(x_init[i], x_gt[i]) for i in range(self.batch_size)]
+                psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
             else:
                 psnr = [[] for i in range(self.batch_size)]
             init["psnr"] = psnr
