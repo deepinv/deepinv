@@ -60,8 +60,8 @@ Data Fidelity
 This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
 :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
 
-This class comes with methods such as :math:`\operatorname{prox}_{f\circ A}` and :math:`\nabla f` among others on which
-optimisation algorithms rely.
+This class comes with methods, such as :math:`\operatorname{prox}_{f\circ A}` and :math:`\nabla f \circ A` (among others),
+on which optimization algorithms rely.
 
 .. autosummary::
    :toctree: stubs

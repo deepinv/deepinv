@@ -161,10 +161,9 @@ def test_data_fidelity_l1():
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
-optim_algos = ["PGD", "ADMM", "DRS", "PD"]
+optim_algos = ["PGD", "ADMM", "DRS", "PD", "HQS"]
 
 
-# other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     # Define two points
@@ -179,42 +178,85 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
     y = physics(x)
 
-    data_fidelity = L2()
+    data_fidelity = L2()  # The data fidelity term
+    reg = L1()  # The regularization term
 
-    prior = {"prox_g": ProxL1Prior()}
+    def prox_g(x, ths=0.1):
+        return reg.prox_f(x, 0, ths)
+
+    prior = {"prox_g": prox_g}
 
     if (
         name_algo == "PD"
     ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
         stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
         reg_param = 1.0
-    else:
+    else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
         stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
         reg_param = 1.0 * stepsize
 
     lamb = 1.5
     max_iter = 1000
     params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
-    optimalgo = optimbuilder(
-        name_algo,
-        prior=prior,
-        data_fidelity=data_fidelity,
-        max_iter=max_iter,
-        crit_conv="residual",
-        thres_conv=1e-11,
-        verbose=True,
-        params_algo=params_algo,
-        early_stop=True,
-    )
 
-    x = optimalgo(y, physics)
+    for g_first in [True, False]:  # Test both g first and f first
+        if not g_first or (g_first and not ("HQS" in name_algo or "PGD" in name_algo)):
+            optimalgo = optimbuilder(
+                name_algo,
+                prior=prior,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                crit_conv="residual",
+                thres_conv=1e-11,
+                verbose=True,
+                params_algo=params_algo,
+                early_stop=True,
+                g_first=g_first,
+            )
 
-    grad_deepinv = data_fidelity.grad(x, y, physics)
+            # Run the optimisation algorithm
+            x = optimalgo(y, physics)
 
-    assert torch.allclose(
-        lamb * grad_deepinv, -torch.ones_like(grad_deepinv), atol=1e-12
-    )  # Optimality condition
-    assert optimalgo.has_converged
+            assert optimalgo.has_converged
+
+            # Compute the subdifferential of the regularisation at the limit point of the algorithm.
+            subdiff = reg.grad_f(x, 0)
+
+            if name_algo == "HQS":
+                # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
+                # :math:`\lambda \gamma_1 ^1(f)+\gamma_2 g` where :math:`^1(f)` denotes the Moreau envelope of :math:`f`,
+                # and :math:`\gamma_1` and :math:`\gamma_2` are the stepsizes in the proximity operators. Beware, these are
+                # not fetch automatically here but handwritten in the test.
+                # The optimality condition is then :math:`0 \in \gamma_1 \nabla ^1(f)(x)+\gamma_2 \partial g(x)`
+                stepsize_f = 1 / (lamb * stepsize)
+                stepsize_g = reg_param
+
+                if not g_first:
+                    moreau_grad = (
+                        x - data_fidelity.prox(x, y, physics, stepsize_f)
+                    ) / stepsize_f  # Gradient of the moreau envelope
+                    assert torch.allclose(
+                        moreau_grad * stepsize_f, -subdiff * stepsize_g, atol=1e-12
+                    )  # Optimality condition
+                else:
+                    grad_f = data_fidelity.grad(x, y, physics)
+                    moreau_grad = (
+                        x - reg.prox_f(x, 0, stepsize_g)
+                    ) / stepsize_g  # Gradient of the moreau envelope
+
+                    print(stepsize_g)
+                    print(stepsize_f)
+                    print(lamb)
+                    assert torch.allclose(
+                        grad_f * stepsize_f, -moreau_grad * stepsize_g, atol=1e-12
+                    )  # Optimality condition
+            else:
+                # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
+                # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
+                grad_deepinv = data_fidelity.grad(x, y, physics)
+                assert torch.allclose(
+                    lamb * grad_deepinv, -subdiff, atol=1e-12
+                )  # Optimality condition
 
 
 def test_denoiser(imsize, dummy_dataset, device):

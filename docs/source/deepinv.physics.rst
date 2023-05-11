@@ -107,7 +107,7 @@ inheriting the remaining structure of the ``LinearPhysics`` class:
 
 .. note::
 
-    If the operator is linear, it is recommended to verify that the transpose well defined using
+    If the operator is linear, it is recommended to verify that the transpose is well defined using
     :meth:`deepinv.physics.LinearPhysics.adjointness_test()`,
     and that it has a unit norm using :meth:`deepinv.physics.LinearPhysics.compute_norm()`
 

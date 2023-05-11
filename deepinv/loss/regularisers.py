@@ -12,7 +12,7 @@ class JacobianSpectralNorm(nn.Module):
     .. math::
         \|\frac{df}{du}(x)\|_2.
 
-    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in Pesquet et al.
+    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
 
     :param int max_iter: maximum numer of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
@@ -99,8 +99,9 @@ class FNEJacobianSpectralNorm(nn.Module):
     identity) in :math:`x`, i.e.
 
     .. math::
-        \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2.
+        \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
+    as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
     This spectral norm is computed with the :meth:`deepinv.loss.JacobianSpectralNorm` module.
 
     :param int max_iter: maximum numer of iteration of the power method.
