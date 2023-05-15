@@ -172,7 +172,7 @@ class Downsampling(LinearPhysics):
         """
 
         if use_fft and self.padding == "circular":  # Formula from (Zhao, 2016)
-            z_hat = self.A_adjoint(y) + gamma * z
+            z_hat = self.A_adjoint(y) + 1 / gamma * z
             Fz_hat = fft.fft2(z_hat)
 
             def splits(a, sf):
@@ -188,10 +188,10 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + gamma
+            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
             rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
-            return (z_hat - r) / gamma
+            return (z_hat - r) * gamma
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma)
 

@@ -161,7 +161,7 @@ def test_data_fidelity_l1():
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
-optim_algos = ["PGD", "ADMM", "DRS", "PD", "HQS"]
+optim_algos = ["PGD", "ADMM", "DRS", "CP", "HQS"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
@@ -189,7 +189,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             prior = {"prox_g": prox_g}
 
             if (
-                name_algo == "PD"
+                name_algo == "CP"
             ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
                 stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
                 reg_param = 1.0
@@ -228,7 +228,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 # and :math:`\gamma_1` and :math:`\gamma_2` are the stepsizes in the proximity operators. Beware, these are
                 # not fetch automatically here but handwritten in the test.
                 # The optimality condition is then :math:`0 \in \gamma_1 \nabla ^1(f)(x)+\gamma_2 \partial g(x)`
-                stepsize_f = 1 / (lamb * stepsize)
+                stepsize_f = lamb * stepsize
                 stepsize_g = reg_param
 
                 moreau_grad = (
@@ -281,7 +281,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.denoiser.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "PD", "PGD"]
+optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP", "PGD"]
 
 
 # optim_algos = ['GD']  # To implement

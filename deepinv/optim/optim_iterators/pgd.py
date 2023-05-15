@@ -14,10 +14,12 @@ class PGDIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k} &= x_k - \lambda \gamma \nabla f(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_k)
+        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_k),
         \end{aligned}
         \end{equation*}
 
+
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\lambda \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
 
     """
 
@@ -59,7 +61,7 @@ class fStepPGD(fStep):
             return gradient_descent_step(x, grad, self.bregman_potential)
         else:
             return self.data_fidelity.prox(
-                x, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
+                x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
             )
 
 

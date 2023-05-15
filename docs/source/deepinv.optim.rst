@@ -183,17 +183,17 @@ Half-Quadratic Splitting
 
 
 
-Primal-Dual Splitting
-^^^^^^^^^^^^^^^^^^^^^
+Chambolle-Pock Primal-Dual Splitting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.optim_iterators.PDIteration
-   deepinv.optim.optim_iterators.primal_dual.fStepPD
-   deepinv.optim.optim_iterators.primal_dual.gStepPD
+   deepinv.optim.optim_iterators.CPIteration
+   deepinv.optim.optim_iterators.primal_dual.fStepCP
+   deepinv.optim.optim_iterators.primal_dual.gStepCP
 
 
 

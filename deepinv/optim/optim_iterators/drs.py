@@ -13,8 +13,8 @@ class DRSIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= 2\operatorname{prox}_{f}(x_k)-x_k \\
-        x_{k+1/2} &= 2\operatorname{prox}_{g}(u_k)-u_k \\
+        u_{k} &= 2\operatorname{prox}_{\gamma \lambda f}(x_k)-x_k \\
+        x_{k+1/2} &= 2\operatorname{prox}_{\gamma g}(u_k)-u_k \\
         x_{k+1} &= (x_{k+1/2} - x_{k})/2
         \end{aligned}
         \end{equation*}
@@ -68,7 +68,7 @@ class fStepDRS(fStep):
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
         return self.data_fidelity.prox(
-            x, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
+            x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
