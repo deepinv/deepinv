@@ -281,10 +281,9 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.denoiser.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP", "PGD"]
+optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
 
 
-# optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     dataloader = DataLoader(
@@ -297,7 +296,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 0.1
+    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 
@@ -322,15 +321,16 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     x = pnp(y, physics)
 
-    # For debugging
-    # plot = False
+    # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
+    # plot = True
     # if plot:
     #     imgs = []
     #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
     #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(test_sample[0, :, :, :].unsqueeze(0)))
     #
-    #     titles = ["Input", "Output"]
-    #     num_im = 2
+    #     titles = ["Input", "Output", "Groundtruth"]
+    #     num_im = 3
     #     plot_debug(
     #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
     #     )

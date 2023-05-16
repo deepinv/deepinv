@@ -200,24 +200,24 @@ class BaseOptim(nn.Module):
                     self.prior["prox_g"].append(prox_g)
 
         if self.anderson_acceleration:
-            self.anderson_beta = anderson_beta
-            self.anderson_history_size = anderson_history_size
+            # self.anderson_beta = anderson_beta
+            # self.anderson_history_size = anderson_history_size
             self.fixed_point = AndersonAcceleration(
-                iterator,
-                update_params_fn=self.update_params_fn,
-                update_prior_fn=self.update_prior_fn,
-                max_iter=self.max_iter,
+                iterator=iterator,
                 history_size=anderson_history_size,
                 beta=anderson_beta,
+                update_params_fn=self.update_params_fn,
+                update_prior_fn=self.update_prior_fn,
+                max_iter=max_iter,
                 early_stop=early_stop,
                 check_iteration_fn=self.check_iteration_fn,
                 check_conv_fn=self.check_conv_fn,
-                init_metrics=self.init_metrics,
-                update_metrics=self.update_metrics,
+                init_metrics_fn=self.init_metrics_fn,
+                update_metrics_fn=self.update_metrics_fn,
             )
         else:
             self.fixed_point = FixedPoint(
-                iterator,
+                iterator=iterator,
                 update_params_fn=self.update_params_fn,
                 update_prior_fn=self.update_prior_fn,
                 max_iter=max_iter,
