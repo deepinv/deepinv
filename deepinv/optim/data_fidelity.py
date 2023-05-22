@@ -12,7 +12,7 @@ class DataFidelity(nn.Module):
     ::
 
         # define a loss function
-        loss = L2()
+        data_fidelity = L2()
 
         # create a measurement operator
         A = torch.Tensor([[2, 0], [0, 0.5]])
@@ -27,7 +27,7 @@ class DataFidelity(nn.Module):
         y = torch.Tensor([1, 1])
 
         # Compute the loss f(Ax, y)
-        f = loss(x, y, physics)  # print f gives 1.0
+        f = data_fidelity(x, y, physics)  # print f gives 1.0
 
         # Compute the gradient of f
         grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
