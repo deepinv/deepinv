@@ -11,6 +11,7 @@ from deepinv.utils.plotting import plot_debug, torch2cpu
 
 from torch.utils.data import DataLoader
 
+
 @pytest.fixture
 def device():
     return dinv.device

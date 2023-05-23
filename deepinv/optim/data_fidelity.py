@@ -478,7 +478,9 @@ class L1(DataFidelity):
         :return: (torch.tensor) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
-        aux = torch.sign(d) * torch.maximum(d.abs() - gamma, torch.tensor([0]).to(d.device))
+        aux = torch.sign(d) * torch.maximum(
+            d.abs() - gamma, torch.tensor([0]).to(d.device)
+        )
         return aux + y
 
     def prox(self, x, y, physics, gamma, stepsize=None, crit_conv=1e-5, max_iter=100):
