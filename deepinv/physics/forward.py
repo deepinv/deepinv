@@ -419,7 +419,11 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         b = self.A_adjoint(y) + gamma * z
-        scaling = torch.conj(self.mask) * self.mask + gamma
+
+        if isinstance(self.mask, float):
+            scaling = self.mask**2 + gamma
+        else:
+            scaling = torch.conj(self.mask) * self.mask + gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
@@ -436,9 +440,9 @@ class DecomposablePhysics(LinearPhysics):
 
         if not isinstance(self.mask, float):
             mask = torch.zeros_like(self.mask)
-            mask[self.mask > 1e-5] = 1/self.mask[self.mask > 1e-5]
+            mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
         else:
-            mask = 1/self.mask
+            mask = 1 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
 
@@ -456,5 +460,3 @@ class Denoising(DecomposablePhysics):
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(**kwargs)
         self.noise_model = noise
-
-
