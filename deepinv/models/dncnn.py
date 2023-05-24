@@ -20,7 +20,7 @@ class DnCNN(nn.Module):
     :param str act_mode:
     :param bool bias: use bias in the convolutional layers
     :param int nf: number of channels per convolutional layer
-    :param str pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
         It is possible to download weights trained via the regularization method in https://epubs.siam.org/doi/abs/10.1137/20M1387961
