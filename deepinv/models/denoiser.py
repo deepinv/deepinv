@@ -55,9 +55,14 @@ class Denoiser(nn.Module):
     :param dict model_spec: a dictionary containing the necessary information for generating the model.
     """
 
-    def __init__(self, model_spec=None):
+    def __init__(self, model_spec=None, denoiser=None):
         super(Denoiser, self).__init__()
-        self.denoiser = make(model_spec)
+        if denoiser is not None:
+            self.denoiser = denoiser
+        elif model_spec is not None:
+            self.denoiser = make(model_spec)
+        else:
+            raise ValueError("Either denoiser or model_spec must be provided.")
 
     def forward(self, x, sigma):
         r""" """
