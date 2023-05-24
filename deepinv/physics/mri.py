@@ -214,7 +214,7 @@ if __name__ == "__main__":
     mask[mask > 1] = 1
 
     sigma = 0.1
-    #physics = MRI(mask=mask, device=dinv.device)
+    # physics = MRI(mask=mask, device=dinv.device)
     physics = dinv.physics.Denoising()
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
 
@@ -225,11 +225,10 @@ if __name__ == "__main__":
         def __init__(self):
             super().__init__()
 
-        def forward(self,x, sigma=None):
+        def forward(self, x, sigma=None):
             return x
 
     f = dinv.models.ArtifactRemoval(backbone)
-
 
     batch_size = 1
 
@@ -243,12 +242,12 @@ if __name__ == "__main__":
         mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
         sure = loss(y, x_net, physics, f)
 
-        print(f'tau:{tau:.2e}  mse: {mse:.2e}, sure: {sure:.2e}')
+        print(f"tau:{tau:.2e}  mse: {mse:.2e}, sure: {sure:.2e}")
         rel_error = (sure - mse).abs() / mse
-        print(f'rel_error: {rel_error:.2e}')
+        print(f"rel_error: {rel_error:.2e}")
 
     d = physics.A_adjoint(y)
-    dinv.utils.plot_batch([d.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
+    dinv.utils.plot([d.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
 
     print("adjoint test....")
     test_operators_adjointness(
