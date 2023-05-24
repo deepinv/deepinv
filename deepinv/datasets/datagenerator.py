@@ -12,14 +12,12 @@ class HDF5Dataset(data.Dataset):
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
-    :param torchvision.Transform transform: PyTorch transform to apply to every data instance (default=``None``).
     '''
 
-    def __init__(self, path, train=True, transform=None):
+    def __init__(self, path, train=True):
         super().__init__()
         self.data_info = []
         self.data_cache = {}
-        self.transform = transform
         self.unsupervised = False
 
         hd5 = h5py.File(path, 'r')
@@ -46,7 +44,7 @@ class HDF5Dataset(data.Dataset):
         return len(self.y)
 
 
-def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device='cpu', max_datapoints=1e6,
+def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device='cpu', train_datapoints=None,
                      dataset_filename='dinv_dataset', batch_size=4, num_workers=0, supervised=True):
     r'''
     This function generates a dataset of measurement pairs (or measurement only if supervised=False) from a baseline
@@ -62,8 +60,9 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     :param torch.data.Dataset test_dataset: if included, the function will also generate measurements associated to the
         test dataset.
     :param torch.device device: which indicates cpu or gpu.
-    :param int max_datapoints: Maximum desired number of datapoints in the dataset. If larger than len(base_dataset),
-        the function will use the whole base dataset.
+    :param int, None train_datapoints: Desired number of datapoints in the dataset. If set to ``None``, it will use the
+        number of datapoints in the base dataset. This is useful for generating a larger train dataset via data
+        augmentation (which should be chosen in the train_dataset).
     :param str dataset_filename: desired filename of the dataset.
     :param int batch_size: batch size for generating the measurement data
         (it only affects the speed of the generating process)
@@ -86,13 +85,18 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     else:
         G = len(physics)
 
-    max_datapoints = int(max_datapoints)
+    if train_datapoints is not None:
+        datapoints = int(train_datapoints)
+    else:
+        datapoints = len(train_dataset)
 
-    n_train = min(len(train_dataset), max_datapoints)
+
+    n_train = datapoints  # min(len(train_dataset), datapoints)
     n_train_g = int(n_train / G)
+    n_dataset_g = int(min(len(train_dataset), datapoints)/G)
 
     if test_dataset is not None:
-        n_test = min(len(test_dataset), max_datapoints)
+        n_test = min(len(test_dataset), datapoints)
         n_test_g = int(n_test / G)
 
     hf_paths = []
@@ -104,11 +108,18 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
         hf.attrs['operator'] = physics[g].__class__.__name__
 
-        torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
+        x = train_dataset[0]
+        x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
+        x = x.to(device).unsqueeze(0)
 
-        train_dataloader = DataLoader(Subset(train_dataset, indices=list(range(g * n_train_g, (g + 1) * n_train_g))),
-                                      batch_size=batch_size, num_workers=num_workers,
-                                      pin_memory=False if device == 'cpu' else True)
+        # choose operator and generate measurement
+        y = physics[g](x)
+
+        hf.create_dataset('y_train', (n_train_g,) + y.shape[1:], dtype='float')
+        if supervised:
+            hf.create_dataset('x_train', (n_train_g,) + x.shape[1:], dtype='float')
+
+        torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if G > 1:
             print(f'Computing train measurement vectors from base dataset of operator {g + 1} out of {G}...')
@@ -116,24 +127,31 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
             print('Computing train measurement vectors from base dataset...')
 
         index = 0
-        for i, x in enumerate(tqdm(train_dataloader)):
-            x = x[0] if isinstance(x, list) else x
-            x = x.to(device)
 
-            # choose operator and generate measurement
-            y = physics[g](x)
+        epochs = int(n_train_g / len(train_dataset))+1
+        for e in tqdm(range(epochs)):
+            train_dataloader = DataLoader(
+                Subset(train_dataset, indices=list(range(g * n_dataset_g, (g + 1) * n_dataset_g))),
+                batch_size=batch_size, num_workers=num_workers,
+                pin_memory=False if device == 'cpu' else True)
 
-            if i == 0:
-                hf.create_dataset('y_train', (n_train_g,) + y.shape[1:], dtype='float')
+            for i, x in enumerate(train_dataloader):
+                x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
+                x = x.to(device)
+
+                # choose operator and generate measurement
+                y = physics[g](x)
+
+                # Add new data to it
+                bsize = x.size()[0]
+
+                if bsize+index > n_train_g:
+                    bsize = n_train_g-index
+
+                hf['y_train'][index:index + bsize] = y[:bsize, :].to('cpu').numpy()
                 if supervised:
-                    hf.create_dataset('x_train', (n_train_g,) + x.shape[1:], dtype='float')
-
-            # Add new data to it
-            bsize = x.size()[0]
-            hf['y_train'][index:index + bsize] = y.to('cpu').numpy()
-            if supervised:
-                hf['x_train'][index:index + bsize] = x.to('cpu').numpy()
-            index = index + bsize
+                    hf['x_train'][index:index + bsize] = x[:bsize, :, :, :].to('cpu').numpy()
+                index = index + bsize
 
         if test_dataset is not None:
             index = 0
@@ -147,7 +165,7 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
                 print('Computing test measurement vectors from base dataset...')
 
             for i, x in enumerate(tqdm(test_dataloader)):
-                x = x[0] if isinstance(x, list) else x
+                x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                 x = x.to(device)
 
                 # choose operator
@@ -166,4 +184,4 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
 
     print('Dataset has been saved in ' + str(save_dir))
 
-    return hf_paths
+    return hf_paths[0] if G == 1 else hf_paths
