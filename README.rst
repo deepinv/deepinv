@@ -11,14 +11,19 @@
      </div>
 
 Introduction
--------
+---------------------
 Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standarizing forward imaging models and simplifying the creation of imaging datasets. 
 
 With ``deepinv`` you can:
 
-* Use deep learning for solving your inverse problem. You only need to create a ``physics`` class that captures your imaging problem. You can try self-supervised learning, unrolled architectures, plug-and-play methods with pretrained denoisers and uncertainty quantification!
-* Test new deep learning-based methods on various standard inverse problems (MRI, CT, deblurring, super-resolution, inpainting, colorization, etc.) and compare with existing state-of-the-art methods.
-* Create and share datasets, which can be seamlessly evaluated by other users.
+
+* |:camera_with_flash:|  Large collection of `predefined imaging operators<https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* |:books:| `Training losses<https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
+* |:boomerang:| Many `pretrained deep denoisers<https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration<https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
+* |:book:| Framework for `building datasets<https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
+* |:building_construction:| Easy-to-build `unfolded architectures<https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
+* |:microscope:| `Sampling algorithms<https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
+
 
 
 .. raw:: html
