@@ -128,14 +128,18 @@ class UNet(nn.Module):
             if batch_norm:
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
-                    nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
+                    nn.Conv2d(
+                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    ),
                     BFBatchNorm2d(ch_out, use_bias=bias),
                     nn.ReLU(inplace=True),
                 )
             else:
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
-                    nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias),
+                    nn.Conv2d(
+                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    ),
                     nn.ReLU(inplace=True),
                 )
 
