@@ -85,7 +85,7 @@ if __name__ == "__main__":
     batch_size = 1
     imsize = (3, 128, 128)
 
-    for split_ratio in np.linspace(.7, .99, 10):
+    for split_ratio in np.linspace(0.7, 0.99, 10):
         x = torch.ones((batch_size,) + imsize, device=dinv.device)
         y = physics(x)
 
@@ -95,6 +95,8 @@ if __name__ == "__main__":
         mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
         split_loss = loss(y, physics, f)
 
-        print(f'split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}')
+        print(
+            f"split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}"
+        )
         rel_error = (split_loss - mse).abs() / mse
-        print(f'rel_error: {rel_error:.2f}')
+        print(f"rel_error: {rel_error:.2f}")

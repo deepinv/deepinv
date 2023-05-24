@@ -475,7 +475,7 @@ class BlurFFT(DecomposablePhysics):
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size # TODO: bug when height or width is odd
+        self.img_size = img_size  # TODO: bug when height or width is odd
 
         if img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, img_size[0], 1, 1)
@@ -528,12 +528,11 @@ if __name__ == "__main__":
     y = physics(x)
     y2 = physics2(x)
 
-
     xhat = physics.V(physics.U_adjoint(y) / physics.mask)
     xhat2 = physics2.A_dagger(y2)
 
     print(xhat.shape)
-    #print(physics.adjointness_test(x))
+    # print(physics.adjointness_test(x))
     print(torch.sum((y - y2).pow(2)))
     print(torch.sum((xhat - xhat2).pow(2)))
 

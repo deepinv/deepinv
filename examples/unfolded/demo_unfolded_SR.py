@@ -49,9 +49,12 @@ test_transform = transforms.Compose(
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-train_dataset = load_dataset(train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform)
-test_dataset = load_dataset(test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform)
-
+train_dataset = load_dataset(
+    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
+)
+test_dataset = load_dataset(
+    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
+)
 
 
 # %%
@@ -208,7 +211,7 @@ train(
 
 plot_images = True
 save_images = True
-method = 'unfolded_drs'
+method = "unfolded_drs"
 
 test(
     model=model,

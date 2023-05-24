@@ -27,31 +27,33 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    "sphinx.ext.autosectionlabel"
+    "sphinx.ext.autosectionlabel",
 ]
 
-intersphinx_mapping = {"numpy": ('http://docs.scipy.org/doc/numpy/', None),
-                       "torch": ('https://docs.pytorch.org/2.0/', None),
-                       "python": ('https://docs.python.org/3.4', None)}
+intersphinx_mapping = {
+    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
+    "torch": ("https://docs.pytorch.org/2.0/", None),
+    "python": ("https://docs.python.org/3.4", None),
+}
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 sphinx_gallery_conf = {
-    'examples_dirs': ['../../examples'],
-    'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
-    'filename_pattern': "/demo_",
-    'run_stale_examples': True,
-    'ignore_pattern': r"__init__\.py",
+    "examples_dirs": ["../../examples"],
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "filename_pattern": "/demo_",
+    "run_stale_examples": True,
+    "ignore_pattern": r"__init__\.py",
     # directory where function/class granular galleries are stored
-    'backreferences_dir': 'gen_modules/backreferences',
+    "backreferences_dir": "gen_modules/backreferences",
     # Modules for which function/class level galleries are created. In
     # this case sphinx_gallery and numpy in a tuple of strings.
-    'doc_module': ('deepinv'),
+    "doc_module": ("deepinv"),
     # objects to exclude from implicit backreferences. The default option
     # is an empty set, i.e. exclude nothing.
-    'exclude_implicit_doc': {},
-    'nested_sections': False
+    "exclude_implicit_doc": {},
+    "nested_sections": False,
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html

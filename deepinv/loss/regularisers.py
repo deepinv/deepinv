@@ -39,7 +39,7 @@ class JacobianSpectralNorm(nn.Module):
 
     def __init__(self, max_iter=10, tol=1e-3, weight=1, eval_mode=False, verbose=False):
         super(JacobianSpectralNorm, self).__init__()
-        self.name = 'jsn'
+        self.name = "jsn"
         self.max_iter = max_iter
         self.tol = tol
         self.eval = eval_mode
@@ -98,7 +98,7 @@ class JacobianSpectralNorm(nn.Module):
                 v.detach_()
                 u.detach_()
 
-        return self.weight*z.view(-1).sqrt()
+        return self.weight * z.view(-1).sqrt()
 
 
 class FNEJacobianSpectralNorm(nn.Module):

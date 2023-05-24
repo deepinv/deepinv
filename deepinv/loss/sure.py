@@ -9,10 +9,12 @@ def hutch_div(y, physics, f, mc_iter=1):
     out = 0
     for i in range(mc_iter):
         b = torch.randn_like(input)
-        x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[0]
-        out += (b*x).mean()
+        x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[
+            0
+        ]
+        out += (b * x).mean()
 
-    return out/mc_iter
+    return out / mc_iter
 
 
 def exact_div(y, physics, f):
@@ -25,10 +27,12 @@ def exact_div(y, physics, f):
             for k in range(w):
                 b = torch.zeros_like(input)
                 b[:, i, j, k] = 1
-                x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[0]
-                out += (b*x).sum()
+                x = torch.autograd.grad(
+                    output, input, b, retain_graph=True, create_graph=True
+                )[0]
+                out += (b * x).sum()
 
-    return out/(c*h*w)
+    return out / (c * h * w)
 
 
 def mc_div(y1, y, f, physics, tau):
@@ -271,7 +275,6 @@ class SurePGLoss(nn.Module):
         return loss_sure
 
 
-
 if __name__ == "__main__":
     from deepinv.models import Denoiser
     import deepinv as dinv
@@ -283,8 +286,8 @@ if __name__ == "__main__":
     f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
     # test divergence
 
-    x = torch.ones((1, 3, 16, 16), device=dinv.device)*.5
-    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(.1))
+    x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     y = physics(x)
 
     y1 = f(y, physics)
@@ -304,5 +307,5 @@ if __name__ == "__main__":
     error_mc /= 100
     error_h /= 100
 
-    print(f'error_h: {error_h}')
-    print(f'error_mc: {error_mc}')
+    print(f"error_h: {error_h}")
+    print(f"error_mc: {error_mc}")
