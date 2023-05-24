@@ -1,13 +1,12 @@
 import pytest
+import torch.nn
 
 import deepinv as dinv
-from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot_debug, torch2cpu
-
 from torch.utils.data import DataLoader
+import numpy as np
 
 
 @pytest.fixture
@@ -17,84 +16,109 @@ def device():
 
 @pytest.fixture
 def imsize():
-    h = 28
-    w = 32
-    c = 3
+    h = 2
+    w = 2
+    c = 1
     return c, h, w
 
 
-# TODO: use a DummyCircle as dataset and check convergence of optim algorithms (maybe with TV denoiser)
-@pytest.fixture
-def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
-
-
-def choose_algo(algo, prior, likelihood, stepsize, thresh_conv, sigma):
+def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
     if algo == "ULA":
         out = ULA(
-            prior,
+            GaussianScore(sigma_prior),
             likelihood,
-            max_iter=1000,
+            max_iter=100,
+            thinning=1,
             verbose=True,
-            alpha=0.9,
-            step_size=0.01 * stepsize,
-            clip=(-1, 2),
+            step_size=0.01 / (1 / sigma**2 + 1 / sigma_prior**2),
+            clip=(-100, 100),
             thresh_conv=thresh_conv,
-            sigma=sigma,
+            sigma=1,
         )
     elif algo == "SKRock":
         out = SKRock(
-            prior,
+            GaussianScore(sigma_prior),
             likelihood,
-            max_iter=100,
+            max_iter=200,
             verbose=True,
             thresh_conv=thresh_conv,
-            alpha=0.9,
-            step_size=stepsize,
-            clip=(-1, 2),
-            sigma=sigma,
+            inner_iter=5,
+            step_size=1 / (1 / sigma**2 + 1 / sigma_prior**2),
+            clip=(-100, 100),
+            sigma=1,
         )
+    elif algo == "DDRM":
+        diff = dinv.sampling.DDRM(
+            denoiser=GaussianDenoiser(sigma_prior),
+            sigma_noise=sigma,
+            eta=1,
+            sigmas=np.linspace(1, 0, 100),
+        )
+        out = dinv.sampling.DiffusionSampler(diff, clip=(-100, 100), max_iter=100)
     else:
         raise Exception("The sampling algorithm doesnt exist")
 
     return out
 
 
-sampling_algo = ["ULA", "SKRock"]
+sampling_algo = ["DDRM", "ULA", "SKRock"]
+
+
+class GaussianScore(torch.nn.Module):
+    def __init__(self, sigma_prior):
+        super().__init__()
+        self.sigma_prior2 = sigma_prior**2
+
+    def forward(self, x, sigma):
+        return x / self.sigma_prior2
+
+
+class GaussianDenoiser(torch.nn.Module):
+    def __init__(self, sigma_prior):
+        super().__init__()
+        self.sigma_prior2 = sigma_prior**2
+
+    def forward(self, x, sigma):
+        return x / (1 + sigma**2 / self.sigma_prior2)
 
 
 @pytest.mark.parametrize("algo", sampling_algo)
-def test_sampling_algo(algo, imsize, dummy_dataset, device):
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )  # 1. Generate a dummy dataset
-    test_sample = next(iter(dataloader)).to(device)
+def test_sampling_algo(algo, imsize, device):
+    test_sample = torch.ones((1, 1, 2, 2))
 
-    sigma = 0.1
-    physics = dinv.physics.Inpainting(
-        mask=0.5, tensor_size=imsize, device=device
-    )  # 2. Set a physical experiment (here, deblurring)
+    sigma = 1
+    sigma_prior = 1
+    physics = dinv.physics.Denoising()
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
-    convergence_crit = 0.5  # for fast tests
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": device},
-    }
-    stepsize = sigma**2
+    convergence_crit = 0.1  # for fast tests
     likelihood = L2(sigma=sigma)
-    prior = ScoreDenoiser(model_spec=model_spec)
-    sigma_denoiser = 2 / 255.0
     f = choose_algo(
         algo,
-        prior,
         likelihood,
-        stepsize=stepsize,
         thresh_conv=convergence_crit,
-        sigma=sigma_denoiser,
+        sigma=sigma,
+        sigma_prior=sigma_prior,
     )
 
     xmean, xvar = f(y, physics)
 
-    assert f.mean_has_converged() and f.var_has_converged()
+    tol = 5  # can be lowered?
+    sigma2 = sigma**2
+    sigma_prior2 = sigma_prior**2
+
+    # the posterior of a gaussian likelihood with a gaussian prior is gaussian
+    post_var = (sigma2 * sigma_prior2) / (sigma2 + sigma_prior2)
+    post_mean = y / (1 + sigma2 / sigma_prior2)
+
+    mean_ok = (
+        torch.sum((xmean - post_mean).abs() / post_mean < tol)
+        > np.prod(xmean.shape) / 2
+    )
+
+    var_ok = (
+        torch.sum((xvar - post_var).abs() / post_var < tol) > np.prod(xvar.shape) / 2
+    )
+
+    assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
