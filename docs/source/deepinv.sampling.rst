@@ -37,6 +37,13 @@ which is typically set to a low value.
 
 
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.MonteCarlo
+
 Markov Chain Monte Carlo
 --------------------------------
 
@@ -45,7 +52,6 @@ Markov Chain Monte Carlo
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.sampling.MCMC
     deepinv.sampling.ULA
     deepinv.sampling.SKRock
 
@@ -53,4 +59,10 @@ Markov Chain Monte Carlo
 Diffusion
 --------------------------------
 
-We are currently working on adding diffusion methods to the library.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.DDRM

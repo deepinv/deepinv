@@ -45,12 +45,3 @@ HD5Dataset
    :no-undoc-members:
    :show-inheritance:
 
-Training
--------------------------------------
-
-.. autofunction:: deepinv.train
-
-Testing
--------------------------------------
-
-.. autofunction:: deepinv.test
