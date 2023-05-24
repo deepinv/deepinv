@@ -146,7 +146,9 @@ class MonteCarlo(nn.Module):
                     torch.cuda.synchronize()
                 end_time = time.time()
                 elapsed = end_time - start_time
-                print(f"Monte Carlo sampling finished! elapsed time={elapsed:.2f} seconds")
+                print(
+                    f"Monte Carlo sampling finished! elapsed time={elapsed:.2f} seconds"
+                )
 
             if (
                 check_conv(
@@ -182,6 +184,14 @@ class MonteCarlo(nn.Module):
         Requires ``save_chain=True``.
         """
         return self.chain
+
+    def reset(self):
+        r"""
+        Resets the Markov chain.
+        """
+        self.chain = []
+        self.mean_convergence = False
+        self.var_convergence = False
 
     def mean_has_converged(self):
         r"""
@@ -428,7 +438,6 @@ if __name__ == "__main__":
     likelihood = L2(sigma=sigma)
 
     # model_spec = {'name': 'median_filter', 'args': {'kernel_size': 3}}
-    # model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 4, 'device': dinv.device}}
     model_spec = {
         "name": "dncnn",
         "args": {
@@ -438,18 +447,22 @@ if __name__ == "__main__":
             "pretrained": "download_lipschitz",
         },
     }
+    # model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 4, 'device': dinv.device}}
 
-    prior = ScoreDenoiser(model_spec=model_spec, sigma_denoiser=2 / 255)
+    prior = ScoreDenoiser(model_spec=model_spec, sigma_normalize=True)
 
+    sigma_den = 2 / 255
     f = ULA(
         prior,
         likelihood,
-        max_iter=10000,
+        max_iter=5000,
+        sigma=sigma_den,
         burnin_ratio=0.3,
         verbose=True,
-        alpha=0.9,
-        step_size=0.01 * (sigma**2),
+        alpha=0.3,
+        step_size=0.5 * 1 / (1 / (sigma**2) + 1 / (sigma_den**2)),
         clip=(-1, 2),
+        save_chain=True,
     )
     # f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,
     #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))
@@ -459,10 +472,25 @@ if __name__ == "__main__":
     print(str(f.mean_has_converged()))
     print(str(f.var_has_converged()))
 
-    xnstd = xvar.sqrt()
-    xnstd = xnstd / xnstd.flatten().max()
+    chain = f.get_chain()
+    distance = np.zeros((len(chain)))
+    for k, xhat in enumerate(chain):
+        dist = (xhat - xmean).pow(2).mean()
+        distance[k] = dist
+    distance = np.sort(distance)
+    thres = distance[int(len(distance) * 0.95)]  #
+    err = (x - xmean).pow(2).mean()
+    print(f"Confidence region: {thres:.2e}, error: {err:.2e}")
 
-    dinv.utils.plot_debug(
-        [physics.A_adjoint(y), x, xmean, xnstd],
-        titles=["meas.", "ground-truth", "mean", "norm. std"],
+    xstdn = xvar.sqrt()
+    xstdn_plot = xstdn.sum(dim=1).unsqueeze(1)
+
+    error = (xmean - x).abs()  # per pixel average abs. error
+    error_plot = error.sum(dim=1).unsqueeze(1)
+
+    print(f"Correct std: {(xstdn*3>error).sum()/np.prod(xstdn.shape)*100:.1f}%")
+
+    dinv.utils.plot(
+        [physics.A_adjoint(y), x, xmean, xstdn_plot, error_plot],
+        titles=["meas.", "ground-truth", "mean", "norm. std", "abs. error"],
     )
