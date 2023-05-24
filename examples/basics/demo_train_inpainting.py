@@ -2,17 +2,24 @@ r"""
 Training a reconstruction network.
 ====================================================================================================
 
+This example shows you how to train a simple reconstruction network for an image
+inpainting inverse problem.
+
 """
 
 import deepinv as dinv
 from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
-from torchvision import datasets, transforms
-from deepinv.utils.demo import get_git_root, download_dataset
+from torchvision import transforms
+from deepinv.utils.demo import load_dataset
 from deepinv.training_utils import train, test
 
-# Setup paths for data loading, results and checkpoints.
+# %%
+# Setup paths for data loading and results.
+# --------------------------------------------
+#
+
 BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
@@ -23,84 +30,80 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-# Use parallel dataloader if using a GPU to fasten training,
-# otherwise, as all computes are on CPU, use synchronous data loading.
-num_workers = 4 if torch.cuda.is_available() else 0
 
-# Parameters
-epochs = 4  # choose training epochs
-learning_rate = 5e-4
-train_batch_size = 32
-test_batch_size = 32
-img_size = 128
-n_channels = 3  # 3 for color images, 1 for gray-scale images
-n_images_max = 1000  # maximal number of images used for training
-probability_mask = 0.5  # probability to mask pixel
-
-# Logging parameters
-verbose = True
-wandb_vis = True  # plot curves and images in Weight&Bias
+# %%
+# Load base image datasets and degradation operators.
+# --------------------------------------------------------------------------------------------
+# In this example, we use the CBSD68 dataset for training and the set3c dataset for testing.
+# We work with images of size 128x128.
 
 
-# Generate a degradation operator, for inpainting here
-p = dinv.physics.Inpainting(
-    (n_channels, img_size, img_size), mask=probability_mask, device=dinv.device
-)
-
-
-# Setup the variable to fetch dataset and operators.
 operation = "inpainting"
-train_dataset_name = "set3c"
-val_dataset_name = "set3c"
-train_dataset_path = ORIGINAL_DATA_DIR / train_dataset_name
-test_dataset_path = ORIGINAL_DATA_DIR / val_dataset_name
-if not train_dataset_path.exists():
-    download_dataset(train_dataset_path, ORIGINAL_DATA_DIR)
-if not test_dataset_path.exists():
-    download_dataset(test_dataset_path, ORIGINAL_DATA_DIR)
-measurement_dir = DATA_DIR / train_dataset_name / operation
+train_dataset_name = "CBSD68"
+test_dataset_name = "set3c"
+img_size = 128
 
-
-# Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
+
+train_dataset = load_dataset(train_dataset_name, ORIGINAL_DATA_DIR, train_transform)
+test_dataset = load_dataset(test_dataset_name, ORIGINAL_DATA_DIR, test_transform)
+
+# %%
+# Define forward operator and generate dataset
+# --------------------------------------------------------------------------------------------
+# We define an inpainting operator that randomly masks pixels with probability 0.5.
+#
+# A dataset of pairs of measurements and ground truth images is then generated using the
+# :meth:`dinv.datasets.generate_dataset` function.
+#
+# Once the dataset is generated, we can load it using the :class:`dinv.datasets.HDF5Dataset` class.
+
+n_channels = 3  # 3 for color images, 1 for gray-scale images
+probability_mask = 0.5  # probability to mask pixel
+
+# Generate inpainting operator
+physics = dinv.physics.Inpainting(
+    (n_channels, img_size, img_size), mask=probability_mask, device=dinv.device
+)
+
+
+# Use parallel dataloader if using a GPU to fasten training,
+# otherwise, as all computes are on CPU, use synchronous data loading.
+num_workers = 4 if torch.cuda.is_available() else 0
+n_images_max = 1000  # maximal number of images used for training
 my_dataset_name = "demo_training_inpainting"
-generated_datasets_path = measurement_dir / str(my_dataset_name + "0.h5")
-if not generated_datasets_path.exists():
-    train_dataset = datasets.ImageFolder(
-        root=train_dataset_path, transform=train_transform
-    )
-    test_dataset = datasets.ImageFolder(
-        root=test_dataset_path, transform=test_transform
-    )
-    generated_datasets_paths = dinv.datasets.generate_dataset(
-        train_dataset=train_dataset,
-        test_dataset=test_dataset,
-        physics=p,
-        device=dinv.device,
-        save_dir=measurement_dir,
-        max_datapoints=n_images_max,
-        num_workers=num_workers,
-        dataset_filename=str(my_dataset_name),
-    )
-train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
-train_dataloader = DataLoader(
-    train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
-)
-test_dataloader = DataLoader(
-    test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
+measurement_dir = DATA_DIR / train_dataset_name / operation
+deepinv_datasets_path = dinv.datasets.generate_dataset(
+    train_dataset=train_dataset,
+    test_dataset=test_dataset,
+    physics=physics,
+    device=dinv.device,
+    save_dir=measurement_dir,
+    train_datapoints=n_images_max,
+    num_workers=num_workers,
+    dataset_filename=str(my_dataset_name),
 )
 
+train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
+test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
 
-# choose training losses
-losses = []
-losses.append(dinv.loss.MCLoss(metric=dinv.metric.mse()))  # self-supervised loss
-losses.append(dinv.loss.EILoss(transform=dinv.transform.Shift(n_trans=1)))
+# %%
+# Set up the reconstruction network
+# --------------------------------------------------------
+# We use a simple inversion architecture of the form
+#
+#      .. math::
+#
+#               f_{\theta}(y) = \phi_{\theta}(A^{\top}(y))
+#
+# where the linear reconstruction :math:`A^{\top}y` is post-processed by a U-Net network :math:`\phi_{\theta}` is a
+# neural network with trainable parameters :math:`\theta`.
+
 
 # choose backbone model
 backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=3).to(dinv.device)
@@ -108,20 +111,49 @@ backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=3).to(dinv.dev
 # choose a reconstruction architecture
 model = dinv.models.ArtifactRemoval(backbone)
 
+# %%
+# Train the model
+# ----------------------------------------------------------------------------------------
+# We train the model using the :meth:`dinv.training_utils.train` function.
+#
+# We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
+# :class:`dinv.loss.SupLoss` class.
+#
+# .. note::
+#
+#       In this example, we only train for a few epochs to keep the training time short.
+#       For a good reconstruction quality, we recommend to train for at least 100 epochs.
+#
+
+epochs = 4  # choose training epochs
+learning_rate = 5e-4
+train_batch_size = 32
+test_batch_size = 32
+
+verbose = True  # print training information
+wandb_vis = False  # plot curves and images in Weight&Bias
+
+# choose training losses
+losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
+
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
+train_dataloader = DataLoader(
+    train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
+)
+test_dataloader = DataLoader(
+    test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
+)
 
-# train the network
 train(
     model=model,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=p,
+    physics=physics,
     optimizer=optimizer,
     device=dinv.device,
     save_path=str(CKPT_DIR / operation),
@@ -130,4 +162,27 @@ train(
     log_interval=2,
     eval_interval=2,
     ckp_interval=2,
+)
+
+# %%
+# Test the network
+# --------------------------------------------
+# We can now test the trained network using the :meth:`dinv.training_utils.test` function.
+#
+# The testing function will compute test_psnr metrics and plot and save the results.
+
+plot_images = True
+save_images = True
+method = "artifact_removal"
+
+test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
+    model=model,
+    test_dataloader=test_dataloader,
+    physics=physics,
+    device=dinv.device,
+    plot_images=plot_images,
+    save_images=save_images,
+    save_folder=RESULTS_DIR / method / operation / test_dataset_name,
+    verbose=verbose,
+    wandb_vis=wandb_vis,
 )
