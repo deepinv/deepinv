@@ -243,11 +243,13 @@ class BaseOptim(nn.Module):
 
     def init_params_fn(self):
         r"""
-        Get initialization parameters and re-initialized the parameters dictionary to its initial value. This is necessary if the parameters have been updated during optimizaiton, for example via backtracking.
+        Get initialization parameters and re-initialized the parameters' dictionary to its initial value.
+        This is necessary if the parameters have been updated during optimization, for example via backtracking.
 
         :return: a dictionary containing the parameters of iteration `0`.
         """
-        self.params_algo = self.init_params_algo.copy()
+
+        # self.params_algo = self.init_params_algo.copy()
         init_params = {
             key: value[0]
             for key, value in zip(
@@ -308,7 +310,7 @@ class BaseOptim(nn.Module):
             if self.F_fn
             else None
         )
-        init_X = {
+        init_X = {  # TODO: naming is a bit weird
             "est": (x_init, x_init),
             "cost": cost_init,
         }
