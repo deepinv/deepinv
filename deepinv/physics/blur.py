@@ -7,7 +7,7 @@ import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 
 
-def filter_fft(filter, img_size):
+def filter_fft(filter, img_size, real_fft=True):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
@@ -16,10 +16,13 @@ def filter_fft(filter, img_size):
     filt2[:, : filter.shape[1], : filter.shape[2], : filter.shape[3]] = filter
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
-    return fft.rfft2(filt2)
+    return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+
     s = max(sigma)
     c = int(s / 0.3 + 1)
     k_size = 2 * c + 1
@@ -39,8 +42,8 @@ def gaussian_blur(sigma=(1, 1), angle=0):
             angle,
             interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
         )
-            .squeeze(0)
-            .squeeze(0)
+        .squeeze(0)
+        .squeeze(0)
     )
 
     filt = filt / filt.flatten().sum()
@@ -62,9 +65,9 @@ def bicubic_filter(factor=2):
     x = np.abs(x)
     w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
     w += (
-            (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
-            * (x > 1)
-            * (x < 2)
+        (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
+        * (x > 1)
+        * (x < 2)
     )
     w = np.outer(w, w)
     w = w / np.sum(w)
@@ -97,15 +100,15 @@ class Downsampling(LinearPhysics):
     """
 
     def __init__(
-            self,
-            img_size,
-            factor=2,
-            filter=None,
-            mode=None,
-            sigma_gauss=None,
-            device="cpu",
-            padding="circular",
-            **kwargs
+        self,
+        img_size,
+        factor=2,
+        filter=None,
+        mode=None,
+        sigma_gauss=None,
+        device="cpu",
+        padding="circular",
+        **kwargs
     ):
         super().__init__(**kwargs)
         self.factor = factor
@@ -130,8 +133,8 @@ class Downsampling(LinearPhysics):
                     raise Exception("sigma_gauss should be an int or a tuple of ints")
                 self.filter = (
                     gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
-                        .requires_grad_(False)
-                        .to(device)
+                    .requires_grad_(False)
+                    .to(device)
                 )
             elif mode == "bilinear":
                 self.filter = (
@@ -147,7 +150,7 @@ class Downsampling(LinearPhysics):
             self.filter = None
 
         if self.filter is not None:
-            self.Fh = filter_fft(self.filter, img_size).to(device)
+            self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
@@ -221,7 +224,7 @@ def extend_filter(filter):
         h_new += 1
 
     out = torch.zeros((b, c, h_new, w_new), device=filter.device)
-    out[:, :, offset_h: h + offset_h, offset_w: w + offset_w] = filter
+    out[:, :, offset_h : h + offset_h, offset_w : w + offset_w] = filter
     return out
 
 
@@ -330,15 +333,15 @@ def conv_transpose(y, filter, padding):
     elif padding == "reflect":
         out = x[:, :, ph:-ph, pw:-pw]
         # sides
-        out[:, :, 1: 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
-        out[:, :, -ph - 1: -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
-        out[:, :, :, 1: 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
-        out[:, :, :, -pw - 1: -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
+        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
+        out[:, :, -ph - 1 : -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
+        out[:, :, :, 1 : 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
+        out[:, :, :, -pw - 1 : -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
         # corners
-        out[:, :, 1: 1 + ph, 1: 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
-        out[:, :, -ph - 1: -1, -pw - 1: -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
-        out[:, :, -ph - 1: -1, 1: 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
-        out[:, :, 1: 1 + ph, -pw - 1: -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
+        out[:, :, 1 : 1 + ph, 1 : 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
+        out[:, :, -ph - 1 : -1, -pw - 1 : -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
+        out[:, :, -ph - 1 : -1, 1 : 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
+        out[:, :, 1 : 1 + ph, -pw - 1 : -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
 
     elif padding == "replicate":
         out = x[:, :, ph:-ph, pw:-pw]
@@ -472,12 +475,12 @@ class BlurFFT(DecomposablePhysics):
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size
+        self.img_size = img_size # TODO: bug when height or width is odd
 
         if img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, img_size[0], 1, 1)
 
-        self.mask = filter_fft(filter, img_size).to('cpu')
+        self.mask = filter_fft(filter, img_size).to("cpu")
         self.angle = torch.angle(self.mask)
         self.angle = torch.exp(-1j * self.angle).to(device)
         self.mask = torch.abs(self.mask).unsqueeze(-1)
@@ -486,13 +489,19 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
-        return torch.view_as_real(fft.rfft2(x, norm="ortho"))  # make it a true SVD (see J. Romberg notes)
+        return torch.view_as_real(
+            fft.rfft2(x, norm="ortho")
+        )  # make it a true SVD (see J. Romberg notes)
 
     def U(self, x):
-        return fft.irfft2(torch.view_as_complex(x)*self.angle, norm="ortho", s=self.img_size[-2:])
+        return fft.irfft2(
+            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.img_size[-2:]
+        )
 
     def U_adjoint(self, x):
-        return torch.view_as_real(fft.rfft2(x, norm="ortho")*torch.conj(self.angle))  # make it a true SVD (see J.
+        return torch.view_as_real(
+            fft.rfft2(x, norm="ortho") * torch.conj(self.angle)
+        )  # make it a true SVD (see J.
         # Romberg notes)
 
     def V(self, x):
@@ -508,20 +517,23 @@ if __name__ == "__main__":
 
     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
     x = x.unsqueeze(0).float().to(dinv.device) / 255
+    x = torchvision.transforms.Resize((160, 181))(x)
 
-    sigma_noise = 0.
+    sigma_noise = 0.0
     kernel = torch.zeros((1, 1, 15, 15), device=dinv.device)
     kernel[:, :, 7, :] = 1 / 15
-    physics = BlurFFT(img_size=x.shape[1:], filter=kernel,
-                                  device=dinv.device)
-    physics2 = Blur(img_size=x.shape[1:], filter=kernel,
-                                  device=dinv.device)
+    physics = BlurFFT(img_size=x.shape[1:], filter=kernel, device=dinv.device)
+    physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=dinv.device)
 
     y = physics(x)
     y2 = physics2(x)
 
-    xhat = physics.V(physics.U_adjoint(y)/physics.mask)
+
+    xhat = physics.V(physics.U_adjoint(y) / physics.mask)
     xhat2 = physics2.A_dagger(y2)
+
+    print(xhat.shape)
+    #print(physics.adjointness_test(x))
     print(torch.sum((y - y2).pow(2)))
     print(torch.sum((xhat - xhat2).pow(2)))
 
@@ -530,9 +542,9 @@ if __name__ == "__main__":
 
     print(physics.compute_norm(x))
     print(physics.adjointness_test(x))
-    xhat = physics.prox_l2(y, y, gamma=0.)
+    xhat = physics.prox_l2(y, y, gamma=0.0)
 
-    #xhat = physics.A_dagger(y)
+    # xhat = physics.A_dagger(y)
 
     plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
     plt.show()
