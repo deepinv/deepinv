@@ -27,7 +27,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
         out = ULA(
             GaussianScore(sigma_prior),
             likelihood,
-            max_iter=100,
+            max_iter=500,
             thinning=1,
             verbose=True,
             step_size=0.01 / (1 / sigma**2 + 1 / sigma_prior**2),
@@ -39,7 +39,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
         out = SKRock(
             GaussianScore(sigma_prior),
             likelihood,
-            max_iter=200,
+            max_iter=500,
             verbose=True,
             thresh_conv=thresh_conv,
             inner_iter=5,
