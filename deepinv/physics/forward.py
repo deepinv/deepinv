@@ -123,7 +123,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         sensor = self.sensor_model
         return Physics(A, noise, sensor)
 
-    def A_dagger(self, y, x_init):
+    def A_dagger(self, y, x_init=None):
         r"""
         Computes an inverse of :math:`y = Ax` via gradient descent.
 
@@ -134,6 +134,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (torch.tensor) The reconstructed image :math:`x`.
 
         """
+
+        if x_init is None:
+            x_init = self.A_adjoint(y)
 
         x = torch.nn.Parameter(x_init, requires_grad=True)
 

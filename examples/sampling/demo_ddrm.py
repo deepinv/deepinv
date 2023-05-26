@@ -19,6 +19,7 @@ The DDRM method requires that
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
+import torchvision
 import numpy as np
 import requests
 from imageio.v2 import imread
@@ -41,6 +42,7 @@ x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsq
 x = torch.nn.functional.interpolate(
     x, scale_factor=0.5
 )  # reduce the image size for faster eval
+x = torchvision.transforms.functional.center_crop(x, 32)
 
 
 # %%
@@ -87,11 +89,13 @@ denoiser = dinv.models.Denoiser(model_spec=model_spec)
 # have a closed form singular value decomposition of the forward operator.
 # The diffusion method requires a schedule of noise levels ``sigmas`` that are used to evaluate the denoiser.
 
+sigmas = np.linspace(1, 0, 100) if torch.cuda.is_available() else np.linspace(1, 0, 10)
+
 diff = dinv.sampling.DDRM(
     denoiser=denoiser,
     etab=1.0,
     sigma_noise=sigma,
-    sigmas=np.linspace(1, 0, 100),  # uses 100 evaluations of the denoiser
+    sigmas=sigmas,
     verbose=True,
 )
 

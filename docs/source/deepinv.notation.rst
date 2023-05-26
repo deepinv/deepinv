@@ -1,5 +1,5 @@
 Math Notation
-=======================
+=============
 
 The documentation of ``deepinv`` uses a unified mathematical notation that is summarized in the following table:
 

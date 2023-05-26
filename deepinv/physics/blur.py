@@ -543,16 +543,16 @@ if __name__ == "__main__":
     print(physics.adjointness_test(x))
     xhat = physics.prox_l2(y, y, gamma=0.0)
 
-    # xhat = physics.A_dagger(y)
+    xhat = physics.A_dagger(y)
 
-    plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-
-    plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
+    # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    # plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    #
+    # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()

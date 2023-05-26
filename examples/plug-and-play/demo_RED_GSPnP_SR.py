@@ -39,11 +39,11 @@ torch.manual_seed(0)
 # %%
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset and the kernels from TODO: add ref
-#
+# In this example, we use the Set3C dataset and a motion blur kernel from
+# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
 
-dataset_name = "CBSD68"
-img_size = 256
+dataset_name = "set3c"
+img_size = 256 if torch.cuda.is_available() else 32
 operation = "super-resolution"
 dataset_path = ORIGINAL_DATA_DIR / dataset_name
 val_transform = transforms.Compose(
@@ -92,7 +92,7 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 # --------------------------------------------
 # We use the proximal gradient algorithm to solve the super-resolution problem with GSPnP.
 # The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
-# For RED image restoration, the denoiser replaces "grad_g".
+# For RED image restoration, a pretrained modified DRUNet denoiser replaces "grad_g".
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached

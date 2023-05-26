@@ -34,10 +34,10 @@ torch.manual_seed(0)
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset from the paper of Zhang et al. (2017) and the
-#
+# In this example, we use the CBSD68 dataset
+# for training and the Set3C dataset for testing.
 
-img_size = 128
+img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "super-resolution"
 train_dataset_name = "CBSD68"
@@ -80,7 +80,9 @@ physics = dinv.physics.Downsampling(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 my_dataset_name = "demo_unfolded_sr"
-n_images_max = 1000  # maximal number of images used for training
+n_images_max = (
+    1000 if torch.cuda.is_available() else 10
+)  # maximal number of images used for training
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
@@ -160,10 +162,10 @@ model = Unfolded(
 
 
 # training parameters
-epochs = 10
+epochs = 10 if torch.cuda.is_available() else 2
 learning_rate = 5e-4
-train_batch_size = 32
-test_batch_size = 32
+train_batch_size = 32 if torch.cuda.is_available() else 1
+test_batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

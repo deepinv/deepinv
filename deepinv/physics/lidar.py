@@ -114,8 +114,8 @@ if __name__ == "__main__":
     y = physics(x)
     xhat = physics.A_dagger(y)
 
-    y0 = y[0, :, 0, 0].detach().cpu().numpy()
-    plt.plot(y0)
-    plt.show()
+    # y0 = y[0, :, 0, 0].detach().cpu().numpy()
+    # plt.plot(y0)
+    # plt.show()
 
     print(f"MSE {dinv.utils.cal_mse(x, xhat)}")

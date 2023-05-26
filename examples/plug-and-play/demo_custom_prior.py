@@ -38,7 +38,7 @@ torch.manual_seed(0)
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------
 # In this example, we use the CBSD68 dataset from the paper of Zhang et al. (2017) and the motion blur kernels from
-# Levin et al. (2009).
+# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
 #
 
 # Set up the variable to fetch dataset and operators.
@@ -106,10 +106,10 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 #
 # .. math::
 #
-#   \min_{x} \frac{1}{2} \|y - Ax\|_2^2 + \lambda \|x\|_2^2
+#   \min_{x} \frac{1}{2} \|y - Ax\|_2^2 + \rho \|x\|_2^2
 #
 # where :math:`A` is the forward blurring operator, :math:`y` is the measurement
-# and :math:`\lambda` is a regularization parameter.
+# and :math:`\rho` is a regularization parameter.
 #
 
 

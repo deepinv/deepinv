@@ -1,7 +1,7 @@
 .. _denoiser-docs:
 
 Models
-==============================
+======
 This package provides vanilla signal reconstruction networks, which can be used for a quick evaluation of a learning setting.
 
 
@@ -15,7 +15,7 @@ This package provides vanilla signal reconstruction networks, which can be used 
    deepinv.models.ArtifactRemoval
 
 Classical Denoisers
---------------------------------
+-------------------
 
 .. autosummary::
    :toctree: stubs
@@ -29,7 +29,7 @@ Classical Denoisers
 
 
 Learned Denoisers
---------------------------------
+-----------------
 
 .. autosummary::
    :toctree: stubs

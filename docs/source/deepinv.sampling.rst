@@ -1,5 +1,5 @@
 Sampling
-===============================
+========
 
 This package contains algorithms that can obtains samples of the posterior distribution
 
@@ -45,7 +45,7 @@ which is typically set to a low value.
     deepinv.sampling.MonteCarlo
 
 Markov Chain Monte Carlo
---------------------------------
+------------------------
 
 .. autosummary::
    :toctree: stubs
@@ -57,7 +57,7 @@ Markov Chain Monte Carlo
 
 
 Diffusion
---------------------------------
+---------
 
 
 .. autosummary::

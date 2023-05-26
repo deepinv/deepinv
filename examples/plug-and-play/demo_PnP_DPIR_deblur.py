@@ -36,7 +36,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset and a motion blur kernel from
+# In this example, we use the Set3C dataset and a motion blur kernel from
 # `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
 #
 
@@ -46,7 +46,7 @@ torch.manual_seed(0)
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
 dataset_name = "set3c"
-img_size = 256
+img_size = 256 if torch.cuda.is_available() else 32
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )

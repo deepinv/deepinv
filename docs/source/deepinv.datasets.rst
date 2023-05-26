@@ -1,5 +1,5 @@
 Datasets
-========================
+========
 
 This subpackage can be used for generating reconstruction datasets from other base datasets (e.g. MNIST or CelebA).
 
@@ -38,7 +38,7 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pyt
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
 HD5Dataset
--------------------------------------
+----------
 
 .. automodule:: deepinv.datasets.datagenerator
    :members:

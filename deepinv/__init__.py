@@ -52,9 +52,9 @@ from deepinv.loss import metric
 
 __all__ += ["metric"]
 
-__all__ += ["unfolded"]
-
 from deepinv import unfolded
+
+__all__ += ["unfolded"]
 
 from deepinv.training_utils import train, test
 

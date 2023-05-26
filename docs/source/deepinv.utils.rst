@@ -1,9 +1,9 @@
 Utils
-========================
+=====
 
 
 Training and Testing
-------------------------------------
+--------------------
 Functions to train and test the model, and save the model and the results.
 
 .. autosummary::
@@ -17,7 +17,7 @@ Functions to train and test the model, and save the model and the results.
 
 
 Plotting
--------------------------------------
+--------
 We provide some basic plotting functions that are adapted to inverse problems.
 
 .. autosummary::
@@ -30,7 +30,7 @@ We provide some basic plotting functions that are adapted to inverse problems.
 
 
 Evaluation
--------------------------------------
+----------
 
 
 .. autosummary::

@@ -162,4 +162,4 @@ for i in range(10):
     xprox2 = physics2.prox_l2(x, y2, 0.1)
 
 end = time.time()
-print(f"Elapsed time for DecomposablePhysics: {end - start:.2f} seconds")
+print(f"Elapsed time for DecomposablePhysics: {end - start:.2e} seconds")

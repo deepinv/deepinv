@@ -243,7 +243,7 @@ class BaseOptim(nn.Module):
 
     def init_params_fn(self):
         r"""
-        Get initialization parameters and re-initialized the parameters' dictionary to its initial value.
+        Initialize (or updates) the dictionary of parameters.
         This is necessary if the parameters have been updated during optimization, for example via backtracking.
 
         :return: a dictionary containing the parameters of iteration `0`.

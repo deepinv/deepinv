@@ -67,7 +67,9 @@ physics = dinv.physics.MRI(mask=mask, device=dinv.device)
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
-n_images_max = 900  # number of images used for training
+n_images_max = (
+    900 if torch.cuda.is_available() else 5
+)  # number of images used for training
 # (the dataset has up to 973 images, however here we use only 100)
 
 my_dataset_name = "demo_equivariant_imaging"
@@ -159,7 +161,7 @@ model = dinv.unfolded.Unfolded(
 
 epochs = 1  # choose training epochs
 learning_rate = 5e-4
-batch_size = 16
+batch_size = 16 if torch.cuda.is_available() else 1
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch

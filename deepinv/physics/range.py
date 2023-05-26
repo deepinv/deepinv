@@ -4,7 +4,7 @@ from deepinv.physics.forward import DecomposablePhysics
 
 class Decolorize(DecomposablePhysics):
     r"""
-    Converts RGB images to grayscale.
+    Converts RGB images to grayscale as per the [rec601](https://en.wikipedia.org/wiki/Rec._601) convention.
 
     Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
     The measurements are grayscale images.
@@ -45,4 +45,7 @@ if __name__ == "__main__":
     print(physics.compute_norm(x))
     xhat = physics.A_adjoint(y)
 
-    dinv.utils.plot([x, xhat, y])
+    plot_results = False  # set to True to plot results
+
+    if plot_results:
+        dinv.utils.plot([x, xhat, y])

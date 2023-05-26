@@ -54,7 +54,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
             eta=1,
             sigmas=np.linspace(1, 0, 100),
         )
-        out = dinv.sampling.DiffusionSampler(diff, clip=(-100, 100), max_iter=100)
+        out = dinv.sampling.DiffusionSampler(diff, clip=(-100, 100), max_iter=500)
     else:
         raise Exception("The sampling algorithm doesnt exist")
 
@@ -102,7 +102,7 @@ def test_sampling_algo(algo, imsize, device):
         sigma_prior=sigma_prior,
     )
 
-    xmean, xvar = f(y, physics)
+    xmean, xvar = f(y, physics, seed=0)
 
     tol = 5  # can be lowered?
     sigma2 = sigma**2

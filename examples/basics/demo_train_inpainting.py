@@ -2,7 +2,7 @@ r"""
 Training a reconstruction network.
 ====================================================================================================
 
-This example shows you how to train a simple reconstruction network for an image
+This example shows how to train a simple reconstruction network for an image
 inpainting inverse problem.
 
 """
@@ -35,13 +35,13 @@ torch.manual_seed(0)
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------------------------------
 # In this example, we use the CBSD68 dataset for training and the set3c dataset for testing.
-# We work with images of size 128x128.
+# We work with images of size 32x32 if no GPU is available, else 128x128.
 
 
 operation = "inpainting"
 train_dataset_name = "CBSD68"
 test_dataset_name = "set3c"
-img_size = 128
+img_size = 128 if torch.cuda.is_available() else 32
 
 test_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
@@ -75,7 +75,9 @@ physics = dinv.physics.Inpainting(
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
-n_images_max = 1000  # maximal number of images used for training
+n_images_max = (
+    1000 if torch.cuda.is_available() else 50
+)  # maximal number of images used for training
 my_dataset_name = "demo_training_inpainting"
 measurement_dir = DATA_DIR / train_dataset_name / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
@@ -92,6 +94,17 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
 train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
 test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
 
+
+train_batch_size = 32 if torch.cuda.is_available() else 1
+test_batch_size = 32 if torch.cuda.is_available() else 1
+
+train_dataloader = DataLoader(
+    train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
+)
+test_dataloader = DataLoader(
+    test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
+)
+
 # %%
 # Set up the reconstruction network
 # --------------------------------------------------------
@@ -106,7 +119,9 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 
 
 # choose backbone model
-backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=3).to(dinv.device)
+backbone = dinv.models.UNet(
+    in_channels=3, out_channels=3, scales=3, batch_norm=False
+).to(dinv.device)
 
 # choose a reconstruction architecture
 model = dinv.models.ArtifactRemoval(backbone)
@@ -127,8 +142,6 @@ model = dinv.models.ArtifactRemoval(backbone)
 
 epochs = 4  # choose training epochs
 learning_rate = 5e-4
-train_batch_size = 32
-test_batch_size = 32
 
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
@@ -139,13 +152,6 @@ losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
-
-train_dataloader = DataLoader(
-    train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
-)
-test_dataloader = DataLoader(
-    test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
-)
 
 train(
     model=model,

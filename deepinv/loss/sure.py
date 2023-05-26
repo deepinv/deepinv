@@ -4,6 +4,15 @@ import numpy as np
 
 
 def hutch_div(y, physics, f, mc_iter=1):
+    r"""
+    Hutch divergence for A(f(x)).
+
+    :param torch.tensor y: Measurements.
+    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param int mc_iter: number of iterations. Default=1.
+    :return: (float) hutch divergence.
+    """
     input = y.requires_grad_(True)
     output = physics.A(f(input, physics))
     out = 0
@@ -18,6 +27,15 @@ def hutch_div(y, physics, f, mc_iter=1):
 
 
 def exact_div(y, physics, f):
+    r"""
+    Exact divergence for A(f(x)).
+
+    :param torch.tensor y: Measurements.
+    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param int mc_iter: number of iterations. Default=1.
+    :return: (float) exact divergence.
+    """
     input = y.requires_grad_(True)
     output = physics.A(f(input, physics))
     out = 0
@@ -36,6 +54,15 @@ def exact_div(y, physics, f):
 
 
 def mc_div(y1, y, f, physics, tau):
+    r"""
+    Monte-Carlo estimation for the divergence of A(f(x)).
+
+    :param torch.tensor y: Measurements.
+    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param int mc_iter: number of iterations. Default=1.
+    :return: (float) hutch divergence.
+    """
     b = torch.randn_like(y)
     y2 = physics.A(f(y + b * tau, physics))
     out = (b * (y2 - y1) / tau).mean()

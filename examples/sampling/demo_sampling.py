@@ -19,6 +19,7 @@ where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
+import torchvision
 import requests
 from imageio.v2 import imread
 from io import BytesIO
@@ -42,7 +43,7 @@ x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsq
 x = torch.nn.functional.interpolate(
     x, scale_factor=0.5
 )  # reduce the image size for faster eval
-
+x = torchvision.transforms.functional.center_crop(x, 32)
 
 # %%
 # Define forward operator and noise model
@@ -108,7 +109,7 @@ prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
-iterations = int(5e3)
+iterations = int(5e3) if torch.cuda.is_available() else 10
 f = dinv.sampling.ULA(
     prior=prior,
     data_fidelity=likelihood,
