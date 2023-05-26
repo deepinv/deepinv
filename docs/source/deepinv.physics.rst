@@ -1,5 +1,5 @@
 Physics
-===============================
+=======
 
 This package contains a large collection of forward operators appearing in imaging applications.
 
@@ -24,7 +24,7 @@ All forward operators inherit the structure of the ``Physics`` class.
    deepinv.physics.Physics
 
 Linear operators
--------------------------------------
+----------------
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
 All linear operators inherit the structure of the ``LinearPhysics`` class.
 Linear operators with a closed-form singular value decomposition are defined via ``DecomposablePhysics``, which enables
@@ -45,10 +45,11 @@ the efficient computation of their pseudo-inverse and proximal operators.
    deepinv.physics.Downsampling
    deepinv.physics.MRI
    deepinv.physics.Inpainting
+   deepinv.physics.SinglePixelCamera
 
 
 Non-linear operators
--------------------------------------
+--------------------
 Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
 
 .. autosummary::
@@ -58,10 +59,11 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
 
    deepinv.physics.BlindBlur
    deepinv.physics.Haze
+   deepinv.physics.SinglePhotonLidar
 
 Noise distributions
--------------------------------------
-Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module`` s.
+-------------------
+Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module``.
 The noise of a forward operator can be set in its construction
 or simply as
 
@@ -84,37 +86,4 @@ or simply as
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
 
-
-
-Defining a new (linear) operator only requires a forward function and its transpose operation,
-inheriting the remaining structure of the ``LinearPhysics`` class:
-
-::
-
-    import deepinv.physics.Physics as LinearPhysics
-
-    # define an operator that converts color images into grayscale ones.
-    class Decolorize(LinearPhysics):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-
-        def A(self, x):
-            y = x[:, 0, :, :] * 0.2989 + x[:, 1, :, :] * 0.5870 + x[:, 2, :, :] * 0.1140
-            return y.unsqueeze(1)
-
-        def A_adjoint(self, y):
-            return torch.cat([y*0.2989, y*0.5870, y*0.1140], dim=1)
-
-.. note::
-
-    If the operator is linear, it is recommended to verify that the transpose well defined using
-    :meth:`deepinv.physics.LinearPhysics.adjointness_test()`,
-    and that it has a unit norm using :meth:`deepinv.physics.LinearPhysics.compute_norm()`
-
-    ::
-
-        my_operator = Decolorize()
-        norm = my_operator.compute_norm()
-        if my_operator.adjointness_test()<1e-5 and .5 < norm < 1.5
-            print('the operator has a well defined transpose and is well normalized!')
 

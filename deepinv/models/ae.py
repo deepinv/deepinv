@@ -29,7 +29,7 @@ class AutoEncoder(torch.nn.Module):
             torch.nn.Linear(dim_mid, dim_input),
         )
 
-    def forward(self, x):
+    def forward(self, x, sigma=None):
         N, C, H, W = x.shape
         x = x.view(N, -1)
 

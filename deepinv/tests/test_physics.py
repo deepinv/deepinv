@@ -10,8 +10,8 @@ def device():
 
 @pytest.fixture
 def imsize():
-    h = 14
-    w = 21
+    h = 16
+    w = 8
     c = 2
     return c, h, w
 
@@ -24,6 +24,8 @@ operators = [
     "denoising",
     "deblur_fft",
     "deblur",
+    "singlepixel",
+    "fast_singlepixel",
     "super_resolution",
     "MRI",
 ]  #'CT'
@@ -39,10 +41,10 @@ def find_operator(name, img_size, device):
     :return: (deepinv.physics.Physics) forward operator.
     """
     if name == "CS":
-        p = dinv.physics.CompressedSensing(m=300, img_shape=img_size, device=device)
+        p = dinv.physics.CompressedSensing(m=30, img_shape=img_size, device=device)
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
-            m=200, fast=True, channelwise=True, img_shape=img_size, device=device
+            m=20, fast=True, channelwise=True, img_shape=img_size, device=device
         )
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
@@ -52,6 +54,14 @@ def find_operator(name, img_size, device):
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name == "blind_deblur":
         p = dinv.physics.BlindBlur(kernel_size=3)
+    elif name == "fast_singlepixel":
+        p = dinv.physics.SinglePixelCamera(
+            m=20, fast=True, img_shape=img_size, device=device
+        )
+    elif name == "singlepixel":
+        p = dinv.physics.SinglePixelCamera(
+            m=20, fast=False, img_shape=img_size, device=device
+        )
     elif name == "deblur":
         p = dinv.physics.Blur(
             dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device

@@ -7,62 +7,29 @@ import deepinv.optim
 from deepinv.models import ScoreDenoiser
 from tqdm import tqdm
 from deepinv.optim.utils import check_conv
+from deepinv.sampling.utils import Welford, projbox, refl_projbox
 
 
-class Welford:
+class MonteCarlo(nn.Module):
     r"""
-    Welford's algorithm for calculating mean and variance
+    Base class for Monte Carlo sampling.
 
-    https://doi.org/10.2307/1266577
-    """
-
-    def __init__(self, x):
-        self.k = 1
-        self.M = x.clone()
-        self.S = torch.zeros_like(x)
-
-    def update(self, x):
-        self.k += 1
-        Mnext = self.M + (x - self.M) / self.k
-        self.S = self.S + (x - self.M) * (x - Mnext)
-        self.M = Mnext
-
-    def mean(self):
-        return self.M
-
-    def var(self):
-        return self.S / (self.k - 1)
-
-
-def refl_projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
-    x = torch.abs(x)
-    return torch.clamp(x, min=lower, max=upper)
-
-
-def projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
-    return torch.clamp(x, min=lower, max=upper)
-
-
-class MCMC(nn.Module):
-    r"""
-    Base class for Markov Chain Monte Carlo sampling.
-
-    This class can be used to create new MCMC samplers, by only defining their kernel inside a torch.nn.Module:
+    This class can be used to create new Monte Carlo samplers, by only defining their kernel inside a torch.nn.Module:
 
     ::
 
-        # define custom Markov kernel
+        # define custom sampling kernel (possibly a Markov kernel which depends on the previous sanple).
         class MyKernel(torch.nn.Module):
             def __init__(self, iterator_params)
                 super().__init__()
                 self.iterator_params = iterator_params
 
-            def forward(self, x):
+            def forward(self, x, y, physics, likelihood, prior):
                 # run one sampling kernel iteration
-                new_x = f(x, iterator_params)
+                new_x = f(x, y, physics, likelihood, prior, self.iterator_params)
                 return new_x
 
-        class MySampler(MCMC):
+        class MySampler(MonteCarlo):
             def __init__(self, prior, data_fidelity, iterator_params,
                          max_iter=1e3, burnin_ratio=.1, clip=(-1,2), verbose=True):
                 # generate an iterator
@@ -79,13 +46,13 @@ class MCMC(nn.Module):
 
 
     This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
-    MCMC chain.
+    Monte Carlo samples.
 
     :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param int max_iter: number of Monte Carlo iterations.
-    :param int thinning: Thins the Markov Chain by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``
+    :param int thinning: thins the Monte Carlo samples by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``
         samples to compute posterior statistics).
     :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.
         The burn-in samples are discarded constant with a numerical algorithm.
@@ -111,7 +78,7 @@ class MCMC(nn.Module):
         g_statistic=lambda x: x,
         verbose=False,
     ):
-        super(MCMC, self).__init__()
+        super(MonteCarlo, self).__init__()
 
         self.iterator = iterator
         self.prior = prior
@@ -131,15 +98,15 @@ class MCMC(nn.Module):
 
     def forward(self, y, physics, seed=None):
         r"""
-        Runs an MCMC chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
+        Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
         :param torch.tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param float seed: Random seed for generating the MCMC samples
+        :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         with torch.no_grad():
-            if seed:
+            if seed is not None:
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
@@ -151,7 +118,7 @@ class MCMC(nn.Module):
             # Initialization
             x = physics.A_adjoint(y)  # .cuda(device).detach().clone()
 
-            # MCMC loop
+            # Monte Carlo loop
             start_time = time.time()
             statistics = Welford(self.g_function(x))
 
@@ -179,7 +146,9 @@ class MCMC(nn.Module):
                     torch.cuda.synchronize()
                 end_time = time.time()
                 elapsed = end_time - start_time
-                print(f"MCMC sampling finished! elapsed time={elapsed} seconds")
+                print(
+                    f"Monte Carlo sampling finished! elapsed time={elapsed:.2f} seconds"
+                )
 
             if (
                 check_conv(
@@ -211,9 +180,18 @@ class MCMC(nn.Module):
 
     def get_chain(self):
         r"""
-        Returns the thinned MCMC chain (after burn-in iterations)
+        Returns the thinned Monte Carlo samples (after burn-in iterations).
+        Requires ``save_chain=True``.
         """
         return self.chain
+
+    def reset(self):
+        r"""
+        Resets the Markov chain.
+        """
+        self.chain = []
+        self.mean_convergence = False
+        self.var_convergence = False
 
     def mean_has_converged(self):
         r"""
@@ -243,7 +221,7 @@ class ULAIterator(nn.Module):
         return x + self.step_size * (lhood + lprior) + noise
 
 
-class ULA(MCMC):
+class ULA(MonteCarlo):
     r"""
     Plug-and-Play Unadjusted Langevin Algorithm.
 
@@ -367,7 +345,7 @@ class SKRockIterator(nn.Module):
         return xts  # new sample produced by the SK-ROCK algorithm
 
 
-class SKRock(MCMC):
+class SKRock(MonteCarlo):
     r"""
     Plug-and-Play SKROCK algorithm.
 
@@ -412,6 +390,7 @@ class SKRock(MCMC):
         clip=(-1.0, 2.0),
         thresh_conv=1e-3,
         save_chain=False,
+        g_statistic=lambda x: x,
         verbose=False,
         sigma=None,
     ):
@@ -431,68 +410,87 @@ class SKRock(MCMC):
             thinning=thinning,
             burnin_ratio=burnin_ratio,
             clip=clip,
+            g_statistic=g_statistic,
             save_chain=save_chain,
             verbose=verbose,
         )
 
 
-if __name__ == "__main__":
-    import deepinv as dinv
-    import torchvision
-    from deepinv.optim.data_fidelity import L2
-
-    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(dinv.device) / 255
-    # physics = dinv.physics.CompressedSensing(m=50000, fast=True, img_shape=(3, 218, 178), device=dinv.device)
-    # physics = dinv.physics.Denoising()
-    physics = dinv.physics.Inpainting(
-        mask=0.95, tensor_size=(3, 218, 178), device=dinv.device
-    )
-    # physics = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(sigma=(2,2)), img_size=x.shape[1:], device=dinv.device)
-
-    sigma = 0.1
-    physics.noise_model = dinv.physics.GaussianNoise(sigma)
-
-    y = physics(x)
-
-    likelihood = L2(sigma=sigma)
-
-    # model_spec = {'name': 'median_filter', 'args': {'kernel_size': 3}}
-    # model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 4, 'device': dinv.device}}
-    model_spec = {
-        "name": "dncnn",
-        "args": {
-            "device": dinv.device,
-            "in_channels": 3,
-            "out_channels": 3,
-            "pretrained": "download_lipschitz",
-        },
-    }
-
-    prior = ScoreDenoiser(model_spec=model_spec, sigma_denoiser=2 / 255)
-
-    f = ULA(
-        prior,
-        likelihood,
-        max_iter=10000,
-        burnin_ratio=0.3,
-        verbose=True,
-        alpha=0.9,
-        step_size=0.01 * (sigma**2),
-        clip=(-1, 2),
-    )
-    # f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,
-    #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))
-
-    xmean, xvar = f(y, physics)
-
-    print(str(f.mean_has_converged()))
-    print(str(f.var_has_converged()))
-
-    xnstd = xvar.sqrt()
-    xnstd = xnstd / xnstd.flatten().max()
-
-    dinv.utils.plot_debug(
-        [physics.A_adjoint(y), x, xmean, xnstd],
-        titles=["meas.", "ground-truth", "mean", "norm. std"],
-    )
+# if __name__ == "__main__":
+#     import deepinv as dinv
+#     import torchvision
+#     from deepinv.optim.data_fidelity import L2
+#
+#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+#     x = x.unsqueeze(0).float().to(dinv.device) / 255
+#     # physics = dinv.physics.CompressedSensing(m=50000, fast=True, img_shape=(3, 218, 178), device=dinv.device)
+#     # physics = dinv.physics.Denoising()
+#     physics = dinv.physics.Inpainting(
+#         mask=0.95, tensor_size=(3, 218, 178), device=dinv.device
+#     )
+#     # physics = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(sigma=(2,2)), img_size=x.shape[1:], device=dinv.device)
+#
+#     sigma = 0.1
+#     physics.noise_model = dinv.physics.GaussianNoise(sigma)
+#
+#     y = physics(x)
+#
+#     likelihood = L2(sigma=sigma)
+#
+#     # model_spec = {'name': 'median_filter', 'args': {'kernel_size': 3}}
+#     model_spec = {
+#         "name": "dncnn",
+#         "args": {
+#             "device": dinv.device,
+#             "in_channels": 3,
+#             "out_channels": 3,
+#             "pretrained": "download_lipschitz",
+#         },
+#     }
+#     # model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 4, 'device': dinv.device}}
+#
+#     prior = ScoreDenoiser(model_spec=model_spec, sigma_normalize=True)
+#
+#     sigma_den = 2 / 255
+#     f = ULA(
+#         prior,
+#         likelihood,
+#         max_iter=5000,
+#         sigma=sigma_den,
+#         burnin_ratio=0.3,
+#         verbose=True,
+#         alpha=0.3,
+#         step_size=0.5 * 1 / (1 / (sigma**2) + 1 / (sigma_den**2)),
+#         clip=(-1, 2),
+#         save_chain=True,
+#     )
+#     # f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,
+#     #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))
+#
+#     xmean, xvar = f(y, physics)
+#
+#     print(str(f.mean_has_converged()))
+#     print(str(f.var_has_converged()))
+#
+#     chain = f.get_chain()
+#     distance = np.zeros((len(chain)))
+#     for k, xhat in enumerate(chain):
+#         dist = (xhat - xmean).pow(2).mean()
+#         distance[k] = dist
+#     distance = np.sort(distance)
+#     thres = distance[int(len(distance) * 0.95)]  #
+#     err = (x - xmean).pow(2).mean()
+#     print(f"Confidence region: {thres:.2e}, error: {err:.2e}")
+#
+#     xstdn = xvar.sqrt()
+#     xstdn_plot = xstdn.sum(dim=1).unsqueeze(1)
+#
+#     error = (xmean - x).abs()  # per pixel average abs. error
+#     error_plot = error.sum(dim=1).unsqueeze(1)
+#
+#     print(f"Correct std: {(xstdn*3>error).sum()/np.prod(xstdn.shape)*100:.1f}%")
+#
+#     dinv.utils.plot(
+#         [physics.A_adjoint(y), x, xmean, xstdn_plot, error_plot],
+#         titles=["meas.", "ground-truth", "mean", "norm. std", "abs. error"],
+#     )

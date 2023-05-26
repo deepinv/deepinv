@@ -3,9 +3,6 @@ import torch
 import torch.nn as nn
 from torch import autograd as autograd
 
-# todo: REQ loss, SURE_alone loss (with noise distribution), DONE
-# todo: define an individual noise module (Gaussian, Possion, MPG) DONE
-
 
 class LpNorm(torch.nn.Module):
     r"""

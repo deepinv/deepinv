@@ -1,5 +1,3 @@
-import os
-import math
 from deepinv.utils import (
     save_model,
     AverageMeter,
@@ -7,15 +5,13 @@ from deepinv.utils import (
     get_timestamp,
     cal_psnr,
 )
-from deepinv.utils import plot_debug, torch2cpu, im_save, make_grid, wandb_imgs
+from deepinv.utils import plot, torch2cpu, im_save, wandb_imgs
 import numpy as np
 from tqdm import tqdm
 import torch
 import wandb
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 import matplotlib
-import torchvision
 from pathlib import Path
 
 matplotlib.rcParams.update({"font.size": 17})
@@ -75,10 +71,11 @@ def train(
     if wandb_vis:
         wandb.init()
 
+    if not isinstance(losses, list) or isinstance(losses, tuple):
+        losses = [losses]
+
     loss_meter = AverageMeter("loss", ":.2e")
     meters = [loss_meter]
-    losses_verbose = []
-    train_psnr_net = []
     eval_psnr_net = []
 
     losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
@@ -88,6 +85,7 @@ def train(
 
     for loss in losses_verbose:
         meters.append(loss)
+
     meters.append(train_psnr_net)
     if eval_dataloader:
         meters.append(eval_psnr_net)
@@ -145,6 +143,8 @@ def train(
                         loss = l(y, x1, physics[g])
                     elif l.name in ["ms"]:
                         loss = l(y, physics[g], model)
+                    elif l.name in ["jsn"]:
+                        loss = l(x1, y)
                     elif not unsupervised and l.name in ["sup"]:
                         loss = l(x1, x)
                     elif l.name in ["moi"]:
@@ -302,10 +302,10 @@ def test(
 
             psnr_init.append(cur_psnr_init)
             psnr_net.append(cur_psnr)
-            if verbose:
-                print(
-                    f"Test PSNR: Init: {cur_psnr_init:.2f}| Model: {cur_psnr:.2f} dB. "
-                )
+            # if verbose:
+            #    print(
+            #        f"Test PSNR: Init: {cur_psnr_init:.2f}| Model: {cur_psnr:.2f} dB. "
+            #    )
             if wandb_vis:
                 psnr_data.append([g, i, cur_psnr_init, cur_psnr])
 
@@ -315,24 +315,17 @@ def test(
 
             if plot_images or save_images or wandb_vis:
                 if g < show_operators:
-                    imgs = []
-                    name_imgs = []
-                    imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-                    name_imgs.append("Input")
-                    imgs.append(torch2cpu(x_init[0, :, :, :].unsqueeze(0)))
-                    name_imgs.append("Init")
-                    imgs.append(torch2cpu(x1[0, :, :, :].unsqueeze(0)))
-                    name_imgs.append("Est")
-                    imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-                    name_imgs.append("GT")
+                    imgs = [x_init, x1, x]
+                    name_imgs = ["Linear", "Recons.", "GT"]
+
                     if save_images:
                         for img, name_im in zip(imgs, name_imgs):
                             im_save(
                                 save_folder_G / (name_im + "_" + str(i) + ".png"),
-                                img,
+                                torch2cpu(img),
                             )
                     if plot_images:
-                        plot_debug(imgs, titles=name_imgs, show=True)
+                        plot(imgs, titles=name_imgs)
                     if wandb_vis:
                         n_plot = min(n_plot_max_wandb, len(x))
                         captions = [
@@ -341,27 +334,27 @@ def test(
                             f"Estimated PSNR:{cur_psnr:.2f}",
                             "Ground Truth",
                         ]
-                        imgs = wandb_imgs(
-                            [y, x_init, x1, x], captions=captions, n_plot=n_plot
-                        )
+                        imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
                         wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
 
             if plot_metrics:
                 for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
                     if len(metric_val) > 0:
                         batch_size, n_iter = len(metric_val), len(metric_val[0])
-                        wandb.log(
-                            {
-                                f"{metric_name} batch {i}": wandb.plot.line_series(
-                                    xs=range(n_iter),
-                                    ys=metric_val,
-                                    keys=[f"image {j}" for j in range(batch_size)],
-                                    title=f"{metric_name} batch {i}",
-                                    xname="iteration",
-                                )
-                            },
-                            step=step,
-                        )
+
+                        if wandb_vis:
+                            wandb.log(
+                                {
+                                    f"{metric_name} batch {i}": wandb.plot.line_series(
+                                        xs=range(n_iter),
+                                        ys=metric_val,
+                                        keys=[f"image {j}" for j in range(batch_size)],
+                                        title=f"{metric_name} batch {i}",
+                                        xname="iteration",
+                                    )
+                                },
+                                step=step,
+                            )
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

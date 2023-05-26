@@ -7,7 +7,7 @@ from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot_debug, torch2cpu
+from deepinv.utils.plotting import plot, torch2cpu
 
 from torch.utils.data import DataLoader
 
@@ -187,7 +187,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     lamb = 1.5
     max_iter = 1000
     params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
-    optimalgo = optimbuilder(
+    optimalgo = optim_builder(
         name_algo,
         prior=prior,
         data_fidelity=data_fidelity,
@@ -236,9 +236,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
         titles = ["Input", "Output"]
         num_im = 2
-        plot_debug(
-            imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
-        )
+        plot(imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None)
 
     assert model.denoiser.has_converged
 
@@ -271,7 +269,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     }
     prior = {"prox_g": Denoiser(model_spec)}
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
-    pnp = optimbuilder(
+    pnp = optim_builder(
         pnp_algo,
         prior=prior,
         data_fidelity=data_fidelity,
@@ -292,8 +290,6 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
         titles = ["Input", "Output"]
         num_im = 2
-        plot_debug(
-            imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
-        )
+        plot(imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None)
 
     assert pnp.has_converged

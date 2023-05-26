@@ -31,7 +31,7 @@ def test_generate_dataset(tmp_path, imsize, device):
         test_dataset=test_dataset,
         device=device,
         dataset_filename="dinv_dataset",
-        max_datapoints=max_N,
+        train_datapoints=max_N,
     )
 
     dataset = dinv.datasets.HDF5Dataset(path=f"{tmp_path}/dinv_dataset0.h5", train=True)

@@ -47,4 +47,10 @@ class ArtifactRemoval(nn.Module):
                 .to(y_in.dtype)
             )
             y_in = torch.cat((y_in, noise_level_map), 1)
-        return self.backbone_net(y_in)
+
+        if hasattr(physics.noise_model, "sigma"):
+            sigma = physics.noise_model.sigma
+        else:
+            sigma = None
+
+        return self.backbone_net(y_in, sigma)

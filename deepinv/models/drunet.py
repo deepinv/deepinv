@@ -17,23 +17,23 @@ class DRUNet(nn.Module):
 
     TODO: add link to paper, finish description and params
 
-    :param int in_channels: input image channels
-    :param int out_channels: output image channels
-    :param list nc: number of convolutional layers
+    :param int in_channels: number of channels of the input.
+    :param int out_channels: number of channels of the output.
+    :param list nc: number of convolutional layers.
     :param int nb:
-    :param int nf: number of channels per convolutional layer
+    :param int nf: number of channels per convolutional layer.
     :param str act_mode:
     :param str downsample_mode:
     :param str upsample_mode:
     :param bool download:
-    :param bool train: training or testing mode
-    :param str device: gpu or cpu
+    :param bool train: training or testing mode.
+    :param str device: gpu or cpu.
 
     """
 
     def __init__(
         self,
-        in_channels=4,
+        in_channels=3,
         out_channels=3,
         nc=[64, 128, 256, 512],
         nb=4,
@@ -45,7 +45,7 @@ class DRUNet(nn.Module):
         device=None,
     ):
         super(DRUNet, self).__init__()
-
+        in_channels = in_channels + 1  # accounts for the input noise channel
         self.m_head = conv(in_channels, nc[0], bias=False, mode="C")
 
         # downsample
