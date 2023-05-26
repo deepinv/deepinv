@@ -17,12 +17,12 @@ Deep Inverse is an open-source pytorch library for solving imaging inverse probl
 With ``deepinv`` you can:
 
 
-* :camera:  Large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
-* :books: `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
-* :boomerang: Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
-* :book: Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
-* :building_construction: Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
-* :microscope: `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
+* Large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
+* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
+* Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
+* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
+* `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
 
 
 
