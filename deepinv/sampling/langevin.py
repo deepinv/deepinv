@@ -106,7 +106,7 @@ class MonteCarlo(nn.Module):
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         with torch.no_grad():
-            if seed:
+            if seed is not None:
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
