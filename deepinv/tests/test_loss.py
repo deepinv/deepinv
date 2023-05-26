@@ -1,9 +1,11 @@
 import pytest
 
+import numpy as np
 import math
 import torch
 
 import deepinv
+from deepinv.models import Denoiser
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from torch.utils.data import DataLoader
 import deepinv as dinv
@@ -193,3 +195,65 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
     )
 
     assert final_psnr[0] > initial_psnr[0]
+
+
+def test_sure_losses():
+    model_spec = {
+        "name": "waveletprior",
+        "args": {"wv": "db8", "level": 3, "device": dinv.device},
+    }
+    f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
+    # test divergence
+
+    x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+    y = physics(x)
+
+    y1 = f(y, physics)
+    tau = 1e-4
+
+    exact = dinv.loss.sure.exact_div(y, physics, f)
+
+    error_h = 0
+    error_mc = 0
+
+    num_it = 100
+
+    for i in range(num_it):
+        h = dinv.loss.sure.hutch_div(y, physics, f)
+        mc = dinv.loss.sure.mc_div(y1, y, f, physics, tau)
+
+        error_h += torch.abs(h - exact)
+        error_mc += torch.abs(mc - exact)
+
+    error_mc /= num_it
+    error_h /= num_it
+
+    # print(f"error_h: {error_h}")
+    # print(f"error_mc: {error_mc}")
+    assert error_h < 5e-2
+    assert error_mc < 5e-2
+
+
+def test_measplit():
+    sigma = 0.1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+
+    # choose a reconstruction architecture
+    backbone = dinv.models.MedianFilter()
+    f = dinv.models.ArtifactRemoval(backbone)
+    batch_size = 1
+    imsize = (3, 128, 128)
+
+    for split_ratio in np.linspace(0.7, 0.99, 10):
+        x = torch.ones((batch_size,) + imsize, device=dinv.device)
+        y = physics(x)
+
+        # choose training losses
+        loss = dinv.loss.SplittingLoss(split_ratio=split_ratio, regular_mask=True)
+        x_net = f(y, physics)
+        mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
+        split_loss = loss(y, physics, f)
+
+        rel_error = (split_loss - mse).abs() / mse

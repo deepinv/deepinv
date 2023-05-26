@@ -302,37 +302,37 @@ class SurePGLoss(nn.Module):
         return loss_sure
 
 
-if __name__ == "__main__":
-    from deepinv.models import Denoiser
-    import deepinv as dinv
-
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": dinv.device},
-    }
-    f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
-    # test divergence
-
-    x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
-    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
-    y = physics(x)
-
-    y1 = f(y, physics)
-    tau = 1e-4
-
-    exact = exact_div(y, physics, f)
-
-    error_h = 0
-    error_mc = 0
-    for i in range(100):
-        h = hutch_div(y, physics, f)
-        mc = mc_div(y1, y, f, physics, tau)
-
-        error_h += torch.abs(h - exact)
-        error_mc += torch.abs(mc - exact)
-
-    error_mc /= 100
-    error_h /= 100
-
-    print(f"error_h: {error_h}")
-    print(f"error_mc: {error_mc}")
+# if __name__ == "__main__":
+#     from deepinv.models import Denoiser
+#     import deepinv as dinv
+#
+#     model_spec = {
+#         "name": "waveletprior",
+#         "args": {"wv": "db8", "level": 3, "device": dinv.device},
+#     }
+#     f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
+#     # test divergence
+#
+#     x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
+#     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+#     y = physics(x)
+#
+#     y1 = f(y, physics)
+#     tau = 1e-4
+#
+#     exact = exact_div(y, physics, f)
+#
+#     error_h = 0
+#     error_mc = 0
+#     for i in range(100):
+#         h = hutch_div(y, physics, f)
+#         mc = mc_div(y1, y, f, physics, tau)
+#
+#         error_h += torch.abs(h - exact)
+#         error_mc += torch.abs(mc - exact)
+#
+#     error_mc /= 100
+#     error_h /= 100
+#
+#     print(f"error_h: {error_h}")
+#     print(f"error_mc: {error_mc}")
