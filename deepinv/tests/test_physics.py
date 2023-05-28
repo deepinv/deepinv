@@ -26,6 +26,7 @@ operators = [
     "deblur",
     "super_resolution",
     "MRI",
+    "Tomography"
 ]  #'CT'
 
 
@@ -48,6 +49,8 @@ def find_operator(name, img_size, device):
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
         p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
+    elif name == "Tomography":
+        p = dinv.physics.Tomography(img_width=256, radon_view=180, device=device)
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name == "blind_deblur":
@@ -82,7 +85,13 @@ def test_operators_adjointness(name, imsize, device):
     """
     physics = find_operator(name, imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
-    assert physics.adjointness_test(x).abs() < 1e-3
+    # dc - debug
+    error = physics.adjointness_test(x).abs()
+    print('adjoint error={:.4f}'.format(error))
+    assert error < 1e-3
+    # dc - debug end
+
+    # assert physics.adjointness_test(x).abs() < 1e-3
 
 
 @pytest.mark.parametrize("name", operators)
@@ -99,6 +108,9 @@ def test_operators_norm(name, imsize, device):
     physics = find_operator(name, imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     norm = physics.compute_norm(x)
+    # dc
+    print('norm={:.4f}'.format(norm))
+    # dc
     assert 1.5 > norm > 0.5
 
 

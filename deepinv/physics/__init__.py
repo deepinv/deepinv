@@ -6,8 +6,9 @@ from .haze import Haze
 from .forward import Denoising, Physics, LinearPhysics, DecomposablePhysics
 from .noise import GaussianNoise, PoissonNoise, PoissonGaussianNoise, UniformNoise
 from .mri import MRI
+from .tomography import Tomography
 
 try:
-    from deepinv.physics.ct import CT
+    from deepinv.physics.tomography import Tomography
 except:
     print("ERROR with CT, to correct")
