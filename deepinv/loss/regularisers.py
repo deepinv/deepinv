@@ -27,7 +27,7 @@ class JacobianSpectralNorm(nn.Module):
         import torch
         from deepinv.loss.regularisers import JacobianSpectralNorm
 
-        reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-3, eval_mode=False, verbose=True)
+        reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=False, verbose=True)
 
         A = torch.diag(torch.Tensor(range(1, 51)))  # creates a diagonal matrix with largest eigenvalue = 50
         x = torch.randn_like(A).requires_grad_()
@@ -37,14 +37,24 @@ class JacobianSpectralNorm(nn.Module):
         print(regval) # >> returns approx 50
     """
 
-    def __init__(self, max_iter=100, tol=1e-3, eval_mode=False, verbose=False):
+    def __init__(self, max_iter=10, tol=1e-3, eval_mode=False, verbose=False):
         super(JacobianSpectralNorm, self).__init__()
+        self.name = "jsn"
         self.max_iter = max_iter
         self.tol = tol
         self.eval = eval_mode
         self.verbose = verbose
 
     def forward(self, y, x):
+        """
+        Computes the spectral norm of the Jacobian of :math:`f` in :math:`x`.
+
+        .. warning::
+            The input :math:`x` must have requires_grad=True before evaluating :math:`f`.
+
+        :param torch.Tensor y: output of the function :math:`f` at :math:`x`.
+        :param torch.Tensor x: input of the function :math:`f`.
+        """
         u = torch.randn_like(x)
         u = u / torch.norm(u.flatten(), p=2)
 
@@ -111,7 +121,7 @@ class FNEJacobianSpectralNorm(nn.Module):
 
     """
 
-    def __init__(self, max_iter=100, tol=1e-3, verbose=False, eval_mode=False):
+    def __init__(self, max_iter=10, tol=1e-3, verbose=False, eval_mode=False):
         super(FNEJacobianSpectralNorm, self).__init__()
         self.spectral_norm_module = JacobianSpectralNorm(
             max_iter=max_iter, tol=tol, verbose=verbose, eval_mode=eval_mode

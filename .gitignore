@@ -17,8 +17,14 @@ results/
 *.tar.gz
 *tmp
 *.tar
+
+# Folders
 /docs/build/
+/docs/source/auto_examples/
+/docs/source/gen_modules/
 /docs/source/stubs/*
+
+# Miscellaneous
 /onebitcs/
 /experimental/
 /deepinv/datasets/reside/

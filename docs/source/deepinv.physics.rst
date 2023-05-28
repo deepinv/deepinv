@@ -1,5 +1,5 @@
 Physics
-===============================
+=======
 
 This package contains a large collection of forward operators appearing in imaging applications.
 
@@ -24,7 +24,7 @@ All forward operators inherit the structure of the ``Physics`` class.
    deepinv.physics.Physics
 
 Linear operators
--------------------------------------
+----------------
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
 All linear operators inherit the structure of the ``LinearPhysics`` class.
 Linear operators with a closed-form singular value decomposition are defined via ``DecomposablePhysics``, which enables
@@ -45,10 +45,11 @@ the efficient computation of their pseudo-inverse and proximal operators.
    deepinv.physics.Downsampling
    deepinv.physics.MRI
    deepinv.physics.Inpainting
+   deepinv.physics.SinglePixelCamera
 
 
 Non-linear operators
--------------------------------------
+--------------------
 Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
 
 .. autosummary::
@@ -58,10 +59,11 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
 
    deepinv.physics.BlindBlur
    deepinv.physics.Haze
+   deepinv.physics.SinglePhotonLidar
 
 Noise distributions
--------------------------------------
-Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module`` s.
+-------------------
+Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module``.
 The noise of a forward operator can be set in its construction
 or simply as
 

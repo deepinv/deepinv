@@ -7,7 +7,7 @@ from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot_debug, torch2cpu
+from deepinv.utils.plotting import plot, torch2cpu
 
 from torch.utils.data import DataLoader
 
@@ -164,6 +164,7 @@ def test_data_fidelity_l1():
 optim_algos = ["PGD", "ADMM", "DRS", "CP", "HQS"]
 
 
+# other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:  # Test both g first and f first
@@ -201,7 +202,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             max_iter = 1000
             params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
 
-            optimalgo = optimbuilder(
+            optimalgo = optim_builder(
                 name_algo,
                 prior=prior,
                 data_fidelity=data_fidelity,
@@ -308,7 +309,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     }
     prior = {"prox_g": Denoiser(model_spec)}
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
-    pnp = optimbuilder(
+    pnp = optim_builder(
         pnp_algo,
         prior=prior,
         data_fidelity=data_fidelity,

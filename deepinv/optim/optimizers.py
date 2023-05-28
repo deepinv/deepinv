@@ -248,11 +248,13 @@ class BaseOptim(nn.Module):
 
     def init_params_fn(self):
         r"""
-        Get initialization parameters and re-initialized the parameters dictionary to its initial value. This is necessary if the parameters have been updated during optimizaiton, for example via backtracking.
+        Initialize (or updates) the dictionary of parameters.
+        This is necessary if the parameters have been updated during optimization, for example via backtracking.
 
         :return: a dictionary containing the parameters of iteration `0`.
         """
-        self.params_algo = self.init_params_algo.copy()
+
+        # self.params_algo = self.init_params_algo.copy()
         init_params = {
             key: value[0]
             for key, value in zip(
@@ -313,7 +315,7 @@ class BaseOptim(nn.Module):
             if self.F_fn
             else None
         )
-        init_X = {
+        init_X = {  # TODO: naming is a bit weird
             "est": (x_init, x_init),
             "cost": cost_init,
         }
@@ -455,13 +457,13 @@ class BaseOptim(nn.Module):
                 if not self.return_aux
                 else self.get_auxiliary_variable(X_prev)
             )
-            x_prev = x_prev.view(x_prev.shape[0], -1)
+            x_prev = x_prev.reshape(x_prev.shape[0], -1)
             x = (
                 self.get_primal_variable(X)
                 if not self.return_aux
                 else self.get_auxiliary_variable(X)
             )
-            x = x.view(x.shape[0], -1)
+            x = x.reshape(x.shape[0], -1)
             crit_cur = (
                 (x_prev - x).norm(p=2, dim=-1) / (x.norm(p=2, dim=-1) + 1e-06)
             ).mean()
@@ -503,7 +505,7 @@ class BaseOptim(nn.Module):
             return x
 
 
-def optimbuilder(
+def optim_builder(
     algo_name,
     data_fidelity=L2(),
     F_fn=None,
@@ -519,7 +521,7 @@ def optimbuilder(
     ::
 
         # Define the optimisation algorithm
-        optimalgo = optimbuilder(
+        optim_algo = optim_builder(
                         'PGD',
                         prior=prior,
                         data_fidelity=data_fidelity,
@@ -532,7 +534,7 @@ def optimbuilder(
                     )
 
         # Run the optimisation algorithm
-        sol = optimalgo(y, physics)
+        sol = optim_algo(y, physics)
 
 
     :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.

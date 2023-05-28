@@ -1,4 +1,4 @@
-name: Deploy Sphinx documentation to Pages
+name: docs
 
 # Runs on pushes targeting the default branch
 on: 
@@ -21,9 +21,11 @@ jobs:
       - name: Install deepinv and its dependencies
         run: |
           pip install -e .
-      - name: Install sphinx_rtd_theme
+      - name: Install sphinx libs
         run: |
           pip install sphinx sphinx_rtd_theme
+          pip install sphinx-gallery
+          pip install sphinxemoji
       - name: Sphinx build
         run: |
           sphinx-build docs/source _build

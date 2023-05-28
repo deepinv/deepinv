@@ -1,5 +1,5 @@
 Unfolded algorithms
-===============================
+===================
 
 This package contains a collection of routines turning optimization algorithms into unfolded architectures.
 Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{\forw{x}}{y} + \reg{x}`
@@ -19,7 +19,7 @@ Unfolded architectures are obtained by replacing parts of these algorithms by le
 In turn, they can be trained in an end-to-end fashion to solve inverse problems.
 
 Unfolded
---------------------------------------
+--------
 
 .. automodule:: deepinv.unfolded.unfolded
    :members:
@@ -28,7 +28,7 @@ Unfolded
 
 
 Deep Equilibrium
---------------------------------------
+----------------
 
 .. automodule:: deepinv.unfolded.deep_equilibrium
    :members:

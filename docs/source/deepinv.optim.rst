@@ -1,7 +1,7 @@
 .. _optim:
 
 Optim
-===============================
+=====
 
 This package contains a collection of routines that optimize
 
@@ -53,11 +53,11 @@ relaxation parameters, etc...
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.optim.optimbuilder
+   deepinv.optim.optim_builder
 
 
 Data Fidelity
--------------------------------------
+-------------
 This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
 :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
 
@@ -77,7 +77,7 @@ on which optimization algorithms rely.
 
 
 Iterators
--------------------------------------
+---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
 :math:`F = \lambda f + g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
 and :math:`g` is a regularizer. The fixed point iteration takes the form

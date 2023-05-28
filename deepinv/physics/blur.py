@@ -7,7 +7,7 @@ import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 
 
-def filter_fft(filter, img_size):
+def filter_fft(filter, img_size, real_fft=True):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
@@ -16,10 +16,13 @@ def filter_fft(filter, img_size):
     filt2[:, : filter.shape[1], : filter.shape[2], : filter.shape[3]] = filter
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
-    return fft.fft2(filt2)
+    return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+
     s = max(sigma)
     c = int(s / 0.3 + 1)
     k_size = 2 * c + 1
@@ -147,9 +150,12 @@ class Downsampling(LinearPhysics):
             self.filter = None
 
         if self.filter is not None:
-            self.Fh = filter_fft(self.filter, img_size).to(device)
+            self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
+            self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
+            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
     def A(self, x):
         if self.filter is not None:
@@ -166,7 +172,8 @@ class Downsampling(LinearPhysics):
 
     def prox_l2(self, z, y, gamma, use_fft=True):
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of https://arxiv.org/abs/1510.00143.
+        If the padding is circular, it computes the proximal operator with the closed-formula of
+        https://arxiv.org/abs/1510.00143.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
         """
@@ -436,7 +443,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
-        self.filter = filter.requires_grad_(False).to(device)
+        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
 
     def A(self, x):
         return conv(x, self.filter, self.padding)
@@ -450,7 +457,7 @@ class BlurFFT(DecomposablePhysics):
 
     FFT-based blur operator.
 
-    It performs
+    It performs the operation
 
     .. math:: y = w*x
 
@@ -460,29 +467,45 @@ class BlurFFT(DecomposablePhysics):
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C,H,W) containing the blur filter, e.g.,
-        ``deepinv.physics.blur.gaussian_blur()``..
+    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
+        ``deepinv.physics.blur.gaussian_blur()``.
     :param str device: cpu or cuda
 
     """
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size
-        self.mask = filter_fft(filter, img_size)
-        self.mask = self.mask.requires_grad_(False).to(device)
+        self.img_size = img_size  # TODO: bug when height or width is odd
+
+        if img_size[0] > filter.shape[1]:
+            filter = filter.repeat(1, img_size[0], 1, 1)
+
+        self.mask = filter_fft(filter, img_size).to("cpu")
+        self.angle = torch.angle(self.mask)
+        self.angle = torch.exp(-1j * self.angle).to(device)
+        self.mask = torch.abs(self.mask).unsqueeze(-1)
+        self.mask = torch.cat([self.mask, self.mask], dim=-1)
+
+        self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
-        return fft.fft2(x, norm="ortho")
+        return torch.view_as_real(
+            fft.rfft2(x, norm="ortho")
+        )  # make it a true SVD (see J. Romberg notes)
 
     def U(self, x):
-        return fft.irfft2(x, norm="ortho", s=self.img_size[-2:])
+        return fft.irfft2(
+            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.img_size[-2:]
+        )
 
     def U_adjoint(self, x):
-        return self.V_adjoint(x)
+        return torch.view_as_real(
+            fft.rfft2(x, norm="ortho") * torch.conj(self.angle)
+        )  # make it a true SVD (see J.
+        # Romberg notes)
 
     def V(self, x):
-        return self.U(x)
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho")
 
 
 # test code
@@ -490,37 +513,37 @@ if __name__ == "__main__":
     device = "cuda:0"
 
     import matplotlib.pyplot as plt
+    import deepinv as dinv
 
-    x = torchvision.io.read_image("../../datasets/set3c/0/butterfly.png")
-    x = x.unsqueeze(0).float().to(device) / 255
+    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+    x = x.unsqueeze(0).float().to(dinv.device) / 255
+    x = torchvision.transforms.Resize((160, 181))(x)
 
-    # test on non symmetric blur kernel
-    import hdf5storage
+    sigma_noise = 0.0
+    kernel = torch.zeros((1, 1, 15, 15), device=dinv.device)
+    kernel[:, :, 7, :] = 1 / 15
+    physics = BlurFFT(img_size=x.shape[1:], filter=kernel, device=dinv.device)
+    physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=dinv.device)
 
-    kernel_index = 2
-    kernels = hdf5storage.loadmat("../../degradations/kernels/kernels_12.mat")[
-        "kernels"
-    ]
-    filter_np = kernels[0, kernel_index].astype(np.float64)
-    filter_torch = torch.from_numpy(filter_np).unsqueeze(0).unsqueeze(0)
-    blur = Downsampling(
-        factor=2, filter=filter_torch, img_size=(3, 256, 256), device=device
-    )
-    y = blur.A(x)
-    y1 = blur.prox_l2(x, y, gamma=10, use_fft=True)
-    y2 = blur.prox_l2(x, y, gamma=10, use_fft=False)
-    print(y1)
-    print(y2)
+    y = physics(x)
+    y2 = physics2(x)
 
-    # print(physics.power_method(x))
-    # x = [x, w]
-    # xhat = physics.A_adjoint(y)
+    xhat = physics.V(physics.U_adjoint(y) / physics.mask)
+    xhat2 = physics2.A_dagger(y2)
 
-    # xhat = physics.A_dagger(y)
-    # xhat = physics.prox_l2(y, torch.zeros_like(x), gamma=.1)
+    print(xhat.shape)
+    # print(physics.adjointness_test(x))
+    print(torch.sum((y - y2).pow(2)))
+    print(torch.sum((xhat - xhat2).pow(2)))
 
-    # x = x[0]
-    # xhat = xhat[0]
+    print(torch.sum((x - xhat).pow(2)))
+    print(torch.sum((x - xhat2).pow(2)))
+
+    print(physics.compute_norm(x))
+    print(physics.adjointness_test(x))
+    xhat = physics.prox_l2(y, y, gamma=0.0)
+
+    xhat = physics.A_dagger(y)
 
     # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
     # plt.show()
@@ -528,6 +551,8 @@ if __name__ == "__main__":
     # plt.show()
     # plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
     # plt.show()
-
+    # plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
+    # plt.show()
+    #
     # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
     # plt.show()

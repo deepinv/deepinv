@@ -8,7 +8,11 @@ class DnCNN(nn.Module):
     r"""
     DnCNN convolutional denoiser.
 
-    https://ieeexplore.ieee.org/abstract/document/7839189/
+    The architecture was introduced by Zhang et al. in https://arxiv.org/abs/1608.03981 and is composed of a series of
+    convolutional layers with ReLU activation functions. The number of layers can be specified by the user.
+
+    The network can be initialized with pretrained weights, which can be downloaded from an online repository. The
+    pretrained weights are trained with the default parameters of the network, i.e. 20 layers, 64 channels and biases.
 
     :param int in_channels: input image channels
     :param int out_channels: output image channels
@@ -16,7 +20,8 @@ class DnCNN(nn.Module):
     :param str act_mode:
     :param bool bias: use bias in the convolutional layers
     :param int nf: number of channels per convolutional layer
-    :param bool pretrained: use a pretrained network. If ``pretrained='download'``, the weights will be downloaded from an
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
         It is possible to download weights trained via the regularization method in https://epubs.siam.org/doi/abs/10.1137/20M1387961
         using ``pretrained='download_lipschitz'``.
