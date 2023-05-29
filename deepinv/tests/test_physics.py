@@ -51,7 +51,9 @@ def find_operator(name, img_size, device):
     elif name == "MRI":
         p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
     elif name == "Tomography":
-        p = dinv.physics.Tomography(img_width=img_size[-1], angles=img_size[-1], device=device)
+        p = dinv.physics.Tomography(
+            img_width=img_size[-1], angles=img_size[-1], device=device
+        )
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name == "blind_deblur":
@@ -113,7 +115,7 @@ def test_operators_norm(name, imsize, device):
     x = torch.randn(imsize, device=device).unsqueeze(0)
     norm = physics.compute_norm(x)
     # dc
-    print('norm={:.4f}'.format(norm))
+    print("norm={:.4f}".format(norm))
     # dc
     assert 1.5 > norm > 0.5
 
@@ -145,7 +147,7 @@ def test_tomography(device):
     :param device: (torch.device) cpu or cuda:x
     """
     imsize = (1, 16, 16)
-    physics = find_operator('Tomography', imsize, device)
+    physics = find_operator("Tomography", imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
 
     r = physics.A_adjoint(physics.A(x))

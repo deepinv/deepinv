@@ -272,14 +272,7 @@ class Tomography(LinearPhysics):
     :param str device: gpu or cpu.
     """
 
-    def __init__(
-        self,
-        img_width,
-        angles,
-        circle=False,
-        device="cuda:0",
-        **kwargs
-    ):
+    def __init__(self, img_width, angles, circle=False, device="cuda:0", **kwargs):
         super(Tomography, self).__init__(**kwargs)
 
         if isinstance(angles, int) or isinstance(angles, float):
@@ -311,20 +304,32 @@ if __name__ == "__main__":
     x = torch.zeros(1, 1, img_width, img_width).to(device)
     x[:, :, 80:180, 80:180] = 1
 
-    print("x:", x.shape, 'max={:.4f}'.format(x.max()),
-          'min={:.4f}'.format(x.min()),)
+    print(
+        "x:",
+        x.shape,
+        "max={:.4f}".format(x.max()),
+        "min={:.4f}".format(x.min()),
+    )
 
     ct = Tomography(img_width, angles, circle=False, non_linearity=True)
     y = ct(x)
     print("y:", y.shape)
     fbp = ct.A_dagger(y)
 
-    print("fbp:", fbp.shape, 'max={:.4f}'.format(fbp.max()),
-          'min={:.4f}'.format(fbp.min()),)
+    print(
+        "fbp:",
+        fbp.shape,
+        "max={:.4f}".format(fbp.max()),
+        "min={:.4f}".format(fbp.min()),
+    )
 
     x_adjoint = ct.A_adjoint(y)
-    print("x_adjoint:", x_adjoint.shape, 'max={:.4f}'.format(x_adjoint.max()),
-          'min={:.4f}'.format(x_adjoint.min()),)
+    print(
+        "x_adjoint:",
+        x_adjoint.shape,
+        "max={:.4f}".format(x_adjoint.max()),
+        "min={:.4f}".format(x_adjoint.min()),
+    )
 
     imgs = [x, y, fbp, x_adjoint]
     titles = ["x", "y", "FBP", "Adjoint"]
