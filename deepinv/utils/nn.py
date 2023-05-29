@@ -5,7 +5,7 @@ import numpy as np
 
 def get_freer_gpu():
     """
-        Returns the GPU device with the most free memory.
+    Returns the GPU device with the most free memory.
 
     """
     try:

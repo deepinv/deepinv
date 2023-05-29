@@ -1,5 +1,5 @@
 Physics
-===============
+=======
 
 This package contains a large collection of forward operators appearing in imaging applications.
 
@@ -24,7 +24,7 @@ All forward operators inherit the structure of the ``Physics`` class.
    deepinv.physics.Physics
 
 Linear operators
-------------------------------
+----------------
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
 All linear operators inherit the structure of the ``LinearPhysics`` class.
 Linear operators with a closed-form singular value decomposition are defined via ``DecomposablePhysics``, which enables
@@ -50,7 +50,7 @@ the efficient computation of their pseudo-inverse and proximal operators.
 
 
 Non-linear operators
-----------------------------------
+--------------------
 Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
 
 .. autosummary::

@@ -29,7 +29,7 @@ We provide some basic plotting functions that are adapted to inverse problems.
 
 
 Other
-----------
+-----
 
 
 .. autosummary::

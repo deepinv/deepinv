@@ -318,7 +318,7 @@ class LinearPhysics(Physics):
 
     def A_dagger(self, y):
         r"""
-        Computes :math:`A^{\dagger}y = x` using the
+        Computes the solution in :math:`x` to :math:`y = Ax` using the
         ` conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
 
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
