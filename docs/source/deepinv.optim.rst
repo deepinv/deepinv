@@ -9,22 +9,23 @@ This package contains a collection of routines that optimize
     \begin{equation}
     \label{eq:min_prob}
     \tag{1}
-    \underset{x}{\arg\min} \quad \datafid{\forw{x}}{y} + \reg{x}
+    \underset{x}{\arg\min} \quad \lambda \datafid{\forw{x}}{y} + \reg{x}
     \end{equation}
 
 
 where the first term :math:`f:\yset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity
-(:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization, and
-:math:`A:\xset\mapsto \yset` is the forward operator (see :meth:`deepinv.physics.Physics`).
+(:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization,
+:math:`\lambda > 0` is a regularization parameter, and :math:`A:\xset\mapsto \yset` is the forward operator
+(see :meth:`deepinv.physics.Physics`).
 
-Optimisation algorithms for minimising the problem above can be written as fixed point algorithms,
+Optimisation algorithms for minimizing the problem above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
 
 .. math::
     \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
-where :math:`x` is a primal variable converging to the solution of the minimisation problem, and
-:math:`z` is a dual variable.
+where :math:`x` is a variable converging to the solution of the minimisation problem, and
+:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimisation theory, is split in two steps:
 
@@ -44,6 +45,7 @@ relaxation parameters, etc...
 
    deepinv.optim.BaseOptim
    deepinv.optim.FixedPoint
+   deepinv.optim.AndersonAcceleration
 
 
 .. autosummary::
@@ -59,8 +61,8 @@ Data Fidelity
 This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
 :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
 
-This class comes with methods such as :math:`\operatorname{prox}_{f\circ A}` and :math:`\nabla f` among others on which
-optimisation algorithms rely.
+This class comes with methods, such as :math:`\operatorname{prox}_{f\circ A}` and :math:`\nabla f \circ A` (among others),
+on which optimization algorithms rely.
 
 .. autosummary::
    :toctree: stubs
@@ -78,13 +80,13 @@ Iterators
 ---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
 :math:`F = \lambda f + g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
-and g is a regularizer. The fixed point iteration takes the form
+and :math:`g` is a regularizer. The fixed point iteration takes the form
 
 .. math::
     \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
-where :math:`x` is a "primal" variable converging to the solution of the minimisation problem, and
-:math:`z` is a "dual" variable.
+where :math:`x` is a variable converging to the solution of the minimisation problem, and
+:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
 
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimisation theory, is split in two steps:
@@ -182,17 +184,17 @@ Half-Quadratic Splitting
 
 
 
-Primal-Dual Splitting
-^^^^^^^^^^^^^^^^^^^^^
+Chambolle-Pock Primal-Dual Splitting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.optim_iterators.PDIteration
-   deepinv.optim.optim_iterators.primal_dual.fStepPD
-   deepinv.optim.optim_iterators.primal_dual.gStepPD
+   deepinv.optim.optim_iterators.CPIteration
+   deepinv.optim.optim_iterators.primal_dual.fStepCP
+   deepinv.optim.optim_iterators.primal_dual.gStepCP
 
 
 

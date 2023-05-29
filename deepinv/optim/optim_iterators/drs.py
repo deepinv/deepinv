@@ -13,8 +13,8 @@ class DRSIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= \operatorname{prox}_{f}(x_k) \\
-        x_{k+1/2} &= \operatorname{prox}_{g}(u_k) \\
+        u_{k} &= 2\operatorname{prox}_{\gamma \lambda f}(x_k)-x_k \\
+        x_{k+1/2} &= 2\operatorname{prox}_{\gamma g}(u_k)-u_k \\
         x_{k+1} &= (x_{k+1/2} - x_{k})/2
         \end{aligned}
         \end{equation*}
@@ -37,17 +37,17 @@ class DRSIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev = X["est"][0]
+        x_prev = X["est"][1]
         if not self.g_first:
-            x = self.f_step(x_prev, y, physics, cur_params)
-            x = self.g_step(x, cur_prior, cur_params)
+            x_ = self.f_step(x_prev, y, physics, cur_params)
+            z = self.g_step(2 * x_ - x_prev, cur_prior, cur_params)
         else:
-            x = self.g_step(x_prev, cur_prior, cur_params)
-            x = self.f_step(x, y, physics, cur_params)
-        x = (x_prev + x) / 2.0
+            x_ = self.g_step(x_prev, cur_prior, cur_params)
+            z = self.f_step(2 * x_ - x_prev, y, physics, cur_params)
+        x = x_prev + z - x_
         x = self.relaxation_step(x, x_prev)
         F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
-        return {"est": (x,), "cost": F}
+        return {"est": (x_, x), "cost": F}
 
 
 class fStepDRS(fStep):
@@ -67,12 +67,8 @@ class fStepDRS(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
-        return (
-            2
-            * self.data_fidelity.prox(
-                x, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
-            )
-            - x
+        return self.data_fidelity.prox(
+            x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
@@ -92,4 +88,4 @@ class gStepDRS(gStep):
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
-        return 2 * cur_prior["prox_g"](z, cur_params["g_param"]) - z
+        return cur_prior["prox_g"](z, cur_params["g_param"])

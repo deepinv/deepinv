@@ -30,16 +30,16 @@ def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
-def test_data_fidelity_l2():
+def test_data_fidelity_l2(device):
     data_fidelity = L2()
 
     # 1. Testing value of the loss for a simple case
     # Define two points
-    x = torch.Tensor([1, 4])
-    y = torch.Tensor([1, 1])
+    x = torch.Tensor([1, 4]).to(device)
+    y = torch.Tensor([1, 1]).to(device)
 
     # Create a measurement operator
-    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -48,12 +48,12 @@ def test_data_fidelity_l2():
     assert data_fidelity(x, y, physics) == 1.0
 
     # Compute the gradient of f
-    grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+    grad_fA = data_fidelity.grad(x, y, physics)  # print(grad_f) gives [2.0000, 0.5000]
 
     # Compute the proximity operator of f
     prox_fA = data_fidelity.prox(
         x, y, physics, gamma=1.0
-    )  # print prox_fA gives [0.6000, 3.6000]
+    )  # print(prox_fA) gives [0.6000, 3.6000]
 
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
@@ -64,7 +64,7 @@ def test_data_fidelity_l2():
 
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
-    B = torch.Tensor([[2, 1], [-1, 0.5]])
+    B = torch.Tensor([[2, 1], [-1, 0.5]]).to(device)
     B_forward = lambda v: B @ v
     B_adjoint = lambda v: B.transpose(0, 1) @ v
 
@@ -72,7 +72,7 @@ def test_data_fidelity_l2():
     physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
 
     # Compute the proximity operator manually (closed form formula)
-    Id = torch.eye(2)
+    Id = torch.eye(2).to(device)
     manual_prox = (Id + gamma * B.transpose(0, 1) @ B).inverse() @ (
         x + gamma * B.transpose(0, 1) @ y
     )
@@ -89,17 +89,17 @@ def test_data_fidelity_l2():
     assert torch.allclose(grad_deepinv, grad_manual)
 
 
-def test_data_fidelity_indicator():
+def test_data_fidelity_indicator(device):
     # Define two points
-    x = torch.Tensor([1, 4])
-    y = torch.Tensor([1, 1])
+    x = torch.Tensor([1, 4]).to(device)
+    y = torch.Tensor([1, 1]).to(device)
 
     # Redefine the data fidelity with a different radius
     radius = 0.5
     data_fidelity = IndicatorL2(radius=radius)
 
     # Create a measurement operator
-    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -113,36 +113,36 @@ def test_data_fidelity_indicator():
     assert data_fidelity.f(x, y, radius=3.1) == 0
 
     # 2. Testing trivial operations on f (and not f \circ A)
-    x_proj = torch.Tensor([1.0, 1 + radius])
+    x_proj = torch.Tensor([1.0, 1 + radius]).to(device)
     assert torch.allclose(data_fidelity.prox_f(x, y, gamma=None), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
 
-    x = torch.Tensor([1, 4])
-    y = torch.Tensor([1, 1])
+    x = torch.Tensor([1, 4]).to(device)
+    y = torch.Tensor([1, 1]).to(device)
 
-    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
     # Define the physics model associated to this operator
-    x_proj = torch.Tensor([0.5290, 2.9917])
+    x_proj = torch.Tensor([0.5290, 2.9917]).to(device)
     dfb_proj = data_fidelity.prox(x, y, physics)
     assert torch.allclose(x_proj, dfb_proj)
     assert torch.norm(A_forward(dfb_proj) - y) <= radius
 
 
-def test_data_fidelity_l1():
+def test_data_fidelity_l1(device):
     # Define two points
-    x = torch.Tensor([1, 4, -0.5])
-    y = torch.Tensor([1, 1, 1])
+    x = torch.Tensor([1, 4, -0.5]).to(device)
+    y = torch.Tensor([1, 1, 1]).to(device)
 
     data_fidelity = L1()
     assert torch.allclose(data_fidelity.f(x, y), (x - y).abs().sum())
 
-    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
+    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -157,55 +157,94 @@ def test_data_fidelity_l1():
 
     # Check prox
     threshold = 0.5
-    prox_manual = torch.Tensor([1.0, 3.5, 0.0])
+    prox_manual = torch.Tensor([1.0, 3.5, 0.0]).to(device)
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
-optim_algos = ["PGD"]
+optim_algos = ["PGD", "ADMM", "DRS", "CP", "HQS"]
 
 
 # other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
-    # Define two points
-    x = torch.Tensor([10, 10])
+    for g_first in [True, False]:  # Test both g first and f first
+        if not g_first or (g_first and not ("HQS" in name_algo or "PGD" in name_algo)):
+            # Define two points
+            x = torch.tensor([10, 10], dtype=torch.float64)
 
-    # Create a measurement operator
-    B = torch.Tensor([[2, 1], [-1, 0.5]])
-    B_forward = lambda v: B @ v
-    B_adjoint = lambda v: B.transpose(0, 1) @ v
+            # Create a measurement operator
+            B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
+            B_forward = lambda v: B @ v
+            B_adjoint = lambda v: B.transpose(0, 1) @ v
 
-    # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
-    y = physics(x)
+            # Define the physics model associated to this operator
+            physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+            y = physics(x)
 
-    data_fidelity = L2()
+            data_fidelity = L2()  # The data fidelity term
+            reg = L1()  # The regularization term
 
-    prior = {"prox_g": ProxL1Prior()}
-    stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
-    reg_param = 1.0 * stepsize
-    lamb = 1.5
-    max_iter = 1000
-    params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
-    optimalgo = optim_builder(
-        name_algo,
-        prior=prior,
-        data_fidelity=data_fidelity,
-        max_iter=max_iter,
-        thres_conv=1e-9,
-        verbose=True,
-        params_algo=params_algo,
-        early_stop=True,
-    )
+            def prox_g(x, ths=0.1):
+                return reg.prox_f(x, 0, ths)
 
-    x = optimalgo(y, physics)
+            prior = {"prox_g": prox_g}
 
-    grad_deepinv = data_fidelity.grad(x, y, physics)
+            if (
+                name_algo == "CP"
+            ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+                stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+                reg_param = 1.0
+            else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
+                stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
+                reg_param = 1.0 * stepsize
 
-    assert torch.allclose(
-        lamb * grad_deepinv, -torch.ones_like(grad_deepinv)
-    )  # Optimality condition
-    assert optimalgo.has_converged
+            lamb = 1.5
+            max_iter = 1000
+            params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
+
+            optimalgo = optim_builder(
+                name_algo,
+                prior=prior,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                crit_conv="residual",
+                thres_conv=1e-11,
+                verbose=True,
+                params_algo=params_algo,
+                early_stop=True,
+                g_first=g_first,
+            )
+
+            # Run the optimisation algorithm
+            x = optimalgo(y, physics)
+
+            assert optimalgo.has_converged
+
+            # Compute the subdifferential of the regularisation at the limit point of the algorithm.
+            subdiff = reg.grad_f(x, 0)
+
+            if name_algo == "HQS":
+                # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
+                # :math:`\lambda \gamma_1 ^1(f)+\gamma_2 g` where :math:`^1(f)` denotes the Moreau envelope of :math:`f`,
+                # and :math:`\gamma_1` and :math:`\gamma_2` are the stepsizes in the proximity operators. Beware, these are
+                # not fetch automatically here but handwritten in the test.
+                # The optimality condition is then :math:`0 \in \gamma_1 \nabla ^1(f)(x)+\gamma_2 \partial g(x)`
+                stepsize_f = lamb * stepsize
+                stepsize_g = reg_param
+
+                moreau_grad = (
+                    x - data_fidelity.prox(x, y, physics, stepsize_f)
+                ) / stepsize_f  # Gradient of the moreau envelope
+                assert torch.allclose(
+                    moreau_grad * stepsize_f, -subdiff * stepsize_g, atol=1e-12
+                )  # Optimality condition
+            else:
+                # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
+                # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
+                grad_deepinv = data_fidelity.grad(x, y, physics)
+                assert torch.allclose(
+                    lamb * grad_deepinv, -subdiff, atol=1e-12
+                )  # Optimality condition
 
 
 def test_denoiser(imsize, dummy_dataset, device):
@@ -227,24 +266,25 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     x = model(y, ths)  # 3. Apply the model we want to test
 
-    plot = False
-
-    if plot:
-        imgs = []
-        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-        imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-
-        titles = ["Input", "Output"]
-        num_im = 2
-        plot(imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None)
+    # For debugging
+    # plot = False
+    # if plot:
+    #     imgs = []
+    #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+    #
+    #     titles = ["Input", "Output"]
+    #     num_im = 2
+    #     plot_debug(
+    #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+    #     )
 
     assert model.denoiser.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "PD", "PGD"]
+optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
 
 
-# optim_algos = ['GD']  # To implement
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     dataloader = DataLoader(
@@ -257,7 +297,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 0.1
+    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 
@@ -282,14 +322,18 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     x = pnp(y, physics)
 
-    plot = False
-    if plot:
-        imgs = []
-        imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-        imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-
-        titles = ["Input", "Output"]
-        num_im = 2
-        plot(imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None)
+    # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
+    # plot = True
+    # if plot:
+    #     imgs = []
+    #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(test_sample[0, :, :, :].unsqueeze(0)))
+    #
+    #     titles = ["Input", "Output", "Groundtruth"]
+    #     num_im = 3
+    #     plot_debug(
+    #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+    #     )
 
     assert pnp.has_converged

@@ -7,12 +7,12 @@ class DataFidelity(nn.Module):
     Data fidelity term :math:`\datafid{Ax}{y}`.
 
     This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
-    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
+    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a function.
 
     ::
 
         # define a loss function
-        loss = L2()
+        data_fidelity = L2()
 
         # create a measurement operator
         A = torch.Tensor([[2, 0], [0, 0.5]])
@@ -27,7 +27,7 @@ class DataFidelity(nn.Module):
         y = torch.Tensor([1, 1])
 
         # Compute the loss f(Ax, y)
-        f = loss(x, y, physics)  # print f gives 1.0
+        f = data_fidelity(x, y, physics)  # print f gives 1.0
 
         # Compute the gradient of f
         grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
@@ -122,10 +122,6 @@ class DataFidelity(nn.Module):
                 "no prox operator is implemented for the data fidelity term."
             )
 
-    # DEPRECATED
-    # def prox_norm(self, x, y, gamma):
-    #     return self.prox_norm(x, y, gamma)
-
 
 class L2(DataFidelity):
     r"""
@@ -190,7 +186,7 @@ class L2(DataFidelity):
 
     def prox(self, x, y, physics, gamma):
         r"""
-        Proximal operator of :math:`f(x) = \frac{1}{2\sigma^2}\|Ax-y\|^2`.
+        Proximal operator of :math:`\gamma f(x) = \frac{\gamma}{2\sigma^2}\|Ax-y\|^2`.
 
         Computes :math:`\operatorname{prox}_{\gamma f}`, i.e.
 
@@ -224,7 +220,7 @@ class L2(DataFidelity):
 
     def prox_f(self, x, y, gamma):
         r"""
-        Proximal operator of :math:`f(x) = \frac{1}{2\sigma^2}\|x-y\|^2`.
+        Proximal operator of :math:`\gamma f(x) = \frac{\gamma}{2\sigma^2}\|x-y\|^2`.
 
         Computes :math:`\operatorname{prox}_{\gamma f}`, i.e.
 
@@ -334,7 +330,7 @@ class IndicatorL2(DataFidelity):
         """
         radius = self.radius if radius is None else radius
         return y + torch.min(
-            torch.tensor([radius]), torch.norm(x.flatten() - y.flatten())
+            torch.tensor([radius]).to(x.device), torch.norm(x.flatten() - y.flatten())
         ) * (x - y) / (torch.norm(x.flatten() - y.flatten()) + 1e-12)
 
     def prox(
@@ -459,6 +455,23 @@ class L1(DataFidelity):
         return (x - y).flatten().abs().sum()
 
     def grad_f(self, x, y):
+        r"""
+        Gradient of the gradient of the :math:`\ell_1` norm, i.e.
+
+        .. math::
+
+            \partial f(x) = \operatorname{sign}(x-y)
+
+
+        .. note::
+
+            The gradient is not defined at :math:`x=y`.
+
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
+        :return: (torch.tensor) gradient of the :math:`\ell_1` norm at `x`.
+        """
         return torch.sign(x - y)
 
     def prox_f(self, u, y, gamma):
@@ -478,7 +491,9 @@ class L1(DataFidelity):
         :return: (torch.tensor) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
-        aux = torch.sign(d) * torch.maximum(d.abs() - gamma, torch.tensor([0]))
+        aux = torch.sign(d) * torch.maximum(
+            d.abs() - gamma, torch.tensor([0]).to(d.device)
+        )
         return aux + y
 
     def prox(self, x, y, physics, gamma, stepsize=None, crit_conv=1e-5, max_iter=100):
