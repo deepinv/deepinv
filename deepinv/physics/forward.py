@@ -249,7 +249,7 @@ class LinearPhysics(Physics):
 
         :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
 
-        using the power method https://en.wikipedia.org/wiki/Power_iteration.
+        using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
         :param torch.tensor x0: initialisation point of the algorithm
         :param int max_iter: maximum number of iterations
@@ -318,7 +318,8 @@ class LinearPhysics(Physics):
 
     def A_dagger(self, y):
         r"""
-        Computes :math:`A^{\dagger}y = x` using the conjugate gradient method https://en.wikipedia.org/wiki/Conjugate_gradient_method.
+        Computes :math:`A^{\dagger}y = x` using the
+        ` conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
 
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
         otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
