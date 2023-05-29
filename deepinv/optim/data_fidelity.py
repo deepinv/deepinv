@@ -334,7 +334,7 @@ class IndicatorL2(DataFidelity):
         """
         radius = self.radius if radius is None else radius
         return y + torch.min(
-            torch.tensor([radius]), torch.norm(x.flatten() - y.flatten())
+            torch.tensor([radius]).to(x.device), torch.norm(x.flatten() - y.flatten())
         ) * (x - y) / (torch.norm(x.flatten() - y.flatten()) + 1e-12)
 
     def prox(
@@ -478,7 +478,9 @@ class L1(DataFidelity):
         :return: (torch.tensor) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
-        aux = torch.sign(d) * torch.maximum(d.abs() - gamma, torch.tensor([0]))
+        aux = torch.sign(d) * torch.maximum(
+            d.abs() - gamma, torch.tensor([0]).to(d.device)
+        )
         return aux + y
 
     def prox(self, x, y, physics, gamma, stepsize=None, crit_conv=1e-5, max_iter=100):
