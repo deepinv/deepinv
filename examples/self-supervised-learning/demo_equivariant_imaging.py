@@ -33,6 +33,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load base image datasets and degradation operators.
@@ -62,7 +63,7 @@ test_dataset = load_dataset(
 mask = load_degradation("mri_mask_128x128.npy", ORIGINAL_DATA_DIR)
 
 # defined physics
-physics = dinv.physics.MRI(mask=mask, device=dinv.device)
+physics = dinv.physics.MRI(mask=mask, device=device)
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -78,7 +79,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,
     physics=physics,
-    device=dinv.device,
+    device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
     num_workers=num_workers,
@@ -106,7 +107,7 @@ denoiser_spec = {
         "depth": 7,
         "pretrained": None,
         "train": True,
-        "device": dinv.device,
+        "device": device,
     },
 }
 
@@ -206,7 +207,7 @@ train(
     losses=losses,
     physics=physics,
     optimizer=optimizer,
-    device=dinv.device,
+    device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
@@ -229,7 +230,7 @@ test(
     model=model,
     test_dataloader=test_dataloader,
     physics=physics,
-    device=dinv.device,
+    device=device,
     plot_images=plot_images,
     save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,

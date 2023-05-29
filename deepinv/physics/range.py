@@ -4,7 +4,9 @@ from deepinv.physics.forward import DecomposablePhysics
 
 class Decolorize(DecomposablePhysics):
     r"""
-    Converts RGB images to grayscale as per the [rec601](https://en.wikipedia.org/wiki/Rec._601) convention.
+    Converts RGB images to grayscale.
+
+    Follows the `rec601 <https://en.wikipedia.org/wiki/Rec._601>`_ convention.
 
     Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
     The measurements are grayscale images.

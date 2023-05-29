@@ -11,19 +11,19 @@
      </div>
 
 Introduction
----------------------
+------------
 Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standarizing forward imaging models and simplifying the creation of imaging datasets. 
 
 With ``deepinv`` you can:
 
 
-* Large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
-* `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
-* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
-* Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
-* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
-* `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
-
+* `:camera:` Large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* `:book:` `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
+* `:boomerang:` Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
+* `:book:` Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
+* `:building_construction:` Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
+* `:microscope:` `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
+* `:books:` A large number of well-explained `examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_.
 
 
 .. raw:: html
@@ -32,34 +32,42 @@ With ``deepinv`` you can:
      <img src="docs/source/figures/deepinv_schematic.png" width="1000"/>
     </div>
 
-Read the documentation and examples at `https://deepinv.github.io <https://deepinv.github.io>`__.
+
+Documentation
+-------------
+
+Read the documentation and examples at `https://deepinv.github.io <https://deepinv.github.io>`_.
 
 Install
-----------
-
-(To be updated, the first stable release will come soon)
-
-
-Contributing
 -------
 
+If you can't wait until the next release, install the latest version of ``deepinv`` from source:
+
+.. code-block:: bash
+
+    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+Getting Started
+---------------
+
+Try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started.
+
+Contributing
+------------
+
+DeepInverse is a community-driven project and welcomes contributions of all forms.
+We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
+and we need your help to get there!
 The preferred way to contribute to ``deepinv`` is to fork the `main
 repository <https://github.com/deepinv/deepinv/>`__ on GitHub,
 then submit a "Pull Request" (PR).
 
 
 Finding help
--------------
+------------
 
-(To be updated)
-
-
-Citing DeepInv
----------------
-
-If you use ``deepinv`` in a scientific publication, please cite the following paper
-
-(To be updated)
+The recommended way to get in touch with the developers is to open an issue on the
+`issue tracker <https://github.com/deepinv/deepinv/issues>`_.
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg

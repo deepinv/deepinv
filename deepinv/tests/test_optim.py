@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 @pytest.fixture
 def device():
-    return dinv.device
+    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 @pytest.fixture
@@ -293,7 +293,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     test_sample = next(iter(dataloader)).to(device)
 
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=dinv.device
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000

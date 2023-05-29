@@ -40,7 +40,7 @@ class SinglePixelCamera(DecomposablePhysics):
     Linear imaging operator with binary entries.
 
     If ``fast=False``, the operator uses a 2D subsampled hadamard transform, which keeps the first :math:`m` modes
-    according to the sequence ordering (see https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering for more details).
+    according to the `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of 1 or -1.
@@ -52,7 +52,7 @@ class SinglePixelCamera(DecomposablePhysics):
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
-    in a similar fashion to torch.nn.Module.
+    in a similar fashion to `:meth:torch.nn.Module`.
 
     :param int m: number of single pixel measurements per acquisition.
     :param tuple img_shape: shape (C, H, W) of images.

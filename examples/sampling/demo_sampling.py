@@ -14,6 +14,9 @@ ULA obtains samples by running the following iteration:
 where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\eta` is the step size and
 :math:`\alpha` is a parameter controlling the regularization.
 
+The PnP-ULA method is described in the paper "Bayesian imaging using Plug & Play priors: when Langevin meets Tweedie
+" by Laumont et al.
+
 """
 
 import deepinv as dinv
@@ -31,6 +34,8 @@ from pathlib import Path
 #
 # This example uses an image of Lionel Messi from Wikipedia.
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
 url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
@@ -39,7 +44,7 @@ res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
 pretrained = "download_lipschitz"
 
-x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
+x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(
     x, scale_factor=0.5
 )  # reduce the image size for faster eval
@@ -52,7 +57,7 @@ x = torchvision.transforms.functional.center_crop(x, 32)
 # This example uses inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=dinv.device)
+physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 
@@ -81,13 +86,13 @@ likelihood = dinv.optim.L2(sigma=sigma)
 #
 # This example uses a pretrained DnCNN model.
 # From a Bayesian point of view, the score plays the role of the gradient of the
-# negative log prior.
+# negative log prior
 # The hyperparameter ``sigma_denoiser`` controls the strength of the prior.
 
 model_spec = {
     "name": "dncnn",
     "args": {
-        "device": dinv.device,
+        "device": device,
         "in_channels": 3,
         "out_channels": 3,
         "pretrained": pretrained,

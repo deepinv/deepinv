@@ -1,11 +1,12 @@
 import pytest
 import deepinv as dinv
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
+import torch
 
 
 @pytest.fixture
 def device():
-    return dinv.device
+    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 @pytest.fixture

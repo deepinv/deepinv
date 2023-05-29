@@ -15,7 +15,6 @@ Functions to train and test the model, and save the model and the results.
         deepinv.test
 
 
-
 Plotting
 --------
 We provide some basic plotting functions that are adapted to inverse problems.
@@ -29,8 +28,8 @@ We provide some basic plotting functions that are adapted to inverse problems.
 
 
 
-Evaluation
-----------
+Other
+-----
 
 
 .. autosummary::
@@ -39,3 +38,4 @@ Evaluation
    :nosignatures:
 
         deepinv.utils.cal_psnr
+        deepinv.utils.get_freer_gpu

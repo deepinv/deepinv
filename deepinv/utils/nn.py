@@ -1,5 +1,24 @@
 import torch
 import os
+import numpy as np
+
+
+def get_freer_gpu():
+    """
+    Returns the GPU device with the most free memory.
+
+    """
+    try:
+        os.system("nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp")
+        memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
+        idx = np.argmax(memory_available)
+        device = torch.device(f"cuda:{idx}")
+        print(f"Selected GPU {idx} with {np.max(memory_available)} MB free memory ")
+    except:
+        device = torch.device(f"cuda")
+        print("Couldn't find free GPU")
+
+    return device
 
 
 def save_model(epoch, model, optimizer, ckp_interval, epochs, loss, save_path):
