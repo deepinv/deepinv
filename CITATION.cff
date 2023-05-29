@@ -15,5 +15,4 @@ authors:
   orcid: "https://orcid.org/0009-0009-9726-6131"
 title: "DeepInverse: A deep learning framework for inverse problems in imaging"
 version: latest
-doi: 10.5281/zenodo.7982257
 url: "https://github.com/deepinv/deepinv"

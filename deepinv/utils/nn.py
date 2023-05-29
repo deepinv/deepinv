@@ -4,6 +4,10 @@ import numpy as np
 
 
 def get_freer_gpu():
+    """
+        Returns the GPU device with the most free memory.
+
+    """
     try:
         os.system("nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp")
         memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
