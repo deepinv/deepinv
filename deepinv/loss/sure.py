@@ -3,13 +3,70 @@ import torch.nn as nn
 import numpy as np
 
 
-def mc_div(x, y, f, tau):
-    # y = f(x), avoids double computation
-    # computes the divergence of f at x using a montecarlo approx.
-    b = torch.randn_like(x)
-    y2 = f(x + tau * b)
-    div = (b * (y2 - y)).flatten().mean() / tau
-    return div
+def hutch_div(y, physics, f, mc_iter=1):
+    r"""
+    Hutch divergence for A(f(x)).
+
+    :param torch.tensor y: Measurements.
+    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param int mc_iter: number of iterations. Default=1.
+    :return: (float) hutch divergence.
+    """
+    input = y.requires_grad_(True)
+    output = physics.A(f(input, physics))
+    out = 0
+    for i in range(mc_iter):
+        b = torch.randn_like(input)
+        x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[
+            0
+        ]
+        out += (b * x).mean()
+
+    return out / mc_iter
+
+
+def exact_div(y, physics, f):
+    r"""
+    Exact divergence for A(f(x)).
+
+    :param torch.tensor y: Measurements.
+    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param int mc_iter: number of iterations. Default=1.
+    :return: (float) exact divergence.
+    """
+    input = y.requires_grad_(True)
+    output = physics.A(f(input, physics))
+    out = 0
+    _, c, h, w = input.shape
+    for i in range(c):
+        for j in range(h):
+            for k in range(w):
+                b = torch.zeros_like(input)
+                b[:, i, j, k] = 1
+                x = torch.autograd.grad(
+                    output, input, b, retain_graph=True, create_graph=True
+                )[0]
+                out += (b * x).sum()
+
+    return out / (c * h * w)
+
+
+def mc_div(y1, y, f, physics, tau):
+    r"""
+    Monte-Carlo estimation for the divergence of A(f(x)).
+
+    :param torch.tensor y: Measurements.
+    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param int mc_iter: number of iterations. Default=1.
+    :return: (float) hutch divergence.
+    """
+    b = torch.randn_like(y)
+    y2 = physics.A(f(y + b * tau, physics))
+    out = (b * (y2 - y1) / tau).mean()
+    return out
 
 
 class SureGaussianLoss(nn.Module):
@@ -42,11 +99,16 @@ class SureGaussianLoss(nn.Module):
     this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
+    .. warning::
+
+        The loss can be sensitive to the choice of :math:`\tau`, which should be proportional to the size of :math:`y`.
+        The default value of 0.01 is adapted to :math:`y` vectors with entries in :math:`[0,1]`.
+
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
     """
 
-    def __init__(self, sigma, tau=1e-3):
+    def __init__(self, sigma, tau=1e-2):
         super(SureGaussianLoss, self).__init__()
         self.name = "SureGaussian"
         self.sigma2 = sigma**2
@@ -63,13 +125,10 @@ class SureGaussianLoss(nn.Module):
         :return: (float) SURE loss.
         """
 
-        # compute loss_sure
         y1 = physics.A(x_net)
-        div = mc_div(y, y1, lambda u: physics.A(f(u, physics)), self.tau)
-        loss_sure = (
-            (y1 - y).pow(2).flatten().mean() - self.sigma2 + 2 * self.sigma2 * div
-        )
-
+        div = 2 * self.sigma2 * mc_div(y1, y, f, physics, self.tau)
+        mse = (y1 - y).pow(2).mean()
+        loss_sure = mse + div - self.sigma2
         return loss_sure
 
 
@@ -98,6 +157,11 @@ class SurePoissonLoss(nn.Module):
     If the measurement data is truly Poisson
     this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
+
+    .. warning::
+
+        The loss can be sensitive to the choice of :math:`\tau`, which should be proportional to the size of :math:`y`.
+        The default value of 0.01 is adapted to :math:`y` vectors with entries in :math:`[0,1]`.
 
     :param float gain: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
@@ -170,6 +234,11 @@ class SurePGLoss(nn.Module):
 
     See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.
 
+    .. warning::
+
+        The loss can be sensitive to the choice of :math:`\tau`, which should be proportional to the size of :math:`y`.
+        The default value of 0.01 is adapted to :math:`y` vectors with entries in :math:`[0,1]`.
+
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float gamma: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
@@ -231,3 +300,39 @@ class SurePGLoss(nn.Module):
 
         loss_sure = loss_mc + loss_div1 + loss_div2 + offset
         return loss_sure
+
+
+# if __name__ == "__main__":
+#     from deepinv.models import Denoiser
+#     import deepinv as dinv
+#
+#     model_spec = {
+#         "name": "waveletprior",
+#         "args": {"wv": "db8", "level": 3, "device": dinv.device},
+#     }
+#     f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
+#     # test divergence
+#
+#     x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
+#     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+#     y = physics(x)
+#
+#     y1 = f(y, physics)
+#     tau = 1e-4
+#
+#     exact = exact_div(y, physics, f)
+#
+#     error_h = 0
+#     error_mc = 0
+#     for i in range(100):
+#         h = hutch_div(y, physics, f)
+#         mc = mc_div(y1, y, f, physics, tau)
+#
+#         error_h += torch.abs(h - exact)
+#         error_mc += torch.abs(mc - exact)
+#
+#     error_mc /= 100
+#     error_h /= 100
+#
+#     print(f"error_h: {error_h}")
+#     print(f"error_mc: {error_mc}")

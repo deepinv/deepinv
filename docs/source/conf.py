@@ -4,6 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
+from sphinx_gallery.sorting import ExplicitOrder
 
 sys.path.insert(0, os.path.abspath("../.."))
 
@@ -23,12 +24,37 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx_gallery.gen_gallery",
+    "sphinxemoji.sphinxemoji",
+    "sphinx.ext.autosectionlabel",
 ]
+
+intersphinx_mapping = {
+    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
+    "torch": ("https://docs.pytorch.org/2.0/", None),
+    "python": ("https://docs.python.org/3.4", None),
+}
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-intersphinx_mapping = {"python": ("https://deepinv.github.io/deepinv/", None)}
 
+sphinx_gallery_conf = {
+    "examples_dirs": ["../../examples"],
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "filename_pattern": "/demo_",
+    "run_stale_examples": True,
+    "ignore_pattern": r"__init__\.py",
+    # directory where function/class granular galleries are stored
+    "backreferences_dir": "gen_modules/backreferences",
+    # Modules for which function/class level galleries are created. In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    "doc_module": ("deepinv"),
+    # objects to exclude from implicit backreferences. The default option
+    # is an empty set, i.e. exclude nothing.
+    "exclude_implicit_doc": {},
+    "nested_sections": False,
+}
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
 mathjax3_config = {
@@ -64,7 +90,7 @@ html_static_path = ["_static"]
 html_favicon = "figures/logo.ico"
 html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
-    "analytics_id": "G-XXXXXXXXXX",  #  Provided by Google in your dashboard
+    "analytics_id": "G-NSEKFKYSGR",  #  Provided by Google in your dashboard G-
     "analytics_anonymize_ip": False,
     "logo_only": True,
     "display_version": True,

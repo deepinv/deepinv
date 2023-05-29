@@ -7,8 +7,5 @@ from .forward import Denoising, Physics, LinearPhysics, DecomposablePhysics
 from .noise import GaussianNoise, PoissonNoise, PoissonGaussianNoise, UniformNoise
 from .mri import MRI
 from .tomography import Tomography
-
-try:
-    from deepinv.physics.tomography import Tomography
-except:
-    print("ERROR with CT, to correct")
+from .lidar import SinglePhotonLidar
+from .singlepixel import SinglePixelCamera

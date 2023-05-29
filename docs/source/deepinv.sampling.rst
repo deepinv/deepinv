@@ -1,5 +1,5 @@
 Sampling
-===============================
+========
 
 This package contains algorithms that can obtains samples of the posterior distribution
 
@@ -37,20 +37,32 @@ which is typically set to a low value.
 
 
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.MonteCarlo
+
 Markov Chain Monte Carlo
---------------------------------
+------------------------
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.sampling.MCMC
     deepinv.sampling.ULA
     deepinv.sampling.SKRock
 
 
 Diffusion
---------------------------------
+---------
 
-We are currently working on adding diffusion methods to the library.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.DDRM

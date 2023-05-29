@@ -1,12 +1,12 @@
 Unfolded
-===============================
+========
 
 This package contains a collection of unfolded architectures.
 The documentation will be updated soon.
 
 
 Unfolded
---------------------------------------
+--------
 
 .. automodule:: deepinv.unfolded.unfolded
    :members:
@@ -15,7 +15,7 @@ Unfolded
 
 
 Deep Equilibrium
---------------------------------------
+----------------
 
 .. automodule:: deepinv.unfolded.deep_equilibrium
    :members:

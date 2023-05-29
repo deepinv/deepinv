@@ -4,21 +4,26 @@
      <img src="docs/source/figures/deepinv_logolarge.png" width="500"/>
      <div>&nbsp;</div>
 
-|Test Status| |Python 3.6+| |codecov| |Black|
+|Test Status| |Docs Status| |Python 3.6+| |codecov| |Black|
 
 .. raw:: html
 
      </div>
 
 Introduction
--------
+---------------------
 Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standarizing forward imaging models and simplifying the creation of imaging datasets. 
 
 With ``deepinv`` you can:
 
-* Use deep learning for solving your inverse problem. You only need to create a ``physics`` class that captures your imaging problem. You can try self-supervised learning, unrolled architectures, plug-and-play methods with pretrained denoisers and uncertainty quantification!
-* Test new deep learning-based methods on various standard inverse problems (MRI, CT, deblurring, super-resolution, inpainting, colorization, etc.) and compare with existing state-of-the-art methods.
-* Create and share datasets, which can be seamlessly evaluated by other users.
+
+* Large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
+* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
+* Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
+* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
+* `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
+
 
 
 .. raw:: html
@@ -61,6 +66,8 @@ If you use ``deepinv`` in a scientific publication, please cite the following pa
     :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
+.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml
 .. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
    :target: https://www.python.org/downloads/release/python-360/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
