@@ -30,16 +30,16 @@ def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
-def test_data_fidelity_l2():
+def test_data_fidelity_l2(device):
     data_fidelity = L2()
 
     # 1. Testing value of the loss for a simple case
     # Define two points
-    x = torch.Tensor([1, 4])
-    y = torch.Tensor([1, 1])
+    x = torch.Tensor([1, 4]).to(device)
+    y = torch.Tensor([1, 1]).to(device)
 
     # Create a measurement operator
-    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -64,7 +64,7 @@ def test_data_fidelity_l2():
 
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
-    B = torch.Tensor([[2, 1], [-1, 0.5]])
+    B = torch.Tensor([[2, 1], [-1, 0.5]]).to(device)
     B_forward = lambda v: B @ v
     B_adjoint = lambda v: B.transpose(0, 1) @ v
 
@@ -72,7 +72,7 @@ def test_data_fidelity_l2():
     physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
 
     # Compute the proximity operator manually (closed form formula)
-    Id = torch.eye(2)
+    Id = torch.eye(2).to(device)
     manual_prox = (Id + gamma * B.transpose(0, 1) @ B).inverse() @ (
         x + gamma * B.transpose(0, 1) @ y
     )
@@ -89,17 +89,17 @@ def test_data_fidelity_l2():
     assert torch.allclose(grad_deepinv, grad_manual)
 
 
-def test_data_fidelity_indicator():
+def test_data_fidelity_indicator(device):
     # Define two points
-    x = torch.Tensor([1, 4])
-    y = torch.Tensor([1, 1])
+    x = torch.Tensor([1, 4]).to(device)
+    y = torch.Tensor([1, 1]).to(device)
 
     # Redefine the data fidelity with a different radius
     radius = 0.5
     data_fidelity = IndicatorL2(radius=radius)
 
     # Create a measurement operator
-    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -113,36 +113,36 @@ def test_data_fidelity_indicator():
     assert data_fidelity.f(x, y, radius=3.1) == 0
 
     # 2. Testing trivial operations on f (and not f \circ A)
-    x_proj = torch.Tensor([1.0, 1 + radius])
+    x_proj = torch.Tensor([1.0, 1 + radius]).to(device)
     assert torch.allclose(data_fidelity.prox_f(x, y, gamma=None), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
 
-    x = torch.Tensor([1, 4])
-    y = torch.Tensor([1, 1])
+    x = torch.Tensor([1, 4]).to(device)
+    y = torch.Tensor([1, 1]).to(device)
 
-    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
     # Define the physics model associated to this operator
-    x_proj = torch.Tensor([0.5290, 2.9917])
+    x_proj = torch.Tensor([0.5290, 2.9917]).to(device)
     dfb_proj = data_fidelity.prox(x, y, physics)
     assert torch.allclose(x_proj, dfb_proj)
     assert torch.norm(A_forward(dfb_proj) - y) <= radius
 
 
-def test_data_fidelity_l1():
+def test_data_fidelity_l1(device):
     # Define two points
-    x = torch.Tensor([1, 4, -0.5])
-    y = torch.Tensor([1, 1, 1])
+    x = torch.Tensor([1, 4, -0.5]).to(device)
+    y = torch.Tensor([1, 1, 1]).to(device)
 
     data_fidelity = L1()
     assert torch.allclose(data_fidelity.f(x, y), (x - y).abs().sum())
 
-    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
+    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -157,7 +157,7 @@ def test_data_fidelity_l1():
 
     # Check prox
     threshold = 0.5
-    prox_manual = torch.Tensor([1.0, 3.5, 0.0])
+    prox_manual = torch.Tensor([1.0, 3.5, 0.0]).to(device)
     assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
 
 
@@ -245,6 +245,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 assert torch.allclose(
                     lamb * grad_deepinv, -subdiff, atol=1e-12
                 )  # Optimality condition
+
 
 
 def test_denoiser(imsize, dummy_dataset, device):
