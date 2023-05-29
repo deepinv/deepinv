@@ -28,7 +28,7 @@ operators = [
     "fast_singlepixel",
     "super_resolution",
     "MRI",
-]  #'CT'
+]
 
 
 def find_operator(name, img_size, device):
@@ -50,6 +50,10 @@ def find_operator(name, img_size, device):
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
         p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
+    elif name == "Tomography":
+        p = dinv.physics.Tomography(
+            img_width=img_size[-1], angles=img_size[-1], device=device
+        )
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name == "blind_deblur":
@@ -92,7 +96,8 @@ def test_operators_adjointness(name, imsize, device):
     """
     physics = find_operator(name, imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
-    assert physics.adjointness_test(x).abs() < 1e-3
+    error = physics.adjointness_test(x).abs()
+    assert error < 1e-3
 
 
 @pytest.mark.parametrize("name", operators)
@@ -109,6 +114,9 @@ def test_operators_norm(name, imsize, device):
     physics = find_operator(name, imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     norm = physics.compute_norm(x)
+    # dc
+    print("norm={:.4f}".format(norm))
+    # dc
     assert 1.5 > norm > 0.5
 
 
@@ -121,7 +129,7 @@ def test_pseudo_inverse(name, imsize, device):
     :param name: operator name (see find_operator)
     :param imsize: (tuple) image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :return: asserts norm is in (.5,1.5)
+    :return: asserts error is less than 1e-3
     """
     physics = find_operator(name, imsize, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
@@ -130,3 +138,19 @@ def test_pseudo_inverse(name, imsize, device):
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
     assert error < 0.01
+
+
+def test_tomography(device):
+    r"""
+    Tests tomography operator which does not have a numerically precise adjoint.
+
+    :param device: (torch.device) cpu or cuda:x
+    """
+    imsize = (1, 16, 16)
+    physics = find_operator("Tomography", imsize, device)
+    x = torch.randn(imsize, device=device).unsqueeze(0)
+
+    r = physics.A_adjoint(physics.A(x))
+    y = physics.A(r)
+    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    assert error < 0.2

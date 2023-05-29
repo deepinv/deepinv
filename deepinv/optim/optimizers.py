@@ -16,7 +16,7 @@ class BaseOptim(nn.Module):
 
     .. math::
         \begin{equation}
-        \underset{x}{\arg\min} \quad \datafid{\forw{x}}{y} + \reg{x}
+        \underset{x}{\arg\min} \quad \lambda \datafid{\forw{x}}{y} + \reg{x}
         \end{equation}
 
 
@@ -28,44 +28,49 @@ class BaseOptim(nn.Module):
     i.e. for :math:`k=1,2,...`
 
     .. math::
-        \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...)
+        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
 
-    where :math:`x_k` is a primal variable converging to the solution of the minimisation problem, and
-    :math:`u_k` is a dual variable.
+    where :math:`x_k` is a variable converging to the solution of the minimisation problem, and
+    :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
 
 
     ::
 
-            # Generate the data
-            x = torch.ones(1, 1, 1, 3)
-            A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
-            A_forward = lambda v: A @ v
-            A_adjoint = lambda v: A.transpose(0, 1) @ v
+        # This example shows how to use the FixedPoint class to solve the problem
+        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
+        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
-            # Define the physics model associated to this operator and the data
-            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-            y = physics.A(x)
+        # Create the measurement operator A
+        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        A_forward = lambda v: A @ v
+        A_adjoint = lambda v: A.transpose(0, 1) @ v
 
-            # Select the data fidelity term
-            data_fidelity = L2()
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
-            # Specify the prior and the algorithm parameters
-            model_spec = {"name": "waveletprior", "args": {"wv": "db8", "level": 3, "device": device}}
-            prior = {"prox_g": Denoiser(model_spec)}
-            params_algo = {"stepsize": 0.1, "g_param": 1.0}
+        # Define the measurement y
+        y = torch.tensor([2, 2], dtype=torch.float64)
 
-            # Choose the iterator associated to a specific algorithm
-            iterator = PGDIteration(data_fidelity=data_fidelity)
+        # Define the data fidelity term
+        data_fidelity = L2()
 
-            # Iterate the iterator
-            max_iter = 50
-            for it in range(max_iter):
-                X = iterator(X, params)
+        # Define the proximity operator of the prior and store it in a dictionary
+        def prox_g(x, g_param=0.1):
+            return torch.sign(x) * torch.maximum(x.abs() - g_param, torch.tensor([0]))
 
-            # Return the solution
-            sol = X["est"]
-            cost = X["cost"]
+        prior = {"prox_g": prox_g}
+
+        # Define the parameters of the algorithm
+        params_algo = {"g_param": 0.5, "stepsize": 0.5, "lambda": 1.0}
+
+        # Define the optimization algorithm
+        iterator = PGDIteration(data_fidelity=data_fidelity)
+        optimalgo = BaseOptim(iterator, prior=prior, params_algo=params_algo)
+
+        # Run the optimization algorithm
+        sol = optimalgo(y, physics)
+
 
 
 
@@ -86,7 +91,7 @@ class BaseOptim(nn.Module):
     :param int anderson_history_size: size of the history in anderson acceleration. Default: `5`.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
                          such as convergence criterion at each iterate. Default: `False`.
-    :param bool return_dual: whether to return the dual variable or not at the end of the algorithm. Default: `False`.
+    :param bool return_aux: whether to return the auxiliary variable or not at the end of the algorithm. Default: `False`.
     :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
@@ -107,7 +112,7 @@ class BaseOptim(nn.Module):
         anderson_beta=1.0,
         anderson_history_size=5,
         verbose=False,
-        return_dual=False,
+        return_aux=False,
         backtracking=False,
         gamma_backtracking=0.1,
         eta_backtracking=0.9,
@@ -126,7 +131,7 @@ class BaseOptim(nn.Module):
         self.max_iter = max_iter
         self.anderson_acceleration = anderson_acceleration
         self.F_fn = F_fn
-        self.return_dual = return_dual
+        self.return_aux = return_aux
         self.params_algo = params_algo
         self.prior = prior
         self.backtracking = backtracking
@@ -200,24 +205,24 @@ class BaseOptim(nn.Module):
                     self.prior["prox_g"].append(prox_g)
 
         if self.anderson_acceleration:
-            self.anderson_beta = anderson_beta
-            self.anderson_history_size = anderson_history_size
+            # self.anderson_beta = anderson_beta
+            # self.anderson_history_size = anderson_history_size
             self.fixed_point = AndersonAcceleration(
-                iterator,
-                update_params_fn=self.update_params_fn,
-                update_prior_fn=self.update_prior_fn,
-                max_iter=self.max_iter,
+                iterator=iterator,
                 history_size=anderson_history_size,
                 beta=anderson_beta,
+                update_params_fn=self.update_params_fn,
+                update_prior_fn=self.update_prior_fn,
+                max_iter=max_iter,
                 early_stop=early_stop,
                 check_iteration_fn=self.check_iteration_fn,
                 check_conv_fn=self.check_conv_fn,
-                init_metrics=self.init_metrics,
-                update_metrics=self.update_metrics,
+                init_metrics_fn=self.init_metrics_fn,
+                update_metrics_fn=self.update_metrics_fn,
             )
         else:
             self.fixed_point = FixedPoint(
-                iterator,
+                iterator=iterator,
                 update_params_fn=self.update_params_fn,
                 update_prior_fn=self.update_prior_fn,
                 max_iter=max_iter,
@@ -325,7 +330,7 @@ class BaseOptim(nn.Module):
         """
         return X["est"][0]
 
-    def get_dual_variable(self, X):
+    def get_auxiliary_variable(self, X):
         r"""
         Returns the dual variable.
 
@@ -347,7 +352,7 @@ class BaseOptim(nn.Module):
         self.batch_size = self.get_primal_variable(X_init).shape[0]
         if self.return_metrics:
             init = {}
-            if not self.return_dual:
+            if not self.return_aux:
                 x_init = self.get_primal_variable(X_init)
                 psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
             else:
@@ -374,13 +379,13 @@ class BaseOptim(nn.Module):
         if metrics is not None:
             x_prev = (
                 self.get_primal_variable(X_prev)
-                if not self.return_dual
-                else self.get_dual_variable(X_prev)
+                if not self.return_aux
+                else self.get_auxiliary_variable(X_prev)
             )
             x = (
                 self.get_primal_variable(X)
-                if not self.return_dual
-                else self.get_dual_variable(X)
+                if not self.return_aux
+                else self.get_auxiliary_variable(X)
             )
             for i in range(self.batch_size):
                 residual = (
@@ -449,16 +454,16 @@ class BaseOptim(nn.Module):
         if self.crit_conv == "residual":
             x_prev = (
                 self.get_primal_variable(X_prev)
-                if not self.return_dual
-                else self.get_dual_variable(X_prev)
+                if not self.return_aux
+                else self.get_auxiliary_variable(X_prev)
             )
-            x_prev = x_prev.view(x_prev.shape[0], -1)
+            x_prev = x_prev.reshape(x_prev.shape[0], -1)
             x = (
                 self.get_primal_variable(X)
-                if not self.return_dual
-                else self.get_dual_variable(X)
+                if not self.return_aux
+                else self.get_auxiliary_variable(X)
             )
-            x = x.view(x.shape[0], -1)
+            x = x.reshape(x.shape[0], -1)
             crit_cur = (
                 (x_prev - x).norm(p=2, dim=-1) / (x.norm(p=2, dim=-1) + 1e-06)
             ).mean()
@@ -491,8 +496,8 @@ class BaseOptim(nn.Module):
         x, metrics = self.fixed_point(x, y, physics, x_gt=x_gt)
         x = (
             self.get_primal_variable(x)
-            if not self.return_dual
-            else self.get_dual_variable(x)
+            if not self.return_aux
+            else self.get_auxiliary_variable(x)
         )
         if self.return_metrics:
             return x, metrics
@@ -511,7 +516,26 @@ def optim_builder(
     **kwargs,
 ):
     r"""
-    Function building the appropriate Optimizer.
+    Function building the appropriate Optimizer given its name.
+
+    ::
+
+        # Define the optimisation algorithm
+        optim_algo = optim_builder(
+                        'PGD',
+                        prior=prior,
+                        data_fidelity=data_fidelity,
+                        max_iter=100,
+                        crit_conv="residual",
+                        thres_conv=1e-11,
+                        verbose=True,
+                        params_algo=params_algo,
+                        early_stop=True,
+                    )
+
+        # Run the optimisation algorithm
+        sol = optim_algo(y, physics)
+
 
     :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
