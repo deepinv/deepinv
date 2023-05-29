@@ -101,7 +101,7 @@ class Radon(nn.Module):
 
     def forward(self, x):
         N, C, W, H = x.shape
-        assert W == H
+        assert W == H, "Input image must be square"
 
         if self.all_grids is None:
             self.all_grids = self._create_grids(self.theta, W, self.circle)
@@ -248,52 +248,47 @@ class IRadon(nn.Module):
 
 class Tomography(LinearPhysics):
     r"""
-    (Computed) Tomography imaging.
+    (Computed) Tomography operator.
 
-    The linear operator operates in 2D slices and is defined as
+    The Radon transform is the integral transform which takes a square image :math:`x` defined on the plane to a function
+    :math:`y=Rx` defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal
+    to the line integral of the function over that line.
 
-    .. math::
+    .. note::
 
-        y = Rx (the Radon transform is the integral transform which takes a function f defined on the plane to a function Rf
-        defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal to the line
-        integral of the function over that line. )
+        The pseudo-inverse is computed using the filtered back-projection algorithm with a Ramp filter.
+        This is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation which is
+        robust to noise.
 
-    where :math:`R` applies an integral transform (Radon transform).
+    .. warning::
 
-    The complex images :math:`x` and measurements :math:`y` should be of size (B, 1, H, W) where the first channel corresponds to the real part
-    and the second channel corresponds to the imaginary part.
+        The adjoint operator has small numerical errors due to interpolation.
 
-    :param int img_width: width of a square-shape image input.
-    :param int radon_view: number of angles.
-    :param bool uniform: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
-    :param bool circle: If True both forward and backward projection will be restricted to pixels inside the circle (highlighted in cyan).
-    :param torch.type dtype: Forward matrix is stored as a dtype.
-    :param str device: Device that the forward/adjoint/pesudo-inverse operators will work on.
-
+    :param int img_width: width/height of the square image input.
+    :param int, numpy.array angles: If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
+        If the type is ``numpy.array``, the angles are the ones provided (e.g., ``np.linspace(0, 180, 10)``).
+    :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
+        inscribed in the square image.
+    :param str device: gpu or cpu.
     """
 
     def __init__(
         self,
         img_width,
-        radon_view,
-        uniform=True,
+        angles,
         circle=False,
         device="cuda:0",
         **kwargs
     ):
         super(Tomography, self).__init__(**kwargs)
-        self.name = "tomography"
-        if uniform:
-            theta = np.linspace(0, 180, radon_view, endpoint=False)
+
+        if isinstance(angles, int) or isinstance(angles, float):
+            theta = np.linspace(0, 180, angles, endpoint=False)
         else:
-            theta = torch.arange(radon_view)
+            theta = angles
+
         self.radon = Radon(img_width, theta, circle).to(device)
         self.iradon = IRadon(img_width, theta, circle).to(device)
-
-    def forward(self, x):
-        m = self.I0 * torch.exp(-self.radon(x))  # clean GT measurement
-        m = self.noise(m)
-        return m
 
     def A(self, x):
         return self.radon(x)
@@ -311,16 +306,16 @@ if __name__ == "__main__":
     device = torch.device("cpu")
 
     img_width = 256
-    radon_view = 360
+    angles = 360
 
     x = torch.zeros(1, 1, img_width, img_width).to(device)
-    x[:, :, 50:200, 50:200] = 1
+    x[:, :, 80:180, 80:180] = 1
 
     print("x:", x.shape, 'max={:.4f}'.format(x.max()),
           'min={:.4f}'.format(x.min()),)
 
-    ct = Tomography(img_width, radon_view)
-    y = ct.A(x)
+    ct = Tomography(img_width, angles, circle=False, non_linearity=True)
+    y = ct(x)
     print("y:", y.shape)
     fbp = ct.A_dagger(y)
 
@@ -363,12 +358,12 @@ if __name__ == "__main__":
     print("pinv test....")
     test_pseudo_inverse("Tomography", (1, 256, 256), dinv.device)  # pass
 
-    # print("norm test....")
-    # test_operators_norm("Tomography", (1, 256, 256), dinv.device)  # pass
-
     print("adjoint test....")
     test_operators_adjointness(
         "Tomography", (1, 256, 256), dinv.device
     )  # pass, tensor(0., device='cuda:0')
+
+    print("norm test....")
+    test_operators_norm("Tomography", (1, 256, 256), dinv.device)  # pass
 
     print("pass all...")

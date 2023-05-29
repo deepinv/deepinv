@@ -45,6 +45,7 @@ the efficient computation of their pseudo-inverse and proximal operators.
    deepinv.physics.Downsampling
    deepinv.physics.MRI
    deepinv.physics.Inpainting
+   deepinv.physics.Tomography
 
 
 Non-linear operators
