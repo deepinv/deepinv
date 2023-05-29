@@ -88,3 +88,36 @@ or simply as
    deepinv.physics.UniformNoise
 
 
+
+Defining a new (linear) operator only requires a forward function and its transpose operation,
+inheriting the remaining structure of the ``LinearPhysics`` class:
+
+::
+
+    import deepinv.physics.Physics as LinearPhysics
+
+    # define an operator that converts color images into grayscale ones.
+    class Decolorize(LinearPhysics):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
+        def A(self, x):
+            y = x[:, 0, :, :] * 0.2989 + x[:, 1, :, :] * 0.5870 + x[:, 2, :, :] * 0.1140
+            return y.unsqueeze(1)
+
+        def A_adjoint(self, y):
+            return torch.cat([y*0.2989, y*0.5870, y*0.1140], dim=1)
+
+.. note::
+
+    If the operator is linear, it is recommended to verify that the transpose is well defined using
+    :meth:`deepinv.physics.LinearPhysics.adjointness_test()`,
+    and that it has a unit norm using :meth:`deepinv.physics.LinearPhysics.compute_norm()`
+
+    ::
+
+        my_operator = Decolorize()
+        norm = my_operator.compute_norm()
+        if my_operator.adjointness_test()<1e-5 and .5 < norm < 1.5
+            print('the operator has a well defined transpose and is well normalized!')
+

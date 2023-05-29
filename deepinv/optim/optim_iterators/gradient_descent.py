@@ -20,8 +20,7 @@ class GDIteration(OptimIterator):
         \end{equation*}
 
 
-    where :math:`\phi` is the Bregman potential of :math:`g`.
-
+    where :math:`\phi` is the Bregman potential of :math:`g` and :math:`\gamma` is a stepsize.
     """
 
     def __init__(self, **kwargs):

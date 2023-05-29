@@ -303,7 +303,7 @@ class LinearPhysics(Physics):
 
         .. math::
 
-            \underset{x}{\arg\min} \; \frac{1}{2} \|Ax-y\|^2 + \frac{\gamma}{2}\|x-z\|^2
+            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
 
         :param torch.tensor y: measurements tensor
         :param torch.tensor z: signal tensor
@@ -311,8 +311,8 @@ class LinearPhysics(Physics):
         :return: (torch.tensor) estimated signal tensor
 
         """
-        b = self.A_adjoint(y) + gamma * z
-        H = lambda x: self.A_adjoint(self.A(x)) + gamma * x
+        b = self.A_adjoint(y) + 1 / gamma * z
+        H = lambda x: self.A_adjoint(self.A(x)) + 1 / gamma * x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
@@ -411,8 +411,7 @@ class DecomposablePhysics(LinearPhysics):
 
     def prox_l2(self, z, y, gamma):
         r"""
-        Computes proximal operator of :math:`f(x)=\frac{1}{2}\|Ax-y\|^2`, i.e.
-        :math:`\underset{x}{\arg\min} \; \frac{1}{2} \|Ax-y\|^2 + \frac{\gamma}{2}\|x-z\|^2`
+        Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`
         in an efficient manner leveraging the singular vector decomposition.
 
         :param torch.tensor y: measurements tensor
@@ -421,12 +420,11 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.tensor) estimated signal tensor
 
         """
-        b = self.A_adjoint(y) + gamma * z
-
+        b = self.A_adjoint(y) + 1 / gamma * z
         if isinstance(self.mask, float):
-            scaling = self.mask**2 + gamma
+            scaling = self.mask**2 + 1 / gamma
         else:
-            scaling = torch.conj(self.mask) * self.mask + gamma
+            scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 

@@ -8,17 +8,19 @@ class ADMMIteration(OptimIterator):
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for minimising :math:`\lambda f(x) + g(x)`.
 
-    The iteration is given by `<https://arxiv.org/pdf/1905.05406.pdf>`
+    The iteration is given by `<https://www.nowpublishers.com/article/Details/MAL-016>`_:
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        z_{k+1/2} &= \operatorname{prox}_{g}(x_k - z_k) \\
-        x_{k+1} &= \operatorname{prox}_{f}(z_{k+1/2} + z_k) \\
+        z_{k+1/2} &= \operatorname{prox}_{\gamma g}(x_k - z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda f}(z_{k+1/2} + z_k) \\
         z_{k+1} &= z_k + \beta (z_{k+1/2} - x_{k+1})
         \end{aligned}
         \end{equation*}
 
+
+    where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
     """
 
     def __init__(self, **kwargs):
@@ -74,7 +76,7 @@ class fStepADMM(fStep):
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
         return self.data_fidelity.prox(
-            x + u, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
+            x + u, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
