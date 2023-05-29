@@ -247,7 +247,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 )  # Optimality condition
 
 
-
 def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
