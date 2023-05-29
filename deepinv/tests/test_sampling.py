@@ -11,7 +11,7 @@ import numpy as np
 
 @pytest.fixture
 def device():
-    return dinv.device
+    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 @pytest.fixture

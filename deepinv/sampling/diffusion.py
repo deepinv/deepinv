@@ -181,14 +181,16 @@ if __name__ == "__main__":
     import torchvision
     from deepinv.utils.metric import cal_psnr
 
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(dinv.device) / 255
+    x = x.unsqueeze(0).float().to(device) / 255
 
     sigma_noise = 0.01
     # physics = dinv.physics.Denoising()
 
     # physics = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=dinv.physics.blur.gaussian_blur(sigma=1.),
-    #                               device=dinv.device)
+    #                               device=device)
     physics = dinv.physics.Decolorize()
     # physics = dinv.physics.Inpainting(
     #   mask=0.5, tensor_size=(3, 218, 178), device=dinv.device
@@ -199,7 +201,7 @@ if __name__ == "__main__":
     y = physics(x)
     model_spec = {
         "name": "drunet",
-        "args": {"device": dinv.device, "pretrained": "download"},
+        "args": {"device": device, "pretrained": "download"},
     }
 
     denoiser = Denoiser(model_spec=model_spec)
