@@ -22,7 +22,7 @@ from deepinv.utils.demo import load_dataset
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = Path("../plug-and-play")
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -39,14 +39,25 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # In this example, we use the CBSD68 dataset
 # for training and the Set3C dataset for testing.
 
-img_size = 128 if torch.cuda.is_available() else 32
+img_size = 28 # if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "compressed-sensing"
-dataset_name = "MNIST"
+train_dataset_name = "MNIST"
+test_dataset_name = "MNIST"  # TODO: split
 
 # Generate training and evaluation datasets in HDF5 folders and load them.
-# TODO ...
-
+test_transform = transforms.Compose(
+    [transforms.CenterCrop(img_size), transforms.ToTensor()]
+)
+train_transform = transforms.Compose(
+    [transforms.RandomCrop(img_size), transforms.ToTensor()]
+)
+train_dataset = load_dataset(
+    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
+)
+test_dataset = load_dataset(
+    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
+)
 
 # %%
 # Generate a dataset of low resolution images and load it.
