@@ -3,17 +3,17 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 
-def custom_collate(batch, physics=None, supervised=True):
-    x, labels = torch.utils.data.default_collate(batch)
-    x = x.to('cuda:0')
-    if physics is not None:
-        y = physics(x)
-        if supervised:
-            return x, y
-        else:
-            return y
-    else:
-        return x
+# def custom_collate(batch, physics=None, supervised=True):
+#     x, labels = torch.utils.data.default_collate(batch)
+#     x = x.to('cuda:0')
+#     if physics is not None:
+#         y = physics(x)
+#         if supervised:
+#             return x, y
+#         else:
+#             return y
+#     else:
+#         return x
 
 
 def mnist_dataloader(train=True, batch_size=1, shuffle=True, num_workers=1):

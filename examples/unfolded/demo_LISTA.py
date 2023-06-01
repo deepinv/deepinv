@@ -5,17 +5,23 @@ Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 This example shows how to implement LISTA for a compressed sensing problem.
 
 """
+from pathlib import Path
+
+import numpy as np
+import torch
+from torchvision import datasets
+from torchvision import transforms
 
 import deepinv as dinv
-from pathlib import Path
-import torch
 from torch.utils.data import DataLoader
+from deepinv.datasets import mnist_dataloader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import Unfolded
 from deepinv.training_utils import train, test
-from torchvision import transforms
 from deepinv.utils.demo import load_dataset
+
+import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
@@ -36,33 +42,29 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset
-# for training and the Set3C dataset for testing.
+# In this example, we use the MNIST dataset and we consider a compressed sensing problem.
 
-img_size = 28 # if torch.cuda.is_available() else 32
-n_channels = 3  # 3 for color images, 1 for gray-scale images
+img_size = 28
+n_channels = 1
 operation = "compressed-sensing"
-train_dataset_name = "MNIST"
-test_dataset_name = "MNIST"  # TODO: split
+train_dataset_name = "MNIST_train"
+test_dataset_name = "MNIST_test"
 
 # Generate training and evaluation datasets in HDF5 folders and load them.
-test_transform = transforms.Compose(
-    [transforms.CenterCrop(img_size), transforms.ToTensor()]
+train_transform = transforms.Compose([transforms.ToTensor()])
+test_transform = transforms.Compose([transforms.ToTensor()])
+train_base_dataset = datasets.MNIST(
+    root=ORIGINAL_DATA_DIR, train=True, transform=train_transform, download=True
 )
-train_transform = transforms.Compose(
-    [transforms.RandomCrop(img_size), transforms.ToTensor()]
+test_base_dataset = datasets.MNIST(
+    root=ORIGINAL_DATA_DIR, train=False, transform=train_transform, download=True
 )
-train_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
-)
-test_dataset = load_dataset(
-    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
-)
+
 
 # %%
 # Generate a dataset of low resolution images and load it.
 # ----------------------------------------------------------------------------------------
-# We use the Downsampling class from the physics module to generate a dataset of low resolution images.
+# We use the Compressed sensing class from the physics module to generate a dataset of low dimension measurements.
 
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
@@ -70,23 +72,24 @@ test_dataset = load_dataset(
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Degradation parameters
-factor = 2
-noise_level_img = 0.03
 
-# Generate the gaussian blur downsampling operator.
-p = dinv.physics.CompressedSensing(m=30, img_shape=img_size, device=device)
+# Generate the compressed sensing measurement operator
+physics = dinv.physics.CompressedSensing(
+    m=78, img_shape=(n_channels, img_size, img_size), device=device
+)
 my_dataset_name = "demo_LISTA"
 n_images_max = (
-    1000 if torch.cuda.is_available() else 10
+    1000 if torch.cuda.is_available() else 200
 )  # maximal number of images used for training
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
+    train_dataset=train_base_dataset,
+    test_dataset=test_base_dataset,
     physics=physics,
     device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
+    test_datapoints=8,
     num_workers=num_workers,
     dataset_filename=str(my_dataset_name),
 )
@@ -99,27 +102,27 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # ----------------------------------------------------------------------------------------
 # We use the Unfolded class to define the unfolded PnP algorithm.
 # For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values across iterations,
-# initialize them with a single float.
+# value is learned for each iteration.
 
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Set up the trainable denoising prior
-max_iter = 10
+# Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
 denoiser_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": device},
-    }
+    "name": "waveletprior",
+    "args": {"wv": "db4", "level": 2, "device": device},
+}
+
 
 # If the prior dict value is initialized with a table of lenght max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = {"prox_g": [Denoiser(model_spec) for i in range(max_iter)]}
+max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
+prior = {"prox_g": [Denoiser(denoiser_spec) for i in range(max_iter)]}
 
 # Unrolled optimization algorithm parameters
 lamb = [1.0] * max_iter  # initialization of the regularization parameter
 stepsize = [1.0] * max_iter  # initialization of the stepsizes.
-sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
+sigma_denoiser = [0.1] * max_iter  # initialization of the denoiser parameters
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -127,9 +130,8 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 }
 
 trainable_params = [
-    "lambda",
-    "stepsize",
     "g_param",
+    "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
@@ -144,19 +146,18 @@ model = Unfolded(
 
 # %%
 # Define the training parameters.
-# ----------------------------------------------------------------------------------------
-# We use the Adam optimizer and the StepLR scheduler.
+# -------------------------------
+# We use the Adam optimizer.
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
-learning_rate = 5e-4
-train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 32 if torch.cuda.is_available() else 1
+epochs = 100 if torch.cuda.is_available() else 10
+learning_rate = 1e-3
+train_batch_size = 32 if torch.cuda.is_available() else 8
+test_batch_size = 32 if torch.cuda.is_available() else 8
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
@@ -174,7 +175,7 @@ test_dataloader = DataLoader(
 
 # %%
 # Train the network
-# ----------------------------------------------------------------------------------------
+# -----------------
 # We train the network using the library's train function.
 
 train(
@@ -182,7 +183,7 @@ train(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
-    scheduler=scheduler,
+    # scheduler=scheduler,
     losses=losses,
     physics=physics,
     optimizer=optimizer,
@@ -194,13 +195,14 @@ train(
 
 # %%
 # Test the network
-# --------------------------------------------
+# ----------------
 #
+# We now test the learned unrolled network on the test dataset.
 #
 
 plot_images = True
 save_images = True
-method = "unfolded_drs"
+method = "unfolded_pgd"
 
 test(
     model=model,
@@ -213,3 +215,37 @@ test(
     verbose=verbose,
     wandb_vis=wandb_vis,
 )
+
+
+# %%
+# Printing the weights of the network
+# -----------------------------------
+#
+# We now plot the weights of the network that were learned and check that they are different from their initilisation values.
+#
+
+list_g_param = [
+    name_param[1].item()
+    for i, name_param in enumerate(model.named_parameters())
+    if name_param[1].requires_grad and "g_param" in name_param[0]
+]
+list_stepsize = [
+    name_param[1].item()
+    for i, name_param in enumerate(model.named_parameters())
+    if name_param[1].requires_grad and "stepsize" in name_param[0]
+]
+
+# Create a figure and axes
+fig, ax = plt.subplots()
+
+# Plot the data
+ax.plot(np.arange(len(list_g_param)), list_g_param, label="g_param", color="r")
+ax.plot(np.arange(len(list_stepsize)), list_stepsize, label="stepsize", color="b")
+
+# Set labels and title
+ax.set_xlabel("Layer index")
+ax.set_ylabel("Value")
+
+ax.grid(True, linestyle="--", alpha=0.5)
+ax.legend()
+plt.show()
