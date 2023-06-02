@@ -2,7 +2,8 @@ r"""
 Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 ====================================================================================================
 
-This example shows how to implement LISTA for a compressed sensing problem.
+This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm for a compressed sensing problem.
+In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a soft-thresholding proximal operator with learnable thresholding parameters.
 
 """
 from pathlib import Path
@@ -25,7 +26,7 @@ import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
-# ----------------------------------------------------------------------------------------
+# -----------------------------------------
 #
 
 BASE_DIR = Path(".")
@@ -48,23 +49,21 @@ img_size = 28
 n_channels = 1
 operation = "compressed-sensing"
 train_dataset_name = "MNIST_train"
-test_dataset_name = "MNIST_test"
 
 # Generate training and evaluation datasets in HDF5 folders and load them.
-train_transform = transforms.Compose([transforms.ToTensor()])
-test_transform = transforms.Compose([transforms.ToTensor()])
+train_test_transform = transforms.Compose([transforms.ToTensor()])
 train_base_dataset = datasets.MNIST(
-    root=ORIGINAL_DATA_DIR, train=True, transform=train_transform, download=True
+    root=ORIGINAL_DATA_DIR, train=True, transform=train_test_transform, download=True
 )
 test_base_dataset = datasets.MNIST(
-    root=ORIGINAL_DATA_DIR, train=False, transform=train_transform, download=True
+    root=ORIGINAL_DATA_DIR, train=False, transform=train_test_transform, download=True
 )
 
 
 # %%
 # Generate a dataset of low resolution images and load it.
-# ----------------------------------------------------------------------------------------
-# We use the Compressed sensing class from the physics module to generate a dataset of low dimension measurements.
+# --------------------------------------------------------
+# We use the compressed sensing class from the physics module to generate a dataset of low dimension measurements (10% of the total number of pixels).
 
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
@@ -73,7 +72,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Degradation parameters
 
-# Generate the compressed sensing measurement operator
+# Generate the compressed sensing measurement operator with 10% undersampling factor.
 physics = dinv.physics.CompressedSensing(
     m=78, img_shape=(n_channels, img_size, img_size), device=device
 )
@@ -98,11 +97,14 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded Proximal algorithm.
-# ----------------------------------------------------------------------------------------
-# We use the Unfolded class to define the unfolded PnP algorithm.
-# For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is learned for each iteration.
+# Define the unfolded Proximal Gradient algorithm
+# -----------------------------------------------
+# In this example, following the original `LISTA algorithm <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_,
+# the backbone algorithm we unfold is the proximal gradient algorithm with soft-thresholding in a wavelet basis.
+# This latter operation corresponds to the proximity operator of the wavelet prior (see :meth:`deepinv.models.wavdict`).
+# We Unfolded class to define the unfolded PnP algorithm and set both the stepsizes of the LISTA algorithm and the soft thresholding parameters as learnable parameters.
+# These parameters are initialized with a table of length max_iter, yielding a distinct stepsize/g_param value
+# for each iteration of the algorithm.
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -147,24 +149,26 @@ model = Unfolded(
 # %%
 # Define the training parameters.
 # -------------------------------
-# We use the Adam optimizer.
+# We now define training-related parameters, number of epochs, optimizer (Adam) and its hyper parameters, and the train and test batch sizes.
 
 
-# training parameters
+# Training parameters
 epochs = 100 if torch.cuda.is_available() else 10
 learning_rate = 1e-3
-train_batch_size = 32 if torch.cuda.is_available() else 8
-test_batch_size = 32 if torch.cuda.is_available() else 8
 
-# choose optimizer and scheduler
+# Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
 
-# choose supervised training loss
+# Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
 
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
+
+# Batch sizes and data loaders
+train_batch_size = 32 if torch.cuda.is_available() else 8
+test_batch_size = 32 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -177,13 +181,13 @@ test_dataloader = DataLoader(
 # Train the network
 # -----------------
 # We train the network using the library's train function.
+#
 
 train(
     model=model,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
-    # scheduler=scheduler,
     losses=losses,
     physics=physics,
     optimizer=optimizer,
@@ -197,7 +201,7 @@ train(
 # Test the network
 # ----------------
 #
-# We now test the learned unrolled network on the test dataset.
+# We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the measurements backprojected in the image domain, the `Recons` column shows the output of our LISTA network, and `GT` shows the groundtruth.
 #
 
 plot_images = True
@@ -235,17 +239,29 @@ list_stepsize = [
     if name_param[1].requires_grad and "stepsize" in name_param[0]
 ]
 
+# Font size and box color
+plt.rc("font", family="sans-serif", size=10)
+plt.rc("axes", edgecolor="gray")
+
 # Create a figure and axes
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(4, 3))
+
+# Set figure background color to white
+ax.set_facecolor("white")
 
 # Plot the data
-ax.plot(np.arange(len(list_g_param)), list_g_param, label="g_param", color="r")
 ax.plot(np.arange(len(list_stepsize)), list_stepsize, label="stepsize", color="b")
+ax.plot(np.arange(len(list_g_param)), list_g_param, label="g_param", color="r")
 
 # Set labels and title
+ax.set_xticks(np.arange(len(list_g_param)))
 ax.set_xlabel("Layer index")
 ax.set_ylabel("Value")
 
-ax.grid(True, linestyle="--", alpha=0.5)
+# Set grid, ticks and legend
+ax.grid(True, linestyle="-", alpha=0.5, color="lightgray")
+ax.tick_params(color="lightgray")
 ax.legend()
+
+fig.tight_layout()
 plt.show()
