@@ -11,7 +11,7 @@
      </div>
 
 Introduction
----------------------
+------------
 Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standarizing forward imaging models and simplifying the creation of imaging datasets. 
 
 With ``deepinv`` you can:
@@ -34,12 +34,12 @@ With ``deepinv`` you can:
 
 
 Documentation
-----------------------
+-------------
 
 Read the documentation and examples at `https://deepinv.github.io <https://deepinv.github.io>`_.
 
 Install
-----------------------
+-------
 
 If you can't wait until the next release, install the latest version of ``deepinv`` from source:
 
@@ -48,12 +48,12 @@ If you can't wait until the next release, install the latest version of ``deepin
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 Getting Started
-----------------------
+---------------
 
 Try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started.
 
 Contributing
--------------------------
+------------
 
 DeepInverse is a community-driven project and welcomes contributions of all forms.
 We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
@@ -64,7 +64,7 @@ then submit a "Pull Request" (PR).
 
 
 Finding help
--------------------------
+------------
 
 The recommended way to get in touch with the developers is to open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_.
