@@ -21,16 +21,20 @@ In turn, they can be trained in an end-to-end fashion to solve inverse problems.
 Unfolded
 --------
 
-.. automodule:: deepinv.unfolded.unfolded
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.unfolded.Unfolded
 
 
 Deep Equilibrium
 ----------------
 
-.. automodule:: deepinv.unfolded.deep_equilibrium
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.unfolded.deep_equilibrium.BaseDEQ
