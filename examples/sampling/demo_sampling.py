@@ -42,7 +42,6 @@ url = (
 )
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
-pretrained = "download_lipschitz"
 
 x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(
@@ -88,6 +87,11 @@ likelihood = dinv.optim.L2(sigma=sigma)
 # From a Bayesian point of view, the score plays the role of the gradient of the
 # negative log prior
 # The hyperparameter ``sigma_denoiser`` controls the strength of the prior.
+#
+# In this example, we use a pretrained DnCNN model using the :class:`deepinv.loss.FNEJacobianSpectralNorm` loss,
+# which makes sure that the denoiser is firmly non-expansive (see
+# `"Building firmly nonexpansive convolutional neural networks" <https://hal.science/hal-03139360>`_), and helps to
+# stabilize the sampling algorithm.
 
 model_spec = {
     "name": "dncnn",
@@ -95,7 +99,7 @@ model_spec = {
         "device": device,
         "in_channels": 3,
         "out_channels": 3,
-        "pretrained": pretrained,
+        "pretrained": "download_lipschitz",
     },
 }
 
