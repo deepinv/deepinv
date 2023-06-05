@@ -23,7 +23,7 @@ With ``deepinv`` you can:
 * `:book:` Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
 * `:building_construction:` Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.).
 * `:microscope:` `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.).
-* `:books:` A large number of well-explained `examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_.
+* `:books:` A large number of well-explained `examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, from basics to state-of-the-art methods.
 
 
 .. raw:: html

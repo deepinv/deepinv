@@ -13,6 +13,7 @@ This package provides vanilla signal reconstruction networks, which can be used 
    deepinv.models.Denoiser
    deepinv.models.ScoreDenoiser
    deepinv.models.ArtifactRemoval
+   deepinv.models.DeepImagePrior
 
 Classical Denoisers
 -------------------
@@ -28,7 +29,7 @@ Classical Denoisers
    deepinv.models.MedianFilter
 
 
-Learned Denoisers
+Learnable Denoisers
 -----------------
 
 .. autosummary::
@@ -38,10 +39,15 @@ Learned Denoisers
 
    deepinv.models.AutoEncoder
    deepinv.models.UNet
+   deepinv.models.ConvDecoder
+
+The following denoisers have **pretrained weights** available.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
    deepinv.models.DnCNN
    deepinv.models.DRUNet
    deepinv.models.GSDRUNet
-
-
-..
-    this is a code snippet showing how to load a denoiser
