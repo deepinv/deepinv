@@ -2,8 +2,9 @@ r"""
 Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 ====================================================================================================
 
-This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm for a compressed sensing problem.
-In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a soft-thresholding proximal operator with learnable thresholding parameters.
+This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm
+for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
+soft-thresholding proximal operator with learnable thresholding parameters.
 
 """
 from pathlib import Path
@@ -15,12 +16,10 @@ from torchvision import transforms
 
 import deepinv as dinv
 from torch.utils.data import DataLoader
-from deepinv.datasets import mnist_dataloader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import Unfolded
 from deepinv.training_utils import train, test
-from deepinv.utils.demo import load_dataset
 
 import matplotlib.pyplot as plt
 
@@ -43,7 +42,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the MNIST dataset and we consider a compressed sensing problem.
+# In this example, we use MNIST as the base dataset.
 
 img_size = 28
 n_channels = 1
@@ -61,18 +60,20 @@ test_base_dataset = datasets.MNIST(
 
 
 # %%
-# Generate a dataset of low resolution images and load it.
-# --------------------------------------------------------
-# We use the compressed sensing class from the physics module to generate a dataset of low dimension measurements (10% of the total number of pixels).
+# Generate a dataset of compressed measurements and load it.
+# ----------------------------------------------------------------------------
+# We use the compressed sensing class from the physics module to generate a dataset of highly-compressed measurements
+# (10% of the total number of pixels).
+#
+# The forward operator is defined as :math:`y = Ax`
+# where :math:`A` is a (normalized) random Gaussian matrix.
 
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
-# dataloading.
+# data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Degradation parameters
-
-# Generate the compressed sensing measurement operator with 10% undersampling factor.
+# Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
     m=78, img_shape=(n_channels, img_size, img_size), device=device
 )
@@ -97,14 +98,29 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded Proximal Gradient algorithm
-# -----------------------------------------------
+# Define the unfolded Proximal Gradient algorithm.
+# ------------------------------------------------------------------------
 # In this example, following the original `LISTA algorithm <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_,
-# the backbone algorithm we unfold is the proximal gradient algorithm with soft-thresholding in a wavelet basis.
-# This latter operation corresponds to the proximity operator of the wavelet prior (see :meth:`deepinv.models.wavdict`).
-# We Unfolded class to define the unfolded PnP algorithm and set both the stepsizes of the LISTA algorithm and the soft thresholding parameters as learnable parameters.
-# These parameters are initialized with a table of length max_iter, yielding a distinct stepsize/g_param value
-# for each iteration of the algorithm.
+# the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
+#
+# .. math::
+#
+#          \min_x \frac{\lambda}{2} \|y - Ax\|_2^2 + \|Wx\|_1
+#
+# where :math:`\lambda` is the regularization parameter.
+# The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
+#
+#   .. math::
+#           x_{k+1} = \text{prox}_{\gamma g}(x_k - \gamma \lambda A^T (Ax_k - y))
+#
+# where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
+# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDict`).
+#
+# We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
+# and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
+# thresholding parameters :math:`\lambda` (``1/g_param``) as learnable parameters.
+# These parameters are initialized with a table of length max_iter,
+# yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -116,8 +132,9 @@ denoiser_spec = {
 }
 
 
-# If the prior dict value is initialized with a table of lenght max_iter, then a distinct model is trained for each
-# iteration. For fixed trained model prior across iterations, initialize with a single model.
+# If the prior dict value is initialized with a table of length max_iter,
+# then a distinct weight is trained for each PGD iteration.
+# For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
 prior = {"prox_g": [Denoiser(denoiser_spec) for i in range(max_iter)]}
 
@@ -146,14 +163,14 @@ model = Unfolded(
     prior=prior,
 )
 
-# %%
-# Define the training parameters.
-# -------------------------------
-# We now define training-related parameters, number of epochs, optimizer (Adam) and its hyper parameters, and the train and test batch sizes.
+# %% Define the training parameters.
+# --------------------------------------------------------
+# We now define training-related parameters,
+# number of epochs, optimizer (Adam) and its hyperparameters, and the train and test batch sizes.
 
 
 # Training parameters
-epochs = 100 if torch.cuda.is_available() else 10
+epochs = 20 if torch.cuda.is_available() else 5
 learning_rate = 1e-3
 
 # Choose optimizer and scheduler
@@ -167,8 +184,8 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
-train_batch_size = 32 if torch.cuda.is_available() else 8
-test_batch_size = 32 if torch.cuda.is_available() else 8
+train_batch_size = 64 if torch.cuda.is_available() else 8
+test_batch_size = 64 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -178,8 +195,8 @@ test_dataloader = DataLoader(
 )
 
 # %%
-# Train the network
-# -----------------
+# Train the network.
+# -------------------------------------------
 # We train the network using the library's train function.
 #
 
@@ -198,10 +215,12 @@ train(
 )
 
 # %%
-# Test the network
-# ----------------
+# Test the network.
+# ---------------------------
 #
-# We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the measurements backprojected in the image domain, the `Recons` column shows the output of our LISTA network, and `GT` shows the groundtruth.
+# We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the
+# measurements back-projected in the image domain, the `Recons` column shows the output of our LISTA network,
+# and `GT` shows the ground truth.
 #
 
 plot_images = True
@@ -222,10 +241,11 @@ test(
 
 
 # %%
-# Printing the weights of the network
-# -----------------------------------
+# Printing the weights of the network.
+# ----------------------------------------------
 #
-# We now plot the weights of the network that were learned and check that they are different from their initilisation values.
+# We now plot the weights of the network that were learned and check that they are different from their initialization
+# values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
 #
 
 list_g_param = [
@@ -250,11 +270,28 @@ fig, ax = plt.subplots(figsize=(4, 3))
 ax.set_facecolor("white")
 
 # Plot the data
-ax.plot(np.arange(len(list_stepsize)), list_stepsize, label="stepsize", color="b")
-ax.plot(np.arange(len(list_g_param)), list_g_param, label="g_param", color="r")
+ax.plot(
+    np.arange(len(list_stepsize)),
+    stepsize,
+    label="init. stepsize",
+    color="b",
+    linestyle="dashed",
+)
+ax.plot(
+    np.arange(len(list_stepsize)), list_stepsize, label="learned stepsize", color="b"
+)
+
+ax.plot(
+    np.arange(len(list_g_param)),
+    sigma_denoiser,
+    label="init. g_param",
+    color="r",
+    linestyle="dashed",
+)
+ax.plot(np.arange(len(list_g_param)), list_g_param, label="learned g_param", color="r")
 
 # Set labels and title
-ax.set_xticks(np.arange(len(list_g_param)))
+ax.set_xticks(np.arange(len(list_g_param), step=5))
 ax.set_xlabel("Layer index")
 ax.set_ylabel("Value")
 
