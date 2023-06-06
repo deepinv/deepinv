@@ -1,10 +1,10 @@
 r"""
 Reconstructing an image using the deep image prior.
-====================================================================================================
+===================================================
 
-This code shows you how to reconstruct a noisy and incomplete image using the deep image prior.
+This code shows how to reconstruct a noisy and incomplete image using the deep image prior.
 
-This method is based on the paper the paper `"Deep Image Prior" by Ulyanov et al. (2018)
+This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
 <https://arxiv.org/abs/1711.10925>`_, and reconstructs
 an image by minimizing the loss function
 
@@ -30,7 +30,7 @@ from pathlib import Path
 
 # %%
 # Load image from the internet
-# --------------------------------------------
+# ----------------------------
 #
 # This example uses an image of Lionel Messi from Wikipedia.
 
@@ -54,7 +54,7 @@ torch.manual_seed(0)
 
 # %%
 # Define forward operator and noise model
-# --------------------------------------------------------------
+# ---------------------------------------
 #
 # We use image inpainting as the forward operator and Gaussian noise as the noise model.
 
@@ -64,19 +64,19 @@ physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 # %%
 # Generate the measurement
-# --------------------------------------------------------------
+# ------------------------
 # We apply the forward model to generate the noisy measurement.
 
 y = physics(x)
 
 # %%
 # Define the deep image prior
-# --------------------------------------------------------------
+# ----------------------------
 #
 # This method only works with certain convolutional decoder networks. We recommend using the
 # network :class:`deepinv.models.ConvDecoder`.
 #
-#  .. note::
+# .. note::
 #
 #     The number of iterations and learning rate have been set manually to obtain good results. However, these
 #     values may not be optimal for all problems. We recommend experimenting with different values.
@@ -104,13 +104,13 @@ f = dinv.models.DeepImagePrior(
 
 # %%
 # Run DIP algorithm and plot results
-# --------------------------------------------------------------
+# ----------------------------------
 # We run the DIP algorithm and plot the results.
 #
 # The good performance of DIP is somewhat surprising, since the network has many parameters and could potentially
 # overfit the noisy measurement data. However, the architecture acts as an implicit regularizer, providing good
 # reconstructions if the optimization is stopped early.
-# While this phenomena is not yet well understood, there has been some efforts to explain it. For example, see
+# While this phenomenon is not yet well understood, there has been some efforts to explain it. For example, see
 # `"The Neural Tangent Link Between CNN Denoisers and Non-Local Filters"
 # <https://openaccess.thecvf.com/content/CVPR2021/html/Tachella_The_Neural_Tangent_Link_Between_CNN_Denoisers_and_Non-Local_Filters_CVPR_2021_paper.html>`_.
 

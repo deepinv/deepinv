@@ -1,8 +1,8 @@
 r"""
 Building your custom sampling algorithm.
-====================================================================================================
+========================================
 
-This code shows you how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin
+This code shows how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin
 Algorithm (PreconULA) that takes advantage of the singular value decomposition of the forward operator
 to accelerate the sampling.
 
@@ -21,7 +21,7 @@ import numpy as np
 
 # %%
 # Load image from the internet
-# --------------------------------------------
+# ----------------------------
 #
 # This example uses an image of Lionel Messi from Wikipedia.
 
@@ -42,7 +42,7 @@ x = torchvision.transforms.functional.center_crop(x, 32)
 
 # %%
 # Define forward operator and noise model
-# --------------------------------------------------------------
+# ---------------------------------------
 #
 # We use a 5x5 box blur as the forward operator and Gaussian noise as the noise model.
 
@@ -57,18 +57,17 @@ physics = dinv.physics.BlurFFT(
 
 # %%
 # Generate the measurement
-# --------------------------------------------------------------
+# ------------------------
 # Apply the forward model to generate the noisy measurement.
 
 y = physics(x)
 
 # %%
 # Define the sampling iteration
-# --------------------------------------------------------------
+# -----------------------------
 #
-# Define custom sampling kernel (possibly a Markov kernel which depends on the previous sample).
-# In order to define a custom sampling kernel, we only need to define the iterator
-# which takes the current sample and returns the next sample.
+# In order to define a custom sampling kernel (possibly a Markov kernel which depends on the previous sample),
+# we only need to define the iterator which takes the current sample and returns the next sample.
 #
 # Here we define a preconditioned ULA iterator (for a Gaussian likelihood),
 # which takes into account the singular value decomposition
@@ -124,7 +123,7 @@ class PULAIterator(torch.nn.Module):
 
 # %%
 # Build Sampler class
-# --------------------------------------------------------------
+# -------------------
 #
 # Using our custom iterator, we can build a sampler class by inheriting from the base class
 # :class:`deepinv.sampling.MonteCarlo`.
@@ -163,7 +162,7 @@ class PreconULA(dinv.sampling.MonteCarlo):
 
 # %%
 # Define the prior
-# -------------------------------------------
+# ----------------
 #
 # The score a distribution can be approximated using a plug-and-play denoiser via the
 # :class:`deepinv.models.ScoreDenoiser` class.
@@ -173,7 +172,7 @@ class PreconULA(dinv.sampling.MonteCarlo):
 #           \nabla \log p_{\sigma_d}(x) \approx \frac{1}{\sigma_d^2} \left(D(x) - x\right)
 #
 # This example uses a simple median filter as a plug-and-play denoiser.
-# The hyperparameter :math:`sigma_d` controls the strength of the prior.
+# The hyperparameter :math:`\sigma_d` controls the strength of the prior.
 
 model_spec = {
     "name": "median_filter",
@@ -185,7 +184,7 @@ prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 
 # %%
 # Create the preconditioned and standard ULA samplers
-# -------------------------------------------
+# ---------------------------------------------------
 # We create the preconditioned and standard ULA samplers using
 # the same hyperparameters (step size, number of iterations, etc.).
 
@@ -222,7 +221,7 @@ ula = ULA(
 
 # %%
 # Run sampling algorithms and plot results
-# --------------------------------------------------------------
+# ----------------------------------------
 # Each sampling algorithm returns the posterior mean and variance.
 # We compare the posterior mean of each algorithm with a simple linear reconstruction.
 #
