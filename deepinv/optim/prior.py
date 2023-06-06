@@ -39,7 +39,7 @@ class Prior(nn.Module):
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x f`, computed in :math:`x`.
+        :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
         torch.set_grad_enabled(True)
         x = x.requires_grad_()
@@ -56,7 +56,7 @@ class Prior(nn.Module):
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafid{A\cdot}{y}}(x)`, computed in :math:`x`.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma g}(x)`, computed in :math:`x`.
         """
         grad = lambda z: gamma * self.grad(z, *args, **kwargs) + (z - x)
         return gradient_descent(
@@ -67,3 +67,41 @@ class Prior(nn.Module):
             tol=tol,
         )
 
+
+class Tikhonov(Prior):
+    r"""
+    Tikhonov regularizer :math:`g{x} = \frac{1}{2}\| T x \|_2^2`.
+    """
+
+    def __init__(self, T, T_adjoint):
+        self.T = T
+        self.T_adjoint = T_adjoint
+        super().__init__()
+
+    def g(self, x):
+        r"""
+        Computes the Tikhonov regularizer :math:`g(x) = \frac{1}{2}\|T(x)\|_2^2`.
+
+        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.tensor) prior :math:`g(x)`.
+        """
+        return 0.5 * torch.norm(self.T * x) ** 2
+
+    def grad(self, x):
+        r"""
+        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`. 
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.tensor) gradient at :math:`x`.
+        """
+        return x
+
+    def prox(self, x, gamma):
+        r"""
+        Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`. 
+
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.tensor) proximity operator at :math:`x`.
+        """
+        return (1/(gamma+1))*x
