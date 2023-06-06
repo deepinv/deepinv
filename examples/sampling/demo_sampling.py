@@ -14,8 +14,8 @@ ULA obtains samples by running the following iteration:
 where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\eta` is the step size and
 :math:`\alpha` is a parameter controlling the regularization.
 
-The PnP-ULA method is described in the paper "Bayesian imaging using Plug & Play priors: when Langevin meets Tweedie
-" by Laumont et al.
+The PnP-ULA method is described in the paper `"Bayesian imaging using Plug & Play priors: when Langevin meets Tweedie
+" <https://arxiv.org/abs/2103.04715>`_.
 
 """
 
@@ -42,7 +42,6 @@ url = (
 )
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
-pretrained = "download_lipschitz"
 
 x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(
@@ -60,6 +59,8 @@ sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
+# Set the global random seed from pytorch to ensure reproducibility of the example.
+torch.manual_seed(0)
 
 # %%
 # Define the likelihood
@@ -82,12 +83,17 @@ likelihood = dinv.optim.L2(sigma=sigma)
 #
 # .. math::
 #
-#           - \nabla \log p_{\sigma}(x) \approx \frac{1}{\sigma^2} \left(x - D(x)\right)
+#            \nabla \log p_{\sigma}(x) \approx \frac{1}{\sigma^2} \left(D(x,\sigma)-x\right)
 #
 # This example uses a pretrained DnCNN model.
 # From a Bayesian point of view, the score plays the role of the gradient of the
 # negative log prior
-# The hyperparameter ``sigma_denoiser`` controls the strength of the prior.
+# The hyperparameter ``sigma_denoiser`` (:math:`sigma`) controls the strength of the prior.
+#
+# In this example, we use a pretrained DnCNN model using the :class:`deepinv.loss.FNEJacobianSpectralNorm` loss,
+# which makes sure that the denoiser is firmly non-expansive (see
+# `"Building firmly nonexpansive convolutional neural networks" <https://hal.science/hal-03139360>`_), and helps to
+# stabilize the sampling algorithm.
 
 model_spec = {
     "name": "dncnn",
@@ -95,7 +101,7 @@ model_spec = {
         "device": device,
         "in_channels": 3,
         "out_channels": 3,
-        "pretrained": pretrained,
+        "pretrained": "download_lipschitz",
     },
 }
 

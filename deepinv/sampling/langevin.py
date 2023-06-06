@@ -19,8 +19,8 @@ class MonteCarlo(nn.Module):
     ::
 
         # define custom sampling kernel (possibly a Markov kernel which depends on the previous sanple).
-        class MyKernel(torch.nn.Module):
-            def __init__(self, iterator_params)
+        class MyKernel(torch.torch.nn.Module):
+            def __init__(self, iterator_params):
                 super().__init__()
                 self.iterator_params = iterator_params
 
@@ -35,7 +35,7 @@ class MonteCarlo(nn.Module):
                 # generate an iterator
                 iterator = MyKernel(step_size=step_size, alpha=alpha)
                 # set the params of the base class
-                super().__init__(iterator, prior, data_fidelity, alpha=alpha,  max_iter=max_iter,
+                super().__init__(iterator, prior, data_fidelity, max_iter=max_iter,
                                  burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)
 
         # create the sampler
