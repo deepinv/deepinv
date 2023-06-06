@@ -73,9 +73,8 @@ class Tikhonov(Prior):
     Tikhonov regularizer :math:`g{x} = \frac{1}{2}\| T x \|_2^2`.
     """
 
-    def __init__(self, T, T_adjoint):
+    def __init__(self, T):
         self.T = T
-        self.T_adjoint = T_adjoint
         super().__init__()
 
     def g(self, x):
@@ -105,3 +104,15 @@ class Tikhonov(Prior):
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
         return (1/(gamma+1))*x
+
+class PnP(Prior):
+    r"""
+    Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`
+    """
+
+    def __init__(self, denoiser):
+        self.denoiser = denoiser
+        super().__init__()
+
+    def prox(self, x, gamma):
+        
