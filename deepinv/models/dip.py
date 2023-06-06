@@ -19,9 +19,9 @@ class ConvDecoder(nn.Module):
     The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
-    Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
-
     """
+
+    #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
     def __init__(self, img_shape, in_size, layers=7, channels=256):
         super(ConvDecoder, self).__init__()
 
@@ -33,23 +33,43 @@ class ConvDecoder(nn.Module):
         strides = [1] * (layers - 1)
 
         # compute up-sampling factor from one layer to another
-        scale_x, scale_y = (out_size[0] / in_size[0]) ** (1. / (layers - 1)), (out_size[1] / in_size[1]) ** (
-                1. / (layers - 1))
-        hidden_size = [(int(np.ceil(scale_x ** n * in_size[0])),
-                        int(np.ceil(scale_y ** n * in_size[1]))) for n in range(1, (layers - 1))] + [out_size]
+        scale_x, scale_y = (out_size[0] / in_size[0]) ** (1.0 / (layers - 1)), (
+            out_size[1] / in_size[1]
+        ) ** (1.0 / (layers - 1))
+        hidden_size = [
+            (
+                int(np.ceil(scale_x**n * in_size[0])),
+                int(np.ceil(scale_y**n * in_size[1])),
+            )
+            for n in range(1, (layers - 1))
+        ] + [out_size]
 
         # hidden layers
         self.net = nn.Sequential()
         for i in range(layers - 1):
-            self.net.add(nn.Upsample(size=hidden_size[i], mode='nearest'))
-            conv = nn.Conv2d(channels, channels, kernel_size, strides[i], padding=(kernel_size - 1) // 2,
-                             bias=True)
+            self.net.add(nn.Upsample(size=hidden_size[i], mode="nearest"))
+            conv = nn.Conv2d(
+                channels,
+                channels,
+                kernel_size,
+                strides[i],
+                padding=(kernel_size - 1) // 2,
+                bias=True,
+            )
             self.net.add(conv)
             self.net.add(nn.ReLU())
             self.net.add(nn.BatchNorm2d(channels, affine=True))
         # final layer
         self.net.add(
-            nn.Conv2d(channels, channels, kernel_size, strides[i], padding=(kernel_size - 1) // 2, bias=True))
+            nn.Conv2d(
+                channels,
+                channels,
+                kernel_size,
+                strides[i],
+                padding=(kernel_size - 1) // 2,
+                bias=True,
+            )
+        )
         self.net.add(nn.ReLU())
         self.net.add(nn.BatchNorm2d(channels, affine=True))
         self.net.add(nn.Conv2d(channels, output_channels, 1, 1, padding=0, bias=True))
@@ -95,8 +115,16 @@ class DeepImagePrior(torch.nn.Module):
 
 
     """
-    def __init__(self, generator, input_size, iterations=2500, learning_rate=1e-2,
-                 verbose=False, re_init=False):
+
+    def __init__(
+        self,
+        generator,
+        input_size,
+        iterations=2500,
+        learning_rate=1e-2,
+        verbose=False,
+        re_init=False,
+    ):
         super().__init__()
         self.generator = generator
         self.max_iter = int(iterations)
@@ -107,10 +135,19 @@ class DeepImagePrior(torch.nn.Module):
         self.input_size = input_size
 
     def forward(self, y, physics):
+        r"""
+        Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimiza
+        problem.
 
+        .. warning::
+
+            The optimization is run for every test batch. Thus, this method can be slow when tested on a large
+            number of test batches.
+
+        """
         if self.re_init:
             for layer in self.generator.children():
-                if hasattr(layer, 'reset_parameters'):
+                if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
 
         z = torch.randn(self.input_size, device=y.device).unsqueeze(0)
@@ -138,8 +175,11 @@ if __name__ == "__main__":
     x = x.unsqueeze(0).float().to(device) / 255
     x = torchvision.transforms.Resize((128, 128))(x)
 
-    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], device=device,
-                                      noise_model=dinv.physics.GaussianNoise(sigma=0.05))
+    physics = dinv.physics.Inpainting(
+        tensor_size=x.shape[1:],
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=0.05),
+    )
 
     y = physics(x)
 
@@ -147,13 +187,20 @@ if __name__ == "__main__":
     lr = 1e-2
     channels = 256
     in_size = [8, 8]
-    backbone = ConvDecoder(img_shape=x.shape[1:], in_size=in_size, channels=channels).to(device)
+    backbone = ConvDecoder(
+        img_shape=x.shape[1:], in_size=in_size, channels=channels
+    ).to(device)
 
-    model = DeepImagePrior(backbone, learning_rate=lr, re_init=True,
-                           iterations=iterations, verbose=True, input_size=[channels] + in_size).to(device)
+    model = DeepImagePrior(
+        backbone,
+        learning_rate=lr,
+        re_init=True,
+        iterations=iterations,
+        verbose=True,
+        input_size=[channels] + in_size,
+    ).to(device)
 
     x_hat = model(y, physics)
     x_hat = model(y, physics)
 
     dinv.utils.plot([x, y, x_hat], titles=["GT", "Meas.", "Recon."])
-
