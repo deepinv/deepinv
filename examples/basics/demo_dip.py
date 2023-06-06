@@ -49,11 +49,14 @@ x = torch.nn.functional.interpolate(
 )  # reduce the image size for faster eval
 x = torchvision.transforms.functional.center_crop(x, 32)
 
+# Set the global random seed from pytorch to ensure reproducibility of the example.
+torch.manual_seed(0)
+
 # %%
 # Define forward operator and noise model
 # --------------------------------------------------------------
 #
-# This example uses inpainting as the forward operator and Gaussian noise as the noise model.
+# We use image inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
@@ -70,24 +73,34 @@ y = physics(x)
 # Define the deep image prior
 # --------------------------------------------------------------
 #
-#   This method only works with certain convolutional decoder networks. We recommend using the
-#   network :class:`deepinv.models.ConvDecoder`.
+# This method only works with certain convolutional decoder networks. We recommend using the
+# network :class:`deepinv.models.ConvDecoder`.
 #
-#    .. note::
+#  .. note::
 #
-#        The number of iterations and learning rate are set to the values used in the original paper. However, these
-#        values may not be optimal for all problems. We recommend experimenting with different values.
+#     The number of iterations and learning rate have been set manually to obtain good results. However, these
+#     values may not be optimal for all problems. We recommend experimenting with different values.
+#
+# .. note::
+#
+#     Here we run a small number of iterations to reduce the runtime of the example. However, the results could
+#     be improved by running more iterations.
 
-
-
-iterations = 200  # number of optimization iterations.
+iterations = 100
 lr = 1e-2  # learning rate for the optimizer.
 channels = 64  # number of channels per layer in the decoder.
 in_size = [2, 2]  # size of the input to the decoder.
-backbone = dinv.models.ConvDecoder(img_shape=x.shape[1:], in_size=in_size, channels=channels).to(device)
+backbone = dinv.models.ConvDecoder(
+    img_shape=x.shape[1:], in_size=in_size, channels=channels
+).to(device)
 
-f = dinv.models.DeepImagePrior(backbone, learning_rate=lr,
-                               iterations=iterations, verbose=True, input_size=[channels] + in_size).to(device)
+f = dinv.models.DeepImagePrior(
+    backbone,
+    learning_rate=lr,
+    iterations=iterations,
+    verbose=True,
+    input_size=[channels] + in_size,
+).to(device)
 
 # %%
 # Run DIP algorithm and plot results
@@ -98,7 +111,7 @@ f = dinv.models.DeepImagePrior(backbone, learning_rate=lr,
 # overfit the noisy measurement data. However, the architecture acts as an implicit regularizer, providing good
 # reconstructions if the optimization is stopped early.
 # While this phenomena is not yet well understood, there has been some efforts to explain it. For example, see
-# `"The Neural Tangent Link Between CNN Denoisers and Non-Local Filters",
+# `"The Neural Tangent Link Between CNN Denoisers and Non-Local Filters"
 # <https://openaccess.thecvf.com/content/CVPR2021/html/Tachella_The_Neural_Tangent_Link_Between_CNN_Denoisers_and_Non-Local_Filters_CVPR_2021_paper.html>`_.
 
 

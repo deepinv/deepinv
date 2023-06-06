@@ -1,23 +1,23 @@
 r"""
-Self-supervised learning from binary measurements.
+Self-supervised learning from incomplete measurements of multiple operators.
 ====================================================================================================
 
-This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way,
-i.e., using measurement data only.
+This example shows you how to train a reconstruction network for an inpainting
+inverse problem on a fully self-supervised way, i.e., using measurement data only.
 
 The dataset consists of pairs :math:`(y_i,A_{g_i})` where :math:`y_i` are the measurements and :math:`A_{g_i}` is a
-binary sampling operator out of :math:`G` (i.e., :math:`g\in \{1,\dots,G\}`.
+binary sampling operator out of :math:`G` (i.e., :math:`g_i\in \{1,\dots,G\}`).
 
-This self-supervised learning approach is presented in `"Unsupervised Learning From Incomplete Measurements for Inverse Problems"
- <https://openreview.net/pdf?id=aV9WSvM6N3>`_, and minimizes the loss function:
+This self-supervised learning approach is presented in `"Unsupervised Learning From Incomplete Measurements for
+Inverse Problems" <https://openreview.net/pdf?id=aV9WSvM6N3>`_, and minimizes the loss function:
 
 .. math::
 
-    \mathcal{L}(\theta) = \sum_{i=1}^{N} \left\|A_{g_i} f_{\theta}(y_i,A_{g_i}) - y_i \right\|_2^2 +
-    \left\|\hat{x}_i - f_{\theta}(A_s\hat{x}_i,A_s) \right\|_2^2
+    \mathcal{L}(\theta) = \sum_{i=1}^{N} \left\|A_{g_i} \hat{x}_{i,\theta} - y_i \right\|_2^2 + \sum_{s=1}^{G}
+    \left\|\hat{x}_{i,\theta} - R_{\theta}(A_s\hat{x}_{i,\theta},A_s) \right\|_2^2
 
-where :math:`f_{\theta}` is a reconstruction network with parameters :math:`\theta`, :math:`y_i` are the measurements,
-:math:`A_s` is a binary sampling operator, and :math:`\hat{x}_i = f_{\theta}(y_i,A_{g_i})`.
+where :math:`R_{\theta}` is a reconstruction network with parameters :math:`\theta`, :math:`y_i` are the measurements,
+:math:`A_s` is a binary sampling operator, and :math:`\hat{x}_{i,\theta} = R_{\theta}(y_i,A_{g_i})`.
 
 """
 
@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
 from torchvision import transforms
-from deepinv.utils.demo import load_degradation
+from deepinv.models.denoiser import online_weights_path
 from deepinv.training_utils import train, test
 from torchvision import datasets
 
@@ -55,36 +55,41 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 transform = transforms.Compose([transforms.ToTensor()])
 
-train_base_dataset = datasets.MNIST(root='../datasets/', train=True, transform=transform, download=True)
-test_base_dataset = datasets.MNIST(root='../datasets/', train=False, transform=transform, download=True)
+train_base_dataset = datasets.MNIST(
+    root="../datasets/", train=True, transform=transform, download=True
+)
+test_base_dataset = datasets.MNIST(
+    root="../datasets/", train=False, transform=transform, download=True
+)
 
 # %%
-# Generate a dataset of knee images and load it.
+# Generate a dataset of subsampled images and load it.
 # ----------------------------------------------------------------------------------
 # We generate 10 different inpainting operators, each one with a different random mask.
-# If the :func:`dinv.datasets.generate_dataset` receives a list of physics operators, it
+# If the :func:`deepinv.datasets.generate_dataset` receives a list of physics operators, it
 # generates a dataset for each operator and returns a list of paths to the generated datasets.
 #
 # .. note::
 #
-#    We only use 10 training images to reduce the computational time of this example. You can use the whole
+#   We only use 10 training images per operator to reduce the computational time of this example. You can use the whole
 #   dataset by setting ``n_images_max = None``.
 
 number_of_operators = 10
 
 # defined physics
-physics = [dinv.physics.Inpainting(mask=.5, tensor_size=(1, 28, 28),
-                                          device=device) for _ in range(number_of_operators)]
+physics = [
+    dinv.physics.Inpainting(mask=0.5, tensor_size=(1, 28, 28), device=device)
+    for _ in range(number_of_operators)
+]
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to reduce training time,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
-    100 if torch.cuda.is_available() else 5
-)  # number of images used for training
-# (the dataset has up to 973 images, however here we use only 100)
+    None if torch.cuda.is_available() else 100
+)  # number of images used for training (uses the whole dataset if you have a gpu)
 
-operation = "CS"
+operation = "inpainting"
 my_dataset_name = "demo_multioperator_imaging"
 measurement_dir = DATA_DIR / "MNIST" / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
@@ -98,18 +103,24 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = [dinv.datasets.HDF5Dataset(path=path, train=True) for path in deepinv_datasets_path]
-test_dataset = [dinv.datasets.HDF5Dataset(path=path, train=False) for path in deepinv_datasets_path]
+train_dataset = [
+    dinv.datasets.HDF5Dataset(path=path, train=True) for path in deepinv_datasets_path
+]
+test_dataset = [
+    dinv.datasets.HDF5Dataset(path=path, train=False) for path in deepinv_datasets_path
+]
 
 # %%
 # Set up the reconstruction network
 # ---------------------------------------------------------------
 #
 # As a reconstruction network, we use a simple artifact removal network based on a U-Net.
-# The network is defined as a :math:`f(y,A)=\phi(A^{\top}y)` where :math:`\phi` is the U-Net.
+# The network is defined as a :math:`R_{\theta}(y,A)=\phi_{\theta}(A^{\top}y)` where :math:`\phi` is the U-Net.
 
 # Define the unfolded trainable model.
-model = dinv.models.ArtifactRemoval(backbone_net=dinv.models.UNet(in_channels=1, out_channels=1, scales=3))
+model = dinv.models.ArtifactRemoval(
+    backbone_net=dinv.models.UNet(in_channels=1, out_channels=1, scales=3)
+)
 model = model.to(device)
 
 # %%
@@ -125,7 +136,7 @@ model = model.to(device)
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
 #       for 100 epochs.
 
-epochs = 1  # choose training epochs
+epochs = 100 if torch.cuda.is_available() else 1  # choose training epochs
 learning_rate = 5e-4
 batch_size = 64 if torch.cuda.is_available() else 1
 
@@ -138,13 +149,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-#url = online_weights_path() + "demo_ei_ckp_150.pth"
-#ckpt = torch.hub.load_state_dict_from_url(
-#    url, map_location=lambda storage, loc: storage, file_name="demo_ei_ckp_150.pth"
-#)
+url = online_weights_path() + "demo_moi_ckp_10.pth"
+ckpt = torch.hub.load_state_dict_from_url(
+    url, map_location=lambda storage, loc: storage, file_name="demo_moi_ckp_10.pth"
+)
 # load a checkpoint to reduce training time
-#model.load_state_dict(ckpt["state_dict"])
-#optimizer.load_state_dict(ckpt["optimizer"])
+model.load_state_dict(ckpt["state_dict"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 # %%
 # Train the network
@@ -156,12 +167,14 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
-train_dataloader = [DataLoader(
-    dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
-) for dataset in train_dataset]
-test_dataloader = [DataLoader(
-    dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
-) for dataset in test_dataset]
+train_dataloader = [
+    DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    for dataset in train_dataset
+]
+test_dataloader = [
+    DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+    for dataset in test_dataset
+]
 
 train(
     model=model,
