@@ -8,7 +8,7 @@ from torch.utils import data
 
 class HDF5Dataset(data.Dataset):
     r'''
-    Represents a DeepInverse HDF5 dataset which stores measurements and (optionally) associated signals.
+    DeepInverse HDF5 dataset with signal/measurement pairs.
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
@@ -47,10 +47,12 @@ class HDF5Dataset(data.Dataset):
 def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device='cpu', train_datapoints=None,
                      dataset_filename='dinv_dataset', batch_size=4, num_workers=0, supervised=True):
     r'''
-    This function generates a dataset of measurement pairs (or measurement only if supervised=False) from a baseline
-    dataset (e.g. MNIST, ImageNet) using the forward operator provided by the user.
+    Generates dataset of signal/measurement pairs from base dataset.
 
-    :param torch.data.Dataset train_dataset: base dataset with images used for generating associated measurements
+    It generates the measurement data using the forward operator provided by the user.
+
+    :param torch.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
+        with images used for generating associated measurements
         via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the
         HD5Dataset class.
     :param deepinv.physics.Physics physics: Forward operator used to generate the measurement data.
