@@ -5,6 +5,7 @@ import deepinv as dinv
 from deepinv.models.denoiser import Denoiser
 from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
+from deepinv.optim.prior import Prior, PnP
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot, torch2cpu
@@ -48,19 +49,19 @@ def test_data_fidelity_l2(device):
     assert data_fidelity(x, y, physics) == 1.0
 
     # Compute the gradient of f
-    grad_fA = data_fidelity.grad(x, y, physics)  # print(grad_f) gives [2.0000, 0.5000]
+    grad_dA = data_fidelity.grad(x, y, physics)  # print(grad_dA) gives [2.0000, 0.5000]
 
     # Compute the proximity operator of f
-    prox_fA = data_fidelity.prox(
+    prox_dA = data_fidelity.prox(
         x, y, physics, gamma=1.0
-    )  # print(prox_fA) gives [0.6000, 3.6000]
+    )  # print(prox_dA) gives [0.6000, 3.6000]
 
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
     assert torch.allclose(
-        data_fidelity.prox_f(x, y, gamma), (x + gamma * y) / (1 + gamma)
+        data_fidelity.prox_d(x, y, gamma), (x + gamma * y) / (1 + gamma)
     )
-    assert torch.allclose(data_fidelity.grad_f(x, y), x - y)
+    assert torch.allclose(data_fidelity.grad_d(x, y), x - y)
 
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
@@ -109,12 +110,12 @@ def test_data_fidelity_indicator(device):
     # Test values of the loss for points inside and outside the l2 ball
     assert data_fidelity(x, y, physics) == 1e16
     assert data_fidelity(x / 2, y, physics) == 0
-    assert data_fidelity.f(x, y, radius=1) == 1e16
-    assert data_fidelity.f(x, y, radius=3.1) == 0
+    assert data_fidelity.d(x, y, radius=1) == 1e16
+    assert data_fidelity.d(x, y, radius=3.1) == 0
 
     # 2. Testing trivial operations on f (and not f \circ A)
     x_proj = torch.Tensor([1.0, 1 + radius]).to(device)
-    assert torch.allclose(data_fidelity.prox_f(x, y, gamma=None), x_proj)
+    assert torch.allclose(data_fidelity.prox_d(x, y, gamma=None), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
@@ -140,7 +141,7 @@ def test_data_fidelity_l1(device):
     y = torch.Tensor([1, 1, 1]).to(device)
 
     data_fidelity = L1()
-    assert torch.allclose(data_fidelity.f(x, y), (x - y).abs().sum())
+    assert torch.allclose(data_fidelity.d(x, y), (x - y).abs().sum())
 
     A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
     A_forward = lambda v: A @ v
@@ -153,12 +154,12 @@ def test_data_fidelity_l1(device):
 
     # Check subdifferential
     grad_manual = torch.sign(x - y)
-    assert torch.allclose(data_fidelity.grad_f(x, y), grad_manual)
+    assert torch.allclose(data_fidelity.grad_d(x, y), grad_manual)
 
     # Check prox
     threshold = 0.5
     prox_manual = torch.Tensor([1.0, 3.5, 0.0]).to(device)
-    assert torch.allclose(data_fidelity.prox_f(x, y, threshold), prox_manual)
+    assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
 
 optim_algos = ["PGD", "ADMM", "DRS", "CP", "HQS"]
@@ -185,9 +186,14 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             reg = L1()  # The regularization term
 
             def prox_g(x, ths=0.1):
-                return reg.prox_f(x, 0, ths)
+                return reg.prox_d(x, 0, ths)
 
-            prior = {"prox_g": prox_g}
+            # old
+            # prior = {"prox_g": prox_g}
+
+            # dirty hack, temporary
+            # TODO: clarify
+            prior = Prior(g=prox_g)  # here the prior model is common for all iterations
 
             if (
                 name_algo == "CP"
@@ -221,7 +227,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             assert optimalgo.has_converged
 
             # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-            subdiff = reg.grad_f(x, 0)
+            subdiff = reg.grad_d(x, 0)
 
             if name_algo == "HQS":
                 # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
@@ -307,7 +313,11 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         "name": "waveletprior",
         "args": {"wv": "db8", "level": 3, "device": device},
     }
-    prior = {"prox_g": Denoiser(model_spec)}
+
+    prior = PnP(
+        denoiser=Denoiser(model_spec)
+    )  # here the prior model is common for all iterations
+
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
     pnp = optim_builder(
         pnp_algo,

@@ -35,7 +35,7 @@ class DataFidelity(nn.Module):
         f = data_fidelity(x, y, physics)  # print f gives 1.0
 
         # Compute the gradient of :math:`f`
-        grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+        grad = data_fidelity.grad(x, y, physics)  # print grad gives [2.0000, 0.5000]
 
         # Compute the proximity operator of :math:`f`
         prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]
@@ -195,10 +195,10 @@ class L2(DataFidelity):
         f = loss(x, y, physics)  # print f gives 1.0
 
         # Compute the gradient of f
-        grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+        grad_dA = data_fidelity.grad(x, y, physics)  # print grad_d gives [2.0000, 0.5000]
 
         # Compute the proximity operator of f
-        prox_fA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]
+        prox_dA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_dA gives [0.6000, 3.6000]
     """
 
     def __init__(self, sigma=1.0):
@@ -357,7 +357,7 @@ class IndicatorL2(DataFidelity):
             y = torch.Tensor([1, 1])
 
             # Compute the proximity operator f(x, y)
-            prox_f = loss.prox_f(x, y)  # print prox_f gives [1.707, 1.707]
+            prox_d = loss.prox_d(x, y)  # print prox_d gives [1.707, 1.707]
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
@@ -419,7 +419,7 @@ class IndicatorL2(DataFidelity):
 
             t = x - physics.A_adjoint(u)
             u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, radius=radius)
+            u = u_ - stepsize * self.prox_d(u_ / stepsize, y, radius=radius)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
             print(rel_crit)
             if rel_crit < crit_conv and it > 2:
@@ -562,7 +562,7 @@ class L1(DataFidelity):
 
             t = x - physics.A_adjoint(u)
             u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, gamma / stepsize)
+            u = u_ - stepsize * self.prox_d(u_ / stepsize, y, gamma / stepsize)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
             print(rel_crit)
             if rel_crit < crit_conv and it > 2:
