@@ -62,9 +62,9 @@ class Prior(nn.Module):
         return gradient_descent(
             grad,
             x,
-            step_size=step_size,
-            max_iter=max_iter,
-            tol=tol,
+            step_size=stepsize_inter,
+            max_iter=max_iter_inter,
+            tol=tol_inter,
         )
 
 class PnP(Prior):

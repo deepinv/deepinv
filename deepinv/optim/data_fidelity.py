@@ -84,9 +84,9 @@ class DataFidelity(nn.Module):
         return gradient_descent(
             grad,
             u,
-            step_size=step_size,
-            max_iter=max_iter,
-            tol=tol,
+            step_size=stepsize_inter,
+            max_iter=max_iter_inter,
+            tol=tol_inter,
         )
 
     def forward(self, x, y, physics, *args, **kwargs):
