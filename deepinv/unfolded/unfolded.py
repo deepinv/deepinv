@@ -3,8 +3,7 @@ import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.utils import str_to_class
-from deepinv.optim.optimizers import BaseOptim
+from deepinv.optim.optimizers import BaseOptim, str_to_class
 
 
 class BaseUnfold(BaseOptim):
