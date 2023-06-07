@@ -585,12 +585,11 @@ if __name__ == '__main__':
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
     # Define two points of size Bxd
-    x = torch.Tensor([1,4]).unsqueeze(0).repeat(4,1)
-    y = torch.Tensor([1,1]).unsqueeze(0).repeat(4,1)
+    x = torch.Tensor([1,4]).unsqueeze(0).repeat(4,1).unsqueeze(-1)
+    y = torch.Tensor([1,1]).unsqueeze(0).repeat(4,1).unsqueeze(-1)
 
     # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
     f = data_fidelity(x, y, physics)  # print f gives 1.0
-
     # Compute the gradient of :math:`f`
     grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
 
