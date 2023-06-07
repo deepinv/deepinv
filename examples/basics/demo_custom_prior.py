@@ -13,6 +13,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import Prior
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import transforms
@@ -116,17 +117,12 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 #
 
 
-# Create a nn.Module class to parametrize the custom prior
-class L2Prior(nn.Module):
-    def __init__(self, prior_params=None):
-        super(L2Prior, self).__init__()
-
-    def forward(self, x, g_param):
-        return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+# Define the prior
+def g(x, *args):
+    return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
 
-# Specify the custom prior
-prior = {"g": L2Prior()}
+prior = Prior(g=g)
 
 # Select the data fidelity term
 data_fidelity = L2()

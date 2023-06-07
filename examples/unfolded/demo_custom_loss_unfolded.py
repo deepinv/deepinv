@@ -1,10 +1,8 @@
 r"""
-Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
-====================================================================================================
+Learned iterative custom prior
+==============================
 
-This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm
-for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
-soft-thresholding proximal operator with learnable thresholding parameters.
+This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
 
 """
 from pathlib import Path
@@ -78,7 +76,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 physics = dinv.physics.CompressedSensing(
     m=78, img_shape=(n_channels, img_size, img_size), device=device
 )
-my_dataset_name = "demo_LISTA"
+my_dataset_name = "demo_LICP"
 n_images_max = (
     1000 if torch.cuda.is_available() else 200
 )  # maximal number of images used for training
@@ -144,7 +142,7 @@ def g(x, *args):
 prior = Prior(g=g)
 
 # We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
-# and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
+# and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` (``1/g_param``) as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
 # yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
