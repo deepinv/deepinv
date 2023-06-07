@@ -134,7 +134,6 @@ class BaseOptim(nn.Module):
         self.F_fn = F_fn
         self.return_aux = return_aux
         self.params_algo = params_algo
-        self.prior = prior
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
@@ -168,8 +167,10 @@ class BaseOptim(nn.Module):
             self.params_algo.copy()
         )  
         # By default self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
-        if not isinstance(self.prior, Iterable):
-            self.prior = [self.prior]
+        if not isinstance(prior, Iterable):
+            self.prior = [prior]
+        else :
+            self.prior = prior
         
         # Initialize the fixed-point module with or without anderson_acceleration
         if self.anderson_acceleration:
@@ -249,7 +250,7 @@ class BaseOptim(nn.Module):
         r"""
         Initialises the parameters of the algorithm.
 
-        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^*(y), y)`.
+        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^*(y), A^*(y))`.
         A custom initlization is possible with the custom_init argument.
 
         :param dict cur_params: dictionary containing the parameters related to the optimisation problem.
@@ -261,7 +262,7 @@ class BaseOptim(nn.Module):
         if self.custom_init:
             x_init, z_init = self.custom_init(y)
         else:
-            x_init, z_init = physics.A_adjoint(y), y 
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y) 
         # intialize the cost function with the cost at iteration 0 if a cost function is given.
         cost_init = (
             torch.tensor(

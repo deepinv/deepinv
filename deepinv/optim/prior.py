@@ -73,9 +73,10 @@ class PnP(Prior):
     """
 
     def __init__(self, denoiser):
+        super().__init__()
         self.denoiser = denoiser
         self.explicit_prior = False
-        super().__init__()
+        
 
     def prox(self, x, gamma, *args, **kwargs):
         r"""
@@ -93,9 +94,10 @@ class RED(Prior):
     """
 
     def __init__(self, denoiser):
+        super().__init__()
         self.denoiser = denoiser
         self.explicit_prior = False
-        super().__init__()
+        
 
     def grad(self, x, *args, **kwargs):
         r"""

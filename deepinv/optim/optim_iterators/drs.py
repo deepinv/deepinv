@@ -88,4 +88,4 @@ class gStepDRS(gStep):
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
-        return cur_prior["prox_g"](z, cur_params["g_param"])
+        return cur_prior.prox(z, cur_params["stepsize"], cur_params["g_param"])

@@ -131,8 +131,7 @@ model_spec = {  # specifies the parameters of the DRUNet model
         "device": device,
     },
 }
-Denoiser(model_spec)
-prior = PnP(denoiser = Denoiser)
+prior = PnP(denoiser = Denoiser(model_spec))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
