@@ -1,12 +1,13 @@
+import sys
+
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
-from deepinv.optim.utils import str_to_class
 from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
 from deepinv.optim.utils import gradient_descent
-
+from deepinv.optim.optim_iterators import *
 
 class BaseOptim(nn.Module):
     r"""
@@ -529,3 +530,6 @@ def optim_builder(
     )
     optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
     return optimizer
+
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)
