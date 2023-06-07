@@ -9,7 +9,10 @@ class DataFidelity(nn.Module):
     Data fidelity term :math:`\datafid{Ax}{y}`.
 
     This is the base class for the data fidelity term :math:`f(x) = \datafid{A(x)}{y}` where :math:`A` is a linear or nonlinear operator,
-    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the observation.
+    :math:`x\in\xset` is a variable  and :math:`y\in\yset` is the observation.
+    ::Warning:: All variables have as first dimension the size of the batch.
+
+    TODO : change the example in the docstring
 
     ::
 
@@ -36,6 +39,9 @@ class DataFidelity(nn.Module):
 
         # Compute the proximity operator of :math:`f`
         prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]
+
+
+    :param callable d: data fidelity distance :math:`\datafid{u}{y}`. Outputs a tensor of size `B` the size of the batch. Default: None.
     """
 
     def __init__(self, d=None):
@@ -64,8 +70,7 @@ class DataFidelity(nn.Module):
         torch.set_grad_enabled(True)
         u = u.requires_grad_()
         return torch.autograd.grad(
-            self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True
-        )[0]
+            self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True)[0]
 
     def prox_d(
         self,
@@ -212,9 +217,9 @@ class L2(DataFidelity):
 
         :param torch.tensor u: Variable :math:`u` at which the data fidelity is computed.
         :param torch.tensor y: Data :math:`y`.
-        :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}`.
+        :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
-        return self.norm * (u - y).flatten().pow(2).sum() / 2
+        return 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)**2
 
     def grad_d(self, u, y):
         r"""
@@ -325,9 +330,9 @@ class IndicatorL2(DataFidelity):
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
         :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`.
         """
-        dist = (u - y).flatten().pow(2).sum().sqrt()
+        dist = torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
         radius = self.radius if radius is None else radius
-        loss = 0 if dist <= radius else 1e16
+        loss = (dist <= radius)*1e16
         return loss
 
     def prox_d(self, x, y, gamma=None, radius=None):
@@ -484,7 +489,7 @@ class L1(DataFidelity):
         super().__init__()
 
     def d(self, x, y):
-        return (x - y).flatten().abs().sum()
+        return torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
     def grad_d(self, x, y):
         r"""
@@ -563,3 +568,31 @@ class L1(DataFidelity):
             if rel_crit < crit_conv and it > 2:
                 break
         return t
+
+
+if __name__ == '__main__':
+    import deepinv as dinv
+
+    # define a loss function
+    data_fidelity = L2()
+
+    # create a measurement operator dxd
+    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A_forward = lambda v: torch.matmul(A,v)
+    A_adjoint = lambda v: torch.matmul(A.transpose(0,1),v)
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+
+    # Define two points of size Bxd
+    x = torch.Tensor([1,4]).unsqueeze(0).repeat(4,1)
+    y = torch.Tensor([1,1]).unsqueeze(0).repeat(4,1)
+
+    # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
+    f = data_fidelity(x, y, physics)  # print f gives 1.0
+
+    # Compute the gradient of :math:`f`
+    grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+
+    # Compute the proximity operator of :math:`f`
+    prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]

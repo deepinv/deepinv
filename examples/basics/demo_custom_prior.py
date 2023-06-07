@@ -124,7 +124,7 @@ class L2Prior(Prior):
         self.explicit_prior = True
 
     def g(self, x, args, **kwargs):
-        g = 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+        g = 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)**2
         return g
 
 # Specify the custom prior
