@@ -163,7 +163,7 @@ class gStep(nn.Module):
             Single iteration step on the prior term :math:`g`.
 
             :param torch.Tensor x: Current iterate.
-            :param dict cur_prior: Dictionary containing the current prior.
+            :param dict cur_prior: Class containing the current prior.
             :param dict cur_params: Dictionary containing the current gStep parameters (e.g. stepsizes and regularisation parameters).
             """
             pass

@@ -68,7 +68,7 @@ class fStepCP(fStep):
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
         v = u + cur_params["stepsize"] * Ax_cur
-        return v - cur_params["stepsize"] * self.data_fidelity.prox_f(
+        return v - cur_params["stepsize"] * self.data_fidelity.prox_d(
             v / cur_params["stepsize"], y, cur_params["lambda"] / cur_params["stepsize"]
         )
 
@@ -90,6 +90,4 @@ class gStepCP(gStep):
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
         """
-        return cur_prior["prox_g"](
-            x - cur_params["g_param"] * Atu, cur_params["g_param"]
-        )
+        return cur_prior.prox(x - cur_params["g_param"] * Atu, cur_params["g_param"])

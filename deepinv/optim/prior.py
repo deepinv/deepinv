@@ -11,9 +11,11 @@ class Prior(nn.Module):
     This is the base class for the prior term :math:`g{x}`.
     """
 
-    def __init__(self, g=None):
+    def __init__(self, g=None, grad=None, prox=None):
         super().__init__()
         self._g = g
+        self._grad = grad
+        self._prox = prox
         self.explicit_prior = False if self._g is None else True
 
     def g(self, x, *args, **kwargs):
@@ -96,7 +98,7 @@ class PnP(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
-        return self.denoiser(x, *args, **kwargs)
+        return self.denoiser(x, gamma)
 
 
 class RED(Prior):
@@ -136,7 +138,7 @@ class Tikhonov(Prior):
         :param torch.tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.tensor) prior :math:`g(x)`.
         """
-        return 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
     def grad(self, x):
         r"""

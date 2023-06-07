@@ -67,7 +67,7 @@ class gStepHQS(gStep):
         Single iteration step on the prior term :math:`g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param dict cur_prior: Class containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
         return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])

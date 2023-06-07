@@ -85,7 +85,7 @@ class gStepDRS(gStep):
         Single iteration step on the prior term :math:`g`.
 
         :param torch.Tensor z: Current iterate :math:`z_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param dict cur_prior: Class containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
         return cur_prior.prox(z, cur_params["stepsize"], cur_params["g_param"])
