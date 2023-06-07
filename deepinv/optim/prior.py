@@ -67,6 +67,43 @@ class Prior(nn.Module):
             tol=tol,
         )
 
+class PnP(Prior):
+    r"""
+    Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`
+    """
+
+    def __init__(self, denoiser):
+        self.denoiser = denoiser
+        super().__init__()
+
+    def prox(self, x, gamma, *args, **kwargs):
+        r"""
+        Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`. 
+
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.tensor) proximity operator at :math:`x`.
+        """
+        return self.denoiser(x, *args, **kwargs)
+
+class RED(Prior):
+    r"""
+    Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`
+    """
+
+    def __init__(self, denoiser):
+        self.denoiser = denoiser
+        super().__init__()
+
+    def grad(self, x, *args, **kwargs):
+        r"""
+        Calculates the gradient of the prior term :math:`g` at :math:`x`. 
+        By default, the gradient is computed using automatic differentiation.
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
+        """
+        return x - self.denoiser(x, *args, **kwargs)
 
 class Tikhonov(Prior):
     r"""
@@ -104,46 +141,6 @@ class Tikhonov(Prior):
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
         return (1/(gamma+1))*x
-
-class PnP(Prior):
-    r"""
-    Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`
-    """
-
-    def __init__(self, denoiser):
-        self.denoiser = denoiser
-        super().__init__()
-
-    def prox(self, x, gamma, *args, **kwargs):
-        r"""
-        Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`. 
-
-        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
-        :return: (torch.tensor) proximity operator at :math:`x`.
-        """
-        return self.denoiser(x, *args, **kwargs)
-
-
-
-class RED(Prior):
-    r"""
-    Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`
-    """
-
-    def __init__(self, denoiser):
-        self.denoiser = denoiser
-        super().__init__()
-
-    def grad(self, x, *args, **kwargs):
-        r"""
-        Calculates the gradient of the prior term :math:`g` at :math:`x`. 
-        By default, the gradient is computed using automatic differentiation.
-
-        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
-        """
-        return x - self.denoiser(x, *args, **kwargs)
 
 
 
