@@ -62,9 +62,9 @@ class Prior(nn.Module):
         return gradient_descent(
             grad,
             x,
-            step_size=step_size,
-            max_iter=max_iter,
-            tol=tol,
+            step_size=stepsize_inter,
+            max_iter=max_iter_inter,
+            tol=tol_inter,
         )
 
 class PnP(Prior):
@@ -115,7 +115,6 @@ class Tikhonov(Prior):
     """
 
     def __init__(self, T, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.T = T
         self.explicit_prior = True
         
@@ -127,7 +126,7 @@ class Tikhonov(Prior):
         :param torch.tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.tensor) prior :math:`g(x)`.
         """
-        return 0.5 * torch.norm(self.T * x) ** 2
+        return 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
     def grad(self, x):
         r"""

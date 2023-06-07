@@ -53,7 +53,7 @@ class ADMMIteration(OptimIterator):
         x = self.f_step(z_temp, z, y, physics, cur_params)
         z = z_prev + self.beta * (z_temp - x)
 
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x, z), "cost": F}
 
 
@@ -97,4 +97,4 @@ class gStepADMM(gStep):
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
-        return cur_prior["prox_g"](x - z, cur_params["g_param"])
+        return cur_prior.prox(x - z, cur_params["stepsize"], cur_params["g_param"])

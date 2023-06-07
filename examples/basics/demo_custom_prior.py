@@ -4,7 +4,7 @@ Image deblurring with custom deep explicit prior.
 
 In this example, we show how to solve a deblurring inverse problem using an explicit prior.
 
-Here we use the simple L2 prior that penalizes the squared norm of the reconstruction.
+Here we use the simple L2 prior that penalizes the squared norm of the reconstruction, with an ADMM algorithm.
 
 """
 import deepinv as dinv
@@ -12,6 +12,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
+from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
@@ -115,18 +116,18 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 # and :math:`\rho` is a regularization parameter.
 #
 
+# Create a custom prior which inherits from the base Prior class.
+class L2Prior(Prior):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
 
-# Create a nn.Module class to parametrize the custom prior
-class L2Prior(nn.Module):
-    def __init__(self, prior_params=None):
-        super(L2Prior, self).__init__()
-
-    def forward(self, x, g_param):
-        return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
-
+    def g(self, x, args, **kwargs):
+        g = 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+        return g
 
 # Specify the custom prior
-prior = {"g": L2Prior()}
+prior = L2Prior()
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -144,17 +145,11 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True  # use backtraking to automatically adjust the stepsize
-factor = 2  # down-sampling factor
-use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 max_iter = 500  # Maximum number of iterations
-stepsize_prox_inter = 1.0  # Stepsize used for gradient descent calculation of the prox of the custom prior.
-max_iter_prox_inter = 50  # Maximum number of iterations for gradient descent calculation of the prox of the custom
-# prior.
-tol_prox_inter = 1e-3  # Convergence criteria for gradient descent calculation of the prox of the custom prior.
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="PGD",
+    algo_name="ADMM",
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,

@@ -45,7 +45,7 @@ class CPIteration(OptimIterator):
         x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_prior, cur_params)
         u = self.f_step(physics.A(2 * x - x_prev), u_prev, y, cur_params)
 
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
 
         return {"est": (x, u), "cost": F}
 
