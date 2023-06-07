@@ -135,6 +135,8 @@ def train(
 
                 y = y.to(device)
 
+                optimizer.zero_grad()
+
                 x1 = model(y, physics[g])  # Requires grad ok
 
                 loss_total = 0
@@ -168,7 +170,6 @@ def train(
                 if (not unsupervised) and verbose:
                     train_psnr_net.update(cal_psnr(x1, x))
 
-                optimizer.zero_grad()
                 loss_total.backward()
                 optimizer.step()
 

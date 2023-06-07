@@ -9,6 +9,7 @@ from deepinv.utils import cal_psnr
 from deepinv.optim.utils import gradient_descent
 from deepinv.optim.optim_iterators import *
 
+
 class BaseOptim(nn.Module):
     r"""
     Class for optimization algorithms iterating the fixed-point iterator.
@@ -143,14 +144,17 @@ class BaseOptim(nn.Module):
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
 
-        # By default, each parameter in params_algo is a list. 
+        # By default, each parameter in params_algo is a list.
         # If given as a signel number, we convert it to a list of 1 element.
         # If given as a list of more than 1 element, it should have lenght max_iter.
         for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
             if not isinstance(value, Iterable):
                 self.params_algo[key] = [value]
             else:
-                if len(self.params_algo[key]) > 1 and len(self.params_algo[key]) < self.max_iter:
+                if (
+                    len(self.params_algo[key]) > 1
+                    and len(self.params_algo[key]) < self.max_iter
+                ):
                     raise ValueError(
                         f"The number of elements in the parameter {key} is inferior to max_iter."
                     )
@@ -163,15 +167,13 @@ class BaseOptim(nn.Module):
                 )
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
-        self.init_params_algo = (
-            self.params_algo.copy()
-        )  
+        self.init_params_algo = self.params_algo.copy()
         # By default self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
-        else :
+        else:
             self.prior = prior
-        
+
         # Initialize the fixed-point module with or without anderson_acceleration
         if self.anderson_acceleration:
             self.fixed_point = AndersonAcceleration(
@@ -262,7 +264,7 @@ class BaseOptim(nn.Module):
         if self.custom_init:
             x_init, z_init = self.custom_init(y)
         else:
-            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y) 
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
         # intialize the cost function with the cost at iteration 0 if a cost function is given.
         cost_init = (
             torch.tensor(
@@ -518,7 +520,9 @@ def optim_builder(
 
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and prior.explicit_prior:
-        F_fn = lambda x, prior, cur_params, y, physics: cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(x, cur_params["g_param"])
+        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
+            "lambda"
+        ] * data_fidelity(x, y, physics) + prior.g(x, cur_params["g_param"])
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,
@@ -529,6 +533,7 @@ def optim_builder(
     )
     optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
     return optimizer
+
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)

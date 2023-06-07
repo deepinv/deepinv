@@ -127,13 +127,21 @@ model_spec = {
 
 # If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(denoiser = Denoiser(model_spec)) # here the prior model is common for all iterations
+prior = PnP(
+    denoiser=Denoiser(model_spec)
+)  # here the prior model is common for all iterations
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
-lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+lamb = [
+    1.0
+] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [
+    1.0
+] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+sigma_denoiser = [
+    0.01
+] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,

@@ -67,7 +67,17 @@ class DataFidelity(nn.Module):
             self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True
         )[0]
 
-    def prox_d(self, u, y, gamma, *args, stepsize_inter=1.0, max_iter_inter=50, tol_inter=1e-3, **kwargs):
+    def prox_d(
+        self,
+        u,
+        y,
+        gamma,
+        *args,
+        stepsize_inter=1.0,
+        max_iter_inter=50,
+        tol_inter=1e-3,
+        **kwargs
+    ):
         r"""
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\datafid{\cdot}{y}}(u)`, computed in :math:`u`. Note
         that this is the proximity operator of :math:`\datafid` and not :math:`f`. By default, the proximity operator is computed using internal gradient descent.
@@ -111,7 +121,18 @@ class DataFidelity(nn.Module):
         """
         return physics.A_adjoint(self.grad_d(physics.A(x), y, *args, **kwargs))
 
-    def prox(self, x, y, physics, gamma, *args, stepsize_inter=1.0, max_iter_inter=50, tol_inter=1e-3, **kwargs):
+    def prox(
+        self,
+        x,
+        y,
+        physics,
+        gamma,
+        *args,
+        stepsize_inter=1.0,
+        max_iter_inter=50,
+        tol_inter=1e-3,
+        **kwargs
+    ):
         r"""
         Calculates the proximity operator of :math:`f` at :math:`x`.
 
@@ -132,6 +153,7 @@ class DataFidelity(nn.Module):
             max_iter=max_iter_inter,
             tol=tol_inter,
         )
+
 
 class L2(DataFidelity):
     r"""

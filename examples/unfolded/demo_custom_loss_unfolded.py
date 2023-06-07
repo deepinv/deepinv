@@ -1,10 +1,8 @@
 r"""
-Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
-====================================================================================================
+Learned iterative custom prior
+==============================
 
-This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm
-for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
-soft-thresholding proximal operator with learnable thresholding parameters.
+This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
 
 """
 from pathlib import Path
@@ -18,7 +16,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
+from deepinv.optim.prior import Prior
 from deepinv.unfolded import Unfolded
 from deepinv.training_utils import train, test
 
@@ -78,7 +76,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 physics = dinv.physics.CompressedSensing(
     m=78, img_shape=(n_channels, img_size, img_size), device=device
 )
-my_dataset_name = "demo_LISTA"
+my_dataset_name = "demo_LICP"
 n_images_max = (
     1000 if torch.cuda.is_available() else 200
 )  # maximal number of images used for training
@@ -100,56 +98,70 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 # %%
 # Define the unfolded Proximal Gradient algorithm.
-# ------------------------------------------------------------------------
-# In this example, following the original `LISTA algorithm <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_,
-# the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
+# ------------------------------------------------
+# In this example, we propose to minimise a function of the form
 #
 # .. math::
 #
-#          \min_x \frac{\lambda}{2} \|y - Ax\|_2^2 + \|Wx\|_1
+#          \min_x \frac{\lambda}{2} \|y - Ax\|_2^2 + \operatorname{TV}_{\text{smooth}}(x)
 #
-# where :math:`\lambda` is the regularization parameter.
+# where :math:`\operatorname{TV}_{\text{smooth}}` is a smooth approximation of TV.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
 #
 #   .. math::
-#           x_{k+1} = \text{prox}_{\gamma g}(x_k - \gamma \lambda A^T (Ax_k - y))
+#           x_{k+1} = \text{prox}_{\gamma \operatorname{TV}_{\text{smooth}}}(x_k - \gamma \lambda A^T (Ax_k - y))
 #
-# where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
-# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDict`).
+# where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) =\operatorname{TV}_{\text{smooth}}(x)`.
 #
+# We first define the prior in a functional form.
+# If the prior is initialized with a list of length max_iter,
+# then a distinct weight is trained for each PGD iteration.
+# For fixed trained model prior across iterations, initialize with a single model
+
+
+# Define the image gradient operator
+def nabla(I):
+    b, c, h, w = I.shape
+    G = torch.zeros((b, c, h, w, 2), device=I.device).type(I.dtype)
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
+    return G
+
+
+# Define the prior
+def g(x, *args):
+    dx = nabla(x)
+    tv_smooth = torch.nn.functional.huber_loss(
+        dx, torch.zeros_like(dx), reduction="sum", delta=0.01
+    )
+    return tv_smooth
+
+
+prior = Prior(g=g)
+
 # We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
-# and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
+# and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` (``1/g_param``) as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
 # yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
-
-# Select the data fidelity term
-data_fidelity = L2()
-
-# Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
-model_spec = {
-    "name": "waveletprior",
-    "args": {"wv": "db4", "level": 2, "device": device},
-}
-# If the prior is initialized with a list of length max_iter,
-# then a distinct weight is trained for each PGD iteration.
-# For fixed trained model prior across iterations, initialize with a single model.
-max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
+#
 
 # Unrolled optimization algorithm parameters
+max_iter = 5
 lamb = [
     1.0
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [
-    0.1
-] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+reg_param = [
+    0.8
+] * max_iter  # initialization of the regularisation parameter. A distinct reg_param is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": sigma_denoiser,
+    "g_param": reg_param,
     "lambda": lamb,
 }
 
@@ -157,6 +169,9 @@ trainable_params = [
     "g_param",
     "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
+
+# Select the data fidelity term
+data_fidelity = L2()
 
 # Define the unfolded trainable model.
 model = Unfolded(
@@ -288,7 +303,7 @@ ax.plot(
 
 ax.plot(
     np.arange(len(list_g_param)),
-    sigma_denoiser,
+    reg_param,
     label="init. g_param",
     color="r",
     linestyle="dashed",
