@@ -20,7 +20,7 @@ Featuring
 * |:book:| Framework for :ref:`building datasets <Datasets>` for inverse problems.
 * |:building_construction:| Easy-to-build :ref:`unfolded architectures <Unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
 * |:microscope:| :ref:`Sampling algorithms <Sampling>` for uncertainty quantification (Langevin, diffusion, etc.).
-* |:books:| A large number of well-explained :ref:`examples <Examples>`.
+* |:books:| A large number of well-explained :ref:`examples <Examples>`, from basics to state-of-the-art methods.
 
 
 .. image:: figures/deepinv_schematic.png
@@ -69,7 +69,7 @@ DeepInverse is a community-driven project and welcomes contributions of all form
 We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 The preferred way to contribute to ``deepinv`` is to fork the `main
-repository <https://github.com/deepinv/deepinv/>`__ on GitHub,
+repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
 then submit a "Pull Request" (PR).
 
 

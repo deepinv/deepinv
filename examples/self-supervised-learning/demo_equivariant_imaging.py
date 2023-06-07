@@ -38,7 +38,12 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------
-# In this example, we use a subset of the FastMRI dataset
+# In this example, we use a subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
+# as the base image dataset. It consists of 973 knee images of size 320x320.
+#
+# .. note::
+#
+#       We reduce to the size to 128x128 for faster training in the demo.
 #
 
 operation = "MRI"
@@ -92,7 +97,9 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # %%
 # Set up the reconstruction network
 # ---------------------------------------------------------------
-# Here w
+#
+# As a reconstruction network, we use an unrolled network (half-quadratic splitting)
+# with a trainable denoising prior based on the DnCNN architecture.
 
 # Select the data fidelity term
 data_fidelity = dinv.optim.L2()
@@ -151,7 +158,7 @@ model = dinv.unfolded.Unfolded(
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the equivariant imaging loss (EI).
 # The EI loss requires a group of transformations to be defined. The forward model `should not be equivariant to
-# these transformations <https://www.jmlr.org/papers/v24/22-0315.html>`.
+# these transformations <https://www.jmlr.org/papers/v24/22-0315.html>`_.
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #
@@ -224,7 +231,7 @@ train(
 
 plot_images = True
 save_images = True
-method = "artifact_removal"
+method = "equivariant_imaging"
 
 test(
     model=model,
