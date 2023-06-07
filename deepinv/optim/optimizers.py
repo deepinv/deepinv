@@ -518,9 +518,7 @@ def optim_builder(
 
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and prior.explicit_prior:
-        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
-            "lambda"
-        ] * data_fidelity.f(physics.A(x), y) + prior.g(x, cur_params["g_param"])
+        F_fn = lambda x, prior, cur_params, y, physics: cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(x, cur_params["g_param"])
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,

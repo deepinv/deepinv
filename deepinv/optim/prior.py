@@ -72,8 +72,8 @@ class PnP(Prior):
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`
     """
 
-    def __init__(self, denoiser):
-        super().__init__()
+    def __init__(self, denoiser, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.denoiser = denoiser
         self.explicit_prior = False
         
@@ -93,8 +93,8 @@ class RED(Prior):
     Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`
     """
 
-    def __init__(self, denoiser):
-        super().__init__()
+    def __init__(self, denoiser,*args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.denoiser = denoiser
         self.explicit_prior = False
         
@@ -114,10 +114,11 @@ class Tikhonov(Prior):
     Tikhonov regularizer :math:`g{x} = \frac{1}{2}\| T x \|_2^2`.
     """
 
-    def __init__(self, T):
+    def __init__(self, T, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.T = T
         self.explicit_prior = True
-        super().__init__()
+        
 
     def g(self, x):
         r"""
