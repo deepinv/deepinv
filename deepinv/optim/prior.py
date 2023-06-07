@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
 
-
 class Prior(nn.Module):
     r"""
     Prior term :math:`g{x}`.
