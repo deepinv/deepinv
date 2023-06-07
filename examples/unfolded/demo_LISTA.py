@@ -18,6 +18,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
 from deepinv.training_utils import train, test
 
@@ -126,22 +127,20 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 data_fidelity = L2()
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
-denoiser_spec = {
+model_spec = {
     "name": "waveletprior",
     "args": {"wv": "db4", "level": 2, "device": device},
 }
-
-
-# If the prior dict value is initialized with a table of length max_iter,
+# If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior = {"prox_g": [Denoiser(denoiser_spec) for i in range(max_iter)]}
+prior = [PnP(denoiser = Denoiser(model_spec)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
-lamb = [1.0] * max_iter  # initialization of the regularization parameter
-stepsize = [1.0] * max_iter  # initialization of the stepsizes.
-sigma_denoiser = [0.1] * max_iter  # initialization of the denoiser parameters
+lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+sigma_denoiser = [0.1] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
