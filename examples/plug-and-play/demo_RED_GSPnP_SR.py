@@ -89,7 +89,7 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # %%
-# Setup the PnP algorithm. This involves in particular the definition of a custom prior class. 
+# Setup the PnP algorithm. This involves in particular the definition of a custom prior class.
 # --------------------------------------------
 # We use the proximal gradient algorithm to solve the super-resolution problem with GSPnP.
 
@@ -112,11 +112,13 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 # Select the data fidelity term
 data_fidelity = L2()
 
+
 # The GSPnP prior corresponds to a RED prior with an explicit `g`. We thus write a class that inherits from RED for this custom prior.
 class GSPnP(RED):
     r"""
     Gradient-Step Denoiser prior.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
@@ -129,6 +131,7 @@ class GSPnP(RED):
         :return: (torch.tensor) prior :math:`g(x)`.
         """
         return self.denoiser.denoiser.potential(x, *args, **kwargs)
+
 
 method = "GSPnP"
 denoiser_name = "gsdrunet"
@@ -144,7 +147,7 @@ model_spec = {
         "device": device,
     },
 }
-prior = GSPnP(denoiser = Denoiser(model_spec))
+prior = GSPnP(denoiser=Denoiser(model_spec))
 
 # By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
 # For custom initialization, we need to write a function of the measurements.

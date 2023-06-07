@@ -3,17 +3,18 @@ import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
 
+
 class Prior(nn.Module):
     r"""
-    Prior term :math:`g{x}`. To implement a custom prior, for an explciit prior, overwrite `g` (do not forget to specify `self.explicit_prior = True`). For an implicit prior, overwrite the `grad` or `prox`. 
+    Prior term :math:`g{x}`. To implement a custom prior, for an explciit prior, overwrite `g` (do not forget to specify `self.explicit_prior = True`). For an implicit prior, overwrite the `grad` or `prox`.
 
-    This is the base class for the prior term :math:`g{x}`. 
+    This is the base class for the prior term :math:`g{x}`.
     """
 
     def __init__(self, g=None):
         super().__init__()
         self._g = g
-        self.explicit_prior = False if self._g is None else True 
+        self.explicit_prior = False if self._g is None else True
 
     def g(self, x, *args, **kwargs):
         r"""
@@ -35,7 +36,7 @@ class Prior(nn.Module):
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Calculates the gradient of the prior term :math:`g` at :math:`x`. 
+        Calculates the gradient of the prior term :math:`g` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
@@ -47,7 +48,16 @@ class Prior(nn.Module):
             self.g(x, *args, **kwargs), x, create_graph=True, only_inputs=True
         )[0]
 
-    def prox(self, x, gamma, *args, stepsize_inter=1.0, max_iter_inter=50, tol_inter=1e-3, **kwargs):
+    def prox(
+        self,
+        x,
+        gamma,
+        *args,
+        stepsize_inter=1.0,
+        max_iter_inter=50,
+        tol_inter=1e-3,
+        **kwargs
+    ):
         r"""
         Calculates the proximity operator of :math:`g` at :math:`x`. By default, the proximity operator is computed using internal gradient descent.
 
@@ -67,6 +77,7 @@ class Prior(nn.Module):
             tol=tol_inter,
         )
 
+
 class PnP(Prior):
     r"""
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`
@@ -76,11 +87,10 @@ class PnP(Prior):
         super().__init__(*args, **kwargs)
         self.denoiser = denoiser
         self.explicit_prior = False
-        
 
     def prox(self, x, gamma, *args, **kwargs):
         r"""
-        Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`. 
+        Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`.
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
@@ -88,26 +98,27 @@ class PnP(Prior):
         """
         return self.denoiser(x, *args, **kwargs)
 
+
 class RED(Prior):
     r"""
     Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`
     """
 
-    def __init__(self, denoiser,*args, **kwargs):
+    def __init__(self, denoiser, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.denoiser = denoiser
         self.explicit_prior = False
-        
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Calculates the gradient of the prior term :math:`g` at :math:`x`. 
+        Calculates the gradient of the prior term :math:`g` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
         return x - self.denoiser(x, *args, **kwargs)
+
 
 class Tikhonov(Prior):
     r"""
@@ -118,7 +129,6 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.T = T
         self.explicit_prior = True
-        
 
     def g(self, x):
         r"""
@@ -131,7 +141,7 @@ class Tikhonov(Prior):
 
     def grad(self, x):
         r"""
-        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`. 
+        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`.
 
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient at :math:`x`.
@@ -140,14 +150,10 @@ class Tikhonov(Prior):
 
     def prox(self, x, gamma):
         r"""
-        Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`. 
+        Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
-        return (1/(gamma+1))*x
-
-
-
-        
+        return (1 / (gamma + 1)) * x

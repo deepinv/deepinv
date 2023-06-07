@@ -120,6 +120,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model
 
+
 # Define the image gradient operator
 def nabla(I):
     b, c, h, w = I.shape
@@ -130,6 +131,7 @@ def nabla(I):
     G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
     return G
 
+
 # Define the prior
 def g(x, *args):
     dx = nabla(x)
@@ -137,6 +139,7 @@ def g(x, *args):
         dx, torch.zeros_like(dx), reduction="sum", delta=0.01
     )
     return tv_smooth
+
 
 prior = Prior(g=g)
 
@@ -149,9 +152,15 @@ prior = Prior(g=g)
 
 # Unrolled optimization algorithm parameters
 max_iter = 5
-lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-reg_param = [0.8] * max_iter  # initialization of the regularisation parameter. A distinct reg_param is trained for each iteration.
+lamb = [
+    1.0
+] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [
+    1.0
+] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+reg_param = [
+    0.8
+] * max_iter  # initialization of the regularisation parameter. A distinct reg_param is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": reg_param,

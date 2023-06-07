@@ -135,12 +135,18 @@ model_spec = {
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior = [PnP(denoiser = Denoiser(model_spec)) for i in range(max_iter)]
+prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
-lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.1] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+lamb = [
+    1.0
+] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [
+    1.0
+] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+sigma_denoiser = [
+    0.1
+] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,

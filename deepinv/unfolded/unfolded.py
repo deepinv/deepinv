@@ -52,7 +52,7 @@ class BaseUnfold(BaseOptim):
                 )
         self.params_algo = nn.ParameterDict(self.params_algo)
         self.prior = nn.ModuleList(self.prior)
-        
+
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step
         if custom_f_step is not None:
