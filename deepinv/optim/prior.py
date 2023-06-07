@@ -5,14 +5,15 @@ from deepinv.optim.utils import gradient_descent
 
 class Prior(nn.Module):
     r"""
-    Prior term :math:`g{x}`.
+    Prior term :math:`g{x}`. To implement a custom prior, for an explciit prior, overwrite `g` (do not forget to specify `self.explicit_prior = True`). For an implicit prior, overwrite the `grad` or `prox`. 
 
-    This is the base class for the prior term :math:`g{x}`.
+    This is the base class for the prior term :math:`g{x}`. 
     """
 
     def __init__(self, g=None):
         super().__init__()
         self._g = g
+        self.explicit_prior = False if self._g is None else True 
 
     def g(self, x, *args, **kwargs):
         r"""
@@ -73,6 +74,7 @@ class PnP(Prior):
 
     def __init__(self, denoiser):
         self.denoiser = denoiser
+        self.explicit_prior = False
         super().__init__()
 
     def prox(self, x, gamma, *args, **kwargs):
@@ -92,6 +94,7 @@ class RED(Prior):
 
     def __init__(self, denoiser):
         self.denoiser = denoiser
+        self.explicit_prior = False
         super().__init__()
 
     def grad(self, x, *args, **kwargs):
@@ -111,6 +114,7 @@ class Tikhonov(Prior):
 
     def __init__(self, T):
         self.T = T
+        self.explicit_prior = True
         super().__init__()
 
     def g(self, x):
