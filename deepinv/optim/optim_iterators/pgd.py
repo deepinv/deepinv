@@ -84,7 +84,5 @@ class gStepPGD(gStep):
         if not self.g_first:
             return cur_prior.prox(x, cur_params["g_param"])
         else:
-            grad = cur_params["stepsize"] * cur_prior["grad_g"](
-                x, cur_params["g_param"]
-            )
+            grad = cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
             return gradient_descent_step(x, grad, self.bregman_potential)

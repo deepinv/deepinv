@@ -11,8 +11,9 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import ScoreDenoiser
+from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import transforms
@@ -88,11 +89,9 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # %%
-# Setup the PnP algorithm
+# Setup the PnP algorithm. This involves in particular the definition of a custom prior class. 
 # --------------------------------------------
 # We use the proximal gradient algorithm to solve the super-resolution problem with GSPnP.
-# The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
-# For RED image restoration, a pretrained modified DRUNet denoiser replaces "grad_g".
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
@@ -113,11 +112,29 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 # Select the data fidelity term
 data_fidelity = L2()
 
+# The GSPnP prior corresponds to a RED prior with an explicit `g`. We thus write a class that inherits from RED for this custom prior.
+class GSPnP(RED):
+    r"""
+    Gradient-Step Denoiser prior.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+
+    def g(self, x, *args, **kwargs):
+        r"""
+        Computes the prior :math:`g(x)`.
+
+        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.tensor) prior :math:`g(x)`.
+        """
+        return self.denoiser.denoiser.potential(x, *args, **kwargs)
+
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
 ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
-denoiser_spec = {
+model_spec = {
     "name": denoiser_name,
     "args": {
         "in_channels": n_channels,
@@ -127,10 +144,7 @@ denoiser_spec = {
         "device": device,
     },
 }
-
-denoiser = ScoreDenoiser(denoiser_spec, sigma_normalize=False)
-prior = {"grad_g": denoiser, "g": denoiser.denoiser.potential}
-
+prior = GSPnP(denoiser = Denoiser(model_spec))
 
 # By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
 # For custom initialization, we need to write a function of the measurements.
