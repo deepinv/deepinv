@@ -134,7 +134,7 @@ def nabla(I):
 def g(x, *args):
     dx = nabla(x)
     tv_smooth = torch.nn.functional.huber_loss(
-        dx, torch.zeros_like(dx), reduction="sum", delta=0.1
+        dx, torch.zeros_like(dx), reduction="sum", delta=0.01
     )
     return tv_smooth
 
@@ -151,10 +151,10 @@ prior = Prior(g=g)
 max_iter = 5
 lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.5] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+reg_param = [0.8] * max_iter  # initialization of the regularisation parameter. A distinct reg_param is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": sigma_denoiser,
+    "g_param": reg_param,
     "lambda": lamb,
 }
 
@@ -296,7 +296,7 @@ ax.plot(
 
 ax.plot(
     np.arange(len(list_g_param)),
-    sigma_denoiser,
+    reg_param,
     label="init. g_param",
     color="r",
     linestyle="dashed",
