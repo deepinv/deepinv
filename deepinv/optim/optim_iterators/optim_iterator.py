@@ -99,18 +99,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        F = (
-            torch.tensor(
-                [
-                    self.F_fn(
-                        x[i].unsqueeze(0), prior, cur_params, y[i].unsqueeze(0), physics
-                    )
-                    for i in range(len(x))
-                ]
-            )
-            if self.F_fn
-            else None
-        )
+        F = self.F_fn(x, prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x, z), "cost": F}
 
 
