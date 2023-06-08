@@ -134,7 +134,7 @@ prior = L2Prior()
 data_fidelity = L2()
 
 # Specific parameters for restoration with the given prior (Note that these parameters have not been optimized here)
-params_algo = {"stepsize": 1, "lambda": 1}
+params_algo = {"stepsize": 1, "lambda": 0.1}
 
 # Logging parameters
 verbose = True
