@@ -148,7 +148,7 @@ class DataFidelity(nn.Module):
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafid{A\cdot}{y}}(x)`, computed in :math:`x`.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma f}(x)`, computed in :math:`x`.
         """
         grad = lambda z: gamma * self.grad(z, y, *args, **kwargs) + (z - u)
         return gradient_descent(
@@ -158,6 +158,28 @@ class DataFidelity(nn.Module):
             max_iter=max_iter_inter,
             tol=tol_inter,
         )
+
+    def prox_conjugate(self,
+        x,
+        y,
+        physics,
+        gamma,
+        *args,
+        lamb = 1,
+        **kwargs):
+        r"""
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda f)^*` at :math:`x`, using the Moreau formula. 
+
+        ::Warning:: Only valid for convex :math:`f`
+
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: stepsize of the proximity operator.
+        :param float lamb: math:`\lambda` parameter in front of :math:`f` 
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda f)^*}(x)`, computed in :math:`x`.
+        """
+        return x - gamma * self.prox(x / gamma, y, physics, lamb / gamma, *args, **kwargs)
 
 
 class L2(DataFidelity):

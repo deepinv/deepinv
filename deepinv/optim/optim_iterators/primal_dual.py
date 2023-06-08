@@ -42,11 +42,14 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, u_prev = X["est"]
-
-        x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_prior, cur_params)
-        u = self.f_step(physics.A(2 * x - x_prev), u_prev, y, cur_params)
-
+        x_prev, z_prev, u_prev = X["est"]
+        if self.g_first:
+            u = self.g_step(u_prev, self.K(z_prev), cur_prior, cur_params)
+            x = self.f_step(x_prev, self.K_adjoint(u), y, physics, cur_params)
+        else:
+            u = self.f_step(u_prev, self.K(z_prev), y, physics, cur_params)
+            x = self.g_step(x_prev, self.K_adjoint(u), cur_prior, cur_params)
+        z = x + self.beta * (x - x_prev)
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
 
         return {"est": (x, u), "cost": F}
@@ -60,20 +63,21 @@ class fStepCP(fStep):
     def __init__(self, **kwargs):
         super(fStepCP, self).__init__(**kwargs)
 
-    def forward(self, Ax_cur, u, y, cur_params):
+    def forward(self, x, w, y, physics, cur_params):
         r"""
-        Single Chambolle-Pock iteration step on the data-fidelity term :math:`f`.
+        Single Chambolle-Pock iteration step on the data-fidelity term :math:`\lambda f`.
 
-        :param torch.Tensor Ax_cur: Current iterate :math:`2Ax_{k+1}-x_k`
-        :param torch.Tensor u: Current iterate :math:`u_k`.
+        :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
+        :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
         :param torch.Tensor y: Input data.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
-        v = u + cur_params["stepsize"] * Ax_cur
-        return v - cur_params["stepsize"] * self.data_fidelity.prox_d(
-            v / cur_params["stepsize"], y, cur_params["lambda"] / cur_params["stepsize"]
-        )
-
+        if self.g_first:
+            p = x - cur_params["stepsize"] * w
+            return self.data_fidelity.prox(p, y, cur_params["lambda"] * cur_params["stepsize"])
+        else:
+            p = x + cur_params["sigma"] * w
+            return self.data_fidelity.prox_conjugate(p, y, cur_params["sigma"], lamb = cur_params["lambda"])
 
 class gStepCP(gStep):
     r"""
@@ -83,13 +87,18 @@ class gStepCP(gStep):
     def __init__(self, **kwargs):
         super(gStepCP, self).__init__(**kwargs)
 
-    def forward(self, x, Atu, cur_prior, cur_params):
+    def forward(self, x, w, cur_prior, cur_params):
         r"""
         Single Chambolle-Pock iteration step on the prior term :math:`g`.
 
-        :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param torch.Tensor Atu: Current iterate :math:`A^\top u_k`.
+        :param torch.Tensor x: Current first variable :math:`u` if `"g_first"` and :math:`x` otherwise.
+        :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
         """
-        return cur_prior.prox(x - cur_params["g_param"] * Atu, cur_params["g_param"])
+        if self.g_first:
+            p = x + cur_params["sigma"] * w
+            return cur_prior.prox_conjugate(p, cur_params["sigma"], cur_params["g_param"])
+        else: 
+            p = x - cur_params["stepsize"] * w
+            return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
