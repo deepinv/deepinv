@@ -67,10 +67,10 @@ class DataFidelity(nn.Module):
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (torch.tensor) gradient of :math:`\datafid` in :math:`u`, i.e. :math:`\nabla_u\datafid{u}{y}`.
         """
-        torch.set_grad_enabled(True)
-        u = u.requires_grad_()
-        return torch.autograd.grad(
-            self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True)[0]
+        with torch.enable_grad():
+            u = u.requires_grad_()
+            grad = torch.autograd.grad(self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True)[0]
+        return grad
 
     def prox_d(
         self,
@@ -219,7 +219,9 @@ class L2(DataFidelity):
         :param torch.tensor y: Data :math:`y`.
         :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
-        return 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)**2
+        x = u-y
+        d = 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)**2
+        return d 
 
     def grad_d(self, u, y):
         r"""

@@ -134,7 +134,6 @@ class BaseOptim(nn.Module):
         self.anderson_acceleration = anderson_acceleration
         self.F_fn = F_fn
         self.return_aux = return_aux
-        self.params_algo = params_algo
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
@@ -144,22 +143,26 @@ class BaseOptim(nn.Module):
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
 
+        # params_algo should contain a g_param parameter, even if None.
+        if "g_param" not in params_algo.keys():
+            params_algo["g_param"] = None
+
         # By default, each parameter in params_algo is a list.
         # If given as a signel number, we convert it to a list of 1 element.
         # If given as a list of more than 1 element, it should have lenght max_iter.
-        for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
+        for key, value in zip(params_algo.keys(), params_algo.values()):
             if not isinstance(value, Iterable):
-                self.params_algo[key] = [value]
+                params_algo[key] = [value]
             else:
                 if (
-                    len(self.params_algo[key]) > 1
-                    and len(self.params_algo[key]) < self.max_iter
+                    len(params_algo[key]) > 1
+                    and len(params_algo[key]) < self.max_iter
                 ):
                     raise ValueError(
                         f"The number of elements in the parameter {key} is inferior to max_iter."
                     )
         # If stepsize is a list of more than 1 element, backtracking is impossible.
-        if len(self.params_algo["stepsize"]) > 1:
+        if len(params_algo["stepsize"]) > 1:
             if self.backtracking:
                 self.backtracking = False
                 raise Warning(
@@ -167,7 +170,7 @@ class BaseOptim(nn.Module):
                 )
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
-        self.init_params_algo = self.params_algo.copy()
+        self.init_params_algo = params_algo
         # By default self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
@@ -266,22 +269,7 @@ class BaseOptim(nn.Module):
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
         # intialize the cost function with the cost at iteration 0 if a cost function is given.
-        cost_init = (
-            torch.tensor(
-                [
-                    self.F_fn(
-                        x_init[i].unsqueeze(0),
-                        prior,
-                        cur_params,
-                        y[i].unsqueeze(0),
-                        physics,
-                    )
-                    for i in range(len(x_init))
-                ]
-            )
-            if self.F_fn
-            else None
-        )
+        cost_init = self.F_fn(x_init,prior,cur_params,y,physics) if self.F_fn else None
         init_X = {
             "est": (x_init, z_init),
             "cost": cost_init,
@@ -457,6 +445,7 @@ class BaseOptim(nn.Module):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         """
+        self.params_algo = self.init_params_algo.copy()
         init_params = self.init_params_fn()
         init_pior = self.init_prior_fn()
         x = self.get_init(init_pior, init_params, y, physics)
@@ -517,12 +506,12 @@ def optim_builder(
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
     :param str bregman_potential: possibility to perform optimization with another bregman geometry. Default: `"L2"`
     """
-
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and prior.explicit_prior:
-        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
-            "lambda"
-        ] * data_fidelity(x, y, physics) + prior.g(x, cur_params["g_param"])
+        def F_fn(x, prior, cur_params, y, physics):
+            print(data_fidelity(x, y, physics))
+            print(prior.g(x, cur_params["g_param"]))
+            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(x, cur_params["g_param"])
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,

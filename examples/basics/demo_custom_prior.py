@@ -134,7 +134,7 @@ prior = L2Prior()
 data_fidelity = L2()
 
 # Specific parameters for restoration with the given prior (Note that these parameters have not been optimized here)
-params_algo = {"stepsize": 1, "g_param": 1.0, "lambda": 1}
+params_algo = {"stepsize": 1, "lambda": 1}
 
 # Logging parameters
 verbose = True
@@ -145,14 +145,14 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = True  # use backtraking to automatically adjust the stepsize
+backtracking = False  # use backtraking to automatically adjust the stepsize
 max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
     algo_name="ADMM",
     prior=prior,
-    g_first=True,
+    g_first=False,
     data_fidelity=data_fidelity,
     params_algo=params_algo,
     early_stop=early_stop,

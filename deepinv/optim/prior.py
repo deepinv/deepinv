@@ -44,11 +44,10 @@ class Prior(nn.Module):
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
-        torch.set_grad_enabled(True)
-        x = x.requires_grad_()
-        return torch.autograd.grad(
-            self.g(x, *args, **kwargs), x, create_graph=True, only_inputs=True
-        )[0]
+        with torch.enable_grad():
+            x = x.requires_grad_()
+            grad = torch.autograd.grad(self.g(x, *args, **kwargs), x, create_graph=True, only_inputs=True)[0]
+        return grad
 
     def prox(
         self,

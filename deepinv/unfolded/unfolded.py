@@ -45,12 +45,12 @@ class BaseUnfold(BaseOptim):
     ):
         super(BaseUnfold, self).__init__(*args, **kwargs)
         for param_key in trainable_params:
-            if param_key in self.params_algo.keys():
-                param_value = self.params_algo[param_key]
-                self.params_algo[param_key] = nn.ParameterList(
+            if param_key in self.init_params_algo.keys():
+                param_value = self.init_params_algo[param_key]
+                self.init_params_algo[param_key] = nn.ParameterList(
                     [nn.Parameter(torch.tensor(el).to(device)) for el in param_value]
                 )
-        self.params_algo = nn.ParameterDict(self.params_algo)
+        self.init_params_algo = nn.ParameterDict(self.init_params_algo)
         self.prior = nn.ModuleList(self.prior)
 
         if custom_g_step is not None:
