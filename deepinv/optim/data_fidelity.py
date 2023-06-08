@@ -354,7 +354,7 @@ class IndicatorL2(DataFidelity):
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
         :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`.
         """
-        dist = torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+        dist = torch.norm(u - y, p=2, dim=-1)
         radius = self.radius if radius is None else radius
         loss = (dist <= radius)*1e16
         return loss

@@ -1,5 +1,6 @@
-from .optim_iterator import OptimIterator, fStep, gStep
+import torch
 
+from .optim_iterator import OptimIterator, fStep, gStep
 
 class CPIteration(OptimIterator):
     r"""
@@ -26,10 +27,11 @@ class CPIteration(OptimIterator):
     If the attribute `"g_first"` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, K=None, **kwargs):
         super(CPIteration, self).__init__(**kwargs)
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
+        self.K = K if K is not None else CustomLinearOperator()
 
     def forward(self, X, cur_prior, cur_params, y, physics):
         r"""
@@ -45,10 +47,10 @@ class CPIteration(OptimIterator):
         x_prev, z_prev, u_prev = X["est"]
         if self.g_first:
             u = self.g_step(u_prev, self.K(z_prev), cur_prior, cur_params)
-            x = self.f_step(x_prev, self.K_adjoint(u), y, physics, cur_params)
+            x = self.f_step(x_prev, self.K.adjoint(u), y, physics, cur_params)
         else:
             u = self.f_step(u_prev, self.K(z_prev), y, physics, cur_params)
-            x = self.g_step(x_prev, self.K_adjoint(u), cur_prior, cur_params)
+            x = self.g_step(x_prev, self.K.adjoint(u), cur_prior, cur_params)
         z = x + self.beta * (x - x_prev)
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
 
@@ -102,3 +104,46 @@ class gStepCP(gStep):
         else: 
             p = x - cur_params["stepsize"] * w
             return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
+
+
+class CustomLinearOperator(torch.nn.Module):
+    r"""
+    A base class for simple user-defined linear operators.
+
+    The user needs to provide the forward operator :math:`L` and its adjoint (backward) :math:`L^{\top}`.
+
+    :param callable fwd: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
+    :param callable bwd: adjoint of the forward operator, which should verify the adjointness test.
+
+    """
+
+    def __init__(
+        self,
+        fwd_op=lambda x: x,
+        bwd_op=lambda x: x
+    ):
+        super().__init__()
+
+        self.fwd_op = fwd_op
+        self.bwd_op = bwd_op
+
+    def forward(self, x):
+        r"""
+        Computes the forward operator :math:`L(x)`.
+
+        :param torch.tensor x: input.
+        :return: (torch.tensor) :math:`L(x)`.
+
+        """
+        return self.fwd_op(x)
+
+
+    def adjoint(self, y):
+        r"""
+        Computes the adjoint of the linear operator :math:`L`, i.e. :math:`L^{\top}(y)`.
+
+        :param torch.tensor y: input.
+        :return: (torch.tensor) :math:`\tilde{x} = L^{\top}y`.
+
+        """
+        return self.bwd_op(y)
