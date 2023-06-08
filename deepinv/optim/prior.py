@@ -89,7 +89,7 @@ class PnP(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def prox(self, x, gamma, *args, **kwargs):
+    def prox(self, x, gamma, sigma_denoiser, *args, **kwargs):
         r"""
         Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`.
 
@@ -97,7 +97,7 @@ class PnP(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
-        return self.denoiser(x, gamma)
+        return self.denoiser(x, sigma_denoiser)
 
 
 class RED(Prior):
@@ -110,7 +110,7 @@ class RED(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x, gamma, sigma_denoiser, *args, **kwargs):
         r"""
         Calculates the gradient of the prior term :math:`g` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
@@ -118,7 +118,7 @@ class RED(Prior):
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
-        return x - self.denoiser(x, *args, **kwargs)
+        return x - self.denoiser(x, sigma_denoiser)
 
 
 class Tikhonov(Prior):
