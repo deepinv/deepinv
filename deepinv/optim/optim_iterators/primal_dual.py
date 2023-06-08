@@ -9,19 +9,21 @@ class CPIteration(OptimIterator):
     algorithm for minimising :math:`\lambda \datafid{Ax}{y} + g(x)`. Our implementation corresponds to
     Algorithm 1 of `<https://hal.science/hal-00609728v4/document>`_.
 
-    The iteration is given by
+    If the attribute `"g_first"` is set to False (by default), the iteration is given by
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k) \\
-        z_k &= 2Ax_{k+1}-x_k\\
-        u_{k+1} &= \operatorname{prox}_{\sigma (\lambda f)^*}(z_k) \\
+        u_{k+1} &= \operatorname{prox}_{\sigma (\lambda f)^*}(u_k + \sigma K z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau K^\top u_{k+1}) \\
+        z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
         \end{equation*}
 
-    where :math:`(\lambda f)^*` is the Fenchel-Legendre conjugate of :math:`\lambda f`, and :math:`\sigma` and :math:`\tau` are step-sizes that should
-    satisfy :math:`\sigma \tau \|A\|^2 \leq 1`.
+    where :math:`(\lambda f)^*` is the Fenchel-Legendre conjugate of :math:`\lambda f`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
+    satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
+
+    If the attribute `"g_first"` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
     """
 
     def __init__(self, **kwargs):
@@ -34,7 +36,7 @@ class CPIteration(OptimIterator):
         Single iteration of the Chambolle-Pock algorithm.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
-        :param dict cur_prior: dictionary containing the prior-related term of interest, e.g. its proximal operator or gradient.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: dictionary containing the current parameters of the model.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
@@ -87,7 +89,7 @@ class gStepCP(gStep):
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param torch.Tensor Atu: Current iterate :math:`A^\top u_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
         """
         return cur_prior.prox(x - cur_params["g_param"] * Atu, cur_params["g_param"])
