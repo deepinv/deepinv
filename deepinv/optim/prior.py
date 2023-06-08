@@ -110,7 +110,7 @@ class RED(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def grad(self, x, gamma, sigma_denoiser, *args, **kwargs):
+    def grad(self, x, sigma_denoiser, *args, **kwargs):
         r"""
         Calculates the gradient of the prior term :math:`g` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
