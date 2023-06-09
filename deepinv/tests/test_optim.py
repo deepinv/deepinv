@@ -396,10 +396,10 @@ def test_CP_K(imsize, dummy_dataset, device):
     g_first = False
 
     # Define two points
-    x = torch.tensor([[[10], [10]]], dtype=torch.float64)
+    x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
 
     # Create a measurement operator
-    B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
+    B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
     B_forward = lambda v: B @ v
     B_adjoint = lambda v: B.transpose(0, 1) @ v
 

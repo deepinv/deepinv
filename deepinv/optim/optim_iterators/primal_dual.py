@@ -28,7 +28,7 @@ class CPIteration(OptimIterator):
     If the attribute `"g_first"` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
     """
 
-    def __init__(self, K=None, **kwargs):
+    def __init__(self, **kwargs):
         super(CPIteration, self).__init__(**kwargs)
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
@@ -45,12 +45,14 @@ class CPIteration(OptimIterator):
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev, u_prev = X["est"]
+        K = lambda x : cur_params["K"](x) if "K" in cur_params.keys() else x 
+        K_adjoint = lambda x : cur_params["K_adjoint"](x) if "K_adjoint" in cur_params.keys() else x 
         if self.g_first:
-            u = self.g_step(u_prev, cur_params["K"](z_prev), cur_prior, cur_params)
-            x = self.f_step(x_prev, cur_params["K_adjoint"](u), y, physics, cur_params)
+            u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
+            x = self.f_step(x_prev, K_adjoint(u), y, physics, cur_params)
         else:
-            u = self.f_step(u_prev, cur_params["K"](z_prev), y, physics, cur_params)
-            x = self.g_step(x_prev, cur_params["K_adjoint"](u), cur_prior, cur_params)
+            u = self.f_step(u_prev, K(z_prev), y, physics, cur_params)
+            x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + self.beta * (x - x_prev)
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
 
