@@ -209,13 +209,25 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
                 stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
                 reg_param = 1.0
+                sigma = 1.0
             else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
                 stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
                 reg_param = 1.0 * stepsize
+                sigma = None
 
             lamb = 1.5
             max_iter = 1000
-            params_algo = {"stepsize": stepsize, "g_param": reg_param, "lambda": lamb}
+            params_algo = {
+                "stepsize": stepsize,
+                "g_param": reg_param,
+                "lambda": lamb,
+                "sigma": sigma,
+            }
+
+            def custom_init_CP(x_init, y_init):
+                return {"est": (x_init, x_init, y_init)}
+
+            custom_init = custom_init_CP if name_algo == "CP" else None
 
             optimalgo = optim_builder(
                 name_algo,
@@ -228,6 +240,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 params_algo=params_algo,
                 early_stop=True,
                 g_first=g_first,
+                custom_init=custom_init,
             )
 
             # Run the optimisation algorithm
@@ -327,7 +340,19 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         denoiser=Denoiser(model_spec)
     )  # here the prior model is common for all iterations
 
-    params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+    sigma = 1.0 if pnp_algo == "CP" else None
+    params_algo = {
+        "stepsize": stepsize,
+        "g_param": sigma_denoiser,
+        "lambda": lamb,
+        "sigma": sigma,
+    }
+
+    def custom_init_CP(x_init, y_init):
+        return {"est": (x_init, x_init, y_init)}
+
+    custom_init = custom_init_CP if pnp_algo == "CP" else None
+
     pnp = optim_builder(
         pnp_algo,
         prior=prior,
@@ -337,6 +362,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         verbose=True,
         params_algo=params_algo,
         early_stop=True,
+        custom_init=custom_init,
     )
 
     x = pnp(y, physics)

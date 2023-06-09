@@ -262,17 +262,21 @@ class BaseOptim(nn.Module):
         """
         # intialize the primal x and auxiliary variable z
         if self.custom_init:
-            x_init, z_init = self.custom_init(y)
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+            init_X = self.custom_init(x_init, z_init)
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+
+            init_X = {
+                "est": (x_init, z_init),
+            }
         # intialize the cost function with the cost at iteration 0 if a cost function is given.
         cost_init = (
             self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
         )
-        init_X = {
-            "est": (x_init, z_init),
-            "cost": cost_init,
-        }
+
+        init_X["cost"] = cost_init
+
         return init_X
 
     def get_primal_variable(self, X):

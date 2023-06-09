@@ -80,7 +80,7 @@ class Prior(nn.Module):
             tol=tol_inter,
         )
 
-    def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
+    def prox_conjugate(self, x, gamma, *args, lamb=1, **kwargs):
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula.
 
