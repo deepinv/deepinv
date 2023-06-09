@@ -95,7 +95,9 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
-crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
+crit_conv = (
+    "cost"
+)  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True  # use backtracking to automatically adjust the stepsize
@@ -160,7 +162,9 @@ else:
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = (
+    True
+)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

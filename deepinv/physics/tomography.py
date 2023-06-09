@@ -131,12 +131,7 @@ class Radon(nn.Module):
         for theta in angles:
             theta = deg2rad(theta)
             R = torch.tensor(
-                [
-                    [
-                        [theta.cos(), theta.sin(), 0],
-                        [-theta.sin(), theta.cos(), 0],
-                    ]
-                ],
+                [[[theta.cos(), theta.sin(), 0], [-theta.sin(), theta.cos(), 0]]],
                 dtype=self.dtype,
             )
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
@@ -203,7 +198,7 @@ class IRadon(nn.Module):
             )
 
         if self.circle:
-            reconstruction_circle = (self.xgrid**2 + self.ygrid**2) <= 1
+            reconstruction_circle = (self.xgrid ** 2 + self.ygrid ** 2) <= 1
             reconstruction_circle = reconstruction_circle.repeat(
                 x.shape[0], ch_size, 1, 1
             )
@@ -304,12 +299,7 @@ if __name__ == "__main__":
     x = torch.zeros(1, 1, img_width, img_width).to(device)
     x[:, :, 80:180, 80:180] = 1
 
-    print(
-        "x:",
-        x.shape,
-        "max={:.4f}".format(x.max()),
-        "min={:.4f}".format(x.min()),
-    )
+    print("x:", x.shape, "max={:.4f}".format(x.max()), "min={:.4f}".format(x.min()))
 
     ct = Tomography(img_width, angles, circle=False, non_linearity=True)
     y = ct(x)

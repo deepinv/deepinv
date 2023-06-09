@@ -267,9 +267,7 @@ class BaseOptim(nn.Module):
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
 
-            init_X = {
-                "est": (x_init, z_init),
-            }
+            init_X = {"est": (x_init, z_init)}
         # intialize the cost function with the cost at iteration 0 if a cost function is given.
         cost_init = (
             self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
@@ -383,9 +381,10 @@ class BaseOptim(nn.Module):
             x_prev = x_prev.reshape((x_prev.shape[0], -1))
             x = x.reshape((x.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
-            diff_F, diff_x = (F_prev - F).mean(), (
-                torch.norm(x - x_prev, p=2, dim=-1) ** 2
-            ).mean()
+            diff_F, diff_x = (
+                (F_prev - F).mean(),
+                (torch.norm(x - x_prev, p=2, dim=-1) ** 2).mean(),
+            )
             stepsize = self.params_algo["stepsize"][0]
             if diff_F < (self.gamma_backtracking / stepsize) * diff_x:
                 check_iteration = False

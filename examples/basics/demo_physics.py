@@ -65,10 +65,7 @@ x[:, 2, 64:, :] = 1
 y = physics(x)
 xlin = physics.A_dagger(y)  # compute the linear pseudo-inverse
 
-dinv.utils.plot(
-    [x, y, xlin],
-    titles=["image", "meas.", "linear rec."],
-)
+dinv.utils.plot([x, y, xlin], titles=["image", "meas.", "linear rec."])
 
 
 # %%
@@ -122,10 +119,7 @@ physics2 = DecolorizeSVD()
 y2 = physics2(x)
 xlin2 = physics.A_dagger(y2)  # compute the linear pseudo-inverse
 
-dinv.utils.plot(
-    [x, y2, xlin2],
-    titles=["image", "meas.", "linear rec."],
-)
+dinv.utils.plot([x, y2, xlin2], titles=["image", "meas.", "linear rec."])
 
 print(f"The decomposable operator has norm={physics.compute_norm(x):.2f}")
 

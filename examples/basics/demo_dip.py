@@ -125,7 +125,4 @@ print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} d
 print(f"DIP PSNR: {dinv.utils.metric.cal_psnr(x, dip):.2f} dB")
 
 # plot results
-plot(
-    [x_lin, x, dip],
-    titles=["measurement", "ground truth", "DIP"],
-)
+plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])

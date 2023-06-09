@@ -124,11 +124,7 @@ def roll_one_dim(x: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
     return torch.cat((right, left), dim=dim)
 
 
-def roll(
-    x: torch.Tensor,
-    shift: List[int],
-    dim: List[int],
-) -> torch.Tensor:
+def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
     """
     Similar to np.roll but applies to PyTorch Tensors.
     Args:

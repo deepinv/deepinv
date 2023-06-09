@@ -33,13 +33,14 @@ class ConvDecoder(nn.Module):
         strides = [1] * (layers - 1)
 
         # compute up-sampling factor from one layer to another
-        scale_x, scale_y = (out_size[0] / in_size[0]) ** (1.0 / (layers - 1)), (
-            out_size[1] / in_size[1]
-        ) ** (1.0 / (layers - 1))
+        scale_x, scale_y = (
+            (out_size[0] / in_size[0]) ** (1.0 / (layers - 1)),
+            (out_size[1] / in_size[1]) ** (1.0 / (layers - 1)),
+        )
         hidden_size = [
             (
-                int(np.ceil(scale_x**n * in_size[0])),
-                int(np.ceil(scale_y**n * in_size[1])),
+                int(np.ceil(scale_x ** n * in_size[0])),
+                int(np.ceil(scale_y ** n * in_size[1])),
             )
             for n in range(1, (layers - 1))
         ] + [out_size]

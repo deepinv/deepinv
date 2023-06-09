@@ -99,11 +99,7 @@ class DataFidelity(nn.Module):
         """
         grad = lambda z: gamma * self.grad_d(z, y, *args, **kwargs) + (z - u)
         return gradient_descent(
-            grad,
-            u,
-            step_size=stepsize_inter,
-            max_iter=max_iter_inter,
-            tol=tol_inter,
+            grad, u, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
     def forward(self, x, y, physics, *args, **kwargs):
@@ -154,11 +150,7 @@ class DataFidelity(nn.Module):
         """
         grad = lambda z: gamma * self.grad(z, y, *args, **kwargs) + (z - u)
         return gradient_descent(
-            grad,
-            u,
-            step_size=stepsize_inter,
-            max_iter=max_iter_inter,
-            tol=tol_inter,
+            grad, u, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
     def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
@@ -223,7 +215,7 @@ class L2(DataFidelity):
     def __init__(self, sigma=1.0):
         super().__init__()
 
-        self.norm = 1 / (sigma**2)
+        self.norm = 1 / (sigma ** 2)
 
     def d(self, u, y):
         r"""

@@ -73,11 +73,7 @@ class Prior(nn.Module):
         """
         grad = lambda z: gamma * self.grad(z, *args, **kwargs) + (z - x)
         return gradient_descent(
-            grad,
-            x,
-            step_size=stepsize_inter,
-            max_iter=max_iter_inter,
-            tol=tol_inter,
+            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
     def prox_conjugate(self, x, gamma, *args, lamb=1, **kwargs):

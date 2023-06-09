@@ -134,9 +134,10 @@ def dataset(physics, tmp_path, imsize, device):
         device=device,
     )
 
-    return dinv.datasets.HDF5Dataset(
-        save_dir / "dinv_dataset0.h5", train=True
-    ), dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False)
+    return (
+        dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=True),
+        dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False),
+    )
 
 
 @pytest.mark.parametrize("loss_name", list_losses)

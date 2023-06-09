@@ -174,10 +174,7 @@ class PreconULA(dinv.sampling.MonteCarlo):
 # This example uses a simple median filter as a plug-and-play denoiser.
 # The hyperparameter :math:`\sigma_d` controls the strength of the prior.
 
-model_spec = {
-    "name": "median_filter",
-    "args": {},
-}
+model_spec = {"name": "median_filter", "args": {}}
 
 prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 
@@ -189,7 +186,7 @@ prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 # the same hyperparameters (step size, number of iterations, etc.).
 
 
-step_size = 0.5 * (sigma**2)
+step_size = 0.5 * (sigma ** 2)
 iterations = int(1e2) if torch.cuda.is_available() else 10
 g_param = 0.1
 
@@ -249,7 +246,4 @@ print(
 
 # plot results
 imgs = [x_lin, x, ula_mean, pula_mean]
-plot(
-    imgs,
-    titles=["measurement", "ground truth", "ULA", "PreconULA"],
-)
+plot(imgs, titles=["measurement", "ground truth", "ULA", "PreconULA"])

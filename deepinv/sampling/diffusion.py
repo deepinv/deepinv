@@ -121,7 +121,7 @@ class DDRM(nn.Module):
             else:
                 mask = torch.cat([physics.mask.abs()] * y.shape[0], dim=0)
 
-            c = np.sqrt(1 - self.eta**2)
+            c = np.sqrt(1 - self.eta ** 2)
             y_bar = physics.U_adjoint(y)
             case = mask > self.sigma_noise
             y_bar[case] = y_bar[case] / mask[case]

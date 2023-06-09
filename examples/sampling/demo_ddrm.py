@@ -94,11 +94,7 @@ denoiser = dinv.models.Denoiser(model_spec=model_spec)
 sigmas = np.linspace(1, 0, 100) if torch.cuda.is_available() else np.linspace(1, 0, 10)
 
 diff = dinv.sampling.DDRM(
-    denoiser=denoiser,
-    etab=1.0,
-    sigma_noise=sigma,
-    sigmas=sigmas,
-    verbose=True,
+    denoiser=denoiser, etab=1.0, sigma_noise=sigma, sigmas=sigmas, verbose=True
 )
 
 # %%
@@ -126,10 +122,7 @@ print(f"Diffusion PSNR: {dinv.utils.metric.cal_psnr(x, xhat):.2f} dB")
 # plot results
 error = (xhat - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
 imgs = [x_lin, x, xhat]
-plot(
-    imgs,
-    titles=["measurement", "ground truth", "DDRM reconstruction"],
-)
+plot(imgs, titles=["measurement", "ground truth", "DDRM reconstruction"])
 
 # %%
 # Create a Monte Carlo sampler

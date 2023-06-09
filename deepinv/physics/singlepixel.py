@@ -62,13 +62,7 @@ class SinglePixelCamera(DecomposablePhysics):
     """
 
     def __init__(
-        self,
-        m,
-        img_shape,
-        fast=True,
-        device="cpu",
-        dtype=torch.float32,
-        **kwargs,
+        self, m, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
