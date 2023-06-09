@@ -82,7 +82,7 @@ class gStepPGD(gStep):
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
         if not self.g_first:
-            return cur_prior.prox(x, cur_params["g_param"])
+            return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])
         else:
             grad = cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
             return gradient_descent_step(x, grad, self.bregman_potential)
