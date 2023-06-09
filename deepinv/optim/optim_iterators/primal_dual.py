@@ -45,8 +45,12 @@ class CPIteration(OptimIterator):
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev, u_prev = X["est"]
-        K = lambda x : cur_params["K"](x) if "K" in cur_params.keys() else x 
-        K_adjoint = lambda x : cur_params["K_adjoint"](x) if "K_adjoint" in cur_params.keys() else x 
+        K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
+        K_adjoint = (
+            lambda x: cur_params["K_adjoint"](x)
+            if "K_adjoint" in cur_params.keys()
+            else x
+        )
         if self.g_first:
             u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
             x = self.f_step(x_prev, K_adjoint(u), y, physics, cur_params)
