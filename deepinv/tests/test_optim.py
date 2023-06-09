@@ -420,7 +420,7 @@ def test_CP_K(imsize, dummy_dataset, device):
     lamb = 1.5
     max_iter = 1000
 
-    K = torch.Tensor([[2., .0], [.0, 2.]]).to(torch.float64).to(device)
+    K = torch.Tensor([[2.0, 0.0], [0.0, 2.0]]).to(torch.float64).to(device)
 
     K_forward = lambda v: K @ v
     K_adjoint = lambda v: K.transpose(0, 1) @ v
@@ -441,7 +441,7 @@ def test_CP_K(imsize, dummy_dataset, device):
         return {"est": (x_init, x_init, y_init)}
 
     optimalgo = optim_builder(
-        'CP',
+        "CP",
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,

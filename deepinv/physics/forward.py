@@ -463,7 +463,6 @@ class Denoising(DecomposablePhysics):
         self.noise_model = noise
 
 
-
 class CustomLinearOperator(torch.nn.Module):
     r"""
     A base class for simple user-defined linear operators.

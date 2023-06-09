@@ -111,5 +111,3 @@ class gStepCP(gStep):
         else:
             p = x - cur_params["g_param"] * w
             return cur_prior.prox(p, cur_params["sigma"], cur_params["g_param"])
-
-
