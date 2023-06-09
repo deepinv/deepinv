@@ -347,16 +347,16 @@ class IndicatorL2(DataFidelity):
 
     def d(self, u, y, radius=None):
         r"""
-        Computes the indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(u)`.
+        Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(u)`.
 
-        :param torch.tensor u: Variable :math:`u` at which the indicator is computed.
+        :param torch.tensor u: Variable :math:`u` at which the indicator is computed. :math:`u` is assumed to be of shape (B, ...) where B is the batch size.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
-        :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`.
+        :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
-        dist = torch.norm(u - y, p=2, dim=-1)
+        dist = torch.norm(u - y, p=2, dim=u.shape[1:])  # we assume data of shape (B, ...) where B is the batch size
         radius = self.radius if radius is None else radius
-        loss = (dist <= radius)*1e16
+        loss = (dist > radius)*1e16
         return loss
 
     def prox_d(self, x, y, gamma=None, radius=None):
