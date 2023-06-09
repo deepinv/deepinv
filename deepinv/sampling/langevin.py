@@ -311,9 +311,9 @@ class SKRockIterator(nn.Module):
         # First kind Chebyshev function
         T_s = lambda s, u: np.cosh(s * np.arccosh(u))
         # First derivative Chebyshev polynomial first kind
-        T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u ** 2 - 1)
+        T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
 
-        w0 = 1 + self.eta / (self.inner_iter ** 2)  # parameter \omega_0
+        w0 = 1 + self.eta / (self.inner_iter**2)  # parameter \omega_0
         w1 = T_s(self.inner_iter, w0) / T_prime_s(
             self.inner_iter, w0
         )  # parameter \omega_1

@@ -113,6 +113,6 @@ class ScoreDenoiser(Denoiser):
         :param float sigma: the noise level.
         """
         if self.sigma_normalize:
-            return (1 / sigma ** 2) * (x - self.denoiser(x, sigma))
+            return (1 / sigma**2) * (x - self.denoiser(x, sigma))
         else:
             return x - self.denoiser(x, sigma)

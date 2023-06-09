@@ -119,7 +119,7 @@ prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 # ``iterations`` controls the number of iterations of the sampler.
 
 regularization = 0.9
-step_size = 0.01 * (sigma ** 2)
+step_size = 0.01 * (sigma**2)
 iterations = int(5e3) if torch.cuda.is_available() else 10
 f = dinv.sampling.ULA(
     prior=prior,
