@@ -168,7 +168,7 @@ class BaseOptim(nn.Module):
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
-        # By default self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
+        # By default, self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
