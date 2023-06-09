@@ -54,7 +54,7 @@ class CPIteration(OptimIterator):
         z = x + self.beta * (x - x_prev)
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
 
-        return {"est": (x, u), "cost": F}
+        return {"est": (x, z, u), "cost": F}
 
 
 class fStepCP(fStep):

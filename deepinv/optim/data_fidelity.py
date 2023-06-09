@@ -354,7 +354,8 @@ class IndicatorL2(DataFidelity):
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
         :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
-        dist = torch.norm(u - y, p=2, dim=u.shape[1:])  # we assume data of shape (B, ...) where B is the batch size
+        diff = u-y
+        dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
         radius = self.radius if radius is None else radius
         loss = (dist > radius)*1e16
         return loss
@@ -513,7 +514,8 @@ class L1(DataFidelity):
         super().__init__()
 
     def d(self, x, y):
-        return torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        diff = x-y
+        return torch.norm(diff.view(diff.shape[0], -1), p=1, dim=-1)
 
     def grad_d(self, x, y):
         r"""

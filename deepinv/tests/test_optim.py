@@ -92,8 +92,6 @@ def test_data_fidelity_l2(device):
 
 def test_data_fidelity_indicator(device):
     # Define two points
-    # x = torch.Tensor([1, 4]).to(device)
-    # y = torch.Tensor([1, 1]).to(device)
     x = torch.Tensor([[1], [4]]).unsqueeze(0).to(device)
     y = torch.Tensor([[1], [1]]).unsqueeze(0).to(device)
 
@@ -122,8 +120,6 @@ def test_data_fidelity_indicator(device):
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
 
-    # x = torch.Tensor([1, 4]).to(device)
-    # y = torch.Tensor([1, 1]).to(device)
     x = torch.Tensor([[1], [4]]).unsqueeze(0).to(device)
     y = torch.Tensor([[1], [1]]).unsqueeze(0).to(device)
 
@@ -141,8 +137,8 @@ def test_data_fidelity_indicator(device):
 
 def test_data_fidelity_l1(device):
     # Define two points
-    x = torch.Tensor([1, 4, -0.5]).to(device)
-    y = torch.Tensor([1, 1, 1]).to(device)
+    x = torch.Tensor([[[1], [4], [-0.5]]]).to(device)
+    y = torch.Tensor([[[1], [1], [1]]]).to(device)
 
     data_fidelity = L1()
     assert torch.allclose(data_fidelity.d(x, y), (x - y).abs().sum())
@@ -162,7 +158,7 @@ def test_data_fidelity_l1(device):
 
     # Check prox
     threshold = 0.5
-    prox_manual = torch.Tensor([1.0, 3.5, 0.0]).to(device)
+    prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
 
@@ -175,7 +171,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:  # Test both g first and f first
         if not g_first or (g_first and not ("HQS" in name_algo or "PGD" in name_algo)):
             # Define two points
-            x = torch.tensor([10, 10], dtype=torch.float64)
+            x = torch.tensor([[[10], [10]]], dtype=torch.float64)
 
             # Create a measurement operator
             B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
@@ -187,17 +183,24 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             y = physics(x)
 
             data_fidelity = L2()  # The data fidelity term
-            reg = L1()  # The regularization term
 
-            def prox_g(x, ths=0.1):
-                return reg.prox_d(x, 0, ths)
+            def prior_g(x, *args):
+                ths = 0.1
+                return ths*torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+
+            prior = Prior(g=prior_g)  # The prior term
+
+            # reg = L1()  # The regularization term
+            #
+            # def prox_g(x, ths=0.1):
+            #     return reg.prox_d(x, 0, ths)
 
             # old
             # prior = {"prox_g": prox_g}
 
             # dirty hack, temporary
-            # TODO: clarify
-            prior = Prior(g=prox_g)  # here the prior model is common for all iterations
+            # # TODO: clarify
+            # prior = Prior(g=prox_g)  # here the prior model is common for all iterations
 
             if (
                 name_algo == "CP"
@@ -231,7 +234,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             assert optimalgo.has_converged
 
             # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-            subdiff = reg.grad_d(x, 0)
+            subdiff = prior.grad(x, 0)
 
             if name_algo == "HQS":
                 # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
