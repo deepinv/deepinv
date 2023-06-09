@@ -49,7 +49,9 @@ def test_data_fidelity_l2(device):
     assert torch.allclose(data_fidelity(x, y, physics), torch.Tensor([1.0]).to(device))
 
     # Compute the gradient of f
-    grad_dA = data_fidelity.grad(x, y, physics)  # print(grad_dA) gives [[[2.0000], [0.5000]]]
+    grad_dA = data_fidelity.grad(
+        x, y, physics
+    )  # print(grad_dA) gives [[[2.0000], [0.5000]]]
 
     # Compute the proximity operator of f
     prox_dA = data_fidelity.prox(
@@ -186,7 +188,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
             def prior_g(x, *args):
                 ths = 0.1
-                return ths*torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+                return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
             prior = Prior(g=prior_g)  # The prior term
 

@@ -31,7 +31,11 @@ class GSPnP(nn.Module):
 
     def potential(self, x, sigma):
         N = self.student_grad(x, sigma)
-        return 0.5 * self.alpha * torch.norm((x - N).view(x.shape[0],-1),p=2,dim=-1) ** 2
+        return (
+            0.5
+            * self.alpha
+            * torch.norm((x - N).view(x.shape[0], -1), p=2, dim=-1) ** 2
+        )
 
     def potential_grad(self, x, sigma):
         r"""

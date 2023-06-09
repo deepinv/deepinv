@@ -46,7 +46,9 @@ class Prior(nn.Module):
         """
         with torch.enable_grad():
             x = x.requires_grad_()
-            grad = torch.autograd.grad(self.g(x, *args, **kwargs), x, create_graph=True, only_inputs=True)[0]
+            grad = torch.autograd.grad(
+                self.g(x, *args, **kwargs), x, create_graph=True, only_inputs=True
+            )[0]
         return grad
 
     def prox(
@@ -78,26 +80,18 @@ class Prior(nn.Module):
             tol=tol_inter,
         )
 
-    def prox_conjugate(self,
-        x,
-        y,
-        physics,
-        gamma,
-        *args,
-        lamb = 1,
-        **kwargs):
+    def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
         r"""
-        Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula. 
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula.
 
         ::Warning:: Only valid for convex :math:`g`
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :param float lamb: math:`\lambda` parameter in front of :math:`f` 
+        :param float lamb: math:`\lambda` parameter in front of :math:`f`
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda g)^*}(x)`, computed in :math:`x`.
         """
         return x - gamma * self.prox(x / gamma, lamb / gamma, *args, **kwargs)
-
 
 
 class PnP(Prior):

@@ -154,10 +154,7 @@ class BaseOptim(nn.Module):
             if not isinstance(value, Iterable):
                 params_algo[key] = [value]
             else:
-                if (
-                    len(params_algo[key]) > 1
-                    and len(params_algo[key]) < self.max_iter
-                ):
+                if len(params_algo[key]) > 1 and len(params_algo[key]) < self.max_iter:
                     raise ValueError(
                         f"The number of elements in the parameter {key} is inferior to max_iter."
                     )
@@ -269,7 +266,9 @@ class BaseOptim(nn.Module):
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
         # intialize the cost function with the cost at iteration 0 if a cost function is given.
-        cost_init = self.F_fn(x_init,prior,cur_params,y,physics) if self.F_fn else None
+        cost_init = (
+            self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
+        )
         init_X = {
             "est": (x_init, z_init),
             "cost": cost_init,
@@ -508,8 +507,12 @@ def optim_builder(
     """
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if F_fn is None and prior.explicit_prior:
+
         def F_fn(x, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(x, cur_params["g_param"])
+            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
+                x, cur_params["g_param"]
+            )
+
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,

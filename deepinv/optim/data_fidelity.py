@@ -69,7 +69,9 @@ class DataFidelity(nn.Module):
         """
         with torch.enable_grad():
             u = u.requires_grad_()
-            grad = torch.autograd.grad(self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True)[0]
+            grad = torch.autograd.grad(
+                self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True
+            )[0]
         return grad
 
     def prox_d(
@@ -159,16 +161,9 @@ class DataFidelity(nn.Module):
             tol=tol_inter,
         )
 
-    def prox_conjugate(self,
-        x,
-        y,
-        physics,
-        gamma,
-        *args,
-        lamb = 1,
-        **kwargs):
+    def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
         r"""
-        Calculates the proximity operator of the convex conjugate :math:`(\lambda f)^*` at :math:`x`, using the Moreau formula. 
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda f)^*` at :math:`x`, using the Moreau formula.
 
         ::Warning:: Only valid for convex :math:`f`
 
@@ -176,10 +171,12 @@ class DataFidelity(nn.Module):
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
         :param float gamma: stepsize of the proximity operator.
-        :param float lamb: math:`\lambda` parameter in front of :math:`f` 
+        :param float lamb: math:`\lambda` parameter in front of :math:`f`
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda f)^*}(x)`, computed in :math:`x`.
         """
-        return x - gamma * self.prox(x / gamma, y, physics, lamb / gamma, *args, **kwargs)
+        return x - gamma * self.prox(
+            x / gamma, y, physics, lamb / gamma, *args, **kwargs
+        )
 
 
 class L2(DataFidelity):
@@ -241,9 +238,9 @@ class L2(DataFidelity):
         :param torch.tensor y: Data :math:`y`.
         :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
-        x = u-y
-        d = 0.5*torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)**2
-        return d 
+        x = u - y
+        d = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        return d
 
     def grad_d(self, u, y):
         r"""
@@ -354,10 +351,10 @@ class IndicatorL2(DataFidelity):
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
         :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
-        diff = u-y
+        diff = u - y
         dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
         radius = self.radius if radius is None else radius
-        loss = (dist > radius)*1e16
+        loss = (dist > radius) * 1e16
         return loss
 
     def prox_d(self, x, y, gamma=None, radius=None):
@@ -514,7 +511,7 @@ class L1(DataFidelity):
         super().__init__()
 
     def d(self, x, y):
-        diff = x-y
+        diff = x - y
         return torch.norm(diff.view(diff.shape[0], -1), p=1, dim=-1)
 
     def grad_d(self, x, y):
@@ -596,7 +593,7 @@ class L1(DataFidelity):
         return t
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import deepinv as dinv
 
     # define a loss function
@@ -604,15 +601,15 @@ if __name__ == '__main__':
 
     # create a measurement operator dxd
     A = torch.Tensor([[2, 0], [0, 0.5]])
-    A_forward = lambda v: torch.matmul(A,v)
-    A_adjoint = lambda v: torch.matmul(A.transpose(0,1),v)
+    A_forward = lambda v: torch.matmul(A, v)
+    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
     # Define two points of size Bxd
-    x = torch.Tensor([1,4]).unsqueeze(0).repeat(4,1).unsqueeze(-1)
-    y = torch.Tensor([1,1]).unsqueeze(0).repeat(4,1).unsqueeze(-1)
+    x = torch.Tensor([1, 4]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
+    y = torch.Tensor([1, 1]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
 
     # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
     f = data_fidelity(x, y, physics)  # print f gives 1.0
@@ -620,4 +617,6 @@ if __name__ == '__main__':
     grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
 
     # Compute the proximity operator of :math:`f`
-    prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]
+    prox = data_fidelity.prox(
+        x, y, physics, gamma=1.0
+    )  # print prox_fA gives [0.6000, 3.6000]

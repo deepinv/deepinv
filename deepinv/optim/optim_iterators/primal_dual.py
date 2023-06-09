@@ -2,6 +2,7 @@ import torch
 
 from .optim_iterator import OptimIterator, fStep, gStep
 
+
 class CPIteration(OptimIterator):
     r"""
     Single iteration of the Chambolle-Pock algorithm.
@@ -76,10 +77,15 @@ class fStepCP(fStep):
         """
         if self.g_first:
             p = x - cur_params["stepsize"] * w
-            return self.data_fidelity.prox(p, y, cur_params["lambda"] * cur_params["stepsize"])
+            return self.data_fidelity.prox(
+                p, y, cur_params["lambda"] * cur_params["stepsize"]
+            )
         else:
             p = x + cur_params["sigma"] * w
-            return self.data_fidelity.prox_conjugate(p, y, cur_params["sigma"], lamb = cur_params["lambda"])
+            return self.data_fidelity.prox_conjugate(
+                p, y, cur_params["sigma"], lamb=cur_params["lambda"]
+            )
+
 
 class gStepCP(gStep):
     r"""
@@ -100,8 +106,10 @@ class gStepCP(gStep):
         """
         if self.g_first:
             p = x + cur_params["sigma"] * w
-            return cur_prior.prox_conjugate(p, cur_params["sigma"], cur_params["g_param"])
-        else: 
+            return cur_prior.prox_conjugate(
+                p, cur_params["sigma"], cur_params["g_param"]
+            )
+        else:
             p = x - cur_params["stepsize"] * w
             return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
 
@@ -117,11 +125,7 @@ class CustomLinearOperator(torch.nn.Module):
 
     """
 
-    def __init__(
-        self,
-        fwd_op=lambda x: x,
-        bwd_op=lambda x: x
-    ):
+    def __init__(self, fwd_op=lambda x: x, bwd_op=lambda x: x):
         super().__init__()
 
         self.fwd_op = fwd_op
@@ -136,7 +140,6 @@ class CustomLinearOperator(torch.nn.Module):
 
         """
         return self.fwd_op(x)
-
 
     def adjoint(self, y):
         r"""
