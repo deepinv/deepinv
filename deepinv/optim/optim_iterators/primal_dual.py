@@ -81,9 +81,9 @@ class fStepCP(fStep):
                 p, y, physics, cur_params["stepsize"] / cur_params["lambda"]
             )
         else:
-            p = x + cur_params["sigma"] * w
+            p = x + cur_params["stepsize"] * w
             return self.data_fidelity.prox_conjugate(
-                p, y, physics, cur_params["sigma"], lamb=cur_params["lambda"]
+                p, y, physics, cur_params["stepsize"], lamb=cur_params["lambda"]
             )
 
 
@@ -105,13 +105,13 @@ class gStepCP(gStep):
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
         """
         if self.g_first:
-            p = x + cur_params["sigma"] * w
+            p = x + cur_params["g_param"] * w
             return cur_prior.prox_conjugate(
-                p, 0 * p, cur_params["sigma"], lamb=cur_params["g_param"]
+                p, 0 * p, cur_params["g_param"], lamb=cur_params["sigma"]
             )
         else:
-            p = x - cur_params["stepsize"] * w
-            return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
+            p = x - cur_params["g_param"] * w
+            return cur_prior.prox(p, cur_params["sigma"], cur_params["g_param"])
 
 
 class CustomLinearOperator(torch.nn.Module):
