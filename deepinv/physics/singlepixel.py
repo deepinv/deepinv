@@ -108,8 +108,7 @@ class SinglePixelCamera(DecomposablePhysics):
         if self.fast:
             y = hadamard_2d(x)
         else:
-            N = x.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            N, C = x.shape[0], self.img_shape[0]
             x = x.reshape(N, C, -1)
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y

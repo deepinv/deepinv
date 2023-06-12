@@ -148,9 +148,9 @@ class DataFidelity(nn.Module):
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma f}(x)`, computed in :math:`x`.
         """
-        grad = lambda z: gamma * self.grad(z, y, *args, **kwargs) + (z - u)
+        grad = lambda z: gamma * self.grad(z, y, *args, **kwargs) + (z - x)
         return gradient_descent(
-            grad, u, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
+            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
     def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):

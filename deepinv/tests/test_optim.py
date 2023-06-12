@@ -2,6 +2,7 @@ import math
 import pytest
 
 import deepinv as dinv
+from deepinv.optim import DataFidelity
 from deepinv.models.denoiser import Denoiser
 from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
@@ -90,6 +91,30 @@ def test_data_fidelity_l2(device):
     grad_manual = B.transpose(0, 1) @ (B @ x - y)
 
     assert torch.allclose(grad_deepinv, grad_manual)
+
+    # 5. Testing the torch autograd implementation of the gradient
+    def dummy_torch_l2(x):
+        return 0.5 * torch.norm((B @ x).flatten(), p=2, dim=-1) ** 2
+
+    torch_loss = DataFidelity(d=dummy_torch_l2)
+    torch_loss_grad = torch_loss.grad_d(x, y)
+    grad_manual = B.transpose(0, 1) @ (B @ (x - y))
+    assert torch.allclose(torch_loss_grad, grad_manual)
+
+    # 6. Testing the torch autograd implementation of the prox
+    def dummy_torch_l2(x):
+        return 0.5 * torch.norm((B @ x).flatten(), p=2) ** 2
+
+    torch_loss = DataFidelity(d=dummy_torch_l2)
+    torch_loss_prox = torch_loss.prox_d(
+        x, y, gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
+    )
+
+    manual_prox = (Id + gamma * B.transpose(0, 1) @ B).inverse() @ (
+        x + gamma * B.transpose(0, 1) @ B @ y
+    )
+
+    assert torch.allclose(torch_loss_prox, manual_prox)
 
 
 def test_data_fidelity_indicator(device):

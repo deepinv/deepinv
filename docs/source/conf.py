@@ -90,7 +90,7 @@ html_static_path = ["_static"]
 html_favicon = "figures/logo.ico"
 html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
-    "analytics_id": "G-NSEKFKYSGR",  #  Provided by Google in your dashboard G-
+    "analytics_id": "G-NSEKFKYSGR",  # Provided by Google in your dashboard G-
     "analytics_anonymize_ip": False,
     "logo_only": True,
     "display_version": True,

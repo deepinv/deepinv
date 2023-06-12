@@ -14,7 +14,6 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import Prior
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import transforms
