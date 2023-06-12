@@ -5,5 +5,5 @@
 .. autofunction:: {{ objname }}
 
 .. minigallery:: {{module}}.{{objname}}
-    :add-heading: Examples using ``{{module}}.{{objname}}``:
+    :add-heading: Examples using ``{{objname}}``:
 

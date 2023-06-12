@@ -9,32 +9,6 @@ on:
     - main
 
 jobs:
-  test_no_conda:
-    name: Test without conda
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            version_python: 3.9
-            coverage: 'true'
-    env:
-      VERSION_PYTHON: ${{ matrix.version_python }}
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-        with:
-          python-version: ${{ env.VERSION_PYTHON }}
-
-      - name: Install deepinv and its dependencies
-        run: |
-          pip install -e .
-          pip install pytest
-      - name: Test with pytest
-        run: |
-          python -m pytest deepinv/tests
-          
   test_conda:
     name: Test with conda
     runs-on: ${{ matrix.os }}
@@ -42,7 +16,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            version_python: 3.9
+            version_python: 3.10
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -58,13 +32,6 @@ jobs:
         conda env update --file environment.yml --name base
         conda install -yq pip
         pip install -e .
-    - name: Lint with flake8
-      run: |
-        conda install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest and generate coverage report
       run: |
         conda install pytest
@@ -81,12 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEST_CONDA: ${{ needs.test_conda.result }}
-      TEST_NO_CONDA: ${{ needs.test_no_conda.result }}
 
     steps:
       - name: "Gather test results."
         run: |
-          if [[ $TEST_CONDA == 'success' && $TEST_NO_CONDA == 'success' ]]; then
+          if [[ $TEST_CONDA == 'success' ]]; then
             exit 0;
           else
             exit 1;

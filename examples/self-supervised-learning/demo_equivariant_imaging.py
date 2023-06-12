@@ -14,6 +14,8 @@ from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
 from torchvision import transforms
+from deepinv.optim.prior import PnP
+from deepinv.models.denoiser import Denoiser
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.training_utils import train, test
 from deepinv.models.denoiser import online_weights_path
@@ -76,7 +78,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
     900 if torch.cuda.is_available() else 5
 )  # number of images used for training
-# (the dataset has up to 973 images, however here we use only 100)
+# (the dataset has up to 973 images, however here we use only 900)
 
 my_dataset_name = "demo_equivariant_imaging"
 measurement_dir = DATA_DIR / train_dataset_name / operation
@@ -120,9 +122,7 @@ denoiser_spec = {
 
 # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = {
-    "prox_g": dinv.models.Denoiser(denoiser_spec)
-}  # here the prior model is common for all iterations
+prior = PnP(denoiser=Denoiser(denoiser_spec))
 
 # Unrolled optimization algorithm parameters
 max_iter = 3  # number of unfolded layers
@@ -180,9 +180,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-url = online_weights_path() + "demo_ei_ckp_150.pth"
+url = online_weights_path() + "new_demo_ei_ckp_150.pth"
 ckpt = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="demo_ei_ckp_150.pth"
+    url, map_location=lambda storage, loc: storage, file_name="new_demo_ei_ckp_150.pth"
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])
