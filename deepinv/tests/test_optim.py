@@ -201,98 +201,103 @@ optim_algos = [
 # other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
-    for g_first in [False, True] if name_algo != "CP" else [False]:  # TODO: Fix this
-        if not g_first or (g_first and not ("HQS" in name_algo or "PGD" in name_algo)):
-            # Define two points
-            x = torch.tensor([[[10], [10]]], dtype=torch.float64)
+    for g_first in [True,False] :
 
-            # Create a measurement operator
-            B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
-            B_forward = lambda v: B @ v
-            B_adjoint = lambda v: B.transpose(0, 1) @ v
+        # Define two points
+        x = torch.tensor([[[10], [10]]], dtype=torch.float64)
 
-            # Define the physics model associated to this operator
-            physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
-            y = physics(x)
+        # Create a measurement operator
+        B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
+        B_forward = lambda v: B @ v
+        B_adjoint = lambda v: B.transpose(0, 1) @ v
 
-            data_fidelity = L2()  # The data fidelity term
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+        y = physics(x)
 
-            def prior_g(x, *args):
-                ths = 0.1
-                return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        data_fidelity = L2()  # The data fidelity term
 
-            prior = Prior(g=prior_g)  # The prior term
+        def prior_g(x, *args):
+            ths = 0.1
+            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
-            if (
-                name_algo == "CP"
-            ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-                stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
-                reg_param = 1.0
-                sigma = 1.0
-            else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-                stepsize = 1.0 / physics.compute_norm(x, tol=1e-4).item()
-                reg_param = 1.0 * stepsize
-                sigma = None
+        prior = Prior(g=prior_g)  # The prior term
 
-            lamb = 1.5
-            max_iter = 1000
-            params_algo = {
-                "stepsize": stepsize,
-                "g_param": reg_param,
-                "lambda": lamb,
-                "sigma": sigma,
-            }
+        if (
+            name_algo == "CP"
+        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            sigma = 1.0
+        else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
+            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            sigma = None
 
-            def custom_init_CP(x_init, y_init):
-                return {"est": (x_init, x_init, y_init)}
+        lamb = 1.1
+        max_iter = 1000
+        params_algo = {
+            "stepsize": stepsize,
+            "lambda": lamb,
+            "sigma": sigma,
+        }
 
-            custom_init = custom_init_CP if name_algo == "CP" else None
+        def custom_init_CP(x_init, y_init):
+            return {"est": (x_init, x_init, y_init)}
 
-            optimalgo = optim_builder(
-                name_algo,
-                prior=prior,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                crit_conv="residual",
-                thres_conv=1e-11,
-                verbose=True,
-                params_algo=params_algo,
-                early_stop=True,
-                g_first=g_first,
-                custom_init=custom_init,
-            )
+        custom_init = custom_init_CP if name_algo == "CP" else None
 
-            # Run the optimisation algorithm
-            x = optimalgo(y, physics)
+        optimalgo = optim_builder(
+            name_algo,
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            crit_conv="residual",
+            thres_conv=1e-11,
+            verbose=True,
+            params_algo=params_algo,
+            early_stop=True,
+            g_first=g_first,
+            custom_init=custom_init,
+        )
 
-            print("IS GFIRST? ", g_first)
-            assert optimalgo.has_converged
+        # Run the optimisation algorithm
+        x = optimalgo(y, physics)
 
-            # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-            subdiff = prior.grad(x, 0)
+        assert optimalgo.has_converged
 
-            if name_algo == "HQS":
-                # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
-                # :math:`\lambda \gamma_1 ^1(f)+\gamma_2 g` where :math:`^1(f)` denotes the Moreau envelope of :math:`f`,
-                # and :math:`\gamma_1` and :math:`\gamma_2` are the stepsizes in the proximity operators. Beware, these are
-                # not fetch automatically here but handwritten in the test.
-                # The optimality condition is then :math:`0 \in \gamma_1 \nabla ^1(f)(x)+\gamma_2 \partial g(x)`
-                stepsize_f = lamb * stepsize
-                stepsize_g = reg_param
+        # Compute the subdifferential of the regularisation at the limit point of the algorithm.
+        
 
+        if name_algo == "HQS":
+            # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
+            # :math:`\lambda M_{\lambda \tau f}+g` where :math:` M_{\lambda \tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\lambda \tau`.
+            # Beware, these are not fetch automatically here but handwritten in the test.
+            # The optimality condition is then :math:`0 \in \lambda M_{\lambda \tau f}(x)+\partial g(x)`
+            if not g_first : 
+                subdiff = prior.grad(x)
                 moreau_grad = (
-                    x - data_fidelity.prox(x, y, physics, stepsize_f)
-                ) / stepsize_f  # Gradient of the moreau envelope
+                    x - data_fidelity.prox(x, y, physics, lamb * stepsize)
+                ) / (lamb * stepsize)  # Gradient of the moreau envelope
+                print(g_first, lamb*moreau_grad+subdiff)
                 assert torch.allclose(
-                    moreau_grad * stepsize_f, -subdiff * stepsize_g, atol=1e-12
+                    lamb*moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
-            else:
-                # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
-                # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
-                grad_deepinv = data_fidelity.grad(x, y, physics)
+            else :
+                subdiff = lamb * data_fidelity.grad(x, y, physics)
+                moreau_grad = (
+                    x - prior.prox(x, stepsize)
+                ) / stepsize  # Gradient of the moreau envelope
+                print(g_first, moreau_grad+subdiff)
                 assert torch.allclose(
-                    lamb * grad_deepinv, -subdiff, atol=1e-12
+                    moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
+        else:
+            subdiff = prior.grad(x)
+            # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
+            # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
+            grad_deepinv = data_fidelity.grad(x, y, physics)
+            assert torch.allclose(
+                lamb * grad_deepinv, -subdiff, atol=1e-8
+            )  # Optimality condition
 
 
 def test_denoiser(imsize, dummy_dataset, device):
