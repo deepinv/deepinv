@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: "Gather test results."
         run: |
-          if $TEST_CONDA == 'success' ; then
+          if [[ $TEST_CONDA == 'success' ]] ; then
             exit 0;
           else
             exit 1;
