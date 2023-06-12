@@ -277,7 +277,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 moreau_grad = (
                     x - data_fidelity.prox(x, y, physics, lamb * stepsize)
                 ) / (lamb * stepsize)  # Gradient of the moreau envelope
-                print(g_first, lamb*moreau_grad+subdiff)
                 assert torch.allclose(
                     lamb*moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
@@ -286,7 +285,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 moreau_grad = (
                     x - prior.prox(x, stepsize)
                 ) / stepsize  # Gradient of the moreau envelope
-                print(g_first, moreau_grad+subdiff)
                 assert torch.allclose(
                     moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
