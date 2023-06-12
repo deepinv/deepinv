@@ -111,7 +111,9 @@ class gStepCP(gStep):
         """
         if self.g_first:
             p = x + cur_params["sigma"] * w
-            return cur_prior.prox_conjugate(p,cur_params["sigma"], cur_params["g_param"])
+            return cur_prior.prox_conjugate(
+                p, cur_params["sigma"], cur_params["g_param"]
+            )
         else:
             p = x - cur_params["stepsize"] * w
             return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])

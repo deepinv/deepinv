@@ -201,8 +201,7 @@ optim_algos = [
 # other algos: check constraints on the stepsize
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
-    for g_first in [True,False] :
-
+    for g_first in [True, False]:
         # Define two points
         x = torch.tensor([[[10], [10]]], dtype=torch.float64)
 
@@ -265,22 +264,23 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         assert optimalgo.has_converged
 
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-        
 
         if name_algo == "HQS":
             # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
             # :math:`\lambda M_{\lambda \tau f}+g` where :math:` M_{\lambda \tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\lambda \tau`.
             # Beware, these are not fetch automatically here but handwritten in the test.
             # The optimality condition is then :math:`0 \in \lambda M_{\lambda \tau f}(x)+\partial g(x)`
-            if not g_first : 
+            if not g_first:
                 subdiff = prior.grad(x)
                 moreau_grad = (
                     x - data_fidelity.prox(x, y, physics, lamb * stepsize)
-                ) / (lamb * stepsize)  # Gradient of the moreau envelope
+                ) / (
+                    lamb * stepsize
+                )  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    lamb*moreau_grad, -subdiff, atol=1e-8
+                    lamb * moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
-            else :
+            else:
                 subdiff = lamb * data_fidelity.grad(x, y, physics)
                 moreau_grad = (
                     x - prior.prox(x, stepsize)
