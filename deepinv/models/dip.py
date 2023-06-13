@@ -201,6 +201,5 @@ if __name__ == "__main__":
     ).to(device)
 
     x_hat = model(y, physics)
-    x_hat = model(y, physics)
 
     dinv.utils.plot([x, y, x_hat], titles=["GT", "Meas.", "Recon."])
