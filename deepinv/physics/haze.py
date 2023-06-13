@@ -1,5 +1,6 @@
 import torch
 from deepinv.physics.forward import Physics
+from deepinv.utils import TensorList
 
 
 class Haze(Physics):
@@ -55,10 +56,10 @@ class Haze(Physics):
 
 
         :param torch.tensor y: Hazy image.
-        :return: (list, tuple) trivial inverse.
+        :return: (deepinv.utils.ListTensor) trivial inverse.
 
         """
         b, c, h, w = y.shape
         d = torch.ones((b, 1, h, w), device=y.device)
-        A = 1.0
-        return y, d, A
+        A = torch.ones(1, device=y.device)
+        return TensorList([y, d, A])
