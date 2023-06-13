@@ -1,5 +1,6 @@
 import torch
 from deepinv.physics.forward import Physics
+from deepinv.physics.noise import PoissonNoise
 
 
 class SinglePhotonLidar(Physics):
@@ -35,7 +36,7 @@ class SinglePhotonLidar(Physics):
         self.sigma = torch.nn.Parameter(
             torch.tensor(sigma, device=device), requires_grad=False
         )
-        self.noise_model = dinv.physics.PoissonNoise()
+        self.noise_model = PoissonNoise()
 
         h = ((self.grid - 3 * sigma) / self.sigma).pow(2)
         h = torch.exp(-h / 2.0)
@@ -104,9 +105,10 @@ if __name__ == "__main__":
     import deepinv as dinv
 
     T = 40
-    physics = SinglePhotonLidar(T=T, device=dinv.device)
+    device = "cuda:0"
+    physics = SinglePhotonLidar(T=T, device=device)
 
-    x = torch.rand((1, 3, 2, 4), device=dinv.device)
+    x = torch.rand((1, 3, 2, 4), device=device)
     x[:, 0, :, :] *= T
     x[:, 1, :, :] *= 300
     x[:, 2, :, :] *= 0
