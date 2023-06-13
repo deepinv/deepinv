@@ -118,7 +118,7 @@ def find_nonlinear_operator(name, device):
         )
         p = dinv.physics.Haze()
     elif name == "lidar":
-        x = torch.randn(1, 3, 16, 16, device=device)
+        x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
