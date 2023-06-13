@@ -144,13 +144,7 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True  # use backtraking to automatically adjust the stepsize
-factor = 2  # down-sampling factor
-use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 max_iter = 500  # Maximum number of iterations
-stepsize_prox_inter = 1.0  # Stepsize used for gradient descent calculation of the prox of the custom prior.
-max_iter_prox_inter = 50  # Maximum number of iterations for gradient descent calculation of the prox of the custom
-# prior.
-tol_prox_inter = 1e-3  # Convergence criteria for gradient descent calculation of the prox of the custom prior.
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
