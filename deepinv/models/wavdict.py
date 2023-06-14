@@ -34,14 +34,19 @@ class WaveletPrior(nn.Module):
         self.iwt = DWTInverse(wave=wv).to(device)
 
     def prox_l1(self, x, ths=0.1):
+        if ths.shape[0] == 1:
+            ths_map = ths
+        else:
+            ths_map = ths.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
         return torch.maximum(
-            torch.tensor([0], device=x.device).type(x.dtype), x - ths
-        ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths)
+            torch.tensor([0], device=x.device).type(x.dtype), x - ths_map
+        ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
 
     def forward(self, x, ths=0.0):
         coeffs = self.dwt(x)
         for l in range(self.level):
-            coeffs[1][l] = self.prox_l1(coeffs[1][l], ths)
+            ths_cur = ths if ths.shape[0] == 1 else ths[l]
+            coeffs[1][l] = self.prox_l1(coeffs[1][l], ths_cur)
         y = self.iwt(coeffs)
         return y
 

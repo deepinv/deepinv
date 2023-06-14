@@ -127,9 +127,10 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 data_fidelity = L2()
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
+level = 3
 model_spec = {
     "name": "waveletprior",
-    "args": {"wv": "db4", "level": 2, "device": device},
+    "args": {"wv": "db4", "level": level, "device": device},
 }
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
@@ -138,15 +139,12 @@ max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterati
 prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [
-    1.0
-] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [
-    0.1
-] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+
+sigma_denoiser_init = 0.05
+sigma_denoiser = [sigma_denoiser_init*torch.ones(level, 3)]*max_iter
+# sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -189,8 +187,8 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 8
-test_batch_size = 64 if torch.cuda.is_available() else 8
+train_batch_size = 64 if torch.cuda.is_available() else 1
+test_batch_size = 64 if torch.cuda.is_available() else 1
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -254,10 +252,11 @@ test(
 #
 
 list_g_param = [
-    name_param[1].item()
+    name_param[1][0][0].item()  #.item()
     for i, name_param in enumerate(model.named_parameters())
     if name_param[1].requires_grad and "g_param" in name_param[0]
 ]
+
 list_stepsize = [
     name_param[1].item()
     for i, name_param in enumerate(model.named_parameters())
@@ -288,7 +287,7 @@ ax.plot(
 
 ax.plot(
     np.arange(len(list_g_param)),
-    sigma_denoiser,
+    [sigma_denoiser_init]*len(list_g_param),
     label="init. g_param",
     color="r",
     linestyle="dashed",
