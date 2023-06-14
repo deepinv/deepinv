@@ -6,6 +6,7 @@ import zipfile
 import torch
 import torchvision
 import numpy as np
+import scipy.io as scio
 
 
 class MRIData(torch.utils.data.Dataset):
@@ -40,6 +41,50 @@ class MRIData(torch.utils.data.Dataset):
         return len(self.x)
 
 
+class CTData(torch.utils.data.Dataset):
+    """CT dataset."""
+
+    def __init__(
+        self,
+        mode="train",
+        root_dir="../datasets/CT100_256x256.mat",
+        download=True,
+        sample_index=None,
+    ):
+        # the original CT100 dataset can be downloaded from
+        # https://www.kaggle.com/kmader/siim-medical-images
+        # the images are resized and saved in Matlab.
+
+        mat_data = scio.loadmat(root_dir)
+        x = torch.from_numpy(mat_data["DATA"])
+
+        if mode == "train":
+            self.x = x[0:90]
+        if mode == "test":
+            self.x = x[90:100, ...]
+
+        self.x = self.x.type(torch.FloatTensor)
+
+        if sample_index is not None:
+            self.x = self.x[sample_index].unsqueeze(0)
+
+    def __getitem__(self, index):
+        x = self.x[index]
+        return x
+
+    def __len__(self):
+        return len(self.x)
+
+
+def ct100_dataloader(train=True, batch_size=1, shuffle=True, num_workers=1):
+    return torch.utils.data.DataLoader(
+        dataset=CTData(mode="train" if train else "test"),
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+    )
+
+
 def get_git_root():
     git_repo = git.Repo(".", search_parent_directories=True)
     git_root = git_repo.git.rev_parse("--show-toplevel")
@@ -53,6 +98,8 @@ def load_dataset(
 
     if dataset_name == "fastmri_knee_singlecoil":
         filetype = "pt"
+    elif dataset_name == "ct100":
+        filetype = "mat"
     else:
         filetype = "zip"
 
@@ -84,6 +131,8 @@ def load_dataset(
         dataset = MRIData(
             train=train, root_dir=dataset_dir / dataset_name, transform=transform
         )
+    elif dataset_name == "ct100":
+        dataset = CTData(train=train, root_dir=dataset_dir / dataset_name)
     else:
         dataset = torchvision.datasets.ImageFolder(
             root=dataset_dir, transform=transform
