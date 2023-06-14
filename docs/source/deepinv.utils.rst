@@ -28,7 +28,7 @@ We provide some basic plotting functions that are adapted to inverse problems.
 
 
 TensorList
-----------------
+----------
 The TensorList class is a wrapper around a list of tensors.
 It can be used to represent signals or measurements that are naturally better
 represented as a list of tensors of different sizes, rather than a single tensor.
