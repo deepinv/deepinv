@@ -16,7 +16,7 @@ Functions to train and test the model, and save the model and the results.
 
 
 Plotting
-------------
+--------
 We provide some basic plotting functions that are adapted to inverse problems.
 
 .. autosummary::
