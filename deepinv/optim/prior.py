@@ -6,16 +6,32 @@ from deepinv.optim.utils import gradient_descent
 
 class Prior(nn.Module):
     r"""
-    Prior term :math:`g(x)`. To implement a custom prior, for an explicit prior, overwrite `g` (do not forget to specify `self.explicit_prior = True`). For an implicit prior, overwrite the `grad` or `prox`.
+    Prior term :math:`g(x)`.
 
-    This is the base class for the prior term :math:`g(x)`.
+    This is the base class for the prior term :math:`g(x)`. Similarly to the :meth:`deepinv.optim.DataFidelity` class,
+    this class comes with methods for computing
+    :math:`\operatorname{prox}_{g}` and :math:`\nabla g`.
+    To implement a custom prior, for an explicit prior, overwrite :math:`g` (do not forget to specify
+    `self.explicit_prior = True`)
+
+    This base class is also used to implement implicit priors. For instance, in PnP methods, the method computing the
+    proximity operator is overwritten by a method performing denoising. For an implicit prior, overwrite `grad`
+    or `prox`.
+
+
+    .. note::
+
+        The methods for computing the proximity operator and the gradient of the prior rely on automatic
+        differentiation. These methods should not be used when the prior is not differentiable, although they will
+        not raise an error.
+
+
+    :param callable g: Prior function :math:`g(x)`.
     """
 
-    def __init__(self, g=None, grad=None, prox=None):
+    def __init__(self, g=None):
         super().__init__()
         self._g = g
-        self._grad = grad
-        self._prox = prox
         self.explicit_prior = False if self._g is None else True
 
     def g(self, x, *args, **kwargs):
@@ -92,7 +108,7 @@ class Prior(nn.Module):
 
 class PnP(Prior):
     r"""
-    Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`
+    Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -113,7 +129,7 @@ class PnP(Prior):
 
 class RED(Prior):
     r"""
-    Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`
+    Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -134,11 +150,10 @@ class RED(Prior):
 
 class Tikhonov(Prior):
     r"""
-    Tikhonov regularizer :math:`g{x} = \frac{1}{2}\| T x \|_2^2`.
+    Tikhonov regularizer :math:`g(x) = \frac{1}{2}\| x \|_2^2`.
     """
 
-    def __init__(self, T, *args, **kwargs):
-        self.T = T
+    def __init__(self, *args, **kwargs):
         self.explicit_prior = True
 
     def g(self, x):
