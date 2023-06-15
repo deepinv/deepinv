@@ -454,7 +454,6 @@ def test_CP_K(imsize, dummy_dataset, device):
     K_forward = lambda v: K @ v
     K_adjoint = lambda v: K.transpose(0, 1) @ v
 
-
     params_algo = {
         "stepsize": stepsize,
         "g_param": reg_param,
