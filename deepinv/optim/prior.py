@@ -6,9 +6,9 @@ from deepinv.optim.utils import gradient_descent
 
 class Prior(nn.Module):
     r"""
-    Prior term :math:`g{x}`. To implement a custom prior, for an explciit prior, overwrite `g` (do not forget to specify `self.explicit_prior = True`). For an implicit prior, overwrite the `grad` or `prox`.
+    Prior term :math:`g(x)`. To implement a custom prior, for an explicit prior, overwrite `g` (do not forget to specify `self.explicit_prior = True`). For an implicit prior, overwrite the `grad` or `prox`.
 
-    This is the base class for the prior term :math:`g{x}`.
+    This is the base class for the prior term :math:`g(x)`.
     """
 
     def __init__(self, g=None, grad=None, prox=None):
