@@ -49,7 +49,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.max_iter = max_iter
         self.tol = tol
 
-    def __mul__(self, other):  #  physics3 = physics1 + physics2
+    def __mul__(self, other):  #  physics3 = physics1 \circ physics2
         r"""
         Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
 
