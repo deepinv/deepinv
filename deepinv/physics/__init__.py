@@ -8,7 +8,6 @@ from .forward import (
     Physics,
     LinearPhysics,
     DecomposablePhysics,
-    CustomLinearOperator,
 )
 from .noise import GaussianNoise, PoissonNoise, PoissonGaussianNoise, UniformNoise
 from .mri import MRI
