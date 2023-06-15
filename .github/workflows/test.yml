@@ -37,10 +37,9 @@ jobs:
 
   report_test:
     if: ${{ always() }}
-    needs: [test_conda, test_no_conda]
+    needs: [test_no_conda]
     runs-on: ubuntu-latest
     env:
-      TEST_CONDA: ${{ needs.test_conda.result }}
       TEST_NO_CONDA: ${{ needs.test_no_conda.result }}
 
     steps:
