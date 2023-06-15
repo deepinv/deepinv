@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from deepinv.optim.utils import conjugate_gradient
 from .noise import GaussianNoise
+from deepinv.utils import zeros_like, randn_like, TensorList
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -48,9 +49,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.max_iter = max_iter
         self.tol = tol
 
-    def __add__(self, other):  #  physics3 = physics1 + physics2
+    def __mul__(self, other):  #  physics3 = physics1 \circ physics2
         r"""
-        Concatenates two forward operators :math:`A = A_1\circ A_2` via the add operation
+        Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
 
         The resulting operator keeps the noise and sensor models of :math:`A_1`.
 
@@ -65,6 +66,46 @@ class Physics(torch.nn.Module):  # parent class for forward models
             A=A,
             noise_model=noise,
             sensor_model=sensor,
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+
+    def __add__(self, other):
+        r"""
+        Stacks two linear forward operators :math:`A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}`
+        via the add operation.
+
+        The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+        each entry corresponds to the measurements of the corresponding operator.
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.Physics) stacked operator
+
+        """
+        A = lambda x: TensorList(self.A(x)).append(TensorList(other.A(x)))
+
+        class noise(torch.nn.Module):
+            def __init__(self, noise1, noise2):
+                super().__init__()
+                self.noise1 = noise1
+                self.noise2 = noise2
+
+            def forward(self, x):
+                return TensorList(self.noise1(x[:-1])).append(self.noise2(x[-1]))
+
+        class sensor(torch.nn.Module):
+            def __init__(self, sensor1, sensor2):
+                super().__init__()
+                self.sensor1 = sensor1
+                self.sensor2 = sensor2
+
+            def forward(self, x):
+                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
+
+        return Physics(
+            A=A,
+            noise_model=noise(self.noise_model, other.noise_model),
+            sensor_model=sensor(self.sensor_model, other.sensor_model),
             max_iter=self.max_iter,
             tol=self.tol,
         )
@@ -107,21 +148,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         """
         return self.noise_model(x)
-
-    def __mul__(self, other):  #  physics3 = physics1 * physics2
-        r"""
-        Concatenates two forward operators :math:`A = A_1\circ A_2` via the add operation
-
-        The resulting operator keeps the noise and sensor models of :math:`A_1`.
-
-        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.Physics) concantenated operator
-
-        """
-        A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
-        noise = self.noise_model
-        sensor = self.sensor_model
-        return Physics(A, noise, sensor)
 
     def A_dagger(self, y, x_init=None):
         r"""
@@ -219,9 +245,9 @@ class LinearPhysics(Physics):
         """
         return self.adjoint(y)
 
-    def __mul__(self, other):  #  physics3 = physics1 * physics2
+    def __mul__(self, other):
         r"""
-        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the add operation
+        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
 
         The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
 
@@ -242,6 +268,50 @@ class LinearPhysics(Physics):
             tol=self.tol,
         )
 
+    def __add__(self, other):
+        r"""
+        Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}` via the add operation.
+
+        The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+        each entry corresponds to the measurements of the corresponding operator.
+
+        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.LinearPhysics) stacked operator
+
+        """
+        A = lambda x: TensorList(self.A(x)).append(TensorList(other.A(x)))
+
+        def A_adjoint(y):
+            at1 = self.A_adjoint(y[:-1]) if len(y) > 2 else self.A_adjoint(y[0])
+            return at1 + other.A_adjoint(y[-1])
+
+        class noise(torch.nn.Module):
+            def __init__(self, noise1, noise2):
+                super().__init__()
+                self.noise1 = noise1
+                self.noise2 = noise2
+
+            def forward(self, x):
+                return TensorList(self.noise1(x[:-1])).append(self.noise2(x[-1]))
+
+        class sensor(torch.nn.Module):
+            def __init__(self, sensor1, sensor2):
+                super().__init__()
+                self.sensor1 = sensor1
+                self.sensor2 = sensor2
+
+            def forward(self, x):
+                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
+
+        return LinearPhysics(
+            A=A,
+            A_adjoint=A_adjoint,
+            noise_model=noise(self.noise_model, other.noise_model),
+            sensor_model=sensor(self.sensor_model, other.sensor_model),
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
@@ -250,7 +320,7 @@ class LinearPhysics(Physics):
 
         using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.tensor x0: initialisation point of the algorithm
+        :param torch.Tensor x0: initialisation point of the algorithm
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -280,7 +350,7 @@ class LinearPhysics(Physics):
         r"""
         Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
 
-        :param torch.tensor u: initialisation point of the adjointness test method
+        :param torch.Tensor u: initialisation point of the adjointness test method
 
         :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).
 
@@ -288,10 +358,19 @@ class LinearPhysics(Physics):
         u_in = u  # .type(self.dtype)
         Au = self.A(u_in)
 
-        v = torch.randn_like(Au)
-        Atv = self.A_adjoint(v)
+        if isinstance(Au, tuple) or isinstance(Au, list):
+            V = [randn_like(au) for au in Au]
+            Atv = self.A_adjoint(V)
+            s1 = 0
+            for au, v in zip(Au, V):
+                s1 += (v * au).flatten().sum()
 
-        s1 = (v * Au).flatten().sum()
+        else:
+            v = randn_like(Au)
+            Atv = self.A_adjoint(v)
+
+            s1 = (v * Au).flatten().sum()
+
         s2 = (Atv * u_in).flatten().sum()
 
         return s1 - s2
@@ -304,10 +383,10 @@ class LinearPhysics(Physics):
 
             \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
 
-        :param torch.tensor y: measurements tensor
-        :param torch.tensor z: signal tensor
+        :param torch.Tensor y: measurements tensor
+        :param torch.Tensor z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
-        :return: (torch.tensor) estimated signal tensor
+        :return: (torch.Tensor) estimated signal tensor
 
         """
         b = self.A_adjoint(y) + 1 / gamma * z
@@ -325,13 +404,13 @@ class LinearPhysics(Physics):
 
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
-        :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :return: (torch.tensor) The reconstructed image :math:`x`.
+        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :return: (torch.Tensor) The reconstructed image :math:`x`.
 
         """
         Aty = self.A_adjoint(y)
 
-        overcomplete = np.prod(Aty.shape) < np.prod(y.shape)
+        overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
 
         if not overcomplete:
             A = lambda x: self.A(self.A_adjoint(x))
@@ -366,7 +445,7 @@ class DecomposablePhysics(LinearPhysics):
     :param callable U_adjoint: transpose of U
     :param callable V: orthonormal transformation
     :param callable V_adjoint: transpose of V
-    :param torch.tensor, float mask: Singular values of the transform
+    :param torch.Tensor, float mask: Singular values of the transform
 
     """
 
@@ -414,10 +493,10 @@ class DecomposablePhysics(LinearPhysics):
         Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`
         in an efficient manner leveraging the singular vector decomposition.
 
-        :param torch.tensor y: measurements tensor
-        :param torch.tensor, float z: signal tensor
+        :param torch.Tensor y: measurements tensor
+        :param torch.Tensor, float z: signal tensor
         :param float gamma: hyperparameter :math:`\gamma` of the proximal operator
-        :return: (torch.tensor) estimated signal tensor
+        :return: (torch.Tensor) estimated signal tensor
 
         """
         b = self.A_adjoint(y) + 1 / gamma * z
@@ -432,8 +511,8 @@ class DecomposablePhysics(LinearPhysics):
         r"""
         Computes :math:`A^{\dagger}y = x` in an efficient manner leveraging the singular vector decomposition.
 
-        :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :return: (torch.tensor) The reconstructed image :math:`x`.
+        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :return: (torch.Tensor) The reconstructed image :math:`x`.
 
         """
 
