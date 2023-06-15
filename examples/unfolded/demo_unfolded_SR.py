@@ -51,10 +51,10 @@ test_transform = transforms.Compose(
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-train_dataset = load_dataset(
+train_base_dataset = load_dataset(
     train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
 )
-test_dataset = load_dataset(
+test_base_dataset = load_dataset(
     test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
 )
 
@@ -87,8 +87,8 @@ n_images_max = (
 )  # maximal number of images used for training
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
+    train_dataset=train_base_dataset,
+    test_dataset=test_base_dataset,
     physics=physics,
     device=device,
     save_dir=measurement_dir,

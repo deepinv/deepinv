@@ -45,7 +45,8 @@ class HDF5Dataset(data.Dataset):
 
 
 def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device='cpu', train_datapoints=None,
-                     dataset_filename='dinv_dataset', batch_size=4, num_workers=0, supervised=True):
+                     test_datapoints = None, dataset_filename='dinv_dataset', batch_size=4, num_workers=0,
+                     supervised=True):
     r'''
     Generates dataset of signal/measurement pairs from base dataset.
 
@@ -62,9 +63,11 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     :param torch.data.Dataset test_dataset: if included, the function will also generate measurements associated to the
         test dataset.
     :param torch.device device: which indicates cpu or gpu.
-    :param int, None train_datapoints: Desired number of datapoints in the dataset. If set to ``None``, it will use the
+    :param int, None train_datapoints: Desired number of datapoints in the training dataset. If set to ``None``, it will use the
         number of datapoints in the base dataset. This is useful for generating a larger train dataset via data
         augmentation (which should be chosen in the train_dataset).
+    :param int, None test_datapoints: Desired number of datapoints in the test dataset. If set to ``None``, it will use the
+        number of datapoints in the base test dataset.
     :param str dataset_filename: desired filename of the dataset.
     :param int batch_size: batch size for generating the measurement data
         (it only affects the speed of the generating process)
@@ -98,7 +101,8 @@ def generate_dataset(train_dataset, physics, save_dir, test_dataset=None, device
     n_dataset_g = int(min(len(train_dataset), datapoints)/G)
 
     if test_dataset is not None:
-        n_test = min(len(test_dataset), datapoints)
+        test_datapoints = test_datapoints if test_datapoints is not None else len(test_dataset)
+        n_test = min(len(test_dataset), test_datapoints)
         n_test_g = int(n_test / G)
 
     hf_paths = []
