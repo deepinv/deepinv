@@ -67,5 +67,3 @@ class Denoiser(nn.Module):
     def forward(self, x, sigma):
         r""" """
         return self.denoiser(x, sigma)
-
-

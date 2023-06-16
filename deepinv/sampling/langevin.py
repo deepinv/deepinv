@@ -448,7 +448,7 @@ class SKRock(MonteCarlo):
 #     }
 #     # model_spec = {'name': 'waveletprior', 'args': {'wv': 'db8', 'level': 4, 'device': dinv.device}}
 #
-#     prior = ScoreDenoiser(model_spec=model_spec, sigma_normalize=True)
+#     prior = ScorePrior(model_spec=model_spec, sigma_normalize=True)
 #
 #     sigma_den = 2 / 255
 #     f = ULA(

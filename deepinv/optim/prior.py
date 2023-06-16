@@ -183,3 +183,50 @@ class Tikhonov(Prior):
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
         return (1 / (gamma + 1)) * x
+
+
+class ScorePrior(Prior):
+    r"""
+    Approximates the score of a distribution using a denoiser.
+
+    This approximates the score of a distribution using Tweedie's formula, i.e.,
+
+    .. math::
+
+        - \nabla \log p_{\sigma}(x) \propto \left(x-D(x,\sigma)\right)/\sigma^2
+
+    where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
+    :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
+    which is typically set to a low value.
+
+    If ``sigma_normalize=False``, the score is computed without normalization, i.e.,
+    :math:`x-D(x,\sigma)`. This can be useful when using this class in the context of
+    `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>` which doesn't require the normalization.
+
+
+    .. note::
+
+        This class can also be used with maximum-a-posteriori (MAP) denoisers,
+        but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather
+        given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,
+
+        .. math::
+
+            p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
+
+
+    """
+
+    def __init__(self, denoiser, *args, **kwargs):
+        super(ScorePrior, self).__init__(*args, **kwargs)
+        self.denoiser = denoiser
+        self.explicit_prior = False
+
+    def forward(self, x, sigma):
+        r"""
+        Applies the denoiser to the input signal.
+
+        :param torch.Tensor x: the input tensor.
+        :param float sigma: the noise level.
+        """
+        return (1 / sigma**2) * (x - self.denoiser(x, sigma))

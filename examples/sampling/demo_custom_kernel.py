@@ -165,7 +165,7 @@ class PreconULA(dinv.sampling.MonteCarlo):
 # ----------------
 #
 # The score a distribution can be approximated using a plug-and-play denoiser via the
-# :class:`deepinv.models.ScoreDenoiser` class.
+# :class:`deepinv.optim.ScorePrior` class.
 #
 # .. math::
 #
