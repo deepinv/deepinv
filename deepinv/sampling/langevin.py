@@ -4,7 +4,6 @@ import numpy as np
 import time as time
 
 import deepinv.optim
-from deepinv.models import ScoreDenoiser
 from tqdm import tqdm
 from deepinv.optim.utils import check_conv
 from deepinv.sampling.utils import Welford, projbox, refl_projbox
@@ -48,7 +47,7 @@ class MonteCarlo(nn.Module):
     This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
     Monte Carlo samples.
 
-    :param deepinv.models.ScoreDenoiser prior: negative log-prior based on a trained or model-based denoiser.
+    :param deepinv.optim.ScorePrior prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param int max_iter: number of Monte Carlo iterations.
@@ -66,7 +65,7 @@ class MonteCarlo(nn.Module):
     def __init__(
         self,
         iterator: torch.nn.Module,
-        prior: ScoreDenoiser,
+        prior: deepinv.optim.ScorePrior,
         data_fidelity: deepinv.optim.DataFidelity,
         max_iter=1e3,
         burnin_ratio=0.2,
@@ -243,7 +242,7 @@ class ULA(MonteCarlo):
     - PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-    :param deepinv.models.ScoreDenoiser, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
+    :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param float step_size: step size :math:`\eta>0` of the algorithm.
@@ -358,7 +357,7 @@ class SKRock(MonteCarlo):
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-    :param deepinv.models.ScoreDenoiser, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
+    :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param float step_size: Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz
@@ -378,7 +377,7 @@ class SKRock(MonteCarlo):
 
     def __init__(
         self,
-        prior: ScoreDenoiser,
+        prior: deepinv.optim.ScorePrior,
         data_fidelity,
         step_size=1.0,
         inner_iter=10,
