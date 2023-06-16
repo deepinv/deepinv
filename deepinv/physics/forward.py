@@ -195,8 +195,7 @@ class LinearPhysics(Physics):
     the measurements.
 
     :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
-        It is recommended to normalize it to have unit norm, which can be verified via
-        ``self.adjointness_test``.
+        It is recommended to normalize it to have unit norm.
     :param callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
     :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.

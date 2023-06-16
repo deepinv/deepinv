@@ -8,19 +8,20 @@ class ADMMIteration(OptimIterator):
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for minimising :math:`\lambda f(x) + g(x)`.
 
-    The iteration is given by `<https://www.nowpublishers.com/article/Details/MAL-016>`_:
+    If the attribute `"g_first"`is set to False (by default), the iteration is given by `<https://www.nowpublishers.com/article/Details/MAL-016>`_:
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        z_{k+1/2} &= \operatorname{prox}_{\gamma g}(x_k - z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda f}(z_{k+1/2} + z_k) \\
-        z_{k+1} &= z_k + \beta (z_{k+1/2} - x_{k+1})
+        u_{k+1} &= \operatorname{prox}_{\gamma \lambda f}(x_k - z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_{k+1} + z_k) \\
+        z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
         \end{aligned}
         \end{equation*}
 
-
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
+
+    If the attribute `"g_first"` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
     """
 
     def __init__(self, **kwargs):
@@ -34,26 +35,24 @@ class ADMMIteration(OptimIterator):
         Single iteration of the ADMM algorithm.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
-        :param dict cur_prior: dictionary containing the prior-related term of interest, e.g. its proximal operator or gradient.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: dictionary containing the current parameters of the model.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x, z = X["est"]
-
-        if (
-            z.shape != x.shape
-        ):  # In ADMM, the "dual" variable u is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
+        if z.shape != x.shape:
+            # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
-
-        z_prev = z.clone()
-
-        z_temp = self.g_step(x, z, cur_prior, cur_params)
-        x = self.f_step(z_temp, z, y, physics, cur_params)
-        z = z_prev + self.beta * (z_temp - x)
-
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        if self.g_first:
+            u = self.g_step(x, z, cur_prior, cur_params)
+            x = self.f_step(u, z, y, physics, cur_params)
+        else:
+            u = self.f_step(x, z, y, physics, cur_params)
+            x = self.g_step(u, z, cur_prior, cur_params)
+        z = z + self.beta * (u - x)
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x, z), "cost": F}
 
 
@@ -65,18 +64,22 @@ class fStepADMM(fStep):
     def __init__(self, **kwargs):
         super(fStepADMM, self).__init__(**kwargs)
 
-    def forward(self, x, u, y, physics, cur_params):
+    def forward(self, x, z, y, physics, cur_params):
         r"""
-        Single iteration step on the data-fidelity term :math:`f`.
+        Single iteration step on the data-fidelity term :math:`\lambda f`.
 
-        :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param torch.Tensor u: Current iterate :math:`u_k`.
+        :param torch.Tensor x: current primal variable
+        :param torch.Tensor z: current dual variable
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
+        if self.g_first:
+            p = x + z
+        else:
+            p = x - z
         return self.data_fidelity.prox(
-            x + u, y, physics, cur_params["lambda"] * cur_params["stepsize"]
+            p, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
@@ -94,7 +97,11 @@ class gStepADMM(gStep):
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param torch.Tensor z: Current iterate :math:`z_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
-        return cur_prior["prox_g"](x - z, cur_params["g_param"])
+        if self.g_first:
+            p = x - z
+        else:
+            p = x + z
+        return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])

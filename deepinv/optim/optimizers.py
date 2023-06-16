@@ -1,11 +1,13 @@
+import sys
+
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
-from deepinv.optim.utils import str_to_class
 from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
 from deepinv.optim.utils import gradient_descent
+from deepinv.optim.optim_iterators import *
 
 
 class BaseOptim(nn.Module):
@@ -16,13 +18,22 @@ class BaseOptim(nn.Module):
 
     .. math::
         \begin{equation}
-        \underset{x}{\arg\min} \quad \lambda \datafid{\forw{x}}{y} + \reg{x}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
         \end{equation}
 
 
-    where the first term :math:`f:\yset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity
-    (:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization, and
-    :math:`A:\xset\mapsto \yset` is the forward operator (see :meth:`deepinv.physics.Physics`).
+    where the first term :math:`\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity, the second
+    term :math:`\regname:\xset\mapsto \mathbb{R}_{+}` acts as a regularization and
+    :math:`\lambda > 0` is a regularization parameter. More precisely, the data-fidelity term penalizes the discrepancy
+    between the data :math:`y` and the forward operator :math:`A` applied to the variable :math:`x`, as
+
+    .. math::
+        \datafid{x}{y} = \distance{Ax}{y}
+
+    where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
+    operator (see :meth:`deepinv.physics.Physics`)
 
     Optimization algorithms for minimising the problem above can be written as fixed point algorithms,
     i.e. for :math:`k=1,2,...`
@@ -132,8 +143,6 @@ class BaseOptim(nn.Module):
         self.anderson_acceleration = anderson_acceleration
         self.F_fn = F_fn
         self.return_aux = return_aux
-        self.params_algo = params_algo
-        self.prior = prior
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
@@ -143,70 +152,39 @@ class BaseOptim(nn.Module):
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
 
-        for key, value in zip(self.params_algo.keys(), self.params_algo.values()):
+        # params_algo should contain a g_param parameter, even if None.
+        if "g_param" not in params_algo.keys():
+            params_algo["g_param"] = None
+
+        # By default, each parameter in params_algo is a list.
+        # If given as a signel number, we convert it to a list of 1 element.
+        # If given as a list of more than 1 element, it should have lenght max_iter.
+        for key, value in zip(params_algo.keys(), params_algo.values()):
             if not isinstance(value, Iterable):
-                self.params_algo[key] = [value]
+                params_algo[key] = [value]
             else:
-                if len(self.params_algo[key]) < self.max_iter:
+                if len(params_algo[key]) > 1 and len(params_algo[key]) < self.max_iter:
                     raise ValueError(
                         f"The number of elements in the parameter {key} is inferior to max_iter."
                     )
-
-        self.init_params_algo = (
-            self.params_algo.copy()
-        )  # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
-
-        for key, value in zip(self.prior.keys(), self.prior.values()):
-            if not isinstance(value, Iterable):
-                self.prior[key] = [value]
-
-        if len(self.params_algo["stepsize"]) > 1:
+        # If stepsize is a list of more than 1 element, backtracking is impossible.
+        if len(params_algo["stepsize"]) > 1:
             if self.backtracking:
                 self.backtracking = False
                 raise Warning(
                     "Backtraking impossible when stepsize is predefined as a list. Setting backtrakcing to False."
                 )
 
-        # handle priors without explicit prox or grad
-        if (
-            iterator.requires_prox_g and "prox_g" not in self.prior.keys()
-        ) or iterator.requires_grad_g:
-            # we need at least the grad
-            if "grad_g" not in self.prior.keys():
-                if "g" in self.prior.keys():
-                    self.prior["grad_g"] = []
-                    for g in self.prior["g"]:
-                        assert isinstance(
-                            g, nn.Module
-                        ), "The given prior must be an instance of nn.Module"
+        # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
+        self.init_params_algo = params_algo
+        # By default, self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
+        if not isinstance(prior, Iterable):
+            self.prior = [prior]
+        else:
+            self.prior = prior
 
-                        def grad_g(x, *args):
-                            torch.set_grad_enabled(True)
-                            x = x.requires_grad_()
-                            return torch.autograd.grad(
-                                g(x, *args), x, create_graph=True, only_inputs=True
-                            )[0]
-
-                        self.prior["grad_g"].append(grad_g)
-            if iterator.requires_prox_g and "prox_g" not in self.prior.keys():
-                self.prior["prox_g"] = []
-                for grad_g in self.prior["grad_g"]:
-
-                    def prox_g(x, *args, gamma=1):
-                        grad = lambda y: gamma * grad_g(y, *args) + (1 / 2) * (y - x)
-                        return gradient_descent(
-                            grad,
-                            x,
-                            stepsize_prox_inter,
-                            max_iter=max_iter_prox_inter,
-                            tol=tol_prox_inter,
-                        )
-
-                    self.prior["prox_g"].append(prox_g)
-
+        # Initialize the fixed-point module with or without anderson_acceleration
         if self.anderson_acceleration:
-            # self.anderson_beta = anderson_beta
-            # self.anderson_history_size = anderson_history_size
             self.fixed_point = AndersonAcceleration(
                 iterator=iterator,
                 history_size=anderson_history_size,
@@ -248,13 +226,11 @@ class BaseOptim(nn.Module):
 
     def init_params_fn(self):
         r"""
-        Initialize (or updates) the dictionary of parameters.
+        Initialize the dictionary of parameters.
         This is necessary if the parameters have been updated during optimization, for example via backtracking.
 
         :return: a dictionary containing the parameters of iteration `0`.
         """
-
-        # self.params_algo = self.init_params_algo.copy()
         init_params = {
             key: value[0]
             for key, value in zip(
@@ -270,10 +246,7 @@ class BaseOptim(nn.Module):
         :param int it: iteration number.
         :return: a dictionary containing the prior of iteration `it`.
         """
-        prior_cur = {
-            key: value[it] if len(value) > 1 else value[0]
-            for key, value in zip(self.prior.keys(), self.prior.values())
-        }
+        prior_cur = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return prior_cur
 
     def init_prior_fn(self):
@@ -288,64 +261,56 @@ class BaseOptim(nn.Module):
         r"""
         Initialises the parameters of the algorithm.
 
-        By default, the first (primal, dual) iterate of the algorithm is chosen as :math:`(A^*(y), y)`.
+        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^*(y), A^*(y))`.
+        A custom initlization is possible with the custom_init argument.
 
         :param dict cur_params: dictionary containing the parameters related to the optimisation problem.
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
         :return: a dictionary containing: `"est"`, the primal-dual initialised variables; `"cost"`: the initial cost function.
         """
+        # intialize the primal x and auxiliary variable z
         if self.custom_init:
-            x_init = self.custom_init(y)
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+            init_X = self.custom_init(x_init, z_init)
         else:
-            x_init = physics.A_adjoint(y)
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+
+            init_X = {"est": (x_init, z_init)}
+        # intialize the cost function with the cost at iteration 0 if a cost function is given.
         cost_init = (
-            torch.tensor(
-                [
-                    self.F_fn(
-                        x_init[i].unsqueeze(0),
-                        prior,
-                        cur_params,
-                        y[i].unsqueeze(0),
-                        physics,
-                    )
-                    for i in range(len(x_init))
-                ]
-            )
-            if self.F_fn
-            else None
+            self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
         )
-        init_X = {  # TODO: naming is a bit weird
-            "est": (x_init, x_init),
-            "cost": cost_init,
-        }
+
+        init_X["cost"] = cost_init
+
         return init_X
 
     def get_primal_variable(self, X):
         r"""
         Returns the primal variable.
 
-        :param dict X: dictionary containing the primal and dual iterates.
+        :param dict X: dictionary containing the primal and auxiliary variables.
         :return: the primal variable.
         """
         return X["est"][0]
 
     def get_auxiliary_variable(self, X):
         r"""
-        Returns the dual variable.
+        Returns the auxiliary variable.
 
-        :param dict X: dictionary containing the primal and dual iterates.
-        :return torch.Tensor X["est"][1]: the dual variable.
+        :param dict X: dictionary containing the primal and auxiliary variables.
+        :return torch.Tensor X["est"][1]: the auxiliary variable.
         """
         return X["est"][1]
 
     def init_metrics_fn(self, X_init, x_gt=None):
         r"""
-        Initialises the metrics.
+        Initializes the metrics.
         Metrics are computed for each batch and for each iteration.
-        They are reprenseted by a list of list, and metrics[metric_name][i,j] constains the metric metric_name computed for batch i, at iteration j.
+        They are represented by a list of list, and metrics[metric_name][i,j] contains the metric metric_name computed for batch i, at iteration j.
 
-        :param dict X_init: dictionary containing the primal and dual initial iterates.
+        :param dict X_init: dictionary containing the primal and auxiliary initial iterates.
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
         :return dict: A dictionary containing the metrics.
         """
@@ -414,7 +379,7 @@ class BaseOptim(nn.Module):
 
     def check_iteration_fn(self, X_prev, X):
         r"""
-        Check that the previous iteration decreases the objective function and perform stepsize backtraking.
+        Performs stepsize backtraking.
 
         :param dict X_prev: dictionary containing the primal and dual previous iterates.
         :param dict X: dictionary containing the current primal and dual iterates.
@@ -425,9 +390,10 @@ class BaseOptim(nn.Module):
             x_prev = x_prev.reshape((x_prev.shape[0], -1))
             x = x.reshape((x.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
-            diff_F, diff_x = (F_prev - F).mean(), (
-                torch.norm(x - x_prev, p=2, dim=-1) ** 2
-            ).mean()
+            diff_F, diff_x = (
+                (F_prev - F).mean(),
+                (torch.norm(x - x_prev, p=2, dim=-1) ** 2).mean(),
+            )
             stepsize = self.params_algo["stepsize"][0]
             if diff_F < (self.gamma_backtracking / stepsize) * diff_x:
                 check_iteration = False
@@ -490,6 +456,7 @@ class BaseOptim(nn.Module):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         """
+        self.params_algo = self.init_params_algo.copy()
         init_params = self.init_params_fn()
         init_pior = self.init_prior_fn()
         x = self.get_init(init_pior, init_params, y, physics)
@@ -550,12 +517,14 @@ def optim_builder(
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
     :param str bregman_potential: possibility to perform optimization with another bregman geometry. Default: `"L2"`
     """
-
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    if F_fn is None and "g" in prior.keys():
-        F_fn = lambda x, prior, cur_params, y, physics: cur_params[
-            "lambda"
-        ] * data_fidelity.f(physics.A(x), y) + prior["g"](x, cur_params["g_param"])
+    if F_fn is None and prior.explicit_prior:
+
+        def F_fn(x, prior, cur_params, y, physics):
+            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
+                x, cur_params["g_param"]
+            )
+
     iterator_fn = str_to_class(algo_name + "Iteration")
     iterator = iterator_fn(
         data_fidelity=data_fidelity,
@@ -566,3 +535,7 @@ def optim_builder(
     )
     optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
     return optimizer
+
+
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)

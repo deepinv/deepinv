@@ -3,8 +3,7 @@ import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.utils import str_to_class
-from deepinv.optim.optimizers import BaseOptim
+from deepinv.optim.optimizers import BaseOptim, str_to_class
 
 
 class BaseUnfold(BaseOptim):
@@ -46,16 +45,13 @@ class BaseUnfold(BaseOptim):
     ):
         super(BaseUnfold, self).__init__(*args, **kwargs)
         for param_key in trainable_params:
-            if param_key in self.params_algo.keys():
-                param_value = self.params_algo[param_key]
-                self.params_algo[param_key] = nn.ParameterList(
+            if param_key in self.init_params_algo.keys():
+                param_value = self.init_params_algo[param_key]
+                self.init_params_algo[param_key] = nn.ParameterList(
                     [nn.Parameter(torch.tensor(el).to(device)) for el in param_value]
                 )
-        self.params_algo = nn.ParameterDict(self.params_algo)
-
-        for key, value in zip(self.prior.keys(), self.prior.values()):
-            self.prior[key] = nn.ModuleList(value)
-        self.prior = nn.ModuleDict(self.prior)
+        self.init_params_algo = nn.ParameterDict(self.init_params_algo)
+        self.prior = nn.ModuleList(self.prior)
 
         if custom_g_step is not None:
             self.iterator.g_step = custom_g_step

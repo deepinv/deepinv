@@ -165,7 +165,7 @@ class PreconULA(dinv.sampling.MonteCarlo):
 # ----------------
 #
 # The score a distribution can be approximated using a plug-and-play denoiser via the
-# :class:`deepinv.models.ScoreDenoiser` class.
+# :class:`deepinv.optim.ScorePrior` class.
 #
 # .. math::
 #
@@ -174,12 +174,9 @@ class PreconULA(dinv.sampling.MonteCarlo):
 # This example uses a simple median filter as a plug-and-play denoiser.
 # The hyperparameter :math:`\sigma_d` controls the strength of the prior.
 
-model_spec = {
-    "name": "median_filter",
-    "args": {},
-}
+model_spec = {"name": "median_filter", "args": {}}
 
-prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
+prior = dinv.optim.ScorePrior(denoiser=dinv.models.Denoiser(model_spec=model_spec))
 
 
 # %%
@@ -187,7 +184,6 @@ prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
 # ---------------------------------------------------
 # We create the preconditioned and standard ULA samplers using
 # the same hyperparameters (step size, number of iterations, etc.).
-
 
 step_size = 0.5 * (sigma**2)
 iterations = int(1e2) if torch.cuda.is_available() else 10
@@ -249,7 +245,4 @@ print(
 
 # plot results
 imgs = [x_lin, x, ula_mean, pula_mean]
-plot(
-    imgs,
-    titles=["measurement", "ground truth", "ULA", "PreconULA"],
-)
+plot(imgs, titles=["measurement", "ground truth", "ULA", "PreconULA"])

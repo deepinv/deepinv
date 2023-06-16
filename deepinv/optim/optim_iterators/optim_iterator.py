@@ -77,7 +77,7 @@ class OptimIterator(nn.Module):
         """
         return self.beta * u + (1 - self.beta) * v
 
-    def forward(self, X, prior, cur_params, y, physics):
+    def forward(self, X, cur_prior, cur_params, y, physics):
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F = \lambda f + g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
@@ -85,7 +85,7 @@ class OptimIterator(nn.Module):
         $X$ of the form `{'est': (x,z), 'cost': F}`.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
-        :param dict prior: dictionary containing the prior-related term of interest, e.g. its proximal operator or gradient.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: dictionary containing the current parameters of the model.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
@@ -94,23 +94,12 @@ class OptimIterator(nn.Module):
         x_prev = X["est"][0]
         if not self.g_first:
             z = self.f_step(x_prev, cur_params, y, physics)
-            x = self.g_step(z, prior, cur_params)
+            x = self.g_step(z, cur_prior, cur_params)
         else:
-            z = self.g_step(x_prev, prior, cur_params)
+            z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        F = (
-            torch.tensor(
-                [
-                    self.F_fn(
-                        x[i].unsqueeze(0), prior, cur_params, y[i].unsqueeze(0), physics
-                    )
-                    for i in range(len(x))
-                ]
-            )
-            if self.F_fn
-            else None
-        )
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x, z), "cost": F}
 
 
@@ -163,7 +152,7 @@ class gStep(nn.Module):
             Single iteration step on the prior term :math:`g`.
 
             :param torch.Tensor x: Current iterate.
-            :param dict cur_prior: Dictionary containing the current prior.
+            :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
             :param dict cur_params: Dictionary containing the current gStep parameters (e.g. stepsizes and regularisation parameters).
             """
             pass

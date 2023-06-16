@@ -14,6 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import transforms
@@ -97,7 +98,7 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
     num_workers=num_workers,
 )
 
-batch_size = 1  # batch size for testing
+batch_size = 3  # batch size for testing. As the number of iterations is fixed, we can use batch_size > 1 and restore multiple images in parallel.
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # %%
@@ -130,9 +131,7 @@ model_spec = {  # specifies the parameters of the DRUNet model
         "device": device,
     },
 }
-# The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
-# For Plug-an-Play image restoration, the denoiser replaces "prox_g".
-prior = {"prox_g": Denoiser(model_spec)}
+prior = PnP(denoiser=Denoiser(model_spec))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

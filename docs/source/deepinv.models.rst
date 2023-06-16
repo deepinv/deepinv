@@ -11,7 +11,6 @@ This package provides vanilla signal reconstruction networks, which can be used 
    :nosignatures:
 
    deepinv.models.Denoiser
-   deepinv.models.ScoreDenoiser
    deepinv.models.ArtifactRemoval
    deepinv.models.DeepImagePrior
 
@@ -30,7 +29,7 @@ Classical Denoisers
 
 
 Learnable Denoisers
------------------
+-------------------
 
 .. autosummary::
    :toctree: stubs

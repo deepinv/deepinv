@@ -86,7 +86,7 @@ physics = [
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
-    None if torch.cuda.is_available() else 100
+    None if torch.cuda.is_available() else 50
 )  # number of images used for training (uses the whole dataset if you have a gpu)
 
 operation = "inpainting"
@@ -99,6 +99,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
+    test_datapoints=10,
     num_workers=num_workers,
     dataset_filename=str(my_dataset_name),
 )

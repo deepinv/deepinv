@@ -62,13 +62,7 @@ class SinglePixelCamera(DecomposablePhysics):
     """
 
     def __init__(
-        self,
-        m,
-        img_shape,
-        fast=True,
-        device="cpu",
-        dtype=torch.float32,
-        **kwargs,
+        self, m, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
@@ -114,8 +108,7 @@ class SinglePixelCamera(DecomposablePhysics):
         if self.fast:
             y = hadamard_2d(x)
         else:
-            N = x.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            N, C = x.shape[0], self.img_shape[0]
             x = x.reshape(N, C, -1)
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y

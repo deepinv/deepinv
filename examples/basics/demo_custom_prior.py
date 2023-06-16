@@ -4,7 +4,7 @@ Image deblurring with custom deep explicit prior.
 
 In this example, we show how to solve a deblurring inverse problem using an explicit prior.
 
-Here we use the simple L2 prior that penalizes the squared norm of the reconstruction.
+Here we use the simple L2 prior that penalizes the squared norm of the reconstruction, with an ADMM algorithm.
 
 """
 import deepinv as dinv
@@ -12,6 +12,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
+from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
@@ -116,23 +117,25 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 #
 
 
-# Create a nn.Module class to parametrize the custom prior
-class L2Prior(nn.Module):
-    def __init__(self, prior_params=None):
-        super(L2Prior, self).__init__()
+# Create a custom prior which inherits from the base Prior class.
+class L2Prior(Prior):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
 
-    def forward(self, x, g_param):
-        return torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+    def g(self, x, args, **kwargs):
+        g = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        return g
 
 
 # Specify the custom prior
-prior = {"g": L2Prior()}
+prior = L2Prior()
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Specific parameters for restoration with the given prior (Note that these parameters have not been optimized here)
-params_algo = {"stepsize": 1, "g_param": 1.0, "lambda": 1}
+params_algo = {"stepsize": 1, "lambda": 0.1}
 
 # Logging parameters
 verbose = True
@@ -143,14 +146,14 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = True  # use backtraking to automatically adjust the stepsize
+backtracking = False  # use backtraking to automatically adjust the stepsize
 max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="PGD",
+    algo_name="ADMM",
     prior=prior,
-    g_first=True,
+    g_first=False,
     data_fidelity=data_fidelity,
     params_algo=params_algo,
     early_stop=early_stop,

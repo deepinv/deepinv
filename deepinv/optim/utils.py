@@ -1,12 +1,8 @@
+import sys
+
 import torch
 import torch.nn as nn
-import sys
-from deepinv.optim.optim_iterators import *
 from deepinv.utils import zeros_like
-
-
-def str_to_class(classname):
-    return getattr(sys.modules[__name__], classname)
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):

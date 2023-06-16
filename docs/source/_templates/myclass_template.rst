@@ -11,4 +11,4 @@
 .. _sphx_glr_backref_{{module}}.{{objname}}:
 
 .. minigallery:: {{module}}.{{objname}}
-    :add-heading: Examples using ``{{module}}.{{objname}}``:
+    :add-heading: Examples using ``{{objname}}``:

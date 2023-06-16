@@ -66,8 +66,12 @@ mathjax3_config = {
             "inverse": [r"{R\left({#1}\right)}", 1],
             "inversef": [r"{R\left({#1},{#2}\right)}", 2],
             "reg": [r"{g\left({#1}\right)}", 1],
+            "regname": r"g",
             "sensor": [r"{\eta\left({#1}\right)}", 1],
             "datafid": [r"{f\left({#1},{#2}\right)}", 2],
+            "datafidname": r"f",
+            "distance": [r"{d\left({#1},{#2}\right)}", 2],
+            "distancename": r"d",
             "denoiser": [r"{D\left({#1},{#2}\right)}", 2],
             "xset": r"\mathcal{X}",
             "yset": r"\mathcal{Y}",
@@ -90,7 +94,7 @@ html_static_path = ["_static"]
 html_favicon = "figures/logo.ico"
 html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
-    "analytics_id": "G-NSEKFKYSGR",  #  Provided by Google in your dashboard G-
+    "analytics_id": "G-NSEKFKYSGR",  # Provided by Google in your dashboard G-
     "analytics_anonymize_ip": False,
     "logo_only": True,
     "display_version": True,

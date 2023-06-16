@@ -34,7 +34,7 @@ class GDIteration(OptimIterator):
         Single gradient descent iteration on the objective :math:`\lambda f(x) + g(x)`.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters.
         :param torch.Tensor y: Input data.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
@@ -46,7 +46,7 @@ class GDIteration(OptimIterator):
         )
         x = gradient_descent_step(x_prev, grad, self.bregman_potential)
         x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
         return {"est": (x,), "cost": F}
 
 
@@ -83,7 +83,7 @@ class gStepGD(gStep):
         Single iteration step on the prior term :math:`g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
         """
-        return cur_prior["grad_g"](x, cur_params["g_param"])
+        return cur_prior.grad(x, cur_params["g_param"])
