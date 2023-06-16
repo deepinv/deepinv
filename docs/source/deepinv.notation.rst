@@ -27,10 +27,13 @@ The documentation of ``deepinv`` uses a unified mathematical notation that is su
      - Reconstruction network that maps measurements to images :math:`y\mapsto x`.
    * - :math:`\denoiser{x}{\sigma}`
      - Gaussian denoiser for noise of standard deviation :math:`\sigma`.
-   * - :math:`\datafid{A(x)}{y}`
-     - Data fidelity term, enforcing measurement consistency :math:`y\approx A(x)`.
+   * - :math:`\datafid{x}{y} = \distance{A(x)}{y}`
+     - Data fidelity term, enforcing measurement consistency :math:`y\approx A(x)`, depending on the choice of the
+       distance function (see below).
+   * - :math:`\distance{u}{y}`
+     - Distance function measuring the discrepancy between :math:`u` and :math:`y`.
        It is linked to the noise model (likelihood).
    * - :math:`\reg{x}`
      - Regularization term that promotes plausible reconstructions. It is linked to :math:`p(x)`.
-   * - :math:`\alpha`
+   * - :math:`\lambda`
      - Hyperparameter controlling the amount of regularization.

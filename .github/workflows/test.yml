@@ -9,50 +9,43 @@ on:
     - main
 
 jobs:
-  test_conda:
-    name: Test with conda
+  test_no_conda:
+    name: Test without conda
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             version_python: 3.9
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        conda env update --file environment.yml --name base
-        conda install -yq pip
-        pip install -e .
-    - name: Test with pytest and generate coverage report
-      run: |
-        conda install pytest
-        conda install pytest-cov
-        python -m pytest deepinv/tests
-        pytest --cov=./ --cov-report=xml
+            coverage: 'true'
+    env:
+      VERSION_PYTHON: ${{ matrix.version_python }}
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.VERSION_PYTHON }}
+
+      - name: Install deepinv and its dependencies
+        run: |
+          pip install -e .
+          pip install pytest
+      - name: Test with pytest
+        run: |
+          python -m pytest deepinv/tests
 
   report_test:
     if: ${{ always() }}
-    needs: [test_conda]
+    needs: [test_no_conda]
     runs-on: ubuntu-latest
     env:
-      TEST_CONDA: ${{ needs.test_conda.result }}
+      TEST_NO_CONDA: ${{ needs.test_no_conda.result }}
 
     steps:
       - name: "Gather test results."
         run: |
-          if [[ $TEST_CONDA == 'success' ]] ; then
+          if [[ $TEST_NO_CONDA == 'success' ]]; then
             exit 0;
           else
             exit 1;

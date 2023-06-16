@@ -148,10 +148,10 @@ class FixedPoint(nn.Module):
 
 class AndersonAcceleration(FixedPoint):
     r"""
+    Anderson Acceleration algorithm for fixed-point algorithms.
 
-    Implements the Anderson Acceleration algorithm for fixed-point algorithms, see `<https://users.wpi.edu/~walker/Papers/Walker-Ni,SINUM,V49,1715-1735.pdf>`_.
-
-    Considering a fixed-point algorithm of the form $x_{k+1} = T(x_k)$, the Anderson algorithm is defined as:
+    Considering a fixed-point algorithm of the form $x_{k+1} = T(x_k)$, the Anderson algorithm (see
+    `<https://users.wpi.edu/~walker/Papers/Walker-Ni,SINUM,V49,1715-1735.pdf>`_.) is defined as:
 
     .. math::
 

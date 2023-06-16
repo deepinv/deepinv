@@ -449,13 +449,10 @@ def test_CP_K(imsize, dummy_dataset, device):
     lamb = 1.5
     max_iter = 1000
 
+    # Define a linear operator
     K = torch.Tensor([[2.0, 0.0], [0.0, 2.0]]).to(torch.float64).to(device)
-
     K_forward = lambda v: K @ v
     K_adjoint = lambda v: K.transpose(0, 1) @ v
-
-    # Define the physics model associated to this operator
-    # K = dinv.physics.CustomLinearOperator(fwd_op=K_forward, bwd_op=K_adjoint)
 
     params_algo = {
         "stepsize": stepsize,
