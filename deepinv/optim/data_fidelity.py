@@ -156,17 +156,20 @@ class DataFidelity(nn.Module):
 
     def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
         r"""
-        Calculates the proximity operator of the convex conjugate :math:`(\lambda \datafidname)^*` at :math:`x`, using the Moreau formula.
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda \datafidname)^*` at :math:`x`,
+        using the Moreau formula.
 
         .. warning::
-        This function is only valid for convex :math:`\datafidname`.
+
+            This function is only valid for convex :math:`\datafidname`.
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
         :param float gamma: stepsize of the proximity operator.
         :param float lamb: math:`\lambda` parameter in front of :math:`f`
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \datafidname)^*}(x)`, computed in :math:`x`.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \datafidname)^*}(x)`,
+            computed in :math:`x`.
         """
         return x - gamma * self.prox(
             x / gamma, y, physics, lamb / gamma, *args, **kwargs

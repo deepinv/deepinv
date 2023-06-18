@@ -27,7 +27,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    "sphinx.ext.autosectionlabel",
 ]
 
 intersphinx_mapping = {
@@ -90,7 +89,7 @@ numfig_secnum_depth = 3
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+html_static_path = []
 html_favicon = "figures/logo.ico"
 html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {

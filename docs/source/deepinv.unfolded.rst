@@ -1,3 +1,5 @@
+.. _unfolded:
+
 Unfolded algorithms
 ===================
 

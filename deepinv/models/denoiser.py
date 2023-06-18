@@ -33,7 +33,7 @@ class Denoiser(nn.Module):
     r"""
     Builds a (possibly pretrained) denoiser.
 
-    The input should be a dictionary containing the inputs to a denoiser in :ref:`denoiser-docs`.
+    The input should be a dictionary containing the inputs to a denoiser in :ref:`models`.
 
     For example:
 

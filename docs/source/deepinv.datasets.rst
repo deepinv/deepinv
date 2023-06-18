@@ -1,3 +1,5 @@
+.. _datasets:
+
 Datasets
 ========
 
@@ -16,7 +18,7 @@ HD5Dataset
     deepinv.datasets.generate_dataset
 
 
-Generating a dataset associated with a certain forward operator is done via ``deepinv.datasets.generate_dataset``
+Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base dataset (in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
 
 ::
@@ -40,7 +42,8 @@ using a base dataset (in this case MNIST). For example, here we generate a compr
                                    physics=physics, device=dinv.device, save_dir=dir)
 
 
-The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard ``DataLoader``:
+The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard
+:class:`torch.utils.data.DataLoader`:
 
 ::
 
