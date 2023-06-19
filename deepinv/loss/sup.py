@@ -30,8 +30,8 @@ class SupLoss(nn.Module):
         r"""
         Computes the loss.
 
-        :param torch.tensor x_net: Reconstructed image :math:\inverse{y}.
-        :param torch.tensor x_ref: Target (ground-truth) image.
-        :return: (torch.tensor) loss.
+        :param torch.Tensor x_net: Reconstructed image :math:\inverse{y}.
+        :param torch.Tensor x_ref: Target (ground-truth) image.
+        :return: (torch.Tensor) loss.
         """
         return self.metric(x_net, x_ref)

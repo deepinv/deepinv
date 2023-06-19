@@ -6,10 +6,18 @@ class GaussianNoise(torch.nn.Module):
 
     Additive gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
-    It can be added to a physics operator in its construction or by setting
+    It can be added to a physics operator in its construction or by setting the ``noise_model``
+    attribute of the physics operator.
+
+
     ::
 
-        physics.noise_model = GaussianNoise()
+        >>> from deepinv.physics import Denoising, GaussianNoise
+        >>> import torch
+        >>> physics = Denoising()
+        >>> physics.noise_model = GaussianNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
 
     :param float sigma: Standard deviation of the noise.
 
@@ -23,7 +31,7 @@ class GaussianNoise(torch.nn.Module):
         r"""
         Adds the noise to measurements x
 
-        :param torch.tensor x: measurements
+        :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
         return x + torch.randn_like(x) * self.sigma
@@ -59,7 +67,7 @@ class PoissonNoise(torch.nn.Module):
         r"""
         Adds the noise to measurements x
 
-        :param torch.tensor x: measurements
+        :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
         y = torch.poisson(x / self.gain)
@@ -94,7 +102,7 @@ class PoissonGaussianNoise(torch.nn.Module):
         r"""
         Adds the noise to measurements x
 
-        :param torch.tensor x: measurements
+        :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
         y = torch.poisson(x / self.gain) * self.gain
@@ -124,7 +132,7 @@ class UniformNoise(torch.nn.Module):
         r"""
         Adds the noise to measurements x
 
-        :param torch.tensor x: measurements
+        :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
         return x + (self.rand_like(x) - 0.5) * 2 * self.a

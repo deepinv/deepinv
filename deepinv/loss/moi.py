@@ -43,11 +43,11 @@ class MOILoss(nn.Module):
         r"""
         Computes the MOI loss.
 
-        :param torch.tensor x_net: Reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param list of deepinv.physics.Physics physics: List containing the :math:`G` different forward operators
             associated with the measurements.
         :param torch.nn.Module f: Reconstruction function.
-        :return: (torch.tensor) loss.
+        :return: (torch.Tensor) loss.
         """
         j = np.random.randint(len(physics))
 

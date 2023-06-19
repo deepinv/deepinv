@@ -24,15 +24,15 @@ class SinglePhotonLidar(Physics):
     the third channel contains the per pixel background noise levels :math:`b`.
 
     :param float sigma: Standard deviation of the Gaussian impulse response function.
-    :param int T: Number of histogram bins.
+    :param int bins: Number of histogram bins per pixel.
     :param str device: Device to use (gpu or cpu).
     """
 
-    def __init__(self, sigma=1.0, T=50, device="cpu"):
+    def __init__(self, sigma=1.0, bins=50, device="cpu"):
         super().__init__()
 
-        self.T = T
-        self.grid = torch.meshgrid(torch.arange(T))[0].to(device)
+        self.T = bins
+        self.grid = torch.meshgrid(torch.arange(bins))[0].to(device)
         self.sigma = torch.nn.Parameter(
             torch.tensor(sigma, device=device), requires_grad=False
         )
@@ -49,14 +49,14 @@ class SinglePhotonLidar(Physics):
         r"""
         Applies the forward operator.
 
-        Input is of size (B, 3, H, W) and output is of size (B, T, H, W)
+        Input is of size (B, 3, H, W) and output is of size (B, bins, H, W)
 
         :param torch.tensor x: tensor containing the depth, intensity and background noise levels.
         """
 
         h = ((self.grid - x[:, 0, :, :]) / self.sigma).pow(2)
         h = torch.exp(-h / 2.0)
-        h = h / h.sum()
+        h = h / h.sum(dim=1, keepdim=True)
         y = x[:, 1, :, :] * h + x[:, 2, :, :]
         return y
 
@@ -64,7 +64,7 @@ class SinglePhotonLidar(Physics):
         r"""
         Applies Matched filtering to find the peaks.
 
-        Input is of size (B, T, H, W), output of size (B, 3, H, W).
+        Input is of size (B, bins, H, W), output of size (B, 3, H, W).
 
         :param torch.tensor y: measurements
         """
@@ -104,20 +104,20 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import deepinv as dinv
 
-    T = 40
+    bins = 40
     device = "cuda:0"
-    physics = SinglePhotonLidar(T=T, device=device)
+    physics = SinglePhotonLidar(bins=bins, device=device)
 
-    x = torch.rand((1, 3, 2, 4), device=device)
-    x[:, 0, :, :] *= T
+    x = torch.ones((1, 3, 2, 4), device=device)
+    x[:, 0, :, :] *= bins / 2
     x[:, 1, :, :] *= 300
-    x[:, 2, :, :] *= 0
+    x[:, 2, :, :] *= 1
 
     y = physics(x)
     xhat = physics.A_dagger(y)
 
-    # y0 = y[0, :, 0, 0].detach().cpu().numpy()
-    # plt.plot(y0)
-    # plt.show()
+    y0 = y[0, :, 0, 0].detach().cpu().numpy()
+    plt.plot(y0)
+    plt.show()
 
     print(f"MSE {dinv.utils.cal_mse(x, xhat)}")

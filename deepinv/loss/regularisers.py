@@ -133,8 +133,8 @@ class FNEJacobianSpectralNorm(nn.Module):
         r"""
         Computes the Firm-Nonexpansiveness (FNE) Jacobian spectral norm of a model.
 
-        :param torch.tensor y_in: input of the model (by default).
-        :param torch.tensor x_in: an additional point of the model (by default).
+        :param torch.Tensor y_in: input of the model (by default).
+        :param torch.Tensor x_in: an additional point of the model (by default).
         :param torch.nn.Module model: neural network, or function, of which we want to compute the FNE Jacobian spectral norm.
         :param `*args_model`: additional arguments of the model.
         :param bool interpolation: whether to input to model an interpolation between y_in and x_in instead of y_in (default is `False`).

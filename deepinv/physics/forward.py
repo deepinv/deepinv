@@ -55,8 +55,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         The resulting operator keeps the noise and sensor models of :math:`A_1`.
 
-        :param deepinv.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.Physics) concantenated operator
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.Physics) concantenated operator
 
         """
         A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
