@@ -2,7 +2,9 @@ r"""
 A tour of forward sensing operators
 ===================================================
 
-
+This example provides a tour of some of the forward operators implemented in DeepInverse.
+We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in
+`here <models>`_.
 
 """
 
@@ -23,10 +25,7 @@ from pathlib import Path
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = (
-    "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
-    "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
-)
+url = "https://upload.wikimedia.org/wikipedia/commons/2/2e/CATARATAS_DEL_IGUAZU._GARGANTA_DEL_DIABLO.jpg"
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
 
@@ -61,8 +60,12 @@ plot(
 #
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-                                  device=device)
+physics = dinv.physics.Inpainting(
+    mask=0.5,
+    tensor_size=x.shape[1:],
+    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    device=device,
+)
 
 y = physics(x)
 
@@ -94,14 +97,18 @@ plot(
 # ---------------------------------------
 #
 
-physics = dinv.physics.Tomography(img_width=img_size[-1], angles=20, device=device,
-                                  noise_model=dinv.physics.PoissonGaussianNoise(gain=0.1, sigma=0.05))
+physics = dinv.physics.Tomography(
+    img_width=img_size[-1],
+    angles=20,
+    device=device,
+    noise_model=dinv.physics.PoissonGaussianNoise(gain=0.1, sigma=0.05),
+)
 
 y = physics(x)
 
 # plot results
 plot(
-    [x, (y-y.min())/y.max(), physics.A_dagger(y)],
+    [x, (y - y.min()) / y.max(), physics.A_dagger(y)],
     titles=["signal", "sinogram", "filtered backprojection"],
 )
 
@@ -112,11 +119,15 @@ plot(
 
 mask = torch.rand((1, img_size[-1]), device=device) > 0.75
 mask = torch.ones((img_size[-2], 1), device=device) * mask
-mask[:, int(img_size[-1]/2)-2:int(img_size[-1]/2)+2] = 1
+mask[:, int(img_size[-1] / 2) - 2 : int(img_size[-1] / 2) + 2] = 1
 
-physics = dinv.physics.MRI(mask=mask, device=device, noise_model=dinv.physics.GaussianNoise(sigma=0.05))
+physics = dinv.physics.MRI(
+    mask=mask, device=device, noise_model=dinv.physics.GaussianNoise(sigma=0.05)
+)
 
-x2 = torch.cat([x[:, 0, :, :].unsqueeze(1), torch.zeros_like(x[:, 0, :, :].unsqueeze(1))], dim=1)
+x2 = torch.cat(
+    [x[:, 0, :, :].unsqueeze(1), torch.zeros_like(x[:, 0, :, :].unsqueeze(1))], dim=1
+)
 y = physics(x2)
 
 # plot results
@@ -161,8 +172,8 @@ plot(
 #
 
 physics = dinv.physics.SinglePixelCamera(
-        m=20, fast=True, img_shape=img_size, device=device
-    )
+    m=20, fast=True, img_shape=img_size, device=device
+)
 
 y = physics(x)
 
