@@ -19,10 +19,16 @@ class ConvDecoder(nn.Module):
     The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
+
+    :param tuple img_shape: shape of the output image.
+    :param tuple in_size: size of the input vector.
+    :param int layers: number of layers in the network.
+    :param int channels: number of channels in the network.
+
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
-    def __init__(self, img_shape, in_size, layers=7, channels=256):
+    def __init__(self, img_shape, in_size=(4, 4), layers=7, channels=256):
         super(ConvDecoder, self).__init__()
 
         out_size = img_shape[1:]
@@ -108,12 +114,11 @@ class DeepImagePrior(torch.nn.Module):
         values may not be optimal for all problems. We recommend experimenting with different values.
 
     :param torch.nn.Module generator: Convolutional decoder network.
-    :param list input_size: Size (C,H,W) of the input noise vector :math:`z`.
+    :param list, tuple input_size: Size (C,H,W) of the input noise vector :math:`z`.
     :param int iterations: Number of optimization iterations.
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
-
 
     """
 
