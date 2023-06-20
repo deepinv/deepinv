@@ -34,13 +34,13 @@ class SplittingLoss(torch.nn.Module):
         self.regular_mask = regular_mask
         self.split_ratio = split_ratio
 
-    def forward(self, y, physics, f):
+    def forward(self, y, physics, model, **kwargs):
         r"""
         Computes the measurement splitting loss
 
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module f: Reconstruction function.
+        :param torch.nn.Module model: Reconstruction function.
         :return: (torch.Tensor) loss.
         """
         tsize = y.size()[1:]
@@ -66,7 +66,7 @@ class SplittingLoss(torch.nn.Module):
         y1 = inp.A(y)
         y2 = inp2.A(y)
 
-        loss_ms = self.metric(physics2.A(f(y1, physics1)), y2)
+        loss_ms = self.metric(physics2.A(model(y1, physics1)), y2)
         loss_ms /= 1 - self.split_ratio  # normalize loss
 
         return loss_ms
