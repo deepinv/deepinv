@@ -130,7 +130,7 @@ data_fidelity = L2()
 level = 3
 model_spec = {
     "name": "waveletprior",
-    "args": {"wv": "db4", "level": level, "device": device},
+    "args": {"wv": "db8", "level": level, "device": device},
 }
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
@@ -142,7 +142,7 @@ prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-sigma_denoiser_init = 0.05
+sigma_denoiser_init = 0.01
 sigma_denoiser = [sigma_denoiser_init*torch.ones(level, 3)]*max_iter
 # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary

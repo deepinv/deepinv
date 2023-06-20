@@ -129,9 +129,6 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         return_metrics=False,
         custom_metrics=None,
-        stepsize_prox_inter=1.0,
-        max_iter_prox_inter=50,
-        tol_prox_inter=1e-3,
         custom_init=None,
     ):
         super(BaseOptim, self).__init__()
@@ -177,7 +174,8 @@ class BaseOptim(nn.Module):
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
-        # By default, self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
+
+        # By default, self.prior should be a list of elements of the class Prior. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
         else:

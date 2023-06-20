@@ -36,14 +36,15 @@ class BaseUnfold(BaseOptim):
 
     def __init__(
         self,
-        *args,
+        iterator,
         trainable_params=[],
         custom_g_step=None,
         custom_f_step=None,
         device=torch.device("cpu"),
         **kwargs
     ):
-        super(BaseUnfold, self).__init__(*args, **kwargs)
+        super(BaseUnfold, self).__init__(iterator, **kwargs)
+
         for param_key in trainable_params:
             if param_key in self.init_params_algo.keys():
                 param_value = self.init_params_algo[param_key]
@@ -51,6 +52,7 @@ class BaseUnfold(BaseOptim):
                     [nn.Parameter(torch.tensor(el).to(device)) for el in param_value]
                 )
         self.init_params_algo = nn.ParameterDict(self.init_params_algo)
+        self.params_algo = self.init_params_algo.copy()
         self.prior = nn.ModuleList(self.prior)
 
         if custom_g_step is not None:
@@ -61,6 +63,7 @@ class BaseUnfold(BaseOptim):
 
 def Unfolded(
     algo_name,
+    trainable_params=[],
     data_fidelity=L2(),
     F_fn=None,
     g_first=False,
@@ -86,4 +89,5 @@ def Unfolded(
         F_fn=F_fn,
         bregman_potential=bregman_potential,
     )
-    return BaseUnfold(iterator, F_fn=F_fn, **kwargs)
+    kwargs["F_fn"] = F_fn
+    return BaseUnfold(iterator, trainable_params=trainable_params, **kwargs)
