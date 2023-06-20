@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class EILoss(nn.Module):
     r"""
     Equivariant imaging self-supervised loss.

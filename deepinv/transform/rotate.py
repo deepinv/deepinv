@@ -37,4 +37,5 @@ if __name__ == "__main__":
     y = t(x)
 
     from deepinv.utils import plot
+
     plot([x, y[0, :, :, :].unsqueeze(0), y[1, :, :, :].unsqueeze(0)])
