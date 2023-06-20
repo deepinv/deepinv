@@ -2,7 +2,7 @@
 Vanilla PnP for computed tomography (CT).
 ====================================================================================================
 
-This example shows how to use a standart PnP algorithm for computed tomography. 
+This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography. 
 """
 import deepinv as dinv
 from pathlib import Path
@@ -11,7 +11,6 @@ from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
-from torchvision import transforms
 from deepinv.utils.demo import load_image
 from deepinv.utils.plotting import plot
 
@@ -79,7 +78,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
-# Set up the PnP algorithm parameters : the stepsize, the noise level if the denoiser and the regularization parameter.
+# Set up the PnP algorithm parameters : the `stepsize`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. The following parameters are chosen arbitrarily.
 params_algo = {"stepsize": 1., "g_param": noise_level_img, "lambda": 0.01}
 max_iter = 100
 early_stop = True
@@ -113,7 +112,7 @@ model = optim_builder(
 )
 
 # %%
-# Evaluate the model on the problem.
+# Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
 
 y = physics(x)

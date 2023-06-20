@@ -129,9 +129,6 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         return_metrics=False,
         custom_metrics=None,
-        stepsize_prox_inter=1.0,
-        max_iter_prox_inter=50,
-        tol_prox_inter=1e-3,
         custom_init=None,
     ):
         super(BaseOptim, self).__init__()
