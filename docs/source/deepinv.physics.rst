@@ -47,6 +47,7 @@ the efficient computation of their pseudo-inverse and proximal operators.
    deepinv.physics.Inpainting
    deepinv.physics.SinglePixelCamera
    deepinv.physics.Tomography
+   deepinv.physics.Pansharpen
 
 
 Non-linear operators

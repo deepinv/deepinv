@@ -18,13 +18,22 @@ class BaseOptim(nn.Module):
 
     .. math::
         \begin{equation}
-        \underset{x}{\arg\min} \quad \lambda \datafid{\forw{x}}{y} + \reg{x}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
         \end{equation}
 
 
-    where the first term :math:`f:\yset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity
-    (:math:`y \approx A(x)`), the second term :math:`g:\xset\mapsto \mathbb{R}_{+}` acts as a regularization, and
-    :math:`A:\xset\mapsto \yset` is the forward operator (see :meth:`deepinv.physics.Physics`).
+    where the first term :math:`\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity, the second
+    term :math:`\regname:\xset\mapsto \mathbb{R}_{+}` acts as a regularization and
+    :math:`\lambda > 0` is a regularization parameter. More precisely, the data-fidelity term penalizes the discrepancy
+    between the data :math:`y` and the forward operator :math:`A` applied to the variable :math:`x`, as
+
+    .. math::
+        \datafid{x}{y} = \distance{Ax}{y}
+
+    where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
+    operator (see :meth:`deepinv.physics.Physics`)
 
     Optimization algorithms for minimising the problem above can be written as fixed point algorithms,
     i.e. for :math:`k=1,2,...`

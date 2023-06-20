@@ -79,7 +79,7 @@ likelihood = dinv.optim.L2(sigma=sigma)
 # -------------------------------------------
 #
 # The score a distribution can be approximated using Tweedie's formula via the
-# :class:`deepinv.models.ScoreDenoiser` class.
+# :class:`deepinv.optim.ScorePrior` class.
 #
 # .. math::
 #
@@ -106,7 +106,7 @@ model_spec = {
 }
 
 sigma_denoiser = 2 / 255
-prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
+prior = dinv.optim.ScorePrior(denoiser=dinv.models.Denoiser(model_spec=model_spec))
 
 # %%
 # Create the MCMC sampler

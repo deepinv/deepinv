@@ -1,4 +1,4 @@
-from .denoiser import register, make, Denoiser, ScoreDenoiser
+from .denoiser import register, make, Denoiser
 from .drunet import DRUNet
 from .ae import AutoEncoder
 from .unet import UNet

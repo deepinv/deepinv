@@ -1,5 +1,8 @@
+import sys
+
 import torch
 import torch.nn as nn
+from deepinv.utils import zeros_like
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -38,9 +41,10 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     """
 
     def dot(s1, s2):
-        return (s1 * s2).flatten().sum()
+        dot = (s1 * s2).flatten().sum()
+        return dot
 
-    x = torch.zeros_like(b)
+    x = zeros_like(b)
 
     r = b
     p = r
@@ -49,13 +53,13 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     for i in range(int(max_iter)):
         Ap = A(p)
         alpha = rsold / dot(p, Ap)
-        x = x + alpha * p
-        r = r - alpha * Ap
+        x = x + p * alpha
+        r = r + Ap * (-alpha)
         rsnew = dot(r, r)
         # print(rsnew.sqrt())
         if rsnew.sqrt() < tol:
             break
-        p = r + (rsnew / rsold) * p
+        p = r + p * (rsnew / rsold)
         rsold = rsnew
 
     return x
@@ -75,7 +79,7 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
 
     for i in range(int(max_iter)):
         x_prev = x
-        x = x - step_size * grad_f(x)
+        x = x - grad_f(x) * step_size
         if check_conv(x_prev, x, i, thres_conv=tol):
             break
     return x

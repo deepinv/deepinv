@@ -12,7 +12,7 @@ where :math:`x` is the image to be reconstructed, :math:`y` are the measurements
 
 
 The negative log likelihood can be set using :meth:`deepinv.optim.DataFidelity`, which includes Gaussian noise,
-Poisson noise, etc. The negative log prior can be approximated using :meth:`deepinv.models.ScoreDenoiser`,
+Poisson noise, etc. The negative log prior can be approximated using :meth:`deepinv.prior.ScorePrior`,
 which leverages Tweedie's formula, i.e.,
 
 .. math::
@@ -26,7 +26,7 @@ which is typically set to a low value.
 .. note::
 
     The approximation of the prior obtained via
-    :meth:`deepinv.models.ScoreDenoiser` is also valid for maximum-a-posteriori (MAP) denoisers,
+    :meth:`deepinv.prior.ScorePrior` is also valid for maximum-a-posteriori (MAP) denoisers,
     but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather
     given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,
 

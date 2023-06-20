@@ -168,12 +168,13 @@ if __name__ == "__main__":
     import deepinv as dinv
     import torchvision
 
+    device = "cuda:0"
     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(dinv.device) / 255
-    x = torchvision.transforms.Resize((32, 64))(x)
+    x = x.unsqueeze(0).float().to(device) / 255
+    x = torchvision.transforms.Resize((16, 8))(x)
 
-    m = 60
-    physics = SinglePixelCamera(m, (3, 32, 64), fast=False, device=dinv.device)
+    m = 20
+    physics = SinglePixelCamera(m, (3, 16, 8), fast=False, device=device)
 
     y = physics(x)
 

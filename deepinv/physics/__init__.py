@@ -8,10 +8,10 @@ from .forward import (
     Physics,
     LinearPhysics,
     DecomposablePhysics,
-    CustomLinearOperator,
 )
 from .noise import GaussianNoise, PoissonNoise, PoissonGaussianNoise, UniformNoise
 from .mri import MRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
+from .remote_sensing import Pansharpen
