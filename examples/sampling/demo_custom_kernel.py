@@ -12,13 +12,9 @@ to accelerate the sampling.
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-import torchvision
-import requests
 from deepinv.sampling import ULA
-from imageio.v2 import imread
-from io import BytesIO
 import numpy as np
-
+from deepinv.utils.demo import load_image
 # %%
 # Load image from the internet
 # ----------------------------
@@ -31,14 +27,7 @@ url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
-res = requests.get(url)
-x = imread(BytesIO(res.content)) / 255.0
-
-x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
-x = torch.nn.functional.interpolate(
-    x, scale_factor=0.5
-)  # reduce the image size for faster eval
-x = torchvision.transforms.functional.center_crop(x, 32)
+x = load_image(url = url, img_size=32)
 
 # %%
 # Define forward operator and noise model
