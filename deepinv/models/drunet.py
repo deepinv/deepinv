@@ -15,17 +15,26 @@ class DRUNet(nn.Module):
     r"""
     DRUNet denoiser network.
 
-    TODO: add link to paper, finish description and params
+    The network architecture is based on the paper
+    `Learning deep CNN denoiser prior for image restoration <https://arxiv.org/abs/1704.03264>`_,
+    and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
+
+    The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param list nc: number of convolutional layers.
-    :param int nb:
+    :param int nb: number of convolutional blocks per layer.
     :param int nf: number of channels per convolutional layer.
-    :param str act_mode:
-    :param str downsample_mode:
-    :param str upsample_mode:
-    :param bool download:
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
+    :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
+        "strideconv" for convolution with stride 2.
+    :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
+        shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
+    :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
     :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 

@@ -17,7 +17,6 @@ class DnCNN(nn.Module):
     :param int in_channels: input image channels
     :param int out_channels: output image channels
     :param int depth: number of convolutional layers
-    :param str act_mode:
     :param bool bias: use bias in the convolutional layers
     :param int nf: number of channels per convolutional layer
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
@@ -59,8 +58,7 @@ class DnCNN(nn.Module):
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
 
-        if act_mode == "R":  # Kai Zhang's nomenclature
-            self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
+        self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
         # if pretrain and ckpt_path is not None:
         #    self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
