@@ -55,8 +55,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         The resulting operator keeps the noise and sensor models of :math:`A_1`.
 
-        :param deepinv.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.Physics) concantenated operator
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.Physics) concantenated operator
 
         """
         A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
@@ -114,8 +114,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Computes forward operator :math:`y = N(A(x))` (with noise and/or sensor non-linearities)
 
-        :param torch.tensor,list[torch.tensor] x: signal/image
-        :return: (torch.tensor) noisy measurements
+        :param torch.Tensor,list[torch.Tensor] x: signal/image
+        :return: (torch.Tensor) noisy measurements
 
         """
         return self.sensor(self.noise(self.A(x)))
@@ -124,8 +124,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Computes forward operator :math:`y = A(x)` (without noise and/or sensor non-linearities)
 
-        :param torch.tensor,list[torch.tensor] x: signal/image
-        :return: (torch.tensor) clean measurements
+        :param torch.Tensor,list[torch.Tensor] x: signal/image
+        :return: (torch.Tensor) clean measurements
 
         """
         return self.forw(x)
@@ -134,8 +134,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Computes sensor non-linearities :math:`y = \eta(y)`
 
-        :param torch.tensor,list[torch.tensor] x: signal/image
-        :return: (torch.tensor) clean measurements
+        :param torch.Tensor,list[torch.Tensor] x: signal/image
+        :return: (torch.Tensor) clean measurements
         """
         return self.sensor_model(x)
 
@@ -143,8 +143,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
-        :param torch.tensor x:  clean measurements
-        :return torch.tensor: noisy measurements
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
 
         """
         return self.noise_model(x)
@@ -155,9 +155,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
-        :param torch.tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param torch.tensor x_init: initial guess for the reconstruction.
-        :return: (torch.tensor) The reconstructed image :math:`x`.
+        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :param torch.Tensor x_init: initial guess for the reconstruction.
+        :return: (torch.Tensor) The reconstructed image :math:`x`.
 
         """
 
@@ -239,8 +239,8 @@ class LinearPhysics(Physics):
             If problem is non-linear, there is not a well-defined transpose operation,
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
-        :param torch.tensor y: measurements.
-        :return: (torch.tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
+        :param torch.Tensor y: measurements.
+        :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
         return self.adjoint(y)

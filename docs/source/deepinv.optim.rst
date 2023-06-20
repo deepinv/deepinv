@@ -101,6 +101,7 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.Prior
    deepinv.optim.PnP
    deepinv.optim.RED
+   deepinv.optim.ScorePrior
    deepinv.optim.Tikhonov
 
 

@@ -31,9 +31,9 @@ class MCLoss(nn.Module):
         r"""
         Computes the measurement splitting loss
 
-        :param torch.tensor y: measurements.
-        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor y: measurements.
+        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: forward operator associated with the measurements.
-        :return: (torch.tensor) loss.
+        :return: (torch.Tensor) loss.
         """
         return self.metric(physics.A(x_net), y)

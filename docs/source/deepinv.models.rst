@@ -1,4 +1,4 @@
-.. _denoiser-docs:
+.. _models:
 
 Models
 ======

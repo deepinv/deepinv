@@ -1,8 +1,3 @@
-.. deepinverse documentation master file, created by
-   sphinx-quickstart on Wed Jan  4 19:22:10 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 DeepInverse: a Pytorch library for imaging with deep learning
 ==================================================================
 
@@ -14,12 +9,12 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
 Featuring
 ==================
 
-* |:camera_with_flash:|  Large collection of :ref:`predefined imaging operators <Physics>` (MRI, CT, deblurring, inpainting, etc.)
-* |:book:| :ref:`Training losses <Loss>` for inverse problems (self-supervised learning, regularization, etc.).
-* |:boomerang:| Many :ref:`pretrained deep denoisers <Models>` which can be used for :ref:`plug-and-play restoration <Optim>`.
-* |:book:| Framework for :ref:`building datasets <Datasets>` for inverse problems.
-* |:building_construction:| Easy-to-build :ref:`unfolded architectures <Unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
-* |:microscope:| :ref:`Sampling algorithms <Sampling>` for uncertainty quantification (Langevin, diffusion, etc.).
+* |:camera_with_flash:|  Large collection of :ref:`predefined imaging operators <physics>` (MRI, CT, deblurring, inpainting, etc.)
+* |:book:| :ref:`Training losses <loss>` for inverse problems (self-supervised learning, regularization, etc.).
+* |:boomerang:| Many :ref:`pretrained deep denoisers <models>` which can be used for :ref:`plug-and-play restoration <optim>`.
+* |:book:| Framework for :ref:`building datasets <datasets>` for inverse problems.
+* |:building_construction:| Easy-to-build :ref:`unfolded architectures <unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
+* |:microscope:| :ref:`Sampling algorithms <sampling>` for uncertainty quantification (Langevin, diffusion, etc.).
 * |:books:| A large number of well-explained :ref:`examples <Examples>`, from basics to state-of-the-art methods.
 
 

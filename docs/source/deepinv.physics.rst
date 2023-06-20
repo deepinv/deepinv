@@ -1,3 +1,5 @@
+.. _physics:
+
 Physics
 =======
 
@@ -26,9 +28,9 @@ All forward operators inherit the structure of the ``Physics`` class.
 Linear operators
 ----------------
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
-All linear operators inherit the structure of the ``LinearPhysics`` class.
-Linear operators with a closed-form singular value decomposition are defined via ``DecomposablePhysics``, which enables
-the efficient computation of their pseudo-inverse and proximal operators.
+All linear operators inherit the structure of the :class:`LinearPhysics` class.
+Linear operators with a closed-form singular value decomposition are defined via :class:`DecomposablePhysics`,
+which enables the efficient computation of their pseudo-inverse and proximal operators.
 
 .. autosummary::
    :toctree: stubs
@@ -65,7 +67,7 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
 
 Noise distributions
 -------------------
-Noise mappings :math:`N:\yset\mapsto \yset` are simple ``torch.nn.Module``.
+Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.
 The noise of a forward operator can be set in its construction
 or simply as
 
