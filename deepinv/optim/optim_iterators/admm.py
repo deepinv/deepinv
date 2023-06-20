@@ -6,9 +6,11 @@ class ADMMIteration(OptimIterator):
     r"""
     Single iteration of ADMM.
 
-    Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for minimising :math:`\lambda f(x) + g(x)`.
+    Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for
+    minimising :math:`\lambda f(x) + g(x)`.
 
-    If the attribute `"g_first"`is set to False (by default), the iteration is given by `<https://www.nowpublishers.com/article/Details/MAL-016>`_:
+    If the attribute ``g_first`` is set to False (by default),
+    the iteration is (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_):
 
     .. math::
         \begin{equation*}
@@ -21,7 +23,9 @@ class ADMMIteration(OptimIterator):
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
 
-    If the attribute `"g_first"` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
+    If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`g` are
+    inverted in the previous iteration.
+
     """
 
     def __init__(self, **kwargs):

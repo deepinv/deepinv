@@ -6,11 +6,11 @@ import numpy as np
 class TensorList:
     r"""
 
-    Represents a list of torch.Tensors with different shapes.
+    Represents a list of :class:`torch.Tensor` with different shapes.
     It allows to sum, flatten, append, etc. lists of tensors seamlessly, in a
-    similar fashion to torch.Tensor.
+    similar fashion to :class:`torch.Tensor`.
 
-    :param x: a list of torch.Tensor, a single torch.Tensor or a TensorList.
+    :param x: a list of :class:`torch.Tensor`, a single :class:`torch.Tensor` or a TensorList.
     """
 
     def __init__(self, x):
@@ -39,13 +39,13 @@ class TensorList:
 
     def flatten(self):
         r"""
-        Returns a torch.Tensor with a flattened version of the list of tensors.
+        Returns a :class:`torch.Tensor` with a flattened version of the list of tensors.
         """
         return torch.cat([xi.flatten() for xi in self.x])
 
     def append(self, other):
         r"""
-        Appends a torch.Tensor or a list of torch.Tensor to the list.
+        Appends a :class:`torch.Tensor` or a list of :class:`torch.Tensor` to the list.
 
         """
         if isinstance(other, list):
@@ -56,7 +56,7 @@ class TensorList:
             self.x.append(other)
         else:
             raise TypeError(
-                "the appended item must be a list of torch.Tensor or a single torch.Tensor"
+                "the appended item must be a list of :class:`torch.Tensor` or a single :class:`torch.Tensor`"
             )
         return self
 
@@ -114,7 +114,7 @@ class TensorList:
 
 def randn_like(x):
     r"""
-    Returns a :class:`deepinv.utils.TensorList` or ``torch.Tensor``
+    Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
     with the same type as x, filled with standard gaussian numbers.
     """
     if isinstance(x, torch.Tensor):
@@ -125,7 +125,7 @@ def randn_like(x):
 
 def rand_like(x):
     r"""
-    Returns a :class:`deepinv.utils.TensorList` or ``torch.Tensor``
+    Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
     with the same type as x, filled with random uniform numbers in [0,1].
     """
     if isinstance(x, torch.Tensor):
@@ -136,7 +136,7 @@ def rand_like(x):
 
 def zeros_like(x):
     r"""
-    Returns a :class:`deepinv.utils.TensorList` or ``torch.Tensor``
+    Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
     with the same type as x, filled with zeros.
     """
     if isinstance(x, torch.Tensor):
@@ -147,7 +147,7 @@ def zeros_like(x):
 
 def ones_like(x):
     r"""
-    Returns a :class:`deepinv.utils.TensorList` or ``torch.Tensor``
+    Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
     with the same type as x, filled with ones.
     """
     if isinstance(x, torch.Tensor):

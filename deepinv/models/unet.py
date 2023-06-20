@@ -61,7 +61,9 @@ class UNet(nn.Module):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param int scales: Number of downsampling steps used in the U-Net options=2,3,4,5. The input images should have at least :math:`2^{\text{scales}` pixels in the vertical and horizontal directions. The number of trainable parameters increases with the scale.
+    :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
+        The input images should have at least :math:`2^{\text{scales}}` pixels in the vertical and horizontal directions.
+        The number of trainable parameters increases with the scale.
     """
 
     def __init__(

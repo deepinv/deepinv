@@ -4,7 +4,7 @@ Examples
 All the examples have a download link at the end. You can load the example's notebook on
 `Google Colab <https://colab.research.google.com/>`_ and run them by adding the line
 
-..
+::
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 

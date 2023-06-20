@@ -38,10 +38,10 @@ class SplittingLoss(torch.nn.Module):
         r"""
         Computes the measurement splitting loss
 
-        :param torch.tensor y: Measurements.
+        :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module f: Reconstruction function.
-        :return: (torch.tensor) loss.
+        :return: (torch.Tensor) loss.
         """
         tsize = y.size()[1:]
 

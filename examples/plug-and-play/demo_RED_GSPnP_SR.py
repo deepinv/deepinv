@@ -90,7 +90,7 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # %%
 # Setup the PnP algorithm. This involves in particular the definition of a custom prior class.
-# --------------------------------------------
+# ------------------------------------------------------------------------------------------------------
 # We use the proximal gradient algorithm to solve the super-resolution problem with GSPnP.
 
 # Parameters of the algorithm to solve the inverse problem

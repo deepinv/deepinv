@@ -32,9 +32,9 @@ class ScoreLoss(nn.Module):
         r"""
         Computes the Score loss.
 
-        :param torch.tensor y: measurements.
+        :param torch.Tensor y: measurements.
         :param torch.nn.Module f: Reconstruction function.
-        :return: (torch.tensor) loss.
+        :return: (torch.Tensor) loss.
         """
         std = np.randn() * self.delta
         noise = torch.randn_like(y)
