@@ -11,29 +11,24 @@ We restrict ourselves to operators where the signal is a 2D image. The full list
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-import torchvision
 import requests
 from imageio.v2 import imread
 from io import BytesIO
-from pathlib import Path
 
 # %%
 # Load image from the internet
 # ----------------------------
 #
-# This example uses an image of Lionel Messi from Wikipedia.
+# This example uses the logo of the CNRS.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = "https://upload.wikimedia.org/wikipedia/commons/2/2e/CATARATAS_DEL_IGUAZU._GARGANTA_DEL_DIABLO.jpg"
+url = "https://www.i3s.unice.fr/sites/default/files/logos/cnrs_transparent.png"
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
 
 x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
-x = torch.nn.functional.interpolate(
-    x, scale_factor=0.5
-)  # reduce the image size for faster eval
-x = torchvision.transforms.functional.center_crop(x, 32)
+x = torch.nn.functional.interpolate(x, size=(64, 64))
 img_size = x.shape[1:]
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -43,8 +38,10 @@ torch.manual_seed(0)
 # Denoising
 # ---------------------------------------
 #
+# The denoising class :class:`deepinv.physics.Denoising` is associated with an identity operator.
+# In this example we choose a Poisson noise.
 
-physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
 y = physics(x)
 
@@ -58,6 +55,9 @@ plot(
 # Inpainting
 # ---------------------------------------
 #
+# The inpainting class :class:`deepinv.physics.Inpainting` is associated with a mask operator.
+# The mask is generated at random (unless an explicit mask is provided as input).
+# We also consider Gaussian noise in this example.
 
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(
@@ -79,9 +79,11 @@ plot(
 # Compressed Sensing
 # ---------------------------------------
 #
+# The compressed sensing class :class:`deepinv.physics.CompressedSensing` is associated with a random Gaussian matrix.
+# Here we take 2048 measurements of an image of size 64x64, which corresponds to a compression ratio of 2.
 
 physics = dinv.physics.CompressedSensing(
-    m=256, fast=False, channelwise=True, img_shape=img_size, device=device
+    m=2048, fast=False, channelwise=True, img_shape=img_size, device=device
 )
 
 y = physics(x)
@@ -96,6 +98,8 @@ plot(
 # Computed Tomography
 # ---------------------------------------
 #
+# The class :class:`deepinv.physics.Tomography` is associated with the sparse Radon transform.
+# Here we take 20 views of an image of size 64x64, and consider mixed Poisson-Gaussian noise.
 
 physics = dinv.physics.Tomography(
     img_width=img_size[-1],
@@ -116,6 +120,13 @@ plot(
 # MRI
 # ---------------------------------------
 #
+# The class :class:`deepinv.physics.MRI` is associated with a subsampling of the Fourier transform.
+# The mask indicates which Fourier coefficients are measured. Here we use a random Cartesian mask, which
+# corresponds to a compression ratio of approximately 4.
+#
+# .. note::
+#    The signal must be complex-valued for this operator, where the first channel corresponds to the real part
+#    and the second channel to the imaginary part. In this example, we set the imaginary part to zero.
 
 mask = torch.rand((1, img_size[-1]), device=device) > 0.75
 mask = torch.ones((img_size[-2], 1), device=device) * mask
@@ -140,6 +151,8 @@ plot(
 # Decolorize
 # ---------------------------------------
 #
+# The class :class:`deepinv.physics.Decolorize` is associated with a simple
+# color-to-gray operator.
 
 physics = dinv.physics.Decolorize()
 
@@ -155,6 +168,8 @@ plot(
 # Pan-sharpening
 # ---------------------------------------
 #
+# The class :class:`deepinv.physics.Pansharpen` obtains measurements which consist of
+# a high-resolution grayscale image and a low-resolution RGB image.
 
 physics = dinv.physics.Pansharpen(img_size=img_size, device=device)
 
@@ -170,9 +185,11 @@ plot(
 # Single-Pixel Camera
 # ---------------------------------------
 #
+# The single-pixel camera class :class:`deepinv.physics.SinglePixelCamera` is associated with ``m`` binary patterns.
+# When ``fast=True``, the patterns are generated using a fast Hadamard transform.
 
 physics = dinv.physics.SinglePixelCamera(
-    m=20, fast=True, img_shape=img_size, device=device
+    m=256, fast=True, img_shape=img_size, device=device
 )
 
 y = physics(x)
@@ -188,6 +205,9 @@ plot(
 # Blur
 # ---------------------------------------
 #
+# The class :class:`deepinv.physics.Blur` blurs the input image with a specified kernel.
+# Here we use a Gaussian blur with a standard deviation of 2 pixels and an angle of 45 degrees.
+
 
 physics = dinv.physics.Blur(
     dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
@@ -205,6 +225,8 @@ plot(
 # Super-Resolution
 # ---------------------------------------
 #
+# The downsampling class :class:`deepinv.physics.Downsampling` is associated with a downsampling operator.
+
 
 physics = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device)
 
