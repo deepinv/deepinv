@@ -39,7 +39,7 @@ def im_save(save_img_path, img):
     plt.imsave(save_img_path, img)
 
 
-def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4):
+def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=False):
     r"""
     Plots a list of images.
 
@@ -63,6 +63,7 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4):
     :param str save_dir: path to save the plot
     :param bool tight: whether to use tight layout
     :param int max_imgs: maximum number of images to plot
+    :param bool clip: whether to clip or not the image between 0 and 1 before plotting. If not, it will be automatically linearly rescaled in 0 and 1 using its minimum and maximum values.
 
     """
     if save_dir:
@@ -78,9 +79,11 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4):
                 pimg = im[i, :, :, :].pow(2).sum(dim=0).sqrt().unsqueeze(0)
             else:
                 pimg = im[i, :, :, :]
+            if clip :
+                pimg = pimg.clamp(min=0.0, max=1.0)
 
             col_imgs.append(
-                pimg.clamp(min=0.0, max=1.0)
+                pimg
                 .detach()
                 .permute(1, 2, 0)
                 .squeeze()

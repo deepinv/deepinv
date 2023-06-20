@@ -294,16 +294,25 @@ if __name__ == "__main__":
     device = torch.device("cpu")
 
     img_width = 256
-    angles = 360
+    angles = 20
 
-    x = torch.zeros(1, 1, img_width, img_width).to(device)
-    x[:, :, 80:180, 80:180] = 1
+    from PIL import Image
+    from torchvision import transforms
+    import deepinv as dinv
+    image = Image.open('../../examples/plug-and-play/datasets/set3c/0/butterfly.png')
+    val_transform = transforms.Compose(
+        [
+        transforms.Grayscale(),
+        transforms.CenterCrop(img_width), 
+        transforms.ToTensor()
+        ])
+    x = val_transform(image).unsqueeze(0)
 
     print("x:", x.shape, "max={:.4f}".format(x.max()), "min={:.4f}".format(x.min()))
 
-    ct = Tomography(img_width, angles, circle=False, non_linearity=True)
+    ct = Tomography(img_width, angles, circle=False, non_linearity=False, noise_model=dinv.physics.GaussianNoise(sigma=0.03))
     y = ct(x)
-    print("y:", y.shape)
+    print("y:", x.shape, "max={:.4f}".format(y.max()), "min={:.4f}".format(y.min()))
     fbp = ct.A_dagger(y)
 
     print(
