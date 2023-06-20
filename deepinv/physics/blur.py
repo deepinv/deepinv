@@ -75,7 +75,6 @@ def bicubic_filter(factor=2):
     return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
 
 
-# TODO: fix bilinear filter
 class Downsampling(LinearPhysics):
     r"""
     Downsampling operator for super-resolution problems.
@@ -453,7 +452,7 @@ class BlurFFT(DecomposablePhysics):
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size  # TODO: bug when height or width is odd
+        self.img_size = img_size
 
         if img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, img_size[0], 1, 1)
@@ -491,7 +490,6 @@ if __name__ == "__main__":
     device = "cuda:0"
 
     import matplotlib.pyplot as plt
-    import deepinv as dinv
 
     device = "cuda:0"
     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
@@ -501,7 +499,7 @@ if __name__ == "__main__":
     sigma_noise = 0.0
     kernel = torch.zeros((1, 1, 15, 15), device=device)
     kernel[:, :, 7, :] = 1 / 15
-    physics = BlurFFT(img_size=x.shape[1:], filter=kernel, device=device)
+    physics = Downsampling(img_size=x.shape[1:], filter="bilinear", device=device)
     physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=device)
 
     y = physics(x)

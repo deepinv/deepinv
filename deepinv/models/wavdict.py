@@ -62,9 +62,10 @@ class WaveletDict(nn.Module):
 
     The solution is not available in closed-form, thus the denoiser runs an optimization for each test image.
 
-    :param int level: decomposition level of the wavelet transform
-    :param list of str wv: mother wavelets (options= TODO)
-    :param str device: cpu or gpu
+    :param int level: decomposition level of the wavelet transform.
+    :param list[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
+        <https://wavelets.pybytes.com/>`_.
+    :param str device: cpu or gpu.
     """
 
     def __init__(self, level=3, list_wv=["db8", "db4"], max_iter=10):
