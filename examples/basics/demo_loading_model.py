@@ -149,10 +149,19 @@ stepsize = [
 sigma_denoiser_init = 0.01
 sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
 # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
+
+stepsize = 0.9 / physics.compute_norm(torch.ones((1, n_channels, img_size, img_size)), tol=1e-4).item()
+# stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
+reg_param = 1.0
+sigma = 1.0
+
+params_algo = {
     "stepsize": stepsize,
-    "g_param": sigma_denoiser,
+    "g_param": reg_param,
     "lambda": lamb,
+    "sigma": sigma,
+    "K": physics.A,
+    "K_adjoint": physics.A_adjoint,
 }
 
 trainable_params = [
@@ -160,14 +169,19 @@ trainable_params = [
     "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
 
+def custom_init_CP(x_init, y_init):
+    return {"est": (x_init, x_init, y_init)}
+
 # Define the unfolded trainable model.
 model = Unfolded(
-    "FidCP",
+    "CP",
     trainable_params=trainable_params,
     params_algo=params_algo,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    g_first=False,
+    custom_init=custom_init_CP,
 )
 
 # %%
