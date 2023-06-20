@@ -139,11 +139,15 @@ max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterati
 prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
-lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+lamb = [
+    1.0
+] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [
+    1.0
+] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
 sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init*torch.ones(level, 3)]*max_iter
+sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
 # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -252,7 +256,7 @@ test(
 #
 
 list_g_param = [
-    name_param[1][0][0].item()  #.item()
+    name_param[1][0][0].item()  # .item()
     for i, name_param in enumerate(model.named_parameters())
     if name_param[1].requires_grad and "g_param" in name_param[0]
 ]
@@ -287,7 +291,7 @@ ax.plot(
 
 ax.plot(
     np.arange(len(list_g_param)),
-    [sigma_denoiser_init]*len(list_g_param),
+    [sigma_denoiser_init] * len(list_g_param),
     label="init. g_param",
     color="r",
     linestyle="dashed",

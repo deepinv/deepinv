@@ -195,7 +195,8 @@ optim_algos = [
     "DRS",
     "CP",
     "HQS",
-]  # TODO: CP currently failing with g_first=True
+    "CP",
+]
 
 
 # other algos: check constraints on the stepsize
@@ -348,7 +349,9 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = torch.tensor(
+        [[1.0]]
+    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 
@@ -420,76 +423,86 @@ def test_CP_K(imsize, dummy_dataset, device):
     :math:`a(x) = d(Ax-y)` and :math:`b(z) = g(z)`, and for :math:`a(x) = g(x)` and :math:`b(z) = f(z-y)`.
     """
 
-    g_first = False
+    for g_first in [False, True]:
+        # Define two points
+        x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
 
-    # Define two points
-    x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
+        # Create a measurement operator
+        # B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
+        B = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64).to(device)
+        B_forward = lambda v: B @ v
+        B_adjoint = lambda v: B.transpose(0, 1) @ v
 
-    # Create a measurement operator
-    B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
-    B_forward = lambda v: B @ v
-    B_adjoint = lambda v: B.transpose(0, 1) @ v
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+        y = physics(x)
 
-    # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
-    y = physics(x)
+        data_fidelity = L2()  # The data fidelity term
 
-    data_fidelity = L2()  # The data fidelity term
+        def prior_g(x, *args):
+            ths = 1.0
+            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
-    def prior_g(x, *args):
-        ths = 0.1
-        return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        prior = Prior(g=prior_g)  # The prior term
 
-    prior = Prior(g=prior_g)  # The prior term
+        # Define a linear operator
+        # K = torch.Tensor([[2.0, 0.0], [0.0, 2.0]]).to(torch.float64).to(device)
+        K = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
+        K_forward = lambda v: K @ v
+        K_adjoint = lambda v: K.transpose(0, 1) @ v
 
-    stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
-    reg_param = 1.0
-    sigma = 1.0
+        # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+        stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
+        reg_param = 1.0
+        sigma = 1.0
 
-    lamb = 1.5
-    max_iter = 1000
+        lamb = 1.5
+        max_iter = 1000
 
-    # Define a linear operator
-    K = torch.Tensor([[2.0, 0.0], [0.0, 2.0]]).to(torch.float64).to(device)
-    K_forward = lambda v: K @ v
-    K_adjoint = lambda v: K.transpose(0, 1) @ v
+        params_algo = {
+            "stepsize": stepsize,
+            "g_param": reg_param,
+            "lambda": lamb,
+            "sigma": sigma,
+            "K": K_forward,
+            "K_adjoint": K_adjoint,
+        }
 
-    params_algo = {
-        "stepsize": stepsize,
-        "g_param": reg_param,
-        "lambda": lamb,
-        "sigma": sigma,
-        "K": K_forward,
-        "K_adjoint": K_adjoint,
-    }
+        def custom_init_CP(x_init, y_init):
+            return {"est": (x_init, x_init, y_init)}
 
-    def custom_init_CP(x_init, y_init):
-        return {"est": (x_init, x_init, y_init)}
+        optimalgo = optim_builder(
+            "CP",
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            crit_conv="residual",
+            thres_conv=1e-11,
+            verbose=True,
+            params_algo=params_algo,
+            early_stop=True,
+            g_first=g_first,
+            custom_init=custom_init_CP,
+        )
 
-    optimalgo = optim_builder(
-        "CP",
-        prior=prior,
-        data_fidelity=data_fidelity,
-        max_iter=max_iter,
-        crit_conv="residual",
-        thres_conv=1e-11,
-        verbose=True,
-        params_algo=params_algo,
-        early_stop=True,
-        g_first=g_first,
-        custom_init=custom_init_CP,
-    )
+        # Run the optimisation algorithm
+        x = optimalgo(y, physics)
 
-    # Run the optimisation algorithm
-    x = optimalgo(y, physics)
+        assert optimalgo.has_converged
 
-    assert optimalgo.has_converged
+        # Compute the subdifferential of the regularisation at the limit point of the algorithm.
+        if not g_first:
+            subdiff = prior.grad(x, 0)
 
-    # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-    subdiff = prior.grad(K_forward(x), 0)
+            grad_deepinv = K_adjoint(data_fidelity.grad(K_forward(x), y, physics))
+            assert torch.allclose(
+                lamb * grad_deepinv, -subdiff, atol=1e-12
+            )  # Optimality condition
 
-    # TODO: fix this
-    # grad_deepinv = data_fidelity.grad(x, y, physics)
-    # assert torch.allclose(
-    #             lamb * grad_deepinv, -subdiff, atol=1e-12
-    #         )  # Optimality condition
+        else:
+            subdiff = K_adjoint(prior.grad(K_forward(x), 0))
+
+            grad_deepinv = data_fidelity.grad(x, y, physics)
+            assert torch.allclose(
+                lamb * grad_deepinv, -subdiff, atol=1e-12
+            )  # Optimality condition

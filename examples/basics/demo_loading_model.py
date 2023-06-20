@@ -13,7 +13,7 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.utils.demo import load_dataset
-from deepinv.optim.data_fidelity import L2
+from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
 from deepinv.models.denoiser import Denoiser
@@ -124,7 +124,7 @@ test_dataloader = DataLoader(
 
 
 # Select the data fidelity term
-data_fidelity = L2()
+data_fidelity = IndicatorL2(radius=0.0)
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
 level = 3
@@ -139,11 +139,15 @@ max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterati
 prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
-lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+lamb = [
+    1.0
+] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [
+    1.0
+] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
 sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init*torch.ones(level, 3)]*max_iter
+sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
 # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -158,7 +162,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = Unfolded(
-    "PGD",
+    "FidCP",
     trainable_params=trainable_params,
     params_algo=params_algo,
     data_fidelity=data_fidelity,
@@ -180,7 +184,7 @@ model = Unfolded(
 #       For a good reconstruction quality, we recommend to train for at least 100 epochs.
 #
 
-epochs = 50 if torch.cuda.is_available() else 2  # choose training epochs
+epochs = 50 if torch.cuda.is_available() else 5  # choose training epochs
 learning_rate = 5e-4
 
 verbose = True  # print training information
@@ -254,11 +258,15 @@ max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterati
 prior_new = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
-lamb = [1.0] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [1.0] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+lamb = [
+    1.0
+] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+stepsize = [
+    1.0
+] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
 sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init*torch.ones(level, 3)]*max_iter
+sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
 # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
 params_algo_new = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -272,7 +280,7 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 model_new = Unfolded(
-    "PGD",
+    "FidCP",
     params_algo=params_algo_new,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
