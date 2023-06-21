@@ -30,7 +30,7 @@ from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
 from deepinv.models.denoiser import Denoiser
-from deepinv.models.denoiser import online_weights_path
+from deepinv.training_utils import train, test
 
 # %%
 # Setup paths for data loading and results.

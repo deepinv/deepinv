@@ -222,8 +222,8 @@ Chambolle-Pock Primal-Dual Splitting
    :nosignatures:
 
    deepinv.optim.optim_iterators.CPIteration
-   deepinv.optim.optim_iterators.primal_dual.fStepCP
-   deepinv.optim.optim_iterators.primal_dual.gStepCP
+   deepinv.optim.optim_iterators.primal_dual_CP.fStepCP
+   deepinv.optim.optim_iterators.primal_dual_CP.gStepCP
 
 
 
