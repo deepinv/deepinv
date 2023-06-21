@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 
 import matplotlib.pyplot as plt
@@ -159,8 +159,8 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "PGD",
+model = unfolded_builder(
+    algo="PGD",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
@@ -229,7 +229,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "unfolded_pgd"
 
 test(
@@ -238,7 +237,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,

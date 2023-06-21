@@ -13,8 +13,14 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_image
-from deepinv.utils.plotting import plot
+from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
+
+# %%
+# Define the custom optimization algorithm as a subclass of OptimIterator, 
+# along with the corresponding custom fStepCV (subclass of fStep) and gStepCV (subclass of gStep) modules. 
+# ----------------------------------------------------------------------------------------
+#
 
 class CVIteration(OptimIterator):
     r"""
@@ -110,11 +116,7 @@ class gStepCV(gStep):
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
-DEG_DIR = BASE_DIR / "degradations"
-CKPT_DIR = BASE_DIR / "ckpts"
 
 
 # %%
@@ -218,10 +220,11 @@ print(f"Model reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} 
 imgs = [x, x_lin, x_model]
 plot(
     imgs,
-    titles=["ground truth", "linear reconstruction", "PnP reconstruction"],
+    titles=["GT", "Linear", "Recons."],
+    show = True
 )
 
-# plot curves
-if plot_metrics:
-
+# plot convergence curves 
+if plot_metrics:    
+    plot_curves(metrics, save_dir=RESULTS_DIR / "curves",  show = True)
     

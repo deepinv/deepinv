@@ -5,7 +5,7 @@ from deepinv.utils import (
     get_timestamp,
     cal_psnr,
 )
-from deepinv.utils import plot, torch2cpu, wandb_imgs
+from deepinv.utils import plot, plot_curves, wandb_imgs, wandb_plot_curves
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -39,7 +39,6 @@ def train(
     verbose=False,
     unsupervised=False,
     plot_images=False,
-    save_images=False,
     plot_metrics=False,
     wandb_vis=False,
     n_plot_max_wandb=8,
@@ -166,7 +165,6 @@ def train(
                 device,
                 verbose=False,
                 plot_images=plot_images,
-                save_images=save_images,
                 plot_metrics=plot_metrics,
                 wandb_vis=wandb_vis,
                 step=epoch,
@@ -202,7 +200,6 @@ def test(
     physics,
     device=torch.device(f"cuda:0"),
     plot_images=False,
-    save_images=True,
     save_folder="results",
     plot_metrics=False,
     verbose=True,
@@ -220,7 +217,6 @@ def test(
     :param deepinv.physics.Physics physics:
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
-    :param bool save_images: Save the images.
     :param str save_folder: Directory in which to save plotted reconstructions.
     :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
@@ -255,53 +251,45 @@ def test(
                 x = [s.to(device) for s in x]
             else:
                 x = x.to(device)
-
             y = y.to(device)
-
             with torch.no_grad():
                 if plot_metrics:
-                    output_model = model(y, physics[g], x, **kwargs)
-                    if len(output_model) == 1:
-                        plot_metrics = False
-                        print(
-                            "plot_metrics is set to True but model does not returns metrics"
-                        )
-                        x1 = model(y, physics[g], **kwargs)
-                    else:
-                        x1, metrics = output_model
+                    x1, metrics = model(y, physics[g], x, **kwargs)
                 else:
                     x1 = model(y, physics[g], **kwargs)
-
                 if hasattr(model, "custom_init") and model.custom_init:
                     x_init = model.custom_init(y)
                 else:
                     x_init = physics[g].A_adjoint(y)
             cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)
-
             psnr_init.append(cur_psnr_init)
             psnr_net.append(cur_psnr)
 
             if wandb_vis:
                 psnr_data.append([g, i, cur_psnr_init, cur_psnr])
 
-            if save_images or plot_metrics:
-                save_folder_G = save_folder / ("G" + str(g))
-                save_folder_G.mkdir(parents=True, exist_ok=True)
+            if plot_images:
+                save_folder_im = ((save_folder / ("G" + str(g))) if G > 1 else save_folder) / "images"
+                save_folder_im.mkdir(parents=True, exist_ok=True)
+            if plot_metrics:
+                save_folder_curve = ((save_folder / ("G" + str(g))) if G > 1 else save_folder) / "curves"
+                save_folder_curve.mkdir(parents=True, exist_ok=True)
 
-            if plot_images or save_images or wandb_vis:
+            if plot_images or wandb_vis:
                 if g < show_operators:
-                    imgs = [x_init, x1, x]
-                    name_imgs = ["Linear", "Recons.", "GT"]
-
-                    if save_images:
-                        for img, name_im in zip(imgs, name_imgs):
-                            plt.imsave(
-                                save_folder_G / (name_im + "_" + str(i) + ".png"),
-                                img,
-                                cmap="gray")
-                    if plot_images:
-                        plot(imgs, titles=name_imgs)
+                    if len(y.shape) == 4:
+                        imgs = [y, x_init, x1, x]
+                        name_imgs = ["Input", "Linear", "Recons.", "GT"]
+                    else :
+                         imgs = [x_init, x1, x]
+                         name_imgs = ["Linear", "Recons.", "GT"]
+                    plot(
+                        imgs,
+                        titles=name_imgs,
+                        save_dir=save_folder_im,
+                        show=True
+                    )
                     if wandb_vis:
                         n_plot = min(n_plot_max_wandb, len(x))
                         captions = [
@@ -314,23 +302,10 @@ def test(
                         wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
 
             if plot_metrics:
-                for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
-                    if len(metric_val) > 0:
-                        batch_size, n_iter = len(metric_val), len(metric_val[0])
-
-                        if wandb_vis:
-                            wandb.log(
-                                {
-                                    f"{metric_name} batch {i}": wandb.plot.line_series(
-                                        xs=range(n_iter),
-                                        ys=metric_val,
-                                        keys=[f"image {j}" for j in range(batch_size)],
-                                        title=f"{metric_name} batch {i}",
-                                        xname="iteration",
-                                    )
-                                },
-                                step=step,
-                            )
+                plot_curves(metrics, save_dir=save_folder_curve, show=True)
+                if wandb_vis:
+                    wandb_plot_curves(metrics, batch_idx=i, step=step)
+                    
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

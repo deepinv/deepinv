@@ -242,6 +242,7 @@ class BaseOptim(nn.Module):
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
+        self.params_algo = self.init_params_algo.copy() # reset parameters to initial values
         if self.custom_init:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = self.custom_init(x_init, z_init)
@@ -400,7 +401,6 @@ class BaseOptim(nn.Module):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         """
-        self.params_algo = self.init_params_algo.copy()
         x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
         x = (
             self.get_primal_variable(x)
@@ -450,7 +450,8 @@ def optim_builder(
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    if F_fn is None and kwargs['prior'].explicit_prior :
+    explicit_prior = kwargs['prior'][0].explicit_prior if isinstance(kwargs['prior'], list) else kwargs['prior'].explicit_prior
+    if F_fn is None and explicit_prior:
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]

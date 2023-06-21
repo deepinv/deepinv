@@ -14,6 +14,7 @@ from matplotlib.ticker import MaxNLocator
 use_tex = matplotlib.checkdep_usetex(True)
 if use_tex:
     plt.rcParams['text.usetex'] = True
+import torch
 
 
 def torch2cpu(img):
@@ -42,7 +43,7 @@ def numpy2uint(img):
     return np.uint8((img * 255.0).round())
 
 
-def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=False, show = True):
+def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, rescale_mode='min_max', show = True):
     r"""
     Plots a list of images.
 
@@ -61,10 +62,11 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=Fals
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param str save_dir: path to save the plot
-    :param bool tight: use tight layout
-    :param int max_imgs: maximum number of images to plot
-    :param bool clip: clip or not the image between 0 and 1 before plotting. If not, it will be automatically linearly rescaled in 0 and 1 using its minimum and maximum values.
+    :param str save_dir: path to save the plot.
+    :param bool tight: use tight layout.
+    :param int max_imgs: maximum number of images to plot.
+    :param str rescale_mode: rescale mode for images, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param bool show: show the image plot.
     """
     if save_dir:
         save_dir = Path(save_dir)
@@ -84,8 +86,12 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=Fals
                 pimg = im[i, :, :, :].pow(2).sum(dim=0).sqrt().unsqueeze(0)
             else:
                 pimg = im[i, :, :, :]
-            if clip :
+            if rescale_mode == 'min_max':
+                pimg = (pimg - pimg.min()) / (pimg.max() - pimg.min())
+            elif rescale_mode == 'clip':
                 pimg = pimg.clamp(min=0.0, max=1.0)
+            else:
+                raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
 
             col_imgs.append(
                 pimg
@@ -125,26 +131,35 @@ def plot_curves(metrics, save_dir=None, show = True):
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
-    fig, axs = plt.subplots(1, len(metrics.keys()), figsize=(6*len(metrics.keys()),5))
+    fig, axs = plt.subplots(1, len(metrics.keys()), figsize=(6*len(metrics.keys()),4))
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
             batch_size, n_iter = len(metric_val), len(metric_val[0])
             axs[i].spines['right'].set_visible(False)
             axs[i].spines['top'].set_visible(False)
-            for b in range(batch_size):
-                axs[i].plot(metric_val[b], 'o', label = f"batch {i+1}")
-            axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
-            axs[i].set_xlabel("iterations")
             if metric_name == 'residual' :
                 label = r'Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$'
+                log_scale = True
             elif metric_name == 'psnr' :
                 label = r'$PSNR(x_k)$'
+                log_scale = False
             elif metric_name == 'cost' :
                 label = r'$F(x_k)$'
+                log_scale = True
             else :
                 label = metric_name
-            axs[i].set_ylabel(label)
+                log_scale = False
+            for b in range(batch_size):
+                if not log_scale:
+                    axs[i].plot(metric_val[b], '-o', label = f"batch {b+1}")
+                else:
+                    axs[i].semilogy(metric_val[b], '-o', label = f"batch {b+1}")
+            axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
+            #axs[i].set_xlabel("iterations")
+            axs[i].set_title(label)
+            axs[i].legend()
+    plt.subplots_adjust(hspace=0.1)
     if save_dir:
         plt.savefig(save_dir / "curves.png")
     if show:
@@ -161,6 +176,23 @@ def wandb_imgs(imgs, captions, n_plot):
             )
         )
     return wandb_imgs
+
+def wandb_plot_curves(metrics, batch_idx=0, step=0):
+    for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
+        if len(metric_val) > 0:
+            batch_size, n_iter = len(metric_val), len(metric_val[0])
+            wandb.log(
+                {
+                    f"{metric_name} batch {i}": wandb.plot.line_series(
+                        xs=range(n_iter),
+                        ys=metric_val,
+                        keys=[f"image {j}" for j in range(batch_size)],
+                        title=f"{metric_name} batch {batch_idx}",
+                        xname="iteration",
+                    )
+                },
+                step=step,
+            )
 
 
 if __name__ == "__main__":

@@ -3,21 +3,19 @@ Learned iterative custom prior
 ==============================
 
 This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
+The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.
 
 """
 from pathlib import Path
-
 import numpy as np
 import torch
 from torchvision import datasets
 from torchvision import transforms
-
 import deepinv as dinv
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 
 import matplotlib.pyplot as plt
@@ -174,13 +172,13 @@ trainable_params = [
 data_fidelity = L2()
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "PGD",
+model = unfolded_builder(
+    algo="PGD",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior,
+    prior=prior
 )
 
 # %% Define the training parameters.
@@ -231,7 +229,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    wandb_vis=wandb_vis
 )
 
 # %%
@@ -244,7 +242,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "unfolded_pgd"
 
 test(
@@ -253,7 +250,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,

@@ -75,7 +75,8 @@ def unfolded_builder(
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
-    if F_fn is None and kwargs['prior'].explicit_prior:
+    explicit_prior = kwargs['prior'][0].explicit_prior if isinstance(kwargs['prior'], list) else kwargs['prior'].explicit_prior
+    if F_fn is None and explicit_prior:
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]

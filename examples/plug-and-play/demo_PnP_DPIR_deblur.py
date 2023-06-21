@@ -31,7 +31,6 @@ ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
-CKPT_DIR = BASE_DIR / "ckpts"
 
 
 # %%
@@ -136,7 +135,7 @@ prior = PnP(denoiser=Denoiser(model_spec))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="HQS",
+    algo="HQS",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
@@ -152,8 +151,8 @@ model = optim_builder(
 # The test function evaluates the model on the test dataset and computes the metrics.
 
 wandb_vis = False  # plot curves and images in Weight&Bias
-plot_images = True  # plot results
-save_images = True  # save images in RESULTS_DIR
+plot_images = True  # plot images
+plot_metrics = True  # plot metrics
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -165,7 +164,6 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,

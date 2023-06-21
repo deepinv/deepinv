@@ -121,10 +121,11 @@ print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB
 imgs = [y, x, x_lin, x_model]
 plot(
     imgs,
-    titles=["measurement", "ground truth", "linear reconstruction", "PnP reconstruction"],
+    titles=["Input", "GT", "Linear", "Recons."],
     save_dir=RESULTS_DIR / "images",
-    show = False
+    show = True
 )
 
 # plot convergence curves 
-plot_curves(metrics, save_dir=RESULTS_DIR / "curves",  show = False)
+if plot_metrics:    
+    plot_curves(metrics, save_dir=RESULTS_DIR / "curves",  show = True)

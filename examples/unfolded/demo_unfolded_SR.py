@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
@@ -155,7 +155,7 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = Unfolded(
+model = unfolded_builder(
     "DRS",
     params_algo=params_algo,
     trainable_params=trainable_params,
@@ -174,7 +174,7 @@ model = Unfolded(
 epochs = 10 if torch.cuda.is_available() else 2
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 32 if torch.cuda.is_available() else 1
+test_batch_size = 3
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
@@ -221,7 +221,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "unfolded_drs"
 
 test(
@@ -230,7 +229,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,
