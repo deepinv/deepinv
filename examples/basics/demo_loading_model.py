@@ -150,7 +150,12 @@ sigma_denoiser_init = 0.01
 sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
 # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
 
-stepsize = 0.9 / physics.compute_norm(torch.ones((1, n_channels, img_size, img_size)), tol=1e-4).item()
+stepsize = (
+    0.9
+    / physics.compute_norm(
+        torch.ones((1, n_channels, img_size, img_size)), tol=1e-4
+    ).item()
+)
 # stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
 reg_param = 1.0
 sigma = 1.0
@@ -169,8 +174,10 @@ trainable_params = [
     "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
 
+
 def custom_init_CP(x_init, y_init):
     return {"est": (x_init, x_init, y_init)}
+
 
 # Define the unfolded trainable model.
 model = Unfolded(

@@ -385,9 +385,11 @@ class IndicatorL2(DataFidelity):
         :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
-        return y + torch.min(
-            torch.tensor([radius]).to(x.device), torch.norm(x.flatten() - y.flatten())
-        ) * (x - y) / (torch.norm(x.flatten() - y.flatten()) + 1e-12)
+        diff = x - y
+        dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
+        return y + torch.min(torch.tensor([radius]).to(x.device), dist) * diff / (
+            dist + 1e-12
+        )
 
     def prox(
         self, x, y, physics, radius=None, stepsize=None, crit_conv=1e-5, max_iter=100
@@ -440,8 +442,7 @@ class IndicatorL2(DataFidelity):
             u_ = u + stepsize * physics.A(t)
             u = u_ - stepsize * self.prox_d(u_ / stepsize, y, radius=radius)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
-            print(rel_crit)
-            if rel_crit < crit_conv and it > 2:
+            if rel_crit < crit_conv and it > 1:
                 break
         return t
 

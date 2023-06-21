@@ -428,7 +428,6 @@ def test_CP_K(imsize, dummy_dataset, device):
         x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
 
         # Create a measurement operator
-        # B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
         B = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64).to(device)
         B_forward = lambda v: B @ v
         B_adjoint = lambda v: B.transpose(0, 1) @ v
@@ -494,7 +493,9 @@ def test_CP_K(imsize, dummy_dataset, device):
         if not g_first:
             subdiff = prior.grad(x, 0)
 
-            grad_deepinv = K_adjoint(data_fidelity.grad(K_forward(x), y, physics))
+            grad_deepinv = K_adjoint(
+                data_fidelity.grad(K_forward(x), y, physics)
+            )  # This test is only valid for differentiable data fidelity terms.
             assert torch.allclose(
                 lamb * grad_deepinv, -subdiff, atol=1e-12
             )  # Optimality condition

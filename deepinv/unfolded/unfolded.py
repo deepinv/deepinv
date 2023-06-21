@@ -62,7 +62,7 @@ class BaseUnfold(BaseOptim):
 
 
 def Unfolded(
-    algo_name,
+    algo,
     trainable_params=[],
     data_fidelity=L2(),
     F_fn=None,
@@ -74,20 +74,23 @@ def Unfolded(
     r"""
     Function building the appropriate Unfolded architecture.
 
-    :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.
+    :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimization problem.
     :param F_fn: Custom user input cost function. Default: None.
     :param g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False.
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     :param str bregman_potential: possibility to perform optimization with another bregman geometry. Default: `"L2"`
     """
-    iterator_fn = str_to_class(algo_name + "Iteration")
-    iterator = iterator_fn(
-        data_fidelity=data_fidelity,
-        g_first=g_first,
-        beta=beta,
-        F_fn=F_fn,
-        bregman_potential=bregman_potential,
-    )
+    if isinstance(algo, str):
+        iterator_fn = str_to_class(algo + "Iteration")
+        iterator = iterator_fn(
+            data_fidelity=data_fidelity,
+            g_first=g_first,
+            beta=beta,
+            F_fn=F_fn,
+            bregman_potential=bregman_potential,
+        )
+    else:
+        iterator = algo
     kwargs["F_fn"] = F_fn
     return BaseUnfold(iterator, trainable_params=trainable_params, **kwargs)
