@@ -53,7 +53,7 @@ class CVIteration(OptimIterator):
         x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_prior, cur_params)
         u = self.f_step(physics.A(2 * x - x_prev), u_prev, y, cur_params)
 
-        F = self.F_fn(x, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, cur_params, y, physics) if self.has_cost else None
 
         return {"est": (x, u), "cost": F}
 
@@ -188,9 +188,17 @@ model_spec = {  # specifies the parameters of the DRUNet model
 prior = PnP(denoiser=Denoiser(model_spec))
 
 # instantiate the algorithm class to solve the IP problem.
-iterator = CVIteration(data_fidelity=data_fidelity)
-from deepinv.optim.optimizers import BaseOptim
-model = BaseOptim(iterator, prior=prior, params_algo=params_algo, max_iter=max_iter, early_stop=early_stop)
+algo = CVIteration(data_fidelity=data_fidelity,F_fn=None,has_cost=False)
+model = optim_builder(
+    algo=algo,
+    prior=prior,
+    data_fidelity=data_fidelity,
+    early_stop=early_stop,
+    max_iter=max_iter,
+    verbose=verbose,
+    params_algo=params_algo,
+    return_metrics=plot_metrics
+)
 
 # %%
 # Evaluate the model on the problem and plot the results.
@@ -199,7 +207,8 @@ model = BaseOptim(iterator, prior=prior, params_algo=params_algo, max_iter=max_i
 y = physics(x)
 x_lin = physics.A_adjoint(y)
 
-x_model = model(y, physics)
+# run the model on the problem. When `return_metrics` is set to True, the model requires the ground-truth clean image ``x_gt`` and returns the output and the metrics computed along the iterations.
+x_model, metrics = model(y, physics, x_gt = x)
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
@@ -211,3 +220,8 @@ plot(
     imgs,
     titles=["ground truth", "linear reconstruction", "PnP reconstruction"],
 )
+
+# plot curves
+if plot_metrics:
+
+    

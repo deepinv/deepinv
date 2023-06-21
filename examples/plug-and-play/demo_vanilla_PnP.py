@@ -12,31 +12,23 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_image
-from deepinv.utils.plotting import plot
+from deepinv.utils.plotting import plot, plot_curves
 
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
 #
-
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
-DEG_DIR = BASE_DIR / "degradations"
-CKPT_DIR = BASE_DIR / "ckpts"
 
 
 # %%
-# Load base image datasets and degradation operators.
+# Load image and parameters
 # ----------------------------------------------------------------------------------------
-
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
-
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
 # Set up the variable to fetch dataset and operators.
 method = "PnP"
 dataset_name = "set3c"
@@ -101,7 +93,7 @@ prior = PnP(denoiser=Denoiser(model_spec))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="PGD",
+    algo="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
@@ -118,14 +110,21 @@ model = optim_builder(
 y = physics(x)
 x_lin = physics.A_adjoint(y)
 
-x_model, metrics = model(y, physics, x)
+# run the model on the problem. When `return_metrics` is set to True, the model requires the ground-truth clean image ``x_gt`` and returns the output and the metrics computed along the iterations.
+x_model, metrics = model(y, physics, x_gt = x)
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
+print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
 
-# plot results
+# plot images
 imgs = [y, x, x_lin, x_model]
 plot(
     imgs,
     titles=["measurement", "ground truth", "linear reconstruction", "PnP reconstruction"],
+    save_dir=RESULTS_DIR / "images",
+    show = False
 )
+
+# plot convergence curves 
+plot_curves(metrics, save_dir=RESULTS_DIR / "curves",  show = False)
