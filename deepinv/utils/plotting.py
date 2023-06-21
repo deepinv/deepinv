@@ -1,10 +1,19 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
 from torchvision.utils import make_grid
 import wandb
 import math
+import matplotlib.pyplot as plt
+from pathlib import Path
+import matplotlib
+matplotlib.rcParams.update({'font.size': 17})
+matplotlib.rcParams['lines.linewidth'] = 2
+matplotlib.style.use('seaborn-darkgrid')
+from matplotlib.ticker import MaxNLocator
+use_tex = matplotlib.checkdep_usetex(True)
+if use_tex:
+    plt.rcParams['text.usetex'] = True
 
 
 def torch2cpu(img):
@@ -28,33 +37,25 @@ def tensor2uint(img):
         img = np.transpose(img, (1, 2, 0))
     return np.uint8((img * 255.0).round())
 
-
 def numpy2uint(img):
     img = img.clip(0, 1)
     return np.uint8((img * 255.0).round())
 
 
-def im_save(save_img_path, img):
-    img = numpy2uint(img)
-    plt.imsave(save_img_path, img)
-
-
-def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=False):
+def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=False, show = True):
     r"""
     Plots a list of images.
 
     The images should be of shape [B,C,H,W], where B is the batch size, C is the number of channels,
     H is the height and W is the width. The images are plotted in a grid, where the number of rows is B
-    and the number of columns is the length of the list. If the list is longer than max_imgs, only the first
-    max_imgs are plotted.
-
+    and the number of columns is the length of the list. If the B is bigger than max_imgs, only the first
+    batches are plotted.
 
     Example usage:
 
     ::
-
         import torch
-        import deepinv.utils.plot as plot
+        from deepinv.utils import plot
         img = torch.rand(4, 3, 256, 256)
         plot([img, img, img], titles=["img1", "img2", "img3"], save_dir="test.png")
 
@@ -64,13 +65,10 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=Fals
     :param bool tight: whether to use tight layout
     :param int max_imgs: maximum number of images to plot
     :param bool clip: whether to clip or not the image between 0 and 1 before plotting. If not, it will be automatically linearly rescaled in 0 and 1 using its minimum and maximum values.
-
     """
     if save_dir:
-        if not os.path.exists(save_dir.split("/")[0]):
-            print("Creating ", save_dir.split("/")[0], " folder...")
-            os.makedirs(save_dir.split("/")[0])
-
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
     imgs = []
     for im in img_list:
         col_imgs = []
@@ -90,7 +88,6 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=Fals
                 .cpu()
                 .numpy()
             )
-
         imgs.append(col_imgs)
 
     plt.figure(figsize=(len(imgs), len(imgs[0]) * 1.3))
@@ -98,60 +95,53 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=Fals
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
             plt.subplot(len(imgs[0]), len(imgs), r * len(imgs) + i + 1)
-
             plt.imshow(img, cmap="gray")
             if titles and r == 0:
                 plt.title(titles[i], size=8)
             plt.axis("off")
-
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
-
     if save_dir:
-        plt.savefig(save_dir, dpi=1200)
+        plt.savefig(save_dir / "images.png", dpi=1200)
+        for i, row_imgs in enumerate(imgs):
+            for r, img in enumerate(row_imgs):
+                plt.imsave(
+                    save_dir / (titles[i] + "_" + str(r) + ".png"),
+                    img,
+                    cmap="gray"
+                )
+    if show:
+        plt.show()
 
-    plt.show()
 
-
-# def plot(
-#    imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True, show=True
-# ):
-#    if save_dir:
-#        if not os.path.exists(save_dir.split("/")[0]):
-#            print("Creating ", save_dir.split("/")[0], " folder...")
-#            os.makedirs(save_dir.split("/")[0])
-
-#    if torch.is_tensor(imgs[0]):
-#        imgs = [torch2cpu(im) for im in imgs]
-#
-#    if not shape:
-#        shape = (1, len(imgs))
-#
-#    plt.figure(figsize=(shape[1], 1.2 * shape[0]))
-#
-#    for i, img in enumerate(imgs):
-#        if row_order:
-#           r = i % shape[0]
-#           c = int((i - r) / shape[0])
-#           idx = r * shape[1] + c
-#      else:
-#          r = int(i / shape[1])
-#          idx = i
-##
-#      plt.subplot(shape[0], shape[1], idx + 1)
-
-#       plt.imshow(img, cmap="gray")
-#     if titles and r == 0:
-#         plt.title(titles[i], size=8)
-#    plt.axis("off")
-
-# if tight:
-#     plt.subplots_adjust(hspace=0.05, wspace=0.05)
-
-# if save_dir:
-#    plt.savefig(save_dir, dpi=1200)
-# if show:
-#    plt.show()
+def plot_curves(metrics, save_dir=None, show = True):
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+    fig, axs = plt.subplots(1, len(metrics.keys()), figsize=(6*len(metrics.keys()),5))
+    for i, metric_name in enumerate(metrics.keys()):
+        metric_val = metrics[metric_name]
+        if len(metric_val) > 0:
+            batch_size, n_iter = len(metric_val), len(metric_val[0])
+            axs[i].spines['right'].set_visible(False)
+            axs[i].spines['top'].set_visible(False)
+            for b in range(batch_size):
+                axs[i].plot(metric_val[b], 'o', label = f"batch {i+1}")
+            axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
+            axs[i].set_xlabel("iterations")
+            if metric_name == 'residual' :
+                label = r'Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$'
+            elif metric_name == 'psnr' :
+                label = r'$PSNR(x_k)$'
+            elif metric_name == 'cost' :
+                label = r'$F(x_k)$'
+            else :
+                label = metric_name
+            axs[i].set_ylabel(label)
+    if save_dir:
+        plt.savefig(save_dir / "curves.png")
+    if show:
+        plt.show()
 
 
 def wandb_imgs(imgs, captions, n_plot):
@@ -164,3 +154,10 @@ def wandb_imgs(imgs, captions, n_plot):
             )
         )
     return wandb_imgs
+
+
+if __name__ == "__main__":
+    import torch
+    from deepinv.utils import plot
+    img = torch.rand(4, 3, 256, 256)
+    plot([img, img, img], titles=["img1", "img2", "img3"], max_imgs=2)

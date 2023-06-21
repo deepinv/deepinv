@@ -64,15 +64,14 @@ class FixedPoint(nn.Module):
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
                                         well as parameters of the optimisation problem (prior, measurements, etc.)
-    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
     :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: None.
+    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
+    :param function init_iterate_fn: function that returns the initial iterate. Default: None.
+    :param function init_metrics_fn: function that returns the initial metrics. Default: None.
     :param function check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: None.
     :param function check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: None.
     :param int max_iter: maximum number of iterations. Default: 50.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: True.
-    :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
-                          of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
-    :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
     """
 
     def __init__(
@@ -80,12 +79,13 @@ class FixedPoint(nn.Module):
         iterator=None,
         update_params_fn=None,
         update_prior_fn=None,
-        max_iter=50,
-        early_stop=True,
+        init_iterate_fn=None,
         init_metrics_fn=None,
         update_metrics_fn=None,
         check_iteration_fn=None,
         check_conv_fn=None,
+        max_iter=50,
+        early_stop=True,
     ):
         super().__init__()
         self.iterator = iterator
@@ -93,6 +93,7 @@ class FixedPoint(nn.Module):
         self.early_stop = early_stop
         self.update_params_fn = update_params_fn
         self.update_prior_fn = update_prior_fn
+        self.init_iterate_fn = init_iterate_fn
         self.init_metrics_fn = init_metrics_fn
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
@@ -104,22 +105,22 @@ class FixedPoint(nn.Module):
             )
             self.early_stop = False
 
-    def forward(self, X, *args, **kwargs):
+    def forward(self, *args, **kwargs):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
         The iterates are stored in a dictionary of the form ``X = {'est': (x_k, u_k), 'cost': F_k}`` where:
-            - `est` is a tuple containing the current primal and dual iterates,
+            - `est` is a tuple containing the current primal and auxiliary iterates,
             - `cost` is the value of the cost function at the current iterate.
 
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
 
-        :param dict X: dictionary containing the current iterate.
         :param args: optional arguments for the iterator.
         :param kwargs: optional keyword arguments for the iterator.
         :return: the fixed-point.
         """
+        X = self.init_iterate_fn(*args, F_fn = self.iterator.F_fn) if self.init_iterate_fn else None
         metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn else None
         it = 0
         while it < self.max_iter:
@@ -144,103 +145,3 @@ class FixedPoint(nn.Module):
             else:
                 X = X_prev
         return X, metrics
-
-
-class AndersonAcceleration(FixedPoint):
-    r"""
-    Anderson Acceleration algorithm for fixed-point algorithms.
-
-    Considering a fixed-point algorithm of the form $x_{k+1} = T(x_k)$, the Anderson algorithm (see
-    `<https://users.wpi.edu/~walker/Papers/Walker-Ni,SINUM,V49,1715-1735.pdf>`_.) is defined as:
-
-    .. math::
-
-        x_{k+1} = (1-\beta) \sum_{i=0}^{m} \alpha_i x_{k-m+i} + \beta \sum_{i=0}^{m} \alpha_i T(x_{k-m+i})
-
-
-    where :math:`T` is the fixed-point iterator and the coefficients :math:`\alpha_i` are such that :math:`\sum_{i=0}^{m} \alpha_i = 1`.
-
-    :param int history_size: number of previous iterates to be used for the acceleration (parameter :math:`m` in the above equation). Default: 5.
-    :param float ridge: ridge parameter for the least-squares problem. Default: 1e-4.
-    :param float or list beta: parameter :math:`\beta` in the above equation. If a float is provided, the same value is used for all iterations. If a list is provided, the value is updated at each iteration. Default: 1.0.
-    :param kwargs: additional keyword arguments for FixedPoint.
-    """
-
-    def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
-        super(AndersonAcceleration, self).__init__(**kwargs)
-        self.history_size = history_size
-        if isinstance(beta, float):
-            beta = [beta] * self.max_iter
-        self.beta = beta
-        self.ridge = ridge
-
-    def forward(self, x, init_params, *args):
-        r"""
-        Computes the fixed point of :math:`x_{k+1}=T(x_k)` using Anderson acceleration.
-
-        :param dict x: dictionary containing the current iterate.
-        :param dict init_params: dictionary containing the initial parameters.
-        :param args: optional arguments for the iterator.
-        :return: a tuple containing the fixed-point.
-        """
-        cur_params = init_params
-        init = x["est"][0]
-        B, C, H, W = init.shape
-        X = torch.zeros(
-            B, self.history_size, C * H * W, dtype=init.dtype, device=init.device
-        )
-        F = torch.zeros(
-            B, self.history_size, C * H * W, dtype=init.dtype, device=init.device
-        )
-        X[:, 0] = init.reshape(B, -1)
-        F[:, 0] = self.iterator(init, 0, *args)[0].reshape(B, -1)
-        X[:, 1] = F[:, 0]
-        x = self.iterator(F[:, 0].reshape(init.shape), 1, *args)[0]
-        F[:, 1] = x.reshape(B, -1)
-
-        H = torch.zeros(
-            B,
-            self.history_size + 1,
-            self.history_size + 1,
-            dtype=init.dtype,
-            device=init.device,
-        )
-        H[:, 0, 1:] = H[:, 1:, 0] = 1
-        y = torch.zeros(B, self.history_size + 1, dtype=init.dtype, device=init.device)
-        y[:, 0] = 1
-        for it in range(2, self.max_iter):
-            n = min(it, self.history_size)
-            G = F[:, :n] - X[:, :n]
-            H[:, 1 : n + 1, 1 : n + 1] = torch.bmm(
-                G, G.transpose(1, 2)
-            ) + self.ridge * torch.eye(
-                n, dtype=init.dtype, device=init.device
-            ).unsqueeze(
-                0
-            )
-            alpha = torch.linalg.solve(H[:, : n + 1, : n + 1], y[:, : n + 1])[
-                :, 1 : n + 1
-            ]
-            X[:, it % self.history_size] = (
-                self.beta[it] * (alpha[:, None] @ F[:, :n])[:, 0]
-                + (1 - self.beta[it]) * (alpha[:, None] @ X[:, :n])[:, 0]
-            )
-            F[:, it % self.history_size] = self.iterator(
-                X[:, it % self.history_size].reshape(init.shape), it, *args
-            )[0].reshape(B, -1)
-            x_prev = X[:, it % self.history_size].reshape(init.shape)
-            x = F[:, it % self.history_size].reshape(init.shape)
-            if (
-                self.check_conv_fn(
-                    x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose
-                )
-                and it > 1
-            ):
-                self.has_converged = True
-                if self.early_stop:
-                    if self.verbose:
-                        print("Convergence reached at iteration ", it)
-                    break
-            if it < self.max_iter - 1:
-                cur_params = self.update_params(cur_params, it + 1, x, x_prev)
-        return (x,)

@@ -15,12 +15,12 @@ class GDIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \phi}(x_k-\gamma v_{k})
+        x_{k+1} &= x_k-\gamma v_{k}
         \end{aligned}
         \end{equation*}
 
 
-    where :math:`\phi` is the Bregman potential of :math:`g` and :math:`\gamma` is a stepsize.
+   where :math:`\gamma` is a stepsize.
     """
 
     def __init__(self, **kwargs):
@@ -44,9 +44,9 @@ class GDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_params, y, physics)
         )
-        x = gradient_descent_step(x_prev, grad, self.bregman_potential)
+        x = gradient_descent_step(x_prev, grad)
         x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
         return {"est": (x,), "cost": F}
 
 

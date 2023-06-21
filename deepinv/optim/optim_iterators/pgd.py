@@ -58,7 +58,7 @@ class fStepPGD(fStep):
                 * cur_params["stepsize"]
                 * self.data_fidelity.grad(x, y, physics)
             )
-            return gradient_descent_step(x, grad, self.bregman_potential)
+            return gradient_descent_step(x, grad)
         else:
             return self.data_fidelity.prox(
                 x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
@@ -85,4 +85,4 @@ class gStepPGD(gStep):
             return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])
         else:
             grad = cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
-            return gradient_descent_step(x, grad, self.bregman_potential)
+            return gradient_descent_step(x, grad)

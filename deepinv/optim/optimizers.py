@@ -2,11 +2,10 @@ import sys
 
 import torch
 import torch.nn as nn
-from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
+from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
-from deepinv.optim.utils import gradient_descent
 from deepinv.optim.optim_iterators import *
 
 
@@ -96,17 +95,14 @@ class BaseOptim(nn.Module):
                           of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
     :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: `True`.
-    :param function F_fn: cost function to be minimised by the optimization algorithm. Default: `None`.
-    :param bool anderson_acceleration: whether to use anderson acceleration or not. Default: `False`.
-    :param float anderson_beta: :math:`\beta` parameter in the anderson accleration. Default: `1.0`.
-    :param int anderson_history_size: size of the history in anderson acceleration. Default: `5`.
-    :param bool verbose: whether to print relevant information of the algorithm during its run,
-                         such as convergence criterion at each iterate. Default: `False`.
+    :param bool has_cost: whether the algorithm has a cost function or not. Default: `False`.
     :param bool return_aux: whether to return the auxiliary variable or not at the end of the algorithm. Default: `False`.
     :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
     :param function custom_init:  intializes the algorithm with `custom_init(y)`. If `None` (default value) algorithm is initilialized with :math:`A^Ty`. Default: `None`.
+    :param bool verbose: whether to print relevant information of the algorithm during its run,
+                         such as convergence criterion at each iterate. Default: `False`.     
     """
 
     def __init__(
@@ -118,11 +114,7 @@ class BaseOptim(nn.Module):
         crit_conv="residual",
         thres_conv=1e-5,
         early_stop=False,
-        F_fn=None,
-        anderson_acceleration=False,
-        anderson_beta=1.0,
-        anderson_history_size=5,
-        verbose=False,
+        has_cost=False,
         return_aux=False,
         backtracking=False,
         gamma_backtracking=0.1,
@@ -130,6 +122,7 @@ class BaseOptim(nn.Module):
         return_metrics=False,
         custom_metrics=None,
         custom_init=None,
+        verbose=False,
     ):
         super(BaseOptim, self).__init__()
 
@@ -137,8 +130,6 @@ class BaseOptim(nn.Module):
         self.crit_conv = crit_conv
         self.verbose = verbose
         self.max_iter = max_iter
-        self.anderson_acceleration = anderson_acceleration
-        self.F_fn = F_fn
         self.return_aux = return_aux
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
@@ -148,6 +139,7 @@ class BaseOptim(nn.Module):
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
+        self.has_cost = has_cost
 
         # params_algo should contain a g_param parameter, even if None.
         if "g_param" not in params_algo.keys():
@@ -180,33 +172,19 @@ class BaseOptim(nn.Module):
         else:
             self.prior = prior
 
-        # Initialize the fixed-point module with or without anderson_acceleration
-        if self.anderson_acceleration:
-            self.fixed_point = AndersonAcceleration(
-                iterator=iterator,
-                history_size=anderson_history_size,
-                beta=anderson_beta,
-                update_params_fn=self.update_params_fn,
-                update_prior_fn=self.update_prior_fn,
-                max_iter=max_iter,
-                early_stop=early_stop,
-                check_iteration_fn=self.check_iteration_fn,
-                check_conv_fn=self.check_conv_fn,
-                init_metrics_fn=self.init_metrics_fn,
-                update_metrics_fn=self.update_metrics_fn,
-            )
-        else:
-            self.fixed_point = FixedPoint(
-                iterator=iterator,
-                update_params_fn=self.update_params_fn,
-                update_prior_fn=self.update_prior_fn,
-                max_iter=max_iter,
-                early_stop=early_stop,
-                check_iteration_fn=self.check_iteration_fn,
-                check_conv_fn=self.check_conv_fn,
-                init_metrics_fn=self.init_metrics_fn,
-                update_metrics_fn=self.update_metrics_fn,
-            )
+        # Initialize the fixed-point module
+        self.fixed_point = FixedPoint(
+            iterator=iterator,
+            update_params_fn=self.update_params_fn,
+            update_prior_fn=self.update_prior_fn,
+            check_iteration_fn=self.check_iteration_fn,
+            check_conv_fn=self.check_conv_fn,
+            init_metrics_fn=self.init_metrics_fn,
+            init_iterate_fn = self.init_iterate_fn,
+            update_metrics_fn=self.update_metrics_fn,
+            max_iter=max_iter,
+            early_stop=early_stop,
+        )
 
     def update_params_fn(self, it):
         r"""
@@ -221,21 +199,6 @@ class BaseOptim(nn.Module):
         }
         return cur_params_dict
 
-    def init_params_fn(self):
-        r"""
-        Initialize the dictionary of parameters.
-        This is necessary if the parameters have been updated during optimization, for example via backtracking.
-
-        :return: a dictionary containing the parameters of iteration `0`.
-        """
-        init_params = {
-            key: value[0]
-            for key, value in zip(
-                self.init_params_algo.keys(), self.init_params_algo.values()
-            )
-        }
-        return init_params
-
     def update_prior_fn(self, it):
         r"""
         For each prior function in `prior`, selects the prior value for iteration `it` (if this prior depends on the iteration number).
@@ -245,43 +208,6 @@ class BaseOptim(nn.Module):
         """
         prior_cur = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return prior_cur
-
-    def init_prior_fn(self):
-        r"""
-        Get initialization prior.
-
-        :return: a dictionary containing the parameters of iteration `0`.
-        """
-        return self.update_prior_fn(0)
-
-    def get_init(self, prior, cur_params, y, physics):
-        r"""
-        Initialises the parameters of the algorithm.
-
-        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^*(y), A^*(y))`.
-        A custom initlization is possible with the custom_init argument.
-
-        :param dict cur_params: dictionary containing the parameters related to the optimisation problem.
-        :param torch.Tensor y: measurement vector.
-        :param deepinv.physics: physics of the problem.
-        :return: a dictionary containing: `"est"`, the primal-dual initialised variables; `"cost"`: the initial cost function.
-        """
-        # intialize the primal x and auxiliary variable z
-        if self.custom_init:
-            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
-            init_X = self.custom_init(x_init, z_init)
-        else:
-            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
-
-            init_X = {"est": (x_init, z_init)}
-        # intialize the cost function with the cost at iteration 0 if a cost function is given.
-        cost_init = (
-            self.F_fn(x_init, prior, cur_params, y, physics) if self.F_fn else None
-        )
-
-        init_X["cost"] = cost_init
-
-        return init_X
 
     def get_primal_variable(self, X):
         r"""
@@ -300,7 +226,32 @@ class BaseOptim(nn.Module):
         :return torch.Tensor X["est"][1]: the auxiliary variable.
         """
         return X["est"][1]
+    
+    def init_iterate_fn(self, y, physics, F_fn = None):
+        r"""
+        Initializes the iterate of the algorithm.
+        The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
+            - `est` is a tuple containing the first primal and auxiliary iterates.
+            - `cost` is the value of the cost function at the first iterate.
 
+        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^*(y), A^*(y))`.
+        A custom initialization is possible with the custom_init argument.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics: physics of the problem.
+        :param F_fn: function that computes the cost function.
+        :return: a dictionary containing the first iterate of the algorithm.
+        """
+        if self.custom_init:
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+            init_X = self.custom_init(x_init, z_init)
+        else:
+            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+            init_X = {"est": (x_init, z_init)}
+        F = F_fn(x_init, self.update_prior_fn(0), self.update_params_fn(0), y, physics) if self.has_cost and F_fn is not None else None
+        init_X["cost"] = F
+        return init_X
+    
     def init_metrics_fn(self, X_init, x_gt=None):
         r"""
         Initializes the metrics.
@@ -314,13 +265,9 @@ class BaseOptim(nn.Module):
         self.batch_size = self.get_primal_variable(X_init).shape[0]
         if self.return_metrics:
             init = {}
-            if not self.return_aux:
-                x_init = self.get_primal_variable(X_init)
-                psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
-            else:
-                psnr = [[] for i in range(self.batch_size)]
-            init["psnr"] = psnr
-            if self.F_fn is not None:
+            x_init = self.get_primal_variable(X_init) if not self.return_aux else self.get_auxiliary_variable(X_init)
+            init["psnr"] = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            if self.has_cost:
                 init["cost"] = [[] for i in range(self.batch_size)]
             init["residual"] = [[] for i in range(self.batch_size)]
             if self.custom_metrics is not None:
@@ -360,7 +307,7 @@ class BaseOptim(nn.Module):
                 if x_gt is not None:
                     psnr = cal_psnr(x[i], x_gt[i])
                     metrics["psnr"][i].append(psnr)
-                if self.F_fn is not None:
+                if self.has_cost :
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
                 if self.custom_metrics is not None:
@@ -454,10 +401,7 @@ class BaseOptim(nn.Module):
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         """
         self.params_algo = self.init_params_algo.copy()
-        init_params = self.init_params_fn()
-        init_pior = self.init_prior_fn()
-        x = self.get_init(init_pior, init_params, y, physics)
-        x, metrics = self.fixed_point(x, y, physics, x_gt=x_gt)
+        x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
         x = (
             self.get_primal_variable(x)
             if not self.return_aux
@@ -470,13 +414,11 @@ class BaseOptim(nn.Module):
 
 
 def optim_builder(
-    algo_name,
+    algo,
     data_fidelity=L2(),
     F_fn=None,
     g_first=False,
     beta=1.0,
-    bregman_potential="L2",
-    prior={},
     **kwargs,
 ):
     r"""
@@ -501,36 +443,35 @@ def optim_builder(
         sol = optim_algo(y, physics)
 
 
-    :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.
-    :param dict params_algo: dictionary containing the algorithm's relevant parameter.
+    :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
     :param F_fn: Custom user input cost function. default: None.
-    :param dict prior: dictionary containing the regularisation prior under the form of a denoiser, proximity operator,
-                       gradient, or simply an auto-differentiable function.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
-    :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
-    :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
-    :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
-    :param str bregman_potential: possibility to perform optimization with another bregman geometry. Default: `"L2"`
     """
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    if F_fn is None and prior.explicit_prior:
-
+    if F_fn is None and kwargs['prior'].explicit_prior :
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]
             )
+        has_cost = True
+    else:
+        has_cost = False
 
-    iterator_fn = str_to_class(algo_name + "Iteration")
-    iterator = iterator_fn(
-        data_fidelity=data_fidelity,
-        g_first=g_first,
-        beta=beta,
-        F_fn=F_fn,
-        bregman_potential=bregman_potential,
-    )
-    optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
+    if isinstance(algo, str):
+        iterator_fn = str_to_class(algo + "Iteration")
+        iterator = iterator_fn(
+            data_fidelity=data_fidelity,
+            g_first=g_first,
+            beta=beta,
+            F_fn=F_fn,
+            has_cost=has_cost
+        )
+    else:
+        iterator = algo
+
+    optimizer = BaseOptim(iterator, has_cost=has_cost, **kwargs)
     return optimizer
 
 

@@ -5,7 +5,7 @@ from deepinv.utils import (
     get_timestamp,
     cal_psnr,
 )
-from deepinv.utils import plot, torch2cpu, im_save, wandb_imgs
+from deepinv.utils import plot, torch2cpu, wandb_imgs
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -315,10 +315,10 @@ def test(
 
                     if save_images:
                         for img, name_im in zip(imgs, name_imgs):
-                            im_save(
+                            plt.imsave(
                                 save_folder_G / (name_im + "_" + str(i) + ".png"),
-                                torch2cpu(img),
-                            )
+                                img,
+                                cmap="gray")
                     if plot_images:
                         plot(imgs, titles=name_imgs)
                     if wandb_vis:
