@@ -32,7 +32,9 @@ class MOILoss(nn.Module):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     """
 
-    def __init__(self, physics_list, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.0):
+    def __init__(
+        self, physics_list, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.0
+    ):
         super(MOILoss, self).__init__()
         self.name = "moi"
         self.physics_list = physics_list
