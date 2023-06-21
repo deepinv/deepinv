@@ -42,7 +42,7 @@ class WaveletPrior(nn.Module):
         self.iwt = DWTInverse(wave=wv).to(device)
 
     def prox_l1(self, x, ths=0.1):
-        if len(ths.shape) == 0 or ths.shape[0] == 1:
+        if isinstance(ths, float) or len(ths.shape) == 0 or ths.shape[0] == 1:
             ths_map = ths
         else:
             ths_map = ths.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
@@ -58,7 +58,7 @@ class WaveletPrior(nn.Module):
 
         coeffs = self.dwt(x)
         for l in range(self.level):
-            ths_cur = ths if (len(ths.shape) == 0 or ths.shape[0] == 1) else ths[l]
+            ths_cur = ths if (isinstance(ths, float) or len(ths.shape) == 0 or ths.shape[0] == 1) else ths[l]
             coeffs[1][l] = self.prox_l1(coeffs[1][l], ths_cur)
         y = self.iwt(coeffs)
 

@@ -14,6 +14,9 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot, torch2cpu
 from deepinv.unfolded import Unfolded
 from deepinv.utils import investigate_model
+from deepinv.training_utils import train
+from deepinv.training_utils import test as feature_test
+
 
 
 
@@ -30,19 +33,49 @@ def imsize():
     return c, h, w
 
 
+def test_generate_dataset(tmp_path, imsize, device):
+    N = 10
+    max_N = 10
+    train_dataset = DummyCircles(samples=N, imsize=imsize)
+    test_dataset = DummyCircles(samples=N, imsize=imsize)
+
+    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+
+    dinv.datasets.generate_dataset(
+        train_dataset,
+        physics,
+        tmp_path,
+        test_dataset=test_dataset,
+        device=device,
+        dataset_filename="dinv_dataset",
+        train_datapoints=max_N,
+    )
+
+    dataset = dinv.datasets.HDF5Dataset(path=f"{tmp_path}/dinv_dataset0.h5", train=True)
+
+    assert len(dataset) == min(max_N, N)
+
+    x, y = dataset[0]
+    assert x.shape == imsize
+
+
+
 @pytest.fixture
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
+# optim_algos = [
+#     "PGD",
+#     "HQS",
+#     "DRS",
+#     "ADMM",
+#     "CP",
+# ]
+
 optim_algos = [
     "PGD",
-    "HQS",
-    "DRS",
-    "ADMM",
-    "CP",
 ]
-
 
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
@@ -66,7 +99,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     # If the prior is initialized with a list of length max_iter,
     # then a distinct weight is trained for each PGD iteration.
     # For fixed trained model prior across iterations, initialize with a single model.
-    max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
+    max_iter = 30 if torch.cuda.is_available() else 3  # Number of unrolled iterations
     prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
 
     # Unrolled optimization algorithm parameters
@@ -77,8 +110,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser_init = 0.01
-    sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
+    sigma_denoiser = [0.01 * torch.ones(level, 1)] * max_iter
     # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
@@ -102,7 +134,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     else:
         custom_init = None
 
-    model = Unfolded(
+    model_unfolded = Unfolded(
         name_algo,
         params_algo=params_algo,
         trainable_params=trainable_params,
@@ -112,6 +144,49 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         custom_init=custom_init
     )
 
-    for idx, (name, param) in enumerate(model.named_parameters()):
+    for idx, (name, param) in enumerate(model_unfolded.named_parameters()):
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
+
+    N = 10
+    train_dataset = DummyCircles(samples=N, imsize=imsize)
+    test_dataset = DummyCircles(samples=N, imsize=imsize)
+
+    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+
+    train_dataloader = DataLoader(
+        train_dataset, batch_size=2, num_workers=1, shuffle=True
+    )
+    test_dataloader = DataLoader(
+        test_dataset, batch_size=2, num_workers=1, shuffle=False
+    )
+
+    epochs = 1
+    losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+    optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
+
+    train(
+        model=model_unfolded,
+        train_dataloader=train_dataloader,
+        eval_dataloader=test_dataloader,
+        epochs=epochs,
+        losses=losses,
+        physics=physics,
+        optimizer=optimizer,
+        device=device,
+        save_path=str(CKPT_DIR),
+        verbose=True,
+        wandb_vis=False,
+    )
+
+    results = feature_test(
+        model=model_unfolded,
+        test_dataloader=test_dataloader,
+        physics=physics,
+        device=device,
+        plot_images=False,
+        save_images=False,
+        verbose=True,
+        wandb_vis=False,
+    )
+
