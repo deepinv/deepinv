@@ -56,6 +56,15 @@ def choose_denoiser(name, imsize):
 
 @pytest.mark.parametrize("denoiser", model_list)
 def test_denoiser(imsize, device, denoiser):
+    if denoiser in ("waveletprior", "waveletdict"):
+        try:
+            import pytorch_wavelets
+        except ImportError:
+            pytest.xfail(
+                "This test requires pytorch_wavelets. "
+                "It should be installed with `pip install"
+                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+                )
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))

@@ -338,6 +338,14 @@ optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this
 
 @pytest.mark.parametrize("pnp_algo", optim_algos)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
+    try:
+        import pytorch_wavelets
+    except ImportError:
+        pytest.xfail(
+            "This test requires pytorch_wavelets. "
+            "It should be installed with `pip install"
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+            )
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
