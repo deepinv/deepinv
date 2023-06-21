@@ -17,7 +17,6 @@ jobs:
         include:
           - os: ubuntu-latest
             version_python: 3.9
-            coverage: 'true'
     env:
       VERSION_PYTHON: ${{ matrix.version_python }}
 
@@ -35,19 +34,5 @@ jobs:
         run: |
           python -m pytest deepinv/tests
 
-  report_test:
-    if: ${{ always() }}
-    needs: [test_no_conda]
-    runs-on: ubuntu-latest
-    env:
-      TEST_NO_CONDA: ${{ needs.test_no_conda.result }}
-
-    steps:
-      - name: "Gather test results."
-        run: |
-          if [[ $TEST_NO_CONDA == 'success' ]]; then
-            exit 0;
-          else
-            exit 1;
-          fi
-        shell: bash
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
