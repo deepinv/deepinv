@@ -3,8 +3,6 @@ import torch.nn as nn
 import numpy as np
 from .denoiser import register
 
-from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
-
 
 @register("waveletprior")
 class WaveletPrior(nn.Module):
@@ -31,6 +29,15 @@ class WaveletPrior(nn.Module):
     def __init__(self, level=3, wv="db8", device="cpu"):
         super().__init__()
         self.level = level
+        try:
+            from pytorch_wavelets import DWTForward, DWTInverse
+        except ImportError as e:
+            print(
+                "pywavelets is needed to use the WaveletPrior class. "
+                "It should be installed with `pip install"
+                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+            )
+            raise e
         self.dwt = DWTForward(J=self.level, wave=wv).to(device)
         self.iwt = DWTInverse(wave=wv).to(device)
 

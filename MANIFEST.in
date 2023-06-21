@@ -16,6 +16,7 @@ exclude *.yml
 exclude .mailmap
 recursive-exclude deepinv *.pyc
 recursive-exclude examples *
+recursive-exclude deepinv/tests *
 recursive-exclude .github/ *
 
 recursive-exclude docs *

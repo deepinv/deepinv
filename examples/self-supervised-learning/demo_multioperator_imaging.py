@@ -143,7 +143,7 @@ batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
-losses = [dinv.loss.MCLoss(), dinv.loss.MOILoss()]
+losses = [dinv.loss.MCLoss(), dinv.loss.MOILoss(physics)]
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
