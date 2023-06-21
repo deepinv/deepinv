@@ -39,10 +39,10 @@ class GSPnP(nn.Module):
 
     def potential_grad(self, x, sigma):
         r"""
-        Calculate Dg(x) the gradient of the regularizer g at input x
+        Calculate :math:`\nabla g` the gradient of the regularizer :math:`g` at input :math:`x`.
 
         :param torch.tensor x: Input image
-        :param float sigma: Denoiser level (std)
+        :param float sigma: Denoiser level :math:`\sigma` (std)
         """
         torch.set_grad_enabled(True)
         x = x.float()
@@ -71,7 +71,7 @@ class GSPnP(nn.Module):
 @register("gsdrunet")
 def GSDRUNet(
     alpha=1.0,
-    in_channels=4,
+    in_channels=3,
     out_channels=3,
     nb=2,
     nc=[64, 128, 256, 512],
@@ -88,6 +88,18 @@ def GSDRUNet(
     :param int out_channels: Number of output channels
     :param int nb: Number of blocks in the DRUNet
     :param list nc: Number of channels in the DRUNet
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
+    :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
+        "strideconv" for convolution with stride 2.
+    :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
+        shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
+    :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+    :param bool train: training or testing mode.
+    :param str device: gpu or cpu.
+
     """
     from deepinv.models.drunet import DRUNet
 

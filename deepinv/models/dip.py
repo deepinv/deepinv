@@ -19,10 +19,16 @@ class ConvDecoder(nn.Module):
     The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
+
+    :param tuple img_shape: shape of the output image.
+    :param tuple in_size: size of the input vector.
+    :param int layers: number of layers in the network.
+    :param int channels: number of channels in the network.
+
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
-    def __init__(self, img_shape, in_size, layers=7, channels=256):
+    def __init__(self, img_shape, in_size=(4, 4), layers=7, channels=256):
         super(ConvDecoder, self).__init__()
 
         out_size = img_shape[1:]
@@ -108,12 +114,11 @@ class DeepImagePrior(torch.nn.Module):
         values may not be optimal for all problems. We recommend experimenting with different values.
 
     :param torch.nn.Module generator: Convolutional decoder network.
-    :param list input_size: Size (C,H,W) of the input noise vector :math:`z`.
+    :param list, tuple input_size: Size (C,H,W) of the input noise vector :math:`z`.
     :param int iterations: Number of optimization iterations.
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
-
 
     """
 
@@ -145,12 +150,15 @@ class DeepImagePrior(torch.nn.Module):
             The optimization is run for every test batch. Thus, this method can be slow when tested on a large
             number of test batches.
 
+        :param torch.Tensor y: Measurement.
+        :param torch.Tensor physics: Physics model.
         """
         if self.re_init:
             for layer in self.generator.children():
                 if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
 
+        self.generator.requires_grad_(True)
         z = torch.randn(self.input_size, device=y.device).unsqueeze(0)
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
 
@@ -165,42 +173,42 @@ class DeepImagePrior(torch.nn.Module):
 
 
 # test code
-if __name__ == "__main__":
-    device = "cuda:0"
-    import torchvision
-    import deepinv as dinv
-
-    device = dinv.utils.get_freer_gpu()
-
-    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(device) / 255
-    x = torchvision.transforms.Resize((128, 128))(x)
-
-    physics = dinv.physics.Inpainting(
-        tensor_size=x.shape[1:],
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=0.05),
-    )
-
-    y = physics(x)
-
-    iterations = 1000
-    lr = 1e-2
-    channels = 256
-    in_size = [8, 8]
-    backbone = ConvDecoder(
-        img_shape=x.shape[1:], in_size=in_size, channels=channels
-    ).to(device)
-
-    model = DeepImagePrior(
-        backbone,
-        learning_rate=lr,
-        re_init=True,
-        iterations=iterations,
-        verbose=True,
-        input_size=[channels] + in_size,
-    ).to(device)
-
-    x_hat = model(y, physics)
-
-    dinv.utils.plot([x, y, x_hat], titles=["GT", "Meas.", "Recon."])
+# if __name__ == "__main__":
+#     device = "cuda:0"
+#     import torchvision
+#     import deepinv as dinv
+#
+#     device = dinv.utils.get_freer_gpu()
+#
+#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+#     x = x.unsqueeze(0).float().to(device) / 255
+#     x = torchvision.transforms.Resize((128, 128))(x)
+#
+#     physics = dinv.physics.Inpainting(
+#         tensor_size=x.shape[1:],
+#         device=device,
+#         noise_model=dinv.physics.GaussianNoise(sigma=0.05),
+#     )
+#
+#     y = physics(x)
+#
+#     iterations = 1000
+#     lr = 1e-2
+#     channels = 256
+#     in_size = [8, 8]
+#     backbone = ConvDecoder(
+#         img_shape=x.shape[1:], in_size=in_size, channels=channels
+#     ).to(device)
+#
+#     model = DeepImagePrior(
+#         backbone,
+#         learning_rate=lr,
+#         re_init=True,
+#         iterations=iterations,
+#         verbose=True,
+#         input_size=[channels] + in_size,
+#     ).to(device)
+#
+#     x_hat = model(y, physics)
+#
+#     dinv.utils.plot([x, y, x_hat], titles=["GT", "Meas.", "Recon."])

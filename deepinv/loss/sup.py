@@ -26,12 +26,12 @@ class SupLoss(nn.Module):
         self.name = "sup"
         self.metric = metric
 
-    def forward(self, x_net, x_ref):
+    def forward(self, x, x_net, **kwargs):
         r"""
         Computes the loss.
 
+        :param torch.Tensor x: Target (ground-truth) image.
         :param torch.Tensor x_net: Reconstructed image :math:\inverse{y}.
-        :param torch.Tensor x_ref: Target (ground-truth) image.
         :return: (torch.Tensor) loss.
         """
-        return self.metric(x_net, x_ref)
+        return self.metric(x_net, x)
