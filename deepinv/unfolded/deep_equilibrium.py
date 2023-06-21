@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.fixed_point import FixedPoint, AndersonAcceleration
+from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.optim.optimizers import str_to_class

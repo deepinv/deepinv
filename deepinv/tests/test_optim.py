@@ -6,7 +6,7 @@ from deepinv.optim import DataFidelity
 from deepinv.models.denoiser import Denoiser
 from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
-from deepinv.optim.prior import Prior, PnP
+from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import *
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot, torch2cpu
@@ -405,6 +405,57 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     #     )
 
     assert pnp.has_converged
+
+optim_algos = ["PGD", "GD"]  # GD not implemented for this one
+@pytest.mark.parametrize("red_algo", optim_algos)
+def test_red_algo(red_algo, imsize, dummy_dataset, device):
+    dataloader = DataLoader(
+        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    )  # 1. Generate a dummy dataset
+    test_sample = next(iter(dataloader)).to(device)
+
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+    )  # 2. Set a physical experiment (here, deblurring)
+    y = physics(test_sample)
+    max_iter = 1000
+    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    stepsize = 1.0
+    lamb = 1.0
+
+    data_fidelity = L2()
+
+    model_spec = {
+        "name": "waveletprior",
+        "args": {"wv": "db8", "level": 3, "device": device},
+    }
+
+    prior = RED(
+        denoiser=Denoiser(model_spec)
+    )  # here the prior model is common for all iterations
+
+    params_algo = {
+        "stepsize": stepsize,
+        "g_param": sigma_denoiser,
+        "lambda": lamb
+    }
+
+    red = optim_builder(
+        red_algo,
+        prior=prior,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        thres_conv=1e-4,
+        verbose=True,
+        params_algo=params_algo,
+        early_stop=True,
+        g_first=True
+    )
+
+    x = red(y, physics)
+
+    assert red.has_converged
+
 
 
 def test_CP_K(imsize, dummy_dataset, device):
