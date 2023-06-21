@@ -18,8 +18,6 @@ from deepinv.training_utils import train
 from deepinv.training_utils import test as feature_test
 
 
-
-
 @pytest.fixture
 def device():
     return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -59,7 +57,6 @@ def test_generate_dataset(tmp_path, imsize, device):
     assert x.shape == imsize
 
 
-
 @pytest.fixture
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
@@ -76,6 +73,7 @@ def dummy_dataset(imsize, device):
 optim_algos = [
     "PGD",
 ]
+
 
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
@@ -127,10 +125,11 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
     # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
     if name_algo == "CP":
+
         def custom_init(x_init, y_init):
             return {"est": (x_init, x_init, y_init)}
 
-        params_algo['sigma'] = 1.0
+        params_algo["sigma"] = 1.0
     else:
         custom_init = None
 
@@ -141,7 +140,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
-        custom_init=custom_init
+        custom_init=custom_init,
     )
 
     for idx, (name, param) in enumerate(model_unfolded.named_parameters()):
@@ -189,4 +188,3 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         verbose=True,
         wandb_vis=False,
     )
-

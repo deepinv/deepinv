@@ -16,7 +16,6 @@ from deepinv.unfolded import Unfolded
 from deepinv.utils import investigate_model
 
 
-
 @pytest.fixture
 def device():
     return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -95,10 +94,11 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
     # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
     if name_algo == "CP":
+
         def custom_init(x_init, y_init):
             return {"est": (x_init, x_init, y_init)}
 
-        params_algo['sigma'] = 1.0
+        params_algo["sigma"] = 1.0
     else:
         custom_init = None
 
@@ -109,7 +109,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
-        custom_init=custom_init
+        custom_init=custom_init,
     )
 
     for idx, (name, param) in enumerate(model.named_parameters()):

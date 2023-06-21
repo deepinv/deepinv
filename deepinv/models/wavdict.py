@@ -58,7 +58,11 @@ class WaveletPrior(nn.Module):
 
         coeffs = self.dwt(x)
         for l in range(self.level):
-            ths_cur = ths if (isinstance(ths, float) or len(ths.shape) == 0 or ths.shape[0] == 1) else ths[l]
+            ths_cur = (
+                ths
+                if (isinstance(ths, float) or len(ths.shape) == 0 or ths.shape[0] == 1)
+                else ths[l]
+            )
             coeffs[1][l] = self.prox_l1(coeffs[1][l], ths_cur)
         y = self.iwt(coeffs)
 
