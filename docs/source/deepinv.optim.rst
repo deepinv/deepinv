@@ -32,7 +32,7 @@ i.e. for :math:`k=1,2,...`
 
 where :math:`x` is a variable converging to the solution of the minimisation problem, and
 :math:`z` is an additional variable that may be required in the computation of the fixed point operator.
-The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
+The implementation of the fixed point algorithm in ``deepinv.optim``,
 following standard optimisation theory, is split in two steps:
 
 .. math::

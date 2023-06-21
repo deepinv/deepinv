@@ -30,9 +30,12 @@ jobs:
         run: |
           pip install -e .
           pip install pytest
-      - name: Test with pytest
+          pip install pytest-cov
+
+      - name: Test with pytest and generate coverage report
         run: |
           python -m pytest deepinv/tests
+          pytest --cov=./ --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
