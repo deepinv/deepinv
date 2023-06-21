@@ -169,6 +169,12 @@ class DRUNet(nn.Module):
         return x
 
     def forward(self, x, sigma):
+        r"""
+        Run the denoiser on image with noise level :math:`\sigma`.
+
+        :param torch.Tensor x: noisy image
+        :param float sigma: noise level (not used)
+        """
         noise_level_map = (
             torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
             .fill_(sigma)
@@ -182,7 +188,7 @@ class DRUNet(nn.Module):
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif x.size(2) < 32 and x.size(3) < 32:
+        elif x.size(2) < 32 or x.size(3) < 32:
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)
@@ -195,7 +201,6 @@ Functional blocks below
 from collections import OrderedDict
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 """
@@ -602,14 +607,14 @@ Helpers for test time
 """
 
 
-def test_onesplit(model, L, refield=32, min_size=256, sf=1, modulo=1):
+def test_onesplit(model, L, refield=32, sf=1):
     """
-    model:
-    L: input Low-quality image
-    refield: effective receptive filed of the network, 32 is enough
-    min_size: min_sizeXmin_size image, e.g., 256X256 image
-    sf: scale factor for super-resolution, otherwise 1
-    modulo: 1 if split
+    Changes the size of the image to fit the model's expected image size.
+
+    :param model: model.
+    :param L: input Low-quality image.
+    :param refield: effective receptive field of the network, 32 is enough.
+    :param sf: scale factor for super-resolution, otherwise 1.
     """
     h, w = L.size()[-2:]
     top = slice(0, (h // 2 // refield + 1) * refield)

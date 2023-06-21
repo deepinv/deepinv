@@ -34,7 +34,6 @@ class DnCNN(nn.Module):
         in_channels=1,
         out_channels=1,
         depth=20,
-        act_mode="R",
         bias=True,
         nf=64,
         pretrained="download",
@@ -98,12 +97,18 @@ class DnCNN(nn.Module):
         if device is not None:
             self.to(device)
 
-    def forward(self, x_in, denoise_level=None):
-        x = self.in_conv(x_in)
-        x = self.nl_list[0](x)
+    def forward(self, x, sigma=None):
+        r"""
+        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+
+        :param torch.Tensor x: noisy image
+        :param float sigma: noise level (not used)
+        """
+        x1 = self.in_conv(x)
+        x1 = self.nl_list[0](x1)
 
         for i in range(self.depth - 2):
-            x_l = self.conv_list[i](x)
-            x = self.nl_list[i + 1](x_l)
+            x_l = self.conv_list[i](x1)
+            x1 = self.nl_list[i + 1](x_l)
 
-        return self.out_conv(x) + x_in
+        return self.out_conv(x1) + x

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import numpy as np
 from .denoiser import register
 
 from pytorch_wavelets import DWTForward, DWTInverse  # (or import DWT, IDWT)
@@ -23,7 +23,8 @@ class WaveletPrior(nn.Module):
     The solution is available in closed-form, thus the denoiser is cheap to compute.
 
     :param int level: decomposition level of the wavelet transform
-    :param str wv: mother wavelet (follows the `PyWavelets convention <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_)
+    :param str wv: mother wavelet (follows the `PyWavelets convention
+        <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_)
     :param str device: cpu or gpu
     """
 
@@ -39,10 +40,17 @@ class WaveletPrior(nn.Module):
         ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths)
 
     def forward(self, x, ths=0.0):
+        h, w = x.size()[-2:]
+        padding_bottom = h % 2
+        padding_right = w % 2
+        x = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(x)
+
         coeffs = self.dwt(x)
         for l in range(self.level):
             coeffs[1][l] = self.prox_l1(coeffs[1][l], ths)
         y = self.iwt(coeffs)
+
+        y = y[..., :h, :w]
         return y
 
 
