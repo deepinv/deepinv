@@ -1,6 +1,6 @@
 name: test
 
-on: 
+on:
   push:
     branches:
     - main
@@ -29,6 +29,7 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
+          pip install git+https://github.com/fbcotter/pytorch_wavelets.git#egg=pytorch_wavelets
           pip install -e .
           pip install pytest
       - name: Test with pytest
