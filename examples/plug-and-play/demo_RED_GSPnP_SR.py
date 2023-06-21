@@ -112,7 +112,8 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 data_fidelity = L2()
 
 
-# The GSPnP prior corresponds to a RED prior with an explicit `g`. We thus write a class that inherits from RED for this custom prior.
+# The GSPnP prior corresponds to a RED prior with an explicit `g`.
+# We thus write a class that inherits from RED for this custom prior.
 class GSPnP(RED):
     r"""
     Gradient-Step Denoiser prior.
@@ -129,7 +130,7 @@ class GSPnP(RED):
         :param torch.tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.tensor) prior :math:`g(x)`.
         """
-        return self.denoiser.denoiser.potential(x, *args, **kwargs)
+        return self.denoiser.potential(x, *args, **kwargs)
 
 
 method = "GSPnP"
