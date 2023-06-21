@@ -150,12 +150,15 @@ class DeepImagePrior(torch.nn.Module):
             The optimization is run for every test batch. Thus, this method can be slow when tested on a large
             number of test batches.
 
+        :param torch.Tensor y: Measurement.
+        :param torch.Tensor physics: Physics model.
         """
         if self.re_init:
             for layer in self.generator.children():
                 if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
 
+        self.generator.requires_grad_(True)
         z = torch.randn(self.input_size, device=y.device).unsqueeze(0)
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
 
@@ -170,42 +173,42 @@ class DeepImagePrior(torch.nn.Module):
 
 
 # test code
-if __name__ == "__main__":
-    device = "cuda:0"
-    import torchvision
-    import deepinv as dinv
-
-    device = dinv.utils.get_freer_gpu()
-
-    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(device) / 255
-    x = torchvision.transforms.Resize((128, 128))(x)
-
-    physics = dinv.physics.Inpainting(
-        tensor_size=x.shape[1:],
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=0.05),
-    )
-
-    y = physics(x)
-
-    iterations = 1000
-    lr = 1e-2
-    channels = 256
-    in_size = [8, 8]
-    backbone = ConvDecoder(
-        img_shape=x.shape[1:], in_size=in_size, channels=channels
-    ).to(device)
-
-    model = DeepImagePrior(
-        backbone,
-        learning_rate=lr,
-        re_init=True,
-        iterations=iterations,
-        verbose=True,
-        input_size=[channels] + in_size,
-    ).to(device)
-
-    x_hat = model(y, physics)
-
-    dinv.utils.plot([x, y, x_hat], titles=["GT", "Meas.", "Recon."])
+# if __name__ == "__main__":
+#     device = "cuda:0"
+#     import torchvision
+#     import deepinv as dinv
+#
+#     device = dinv.utils.get_freer_gpu()
+#
+#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+#     x = x.unsqueeze(0).float().to(device) / 255
+#     x = torchvision.transforms.Resize((128, 128))(x)
+#
+#     physics = dinv.physics.Inpainting(
+#         tensor_size=x.shape[1:],
+#         device=device,
+#         noise_model=dinv.physics.GaussianNoise(sigma=0.05),
+#     )
+#
+#     y = physics(x)
+#
+#     iterations = 1000
+#     lr = 1e-2
+#     channels = 256
+#     in_size = [8, 8]
+#     backbone = ConvDecoder(
+#         img_shape=x.shape[1:], in_size=in_size, channels=channels
+#     ).to(device)
+#
+#     model = DeepImagePrior(
+#         backbone,
+#         learning_rate=lr,
+#         re_init=True,
+#         iterations=iterations,
+#         verbose=True,
+#         input_size=[channels] + in_size,
+#     ).to(device)
+#
+#     x_hat = model(y, physics)
+#
+#     dinv.utils.plot([x, y, x_hat], titles=["GT", "Meas.", "Recon."])

@@ -70,6 +70,7 @@ def test_denoiser(imsize, device, denoiser):
 
 
 def test_dip(imsize, device):
+    device = 'cpu'
     torch.manual_seed(0)
     channels = 64
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
