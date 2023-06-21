@@ -216,7 +216,7 @@ class IRadon(nn.Module):
         if not circle:
             in_size = int((SQRT2 * in_size).ceil())
         unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype)
-        return torch.meshgrid(unitrange, unitrange, indexing='ij')
+        return torch.meshgrid(unitrange, unitrange, indexing="ij")
 
     def _XYtoT(self, theta):
         T = self.xgrid * (deg2rad(theta)).cos() - self.ygrid * (deg2rad(theta)).sin()
@@ -299,18 +299,26 @@ if __name__ == "__main__":
     from PIL import Image
     from torchvision import transforms
     import deepinv as dinv
-    image = Image.open('../../examples/plug-and-play/datasets/set3c/0/butterfly.png')
+
+    image = Image.open("../../examples/plug-and-play/datasets/set3c/0/butterfly.png")
     val_transform = transforms.Compose(
         [
-        transforms.Grayscale(),
-        transforms.CenterCrop(img_width), 
-        transforms.ToTensor()
-        ])
+            transforms.Grayscale(),
+            transforms.CenterCrop(img_width),
+            transforms.ToTensor(),
+        ]
+    )
     x = val_transform(image).unsqueeze(0)
 
     print("x:", x.shape, "max={:.4f}".format(x.max()), "min={:.4f}".format(x.min()))
 
-    ct = Tomography(img_width, angles, circle=False, non_linearity=False, noise_model=dinv.physics.GaussianNoise(sigma=0.03))
+    ct = Tomography(
+        img_width,
+        angles,
+        circle=False,
+        non_linearity=False,
+        noise_model=dinv.physics.GaussianNoise(sigma=0.03),
+    )
     y = ct(x)
     print("y:", x.shape, "max={:.4f}".format(y.max()), "min={:.4f}".format(y.min()))
     fbp = ct.A_dagger(y)

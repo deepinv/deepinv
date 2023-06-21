@@ -270,10 +270,14 @@ def test(
                 psnr_data.append([g, i, cur_psnr_init, cur_psnr])
 
             if plot_images:
-                save_folder_im = ((save_folder / ("G" + str(g))) if G > 1 else save_folder) / "images"
+                save_folder_im = (
+                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                ) / "images"
                 save_folder_im.mkdir(parents=True, exist_ok=True)
             if plot_metrics:
-                save_folder_curve = ((save_folder / ("G" + str(g))) if G > 1 else save_folder) / "curves"
+                save_folder_curve = (
+                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                ) / "curves"
                 save_folder_curve.mkdir(parents=True, exist_ok=True)
 
             if plot_images or wandb_vis:
@@ -281,15 +285,10 @@ def test(
                     if len(y.shape) == 4:
                         imgs = [y, x_init, x1, x]
                         name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                    else :
-                         imgs = [x_init, x1, x]
-                         name_imgs = ["Linear", "Recons.", "GT"]
-                    plot(
-                        imgs,
-                        titles=name_imgs,
-                        save_dir=save_folder_im,
-                        show=True
-                    )
+                    else:
+                        imgs = [x_init, x1, x]
+                        name_imgs = ["Linear", "Recons.", "GT"]
+                    plot(imgs, titles=name_imgs, save_dir=save_folder_im, show=True)
                     if wandb_vis:
                         n_plot = min(n_plot_max_wandb, len(x))
                         captions = [
@@ -305,7 +304,6 @@ def test(
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)
                 if wandb_vis:
                     wandb_plot_curves(metrics, batch_idx=i, step=step)
-                    
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

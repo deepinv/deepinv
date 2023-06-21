@@ -10,6 +10,7 @@ from torchvision import transforms
 from PIL import Image
 from io import BytesIO
 
+
 class MRIData(torch.utils.data.Dataset):
     """fastMRI dataset (knee subset)."""
 
@@ -109,17 +110,26 @@ def load_degradation(name, data_dir, kernel_index=0, download=True):
     return kernel_torch
 
 
-def load_image(path=None, url=None, img_size=None, grayscale = False, resize_mode = 'crop', device="cpu"):
+def load_image(
+    path=None,
+    url=None,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
     transform_list = []
     if img_size is not None:
-        if resize_mode == 'crop':
+        if resize_mode == "crop":
             transform_list.append(transforms.CenterCrop(img_size))
-        elif resize_mode == 'resize':
+        elif resize_mode == "resize":
             transform_list.append(transforms.Resize(img_size))
         else:
-            raise ValueError(f"resize_mode must be either 'crop' or 'resize', got {resize_mode}")
+            raise ValueError(
+                f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
+            )
     if grayscale:
         transform_list.append(transforms.Grayscale())
     transform_list.append(transforms.ToTensor())

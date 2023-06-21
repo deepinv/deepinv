@@ -22,7 +22,7 @@ from deepinv.utils.demo import load_image
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 url = "https://www.i3s.unice.fr/sites/default/files/logos/cnrs_transparent.png"
-x = load_image(url = url, img_size=64, resize_mode='resize')
+x = load_image(url=url, img_size=64, resize_mode="resize")
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 img_size = x.shape[1:]

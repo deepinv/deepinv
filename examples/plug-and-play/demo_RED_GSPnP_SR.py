@@ -197,7 +197,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_folder = RESULTS_DIR / method / operation / dataset_name,
+    save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,
     wandb_vis=wandb_vis,

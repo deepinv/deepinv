@@ -32,7 +32,7 @@ class SinglePhotonLidar(Physics):
         super().__init__()
 
         self.T = bins
-        self.grid = torch.meshgrid(torch.arange(bins), indexing='ij')[0].to(device)
+        self.grid = torch.meshgrid(torch.arange(bins), indexing="ij")[0].to(device)
         self.sigma = torch.nn.Parameter(
             torch.tensor(sigma, device=device), requires_grad=False
         )

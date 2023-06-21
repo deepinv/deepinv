@@ -17,10 +17,11 @@ from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
 # %%
-# Define the custom optimization algorithm as a subclass of OptimIterator, 
-# along with the corresponding custom fStepCV (subclass of fStep) and gStepCV (subclass of gStep) modules. 
+# Define the custom optimization algorithm as a subclass of OptimIterator,
+# along with the corresponding custom fStepCV (subclass of fStep) and gStepCV (subclass of gStep) modules.
 # ----------------------------------------------------------------------------------------
 #
+
 
 class CVIteration(OptimIterator):
     r"""
@@ -110,6 +111,7 @@ class gStepCV(gStep):
             cur_params["g_param"],
         )
 
+
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
@@ -133,9 +135,11 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 method = "PnP"
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 64
-url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg'
-x = load_image(url = url, img_size=img_size, grayscale=True, resize_mode='resize', device=device)
-operation = 'single_pixel'
+url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg"
+x = load_image(
+    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+)
+operation = "single_pixel"
 
 
 # %%
@@ -149,7 +153,7 @@ n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.SinglePixelCamera(
     m=100,
     img_shape=(1, 64, 64),
-    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img)
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
 # Use parallel dataloader if using a GPU to fasten training,
@@ -169,7 +173,7 @@ verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # Set up the PnP algorithm parameters : the `stepsize`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. The following parameters are chosen arbitrarily.
-params_algo = {"stepsize": 1., "g_param": noise_level_img, "lambda": 0.1}
+params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.1}
 max_iter = 200
 early_stop = True
 
@@ -190,7 +194,7 @@ model_spec = {  # specifies the parameters of the DRUNet model
 prior = PnP(denoiser=Denoiser(model_spec))
 
 # instantiate the algorithm class to solve the IP problem.
-algo = CVIteration(data_fidelity=data_fidelity,F_fn=None,has_cost=False)
+algo = CVIteration(data_fidelity=data_fidelity, F_fn=None, has_cost=False)
 model = optim_builder(
     algo=algo,
     prior=prior,
@@ -199,7 +203,7 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    return_metrics=plot_metrics
+    return_metrics=plot_metrics,
 )
 
 # %%
@@ -210,7 +214,7 @@ y = physics(x)
 x_lin = physics.A_adjoint(y)
 
 # run the model on the problem. When `return_metrics` is set to True, the model requires the ground-truth clean image ``x_gt`` and returns the output and the metrics computed along the iterations.
-x_model, metrics = model(y, physics, x_gt = x)
+x_model, metrics = model(y, physics, x_gt=x)
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
@@ -218,13 +222,8 @@ print(f"Model reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} 
 
 # plot results
 imgs = [x, x_lin, x_model]
-plot(
-    imgs,
-    titles=["GT", "Linear", "Recons."],
-    show = True
-)
+plot(imgs, titles=["GT", "Linear", "Recons."], show=True)
 
-# plot convergence curves 
-if plot_metrics:    
-    plot_curves(metrics, save_dir=RESULTS_DIR / "curves",  show = True)
-    
+# plot convergence curves
+if plot_metrics:
+    plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)

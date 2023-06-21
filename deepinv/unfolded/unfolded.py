@@ -59,12 +59,7 @@ class BaseUnfold(BaseOptim):
 
 
 def unfolded_builder(
-    algo,
-    data_fidelity=L2(),
-    F_fn=None,
-    g_first=False,
-    beta=1.0,
-    **kwargs
+    algo, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -75,12 +70,18 @@ def unfolded_builder(
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
-    explicit_prior = kwargs['prior'][0].explicit_prior if isinstance(kwargs['prior'], list) else kwargs['prior'].explicit_prior
+    explicit_prior = (
+        kwargs["prior"][0].explicit_prior
+        if isinstance(kwargs["prior"], list)
+        else kwargs["prior"].explicit_prior
+    )
     if F_fn is None and explicit_prior:
+
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]
             )
+
         has_cost = True
     else:
         has_cost = False
@@ -92,7 +93,7 @@ def unfolded_builder(
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
-            has_cost=has_cost
+            has_cost=has_cost,
         )
     else:
         iterator = algo

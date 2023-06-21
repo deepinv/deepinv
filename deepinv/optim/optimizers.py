@@ -102,7 +102,7 @@ class BaseOptim(nn.Module):
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
     :param function custom_init:  intializes the algorithm with `custom_init(y)`. If `None` (default value) algorithm is initilialized with :math:`A^Ty`. Default: `None`.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
-                         such as convergence criterion at each iterate. Default: `False`.     
+                         such as convergence criterion at each iterate. Default: `False`.
     """
 
     def __init__(
@@ -180,7 +180,7 @@ class BaseOptim(nn.Module):
             check_iteration_fn=self.check_iteration_fn,
             check_conv_fn=self.check_conv_fn,
             init_metrics_fn=self.init_metrics_fn,
-            init_iterate_fn = self.init_iterate_fn,
+            init_iterate_fn=self.init_iterate_fn,
             update_metrics_fn=self.update_metrics_fn,
             max_iter=max_iter,
             early_stop=early_stop,
@@ -226,8 +226,8 @@ class BaseOptim(nn.Module):
         :return torch.Tensor X["est"][1]: the auxiliary variable.
         """
         return X["est"][1]
-    
-    def init_iterate_fn(self, y, physics, F_fn = None):
+
+    def init_iterate_fn(self, y, physics, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
@@ -242,17 +242,23 @@ class BaseOptim(nn.Module):
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
-        self.params_algo = self.init_params_algo.copy() # reset parameters to initial values
+        self.params_algo = (
+            self.init_params_algo.copy()
+        )  # reset parameters to initial values
         if self.custom_init:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = self.custom_init(x_init, z_init)
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
-        F = F_fn(x_init, self.update_prior_fn(0), self.update_params_fn(0), y, physics) if self.has_cost and F_fn is not None else None
+        F = (
+            F_fn(x_init, self.update_prior_fn(0), self.update_params_fn(0), y, physics)
+            if self.has_cost and F_fn is not None
+            else None
+        )
         init_X["cost"] = F
         return init_X
-    
+
     def init_metrics_fn(self, X_init, x_gt=None):
         r"""
         Initializes the metrics.
@@ -266,8 +272,14 @@ class BaseOptim(nn.Module):
         self.batch_size = self.get_primal_variable(X_init).shape[0]
         if self.return_metrics:
             init = {}
-            x_init = self.get_primal_variable(X_init) if not self.return_aux else self.get_auxiliary_variable(X_init)
-            init["psnr"] = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            x_init = (
+                self.get_primal_variable(X_init)
+                if not self.return_aux
+                else self.get_auxiliary_variable(X_init)
+            )
+            init["psnr"] = [
+                [cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)
+            ]
             if self.has_cost:
                 init["cost"] = [[] for i in range(self.batch_size)]
             init["residual"] = [[] for i in range(self.batch_size)]
@@ -308,7 +320,7 @@ class BaseOptim(nn.Module):
                 if x_gt is not None:
                     psnr = cal_psnr(x[i], x_gt[i])
                     metrics["psnr"][i].append(psnr)
-                if self.has_cost :
+                if self.has_cost:
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
                 if self.custom_metrics is not None:
@@ -450,12 +462,18 @@ def optim_builder(
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    explicit_prior = kwargs['prior'][0].explicit_prior if isinstance(kwargs['prior'], list) else kwargs['prior'].explicit_prior
+    explicit_prior = (
+        kwargs["prior"][0].explicit_prior
+        if isinstance(kwargs["prior"], list)
+        else kwargs["prior"].explicit_prior
+    )
     if F_fn is None and explicit_prior:
+
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]
             )
+
         has_cost = True
     else:
         has_cost = False
@@ -467,7 +485,7 @@ def optim_builder(
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
-            has_cost=has_cost
+            has_cost=has_cost,
         )
     else:
         iterator = algo

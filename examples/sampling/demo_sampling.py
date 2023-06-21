@@ -36,7 +36,7 @@ url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
-x = load_image(url = url, img_size=32)
+x = load_image(url=url, img_size=32)
 
 # %%
 # Define forward operator and noise model

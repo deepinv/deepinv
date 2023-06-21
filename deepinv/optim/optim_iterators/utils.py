@@ -1,4 +1,4 @@
-def gradient_descent_step(x, grad, bregman_potential = "L2"):
+def gradient_descent_step(x, grad, bregman_potential="L2"):
     r"""
     Performs a single step of gradient descent on the Bregman divergence.
 

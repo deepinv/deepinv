@@ -61,9 +61,7 @@ class OptimIterator(nn.Module):
             data_fidelity=self.data_fidelity,
             g_first=self.g_first,
         )
-        self.g_step = gStep(
-            g_first=self.g_first
-        )
+        self.g_step = gStep(g_first=self.g_first)
         self.requires_grad_g = False
         self.requires_prox_g = False
 
@@ -112,9 +110,7 @@ class fStep(nn.Module):
     :param kwargs: Additional keyword arguments.
     """
 
-    def __init__(
-        self, data_fidelity=L2(), g_first=False, **kwargs
-    ):
+    def __init__(self, data_fidelity=L2(), g_first=False, **kwargs):
         super(fStep, self).__init__()
         self.data_fidelity = data_fidelity
         self.g_first = g_first

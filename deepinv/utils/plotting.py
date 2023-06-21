@@ -7,13 +7,15 @@ import math
 import matplotlib.pyplot as plt
 from pathlib import Path
 import matplotlib
-matplotlib.rcParams.update({'font.size': 17})
-matplotlib.rcParams['lines.linewidth'] = 2
-matplotlib.style.use('seaborn-darkgrid')
+
+matplotlib.rcParams.update({"font.size": 17})
+matplotlib.rcParams["lines.linewidth"] = 2
+matplotlib.style.use("seaborn-darkgrid")
 from matplotlib.ticker import MaxNLocator
+
 use_tex = matplotlib.checkdep_usetex(True)
 if use_tex:
-    plt.rcParams['text.usetex'] = True
+    plt.rcParams["text.usetex"] = True
 import torch
 
 
@@ -38,12 +40,21 @@ def tensor2uint(img):
         img = np.transpose(img, (1, 2, 0))
     return np.uint8((img * 255.0).round())
 
+
 def numpy2uint(img):
     img = img.clip(0, 1)
     return np.uint8((img * 255.0).round())
 
 
-def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, rescale_mode='min_max', show = True):
+def plot(
+    img_list,
+    titles=None,
+    save_dir=None,
+    tight=True,
+    max_imgs=4,
+    rescale_mode="min_max",
+    show=True,
+):
     r"""
     Plots a list of images.
 
@@ -86,21 +97,14 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, rescale_m
                 pimg = im[i, :, :, :].pow(2).sum(dim=0).sqrt().unsqueeze(0)
             else:
                 pimg = im[i, :, :, :]
-            if rescale_mode == 'min_max':
+            if rescale_mode == "min_max":
                 pimg = (pimg - pimg.min()) / (pimg.max() - pimg.min())
-            elif rescale_mode == 'clip':
+            elif rescale_mode == "clip":
                 pimg = pimg.clamp(min=0.0, max=1.0)
             else:
                 raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
 
-            col_imgs.append(
-                pimg
-                .detach()
-                .permute(1, 2, 0)
-                .squeeze()
-                .cpu()
-                .numpy()
-            )
+            col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
     plt.figure(figsize=(len(imgs), len(imgs[0]) * 1.3))
@@ -119,44 +123,44 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, rescale_m
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
                 plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"),
-                    img,
-                    cmap="gray"
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap="gray"
                 )
     if show:
         plt.show()
 
 
-def plot_curves(metrics, save_dir=None, show = True):
+def plot_curves(metrics, save_dir=None, show=True):
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
-    fig, axs = plt.subplots(1, len(metrics.keys()), figsize=(6*len(metrics.keys()),4))
+    fig, axs = plt.subplots(
+        1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
+    )
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
             batch_size, n_iter = len(metric_val), len(metric_val[0])
-            axs[i].spines['right'].set_visible(False)
-            axs[i].spines['top'].set_visible(False)
-            if metric_name == 'residual' :
-                label = r'Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$'
+            axs[i].spines["right"].set_visible(False)
+            axs[i].spines["top"].set_visible(False)
+            if metric_name == "residual":
+                label = r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$"
                 log_scale = True
-            elif metric_name == 'psnr' :
-                label = r'$PSNR(x_k)$'
+            elif metric_name == "psnr":
+                label = r"$PSNR(x_k)$"
                 log_scale = False
-            elif metric_name == 'cost' :
-                label = r'$F(x_k)$'
+            elif metric_name == "cost":
+                label = r"$F(x_k)$"
                 log_scale = True
-            else :
+            else:
                 label = metric_name
                 log_scale = False
             for b in range(batch_size):
                 if not log_scale:
-                    axs[i].plot(metric_val[b], '-o', label = f"batch {b+1}")
+                    axs[i].plot(metric_val[b], "-o", label=f"batch {b+1}")
                 else:
-                    axs[i].semilogy(metric_val[b], '-o', label = f"batch {b+1}")
+                    axs[i].semilogy(metric_val[b], "-o", label=f"batch {b+1}")
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
-            #axs[i].set_xlabel("iterations")
+            # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
             axs[i].legend()
     plt.subplots_adjust(hspace=0.1)
@@ -176,6 +180,7 @@ def wandb_imgs(imgs, captions, n_plot):
             )
         )
     return wandb_imgs
+
 
 def wandb_plot_curves(metrics, batch_idx=0, step=0):
     for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
@@ -198,5 +203,6 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
 if __name__ == "__main__":
     import torch
     from deepinv.utils import plot
+
     img = torch.rand(4, 3, 256, 256)
     plot([img, img, img], titles=["img1", "img2", "img3"], max_imgs=2)

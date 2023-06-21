@@ -178,7 +178,7 @@ model = unfolded_builder(
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior
+    prior=prior,
 )
 
 # %% Define the training parameters.
@@ -229,7 +229,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis
+    wandb_vis=wandb_vis,
 )
 
 # %%

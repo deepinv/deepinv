@@ -120,7 +120,11 @@ class FixedPoint(nn.Module):
         :param kwargs: optional keyword arguments for the iterator.
         :return: the fixed-point.
         """
-        X = self.init_iterate_fn(*args, F_fn = self.iterator.F_fn) if self.init_iterate_fn else None
+        X = (
+            self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)
+            if self.init_iterate_fn
+            else None
+        )
         metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn else None
         it = 0
         while it < self.max_iter:

@@ -33,9 +33,11 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 method = "PnP"
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 32
-url = 'https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=SheppLogan.png'
-x = load_image(url = url, img_size=img_size, grayscale=True, resize_mode='resize', device=device)
-operation = 'tomography'
+url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=SheppLogan.png"
+x = load_image(
+    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+)
+operation = "tomography"
 
 
 # %%
@@ -49,7 +51,7 @@ n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.Tomography(
     img_width=img_size,
     angles=100,
-    circle=False, 
+    circle=False,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
@@ -71,7 +73,7 @@ verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # Set up the PnP algorithm parameters : the `stepsize`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. The following parameters are chosen arbitrarily.
-params_algo = {"stepsize": 1., "g_param": noise_level_img, "lambda": 0.01}
+params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.01}
 max_iter = 100
 early_stop = True
 
@@ -111,7 +113,7 @@ y = physics(x)
 x_lin = physics.A_adjoint(y)
 
 # run the model on the problem. When `return_metrics` is set to True, the model requires the ground-truth clean image ``x_gt`` and returns the output and the metrics computed along the iterations.
-x_model, metrics = model(y, physics, x_gt = x)
+x_model, metrics = model(y, physics, x_gt=x)
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
@@ -123,9 +125,9 @@ plot(
     imgs,
     titles=["Input", "GT", "Linear", "Recons."],
     save_dir=RESULTS_DIR / "images",
-    show = True
+    show=True,
 )
 
-# plot convergence curves 
-if plot_metrics:    
-    plot_curves(metrics, save_dir=RESULTS_DIR / "curves",  show = True)
+# plot convergence curves
+if plot_metrics:
+    plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
