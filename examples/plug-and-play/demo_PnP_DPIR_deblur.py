@@ -12,7 +12,7 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import Denoiser
+from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
@@ -122,17 +122,7 @@ early_stop = False  # Do not stop algorithm with convergence criteria
 data_fidelity = L2()
 
 # Specify the denoising prior
-model_spec = {  # specifies the parameters of the DRUNet model
-    "name": "drunet",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": "download",
-        "train": False,
-        "device": device,
-    },
-}
-prior = PnP(denoiser=Denoiser(model_spec))
+prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

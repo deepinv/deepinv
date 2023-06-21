@@ -95,18 +95,10 @@ likelihood = dinv.optim.L2(sigma=sigma)
 # `"Building firmly nonexpansive convolutional neural networks" <https://hal.science/hal-03139360>`_), and helps to
 # stabilize the sampling algorithm.
 
-model_spec = {
-    "name": "dncnn",
-    "args": {
-        "device": device,
-        "in_channels": 3,
-        "out_channels": 3,
-        "pretrained": "download_lipschitz",
-    },
-}
-
 sigma_denoiser = 2 / 255
-prior = dinv.optim.ScorePrior(denoiser=dinv.models.Denoiser(model_spec=model_spec))
+prior = dinv.optim.ScorePrior(
+    denoiser=dinv.models.DnCNN(pretrained="download_lipschitz")
+).to(device)
 
 # %%
 # Create the MCMC sampler

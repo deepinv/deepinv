@@ -1,10 +1,7 @@
 import torch
 from torch import nn
 
-from .denoiser import register
 
-
-@register("prox_l1")
 class ProxL1Prior(nn.Module):
     r"""
     Proximity operator of the l1 norm.

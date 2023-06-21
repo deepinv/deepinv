@@ -309,11 +309,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     ths = 2.0
 
-    model_spec = {
-        "name": "tgv",
-        "args": {"n_it_max": 5000, "verbose": True, "crit": 1e-4},
-    }
-    model = Denoiser(model_spec)
+    model = dinv.models.TGV(n_it_max=5000, verbose=True, crit=1e-4)
 
     x = model(y, ths)  # 3. Apply the model we want to test
 
@@ -330,7 +326,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
     #     )
 
-    assert model.denoiser.has_converged
+    assert model.has_converged
 
 
 optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
@@ -354,13 +350,8 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": device},
-    }
-
     prior = PnP(
-        denoiser=Denoiser(model_spec)
+        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
     )  # here the prior model is common for all iterations
 
     sigma = 1.0 if pnp_algo == "CP" else None

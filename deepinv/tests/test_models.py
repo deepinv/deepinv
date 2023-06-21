@@ -24,6 +24,7 @@ model_list = [
     "waveletdict",
     "tgv",
     "median",
+    "bm3d",
     "autoencoder",
     "gsdrunet",
 ]
@@ -36,6 +37,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "gsdrunet":
         out = dinv.models.GSDRUNet(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "bm3d":
+        out = dinv.models.BM3D()
     elif name == "dncnn":
         out = dinv.models.DnCNN(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "waveletprior":

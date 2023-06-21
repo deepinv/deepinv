@@ -137,17 +137,11 @@ method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
 ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
-model_spec = {
-    "name": denoiser_name,
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": str(ckpt_path) if ckpt_path.exists() else "download",
-        "train": False,
-        "device": device,
-    },
-}
-prior = GSPnP(denoiser=Denoiser(model_spec))
+
+pretrained = str(ckpt_path) if ckpt_path.exists() else "download"
+prior = GSPnP(
+    denoiser=dinv.models.GSDRUNet(pretrained=pretrained, train=False).to(device)
+)
 
 # By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
 # For custom initialization, we need to write a function of the measurements.
