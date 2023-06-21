@@ -69,7 +69,7 @@ dinv.utils.plot(dataset[0][0].unsqueeze(0))
 
 
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(.2))
+physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -110,5 +110,3 @@ dataloader = DataLoader(
 
 for x, y in dataloader:
     dinv.utils.plot([x, y])
-
-
