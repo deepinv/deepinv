@@ -27,7 +27,7 @@ class MCLoss(nn.Module):
         self.name = "mc"
         self.metric = metric
 
-    def forward(self, y, x_net, physics):
+    def forward(self, y, x_net, physics, **kwargs):
         r"""
         Computes the measurement splitting loss
 

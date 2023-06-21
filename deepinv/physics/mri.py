@@ -189,69 +189,69 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
     return roll(x, shift, dim)
 
 
-if __name__ == "__main__":
-    # deepinv test
-    from deepinv.tests.test_physics import (
-        test_operators_norm,
-        test_operators_adjointness,
-        test_pseudo_inverse,
-        device,
-    )
-    import deepinv as dinv
-    from fastmri.data import subsample
-
-    imsize = (25, 32)
-    # Create a mask function
-    mask_func = subsample.RandomMaskFunc(center_fractions=[0.08], accelerations=[4])
-    m = mask_func.sample_mask((imsize[1], imsize[0]), offset=None)
-
-    # mask = torch.ones((imsize[0], 1)) * (m[0] + m[1]).permute(1, 0)
-    mask = torch.ones(imsize)
-    mask[mask > 1] = 1
-
-    sigma = 0.1
-    # physics = MRI(mask=mask, device=dinv.device)
-    physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(sigma)
-
-    # choose a reconstruction architecture
-    backbone = dinv.models.MedianFilter()
-
-    class denoiser(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-
-        def forward(self, x, sigma=None):
-            return x
-
-    f = dinv.models.ArtifactRemoval(backbone)
-
-    batch_size = 1
-
-    for tau in np.logspace(-5, 3, 1):
-        x = torch.ones((batch_size, 2) + imsize, device=dinv.device)
-        y = physics(x)
-
-        # choose training losses
-        loss = dinv.loss.SureGaussianLoss(sigma, tau=tau)
-        x_net = f(y, physics)
-        mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
-        sure = loss(y, x_net, physics, f)
-
-        print(f"tau:{tau:.2e}  mse: {mse:.2e}, sure: {sure:.2e}")
-        rel_error = (sure - mse).abs() / mse
-        print(f"rel_error: {rel_error:.2e}")
-
-    d = physics.A_adjoint(y)
-    dinv.utils.plot([d.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
-
-    print("adjoint test....")
-    test_operators_adjointness(
-        "MRI", (2, 320, 320), dinv.device
-    )  # pass, tensor(0., device='cuda:0')
-    print("norm test....")
-    test_operators_norm("MRI", (2, 320, 320), dinv.device)  # pass
-    print("pinv test....")
-    test_pseudo_inverse("MRI", (2, 320, 320), dinv.device)  # pass
-
-    print("pass all...")
+# if __name__ == "__main__":
+#     # deepinv test
+#     from deepinv.tests.test_physics import (
+#         test_operators_norm,
+#         test_operators_adjointness,
+#         test_pseudo_inverse,
+#         device,
+#     )
+#     import deepinv as dinv
+#     from fastmri.data import subsample
+#
+#     imsize = (25, 32)
+#     # Create a mask function
+#     mask_func = subsample.RandomMaskFunc(center_fractions=[0.08], accelerations=[4])
+#     m = mask_func.sample_mask((imsize[1], imsize[0]), offset=None)
+#
+#     # mask = torch.ones((imsize[0], 1)) * (m[0] + m[1]).permute(1, 0)
+#     mask = torch.ones(imsize)
+#     mask[mask > 1] = 1
+#
+#     sigma = 0.1
+#     # physics = MRI(mask=mask, device=dinv.device)
+#     physics = dinv.physics.Denoising()
+#     physics.noise_model = dinv.physics.GaussianNoise(sigma)
+#
+#     # choose a reconstruction architecture
+#     backbone = dinv.models.MedianFilter()
+#
+#     class denoiser(torch.nn.Module):
+#         def __init__(self):
+#             super().__init__()
+#
+#         def forward(self, x, sigma=None):
+#             return x
+#
+#     f = dinv.models.ArtifactRemoval(backbone)
+#
+#     batch_size = 1
+#
+#     for tau in np.logspace(-5, 3, 1):
+#         x = torch.ones((batch_size, 2) + imsize, device=dinv.device)
+#         y = physics(x)
+#
+#         # choose training losses
+#         loss = dinv.loss.SureGaussianLoss(sigma, tau=tau)
+#         x_net = f(y, physics)
+#         mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
+#         sure = loss(y, x_net, physics, f)
+#
+#         print(f"tau:{tau:.2e}  mse: {mse:.2e}, sure: {sure:.2e}")
+#         rel_error = (sure - mse).abs() / mse
+#         print(f"rel_error: {rel_error:.2e}")
+#
+#     d = physics.A_adjoint(y)
+#     dinv.utils.plot([d.sum(1).unsqueeze(1), x.sum(1).unsqueeze(1)])
+#
+#     print("adjoint test....")
+#     test_operators_adjointness(
+#         "MRI", (2, 320, 320), dinv.device
+#     )  # pass, tensor(0., device='cuda:0')
+#     print("norm test....")
+#     test_operators_norm("MRI", (2, 320, 320), dinv.device)  # pass
+#     print("pinv test....")
+#     test_pseudo_inverse("MRI", (2, 320, 320), dinv.device)  # pass
+#
+#     print("pass all...")
