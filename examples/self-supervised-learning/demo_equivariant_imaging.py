@@ -15,7 +15,6 @@ import torch
 from pathlib import Path
 from torchvision import transforms
 from deepinv.optim.prior import PnP
-from deepinv.models.denoiser import Denoiser
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.training_utils import train, test
 from deepinv.models.denoiser import online_weights_path

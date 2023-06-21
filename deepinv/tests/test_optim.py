@@ -3,7 +3,6 @@ import pytest
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.models.denoiser import Denoiser
 from deepinv.models.basic_prox_models import ProxL1Prior
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.prior import Prior, PnP

@@ -26,7 +26,6 @@ import torchvision
 import requests
 from imageio.v2 import imread
 from io import BytesIO
-from pathlib import Path
 
 # %%
 # Load image from the internet
