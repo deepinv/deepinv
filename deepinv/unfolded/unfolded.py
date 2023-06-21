@@ -75,7 +75,7 @@ def Unfolded(
     Function building the appropriate Unfolded architecture.
 
     :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
-    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimization problem.
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
     :param F_fn: Custom user input cost function. Default: None.
     :param g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False.
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
