@@ -17,7 +17,7 @@ jobs:
         include:
           - os: ubuntu-latest
             version_python: 3.9
-            coverage: 'true'
+
     env:
       VERSION_PYTHON: ${{ matrix.version_python }}
 
@@ -32,23 +32,14 @@ jobs:
           pip install git+https://github.com/fbcotter/pytorch_wavelets.git#egg=pytorch_wavelets
           pip install -e .
           pip install pytest
-      - name: Test with pytest
+          pip install pytest-cov
+
+      - name: Test with pytest and generate coverage report
         run: |
+          conda install pytest
           python -m pytest deepinv/tests
+          pytest --cov=./ --cov-report=xml
 
-  report_test:
-    if: ${{ always() }}
-    needs: [test_no_conda]
-    runs-on: ubuntu-latest
-    env:
-      TEST_NO_CONDA: ${{ needs.test_no_conda.result }}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
 
-    steps:
-      - name: "Gather test results."
-        run: |
-          if [[ $TEST_NO_CONDA == 'success' ]]; then
-            exit 0;
-          else
-            exit 1;
-          fi
-        shell: bash
