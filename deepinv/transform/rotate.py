@@ -27,15 +27,15 @@ class Rotate(torch.nn.Module):
         return torch.cat([rotate(data, float(_theta)) for _theta in theta])
 
 
-if __name__ == "__main__":
-    device = "cuda:0"
-
-    x = torch.zeros(1, 1, 64, 64, device=device)
-    x[:, :, 16:48, 16:48] = 1
-
-    t = Rotate(4)
-    y = t(x)
-
-    from deepinv.utils import plot
-
-    plot([x, y[0, :, :, :].unsqueeze(0), y[1, :, :, :].unsqueeze(0)])
+# if __name__ == "__main__":
+#     device = "cuda:0"
+#
+#     x = torch.zeros(1, 1, 64, 64, device=device)
+#     x[:, :, 16:48, 16:48] = 1
+#
+#     t = Rotate(4)
+#     y = t(x)
+#
+#     from deepinv.utils import plot
+#
+#     plot([x, y[0, :, :, :].unsqueeze(0), y[1, :, :, :].unsqueeze(0)])

@@ -485,51 +485,51 @@ class BlurFFT(DecomposablePhysics):
         return fft.irfft2(torch.view_as_complex(x), norm="ortho")
 
 
-# test code
-if __name__ == "__main__":
-    device = "cuda:0"
-
-    import matplotlib.pyplot as plt
-
-    device = "cuda:0"
-    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(device) / 255
-    x = torchvision.transforms.Resize((160, 180))(x)
-
-    sigma_noise = 0.0
-    kernel = torch.zeros((1, 1, 15, 15), device=device)
-    kernel[:, :, 7, :] = 1 / 15
-    physics = Downsampling(img_size=x.shape[1:], filter="bilinear", device=device)
-    physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=device)
-
-    y = physics(x)
-    y2 = physics2(x)
-
-    xhat = physics.V(physics.U_adjoint(y) / physics.mask)
-    xhat2 = physics2.A_dagger(y2)
-
-    print(xhat.shape)
-    # print(physics.adjointness_test(x))
-    print(torch.sum((y - y2).pow(2)))
-    print(torch.sum((xhat - xhat2).pow(2)))
-
-    print(torch.sum((x - xhat).pow(2)))
-    print(torch.sum((x - xhat2).pow(2)))
-
-    print(physics.compute_norm(x))
-    print(physics.adjointness_test(x))
-    xhat = physics.prox_l2(y, y, gamma=1.0)
-
-    xhat = physics.A_dagger(y)
-
-    plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-    plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
-
-    plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    plt.show()
+# # test code
+# if __name__ == "__main__":
+#     device = "cuda:0"
+#
+#     import matplotlib.pyplot as plt
+#
+#     device = "cuda:0"
+#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+#     x = x.unsqueeze(0).float().to(device) / 255
+#     x = torchvision.transforms.Resize((160, 180))(x)
+#
+#     sigma_noise = 0.0
+#     kernel = torch.zeros((1, 1, 15, 15), device=device)
+#     kernel[:, :, 7, :] = 1 / 15
+#     physics = Downsampling(img_size=x.shape[1:], filter="bilinear", device=device)
+#     physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=device)
+#
+#     y = physics(x)
+#     y2 = physics2(x)
+#
+#     xhat = physics.V(physics.U_adjoint(y) / physics.mask)
+#     xhat2 = physics2.A_dagger(y2)
+#
+#     print(xhat.shape)
+#     # print(physics.adjointness_test(x))
+#     print(torch.sum((y - y2).pow(2)))
+#     print(torch.sum((xhat - xhat2).pow(2)))
+#
+#     print(torch.sum((x - xhat).pow(2)))
+#     print(torch.sum((x - xhat2).pow(2)))
+#
+#     print(physics.compute_norm(x))
+#     print(physics.adjointness_test(x))
+#     xhat = physics.prox_l2(y, y, gamma=1.0)
+#
+#     xhat = physics.A_dagger(y)
+#
+#     plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#     plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#     plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#     plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#
+#     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
