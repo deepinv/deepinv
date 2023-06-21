@@ -42,13 +42,13 @@ class EILoss(nn.Module):
         self.T = transform
         self.noise = apply_noise
 
-    def forward(self, x_net, physics, f):
+    def forward(self, x_net, physics, model, **kwargs):
         r"""
         Computes the EI loss
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module f: Reconstruction function.
+        :param torch.nn.Module model: Reconstruction function.
         :return: (torch.Tensor) loss.
         """
 
@@ -59,7 +59,7 @@ class EILoss(nn.Module):
         else:
             y = physics.A(x2)
 
-        x3 = f(y, physics)
+        x3 = model(y, physics)
 
         loss_ei = self.weight * self.metric(x3, x2)
         return loss_ei

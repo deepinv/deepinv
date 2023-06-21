@@ -18,7 +18,7 @@ class TVLoss(nn.Module):
         self.tv_loss_weight = weight
         self.name = "tv"
 
-    def forward(self, x_net):
+    def forward(self, x_net, **kwargs):
         r"""
         Computes the TV loss.
 

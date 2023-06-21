@@ -125,6 +125,7 @@ def train(
             for g in G_perm:
                 if unsupervised:
                     y = next(iterators[g])
+                    x = None
                 else:
                     x, y = next(iterators[g])
 
@@ -137,38 +138,18 @@ def train(
 
                 optimizer.zero_grad()
 
-                x1 = model(y, physics[g])  # Requires grad ok
+                x_net = model(y, physics[g])  # Requires grad ok
 
                 loss_total = 0
                 for k, l in enumerate(losses):
-                    if l.name in ["mc"]:
-                        loss = l(y, x1, physics[g])
-                    elif l.name in ["ms"]:
-                        loss = l(y, physics[g], model)
-                    elif l.name in ["jsn"]:
-                        loss = l(x1, y)
-                    elif not unsupervised and l.name in ["sup"]:
-                        loss = l(x1, x)
-                    elif l.name in ["moi"]:
-                        loss = l(x1, physics, model)
-                    elif l.name in ["tv"]:
-                        loss = l(x1)
-                    elif l.name.startswith("Sure"):
-                        loss = l(y, x1, physics[g], model)
-                    elif l.name in ["ei", "rei"]:
-                        loss = l(x1, physics[g], model)
-                    else:
-                        raise Exception(
-                            "The loss used is not recognized by the train function."
-                        )
+                    loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
                     loss_total += loss
-
                     losses_verbose[k].update(loss.item())
 
                 loss_meter.update(loss_total.item())
 
                 if (not unsupervised) and verbose:
-                    train_psnr_net.update(cal_psnr(x1, x))
+                    train_psnr_net.update(cal_psnr(x_net, x))
 
                 loss_total.backward()
                 optimizer.step()

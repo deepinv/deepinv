@@ -59,16 +59,23 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4, clip=Fals
         img = torch.rand(4, 3, 256, 256)
         plot([img, img, img], titles=["img1", "img2", "img3"], save_dir="test.png")
 
-    :param list[torch.tensor] img_list: list of images to plot
+    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param str save_dir: path to save the plot
-    :param bool tight: whether to use tight layout
+    :param bool tight: use tight layout
     :param int max_imgs: maximum number of images to plot
-    :param bool clip: whether to clip or not the image between 0 and 1 before plotting. If not, it will be automatically linearly rescaled in 0 and 1 using its minimum and maximum values.
+    :param bool clip: clip or not the image between 0 and 1 before plotting. If not, it will be automatically linearly rescaled in 0 and 1 using its minimum and maximum values.
     """
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(img_list, torch.Tensor):
+        img_list = [img_list]
+
+    if isinstance(titles, str):
+        titles = [titles]
+
     imgs = []
     for im in img_list:
         col_imgs = []

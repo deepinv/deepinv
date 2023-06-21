@@ -39,14 +39,14 @@ class MOILoss(nn.Module):
         self.weight = weight
         self.noise = apply_noise
 
-    def forward(self, x_net, physics, f):
+    def forward(self, x_net, physics, model):
         r"""
         Computes the MOI loss.
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param list of deepinv.physics.Physics physics: List containing the :math:`G` different forward operators
             associated with the measurements.
-        :param torch.nn.Module f: Reconstruction function.
+        :param torch.nn.Module model: Reconstruction function.
         :return: (torch.Tensor) loss.
         """
         j = np.random.randint(len(physics))
@@ -56,6 +56,6 @@ class MOILoss(nn.Module):
         else:
             y = physics[j].A(x_net)
 
-        x2 = f(y, physics[j])
+        x2 = model(y, physics[j])
 
         return self.weight * self.metric(x2, x_net)

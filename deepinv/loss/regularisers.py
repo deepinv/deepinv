@@ -45,7 +45,7 @@ class JacobianSpectralNorm(nn.Module):
         self.eval = eval_mode
         self.verbose = verbose
 
-    def forward(self, y, x):
+    def forward(self, y, x, **kwargs):
         """
         Computes the spectral norm of the Jacobian of :math:`f` in :math:`x`.
 
