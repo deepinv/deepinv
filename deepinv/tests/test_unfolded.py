@@ -12,6 +12,7 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot, torch2cpu
 from deepinv.unfolded import Unfolded
 from deepinv.utils import investigate_model
+from deepinv.training_utils import train, test
 
 from torch.utils.data import DataLoader
 
@@ -96,3 +97,31 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for idx, (name, param) in enumerate(model.named_parameters()):
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
+
+    N = 10
+    max_N = 10
+    train_dataset = DummyCircles(samples=N, imsize=imsize)
+    test_dataset = DummyCircles(samples=N, imsize=imsize)
+
+    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+
+    tmp_pth = '.'
+    dinv.datasets.generate_dataset(
+        train_dataset,
+        physics,
+        tmp_pth,
+        test_dataset=test_dataset,
+        device=device,
+        dataset_filename="dinv_dataset",
+        train_datapoints=max_N,
+    )
+
+    dataset = dinv.datasets.HDF5Dataset(path=f"{tmp_pth}/dinv_dataset0.h5", train=True)
+
+    train_dataloader = DataLoader(
+        train_dataset, batch_size=2, num_workers=0, shuffle=True
+    )
+    test_dataloader = DataLoader(
+        test_dataset, batch_size=2, num_workers=0, shuffle=False
+    )
+
