@@ -39,7 +39,7 @@ class MOILoss(nn.Module):
         self.weight = weight
         self.noise = apply_noise
 
-    def forward(self, x_net, physics, model):
+    def forward(self, x_net, physics, model, **kwargs):
         r"""
         Computes the MOI loss.
 
