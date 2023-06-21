@@ -151,9 +151,10 @@ def test_operators_norm(name, device):
     :param name: operator name (see find_operator)
     :param imsize: (tuple) image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :return: asserts norm is in (.5,1.5)
+    :return: asserts norm is in (.1,1.1)
     """
     physics, imsize, norm_ref = find_operator(name, device)
+    torch.manual_seed(0)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     norm = physics.compute_norm(x)
     assert torch.abs(norm - norm_ref) < 0.1
