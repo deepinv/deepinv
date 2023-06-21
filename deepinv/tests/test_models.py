@@ -64,7 +64,7 @@ def test_denoiser(imsize, device, denoiser):
                 "This test requires pytorch_wavelets. "
                 "It should be installed with `pip install"
                 "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-                )
+            )
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
