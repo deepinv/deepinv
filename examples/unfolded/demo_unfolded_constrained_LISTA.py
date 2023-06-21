@@ -1,9 +1,22 @@
 r"""
-Training a reconstruction network.
+Unfolded Chambolle-Pock for constrained image inpainting
 ====================================================================================================
 
-This example shows how to train a simple reconstruction network for an image
-inpainting inverse problem.
+Image inpainting consists in solving :math:`y = Ax` where :math:`A` is a mask operator.
+This problem can be reformulated as the following minimisation problem:
+
+.. math::
+
+    \begin{equation*}
+    \underset{x}{\operatorname{min}} \,\, \lambda \iota_{\mathcal{B}_2(y, r)}(Ax) + \regname(x)
+    \end{equation*}
+
+
+where :math:`\iota_{\mathcal{B}_2(y, r)}` is the indicator function of the ball of radius :math:`r` centered at
+:math:`y` for the :math:`\ell_2` norm, and :math:`\regname` is a regularisation.
+
+In this example, we unfold the Chambolle-Pock algorithm to solve this problem, and learn the thresholding parameters of
+a wavelet denoiser in a LISTA fashion.
 
 """
 from pathlib import Path
@@ -17,7 +30,7 @@ from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
 from deepinv.models.denoiser import Denoiser
-from deepinv.training_utils import train, test
+from deepinv.models.denoiser import online_weights_path
 
 # %%
 # Setup paths for data loading and results.
@@ -113,15 +126,20 @@ test_dataloader = DataLoader(
 # %%
 # Set up the reconstruction network
 # --------------------------------------------------------
-# We use a simple inversion architecture of the form
+# We unfold the Chambolle-Pock algorithm as follows:
 #
 #      .. math::
+#          \begin{equation*}
+#          \begin{aligned}
+#          u_{k+1} &= \operatorname{prox}_{\sigma d^*}(u_k + \sigma A z_k) \\
+#          x_{k+1} &= \operatorname{D_{\theta}}(x_k-\tau A^\top u_{k+1}) \\
+#          z_{k+1} &= 2x_{k+1} -x_k \\
+#          \end{aligned}
+#          \end{equation*}
 #
-#               f_{\theta}(y) = \phi_{\theta}(A^{\top}(y))
+# where :math:`\operatorname{D_{\sigma}}` is a wavelet denoiser with thresholding parameters :math:`\sigma`.
 #
-# where the linear reconstruction :math:`A^{\top}y` is post-processed by a U-Net network :math:`\phi_{\theta}` is a
-# neural network with trainable parameters :math:`\theta`.
-
+# The learnable parameters of our network are :math:`\tau` and :math:`\theta`.
 
 # Select the data fidelity term
 data_fidelity = IndicatorL2(radius=0.0)
@@ -133,7 +151,7 @@ model_spec = {
     "args": {"wv": "db8", "level": level, "device": device},
 }
 # If the prior is initialized with a list of length max_iter,
-# then a distinct weight is trained for each PGD iteration.
+# then a distinct weight is trained for each CP iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
 prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
@@ -145,24 +163,13 @@ lamb = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
 
-sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-# sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-
-stepsize = (
-    0.9
-    / physics.compute_norm(
-        torch.ones((1, n_channels, img_size, img_size)), tol=1e-4
-    ).item()
-)
-# stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
-reg_param = 1.0
-sigma = 1.0
+sigma = 1.0  # stepsize for Chambolle-Pock
 
 params_algo = {
     "stepsize": stepsize,
-    "g_param": reg_param,
+    "g_param": sigma_denoiser,
     "lambda": lamb,
     "sigma": sigma,
     "K": physics.A,
@@ -175,6 +182,7 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 
+# Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
 def custom_init_CP(x_init, y_init):
     return {"est": (x_init, x_init, y_init)}
 
@@ -201,12 +209,12 @@ model = Unfolded(
 #
 # .. note::
 #
-#       In this example, we only train for a few epochs to keep the training time short.
-#       For a good reconstruction quality, we recommend to train for at least 100 epochs.
+#       In this example, we only train for a few epochs to keep the training time short on CPU.
+#       For a good reconstruction quality, we recommend to train for at least 50 epochs.
 #
 
 epochs = 50 if torch.cuda.is_available() else 5  # choose training epochs
-learning_rate = 5e-4
+learning_rate = 1e-3
 
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
@@ -258,14 +266,18 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     wandb_vis=wandb_vis,
 )
 
-# %% Saving the model and loading it
-# ----------------------------------
+# %% Saving the model
+# -------------------
 # We can save the trained model following the standard PyTorch procedure.
 
 # Save the model
 torch.save(model.state_dict(), CKPT_DIR / operation / "model.pth")
 
-# Load the model
+# %% Loading the model
+# -------------------
+# Similarly, we can load our trained unfolded architecture following the standard PyTorch procedure.
+# To check that the loading is performed correctly, we use new variables for the initialization of the model.
+
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
 level = 3
 model_spec = {
@@ -285,28 +297,28 @@ lamb = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
+sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
 
-sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-# sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-params_algo_new = {  # wrap all the restoration parameters in a 'params_algo' dictionary
+sigma = 1.0  # stepsize for Chambolle-Pock
+
+params_algo_new = {
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
     "lambda": lamb,
+    "sigma": sigma,
+    "K": physics.A,
+    "K_adjoint": physics.A_adjoint,
 }
 
-trainable_params = [
-    "g_param",
-    "stepsize",
-]  # define which parameters from 'params_algo' are trainable
-
 model_new = Unfolded(
-    "FidCP",
-    params_algo=params_algo_new,
+    "CP",
     trainable_params=trainable_params,
+    params_algo=params_algo_new,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior_new,
+    g_first=False,
+    custom_init=custom_init_CP,
 )
 model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()

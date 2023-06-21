@@ -539,4 +539,6 @@ class Denoising(DecomposablePhysics):
 
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(**kwargs)
+        if noise is None:
+            noise = GaussianNoise(sigma=0.0)
         self.noise_model = noise

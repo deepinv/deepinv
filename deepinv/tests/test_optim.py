@@ -193,13 +193,11 @@ optim_algos = [
     "PGD",
     "ADMM",
     "DRS",
-    "CP",
     "HQS",
-    "CP",
 ]
 
 
-# other algos: check constraints on the stepsize
+# we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
@@ -334,11 +332,19 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.denoiser.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
+optim_algos = [
+    "PGD",
+    "HQS",
+    "DRS",
+    "ADMM",
+    "CP",
+]  # GD not implemented for this one (needs differentiable prior)
 
 
 @pytest.mark.parametrize("pnp_algo", optim_algos)
-def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
+def test_pnp_algo(
+    pnp_algo, imsize, dummy_dataset, device
+):  # Here we test that basic PnP algorithm with proximal prior does converge.
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
@@ -423,17 +429,16 @@ def test_CP_K(imsize, dummy_dataset, device):
     :math:`a(x) = d(Ax-y)` and :math:`b(z) = g(z)`, and for :math:`a(x) = g(x)` and :math:`b(z) = f(z-y)`.
     """
 
-    for g_first in [False, True]:
+    for g_first in [True, False]:
         # Define two points
         x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
 
         # Create a measurement operator
-        B = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64).to(device)
-        B_forward = lambda v: B @ v
-        B_adjoint = lambda v: B.transpose(0, 1) @ v
+        Id_forward = lambda v: v
+        Id_adjoint = lambda v: v
 
         # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+        physics = dinv.physics.LinearPhysics(A=Id_forward, A_adjoint=Id_adjoint)
         y = physics(x)
 
         data_fidelity = L2()  # The data fidelity term
@@ -445,7 +450,6 @@ def test_CP_K(imsize, dummy_dataset, device):
         prior = Prior(g=prior_g)  # The prior term
 
         # Define a linear operator
-        # K = torch.Tensor([[2.0, 0.0], [0.0, 2.0]]).to(torch.float64).to(device)
         K = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
         K_forward = lambda v: K @ v
         K_adjoint = lambda v: K.transpose(0, 1) @ v
@@ -487,6 +491,7 @@ def test_CP_K(imsize, dummy_dataset, device):
         # Run the optimisation algorithm
         x = optimalgo(y, physics)
 
+        print("g_first: ", g_first)
         assert optimalgo.has_converged
 
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
@@ -507,3 +512,87 @@ def test_CP_K(imsize, dummy_dataset, device):
             assert torch.allclose(
                 lamb * grad_deepinv, -subdiff, atol=1e-12
             )  # Optimality condition
+
+
+def test_CP_datafidsplit(imsize, dummy_dataset, device):
+    r"""
+    This test checks that the CP algorithm converges to the solution of the following problem:
+
+    .. math::
+
+        \min_x \lambda d(Ax,y) + g(x)
+
+
+    where :math:`d` is a distance function and :math:`g` is a prior term.
+    """
+
+    g_first = False
+    # Define two points
+    x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
+
+    # Create a measurement operator
+    A = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
+    A_forward = lambda v: A @ v
+    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    y = physics(x)
+
+    data_fidelity = L2()  # The data fidelity term
+
+    def prior_g(x, *args):
+        ths = 1.0
+        return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+
+    prior = Prior(g=prior_g)  # The prior term
+
+    # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+    stepsize = 0.9 / torch.linalg.norm(A, ord=2).item() ** 2
+    reg_param = 1.0
+    sigma = 1.0
+
+    lamb = 1.5
+    max_iter = 1000
+
+    params_algo = {
+        "stepsize": stepsize,
+        "g_param": reg_param,
+        "lambda": lamb,
+        "sigma": sigma,
+        "K": A_forward,
+        "K_adjoint": A_adjoint,
+    }
+
+    def custom_init_CP(x_init, y_init):
+        return {"est": (x_init, x_init, y_init)}
+
+    optimalgo = optim_builder(
+        "CP",
+        prior=prior,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        crit_conv="residual",
+        thres_conv=1e-11,
+        verbose=True,
+        params_algo=params_algo,
+        early_stop=True,
+        g_first=g_first,
+        custom_init=custom_init_CP,
+    )
+
+    # Run the optimisation algorithm
+    x = optimalgo(y, physics)
+
+    print("g_first: ", g_first)
+    assert optimalgo.has_converged
+
+    # Compute the subdifferential of the regularisation at the limit point of the algorithm.
+    subdiff = prior.grad(x, 0)
+
+    grad_deepinv = A_adjoint(
+        data_fidelity.grad_d(A_forward(x), y)
+    )  # This test is only valid for differentiable data fidelity terms.
+    assert torch.allclose(
+        lamb * grad_deepinv, -subdiff, atol=1e-12
+    )  # Optimality condition

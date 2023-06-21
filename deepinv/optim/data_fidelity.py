@@ -175,6 +175,24 @@ class DataFidelity(nn.Module):
             x / gamma, y, physics, lamb / gamma, *args, **kwargs
         )
 
+    def prox_d_conjugate(self, u, y, gamma, *args, lamb=1, **kwargs):
+        r"""
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda \distancename)^*` at :math:`u`,
+        using the Moreau formula.
+
+        .. warning::
+
+            This function is only valid for convex :math:`\distancename`.
+
+        :param torch.tensor u: Variable :math:`u` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param float gamma: stepsize of the proximity operator.
+        :param float lamb: math:`\lambda` parameter in front of :math:`\distancename`
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \distancename)^*}(x)`,
+            computed in :math:`x`.
+        """
+        return u - gamma * self.prox_d(u / gamma, y, lamb / gamma, *args, **kwargs)
+
 
 class L2(DataFidelity):
     r"""
@@ -432,19 +450,23 @@ class IndicatorL2(DataFidelity):
         :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
-        norm_AtA = physics.compute_norm(x)
-        stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
-        u = x.clone()
-        for it in range(max_iter):
-            u_prev = u.clone()
 
-            t = x - physics.A_adjoint(u)
-            u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.prox_d(u_ / stepsize, y, radius=radius)
-            rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
-            if rel_crit < crit_conv and it > 1:
-                break
-        return t
+        if (physics.A(x) == x).all():
+            return self.prox_d(x, y, gamma=None, radius=radius)
+        else:
+            norm_AtA = physics.compute_norm(x, verbose=True)
+            stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
+            u = x.clone()
+            for it in range(max_iter):
+                u_prev = u.clone()
+
+                t = x - physics.A_adjoint(u)
+                u_ = u + stepsize * physics.A(t)
+                u = u_ - stepsize * self.prox_d(u_ / stepsize, y, radius=radius)
+                rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
+                if rel_crit < crit_conv and it > 1:
+                    break
+            return t
 
 
 class PoissonLikelihood(DataFidelity):
