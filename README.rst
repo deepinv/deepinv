@@ -14,7 +14,7 @@ Deep Inverse is an open-source pytorch library for solving imaging inverse probl
 With ``deepinv`` you can:
 
 
-* Large collection of `prede    fined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* Large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
 * `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.).
 * Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.optim.html>`_.
 * Framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.models.html>`_ for inverse problems.
