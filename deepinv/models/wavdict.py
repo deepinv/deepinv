@@ -32,9 +32,11 @@ class WaveletPrior(nn.Module):
         try:
             from pytorch_wavelets import DWTForward, DWTInverse
         except ImportError as e:
-            print("pywavelets is needed to use the WaveletPrior class. "
-                  "It should be installed with `pip install"
-                  "git+https://github.com/fbcotter/pytorch_wavelets.git`")
+            print(
+                "pywavelets is needed to use the WaveletPrior class. "
+                "It should be installed with `pip install"
+                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+            )
             raise e
         self.dwt = DWTForward(J=self.level, wave=wv).to(device)
         self.iwt = DWTInverse(wave=wv).to(device)
