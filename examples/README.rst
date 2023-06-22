@@ -9,5 +9,5 @@ All the examples have a download link at the end. You can load the example's not
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 to the top of the notebook
-(e.g., `as in here <https://colab.research.google.com/drive/1OqJy9dhRluU_abZMecE9qGqPuM3Aqph8?usp=sharing>`_).
+(e.g., `as in here <https://colab.research.google.com/drive/1ZPKikFM_dov9f-9g2j_S9MIpJSCIk7QF?usp=sharing>`_).
 

@@ -7,10 +7,11 @@ This package contains algorithms that can obtains samples of the posterior distr
 
 .. math::
 
-    - \log p(x|y,A) \propto f(y,A(x))+p(x)
+    - \log p(x|y,A) \propto d(Ax,y) + \reg{x},
 
 where :math:`x` is the image to be reconstructed, :math:`y` are the measurements,
-:math:`f(y,A(x))` is the negative log-likelihood and :math:`p(x)` is the negative log-prior.
+:math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p(x)`
+is the negative log-prior.
 
 
 The negative log likelihood can be set using :meth:`deepinv.optim.DataFidelity`, which includes Gaussian noise,
