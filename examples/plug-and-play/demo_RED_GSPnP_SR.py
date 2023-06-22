@@ -158,7 +158,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="PGD",
+    algo="PGD",
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,

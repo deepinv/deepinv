@@ -274,10 +274,7 @@ def test(
                 else:
                     x1 = model(y, physics[g], **kwargs)
 
-                if hasattr(model, "custom_init") and model.custom_init:
-                    x_init = model.custom_init(y)
-                else:
-                    x_init = physics[g].A_adjoint(y)
+                x_init = physics[g].A_adjoint(y)
 
             cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)

@@ -48,7 +48,6 @@ class OptimIterator(nn.Module):
         beta=1.0,
         F_fn=None,
         bregman_potential="L2",
-        F_eval_dual=False,
     ):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity

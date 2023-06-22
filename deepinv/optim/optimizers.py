@@ -129,9 +129,6 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         return_metrics=False,
         custom_metrics=None,
-        stepsize_prox_inter=1.0,
-        max_iter_prox_inter=50,
-        tol_prox_inter=1e-3,
         custom_init=None,
     ):
         super(BaseOptim, self).__init__()
@@ -177,7 +174,8 @@ class BaseOptim(nn.Module):
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
-        # By default, self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
+
+        # By default, self.prior should be a list of elements of the class Prior. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
@@ -473,7 +471,7 @@ class BaseOptim(nn.Module):
 
 
 def optim_builder(
-    algo_name,
+    algo,
     data_fidelity=L2(),
     F_fn=None,
     g_first=False,
@@ -504,7 +502,7 @@ def optim_builder(
         sol = optim_algo(y, physics)
 
 
-    :param str algo_name: name of the algorithm to be used. Should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"PD"` or `"DRS"`.
+    :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
     :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
     :param F_fn: Custom user input cost function. default: None.
@@ -525,14 +523,18 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
-    iterator_fn = str_to_class(algo_name + "Iteration")
-    iterator = iterator_fn(
-        data_fidelity=data_fidelity,
-        g_first=g_first,
-        beta=beta,
-        F_fn=F_fn,
-        bregman_potential=bregman_potential,
-    )
+    if isinstance(algo, str):
+        iterator_fn = str_to_class(algo + "Iteration")
+        iterator = iterator_fn(
+            data_fidelity=data_fidelity,
+            g_first=g_first,
+            beta=beta,
+            F_fn=F_fn,
+            bregman_potential=bregman_potential,
+        )
+    else:
+        iterator = algo
+
     optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
     return optimizer
 

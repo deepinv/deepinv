@@ -23,7 +23,7 @@ from io import BytesIO
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = "https://www.i3s.unice.fr/sites/default/files/logos/cnrs_transparent.png"
+url = "https://www-iuem.univ-brest.fr/intranet/communication/logos/tutelles-iuem/cnrs/cnrs-poster.png"
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
 
