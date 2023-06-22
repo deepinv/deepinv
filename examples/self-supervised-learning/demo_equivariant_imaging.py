@@ -106,22 +106,10 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 data_fidelity = dinv.optim.L2()
 n_channels = 2  # real + imaginary parts
 
-# Set up the trainable denoising prior
-denoiser_spec = {
-    "name": "dncnn",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "depth": 7,
-        "pretrained": None,
-        "train": True,
-        "device": device,
-    },
-}
-
 # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(denoiser=Denoiser(denoiser_spec))
+prior = PnP(denoiser=dinv.models.DnCNN(in_channels=n_channels, out_channels=n_channels,
+                                       pretrained=None, train=True, depth=7).to(device))
 
 # Unrolled optimization algorithm parameters
 max_iter = 3  # number of unfolded layers
