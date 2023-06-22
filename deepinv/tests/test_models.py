@@ -28,6 +28,13 @@ model_list = [
     "gsdrunet",
 ]
 
+try:  # install of BM3D may fail on some architectures (arm64)
+    from dinv.models.bm3d import bm3d
+
+    model_list.append("bm3d")
+except ImportError:
+    print("Could not find bm3d; not testing bm3d.")
+
 
 def choose_denoiser(name, imsize):
     if name == "unet":
@@ -36,6 +43,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "gsdrunet":
         out = dinv.models.GSDRUNet(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "bm3d":
+        out = dinv.models.BM3D()
     elif name == "dncnn":
         out = dinv.models.DnCNN(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "waveletprior":
@@ -56,6 +65,15 @@ def choose_denoiser(name, imsize):
 
 @pytest.mark.parametrize("denoiser", model_list)
 def test_denoiser(imsize, device, denoiser):
+    if denoiser in ("waveletprior", "waveletdict"):
+        try:
+            import pytorch_wavelets
+        except ImportError:
+            pytest.xfail(
+                "This test requires pytorch_wavelets. "
+                "It should be installed with `pip install"
+                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+            )
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))

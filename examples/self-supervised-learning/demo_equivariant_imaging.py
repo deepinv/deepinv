@@ -15,7 +15,6 @@ import torch
 from pathlib import Path
 from torchvision import transforms
 from deepinv.optim.prior import PnP
-from deepinv.models.denoiser import Denoiser
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.training_utils import train, test
 from deepinv.models.denoiser import online_weights_path
@@ -107,22 +106,17 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 data_fidelity = dinv.optim.L2()
 n_channels = 2  # real + imaginary parts
 
-# Set up the trainable denoising prior
-denoiser_spec = {
-    "name": "dncnn",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "depth": 7,
-        "pretrained": None,
-        "train": True,
-        "device": device,
-    },
-}
-
 # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(denoiser=Denoiser(denoiser_spec))
+prior = PnP(
+    denoiser=dinv.models.DnCNN(
+        in_channels=n_channels,
+        out_channels=n_channels,
+        pretrained=None,
+        train=True,
+        depth=7,
+    ).to(device)
+)
 
 # Unrolled optimization algorithm parameters
 max_iter = 3  # number of unfolded layers
@@ -180,9 +174,11 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-url = online_weights_path() + "new_demo_ei_ckp_150.pth"
+url = online_weights_path() + "new_demo_ei_ckp_150_v3.pth"
 ckpt = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="new_demo_ei_ckp_150.pth"
+    url,
+    map_location=lambda storage, loc: storage,
+    file_name="new_demo_ei_ckp_150_v3.pth",
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])

@@ -90,7 +90,7 @@ class DeepImagePrior(torch.nn.Module):
 
     Deep Image Prior reconstruction.
 
-    This method is based on the paper the paper `"Deep Image Prior" by Ulyanov et al. (2018)
+    This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
     <https://arxiv.org/abs/1711.10925>`_, and reconstructs
     an image by minimizing the loss function
 

@@ -11,7 +11,6 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-import torch.nn as nn
 from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
@@ -151,7 +150,7 @@ max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="ADMM",
+    algo="ADMM",
     prior=prior,
     g_first=False,
     data_fidelity=data_fidelity,

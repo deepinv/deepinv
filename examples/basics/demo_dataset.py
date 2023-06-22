@@ -10,14 +10,8 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import Denoiser
-from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
 from torchvision import transforms
-from deepinv.utils.parameters import get_DPIR_params
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils.demo import load_dataset
 
 # %%
 # Setup paths for data loading and results.
