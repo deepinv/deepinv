@@ -5,7 +5,6 @@ import math
 import torch
 
 import deepinv
-from deepinv.models import Denoiser
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from torch.utils.data import DataLoader
 import deepinv as dinv
