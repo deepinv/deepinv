@@ -198,11 +198,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
 
 
 def test_sure_losses(device):
-    model_spec = {
-        "name": "median_filter",
-        "args": {},
-    }
-    f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
+    f = dinv.models.ArtifactRemoval(dinv.models.MedianFilter())
     # test divergence
 
     x = torch.ones((1, 3, 16, 16), device=device) * 0.5
