@@ -1,4 +1,3 @@
-from .denoiser import register, make, Denoiser
 from .drunet import DRUNet
 from .ae import AutoEncoder
 from .unet import UNet
@@ -9,3 +8,4 @@ from .wavdict import WaveletPrior, WaveletDict
 from .GSPnP import GSDRUNet, ProxDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
+from .bm3d import BM3D

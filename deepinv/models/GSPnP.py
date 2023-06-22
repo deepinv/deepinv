@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-from .denoiser import register
-
 
 class StudentGrad(nn.Module):
     def __init__(self, denoiser):
@@ -68,7 +66,6 @@ class GSPnP(nn.Module):
         return x_hat
 
 
-@register("gsdrunet")
 def GSDRUNet(
     alpha=1.0,
     in_channels=3,
@@ -130,7 +127,6 @@ def GSDRUNet(
     return GSmodel
 
 
-@register("proxdrunet")
 def ProxDRUNet(
     alpha=1.0,
     in_channels=4,

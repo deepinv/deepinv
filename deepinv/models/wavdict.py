@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from .denoiser import register
 
 
-@register("waveletprior")
 class WaveletPrior(nn.Module):
     r"""
     Wavelet denoising with the :math:`\ell_1` norm.
@@ -61,7 +59,6 @@ class WaveletPrior(nn.Module):
         return y
 
 
-@register("waveletdictprior")
 class WaveletDict(nn.Module):
     r"""
     Overcomplete Wavelet denoising with the :math:`\ell_1` norm.

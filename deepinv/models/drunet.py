@@ -4,13 +4,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .denoiser import register, online_weights_path
+from .denoiser import online_weights_path
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-@register("drunet")
 class DRUNet(nn.Module):
     r"""
     DRUNet denoiser network.

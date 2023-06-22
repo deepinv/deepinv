@@ -55,17 +55,8 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.sampling
    auto_examples/index
    deepinv.notation
+   deepinv.contributing
 
-
-Contributing
-============================
-
-DeepInverse is a community-driven project and welcomes contributions of all forms.
-We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
-and we need your help to get there!
-The preferred way to contribute to ``deepinv`` is to fork the `main
-repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
-then submit a "Pull Request" (PR).
 
 
 Lead Developers
