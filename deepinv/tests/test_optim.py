@@ -3,7 +3,6 @@ import pytest
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.prior import Prior, PnP
 from deepinv.optim.optimizers import *
@@ -307,11 +306,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     ths = 2.0
 
-    model_spec = {
-        "name": "tgv",
-        "args": {"n_it_max": 5000, "verbose": True, "crit": 1e-4},
-    }
-    model = Denoiser(model_spec)
+    model = dinv.models.TGV(n_it_max=5000, verbose=True, crit=1e-4)
 
     x = model(y, ths)  # 3. Apply the model we want to test
 
@@ -328,22 +323,14 @@ def test_denoiser(imsize, dummy_dataset, device):
     #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
     #     )
 
-    assert model.denoiser.has_converged
+    assert model.has_converged
 
 
-optim_algos = [
-    "PGD",
-    "HQS",
-    "DRS",
-    "ADMM",
-    "CP",
-]  # GD not implemented for this one (needs differentiable prior)
+optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
 
 
 @pytest.mark.parametrize("pnp_algo", optim_algos)
-def test_pnp_algo(
-    pnp_algo, imsize, dummy_dataset, device
-):  # Here we test that basic PnP algorithm with proximal prior does converge.
+def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     try:
         import pytorch_wavelets
     except ImportError:
@@ -370,13 +357,8 @@ def test_pnp_algo(
 
     data_fidelity = L2()
 
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": device},
-    }
-
     prior = PnP(
-        denoiser=Denoiser(model_spec)
+        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
     )  # here the prior model is common for all iterations
 
     sigma = 1.0 if pnp_algo == "CP" else None
@@ -591,7 +573,6 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     # Run the optimisation algorithm
     x = optimalgo(y, physics)
 
-    print("g_first: ", g_first)
     assert optimalgo.has_converged
 
     # Compute the subdifferential of the regularisation at the limit point of the algorithm.

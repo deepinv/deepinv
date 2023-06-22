@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior, PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
@@ -89,16 +88,12 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
-    level = 3
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": level, "device": device},
-    }
     # If the prior is initialized with a list of length max_iter,
     # then a distinct weight is trained for each PGD iteration.
     # For fixed trained model prior across iterations, initialize with a single model.
     max_iter = 30 if torch.cuda.is_available() else 3  # Number of unrolled iterations
-    prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
+    level = 3
+    prior = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
 
     # Unrolled optimization algorithm parameters
     lamb = [

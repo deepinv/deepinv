@@ -14,7 +14,6 @@ import deepinv as dinv
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
-from deepinv.models.denoiser import Denoiser
 from deepinv.models.denoiser import online_weights_path
 
 
@@ -51,16 +50,12 @@ physics = dinv.physics.Inpainting(
 data_fidelity = IndicatorL2(radius=0.0)
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
-level = 3
-model_spec = {
-    "name": "waveletprior",
-    "args": {"wv": "db8", "level": level, "device": device},
-}
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each CP iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
+level = 3
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
+prior = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -119,16 +114,10 @@ torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 # This network was trained in the demo :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py`.
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
-level = 3
-model_spec = {
-    "name": "waveletprior",
-    "args": {"wv": "db8", "level": level, "device": device},
-}
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
-max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior_new = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
+prior_new = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -167,9 +156,9 @@ print(
 
 
 # load a state_dict checkpoint
-url = online_weights_path() + "demo_unfolded_CP.pth"
+url = online_weights_path() + "demo_unfolded_CP_2.pth"
 ckpt_state_dict = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="demo_unfolded_CP.pth"
+    url, map_location=lambda storage, loc: storage, file_name="demo_unfolded_CP_2.pth"
 )
 # load a state_dict checkpoint
 model_new.load_state_dict(ckpt_state_dict)

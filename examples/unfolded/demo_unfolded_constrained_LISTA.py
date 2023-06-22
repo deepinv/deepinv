@@ -29,8 +29,8 @@ from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
-from deepinv.models.denoiser import Denoiser
 from deepinv.training_utils import train, test
+from deepinv.models.denoiser import online_weights_path
 
 # %%
 # Setup paths for data loading and results.
@@ -145,16 +145,12 @@ test_dataloader = DataLoader(
 data_fidelity = IndicatorL2(radius=0.0)
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
-level = 3
-model_spec = {
-    "name": "waveletprior",
-    "args": {"wv": "db8", "level": level, "device": device},
-}
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each CP iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
+level = 3
+prior = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -288,7 +284,7 @@ model_spec = {
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior_new = [PnP(denoiser=Denoiser(model_spec)) for i in range(max_iter)]
+prior_new = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -322,6 +318,15 @@ model_new = Unfolded(
 )
 model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
+
+
+# load a state_dict checkpoint
+url = online_weights_path() + "demo_unfolded_CP.pth"
+ckpt_state_dict = torch.hub.load_state_dict_from_url(
+    url, map_location=lambda storage, loc: storage, file_name="demo_unfolded_CP.pth"
+)
+# load a state_dict checkpoint
+model_new.load_state_dict(ckpt_state_dict)
 
 # Test the model and check that the results are the same as before saving
 test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(

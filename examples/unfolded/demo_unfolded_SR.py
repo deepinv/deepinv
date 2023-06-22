@@ -10,7 +10,6 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import Unfolded
@@ -113,35 +112,29 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 data_fidelity = L2()
 
 # Set up the trainable denoising prior
-model_spec = {
-    "name": "dncnn",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "depth": 7,
-        "pretrained": None,
-        "train": True,
-        "device": device,
-    },
-}
 
 # If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(
-    denoiser=Denoiser(model_spec)
-)  # here the prior model is common for all iterations
+
+# here the prior model is common for all iterations
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
 # Unrolled optimization algorithm parameters
+
 max_iter = 5  # number of unfolded layers
+
 lamb = [
     1.0
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
+
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [
-    0.01
-] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+
+# initialization of the denoiser parameters.
+# A distinct sigma_denoiser is trained for each iteration.
+sigma_denoiser = [0.01] * max_iter
+
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
