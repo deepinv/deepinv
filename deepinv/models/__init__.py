@@ -8,9 +8,8 @@ from .wavdict import WaveletPrior, WaveletDict
 from .GSPnP import GSDRUNet, ProxDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
+
 try:
     from .bm3d import BM3D
 except:
-    print(
-        "Could not import bm3d. "
-    )
+    print("Could not import bm3d. ")

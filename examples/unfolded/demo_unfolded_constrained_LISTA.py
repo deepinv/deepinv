@@ -150,7 +150,10 @@ data_fidelity = IndicatorL2(radius=0.0)
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
 level = 3
-prior = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
+prior = [
+    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    for i in range(max_iter)
+]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -284,7 +287,10 @@ model_spec = {
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior_new = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
+prior_new = [
+    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    for i in range(max_iter)
+]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -318,15 +324,6 @@ model_new = Unfolded(
 )
 model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
-
-
-# load a state_dict checkpoint
-url = online_weights_path() + "demo_unfolded_CP.pth"
-ckpt_state_dict = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="demo_unfolded_CP.pth"
-)
-# load a state_dict checkpoint
-model_new.load_state_dict(ckpt_state_dict)
 
 # Test the model and check that the results are the same as before saving
 test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(

@@ -174,11 +174,11 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-url = online_weights_path() + "new_demo_ei_ckp_150_v2.pth"
+url = online_weights_path() + "new_demo_ei_ckp_150_v3.pth"
 ckpt = torch.hub.load_state_dict_from_url(
     url,
     map_location=lambda storage, loc: storage,
-    file_name="new_demo_ei_ckp_150_v2.pth",
+    file_name="new_demo_ei_ckp_150_v3.pth",
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])

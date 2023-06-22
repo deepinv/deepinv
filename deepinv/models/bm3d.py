@@ -1,10 +1,9 @@
 import warnings
+
 try:  # install of BM3D may fail on some architectures (arm64)
     import bm3d
 except:
-    raise warnings.warn(
-        "Could not import bm3d. "
-    )
+    raise warnings.warn("Could not import bm3d. ")
 import numpy as np
 import torch
 import torch.nn as nn

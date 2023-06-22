@@ -93,7 +93,10 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     # For fixed trained model prior across iterations, initialize with a single model.
     max_iter = 30 if torch.cuda.is_available() else 3  # Number of unrolled iterations
     level = 3
-    prior = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
+    prior = [
+        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        for i in range(max_iter)
+    ]
 
     # Unrolled optimization algorithm parameters
     lamb = [

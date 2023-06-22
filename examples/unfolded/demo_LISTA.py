@@ -129,9 +129,10 @@ data_fidelity = L2()
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
-max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
+max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
+level = 2
 prior = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db4", level=2).to(device))
+    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level).to(device))
     for i in range(max_iter)
 ]
 
@@ -143,7 +144,8 @@ lamb = [1.0] * max_iter  # initialization of the regularization parameter.
 stepsize = [1.0] * max_iter  # initialization of the stepsizes.
 # A distinct stepsize is trained for each iteration.
 
-sigma_denoiser = [0.1] * max_iter  # initialization of the denoiser parameters.
+sigma_denoiser_init = 0.01
+sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
 # A distinct sigma_denoiser is trained for each iteration.
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary

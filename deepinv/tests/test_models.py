@@ -30,11 +30,10 @@ model_list = [
 
 try:  # install of BM3D may fail on some architectures (arm64)
     from dinv.models.bm3d import bm3d
+
     model_list.append("bm3d")
 except ImportError:
-    print(
-        "Could not find bm3d; not testing bm3d."
-    )
+    print("Could not find bm3d; not testing bm3d.")
 
 
 def choose_denoiser(name, imsize):

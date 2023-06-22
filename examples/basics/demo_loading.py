@@ -55,7 +55,10 @@ data_fidelity = IndicatorL2(radius=0.0)
 # For fixed trained model prior across iterations, initialize with a single model.
 level = 3
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
-prior = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
+prior = [
+    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    for i in range(max_iter)
+]
 
 # Unrolled optimization algorithm parameters
 lamb = [
@@ -117,7 +120,10 @@ torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
-prior_new = [PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device)) for i in range(max_iter)]
+prior_new = [
+    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    for i in range(max_iter)
+]
 
 # Unrolled optimization algorithm parameters
 lamb = [
