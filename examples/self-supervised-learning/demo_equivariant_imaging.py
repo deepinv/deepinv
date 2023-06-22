@@ -108,8 +108,15 @@ n_channels = 2  # real + imaginary parts
 
 # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(denoiser=dinv.models.DnCNN(in_channels=n_channels, out_channels=n_channels,
-                                       pretrained=None, train=True, depth=7).to(device))
+prior = PnP(
+    denoiser=dinv.models.DnCNN(
+        in_channels=n_channels,
+        out_channels=n_channels,
+        pretrained=None,
+        train=True,
+        depth=7,
+    ).to(device)
+)
 
 # Unrolled optimization algorithm parameters
 max_iter = 3  # number of unfolded layers
