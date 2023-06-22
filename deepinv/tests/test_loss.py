@@ -200,8 +200,8 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
 
 def test_sure_losses(device):
     model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": device},
+        "name": "median_filter",
+        "args": {},
     }
     f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
     # test divergence
