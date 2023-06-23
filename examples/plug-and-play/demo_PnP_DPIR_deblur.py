@@ -12,8 +12,9 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import Denoiser
+from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import transforms
@@ -42,6 +43,8 @@ CKPT_DIR = BASE_DIR / "ckpts"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
+
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
@@ -73,7 +76,7 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
-    device=dinv.device,
+    device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
@@ -89,13 +92,14 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
     train_dataset=dataset,
     test_dataset=None,
     physics=p,
-    device=dinv.device,
+    device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
     num_workers=num_workers,
 )
 
-batch_size = 1  # batch size for testing
+batch_size = 3  # batch size for testing. As the number of iterations is fixed, we can use batch_size > 1
+# and restore multiple images in parallel.
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # %%
@@ -118,23 +122,11 @@ early_stop = False  # Do not stop algorithm with convergence criteria
 data_fidelity = L2()
 
 # Specify the denoising prior
-model_spec = {  # specifies the parameters of the DRUNet model
-    "name": "drunet",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": "download",
-        "train": False,
-        "device": dinv.device,
-    },
-}
-# The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
-# For Plug-an-Play image restoration, the denoiser replaces "prox_g".
-prior = {"prox_g": Denoiser(model_spec)}
+prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="HQS",
+    iteration="HQS",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
@@ -161,7 +153,7 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
-    device=dinv.device,
+    device=device,
     plot_images=plot_images,
     save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,

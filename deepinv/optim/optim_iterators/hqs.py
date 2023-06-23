@@ -12,11 +12,16 @@ class HQSIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= \operatorname{prox}_{f}(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{g}(u_k)
+        u_{k} &= \operatorname{prox}_{\gamma \lambda f}(x_k) \\
+        x_{k+1} &= \operatorname{prox}_{\sigma g}(u_k).
         \end{aligned}
         \end{equation*}
 
+
+    where :math:`\gamma` and :math:`\sigma` are step-sizes. Note that this algorithm does not converge to
+    a minimizer of :math:`\lambda f(x) + g(x)`, but instead to a minimizer of
+    :math:`\lambda \gamma\, ^1f+\sigma g`, where :math:`^1f` denotes
+    the Moreau envelope of :math:`f`
 
     """
 
@@ -45,7 +50,7 @@ class fStepHQS(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         return self.data_fidelity.prox(
-            x, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
+            x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
@@ -62,7 +67,7 @@ class gStepHQS(gStep):
         Single iteration step on the prior term :math:`g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param dict cur_prior: Dictionary containing the current prior.
+        :param dict cur_prior: Class containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
-        return cur_prior["prox_g"](x, cur_params["g_param"])
+        return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])

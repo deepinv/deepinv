@@ -12,7 +12,7 @@ class JacobianSpectralNorm(nn.Module):
     .. math::
         \|\frac{df}{du}(x)\|_2.
 
-    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in Pesquet et al.
+    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
 
     :param int max_iter: maximum numer of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
@@ -45,7 +45,7 @@ class JacobianSpectralNorm(nn.Module):
         self.eval = eval_mode
         self.verbose = verbose
 
-    def forward(self, y, x):
+    def forward(self, y, x, **kwargs):
         """
         Computes the spectral norm of the Jacobian of :math:`f` in :math:`x`.
 
@@ -109,8 +109,9 @@ class FNEJacobianSpectralNorm(nn.Module):
     identity) in :math:`x`, i.e.
 
     .. math::
-        \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2.
+        \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
+    as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
     This spectral norm is computed with the :meth:`deepinv.loss.JacobianSpectralNorm` module.
 
     :param int max_iter: maximum numer of iteration of the power method.
@@ -132,8 +133,8 @@ class FNEJacobianSpectralNorm(nn.Module):
         r"""
         Computes the Firm-Nonexpansiveness (FNE) Jacobian spectral norm of a model.
 
-        :param torch.tensor y_in: input of the model (by default).
-        :param torch.tensor x_in: an additional point of the model (by default).
+        :param torch.Tensor y_in: input of the model (by default).
+        :param torch.Tensor x_in: an additional point of the model (by default).
         :param torch.nn.Module model: neural network, or function, of which we want to compute the FNE Jacobian spectral norm.
         :param `*args_model`: additional arguments of the model.
         :param bool interpolation: whether to input to model an interpolation between y_in and x_in instead of y_in (default is `False`).

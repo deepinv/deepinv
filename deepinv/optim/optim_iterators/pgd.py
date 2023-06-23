@@ -14,10 +14,12 @@ class PGDIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k} &= x_k - \lambda \gamma \nabla f(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_k)
+        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_k),
         \end{aligned}
         \end{equation*}
 
+
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\lambda \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
 
     """
 
@@ -49,8 +51,8 @@ class fStepPGD(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
-            if cur_params["lambda"] >= 2:
-                raise ValueError("lambda must be smaller than 2")
+            # if cur_params["lambda"] >= 2:
+            #     raise ValueError("lambda must be smaller than 2")
             grad = (
                 cur_params["lambda"]
                 * cur_params["stepsize"]
@@ -59,7 +61,7 @@ class fStepPGD(fStep):
             return gradient_descent_step(x, grad, self.bregman_potential)
         else:
             return self.data_fidelity.prox(
-                x, y, physics, 1 / (cur_params["lambda"] * cur_params["stepsize"])
+                x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
             )
 
 
@@ -80,9 +82,7 @@ class gStepPGD(gStep):
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
         """
         if not self.g_first:
-            return cur_prior["prox_g"](x, cur_params["g_param"])
+            return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])
         else:
-            grad = cur_params["stepsize"] * cur_prior["grad_g"](
-                x, cur_params["g_param"]
-            )
+            grad = cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
             return gradient_descent_step(x, grad, self.bregman_potential)

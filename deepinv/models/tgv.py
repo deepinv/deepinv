@@ -1,11 +1,8 @@
 import warnings
-
 import torch
 import torch.nn as nn
-from .denoiser import register
 
 
-@register("tgv")
 class TGV(nn.Module):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.
@@ -27,21 +24,18 @@ class TGV(nn.Module):
     Applications, vol. 158, no. 2, pp. 460-479, 2013.
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
-    Daniil Smolyakov (https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb)
+    Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
 
-    :param float reg: TODO
-    :param bool verbose:
-    :param int n_it_max:
-    :param float crit:
-    :param torch.tensor, None x2:
-    :param torch.tensor, None u2:
-    :param torch.tensor, None r2:
-
-    TODO: register appropriate buffers, backprop not possible yet!
+    :param bool verbose: Whether to print computation details or not. Default: False.
+    :param int n_it_max: Maximum number of iterations. Default: 1000.
+    :param float crit: Convergence criterion. Default: 1e-5.
+    :param torch.tensor, None x2: Primary variable. Default: None.
+    :param torch.tensor, None u2: Dual variable. Default: None.
+    :param torch.tensor, None r2: Auxiliary variable. Default: None.
     """
 
     def __init__(
-        self, verbose=True, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
+        self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
     ):
         super(TGV, self).__init__()
 
@@ -50,9 +44,7 @@ class TGV(nn.Module):
         self.crit = crit
         self.restart = True
 
-        # lambda1 = reg * 0.1
-        # lambda2 = reg * 0.15
-        self.tau = 0.01  # >0
+        self.tau = 0.01  # > 0
 
         self.rho = 1.99  # in 1,2
         self.sigma = 1 / self.tau / 72
@@ -140,7 +132,7 @@ class TGV(nn.Module):
                         torch.sqrt(torch.sum(epsilon(nabla(x) - r) ** 2, axis=-1))
                     )
                 )
-                dualcost = cy - ((y - nablaT(epsilonT(u))) ** 2).sum() / 2.0
+                # dualcost = cy - ((y - nablaT(epsilonT(u))) ** 2).sum() / 2.0
                 tmp = torch.max(
                     torch.sqrt(torch.sum(epsilonT(u) ** 2, axis=-1))
                 )  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.

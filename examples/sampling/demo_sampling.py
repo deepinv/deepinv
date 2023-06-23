@@ -14,6 +14,9 @@ ULA obtains samples by running the following iteration:
 where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\eta` is the step size and
 :math:`\alpha` is a parameter controlling the regularization.
 
+The PnP-ULA method is described in the paper `"Bayesian imaging using Plug & Play priors: when Langevin meets Tweedie
+" <https://arxiv.org/abs/2103.04715>`_.
+
 """
 
 import deepinv as dinv
@@ -23,7 +26,6 @@ import torchvision
 import requests
 from imageio.v2 import imread
 from io import BytesIO
-from pathlib import Path
 
 # %%
 # Load image from the internet
@@ -31,15 +33,16 @@ from pathlib import Path
 #
 # This example uses an image of Lionel Messi from Wikipedia.
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
 url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
-pretrained = "download_lipschitz"
 
-x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
+x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(
     x, scale_factor=0.5
 )  # reduce the image size for faster eval
@@ -52,9 +55,11 @@ x = torchvision.transforms.functional.center_crop(x, 32)
 # This example uses inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=dinv.device)
+physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
+# Set the global random seed from pytorch to ensure reproducibility of the example.
+torch.manual_seed(0)
 
 # %%
 # Define the likelihood
@@ -73,29 +78,26 @@ likelihood = dinv.optim.L2(sigma=sigma)
 # -------------------------------------------
 #
 # The score a distribution can be approximated using Tweedie's formula via the
-# :class:`deepinv.models.ScoreDenoiser` class.
+# :class:`deepinv.optim.ScorePrior` class.
 #
 # .. math::
 #
-#           - \nabla \log p_{\sigma}(x) \approx \frac{1}{\sigma^2} \left(x - D(x)\right)
+#            \nabla \log p_{\sigma}(x) \approx \frac{1}{\sigma^2} \left(D(x,\sigma)-x\right)
 #
 # This example uses a pretrained DnCNN model.
 # From a Bayesian point of view, the score plays the role of the gradient of the
-# negative log prior.
-# The hyperparameter ``sigma_denoiser`` controls the strength of the prior.
-
-model_spec = {
-    "name": "dncnn",
-    "args": {
-        "device": dinv.device,
-        "in_channels": 3,
-        "out_channels": 3,
-        "pretrained": pretrained,
-    },
-}
+# negative log prior
+# The hyperparameter ``sigma_denoiser`` (:math:`sigma`) controls the strength of the prior.
+#
+# In this example, we use a pretrained DnCNN model using the :class:`deepinv.loss.FNEJacobianSpectralNorm` loss,
+# which makes sure that the denoiser is firmly non-expansive (see
+# `"Building firmly nonexpansive convolutional neural networks" <https://hal.science/hal-03139360>`_), and helps to
+# stabilize the sampling algorithm.
 
 sigma_denoiser = 2 / 255
-prior = dinv.models.ScoreDenoiser(model_spec=model_spec)
+prior = dinv.optim.ScorePrior(
+    denoiser=dinv.models.DnCNN(pretrained="download_lipschitz")
+).to(device)
 
 # %%
 # Create the MCMC sampler

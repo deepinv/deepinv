@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
+from deepinv.utils import TensorList
 
 
 def filter_fft(filter, img_size, real_fft=True):
@@ -74,7 +75,6 @@ def bicubic_filter(factor=2):
     return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
 
 
-# TODO: fix bilinear filter
 class Downsampling(LinearPhysics):
     r"""
     Downsampling operator for super-resolution problems.
@@ -87,12 +87,10 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param img_size: (tuple of ints), size of the input image
+    :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
-    :param torch.tensor filter: custom filter.
-    :param str mode: downsampling mode. Can be 'gauss', 'bilinear' or 'bicubic'
-    :param int, tuple of ints sigma_gauss: standard deviation of the gaussian kernel. If int, the same value is used for
-        both dimensions. If None, the standard deviation is set to the downsampling factor.
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -103,9 +101,7 @@ class Downsampling(LinearPhysics):
         self,
         img_size,
         factor=2,
-        filter=None,
-        mode=None,
-        sigma_gauss=None,
+        filter="gaussian",
         device="cpu",
         padding="circular",
         **kwargs
@@ -115,39 +111,20 @@ class Downsampling(LinearPhysics):
         assert isinstance(factor, int), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
-        self.mode = mode
-        if filter is not None:
+        if isinstance(filter, torch.Tensor):
             self.filter = filter.to(device)
-        elif mode:
-            if mode == "gauss":
-                if sigma_gauss is None:
-                    sigma_gauss_x = factor
-                    sigma_gauss_y = factor
-                elif isinstance(sigma_gauss, int):
-                    sigma_gauss_x = sigma_gauss
-                    sigma_gauss_y = sigma_gauss
-                elif isinstance(sigma_gauss, tuple):
-                    sigma_gauss_x = sigma_gauss[0]
-                    sigma_gauss_y = sigma_gauss[1]
-                else:
-                    raise Exception("sigma_gauss should be an int or a tuple of ints")
-                self.filter = (
-                    gaussian_blur(sigma=(sigma_gauss_x, sigma_gauss_y))
-                    .requires_grad_(False)
-                    .to(device)
-                )
-            elif mode == "bilinear":
-                self.filter = (
-                    bilinear_filter(self.factor).requires_grad_(False).to(device)
-                )
-            elif mode == "bicubic":
-                self.filter = (
-                    bicubic_filter(self.factor).requires_grad_(False).to(device)
-                )
-            else:
-                raise Exception("The downsampling mode chosen doesn't exist")
+        elif filter is None:
+            self.filter = filter
+        elif filter == "gaussian":
+            self.filter = (
+                gaussian_blur(sigma=(factor, factor)).requires_grad_(False).to(device)
+            )
+        elif filter == "bilinear":
+            self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
+        elif filter == "bicubic":
+            self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
         else:
-            self.filter = None
+            raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
             self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
@@ -179,7 +156,7 @@ class Downsampling(LinearPhysics):
         """
 
         if use_fft and self.padding == "circular":  # Formula from (Zhao, 2016)
-            z_hat = self.A_adjoint(y) + gamma * z
+            z_hat = self.A_adjoint(y) + 1 / gamma * z
             Fz_hat = fft.fft2(z_hat)
 
             def splits(a, sf):
@@ -195,10 +172,10 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + gamma
+            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
             rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
-            return (z_hat - r) / gamma
+            return (z_hat - r) * gamma
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma)
 
@@ -391,7 +368,7 @@ class BlindBlur(Physics):
     def A(self, s):
         r"""
 
-        :param tuple, list x: Tuple containing two torch.tensor, x[0] with the image and x[1] with the filter.
+        :param tuple, list, deepinv.utils.ListTensor x: List containing two torch.tensor, x[0] with the image and x[1] with the filter.
         :return: (torch.tensor) blurred measurement.
         """
         x = s[0]
@@ -416,7 +393,7 @@ class BlindBlur(Physics):
         w = torch.zeros((y.shape[0], 1, self.kernel_size[0], self.kernel_size[1]))
         w[:, :, mid_h, mid_w] = 1.0
 
-        return x, w
+        return TensorList([x, w])
 
 
 class Blur(LinearPhysics):
@@ -475,7 +452,7 @@ class BlurFFT(DecomposablePhysics):
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size  # TODO: bug when height or width is odd
+        self.img_size = img_size
 
         if img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, img_size[0], 1, 1)
@@ -508,51 +485,51 @@ class BlurFFT(DecomposablePhysics):
         return fft.irfft2(torch.view_as_complex(x), norm="ortho")
 
 
-# test code
-if __name__ == "__main__":
-    device = "cuda:0"
-
-    import matplotlib.pyplot as plt
-    import deepinv as dinv
-
-    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(dinv.device) / 255
-    x = torchvision.transforms.Resize((160, 181))(x)
-
-    sigma_noise = 0.0
-    kernel = torch.zeros((1, 1, 15, 15), device=dinv.device)
-    kernel[:, :, 7, :] = 1 / 15
-    physics = BlurFFT(img_size=x.shape[1:], filter=kernel, device=dinv.device)
-    physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=dinv.device)
-
-    y = physics(x)
-    y2 = physics2(x)
-
-    xhat = physics.V(physics.U_adjoint(y) / physics.mask)
-    xhat2 = physics2.A_dagger(y2)
-
-    print(xhat.shape)
-    # print(physics.adjointness_test(x))
-    print(torch.sum((y - y2).pow(2)))
-    print(torch.sum((xhat - xhat2).pow(2)))
-
-    print(torch.sum((x - xhat).pow(2)))
-    print(torch.sum((x - xhat2).pow(2)))
-
-    print(physics.compute_norm(x))
-    print(physics.adjointness_test(x))
-    xhat = physics.prox_l2(y, y, gamma=0.0)
-
-    xhat = physics.A_dagger(y)
-
-    # plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    # plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
-    #
-    # plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-    # plt.show()
+# # test code
+# if __name__ == "__main__":
+#     device = "cuda:0"
+#
+#     import matplotlib.pyplot as plt
+#
+#     device = "cuda:0"
+#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+#     x = x.unsqueeze(0).float().to(device) / 255
+#     x = torchvision.transforms.Resize((160, 180))(x)
+#
+#     sigma_noise = 0.0
+#     kernel = torch.zeros((1, 1, 15, 15), device=device)
+#     kernel[:, :, 7, :] = 1 / 15
+#     physics = Downsampling(img_size=x.shape[1:], filter="bilinear", device=device)
+#     physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=device)
+#
+#     y = physics(x)
+#     y2 = physics2(x)
+#
+#     xhat = physics.V(physics.U_adjoint(y) / physics.mask)
+#     xhat2 = physics2.A_dagger(y2)
+#
+#     print(xhat.shape)
+#     # print(physics.adjointness_test(x))
+#     print(torch.sum((y - y2).pow(2)))
+#     print(torch.sum((xhat - xhat2).pow(2)))
+#
+#     print(torch.sum((x - xhat).pow(2)))
+#     print(torch.sum((x - xhat2).pow(2)))
+#
+#     print(physics.compute_norm(x))
+#     print(physics.adjointness_test(x))
+#     xhat = physics.prox_l2(y, y, gamma=1.0)
+#
+#     xhat = physics.A_dagger(y)
+#
+#     plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#     plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#     plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#     plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()
+#
+#     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
+#     plt.show()

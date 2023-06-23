@@ -18,12 +18,12 @@ class TVLoss(nn.Module):
         self.tv_loss_weight = weight
         self.name = "tv"
 
-    def forward(self, x_net):
+    def forward(self, x_net, **kwargs):
         r"""
         Computes the TV loss.
 
-        :param torch.tensor x_net: reconstructed image.
-        :return: (torch.tensor) loss.
+        :param torch.Tensor x_net: reconstructed image.
+        :return: (torch.Tensor) loss.
         """
         batch_size = x_net.size()[0]
         h_x = x_net.size()[2]

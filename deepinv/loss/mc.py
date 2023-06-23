@@ -27,13 +27,13 @@ class MCLoss(nn.Module):
         self.name = "mc"
         self.metric = metric
 
-    def forward(self, y, x_net, physics):
+    def forward(self, y, x_net, physics, **kwargs):
         r"""
         Computes the measurement splitting loss
 
-        :param torch.tensor y: measurements.
-        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor y: measurements.
+        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: forward operator associated with the measurements.
-        :return: (torch.tensor) loss.
+        :return: (torch.Tensor) loss.
         """
         return self.metric(physics.A(x_net), y)

@@ -4,28 +4,36 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .denoiser import register, online_weights_path
+from .denoiser import online_weights_path
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-@register("drunet")
 class DRUNet(nn.Module):
     r"""
     DRUNet denoiser network.
 
-    TODO: add link to paper, finish description and params
+    The network architecture is based on the paper
+    `Learning deep CNN denoiser prior for image restoration <https://arxiv.org/abs/1704.03264>`_,
+    and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
+
+    The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param list nc: number of convolutional layers.
-    :param int nb:
+    :param int nb: number of convolutional blocks per layer.
     :param int nf: number of channels per convolutional layer.
-    :param str act_mode:
-    :param str downsample_mode:
-    :param str upsample_mode:
-    :param bool download:
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
+    :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
+        "strideconv" for convolution with stride 2.
+    :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
+        shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
+    :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
     :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 
@@ -160,6 +168,12 @@ class DRUNet(nn.Module):
         return x
 
     def forward(self, x, sigma):
+        r"""
+        Run the denoiser on image with noise level :math:`\sigma`.
+
+        :param torch.Tensor x: noisy image
+        :param float sigma: noise level (not used)
+        """
         noise_level_map = (
             torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
             .fill_(sigma)
@@ -173,7 +187,7 @@ class DRUNet(nn.Module):
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif x.size(2) < 32 and x.size(3) < 32:
+        elif x.size(2) < 32 or x.size(3) < 32:
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)
@@ -186,7 +200,6 @@ Functional blocks below
 from collections import OrderedDict
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 """
@@ -593,14 +606,14 @@ Helpers for test time
 """
 
 
-def test_onesplit(model, L, refield=32, min_size=256, sf=1, modulo=1):
+def test_onesplit(model, L, refield=32, sf=1):
     """
-    model:
-    L: input Low-quality image
-    refield: effective receptive filed of the network, 32 is enough
-    min_size: min_sizeXmin_size image, e.g., 256X256 image
-    sf: scale factor for super-resolution, otherwise 1
-    modulo: 1 if split
+    Changes the size of the image to fit the model's expected image size.
+
+    :param model: model.
+    :param L: input Low-quality image.
+    :param refield: effective receptive field of the network, 32 is enough.
+    :param sf: scale factor for super-resolution, otherwise 1.
     """
     h, w = L.size()[-2:]
     top = slice(0, (h // 2 // refield + 1) * refield)

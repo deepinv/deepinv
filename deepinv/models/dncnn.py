@@ -1,9 +1,8 @@
 import torch.nn as nn
 import torch
-from .denoiser import register, online_weights_path
+from .denoiser import online_weights_path
 
 
-@register("dncnn")
 class DnCNN(nn.Module):
     r"""
     DnCNN convolutional denoiser.
@@ -17,7 +16,6 @@ class DnCNN(nn.Module):
     :param int in_channels: input image channels
     :param int out_channels: output image channels
     :param int depth: number of convolutional layers
-    :param str act_mode:
     :param bool bias: use bias in the convolutional layers
     :param int nf: number of channels per convolutional layer
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
@@ -32,10 +30,9 @@ class DnCNN(nn.Module):
 
     def __init__(
         self,
-        in_channels=1,
-        out_channels=1,
+        in_channels=3,
+        out_channels=3,
         depth=20,
-        act_mode="R",
         bias=True,
         nf=64,
         pretrained="download",
@@ -59,8 +56,7 @@ class DnCNN(nn.Module):
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
 
-        if act_mode == "R":  # Kai Zhang's nomenclature
-            self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
+        self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
         # if pretrain and ckpt_path is not None:
         #    self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
@@ -100,12 +96,18 @@ class DnCNN(nn.Module):
         if device is not None:
             self.to(device)
 
-    def forward(self, x_in, denoise_level=None):
-        x = self.in_conv(x_in)
-        x = self.nl_list[0](x)
+    def forward(self, x, sigma=None):
+        r"""
+        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+
+        :param torch.Tensor x: noisy image
+        :param float sigma: noise level (not used)
+        """
+        x1 = self.in_conv(x)
+        x1 = self.nl_list[0](x1)
 
         for i in range(self.depth - 2):
-            x_l = self.conv_list[i](x)
-            x = self.nl_list[i + 1](x_l)
+            x_l = self.conv_list[i](x1)
+            x1 = self.nl_list[i + 1](x_l)
 
-        return self.out_conv(x) + x_in
+        return self.out_conv(x1) + x

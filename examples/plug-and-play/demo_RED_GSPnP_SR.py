@@ -11,8 +11,8 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import ScoreDenoiser
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training_utils import test
 from torchvision import transforms
@@ -34,7 +34,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure
 # the reproducibility of the example.
 torch.manual_seed(0)
-
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load base image datasets and degradation operators.
@@ -71,7 +71,7 @@ p = dinv.physics.Downsampling(
     img_size=(n_channels, img_size, img_size),
     factor=factor,
     filter=kernel_torch,
-    device=dinv.device,
+    device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
@@ -80,7 +80,7 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
     train_dataset=dataset,
     test_dataset=None,
     physics=p,
-    device=dinv.device,
+    device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
     num_workers=num_workers,
@@ -88,11 +88,9 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # %%
-# Setup the PnP algorithm
-# --------------------------------------------
+# Setup the PnP algorithm. This involves in particular the definition of a custom prior class.
+# ------------------------------------------------------------------------------------------------------
 # We use the proximal gradient algorithm to solve the super-resolution problem with GSPnP.
-# The prior g needs to be a dictionary with specified "g" and/or proximal operator "prox_g" and/or gradient "grad_g".
-# For RED image restoration, a pretrained modified DRUNet denoiser replaces "grad_g".
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
@@ -113,24 +111,37 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 # Select the data fidelity term
 data_fidelity = L2()
 
+
+# The GSPnP prior corresponds to a RED prior with an explicit `g`.
+# We thus write a class that inherits from RED for this custom prior.
+class GSPnP(RED):
+    r"""
+    Gradient-Step Denoiser prior.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+
+    def g(self, x, *args, **kwargs):
+        r"""
+        Computes the prior :math:`g(x)`.
+
+        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.tensor) prior :math:`g(x)`.
+        """
+        return self.denoiser.potential(x, *args, **kwargs)
+
+
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
 ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
-denoiser_spec = {
-    "name": denoiser_name,
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": str(ckpt_path) if ckpt_path.exists() else "download",
-        "train": False,
-        "device": dinv.device,
-    },
-}
 
-denoiser = ScoreDenoiser(denoiser_spec, sigma_normalize=False)
-prior = {"grad_g": denoiser, "g": denoiser.denoiser.potential}
-
+pretrained = str(ckpt_path) if ckpt_path.exists() else "download"
+prior = GSPnP(
+    denoiser=dinv.models.GSDRUNet(pretrained=pretrained, train=False).to(device)
+)
 
 # By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
 # For custom initialization, we need to write a function of the measurements.
@@ -147,7 +158,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="PGD",
+    iteration="PGD",
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,
@@ -157,7 +168,7 @@ model = optim_builder(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    return_dual=True,
+    return_aux=True,
     verbose=verbose,
     return_metrics=plot_metrics,
     custom_init=custom_init,
@@ -180,7 +191,7 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
-    device=dinv.device,
+    device=device,
     plot_images=plot_images,
     save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,

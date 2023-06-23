@@ -4,14 +4,12 @@ import torch.nn
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from torch.utils.data import DataLoader
 import numpy as np
 
 
 @pytest.fixture
 def device():
-    return dinv.device
+    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 @pytest.fixture

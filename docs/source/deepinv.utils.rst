@@ -1,3 +1,5 @@
+.. _utils:
+
 Utils
 =====
 
@@ -15,7 +17,6 @@ Functions to train and test the model, and save the model and the results.
         deepinv.test
 
 
-
 Plotting
 --------
 We provide some basic plotting functions that are adapted to inverse problems.
@@ -28,9 +29,36 @@ We provide some basic plotting functions that are adapted to inverse problems.
         deepinv.utils.plot
 
 
-
-Evaluation
+TensorList
 ----------
+The TensorList class is a wrapper around a list of tensors.
+It can be used to represent signals or measurements that are naturally better
+represented as a list of tensors of different sizes, rather than a single tensor.
+TensorLists can be added, multiplied by a scalar, concatenated, etc., in a similar fashion to
+torch.tensor.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.utils.TensorList
+
+We also provide functions to quickly create TensorLists of zeros, ones, or random values.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+        deepinv.utils.zeros_like
+        deepinv.utils.ones_like
+        deepinv.utils.randn_like
+        deepinv.utils.rand_like
+
+
+Other
+-----
 
 
 .. autosummary::
@@ -39,3 +67,5 @@ Evaluation
    :nosignatures:
 
         deepinv.utils.cal_psnr
+        deepinv.utils.get_freer_gpu
+

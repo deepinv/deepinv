@@ -58,17 +58,23 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4):
         img = torch.rand(4, 3, 256, 256)
         plot([img, img, img], titles=["img1", "img2", "img3"], save_dir="test.png")
 
-    :param list[torch.tensor] img_list: list of images to plot
+    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param str save_dir: path to save the plot
-    :param bool tight: whether to use tight layout
-    :param int max_imgs: maximum number of images to plot
+    :param str save_dir: path to save the plot.
+    :param bool tight: use a tight layout.
+    :param int max_imgs: maximum number of images to plot.
 
     """
     if save_dir:
         if not os.path.exists(save_dir.split("/")[0]):
             print("Creating ", save_dir.split("/")[0], " folder...")
             os.makedirs(save_dir.split("/")[0])
+
+    if isinstance(img_list, torch.Tensor):
+        img_list = [img_list]
+
+    if isinstance(titles, str):
+        titles = [titles]
 
     imgs = []
     for im in img_list:
@@ -108,47 +114,6 @@ def plot(img_list, titles=None, save_dir=None, tight=True, max_imgs=4):
         plt.savefig(save_dir, dpi=1200)
 
     plt.show()
-
-
-# def plot(
-#    imgs, shape=None, titles=None, row_order=False, save_dir=None, tight=True, show=True
-# ):
-#    if save_dir:
-#        if not os.path.exists(save_dir.split("/")[0]):
-#            print("Creating ", save_dir.split("/")[0], " folder...")
-#            os.makedirs(save_dir.split("/")[0])
-
-#    if torch.is_tensor(imgs[0]):
-#        imgs = [torch2cpu(im) for im in imgs]
-#
-#    if not shape:
-#        shape = (1, len(imgs))
-#
-#    plt.figure(figsize=(shape[1], 1.2 * shape[0]))
-#
-#    for i, img in enumerate(imgs):
-#        if row_order:
-#           r = i % shape[0]
-#           c = int((i - r) / shape[0])
-#           idx = r * shape[1] + c
-#      else:
-#          r = int(i / shape[1])
-#          idx = i
-##
-#      plt.subplot(shape[0], shape[1], idx + 1)
-
-#       plt.imshow(img, cmap="gray")
-#     if titles and r == 0:
-#         plt.title(titles[i], size=8)
-#    plt.axis("off")
-
-# if tight:
-#     plt.subplots_adjust(hspace=0.05, wspace=0.05)
-
-# if save_dir:
-#    plt.savefig(save_dir, dpi=1200)
-# if show:
-#    plt.show()
 
 
 def wandb_imgs(imgs, captions, n_plot):

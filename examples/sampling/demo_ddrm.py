@@ -31,6 +31,8 @@ from io import BytesIO
 #
 # This example uses an image of Lionel Messi from Wikipedia.
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
 url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
@@ -38,7 +40,7 @@ url = (
 res = requests.get(url)
 x = imread(BytesIO(res.content)) / 255.0
 
-x = torch.tensor(x, device=dinv.device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
+x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(
     x, scale_factor=0.5
 )  # reduce the image size for faster eval
@@ -55,7 +57,7 @@ sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(
     mask=0.5,
     tensor_size=x.shape[1:],
-    device=dinv.device,
+    device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=sigma),
 )
 
@@ -67,18 +69,7 @@ physics = dinv.physics.Inpainting(
 # The diffusion method requires an MMSE denoiser that can be evaluated a various noise levels.
 # Here we use a pretrained DRUNET denoiser from the :ref:`models <Models>` module.
 
-model_spec = {
-    "name": "drunet",
-    "args": {
-        "device": dinv.device,
-        "in_channels": 3,
-        "out_channels": 3,
-        "pretrained": "download",
-    },
-}
-
-denoiser = dinv.models.Denoiser(model_spec=model_spec)
-
+denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 # %%
 # Create the Monte Carlo sampler
@@ -92,11 +83,7 @@ denoiser = dinv.models.Denoiser(model_spec=model_spec)
 sigmas = np.linspace(1, 0, 100) if torch.cuda.is_available() else np.linspace(1, 0, 10)
 
 diff = dinv.sampling.DDRM(
-    denoiser=denoiser,
-    etab=1.0,
-    sigma_noise=sigma,
-    sigmas=sigmas,
-    verbose=True,
+    denoiser=denoiser, etab=1.0, sigma_noise=sigma, sigmas=sigmas, verbose=True
 )
 
 # %%
@@ -124,10 +111,7 @@ print(f"Diffusion PSNR: {dinv.utils.metric.cal_psnr(x, xhat):.2f} dB")
 # plot results
 error = (xhat - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
 imgs = [x_lin, x, xhat]
-plot(
-    imgs,
-    titles=["measurement", "ground truth", "DDRM reconstruction"],
-)
+plot(imgs, titles=["measurement", "ground truth", "DDRM reconstruction"])
 
 # %%
 # Create a Monte Carlo sampler

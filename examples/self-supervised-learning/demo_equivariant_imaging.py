@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
 from torchvision import transforms
+from deepinv.optim.prior import PnP
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.training_utils import train, test
 from deepinv.models.denoiser import online_weights_path
@@ -33,11 +34,17 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------
-# In this example, we use a subset of the FastMRI dataset
+# In this example, we use a subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
+# as the base image dataset. It consists of 973 knee images of size 320x320.
+#
+# .. note::
+#
+#       We reduce to the size to 128x128 for faster training in the demo.
 #
 
 operation = "MRI"
@@ -62,7 +69,7 @@ test_dataset = load_dataset(
 mask = load_degradation("mri_mask_128x128.npy", ORIGINAL_DATA_DIR)
 
 # defined physics
-physics = dinv.physics.MRI(mask=mask, device=dinv.device)
+physics = dinv.physics.MRI(mask=mask, device=device)
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -70,7 +77,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
     900 if torch.cuda.is_available() else 5
 )  # number of images used for training
-# (the dataset has up to 973 images, however here we use only 100)
+# (the dataset has up to 973 images, however here we use only 900)
 
 my_dataset_name = "demo_equivariant_imaging"
 measurement_dir = DATA_DIR / train_dataset_name / operation
@@ -78,7 +85,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,
     physics=physics,
-    device=dinv.device,
+    device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
     num_workers=num_workers,
@@ -91,30 +98,25 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # %%
 # Set up the reconstruction network
 # ---------------------------------------------------------------
-# Here w
+#
+# As a reconstruction network, we use an unrolled network (half-quadratic splitting)
+# with a trainable denoising prior based on the DnCNN architecture.
 
 # Select the data fidelity term
 data_fidelity = dinv.optim.L2()
 n_channels = 2  # real + imaginary parts
 
-# Set up the trainable denoising prior
-denoiser_spec = {
-    "name": "dncnn",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "depth": 7,
-        "pretrained": None,
-        "train": True,
-        "device": dinv.device,
-    },
-}
-
 # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = {
-    "prox_g": dinv.models.Denoiser(denoiser_spec)
-}  # here the prior model is common for all iterations
+prior = PnP(
+    denoiser=dinv.models.DnCNN(
+        in_channels=n_channels,
+        out_channels=n_channels,
+        pretrained=None,
+        train=True,
+        depth=7,
+    ).to(device)
+)
 
 # Unrolled optimization algorithm parameters
 max_iter = 3  # number of unfolded layers
@@ -150,7 +152,7 @@ model = dinv.unfolded.Unfolded(
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the equivariant imaging loss (EI).
 # The EI loss requires a group of transformations to be defined. The forward model `should not be equivariant to
-# these transformations <https://www.jmlr.org/papers/v24/22-0315.html>`.
+# these transformations <https://www.jmlr.org/papers/v24/22-0315.html>`_.
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #
@@ -172,9 +174,11 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-url = online_weights_path() + "demo_ei_ckp_150.pth"
+url = online_weights_path() + "new_demo_ei_ckp_150_v3.pth"
 ckpt = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="demo_ei_ckp_150.pth"
+    url,
+    map_location=lambda storage, loc: storage,
+    file_name="new_demo_ei_ckp_150_v3.pth",
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])
@@ -206,7 +210,7 @@ train(
     losses=losses,
     physics=physics,
     optimizer=optimizer,
-    device=dinv.device,
+    device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
@@ -223,13 +227,13 @@ train(
 
 plot_images = True
 save_images = True
-method = "artifact_removal"
+method = "equivariant_imaging"
 
 test(
     model=model,
     test_dataloader=test_dataloader,
     physics=physics,
-    device=dinv.device,
+    device=device,
     plot_images=plot_images,
     save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.utils import check_conv
 
 
 class FixedPoint(nn.Module):
@@ -15,40 +14,52 @@ class FixedPoint(nn.Module):
         \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...) \hspace{2cm} (1)
 
 
+    where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the
+    data.
+
 
     ::
 
-            # Generate the data
-            x = torch.ones(1, 1, 1, 3)
-            A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]])
-            A_forward = lambda v: A @ v
-            A_adjoint = lambda v: A.transpose(0, 1) @ v
+        # This example shows how to use the FixedPoint class to solve the problem
+        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
+        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
-            # Define the physics model associated to this operator and the data
-            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-            y = physics.A(x)
+        # Create the measurement operator A
+        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        A_forward = lambda v: A @ v
+        A_adjoint = lambda v: A.transpose(0, 1) @ v
 
-            # Select the data fidelity term
-            data_fidelity = L2()
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
-            # Specify the prior and the algorithm parameters
-            model_spec = {"name": "waveletprior", "args": {"wv": "db8", "level": 3, "device": device}}
-            prior = {"prox_g": Denoiser(model_spec)}
-            params_algo = {"stepsize": 0.1, "g_param": 1.0}
+        # Define the measurement y
+        y = torch.tensor([2, 2], dtype=torch.float64)
 
-            # Choose the iterator associated to a specific algorithm
-            iterator = PGDIteration(data_fidelity=data_fidelity)
+        # Define the data fidelity term
+        data_fidelity = L2()
 
-            # Create the optimizer
-            optimizer = BaseOptim(
-                iterator,
-                params_algo=params_algo,
-                prior=prior,
-                max_iter=max_iter,
-            )
+        # Define the proximity operator of the prior and store it in a dictionary
+        def prox_g(x, g_param=0.1):
+            return torch.sign(x) * torch.maximum(x.abs() - g_param, torch.tensor([0]))
 
-            # Run the optimization algorithm
-            x = optimizer(y, physics)
+        prior = {"prox_g": prox_g}
+
+        # Define the parameters of the algorithm
+        params = {"g_param": 1.0, "stepsize": 1.0, "lambda": 1.0}
+
+        # Choose the iterator associated to the PGD algorithm
+        iterator = PGDIteration(data_fidelity=data_fidelity)
+
+        # Iterate the iterator
+        x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
+        X = {"est": (x_init ,), "cost": []}                 # Iterates are stored in a dictionary of the form {'est': (x,z), 'cost': F}
+
+        max_iter = 50
+        for it in range(max_iter):
+            X = iterator(X,  prior, params, y, physics)
+
+        # Return the solution
+        sol = X["est"][0]  # sol = [1, 1]
 
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
@@ -125,7 +136,9 @@ class FixedPoint(nn.Module):
                     if self.update_metrics_fn
                     else None
                 )
-                if self.early_stop and it > 1 and self.check_conv_fn(it, X_prev, X):
+                if (
+                    (self.early_stop and it > 1) or (it == self.max_iter - 1)
+                ) and self.check_conv_fn(it, X_prev, X):
                     break
                 it += 1
             else:
@@ -134,8 +147,23 @@ class FixedPoint(nn.Module):
 
 
 class AndersonAcceleration(FixedPoint):
-    """
-    TO DO
+    r"""
+    Anderson Acceleration algorithm for fixed-point algorithms.
+
+    Considering a fixed-point algorithm of the form $x_{k+1} = T(x_k)$, the Anderson algorithm (see
+    `<https://users.wpi.edu/~walker/Papers/Walker-Ni,SINUM,V49,1715-1735.pdf>`_.) is defined as:
+
+    .. math::
+
+        x_{k+1} = (1-\beta) \sum_{i=0}^{m} \alpha_i x_{k-m+i} + \beta \sum_{i=0}^{m} \alpha_i T(x_{k-m+i})
+
+
+    where :math:`T` is the fixed-point iterator and the coefficients :math:`\alpha_i` are such that :math:`\sum_{i=0}^{m} \alpha_i = 1`.
+
+    :param int history_size: number of previous iterates to be used for the acceleration (parameter :math:`m` in the above equation). Default: 5.
+    :param float ridge: ridge parameter for the least-squares problem. Default: 1e-4.
+    :param float or list beta: parameter :math:`\beta` in the above equation. If a float is provided, the same value is used for all iterations. If a list is provided, the value is updated at each iteration. Default: 1.0.
+    :param kwargs: additional keyword arguments for FixedPoint.
     """
 
     def __init__(self, history_size=5, ridge=1e-4, beta=1.0, **kwargs):
@@ -148,7 +176,12 @@ class AndersonAcceleration(FixedPoint):
 
     def forward(self, x, init_params, *args):
         r"""
-        TODO
+        Computes the fixed point of :math:`x_{k+1}=T(x_k)` using Anderson acceleration.
+
+        :param dict x: dictionary containing the current iterate.
+        :param dict init_params: dictionary containing the initial parameters.
+        :param args: optional arguments for the iterator.
+        :return: a tuple containing the fixed-point.
         """
         cur_params = init_params
         init = x["est"][0]
@@ -198,7 +231,7 @@ class AndersonAcceleration(FixedPoint):
             x_prev = X[:, it % self.history_size].reshape(init.shape)
             x = F[:, it % self.history_size].reshape(init.shape)
             if (
-                check_conv(
+                self.check_conv_fn(
                     x_prev, x, it, self.crit_conv, self.thres_conv, verbose=self.verbose
                 )
                 and it > 1

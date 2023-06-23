@@ -131,12 +131,7 @@ class Radon(nn.Module):
         for theta in angles:
             theta = deg2rad(theta)
             R = torch.tensor(
-                [
-                    [
-                        [theta.cos(), theta.sin(), 0],
-                        [-theta.sin(), theta.cos(), 0],
-                    ]
-                ],
+                [[[theta.cos(), theta.sin(), 0], [-theta.sin(), theta.cos(), 0]]],
                 dtype=self.dtype,
             )
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
@@ -293,82 +288,77 @@ class Tomography(LinearPhysics):
         return self.iradon(y, filtering=False)
 
 
-if __name__ == "__main__":
-    dtype = torch.float32
-    # device = torch.device('msp')
-    device = torch.device("cpu")
-
-    img_width = 256
-    angles = 360
-
-    x = torch.zeros(1, 1, img_width, img_width).to(device)
-    x[:, :, 80:180, 80:180] = 1
-
-    print(
-        "x:",
-        x.shape,
-        "max={:.4f}".format(x.max()),
-        "min={:.4f}".format(x.min()),
-    )
-
-    ct = Tomography(img_width, angles, circle=False, non_linearity=True)
-    y = ct(x)
-    print("y:", y.shape)
-    fbp = ct.A_dagger(y)
-
-    print(
-        "fbp:",
-        fbp.shape,
-        "max={:.4f}".format(fbp.max()),
-        "min={:.4f}".format(fbp.min()),
-    )
-
-    x_adjoint = ct.A_adjoint(y)
-    print(
-        "x_adjoint:",
-        x_adjoint.shape,
-        "max={:.4f}".format(x_adjoint.max()),
-        "min={:.4f}".format(x_adjoint.min()),
-    )
-
-    imgs = [x, y, fbp, x_adjoint]
-    titles = ["x", "y", "FBP", "Adjoint"]
-
-    n = len(imgs)
-    import matplotlib.pyplot as plt
-
-    for i in range(n):
-        x = imgs[i]
-        x = x[0] if isinstance(x, list) else x
-        if len(x.shape) == 3:
-            x = x.unsqueeze(1)
-        x = x.type(dtype).to(device)  # ground-truth signal x
-
-        plt.subplot(1, n, i + 1)
-        plt.imshow(x.squeeze(), cmap="gray")
-        plt.title(titles[i], fontsize=12)
-        plt.axis("off")
-    plt.show()
-
-    # test
-    # deepinv test
-    from deepinv.tests.test_physics import (
-        test_operators_norm,
-        test_operators_adjointness,
-        test_pseudo_inverse,
-        device,
-    )
-    import deepinv as dinv
-
-    print("pinv test....")
-    test_pseudo_inverse("Tomography", (1, 256, 256), dinv.device)  # pass
-
-    print("adjoint test....")
-    test_operators_adjointness(
-        "Tomography", (1, 256, 256), dinv.device
-    )  # pass, tensor(0., device='cuda:0')
-
-    print("norm test....")
-    test_operators_norm("Tomography", (1, 256, 256), dinv.device)  # pass
-
-    print("pass all...")
+# if __name__ == "__main__":
+#     dtype = torch.float32
+#     # device = torch.device('msp')
+#     device = torch.device("cpu")
+#
+#     img_width = 256
+#     angles = 360
+#
+#     x = torch.zeros(1, 1, img_width, img_width).to(device)
+#     x[:, :, 80:180, 80:180] = 1
+#
+#     print("x:", x.shape, "max={:.4f}".format(x.max()), "min={:.4f}".format(x.min()))
+#
+#     ct = Tomography(img_width, angles, circle=False, non_linearity=True)
+#     y = ct(x)
+#     print("y:", y.shape)
+#     fbp = ct.A_dagger(y)
+#
+#     print(
+#         "fbp:",
+#         fbp.shape,
+#         "max={:.4f}".format(fbp.max()),
+#         "min={:.4f}".format(fbp.min()),
+#     )
+#
+#     x_adjoint = ct.A_adjoint(y)
+#     print(
+#         "x_adjoint:",
+#         x_adjoint.shape,
+#         "max={:.4f}".format(x_adjoint.max()),
+#         "min={:.4f}".format(x_adjoint.min()),
+#     )
+#
+#     imgs = [x, y, fbp, x_adjoint]
+#     titles = ["x", "y", "FBP", "Adjoint"]
+#
+#     n = len(imgs)
+#     import matplotlib.pyplot as plt
+#
+#     for i in range(n):
+#         x = imgs[i]
+#         x = x[0] if isinstance(x, list) else x
+#         if len(x.shape) == 3:
+#             x = x.unsqueeze(1)
+#         x = x.type(dtype).to(device)  # ground-truth signal x
+#
+#         plt.subplot(1, n, i + 1)
+#         plt.imshow(x.squeeze(), cmap="gray")
+#         plt.title(titles[i], fontsize=12)
+#         plt.axis("off")
+#     plt.show()
+#
+#     # test
+#     # deepinv test
+#     from deepinv.tests.test_physics import (
+#         test_operators_norm,
+#         test_operators_adjointness,
+#         test_pseudo_inverse,
+#         device,
+#     )
+#     import deepinv as dinv
+#
+#     print("pinv test....")
+#     test_pseudo_inverse("Tomography", (1, 256, 256), dinv.device)  # pass
+#
+#     print("adjoint test....")
+#     test_operators_adjointness(
+#         "Tomography", (1, 256, 256), dinv.device
+#     )  # pass, tensor(0., device='cuda:0')
+#
+#     print("norm test....")
+#     test_operators_norm("Tomography", (1, 256, 256), dinv.device)  # pass
+#
+#     print("pass all...")

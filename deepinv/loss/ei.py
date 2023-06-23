@@ -22,7 +22,7 @@ class EILoss(nn.Module):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
-    :param deepinv.diffops.Transform, torchvision.transforms transform: Transform to generate the virtually
+    :param deepinv.Transform, torchvision.transforms transform: Transform to generate the virtually
         augmented measurement. It can be any torch-differentiable function (e.g., a ``torch.nn.Module``).
     :param metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
         image.
@@ -42,14 +42,14 @@ class EILoss(nn.Module):
         self.T = transform
         self.noise = apply_noise
 
-    def forward(self, x_net, physics, f):
+    def forward(self, x_net, physics, model, **kwargs):
         r"""
         Computes the EI loss
 
-        :param torch.tensor x_net: Reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module f: Reconstruction function.
-        :return: (torch.tensor) loss.
+        :param torch.nn.Module model: Reconstruction function.
+        :return: (torch.Tensor) loss.
         """
 
         x2 = self.T(x_net)
@@ -59,7 +59,7 @@ class EILoss(nn.Module):
         else:
             y = physics.A(x2)
 
-        x3 = f(y, physics)
+        x3 = model(y, physics)
 
         loss_ei = self.weight * self.metric(x3, x2)
         return loss_ei

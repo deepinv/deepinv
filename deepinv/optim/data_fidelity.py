@@ -1,135 +1,202 @@
 import torch
 import torch.nn as nn
 
+from deepinv.optim.utils import gradient_descent
+
 
 class DataFidelity(nn.Module):
     r"""
-    Data fidelity term :math:`\datafid{Ax}{y}`.
+    Data fidelity term :math:`\datafid{x}{y}=\distance{Ax}{y}`.
 
-    This is the base class for the data fidelity term :math:`\datafid{Ax}{y}` where :math:`A` is a linear operator,
-    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`f` is a convex function.
+    This is the base class for the data fidelity term :math:`\datafid{x}{y} = \distance{A(x)}{y}` where :math:`A` is a
+    linear or nonlinear operator, :math:`x\in\xset` is a variable , :math:`y\in\yset` is the observation and
+    :math:`\distancename` is a distance function.
 
     ::
 
         # define a loss function
-        loss = L2()
+        data_fidelity = L2()
 
-        # create a measurement operator
+        # Create a measurement operator
         A = torch.Tensor([[2, 0], [0, 0.5]])
-        A_forward = lambda v:A@v
-        A_adjoint = lambda v: A.transpose(0,1)@v
+        A_forward = lambda v: A @ v
+        A_adjoint = lambda v: A.transpose(0, 1) @ v
 
         # Define the physics model associated to this operator
         physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
         # Define two points
-        x = torch.Tensor([1, 4])
-        y = torch.Tensor([1, 1])
+        x = torch.Tensor([[1], [4]]).unsqueeze(0)
+        y = torch.Tensor([[1], [1]]).unsqueeze(0)
 
-        # Compute the loss f(Ax, y)
-        f = loss(x, y, physics)  # print f gives 1.0
+        # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
+        f_x = data_fidelity(x, y, physics)  # print(f_x) gives tensor([1.0000])
 
-        # Compute the gradient of f
-        grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+        # Compute the gradient of :math:`f`
+        grad = data_fidelity.grad(x, y, physics)  # print(grad) gives tensor([[[2.0000], [0.5000]]])
 
-        # Compute the proximity operator of f
-        prox_fA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]
+        # Compute the proximity operator of :math:`f`
+        prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print(prox) gives tensor([[[0.6000], [3.6000]]])
+
+
+    .. warning::
+        All variables have a batch dimension as first dimension.
+
+    :param callable d: data fidelity distance function :math:`\distance{u}{y}`. Outputs a tensor of size `B`, the size of the batch. Default: None.
     """
 
-    def __init__(self, f=None, grad_f=None, prox_f=None, prox_norm=None):
+    def __init__(self, d=None):
         super().__init__()
-        self._grad_f = grad_f  # TODO: use autograd?
-        self._f = f
-        self._prox_f = prox_f
-        self._prox_norm = prox_norm
+        self._d = d
 
-    def f(self, u, y):
+    def d(self, u, y, *args, **kwargs):
         r"""
-        Computes the data fidelity :math:`\datafid{u}{y}`.
+        Computes the data fidelity distance :math:`\distance{u}{y}`.
 
-        :param torch.tensor u: Variable :math:`u` at which the data fidelity is computed.
+        :param torch.tensor u: Variable :math:`u` at which the distance function is computed.
         :param torch.tensor y: Data :math:`y`.
-        :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}`.
+        :return: (torch.tensor) data fidelity :math:`\distance{u}{y}`.
         """
-        return self._f(u)
+        return self._d(u - y, *args, **kwargs)
 
-    def grad_f(self, u, y):
+    def grad_d(self, u, y, *args, **kwargs):
         r"""
-        Computes the gradient :math:`\nabla_u\datafid{u}{y}`, computed in :math:`u`. Note that this is the gradient of
-        :math:`f` and not :math:`f\circ A`.
+        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`. Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. By default, the gradient is computed using automatic differentiation.
 
         :param torch.tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.tensor) gradient of :math:`f` in :math:`u`, i.e. :math:`\nabla_u\datafid{u}{y}`.
+        :return: (torch.tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
-        return self._grad_f(u, y)
+        with torch.enable_grad():
+            u = u.requires_grad_()
+            grad = torch.autograd.grad(
+                self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True
+            )[0]
+        return grad
 
-    def prox_f(self, u, y, gamma):
+    def prox_d(
+        self,
+        u,
+        y,
+        gamma,
+        *args,
+        stepsize_inter=1.0,
+        max_iter_inter=50,
+        tol_inter=1e-3,
+        **kwargs
+    ):
         r"""
-        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\datafid{\cdot}{y}}(u)`, computed in :math:`u`. Note
-        that this is the proximity operator of :math:`f` and not :math:`f\circ A`.
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`. Note
+        that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`. By default, the proximity operator is computed using internal gradient descent.
 
         :param torch.tensor u: Variable :math:`u` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :param float gamma: step-size.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma\datafid{\cdot}{y}}(u)`.
+        :param float gamma: stepsize of the proximity operator.
+        :param float stepsize_inter: stepsize used for internal gradient descent
+        :param int max_iter_inter: maximal number of iterations for internal gradient descent.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`.
         """
-        return self._prox_f(u, y, gamma)
+        grad = lambda z: gamma * self.grad_d(z, y, *args, **kwargs) + (z - u)
+        return gradient_descent(
+            grad, u, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
+        )
 
-    def forward(self, x, y, physics):
+    def forward(self, x, y, physics, *args, **kwargs):
         r"""
-        Computes the data fidelity :math:`\datafid{Ax}{y}`.
+        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{Ax}{y}`.
 
         :param torch.tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.tensor) data fidelity :math:`\datafid{Ax}{y}`.
+        :return: (torch.tensor) data fidelity :math:`\datafid{x}{y}`.
         """
-        Ax = physics.A(x)
-        return self.f(Ax, y)
+        return self.d(physics.A(x), y, *args, **kwargs)
 
-    def grad(self, x, y, physics):
+    def grad(self, x, y, physics, *args, **kwargs):
         r"""
-        Computes the gradient of the data fidelity :math:`\nabla_x\datafid{Ax}{y}`, computed in :math:`x`.
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.tensor) gradient :math:`\nabla_x\datafid{Ax}{y}`, computed in :math:`x`.
+        :return: (torch.tensor) gradient :math:`\nabla_x\datafid{x}{y}`, computed in :math:`x`.
         """
-        Ax = physics.A(x)
-        if self.grad_f is not None:
-            grad = physics.A_adjoint(self.grad_f(Ax, y))
-        else:
-            raise ValueError("No gradient defined for this data fidelity term.")
-        return grad
+        return physics.A_adjoint(self.grad_d(physics.A(x), y, *args, **kwargs))
 
-    def prox(self, x, y, physics, gamma):
+    def prox(
+        self,
+        x,
+        y,
+        physics,
+        gamma,
+        *args,
+        stepsize_inter=1.0,
+        max_iter_inter=50,
+        tol_inter=1e-3,
+        **kwargs
+    ):
         r"""
-        Computes the proximity operator :math:`\operatorname{prox}_{\gamma \datafid{A\cdot}{y}}(x)`,
-        computed in :math:`x`.
+        Calculates the proximity operator of :math:`\datafidname` at :math:`x`.
 
-        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :param float gamma: step-size.
-        :return: (torch.tensor) gradient :math:`\operatorname{prox}_{\gamma \datafid{A\cdot}{y}}(x)`, computed in :math:`x`.
+        :param float gamma: stepsize of the proximity operator.
+        :param float stepsize_inter: stepsize used for internal gradient descent
+        :param int max_iter_inter: maximal number of iterations for internal gradient descent.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`, computed in :math:`x`.
         """
-        if "Denoising" in physics.__class__.__name__:
-            return self.prox_f(y, x, gamma)  # TODO: clarify
-        else:
-            raise Exception(
-                "no prox operator is implemented for the data fidelity term."
-            )
+        grad = lambda z: gamma * self.grad(z, y, *args, **kwargs) + (z - x)
+        return gradient_descent(
+            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
+        )
 
-    # DEPRECATED
-    # def prox_norm(self, x, y, gamma):
-    #     return self.prox_norm(x, y, gamma)
+    def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
+        r"""
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda \datafidname)^*` at :math:`x`,
+        using the Moreau formula.
+
+        .. warning::
+
+            This function is only valid for convex :math:`\datafidname`.
+
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: stepsize of the proximity operator.
+        :param float lamb: math:`\lambda` parameter in front of :math:`f`
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \datafidname)^*}(x)`,
+            computed in :math:`x`.
+        """
+        return x - gamma * self.prox(
+            x / gamma, y, physics, lamb / gamma, *args, **kwargs
+        )
+
+    def prox_d_conjugate(self, u, y, gamma, *args, lamb=1, **kwargs):
+        r"""
+        Calculates the proximity operator of the convex conjugate :math:`(\lambda \distancename)^*` at :math:`u`,
+        using the Moreau formula.
+
+        .. warning::
+
+            This function is only valid for convex :math:`\distancename`.
+
+        :param torch.tensor u: Variable :math:`u` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param float gamma: stepsize of the proximity operator.
+        :param float lamb: math:`\lambda` parameter in front of :math:`\distancename`
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \distancename)^*}(x)`,
+            computed in :math:`x`.
+        """
+        return u - gamma * self.prox_d(u / gamma, y, lamb / gamma, *args, **kwargs)
 
 
 class L2(DataFidelity):
     r"""
-    Implementation of :math:`f` as the normalized :math:`\ell_2` norm
+    Implementation of :math:`\distancename` as the normalized :math:`\ell_2` norm
 
     .. math::
 
@@ -162,10 +229,10 @@ class L2(DataFidelity):
         f = loss(x, y, physics)  # print f gives 1.0
 
         # Compute the gradient of f
-        grad_fA = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+        grad_dA = data_fidelity.grad(x, y, physics)  # print grad_d gives [2.0000, 0.5000]
 
         # Compute the proximity operator of f
-        prox_fA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_fA gives [0.6000, 3.6000]
+        prox_dA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_dA gives [0.6000, 3.6000]
     """
 
     def __init__(self, sigma=1.0):
@@ -173,9 +240,9 @@ class L2(DataFidelity):
 
         self.norm = 1 / (sigma**2)
 
-    def f(self, u, y):
+    def d(self, u, y):
         r"""
-        Computes the data fidelity :math:`\datafid{u}{y}`, i.e.
+        Computes the data fidelity distance :math:`\datafid{u}{y}`, i.e.
 
         .. math::
 
@@ -184,62 +251,64 @@ class L2(DataFidelity):
 
         :param torch.tensor u: Variable :math:`u` at which the data fidelity is computed.
         :param torch.tensor y: Data :math:`y`.
-        :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}`.
+        :return: (torch.tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
-        return self.norm * (u - y).flatten().pow(2).sum() / 2
+        x = u - y
+        d = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        return d
 
-    def prox(self, x, y, physics, gamma):
+    def grad_d(self, u, y):
         r"""
-        Proximal operator of :math:`f(x) = \frac{1}{2\sigma^2}\|Ax-y\|^2`.
-
-        Computes :math:`\operatorname{prox}_{\gamma f}`, i.e.
+        Computes the gradient of :math:`\distancename`  :math:`\nabla_{u}\distance{u}{y}`, i.e.
 
         .. math::
 
-           \operatorname{prox}_{\gamma f} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Au-y\|_2^2+\frac{1}{2}\|u-x\|_2^2
+            \nabla_{u}\distance{u}{y} = \frac{1}{\sigma^2}(u-y)
+
+
+        :param torch.tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :return: (torch.tensor) gradient of the distance function :math:`\nabla_{u}\distance{u}{y}`.
+        """
+        return self.norm * (u - y)
+
+    def prox_d(self, x, y, gamma):
+        r"""
+        Proximal operator of :math:`\gamma \distance{x}{y} = \frac{\gamma}{2\sigma^2}\|x-y\|^2`.
+
+        Computes :math:`\operatorname{prox}_{\gamma \distancename}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \distancename} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|u-y\|_2^2+\frac{1}{2}\|u-x\|_2^2
+
+
+        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param float gamma: thresholding parameter.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \distancename}(x)`.
+        """
+        gamma_ = self.norm * gamma
+        return (x + gamma_ * y) / (1 + gamma_)
+
+    def prox(self, x, y, physics, gamma):
+        r"""
+        Proximal operator of :math:`\gamma \data_fidelity_(x) = \frac{\gamma}{2\sigma^2}\|Ax-y\|^2`.
+
+        Computes :math:`\operatorname{prox}_{\gamma \data_fidelity_}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \data_fidelity_} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Au-y\|_2^2+\frac{1}{2}\|u-x\|_2^2
 
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :param float gamma: thresholding parameter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma f}(x)`.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \data_fidelity_}(x)`.
         """
         return physics.prox_l2(x, y, self.norm * gamma)
-
-    def grad_f(self, u, y):
-        r"""
-        Computes the gradient of the data fidelity :math:`\nabla_{u}\datafid{u}{y}`, i.e.
-
-        .. math::
-
-            \nabla_{u}\datafid{u}{y} = \frac{1}{\sigma^2}(u-y)
-
-
-        :param torch.tensor u: Variable :math:`u` at which the gradient is computed.
-        :param torch.tensor y: Data :math:`y`.
-        :return: (torch.tensor) gradient of the data fidelity :math:`\nabla_{u}\datafid{u}{y}`.
-        """
-        return self.norm * (u - y)
-
-    def prox_f(self, x, y, gamma):
-        r"""
-        Proximal operator of :math:`f(x) = \frac{1}{2\sigma^2}\|x-y\|^2`.
-
-        Computes :math:`\operatorname{prox}_{\gamma f}`, i.e.
-
-        .. math::
-
-           \operatorname{prox}_{\gamma f} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|u-y\|_2^2+\frac{1}{2}\|u-x\|_2^2
-
-
-        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param torch.tensor y: Data :math:`y`.
-        :param float gamma: thresholding parameter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma f}(x)`.
-        """
-        gamma_ = self.norm * gamma
-        return (x + gamma_ * y) / (1 + gamma_)
 
 
 class IndicatorL2(DataFidelity):
@@ -288,21 +357,22 @@ class IndicatorL2(DataFidelity):
         super().__init__()
         self.radius = radius
 
-    def f(self, u, y, radius=None):
+    def d(self, u, y, radius=None):
         r"""
-        Computes the indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(u)`.
+        Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(u)`.
 
-        :param torch.tensor u: Variable :math:`u` at which the indicator is computed.
+        :param torch.tensor u: Variable :math:`u` at which the indicator is computed. :math:`u` is assumed to be of shape (B, ...) where B is the batch size.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
-        :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`.
+        :return: (torch.tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
-        dist = (u - y).flatten().pow(2).sum().sqrt()
+        diff = u - y
+        dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
         radius = self.radius if radius is None else radius
-        loss = 0 if dist <= radius else 1e16
+        loss = (dist > radius) * 1e16
         return loss
 
-    def prox_f(self, x, y, gamma=None, radius=None):
+    def prox_d(self, x, y, gamma=None, radius=None):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 
@@ -324,7 +394,7 @@ class IndicatorL2(DataFidelity):
             y = torch.Tensor([1, 1])
 
             # Compute the proximity operator f(x, y)
-            prox_f = loss.prox_f(x, y)  # print prox_f gives [1.707, 1.707]
+            prox_d = loss.prox_d(x, y)  # print prox_d gives [1.707, 1.707]
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
@@ -333,9 +403,11 @@ class IndicatorL2(DataFidelity):
         :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
-        return y + torch.min(
-            torch.tensor([radius]).to(x.device), torch.norm(x.flatten() - y.flatten())
-        ) * (x - y) / (torch.norm(x.flatten() - y.flatten()) + 1e-12)
+        diff = x - y
+        dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
+        return y + torch.min(torch.tensor([radius]).to(x.device), dist) * diff / (
+            dist + 1e-12
+        )
 
     def prox(
         self, x, y, physics, radius=None, stepsize=None, crit_conv=1e-5, max_iter=100
@@ -378,20 +450,23 @@ class IndicatorL2(DataFidelity):
         :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
-        norm_AtA = physics.compute_norm(x)
-        stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
-        u = x.clone()
-        for it in range(max_iter):
-            u_prev = u.clone()
 
-            t = x - physics.A_adjoint(u)
-            u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, radius=radius)
-            rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
-            print(rel_crit)
-            if rel_crit < crit_conv and it > 2:
-                break
-        return t
+        if (physics.A(x) == x).all():
+            return self.prox_d(x, y, gamma=None, radius=radius)
+        else:
+            norm_AtA = physics.compute_norm(x, verbose=True)
+            stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
+            u = x.clone()
+            for it in range(max_iter):
+                u_prev = u.clone()
+
+                t = x - physics.A_adjoint(u)
+                u_ = u + stepsize * physics.A(t)
+                u = u_ - stepsize * self.prox_d(u_ / stepsize, y, radius=radius)
+                rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
+                if rel_crit < crit_conv and it > 1:
+                    break
+            return t
 
 
 class PoissonLikelihood(DataFidelity):
@@ -419,19 +494,19 @@ class PoissonLikelihood(DataFidelity):
         self.gain = gain
         self.normalize = normalize
 
-    def f(self, x, y):
+    def d(self, x, y):
         if self.normalize:
             y = y * self.gain
         return (-y * torch.log(self.gain * x + self.bkg)).flatten().sum() + (
             self.gain * x
         ).flatten().sum()
 
-    def grad_f(self, x, y):
+    def grad_d(self, x, y):
         if self.normalize:
             y = y * self.gain
         return (1 / self.gain) * (torch.ones_like(x) - y / (self.gain * x + self.bkg))
 
-    def prox_f(self, x, y, gamma):
+    def prox_d(self, x, y, gamma):
         if self.normalize:
             y = y * self.gain
         out = (
@@ -444,24 +519,44 @@ class PoissonLikelihood(DataFidelity):
 
 class L1(DataFidelity):
     r"""
-    Implementation of :math:`f` as the :math:`\ell_1` norm
+    :math:`\ell_1` data fidelity term.
+
+    In this case, the data fidelity term is defined as
 
     .. math::
 
-        f(x) = \|Ax-y\|_1
+        f(x) = \|Ax-y\|_1.
 
     """
 
     def __init__(self):
         super().__init__()
 
-    def f(self, x, y):
-        return (x - y).flatten().abs().sum()
+    def d(self, x, y):
+        diff = x - y
+        return torch.norm(diff.view(diff.shape[0], -1), p=1, dim=-1)
 
-    def grad_f(self, x, y):
+    def grad_d(self, x, y):
+        r"""
+        Gradient of the gradient of the :math:`\ell_1` norm, i.e.
+
+        .. math::
+
+            \partial \datafid(x) = \operatorname{sign}(x-y)
+
+
+        .. note::
+
+            The gradient is not defined at :math:`x=y`.
+
+
+        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
+        :return: (torch.tensor) gradient of the :math:`\ell_1` norm at `x`.
+        """
         return torch.sign(x - y)
 
-    def prox_f(self, u, y, gamma):
+    def prox_d(self, u, y, gamma):
         r"""
         Proximal operator of the :math:`\ell_1` norm, i.e.
 
@@ -474,7 +569,7 @@ class L1(DataFidelity):
 
         :param torch.tensor u: Variable :math:`u` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
-        :param float gamma: step-size (or soft-thresholding parameter).
+        :param float gamma: stepsize (or soft-thresholding parameter).
         :return: (torch.tensor) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
@@ -512,9 +607,38 @@ class L1(DataFidelity):
 
             t = x - physics.A_adjoint(u)
             u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.prox_f(u_ / stepsize, y, gamma / stepsize)
+            u = u_ - stepsize * self.prox_d(u_ / stepsize, y, gamma / stepsize)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
             print(rel_crit)
             if rel_crit < crit_conv and it > 2:
                 break
         return t
+
+
+if __name__ == "__main__":
+    import deepinv as dinv
+
+    # define a loss function
+    data_fidelity = L2()
+
+    # create a measurement operator dxd
+    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A_forward = lambda v: torch.matmul(A, v)
+    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+
+    # Define two points of size Bxd
+    x = torch.Tensor([1, 4]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
+    y = torch.Tensor([1, 1]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
+
+    # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
+    f = data_fidelity(x, y, physics)  # print f gives 1.0
+    # Compute the gradient of :math:`f`
+    grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+
+    # Compute the proximity operator of :math:`f`
+    prox = data_fidelity.prox(
+        x, y, physics, gamma=1.0
+    )  # print prox_fA gives [0.6000, 3.6000]

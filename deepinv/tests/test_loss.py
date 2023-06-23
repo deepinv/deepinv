@@ -5,7 +5,6 @@ import math
 import torch
 
 import deepinv
-from deepinv.models import Denoiser
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from torch.utils.data import DataLoader
 import deepinv as dinv
@@ -17,7 +16,7 @@ list_sure = ["Gaussian", "Poisson", "PoissonGaussian"]
 
 @pytest.fixture
 def device():
-    return dinv.device
+    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 @pytest.fixture
@@ -85,7 +84,7 @@ def choose_sure(noise_type):
 
 
 @pytest.mark.parametrize("noise_type", list_sure)
-def test_sure(noise_type):
+def test_sure(noise_type, device):
     imsize = (3, 256, 256)  # a bigger image reduces the error
     # choose backbone denoiser
     backbone = dinv.models.MedianFilter()
@@ -100,7 +99,7 @@ def test_sure(noise_type):
     physics = dinv.physics.Denoising(noise=noise)
 
     batch_size = 1
-    x = torch.ones((batch_size,) + imsize, device=dinv.device)
+    x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
 
     x_net = f(y, physics)
@@ -117,13 +116,13 @@ def imsize():
 
 
 @pytest.fixture
-def physics(imsize):
+def physics(imsize, device):
     # choose a forward operator
-    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=dinv.device)
+    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device)
 
 
 @pytest.fixture
-def dataset(physics, tmp_path, imsize):
+def dataset(physics, tmp_path, imsize, device):
     # load dummy dataset
     save_dir = tmp_path / "dataset"
     dinv.datasets.generate_dataset(
@@ -131,16 +130,17 @@ def dataset(physics, tmp_path, imsize):
         test_dataset=DummyCircles(samples=10, imsize=imsize),
         physics=physics,
         save_dir=save_dir,
-        device=dinv.device,
+        device=device,
     )
 
-    return dinv.datasets.HDF5Dataset(
-        save_dir / "dinv_dataset0.h5", train=True
-    ), dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False)
+    return (
+        dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=True),
+        dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False),
+    )
 
 
 @pytest.mark.parametrize("loss_name", list_losses)
-def test_losses(loss_name, tmp_path, dataset, physics, imsize):
+def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     # choose training losses
     loss = choose_loss(loss_name)
 
@@ -148,7 +148,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
     # choose backbone denoiser
     backbone = dinv.models.AutoEncoder(
         dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=128, dim_hid=32
-    ).to(dinv.device)
+    ).to(device)
 
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone)
@@ -167,7 +167,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         test_dataloader=test_dataloader,
         physics=physics,
         plot_images=False,
-        device=dinv.device,
+        device=device,
     )
 
     # train the network
@@ -179,7 +179,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         losses=loss,
         physics=physics,
         optimizer=optimizer,
-        device=dinv.device,
+        device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
         plot_images=False,
@@ -191,21 +191,17 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize):
         test_dataloader=test_dataloader,
         physics=physics,
         plot_images=False,
-        device=dinv.device,
+        device=device,
     )
 
     assert final_psnr[0] > initial_psnr[0]
 
 
-def test_sure_losses():
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": dinv.device},
-    }
-    f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
+def test_sure_losses(device):
+    f = dinv.models.ArtifactRemoval(dinv.models.MedianFilter())
     # test divergence
 
-    x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
+    x = torch.ones((1, 3, 16, 16), device=device) * 0.5
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     y = physics(x)
 
@@ -235,7 +231,7 @@ def test_sure_losses():
     assert error_mc < 5e-2
 
 
-def test_measplit():
+def test_measplit(device):
     sigma = 0.1
     physics = dinv.physics.Denoising()
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
@@ -247,7 +243,7 @@ def test_measplit():
     imsize = (3, 128, 128)
 
     for split_ratio in np.linspace(0.7, 0.99, 10):
-        x = torch.ones((batch_size,) + imsize, device=dinv.device)
+        x = torch.ones((batch_size,) + imsize, device=device)
         y = physics(x)
 
         # choose training losses

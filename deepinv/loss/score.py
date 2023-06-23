@@ -28,14 +28,14 @@ class ScoreLoss(nn.Module):
         self.metric = torch.nn.MSELoss()
         self.delta = delta
 
-    def forward(self, y, f):
+    def forward(self, y, model, **kwargs):
         r"""
         Computes the Score loss.
 
-        :param torch.tensor y: measurements.
-        :param torch.nn.Module f: Reconstruction function.
-        :return: (torch.tensor) loss.
+        :param torch.Tensor y: measurements.
+        :param torch.nn.Module model: Reconstruction function.
+        :return: (torch.Tensor) loss.
         """
         std = np.randn() * self.delta
         noise = torch.randn_like(y)
-        return self.metric(noise, std * f(std * noise + y))
+        return self.metric(noise, std * model(std * noise + y))

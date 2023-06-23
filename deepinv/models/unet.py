@@ -1,14 +1,15 @@
 import torch
 import torch.nn as nn
+from .drunet import test_pad
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
     From Mohan et al.
+
     "Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks"
     S. Mohan, Z. Kadkhodaie, E. P. Simoncelli, C. Fernandez-Granda
     Int'l. Conf. on Learning Representations (ICLR), Apr 2020.
-
     """
 
     def __init__(
@@ -61,7 +62,9 @@ class UNet(nn.Module):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param int scales: Number of downsampling steps used in the U-Net options=2,3,4,5. The input images should have at least :math:`2^{\text{scales}` pixels in the vertical and horizontal directions. The number of trainable parameters increases with the scale.
+    :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
+        The input images should have at least :math:`2^{\text{scales}}` pixels in the vertical and horizontal directions.
+        The number of trainable parameters increases with the scale.
     """
 
     def __init__(
@@ -190,7 +193,18 @@ class UNet(nn.Module):
             self._forward = self.forward_compact2
 
     def forward(self, x, sigma=None):
-        return self._forward(x)
+        r"""
+        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+
+        :param torch.Tensor x: noisy image.
+        :param float sigma: noise level (not used).
+        """
+
+        factor = self.compact**2
+        if x.size(2) % factor == 0 and x.size(3) % factor == 0:
+            return self._forward(x)
+        else:
+            return test_pad(self._forward, x, modulo=factor)
 
     def forward_standard(self, x):
         # encoding path

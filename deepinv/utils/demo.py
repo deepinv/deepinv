@@ -40,7 +40,6 @@ class MRIData(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.x)
 
-
 class CTData(torch.utils.data.Dataset):
     """CT dataset."""
 
@@ -84,11 +83,11 @@ def ct100_dataloader(train=True, batch_size=1, shuffle=True, num_workers=1):
         num_workers=num_workers,
     )
 
-
 def get_git_root():
     git_repo = git.Repo(".", search_parent_directories=True)
     git_root = git_repo.git.rev_parse("--show-toplevel")
     return git_root
+
 
 
 def load_dataset(
@@ -98,7 +97,7 @@ def load_dataset(
 
     if dataset_name == "fastmri_knee_singlecoil":
         filetype = "pt"
-    elif dataset_name == "ct100":
+    elif dataset_name == "CT100_256x256":
         filetype = "mat"
     else:
         filetype = "zip"
@@ -131,14 +130,13 @@ def load_dataset(
         dataset = MRIData(
             train=train, root_dir=dataset_dir / dataset_name, transform=transform
         )
-    elif dataset_name == "ct100":
+    elif dataset_name == "CT100_256x256":
         dataset = CTData(train=train, root_dir=dataset_dir / dataset_name)
     else:
         dataset = torchvision.datasets.ImageFolder(
             root=dataset_dir, transform=transform
         )
     return dataset
-
 
 def load_degradation(name, data_dir, kernel_index=0, download=True):
     kernel_path = data_dir / name

@@ -1,10 +1,24 @@
+.. _datasets:
+
 Datasets
 ========
 
 This subpackage can be used for generating reconstruction datasets from other base datasets (e.g. MNIST or CelebA).
 
 
-Generating a dataset associated with a certain forward operator is done via ``dinv.datasets.generate_dataset``
+HD5Dataset
+----------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.datasets.HDF5Dataset
+    deepinv.datasets.generate_dataset
+
+
+Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base dataset (in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
 
 ::
@@ -28,7 +42,8 @@ using a base dataset (in this case MNIST). For example, here we generate a compr
                                    physics=physics, device=dinv.device, save_dir=dir)
 
 
-The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard ``DataLoader``:
+The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard
+:class:`torch.utils.data.DataLoader`:
 
 ::
 
@@ -36,12 +51,3 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pyt
 
     dataset = dinv.datasets.HDF5Dataset(path=f'{save_dir}/dinv_dataset.h5', train=True)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
-
-HD5Dataset
-----------
-
-.. automodule:: deepinv.datasets.datagenerator
-   :members:
-   :no-undoc-members:
-   :show-inheritance:
-

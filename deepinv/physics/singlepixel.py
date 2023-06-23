@@ -40,7 +40,7 @@ class SinglePixelCamera(DecomposablePhysics):
     Linear imaging operator with binary entries.
 
     If ``fast=False``, the operator uses a 2D subsampled hadamard transform, which keeps the first :math:`m` modes
-    according to the sequence ordering (see https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering for more details).
+    according to the `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of 1 or -1.
@@ -52,7 +52,7 @@ class SinglePixelCamera(DecomposablePhysics):
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
-    in a similar fashion to torch.nn.Module.
+    in a similar fashion to `:meth:torch.nn.Module`.
 
     :param int m: number of single pixel measurements per acquisition.
     :param tuple img_shape: shape (C, H, W) of images.
@@ -62,13 +62,7 @@ class SinglePixelCamera(DecomposablePhysics):
     """
 
     def __init__(
-        self,
-        m,
-        img_shape,
-        fast=True,
-        device="cpu",
-        dtype=torch.float32,
-        **kwargs,
+        self, m, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
@@ -114,8 +108,7 @@ class SinglePixelCamera(DecomposablePhysics):
         if self.fast:
             y = hadamard_2d(x)
         else:
-            N = x.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            N, C = x.shape[0], self.img_shape[0]
             x = x.reshape(N, C, -1)
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y
@@ -170,54 +163,55 @@ def get_permutation_list(n):
 
 
 # test code
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    import deepinv as dinv
-    import torchvision
-
-    x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-    x = x.unsqueeze(0).float().to(dinv.device) / 255
-    x = torchvision.transforms.Resize((32, 64))(x)
-
-    m = 60
-    physics = SinglePixelCamera(m, (3, 32, 64), fast=False, device=dinv.device)
-
-    y = physics(x)
-
-    xhat = physics.A_adjoint(y)
-
-    dinv.utils.plot([x, xhat])
-
-    print(physics.adjointness_test(x))
-    print(physics.compute_norm(x))
-    # mi = min(int(np.sqrt(m)), x.shape[-2])
-    # mj = min(m - mi, x.shape[-2])
-    #
-    # revi = get_permutation_list(x.shape[-2])[:mi]
-    # revj = get_permutation_list(x.shape[-1])[:mj]
-    #
-    # mask = torch.zeros_like(x)
-    # for i in range(len(revi)):
-    #     for j in range(len(revj)):
-    #         mask[0, :, revi[i], revj[j]] = 1
-    #
-    # # generate low pass hadamard mask
-    # f = hadamard_2d(x)
-    # f = f * mask
-    # out = hadamard_2d(f)
-    #
-    # dinv.utils.plot_batch([x, out, f])
-    #
-    # rev = get_permutation_list(8)
-    # imgs = []
-    # for i in range(8):
-    #     y = torch.zeros((8, 1, 8, 8), device=dinv.device)
-    #     for j in range(8):
-    #         x = torch.zeros((8, 8), device=dinv.device)
-    #         x[rev[i], rev[j]] = 1
-    #         x = hadamard_2d(x)
-    #         y[j, 0, :, :] = x
-    #
-    #     imgs.append(y)
-    #
-    # dinv.utils.plot_batch(imgs)
+# if __name__ == "__main__":
+#     import matplotlib.pyplot as plt
+#     import deepinv as dinv
+#     import torchvision
+#
+#     device = "cuda:0"
+#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
+#     x = x.unsqueeze(0).float().to(device) / 255
+#     x = torchvision.transforms.Resize((16, 8))(x)
+#
+#     m = 20
+#     physics = SinglePixelCamera(m, (3, 16, 8), fast=False, device=device)
+#
+#     y = physics(x)
+#
+#     xhat = physics.A_adjoint(y)
+#
+#     dinv.utils.plot([x, xhat])
+#
+#     print(physics.adjointness_test(x))
+#     print(physics.compute_norm(x))
+#     # mi = min(int(np.sqrt(m)), x.shape[-2])
+#     # mj = min(m - mi, x.shape[-2])
+#     #
+#     # revi = get_permutation_list(x.shape[-2])[:mi]
+#     # revj = get_permutation_list(x.shape[-1])[:mj]
+#     #
+#     # mask = torch.zeros_like(x)
+#     # for i in range(len(revi)):
+#     #     for j in range(len(revj)):
+#     #         mask[0, :, revi[i], revj[j]] = 1
+#     #
+#     # # generate low pass hadamard mask
+#     # f = hadamard_2d(x)
+#     # f = f * mask
+#     # out = hadamard_2d(f)
+#     #
+#     # dinv.utils.plot_batch([x, out, f])
+#     #
+#     # rev = get_permutation_list(8)
+#     # imgs = []
+#     # for i in range(8):
+#     #     y = torch.zeros((8, 1, 8, 8), device=dinv.device)
+#     #     for j in range(8):
+#     #         x = torch.zeros((8, 8), device=dinv.device)
+#     #         x[rev[i], rev[j]] = 1
+#     #         x = hadamard_2d(x)
+#     #         y[j, 0, :, :] = x
+#     #
+#     #     imgs.append(y)
+#     #
+#     # dinv.utils.plot_batch(imgs)

@@ -7,7 +7,7 @@ def hutch_div(y, physics, f, mc_iter=1):
     r"""
     Hutch divergence for A(f(x)).
 
-    :param torch.tensor y: Measurements.
+    :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
     :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
@@ -26,18 +26,18 @@ def hutch_div(y, physics, f, mc_iter=1):
     return out / mc_iter
 
 
-def exact_div(y, physics, f):
+def exact_div(y, physics, model):
     r"""
     Exact divergence for A(f(x)).
 
-    :param torch.tensor y: Measurements.
+    :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param torch.nn.Module, deepinv.models.Denoiser model: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
     :return: (float) exact divergence.
     """
     input = y.requires_grad_(True)
-    output = physics.A(f(input, physics))
+    output = physics.A(model(input, physics))
     out = 0
     _, c, h, w = input.shape
     for i in range(c):
@@ -57,7 +57,7 @@ def mc_div(y1, y, f, physics, tau):
     r"""
     Monte-Carlo estimation for the divergence of A(f(x)).
 
-    :param torch.tensor y: Measurements.
+    :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
     :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
@@ -114,19 +114,19 @@ class SureGaussianLoss(nn.Module):
         self.sigma2 = sigma**2
         self.tau = tau
 
-    def forward(self, y, x_net, physics, f):
+    def forward(self, y, x_net, physics, model, **kwargs):
         r"""
         Computes the SURE Loss.
 
-        :param torch.tensor y: Measurements.
-        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor y: Measurements.
+        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+        :param torch.nn.Module, deepinv.models.Denoiser model: Reconstruction network.
         :return: (float) SURE loss.
         """
 
         y1 = physics.A(x_net)
-        div = 2 * self.sigma2 * mc_div(y1, y, f, physics, self.tau)
+        div = 2 * self.sigma2 * mc_div(y1, y, model, physics, self.tau)
         mse = (y1 - y).pow(2).mean()
         loss_sure = mse + div - self.sigma2
         return loss_sure
@@ -173,14 +173,14 @@ class SurePoissonLoss(nn.Module):
         self.gain = gain
         self.tau = tau
 
-    def forward(self, y, x_net, physics, f):
+    def forward(self, y, x_net, physics, model, **kwargs):
         r"""
         Computes the SURE loss.
 
-        :param torch.tensor y: measurements.
-        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor y: measurements.
+        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
+        :param torch.nn.Module, deepinv.models.Denoiser model: Reconstruction network
         :return: (float) SURE loss.
         """
 
@@ -189,7 +189,7 @@ class SurePoissonLoss(nn.Module):
         b = (2 * b - 1) * 1.0  # binary [-1, 1]
 
         y1 = physics.A(x_net)
-        y2 = physics.A(f(y + self.tau * b, physics))
+        y2 = physics.A(model(y + self.tau * b, physics))
 
         # compute m (size of y)
         # m = y.numel() #(torch.abs(y) > 1e-5).flatten().sum()
@@ -253,12 +253,12 @@ class SurePGLoss(nn.Module):
         self.tau1 = tau1
         self.tau2 = tau2
 
-    def forward(self, y, x_net, physics, f):
+    def forward(self, y, x_net, physics, model, **kwargs):
         r"""
         Computes the SURE loss.
 
-        :param torch.tensor y: measurements.
-        :param torch.tensor x_net: reconstructed image :math:`\inverse{y}`.
+        :param torch.Tensor y: measurements.
+        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
         :return: (float) SURE loss.
@@ -273,9 +273,9 @@ class SurePGLoss(nn.Module):
         b2[torch.rand_like(b2) < p] = -np.sqrt((1 - p) / p)
 
         meas1 = physics.A(x_net)
-        meas2 = physics.A(f(y + self.tau1 * b1, physics))
-        meas2p = physics.A(f(y + self.tau2 * b2, physics))
-        meas2n = physics.A(f(y - self.tau2 * b2, physics))
+        meas2 = physics.A(model(y + self.tau1 * b1, physics))
+        meas2p = physics.A(model(y + self.tau2 * b2, physics))
+        meas2n = physics.A(model(y - self.tau2 * b2, physics))
 
         # compute m (size of y)
         # m = (torch.abs(y) > 1e-5).flatten().sum()
