@@ -185,7 +185,6 @@ model = optim_builder(
 
 wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
-save_images = True  # save images in RESULTS_DIR
 batch_size = 1
 
 dataloader = DataLoader(

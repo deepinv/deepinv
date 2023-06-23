@@ -24,7 +24,7 @@ def make(model_spec, args=None):
         model_args = copy.deepcopy(model_spec["args"])
         model_args.update(args)
     else:
-        model_args = model_spec["args"]
+        model_args = {}
     model = models[model_spec["name"]](**model_args)
     return model
 

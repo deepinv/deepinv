@@ -38,7 +38,7 @@ class DnCNN(nn.Module):
         nf=64,
         pretrained="download",
         train=False,
-        device=None,
+        device="cpu",
     ):
         super(DnCNN, self).__init__()
 

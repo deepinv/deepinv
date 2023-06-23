@@ -151,7 +151,7 @@ max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo_name="ADMM",
+    algo="ADMM",
     prior=prior,
     g_first=False,
     data_fidelity=data_fidelity,
@@ -176,7 +176,6 @@ model = optim_builder(
 batch_size = 1
 wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
-save_images = False  # save images in RESULTS_DIR
 
 
 dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
@@ -190,7 +189,6 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,

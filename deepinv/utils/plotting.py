@@ -76,7 +76,7 @@ def plot(
     :param str save_dir: path to save the plot.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode for images, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     """
     if save_dir:

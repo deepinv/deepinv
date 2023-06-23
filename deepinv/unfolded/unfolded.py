@@ -42,7 +42,7 @@ class BaseUnfold(BaseOptim):
         device="cpu",
         **kwargs
     ):
-        super(BaseUnfold, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for param_key in trainable_params:
             if param_key in self.init_params_algo.keys():
                 param_value = self.init_params_algo[param_key]

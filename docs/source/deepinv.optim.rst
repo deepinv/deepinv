@@ -51,7 +51,6 @@ relaxation parameters, etc...
 
    deepinv.optim.BaseOptim
    deepinv.optim.FixedPoint
-   deepinv.optim.AndersonAcceleration
 
 
 .. autosummary::
