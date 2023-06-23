@@ -62,18 +62,24 @@ class BaseDEQ(BaseUnfold):
             }
             backward_FP = FixedPoint(
                 backward_iterator,
-                update_params_fn_pre=self.update_params_fn_pre,
-                update_prior_fn=self.update_prior_fn,
+                init_iterate_fn = self.init_iterate_fn,
+                init_metrics_fn = self.init_metrics_fn,
+                update_params_fn = self.update_params_fn,
+                update_prior_fn = self.update_prior_fn,
+                update_metrics_fn = self.update_metrics_fn,
                 max_iter=self.max_iter_backward,
                 early_stop=False,
-                verbose=self.verbose,
             )
             g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
             return g
 
         if x.requires_grad:
             x.register_hook(backward_hook)
-        return x, metrics
+        
+        if self.return_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def DEQ_builder(

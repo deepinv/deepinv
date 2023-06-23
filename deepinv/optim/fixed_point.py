@@ -99,7 +99,7 @@ class FixedPoint(nn.Module):
         self.check_conv_fn = check_conv_fn
         self.check_iteration_fn = check_iteration_fn
 
-        if self.check_conv_fn is None:
+        if self.check_conv_fn is None and self.early_stop:
             raise Warning(
                 "early_stop is set to True but no check_conv_fn has been defined. Seeting early_stop to False"
             )

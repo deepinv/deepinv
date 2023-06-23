@@ -23,7 +23,7 @@ from deepinv.utils.demo import load_dataset
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = Path("../plug-and-play")
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
