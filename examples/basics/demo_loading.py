@@ -14,7 +14,7 @@ import torch
 import deepinv as dinv
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.models.denoiser import online_weights_path
 
 
@@ -102,7 +102,7 @@ def custom_init_CP(x_init, y_init):
 
 
 # Define the unfolded trainable model.
-model = Unfolded(
+model = unfolded_builder(
     "CP",
     trainable_params=trainable_params,
     params_algo=params_algo,
@@ -156,7 +156,7 @@ params_algo_new = {
     "K_adjoint": physics.A_adjoint,
 }
 
-model_new = Unfolded(
+model_new = unfolded_builder(
     "CP",
     trainable_params=trainable_params,
     params_algo=params_algo_new,

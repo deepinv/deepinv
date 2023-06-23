@@ -423,14 +423,9 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    model_spec = {
-        "name": "waveletprior",
-        "args": {"wv": "db8", "level": 3, "device": device},
-    }
-
     prior = RED(
-        denoiser=Denoiser(model_spec)
-    )  # here the prior model is common for all iterations
+        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
+    )
 
     params_algo = {
         "stepsize": stepsize,

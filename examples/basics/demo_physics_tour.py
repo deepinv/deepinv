@@ -11,7 +11,9 @@ We restrict ourselves to operators where the signal is a 2D image. The full list
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils.demo import load_image
+import requests
+from imageio.v2 import imread
+from io import BytesIO
 
 # %%
 # Load image from the internet
@@ -21,11 +23,15 @@ from deepinv.utils.demo import load_image
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = "https://www.i3s.unice.fr/sites/default/files/logos/cnrs_transparent.png"
-x = load_image(url=url, img_size=64, resize_mode="resize")
+url = "https://www-iuem.univ-brest.fr/intranet/communication/logos/tutelles-iuem/cnrs/cnrs-poster.png"
+res = requests.get(url)
+x = imread(BytesIO(res.content)) / 255.0
+
+x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
+x = torch.nn.functional.interpolate(x, size=(64, 64))
+img_size = x.shape[1:]
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
-img_size = x.shape[1:]
 
 # %%
 # Denoising

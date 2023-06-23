@@ -136,7 +136,7 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = dinv.unfolded.Unfolded(
+model = dinv.unfolded.unfolded_builder(
     "HQS",
     params_algo=params_algo,
     trainable_params=trainable_params,
@@ -235,7 +235,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,

@@ -102,8 +102,8 @@ n_images_max = (
 my_dataset_name = "demo_training_inpainting"
 measurement_dir = DATA_DIR / train_dataset_name / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
+    train_dataset=train_base_dataset,
+    test_dataset=test_base_dataset,
     physics=physics,
     device=device,
     save_dir=measurement_dir,
@@ -253,7 +253,6 @@ train(
 # The testing function will compute test_psnr metrics and plot and save the results.
 
 plot_images = True
-save_images = True
 method = "artifact_removal"
 
 test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
@@ -262,7 +261,6 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / test_dataset_name,
     verbose=verbose,
     wandb_vis=wandb_vis,
@@ -335,7 +333,6 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / test_dataset_name,
     verbose=verbose,
     wandb_vis=wandb_vis,
