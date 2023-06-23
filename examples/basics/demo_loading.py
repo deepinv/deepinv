@@ -5,7 +5,7 @@ Saving and loading models
 Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a
 model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model.
 The architecture of the model and its training are described
-in :ref:`examples/basics/demo_unfolded_constrained_LISTA.py`.
+in the `constrained unfolded demo <https://deepinv.github.io/deepinv/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html>`_.
 
 """
 from pathlib import Path
