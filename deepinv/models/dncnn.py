@@ -1,9 +1,8 @@
 import torch.nn as nn
 import torch
-from .denoiser import register, online_weights_path
+from .denoiser import online_weights_path
 
 
-@register("dncnn")
 class DnCNN(nn.Module):
     r"""
     DnCNN convolutional denoiser.
@@ -31,8 +30,8 @@ class DnCNN(nn.Module):
 
     def __init__(
         self,
-        in_channels=1,
-        out_channels=1,
+        in_channels=3,
+        out_channels=3,
         depth=20,
         bias=True,
         nf=64,

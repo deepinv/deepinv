@@ -31,8 +31,8 @@ i.e. for :math:`k=1,2,...`
     \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
 where :math:`x` is a variable converging to the solution of the minimisation problem, and
-:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
-The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
+:math:`z` is an additional (dual) variable that may be required in the computation of the fixed point operator.
+The implementation of the fixed point algorithm in ``deepinv.optim``,
 following standard optimisation theory, is split in two steps:
 
 .. math::
@@ -43,6 +43,9 @@ where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_
 on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
 relaxation parameters, etc...
 
+
+Base Optimisation Class
+---------------------------
 
 .. autosummary::
    :toctree: stubs
@@ -221,8 +224,8 @@ Chambolle-Pock Primal-Dual Splitting
    :nosignatures:
 
    deepinv.optim.optim_iterators.CPIteration
-   deepinv.optim.optim_iterators.primal_dual.fStepCP
-   deepinv.optim.optim_iterators.primal_dual.gStepCP
+   deepinv.optim.optim_iterators.primal_dual_CP.fStepCP
+   deepinv.optim.optim_iterators.primal_dual_CP.gStepCP
 
 
 

@@ -11,7 +11,6 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models.denoiser import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
@@ -112,7 +111,8 @@ params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 data_fidelity = L2()
 
 
-# The GSPnP prior corresponds to a RED prior with an explicit `g`. We thus write a class that inherits from RED for this custom prior.
+# The GSPnP prior corresponds to a RED prior with an explicit `g`.
+# We thus write a class that inherits from RED for this custom prior.
 class GSPnP(RED):
     r"""
     Gradient-Step Denoiser prior.
@@ -129,23 +129,15 @@ class GSPnP(RED):
         :param torch.tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.tensor) prior :math:`g(x)`.
         """
-        return self.denoiser.denoiser.potential(x, *args, **kwargs)
+        return self.denoiser.potential(x, *args, **kwargs)
 
 
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-model_spec = {
-    "name": denoiser_name,
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": "download",
-        "train": False,
-        "device": device,
-    },
-}
-prior = GSPnP(denoiser=Denoiser(model_spec))
+prior = GSPnP(
+    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
+)
 
 # By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
 # For custom initialization, we need to write a function of the measurements.
@@ -162,7 +154,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo="PGD",
+    iteration="PGD",
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,

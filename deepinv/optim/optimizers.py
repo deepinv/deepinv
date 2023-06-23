@@ -83,8 +83,6 @@ class BaseOptim(nn.Module):
 
 
 
-
-
     :param deepinv.optim.iterator iterator: Fixed-point iterator of the class of the algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                              e.g. the stepsize, regularisation parameters, denoising power...
@@ -166,7 +164,8 @@ class BaseOptim(nn.Module):
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
-        # By default, self.prior should be a list of elments of the class Prior. The user could want the prior to change at each iteration.
+
+        # By default, self.prior should be a list of elements of the class Prior. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
@@ -263,7 +262,8 @@ class BaseOptim(nn.Module):
         r"""
         Initializes the metrics.
         Metrics are computed for each batch and for each iteration.
-        They are represented by a list of list, and metrics[metric_name][i,j] contains the metric metric_name computed for batch i, at iteration j.
+        They are represented by a list of list, and metrics[metric_name][i,j] contains the metric metric_name computed
+        for batch i, at iteration j.
 
         :param dict X_init: dictionary containing the primal and auxiliary initial iterates.
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
@@ -272,6 +272,7 @@ class BaseOptim(nn.Module):
         self.batch_size = self.get_primal_variable(X_init).shape[0]
         if self.return_metrics:
             init = {}
+<<<<<<< ours
             x_init = (
                 self.get_primal_variable(X_init)
                 if not self.return_aux
@@ -281,6 +282,15 @@ class BaseOptim(nn.Module):
                 [cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)
             ]
             if self.has_cost:
+=======
+            if not self.return_aux and x_gt is not None:
+                x_init = self.get_primal_variable(X_init)
+                psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            else:
+                psnr = [[] for i in range(self.batch_size)]
+            init["psnr"] = psnr
+            if self.F_fn is not None:
+>>>>>>> theirs
                 init["cost"] = [[] for i in range(self.batch_size)]
             init["residual"] = [[] for i in range(self.batch_size)]
             if self.custom_metrics is not None:
@@ -412,6 +422,7 @@ class BaseOptim(nn.Module):
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         """
         x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
         x = (
@@ -426,7 +437,11 @@ class BaseOptim(nn.Module):
 
 
 def optim_builder(
+<<<<<<< ours
     algo,
+=======
+    iteration,
+>>>>>>> theirs
     data_fidelity=L2(),
     F_fn=None,
     g_first=False,
@@ -455,9 +470,19 @@ def optim_builder(
         sol = optim_algo(y, physics)
 
 
+<<<<<<< ours
     :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
     :param F_fn: Custom user input cost function. default: None.
+=======
+    :param iteration: either name of the algorithm to be used, or an iterator.
+        If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
+    :param dict params_algo: dictionary containing the algorithm's relevant parameter.
+    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
+    :param F_fn: Custom user input cost function. default: None.
+    :param dict prior: dictionary containing the regularisation prior under the form of a denoiser, proximity operator,
+        gradient, or simply an auto-differentiable function.
+>>>>>>> theirs
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
@@ -474,23 +499,37 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
+<<<<<<< ours
         has_cost = True
     else:
         has_cost = False
 
     if isinstance(algo, str):
         iterator_fn = str_to_class(algo + "Iteration")
+=======
+    if isinstance(iteration, str):
+        iterator_fn = str_to_class(iteration + "Iteration")
+>>>>>>> theirs
         iterator = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
+<<<<<<< ours
             has_cost=has_cost,
         )
     else:
         iterator = algo
 
     optimizer = BaseOptim(iterator, has_cost=has_cost, **kwargs)
+=======
+            bregman_potential=bregman_potential,
+        )
+    else:
+        iterator = iteration
+
+    optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
+>>>>>>> theirs
     return optimizer
 
 

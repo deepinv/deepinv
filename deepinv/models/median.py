@@ -1,14 +1,10 @@
-import math
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair, _quadruple
-from .denoiser import register
 
 # code adapted from https://gist.github.com/rwightman/f2d3849281624be7c0f11c85c87c1598
 
 
-@register("median_filter")
 class MedianFilter(nn.Module):
     r"""
     Median filter.

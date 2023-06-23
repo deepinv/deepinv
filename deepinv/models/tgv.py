@@ -1,11 +1,8 @@
 import warnings
-
 import torch
 import torch.nn as nn
-from .denoiser import register
 
 
-@register("tgv")
 class TGV(nn.Module):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.

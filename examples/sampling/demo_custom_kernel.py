@@ -164,10 +164,7 @@ class PreconULA(dinv.sampling.MonteCarlo):
 # This example uses a simple median filter as a plug-and-play denoiser.
 # The hyperparameter :math:`\sigma_d` controls the strength of the prior.
 
-model_spec = {"name": "median_filter", "args": {}}
-
-prior = dinv.optim.ScorePrior(denoiser=dinv.models.Denoiser(model_spec=model_spec))
-
+prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 
 # %%
 # Create the preconditioned and standard ULA samplers

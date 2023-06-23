@@ -32,14 +32,17 @@ class MOILoss(nn.Module):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.0):
+    def __init__(
+        self, physics_list, metric=torch.nn.MSELoss(), apply_noise=True, weight=1.0
+    ):
         super(MOILoss, self).__init__()
         self.name = "moi"
+        self.physics_list = physics_list
         self.metric = metric
         self.weight = weight
         self.noise = apply_noise
 
-    def forward(self, x_net, physics, model, **kwargs):
+    def forward(self, x_net, model, **kwargs):
         r"""
         Computes the MOI loss.
 
@@ -49,13 +52,13 @@ class MOILoss(nn.Module):
         :param torch.nn.Module model: Reconstruction function.
         :return: (torch.Tensor) loss.
         """
-        j = np.random.randint(len(physics))
+        j = np.random.randint(len(self.physics_list))
 
         if self.noise:
-            y = physics[j](x_net)
+            y = self.physics_list[j](x_net)
         else:
-            y = physics[j].A(x_net)
+            y = self.physics_list[j].A(x_net)
 
-        x2 = model(y, physics[j])
+        x2 = model(y, self.physics_list[j])
 
         return self.weight * self.metric(x2, x_net)

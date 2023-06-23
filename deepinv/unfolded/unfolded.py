@@ -35,7 +35,7 @@ class BaseUnfold(BaseOptim):
 
     def __init__(
         self,
-        *args,
+        iterator,
         trainable_params=[],
         custom_g_step=None,
         custom_f_step=None,
@@ -50,6 +50,7 @@ class BaseUnfold(BaseOptim):
                     [nn.Parameter(torch.tensor(el).to(device)) for el in param_value]
                 )
         self.init_params_algo = nn.ParameterDict(self.init_params_algo)
+        self.params_algo = self.init_params_algo.copy()
         self.prior = nn.ModuleList(self.prior)
 
         if custom_g_step is not None:

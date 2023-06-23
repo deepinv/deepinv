@@ -187,7 +187,7 @@ class Tikhonov(Prior):
 
 class ScorePrior(Prior):
     r"""
-    Approximates the score of a distribution using a denoiser.
+    Score via MMSE denoiser :math:`\nabla g(x)=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`.
 
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 

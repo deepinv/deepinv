@@ -8,24 +8,36 @@ class CPIteration(OptimIterator):
     Single iteration of the Chambolle-Pock algorithm.
 
     Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
-    algorithm for minimising :math:`\lambda \datafid{Ax}{y} + g(x)`. Our implementation corresponds to
-    Algorithm 1 of `<https://hal.science/hal-00609728v4/document>`_.
+    algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
+    Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
     If the attribute `"g_first"` is set to False (by default), the iteration is given by
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k+1} &= \operatorname{prox}_{\sigma (\lambda f)^*}(u_k + \sigma K z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau K^\top u_{k+1}) \\
+        u_{k+1} &= \operatorname{prox}_{\sigma (\lambda F)^*}(u_k + \sigma K z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\tau G}(x_k-\tau K^\top u_{k+1}) \\
         z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
         \end{equation*}
 
-    where :math:`(\lambda f)^*` is the Fenchel-Legendre conjugate of :math:`\lambda f`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
+    where :math:`(\lambda F)^*` is the Fenchel-Legendre conjugate of :math:`\lambda F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
 
-    If the attribute `"g_first"` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
+    If the attribute `"g_first"` is set to True, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
+
+    In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
+
+    .. math::
+
+        \begin{equation*}
+        \underset{x}{\operatorname{min}} \,\, \lambda \distancename(Ax, y) + \regname(x)
+        \end{equation*}
+
+
+    with a splitting on :math:`\distancename`, with not differentiability assumption needed on :math:`\distancename`
+    or :math:`\regname`, not any invertibility assumption on :math:`A`.
     """
 
     def __init__(self, **kwargs):
@@ -87,8 +99,8 @@ class fStepCP(fStep):
             )
         else:
             p = x + cur_params["sigma"] * w
-            return self.data_fidelity.prox_conjugate(
-                p, y, physics, cur_params["sigma"], lamb=cur_params["lambda"]
+            return self.data_fidelity.prox_d_conjugate(
+                p, y, cur_params["sigma"], lamb=cur_params["lambda"]
             )
 
 

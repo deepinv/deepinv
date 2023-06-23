@@ -69,7 +69,8 @@ We are ultimately aiming for a comprehensive library of inverse problems and dee
 and we need your help to get there!
 The preferred way to contribute to ``deepinv`` is to fork the `main
 repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
-then submit a "Pull Request" (PR).
+then submit a "Pull Request" (PR). See our `contributing guide <https://deepinv.github.io/deepinv/contributing/>`_
+for more details.
 
 
 Finding help
