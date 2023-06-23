@@ -111,18 +111,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 data_fidelity = L2()
 
 # Set up the trainable denoising prior
-denoiser=DnCNN(in_channels=3,
-        out_channels=3,
-        depth=7,
-        device=device,
-        pretrained=None,
-        train=True)
+denoiser = DnCNN(
+    in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
+)
 
 # If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(
-    denoiser=denoiser
-)  # here the prior model is common for all iterations
+prior = PnP(denoiser=denoiser)  # here the prior model is common for all iterations
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
@@ -149,7 +144,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iterator="HQS",
+    iteration="HQS",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
@@ -159,7 +154,7 @@ model = DEQ_builder(
 
 # %%
 # Define the training parameters.
-# ----------------------------------------------------------------------------------------
+# -------------------------------
 # We use the Adam optimizer and the StepLR scheduler.
 
 
@@ -189,7 +184,7 @@ test_dataloader = DataLoader(
 
 # %%
 # Train the network
-# ----------------------------------------------------------------------------------------
+# -----------------
 # We train the network using the library's train function.
 
 train(

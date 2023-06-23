@@ -191,7 +191,7 @@ def custom_init_CP(x_init, y_init):
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
-    iterator="CP",
+    iteration="CP",
     trainable_params=trainable_params,
     params_algo=params_algo,
     data_fidelity=data_fidelity,
@@ -203,7 +203,7 @@ model = unfolded_builder(
 
 # %%
 # Train the model
-# ----------------------------------------------------------------------------------------
+# ---------------
 # We train the model using the :meth:`dinv.training_utils.train` function.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
@@ -313,7 +313,7 @@ params_algo_new = {
     "K_adjoint": physics.A_adjoint,
 }
 
-model_new = Unfolded(
+model_new = unfolded_builder(
     "CP",
     trainable_params=trainable_params,
     params_algo=params_algo_new,
