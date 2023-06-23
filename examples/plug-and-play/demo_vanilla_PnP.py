@@ -7,7 +7,7 @@ This example shows how to use a standart PnP algorithm with DnCNN denoiser for c
 import deepinv as dinv
 from pathlib import Path
 import torch
-from deepinv.models.denoiser import Denoiser
+from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
@@ -80,21 +80,12 @@ early_stop = True
 data_fidelity = L2()
 
 # Specify the denoising prior
-model_spec = {  # specifies the parameters of the DRUNet model
-    "name": "dncnn",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": "download",
-        "train": False,
-        "device": device,
-    },
-}
-prior = PnP(denoiser=Denoiser(model_spec))
+denoiser = DnCNN(in_channels=n_channels, out_channels=n_channels, pretrained='download', train=False, device=device)
+prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo="PGD",
+    iteration="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,

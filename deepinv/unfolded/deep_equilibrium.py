@@ -68,7 +68,7 @@ class BaseDEQ(BaseUnfold):
                 early_stop=False,
                 verbose=self.verbose,
             )
-            g = backward_FP({"est": (grad,)}, None)["est"][0]
+            g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
             return g
 
         if x.requires_grad:
@@ -77,7 +77,7 @@ class BaseDEQ(BaseUnfold):
 
 
 def DEQ_builder(
-    algo, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
+    iterator, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -103,8 +103,8 @@ def DEQ_builder(
     else:
         has_cost = False
 
-    if isinstance(algo, str):
-        iterator_fn = str_to_class(algo + "Iteration")
+    if isinstance(iterator, str):
+        iterator_fn = str_to_class(iterator + "Iteration")
         iterator = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
@@ -113,6 +113,6 @@ def DEQ_builder(
             has_cost=has_cost
         )
     else:
-        iterator = algo
+        iterator = iterator
     return BaseDEQ(iterator, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs)
 

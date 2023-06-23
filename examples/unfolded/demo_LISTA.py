@@ -161,7 +161,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
-    algo="PGD",
+    iterator="PGD",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
@@ -191,7 +191,7 @@ wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
 train_batch_size = 64 if torch.cuda.is_available() else 1
-test_batch_size = 64 if torch.cuda.is_available() else 1
+test_batch_size = 64 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True

@@ -30,12 +30,13 @@ class BaseUnfold(BaseOptim):
     :param callable custom_g_step: Custom gStep module. Default: None.
     :param callable custom_f_step: Custom fStep module. Default: None.
     :param torch.device device: Device on which to perform the computations. Default: `torch.device("cpu")`.
+    :param args:  Non-keyword arguments to be passed to the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
     :param kwargs: Keyword arguments to be passed to the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
     """
 
     def __init__(
         self,
-        iterator,
+        *args,
         trainable_params=[],
         custom_g_step=None,
         custom_f_step=None,
@@ -60,7 +61,7 @@ class BaseUnfold(BaseOptim):
 
 
 def unfolded_builder(
-    algo, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
+    iterator, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -87,8 +88,8 @@ def unfolded_builder(
     else:
         has_cost = False
 
-    if isinstance(algo, str):
-        iterator_fn = str_to_class(algo + "Iteration")
+    if isinstance(iterator, str):
+        iterator_fn = str_to_class(iterator + "Iteration")
         iterator = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
@@ -97,5 +98,5 @@ def unfolded_builder(
             has_cost=has_cost,
         )
     else:
-        iterator = algo
+        iterator = iterator
     return BaseUnfold(iterator, has_cost=has_cost, **kwargs)

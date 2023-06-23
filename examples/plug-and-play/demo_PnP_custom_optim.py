@@ -8,7 +8,7 @@ For example, here, we implement the Condat-Vu Primal-Dual algorithm for Single P
 import deepinv as dinv
 from pathlib import Path
 import torch
-from deepinv.models.denoiser import Denoiser
+from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
@@ -175,28 +175,19 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 # Set up the PnP algorithm parameters : the `stepsize`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. The following parameters are chosen arbitrarily.
 params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.1}
 max_iter = 200
-early_stop = True
+early_stop = True # stop the algorithm when convergence is reached
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Specify the denoising prior
-model_spec = {  # specifies the parameters of the DRUNet model
-    "name": "dncnn",
-    "args": {
-        "in_channels": n_channels,
-        "out_channels": n_channels,
-        "pretrained": "download",
-        "train": False,
-        "device": device,
-    },
-}
-prior = PnP(denoiser=Denoiser(model_spec))
+denoiser = DnCNN(in_channels=n_channels, out_channels=n_channels, pretrained='download', train=False, device=device)
+prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
 algo = CVIteration(data_fidelity=data_fidelity, F_fn=None, has_cost=False)
 model = optim_builder(
-    algo=algo,
+    iteration=algo,
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,

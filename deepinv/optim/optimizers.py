@@ -282,7 +282,7 @@ class BaseOptim(nn.Module):
             else:
                 psnr = [[] for i in range(self.batch_size)]
             init["psnr"] = psnr
-            if self.F_fn is not None:
+            if self.has_cost:
                 init["cost"] = [[] for i in range(self.batch_size)]
             init["residual"] = [[] for i in range(self.batch_size)]
             if self.custom_metrics is not None:

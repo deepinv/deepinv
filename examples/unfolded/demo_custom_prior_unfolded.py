@@ -173,7 +173,7 @@ data_fidelity = L2()
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
-    algo="PGD",
+    iterator="PGD",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,

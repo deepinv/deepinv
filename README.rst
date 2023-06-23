@@ -53,7 +53,7 @@ Try out the following plug-and-play image inpainting example:
    physics = dinv.physics.Inpainting((1, 32, 32), mask = 0.5, noise_model=dinv.physics.GaussianNoise(sigma=0.01))
    data_fidelity = dinv.optim.data_fidelity.L2()
    prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
-   model = dinv.optim.optim_builder(algo="HQS", prior = prior, data_fidelity = data_fidelity, params_algo = {"stepsize": 1.0, "g_param": 0.1, "lambda": 2.})
+   model = dinv.optim.optim_builder(iteration="HQS", prior = prior, data_fidelity = data_fidelity, params_algo = {"stepsize": 1.0, "g_param": 0.1, "lambda": 2.})
    y = physics(x)
    x_hat = model(y, physics)
    dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"],rescale_mode='clip')

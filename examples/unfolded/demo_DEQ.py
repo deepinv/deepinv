@@ -149,7 +149,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    "HQS",
+    iterator="HQS",
     params_algo=params_algo,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,

@@ -23,14 +23,12 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
-
 import deepinv as dinv
 from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
-from deepinv.models.denoiser import online_weights_path
 
 # %%
 # Setup paths for data loading and results.
@@ -68,8 +66,13 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 
-train_dataset = load_dataset(train_dataset_name, ORIGINAL_DATA_DIR, train_transform)
-test_dataset = load_dataset(test_dataset_name, ORIGINAL_DATA_DIR, test_transform)
+train_base_dataset = load_dataset(
+    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
+)
+test_base_dataset = load_dataset(
+    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
+)
+
 
 # %%
 # Define forward operator and generate dataset
@@ -187,8 +190,8 @@ def custom_init_CP(x_init, y_init):
 
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "CP",
+model = unfolded_builder(
+    iterator="CP",
     trainable_params=trainable_params,
     params_algo=params_algo,
     data_fidelity=data_fidelity,
