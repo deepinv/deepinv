@@ -272,25 +272,17 @@ class BaseOptim(nn.Module):
         self.batch_size = self.get_primal_variable(X_init).shape[0]
         if self.return_metrics:
             init = {}
-<<<<<<< ours
             x_init = (
                 self.get_primal_variable(X_init)
                 if not self.return_aux
                 else self.get_auxiliary_variable(X_init)
             )
-            init["psnr"] = [
-                [cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)
-            ]
-            if self.has_cost:
-=======
-            if not self.return_aux and x_gt is not None:
-                x_init = self.get_primal_variable(X_init)
+            if x_gt is not None:
                 psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
             else:
                 psnr = [[] for i in range(self.batch_size)]
             init["psnr"] = psnr
             if self.F_fn is not None:
->>>>>>> theirs
                 init["cost"] = [[] for i in range(self.batch_size)]
             init["residual"] = [[] for i in range(self.batch_size)]
             if self.custom_metrics is not None:
@@ -437,11 +429,7 @@ class BaseOptim(nn.Module):
 
 
 def optim_builder(
-<<<<<<< ours
-    algo,
-=======
     iteration,
->>>>>>> theirs
     data_fidelity=L2(),
     F_fn=None,
     g_first=False,
@@ -470,19 +458,11 @@ def optim_builder(
         sol = optim_algo(y, physics)
 
 
-<<<<<<< ours
-    :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
-    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
-    :param F_fn: Custom user input cost function. default: None.
-=======
     :param iteration: either name of the algorithm to be used, or an iterator.
         If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
     :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
     :param F_fn: Custom user input cost function. default: None.
-    :param dict prior: dictionary containing the regularisation prior under the form of a denoiser, proximity operator,
-        gradient, or simply an auto-differentiable function.
->>>>>>> theirs
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
@@ -499,37 +479,23 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
-<<<<<<< ours
         has_cost = True
     else:
         has_cost = False
 
-    if isinstance(algo, str):
-        iterator_fn = str_to_class(algo + "Iteration")
-=======
     if isinstance(iteration, str):
         iterator_fn = str_to_class(iteration + "Iteration")
->>>>>>> theirs
         iterator = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
-<<<<<<< ours
             has_cost=has_cost,
-        )
-    else:
-        iterator = algo
-
-    optimizer = BaseOptim(iterator, has_cost=has_cost, **kwargs)
-=======
-            bregman_potential=bregman_potential,
         )
     else:
         iterator = iteration
 
-    optimizer = BaseOptim(iterator, F_fn=F_fn, prior=prior, **kwargs)
->>>>>>> theirs
+    optimizer = BaseOptim(iterator, has_cost=has_cost, **kwargs)
     return optimizer
 
 
