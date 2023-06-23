@@ -3,8 +3,9 @@ Saving and loading models
 ====================================================================================================
 
 Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a
-model. For the purpose of the example, we choose an unfolded CP algorithm as the model. The architecture of the model
-and its training are described in :ref:`examples/basics/demo_unfolded_constrained_LISTA.py`.
+model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model.
+The architecture of the model and its training are described
+in the `constrained unfolded demo <https://deepinv.github.io/deepinv/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html>`_.
 
 """
 from pathlib import Path
@@ -29,13 +30,13 @@ RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
 CKPT_DIR = BASE_DIR / "ckpts"
 
+
 # %%
-# Define a model
+# Define a forward operator
 # --------------------------------------------
-# For the purpose of this example, we define a rather complex model that consists an unfolded Chambolle-Pock algorithm.
+# We define a simple inpainting operator with 50% of missing pixels.
 #
 
-# Define the parameters
 n_channels = 3
 img_size = 32
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -46,6 +47,13 @@ physics = dinv.physics.Inpainting(
 )
 
 
+# %%
+# Define a model
+# --------------------------------------------
+# For the purpose of this example, we define a rather complex model that consists an unfolded Chambolle-Pock algorithm.
+#
+
+
 # Select the data fidelity term
 data_fidelity = IndicatorL2(radius=0.0)
 
@@ -53,8 +61,10 @@ data_fidelity = IndicatorL2(radius=0.0)
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each CP iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
+
 level = 3
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
+
 prior = [
     PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
     for i in range(max_iter)
@@ -120,6 +130,7 @@ torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
+
 prior_new = [
     PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
     for i in range(max_iter)

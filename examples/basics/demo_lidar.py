@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # with a standard deviation of 2 bins.
 #
 # The forward model for the case of a single depth per pixel is defined as (e.g. see `this paper
-# <https://ieeexplore.ieee.org/abstract/document/9127841>_`):
+# <https://ieeexplore.ieee.org/abstract/document/9127841>`_):
 #
 # .. math::
 #

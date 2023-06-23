@@ -3,7 +3,8 @@
 Unfolded algorithms
 ===================
 
-This package contains a collection of routines turning optimization algorithms into unfolded architectures.
+This package contains a collection of routines turning the optimization algorithms defined in :ref:`Optim <optim>`
+into unfolded architectures.
 Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{\forw{x}}{y} + \reg{x}`
 where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.
 The resulting fixed-point algorithms for solving these problems are of the form (see :ref:`Optim <optim>`)
@@ -22,6 +23,10 @@ by learnable structures. In turn, they can be trained in an end-to-end fashion t
 
 Unfolded
 --------
+The :class:`deepinv.unfolded.Unfolded` class is a generic class for building unfolded architectures. It provides
+a trainable reconstruction network using a either pre-existing optimizer (e.g., "PGD") or
+an iterator defined by the user. The user can choose which parameters (e.g., prior denoiser, step size, regularization
+parameter, etc.) are learnable and which are not.
 
 .. autosummary::
    :toctree: stubs
@@ -33,6 +38,15 @@ Unfolded
 
 Deep Equilibrium
 ----------------
+Deep equilibrium models are a particular class of unfolded architectures where the reconstruction network is defined
+implicitly as the fixed-point of an optimization algorithm, i.e.,
+
+.. math::
+    \begin{aligned}
+    z &= \operatorname{step}_f(x, z, y, A, ...)\\
+    x &= \operatorname{step}_g(x, z, y, A, ...)
+    \end{aligned}
+
 
 .. autosummary::
    :toctree: stubs

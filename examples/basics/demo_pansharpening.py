@@ -42,7 +42,7 @@ physics_stacked = physics2 + physics1
 # The measurements of a stacked operator are :class:`deepinv.utils.TensorList` objects, which are lists of tensors
 # that can be added, multiplied, etc. to other :class:`deepinv.utils.TensorList` objects. It is also possible to
 # generate random or zero-filled :class:`deepinv.utils.TensorList` objects in one line of code (similarly to standard
-# ``torch.Tensor``.
+# :class:`torch.Tensor`).
 #
 
 x = torch.zeros((1,) + img_size, device=device)

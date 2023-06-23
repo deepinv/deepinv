@@ -25,6 +25,18 @@ All forward operators inherit the structure of the ``Physics`` class.
 
    deepinv.physics.Physics
 
+
+Operators can be called with the ``forward`` method, for example
+
+::
+
+    import deepinv as dinv
+
+    # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
+    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    x = torch.rand(1, 1, 28, 28) # create a random image
+    y = physics(x) # compute noisy measurements
+
 Linear operators
 ----------------
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
@@ -51,6 +63,23 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
 
+All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
+
+::
+
+    import deepinv as dinv
+
+    # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
+    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    x = torch.rand(1, 1, 28, 28) # create a random image
+    y = physics(x) # compute noisy measurements
+    y2 = physics.A(x) # compute the linear operator (no noise)
+    x_adj = physics.A_adjoint(y) # compute the adjoint operator
+    x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
+    x_prox = physics.prox_l2(x, y, .1) # compute the prox operator
+
+Some operators have singular value decompositions (see :class:deepinv.physics.DecomposablePhysics) which
+have additional methods.
 
 Non-linear operators
 --------------------

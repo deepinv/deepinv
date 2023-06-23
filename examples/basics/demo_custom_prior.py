@@ -150,7 +150,7 @@ max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo="ADMM",
+    iteration="ADMM",
     prior=prior,
     g_first=False,
     data_fidelity=data_fidelity,

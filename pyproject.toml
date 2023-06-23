@@ -6,11 +6,6 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
-write_to = "deepinv/version.py"
-local_scheme = "no-local-version"
-fallback_version = "dev"
-
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [

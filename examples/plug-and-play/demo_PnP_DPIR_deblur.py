@@ -126,7 +126,7 @@ prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
-    algo="HQS",
+    iteration="HQS",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
