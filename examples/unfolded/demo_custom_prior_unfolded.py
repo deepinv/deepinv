@@ -167,6 +167,7 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 trainable_params = [
     "g_param",
     "stepsize",
+    "lambda"
 ]  # define which parameters from 'params_algo' are trainable
 
 # Select the data fidelity term
@@ -267,6 +268,10 @@ test(
 # values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
 #
 
-dinv.utils.plotting.plot_gparam_stepsize(
-    model, g_param_init=reg_param_init, stepsize_init=stepsize
+# %%
+# Plotting the trained parameters.
+# ------------------------------------
+
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )
