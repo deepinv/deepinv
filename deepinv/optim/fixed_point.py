@@ -141,7 +141,12 @@ class FixedPoint(nn.Module):
                     if self.update_metrics_fn
                     else None
                 )
-                if self.early_stop and (self.check_conv_fn is not None) and it > 1 and self.check_conv_fn(it, X_prev, X):
+                if (
+                    self.early_stop
+                    and (self.check_conv_fn is not None)
+                    and it > 1
+                    and self.check_conv_fn(it, X_prev, X)
+                ):
                     break
                 it += 1
             else:

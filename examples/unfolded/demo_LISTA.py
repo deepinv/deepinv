@@ -180,7 +180,6 @@ model = unfolded_builder(
 #
 
 
-
 # Training parameters
 epochs = 20 if torch.cuda.is_available() else 5
 learning_rate = 1e-3
@@ -254,4 +253,6 @@ test(
 # %%
 # Plotting the learned parameters.
 # ------------------------------------
-dinv.utils.plotting.plot_parameters(model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation)
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+)

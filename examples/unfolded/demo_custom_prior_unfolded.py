@@ -180,7 +180,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    g_first=False
+    g_first=False,
 )
 
 # %%
@@ -267,4 +267,6 @@ test(
 # values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
 #
 
-dinv.utils.plotting.plot_gparam_stepsize(model, g_param_init=reg_param_init, stepsize_init=stepsize)
+dinv.utils.plotting.plot_gparam_stepsize(
+    model, g_param_init=reg_param_init, stepsize_init=stepsize
+)

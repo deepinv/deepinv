@@ -7,6 +7,6 @@ from .plotting import (
     plot_curves,
     make_grid,
     wandb_imgs,
-    wandb_plot_curves
+    wandb_plot_curves,
 )
 from .nn import get_freer_gpu, TensorList, rand_like, zeros_like, randn_like, ones_like

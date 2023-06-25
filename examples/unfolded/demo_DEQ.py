@@ -223,9 +223,10 @@ test(
 )
 
 
-
 # %%
 # Plotting the trained parameters.
 # ------------------------------------
 
-dinv.utils.plotting.plot_parameters(model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation)
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+)

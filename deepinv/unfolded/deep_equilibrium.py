@@ -57,19 +57,24 @@ class BaseDEQ(BaseUnfold):
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
+
                 def forward(self, X, *args, **kwargs):
-                    return  {
-                    "est": (
-                        torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[0]
-                        + grad,
-                    )
-                }
+                    return {
+                        "est": (
+                            torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
+                                0
+                            ]
+                            + grad,
+                        )
+                    }
+
             def init_iterate_fn(y, physics, F_fn=None):
                 return {"est": (x0,), "cost": None}
+
             backward_iterator = backward_iterator()
             backward_FP = FixedPoint(
                 backward_iterator,
-                init_iterate_fn = init_iterate_fn,
+                init_iterate_fn=init_iterate_fn,
                 max_iter=self.max_iter_backward,
                 early_stop=False,
             )
@@ -86,7 +91,13 @@ class BaseDEQ(BaseUnfold):
 
 
 def DEQ_builder(
-    iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
+    iteration,
+    data_fidelity=L2(),
+    F_fn=None,
+    g_first=False,
+    beta=1.0,
+    max_iter_backward=50,
+    **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -125,4 +136,6 @@ def DEQ_builder(
         )
     else:
         iteration = iteration
-    return BaseDEQ(iteration, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs)
+    return BaseDEQ(
+        iteration, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs
+    )

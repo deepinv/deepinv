@@ -201,12 +201,11 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
 
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
-
     # Font size and box color
     # plt.rc("font", family="sans-serif", size=10)
     # plt.rc("axes", edgecolor="gray")
 
-    color = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
@@ -220,16 +219,17 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
             return param
 
     for i, name_param in enumerate(model.params_algo):
-        value = [get_param(model.params_algo[name_param][k]) for k in range(len(model.params_algo[name_param]))]
+        value = [
+            get_param(model.params_algo[name_param][k])
+            for k in range(len(model.params_algo[name_param]))
+        ]
         if init_params is not None:
-            value_init = [get_param(init_params[name_param][k]) for k in range(len(init_params[name_param]))]
-        ax.plot(
-            value_init,
-            '--o',
-            label="init. " + name_param,
-            color=color[i]
-        )
-        ax.plot(value, '-o', label="learned " + name_param, color=color[i])
+            value_init = [
+                get_param(init_params[name_param][k])
+                for k in range(len(init_params[name_param]))
+            ]
+        ax.plot(value_init, "--o", label="init. " + name_param, color=color[i])
+        ax.plot(value, "-o", label="learned " + name_param, color=color[i])
 
     # Set labels and title
     ax.set_facecolor("white")
@@ -245,8 +245,8 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     if save_dir:
         plt.savefig(save_dir / "parameters.png")
 
-def plot_gparam_stepsize(model, g_param_init, stepsize_init):
 
+def plot_gparam_stepsize(model, g_param_init, stepsize_init):
     def get_first_g_param(param):
         if len(param.shape) > 0:
             return param[0].item()
@@ -265,8 +265,6 @@ def plot_gparam_stepsize(model, g_param_init, stepsize_init):
         if name_param[1].requires_grad and "stepsize" in name_param[0]
     ]
 
-   
-
     # Create a figure and axes
     fig, ax = plt.subplots(figsize=(4, 3))
 
@@ -282,7 +280,10 @@ def plot_gparam_stepsize(model, g_param_init, stepsize_init):
         linestyle="dashed",
     )
     ax.plot(
-        np.arange(len(list_stepsize)), list_stepsize, label="learned stepsize", color="b"
+        np.arange(len(list_stepsize)),
+        list_stepsize,
+        label="learned stepsize",
+        color="b",
     )
 
     ax.plot(
@@ -292,7 +293,9 @@ def plot_gparam_stepsize(model, g_param_init, stepsize_init):
         color="r",
         linestyle="dashed",
     )
-    ax.plot(np.arange(len(list_g_param)), list_g_param, label="learned g_param", color="r")
+    ax.plot(
+        np.arange(len(list_g_param)), list_g_param, label="learned g_param", color="r"
+    )
 
     # Set labels and title
     ax.set_xticks(np.arange(len(list_g_param), step=5))
