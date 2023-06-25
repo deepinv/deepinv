@@ -128,7 +128,7 @@ def nabla(I):
     return G
 
 
-# Define the prior
+# Define the smooth TV prior with a Huber loss.
 def g(x, *args):
     dx = nabla(x)
     tv_smooth = torch.nn.functional.huber_loss(
@@ -137,11 +137,12 @@ def g(x, *args):
     return tv_smooth
 
 
+# Define the prior. A prior instance from :class:`deepinv.priors` can be simply defined with an explicit potential :math:`g` function as such:
 prior = Prior(g=g)
 
 # We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
-# thresholding parameters :math:`\lambda` (``1/g_param``) as learnable parameters.
+# thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
 # yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
 #
@@ -154,20 +155,14 @@ lamb = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-reg_param_init = 0.8
-reg_param = [
-    reg_param_init
-] * max_iter  # initialization of the regularisation parameter. A distinct reg_param is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": reg_param,
     "lambda": lamb,
 }
 
 trainable_params = [
-    "g_param",
     "stepsize",
-    "lambda"
+    "lambda",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Select the data fidelity term

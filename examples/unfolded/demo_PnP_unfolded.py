@@ -137,14 +137,14 @@ sigma_denoiser = [0.01] * max_iter
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": sigma_denoiser,
     "lambda": lamb,
+    "g_param": sigma_denoiser,
 }
 
 trainable_params = [
     "lambda",
-    "stepsize",
     "g_param",
+    "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
