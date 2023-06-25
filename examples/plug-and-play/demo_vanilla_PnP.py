@@ -80,7 +80,13 @@ early_stop = True
 data_fidelity = L2()
 
 # Specify the denoising prior
-denoiser = DnCNN(in_channels=n_channels, out_channels=n_channels, pretrained='download', train=False, device=device)
+denoiser = DnCNN(
+    in_channels=n_channels,
+    out_channels=n_channels,
+    pretrained="download",
+    train=False,
+    device=device,
+)
 prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.

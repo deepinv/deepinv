@@ -76,7 +76,6 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
     :return: torch tensor x verifying min_x f(x)
 
     """
-
     for i in range(int(max_iter)):
         x_prev = x
         x = x - grad_f(x) * step_size

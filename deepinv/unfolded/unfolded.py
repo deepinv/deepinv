@@ -61,7 +61,7 @@ class BaseUnfold(BaseOptim):
 
 
 def unfolded_builder(
-    iterator, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
+    iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -88,8 +88,8 @@ def unfolded_builder(
     else:
         has_cost = False
 
-    if isinstance(iterator, str):
-        iterator_fn = str_to_class(iterator + "Iteration")
+    if isinstance(iteration, str):
+        iterator_fn = str_to_class(iteration + "Iteration")
         iterator = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
@@ -98,5 +98,6 @@ def unfolded_builder(
             has_cost=has_cost,
         )
     else:
-        iterator = iterator
+        iterator = iteration
+
     return BaseUnfold(iterator, has_cost=has_cost, **kwargs)

@@ -45,8 +45,8 @@ class BaseDEQ(BaseUnfold):
         """
         with torch.no_grad():
             x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
-        cur_prior = self.update_prior_fn(self.max_iter-1)
-        cur_params = self.update_params_fn(self.max_iter-1)
+        cur_prior = self.update_prior_fn(self.max_iter - 1)
+        cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(x, cur_prior, cur_params, y, physics)["est"][0]
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
@@ -62,11 +62,11 @@ class BaseDEQ(BaseUnfold):
             }
             backward_FP = FixedPoint(
                 backward_iterator,
-                init_iterate_fn = self.init_iterate_fn,
-                init_metrics_fn = self.init_metrics_fn,
-                update_params_fn = self.update_params_fn,
-                update_prior_fn = self.update_prior_fn,
-                update_metrics_fn = self.update_metrics_fn,
+                init_iterate_fn=self.init_iterate_fn,
+                init_metrics_fn=self.init_metrics_fn,
+                update_params_fn=self.update_params_fn,
+                update_prior_fn=self.update_prior_fn,
+                update_metrics_fn=self.update_metrics_fn,
                 max_iter=self.max_iter_backward,
                 early_stop=False,
             )
@@ -75,7 +75,7 @@ class BaseDEQ(BaseUnfold):
 
         if x.requires_grad:
             x.register_hook(backward_hook)
-        
+
         if self.return_metrics:
             return x, metrics
         else:
@@ -83,7 +83,13 @@ class BaseDEQ(BaseUnfold):
 
 
 def DEQ_builder(
-    iterator, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
+    iteration,
+    data_fidelity=L2(),
+    F_fn=None,
+    g_first=False,
+    beta=1.0,
+    max_iter_backward=50,
+    **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -93,7 +99,7 @@ def DEQ_builder(
     :param F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
-    :param int max_iter_backward: Maximum number of backward iterations. Default: 50. 
+    :param int max_iter_backward: Maximum number of backward iterations. Default: 50.
     """
     explicit_prior = (
         kwargs["prior"][0].explicit_prior
@@ -101,24 +107,28 @@ def DEQ_builder(
         else kwargs["prior"].explicit_prior
     )
     if F_fn is None and explicit_prior:
+
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]
             )
+
         has_cost = True
     else:
         has_cost = False
 
-    if isinstance(iterator, str):
-        iterator_fn = str_to_class(iterator + "Iteration")
+    if isinstance(iteration, str):
+        iterator_fn = str_to_class(iteration + "Iteration")
         iterator = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
-            has_cost=has_cost
+            has_cost=has_cost,
         )
     else:
-        iterator = iterator
-    return BaseDEQ(iterator, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs)
+        iterator = iteration
 
+    return BaseDEQ(
+        iterator, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs
+    )

@@ -404,7 +404,10 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     assert pnp.has_converged
 
+
 optim_algos = ["PGD", "GD"]  # GD not implemented for this one
+
+
 @pytest.mark.parametrize("red_algo", optim_algos)
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     dataloader = DataLoader(
@@ -423,15 +426,9 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    prior = RED(
-        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
-    )
+    prior = RED(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
 
-    params_algo = {
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb
-    }
+    params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
     red = optim_builder(
         red_algo,
@@ -442,13 +439,12 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         verbose=True,
         params_algo=params_algo,
         early_stop=True,
-        g_first=True
+        g_first=True,
     )
 
     x = red(y, physics)
 
     assert red.has_converged
-
 
 
 def test_CP_K(imsize, dummy_dataset, device):
