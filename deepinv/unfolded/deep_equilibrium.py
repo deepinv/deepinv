@@ -69,15 +69,7 @@ class BaseDEQ(BaseUnfold):
             backward_iterator = backward_iterator()
             backward_FP = FixedPoint(
                 backward_iterator,
-<<<<<<< HEAD
                 init_iterate_fn = init_iterate_fn,
-=======
-                init_iterate_fn=self.init_iterate_fn,
-                init_metrics_fn=self.init_metrics_fn,
-                update_params_fn=self.update_params_fn,
-                update_prior_fn=self.update_prior_fn,
-                update_metrics_fn=self.update_metrics_fn,
->>>>>>> 33e7976cfba1333c575ac38e3dd831f38726da73
                 max_iter=self.max_iter_backward,
                 early_stop=False,
             )
@@ -94,17 +86,7 @@ class BaseDEQ(BaseUnfold):
 
 
 def DEQ_builder(
-<<<<<<< HEAD
     iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
-=======
-    iteration,
-    data_fidelity=L2(),
-    F_fn=None,
-    g_first=False,
-    beta=1.0,
-    max_iter_backward=50,
-    **kwargs
->>>>>>> 33e7976cfba1333c575ac38e3dd831f38726da73
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -134,11 +116,7 @@ def DEQ_builder(
 
     if isinstance(iteration, str):
         iterator_fn = str_to_class(iteration + "Iteration")
-<<<<<<< HEAD
         iteration = iterator_fn(
-=======
-        iterator = iterator_fn(
->>>>>>> 33e7976cfba1333c575ac38e3dd831f38726da73
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
@@ -146,13 +124,5 @@ def DEQ_builder(
             has_cost=has_cost,
         )
     else:
-<<<<<<< HEAD
         iteration = iteration
     return BaseDEQ(iteration, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs)
-=======
-        iterator = iteration
->>>>>>> 33e7976cfba1333c575ac38e3dd831f38726da73
-
-    return BaseDEQ(
-        iterator, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs
-    )
