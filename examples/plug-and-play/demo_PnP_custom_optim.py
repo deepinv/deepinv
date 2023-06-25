@@ -175,13 +175,19 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 # Set up the PnP algorithm parameters : the `stepsize`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. The following parameters are chosen arbitrarily.
 params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.1}
 max_iter = 200
-early_stop = True # stop the algorithm when convergence is reached
+early_stop = True  # stop the algorithm when convergence is reached
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Specify the denoising prior
-denoiser = DnCNN(in_channels=n_channels, out_channels=n_channels, pretrained='download', train=False, device=device)
+denoiser = DnCNN(
+    in_channels=n_channels,
+    out_channels=n_channels,
+    pretrained="download",
+    train=False,
+    device=device,
+)
 prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
