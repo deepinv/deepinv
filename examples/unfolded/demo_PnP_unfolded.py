@@ -150,7 +150,7 @@ trainable_params = [
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration="DRS",
-    params_algo=params_algo,
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -226,3 +226,9 @@ test(
     verbose=verbose,
     wandb_vis=wandb_vis,
 )
+
+# %%
+# Plotting the trained parameters.
+# ------------------------------------
+
+dinv.utils.plotting.plot_parameters(model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation)

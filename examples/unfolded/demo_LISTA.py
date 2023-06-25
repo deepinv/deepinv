@@ -157,12 +157,13 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 trainable_params = [
     "g_param",
     "stepsize",
+    "lambda",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration="PGD",
-    params_algo=params_algo,
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -177,6 +178,7 @@ model = unfolded_builder(
 # We now define training-related parameters,
 # number of epochs, optimizer (Adam) and its hyperparameters, and the train and test batch sizes.
 #
+
 
 
 # Training parameters
@@ -203,7 +205,6 @@ train_dataloader = DataLoader(
 test_dataloader = DataLoader(
     test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
 )
-
 
 # %%
 # Train the network.
@@ -251,11 +252,6 @@ test(
 
 
 # %%
-# Plotting the weights of the network.
+# Plotting the learned parameters.
 # ------------------------------------
-#
-# We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
-#
-
-dinv.utils.plotting.plot_gparam_stepsize(model, g_param_init=sigma_denoiser_init, stepsize_init=stepsize)
+dinv.utils.plotting.plot_parameters(model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation)

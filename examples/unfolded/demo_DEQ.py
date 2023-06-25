@@ -125,7 +125,7 @@ lamb = [
     1.0
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
-    1.0
+    0.5
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 sigma_denoiser = [
     0.01
@@ -145,7 +145,7 @@ trainable_params = [
 # Define the unfolded trainable model.
 model = DEQ_builder(
     iteration="HQS",
-    params_algo=params_algo,
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -159,7 +159,7 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 10 if torch.cuda.is_available() else 5
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
@@ -221,3 +221,11 @@ test(
     verbose=verbose,
     wandb_vis=wandb_vis,
 )
+
+
+
+# %%
+# Plotting the trained parameters.
+# ------------------------------------
+
+dinv.utils.plotting.plot_parameters(model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation)

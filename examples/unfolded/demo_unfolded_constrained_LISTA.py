@@ -116,8 +116,8 @@ train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True
 test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
 
 
-train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 32 if torch.cuda.is_available() else 1
+train_batch_size = 32 if torch.cuda.is_available() else 3
+test_batch_size = 32 if torch.cuda.is_available() else 3
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -193,7 +193,7 @@ def custom_init_CP(x_init, y_init):
 model = unfolded_builder(
     iteration="CP",
     trainable_params=trainable_params,
-    params_algo=params_algo,
+    params_algo=params_algo.copy(),
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
