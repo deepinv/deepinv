@@ -54,19 +54,22 @@ class BaseDEQ(BaseUnfold):
         )["est"][0]
 
         def backward_hook(grad):
-            backward_iterator = lambda y, *args: {
-                "est": (
-                    torch.autograd.grad(f0, x0, y["est"][0], retain_graph=True)[0]
-                    + grad,
-                )
-            }
+            class backward_iterator(OptimIterator):
+                def __init__(self, **kwargs):
+                    super().__init__(**kwargs)
+                def forward(self, X, *args, **kwargs):
+                    return  {
+                    "est": (
+                        torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[0]
+                        + grad,
+                    )
+                }
+            def init_iterate_fn(y, physics, F_fn=None):
+                return {"est": (x0,), "cost": None}
+            backward_iterator = backward_iterator()
             backward_FP = FixedPoint(
                 backward_iterator,
-                init_iterate_fn = self.init_iterate_fn,
-                init_metrics_fn = self.init_metrics_fn,
-                update_params_fn = self.update_params_fn,
-                update_prior_fn = self.update_prior_fn,
-                update_metrics_fn = self.update_metrics_fn,
+                init_iterate_fn = init_iterate_fn,
                 max_iter=self.max_iter_backward,
                 early_stop=False,
             )
@@ -83,7 +86,7 @@ class BaseDEQ(BaseUnfold):
 
 
 def DEQ_builder(
-    iterator, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
+    iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, max_iter_backward=50, **kwargs
 ):
     r"""
     Function building the appropriate Unfolded architecture.
@@ -109,9 +112,9 @@ def DEQ_builder(
     else:
         has_cost = False
 
-    if isinstance(iterator, str):
-        iterator_fn = str_to_class(iterator + "Iteration")
-        iterator = iterator_fn(
+    if isinstance(iteration, str):
+        iterator_fn = str_to_class(iteration + "Iteration")
+        iteration = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
@@ -119,6 +122,6 @@ def DEQ_builder(
             has_cost=has_cost
         )
     else:
-        iterator = iterator
-    return BaseDEQ(iterator, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs)
+        iteration = iteration
+    return BaseDEQ(iteration, has_cost=has_cost, max_iter_backward=max_iter_backward, **kwargs)
 
