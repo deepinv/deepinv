@@ -47,6 +47,7 @@ Getting Started
 Try out the following plug-and-play image inpainting example:
 
 ::
+
     import deepinv as dinv
     from deepinv.utils.demo import load_image
 
