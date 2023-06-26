@@ -73,10 +73,10 @@ class BaseOptim(nn.Module):
         params_algo = {"stepsize": 0.5, "lambda": 1.0}
 
         # Define the fixed-point iterator
-        iterator = dinv.optim.optim_iterators.PGDIterator(data_fidelity=data_fidelity)
+        iterator = dinv.optim.optim_iterators.PGDIteration(data_fidelity=data_fidelity)
 
         # Define the optimization algorithm
-        optimalgo = BaseOptim(iterator,
+        optimalgo = dinv.optim.BaseOptim(iterator,
                             params_algo=params_algo,
                             prior=prior,
                             )
@@ -442,21 +442,40 @@ def optim_builder(
     **kwargs,
 ):
     r"""
-    Function building the appropriate Optimizer given its name.
+    Helper function for building an instance of the :meth:`BaseOptim` class.
 
     ::
 
+        # This minimal example shows how to use the BaseOptim class to solve the problem
+        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
+        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
+
+        # Create the measurement operator A
+        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        A_forward = lambda v: A @ v
+        A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+
+        # Define the measurement y
+        y = torch.tensor([2, 2], dtype=torch.float64)
+
+        # Define the data fidelity term
+        data_fidelity = dinv.optim.data_fidelity.L2()
+
+        # Define the prior
+        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
+
+        # Define the parameters of the algorithm
+        params_algo = {"stepsize": 0.5, "lambda": 1.0}
+
         # Define the optimization algorithm
-        optim_algo = optim_builder(
+        optim_algo = dinv.optim.optim_builder(
                         'PGD',
                         prior=prior,
                         data_fidelity=data_fidelity,
-                        max_iter=100,
-                        crit_conv="residual",
-                        thres_conv=1e-11,
-                        verbose=True,
-                        params_algo=params_algo,
-                        early_stop=True,
+                        params_algo=params_algo
                     )
 
         # Run the optimization algorithm
