@@ -201,10 +201,6 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
 
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
-    # Font size and box color
-    # plt.rc("font", family="sans-serif", size=10)
-    # plt.rc("axes", edgecolor="gray")
-
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 
     fig, ax = plt.subplots(figsize=(7, 7))
@@ -244,76 +240,3 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
         plt.show()
     if save_dir:
         plt.savefig(save_dir / "parameters.png")
-
-
-def plot_gparam_stepsize(model, g_param_init, stepsize_init):
-    def get_first_g_param(param):
-        if len(param.shape) > 0:
-            return param[0].item()
-        else:
-            return param.item()
-
-    list_g_param = [
-        get_first_g_param(name_param[1]).item()
-        for i, name_param in enumerate(model.named_parameters())
-        if name_param[1].requires_grad and "g_param" in name_param[0]
-    ]
-
-    list_stepsize = [
-        name_param[1].item()
-        for i, name_param in enumerate(model.named_parameters())
-        if name_param[1].requires_grad and "stepsize" in name_param[0]
-    ]
-
-    # Create a figure and axes
-    fig, ax = plt.subplots(figsize=(4, 3))
-
-    # Set figure background color to white
-    ax.set_facecolor("white")
-
-    # Plot the data
-    ax.plot(
-        np.arange(len(list_stepsize)),
-        stepsize_init,
-        label="init. stepsize",
-        color="b",
-        linestyle="dashed",
-    )
-    ax.plot(
-        np.arange(len(list_stepsize)),
-        list_stepsize,
-        label="learned stepsize",
-        color="b",
-    )
-
-    ax.plot(
-        np.arange(len(list_g_param)),
-        [g_param_init] * len(list_g_param),
-        label="init. g_param",
-        color="r",
-        linestyle="dashed",
-    )
-    ax.plot(
-        np.arange(len(list_g_param)), list_g_param, label="learned g_param", color="r"
-    )
-
-    # Set labels and title
-    ax.set_xticks(np.arange(len(list_g_param), step=5))
-    ax.set_xlabel("Layer index")
-    ax.set_ylabel("Value")
-
-    # Set grid, ticks and legend
-    ax.grid(True, linestyle="-", alpha=0.5, color="lightgray")
-    ax.tick_params(color="lightgray")
-    ax.legend()
-
-    fig.tight_layout()
-    plt.show()
-
-
-if __name__ == "__main__":
-    import torch
-    from deepinv.utils import plot
-
-    img = torch.rand(4, 3, 256, 256)
-    plot([img, img, img], titles=["img1", "img2", "img3"], max_imgs=2)

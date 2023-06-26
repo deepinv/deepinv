@@ -159,8 +159,6 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
     "stepsize": stepsize,
     "lambda": lamb,
 }
-params_algo_init = params_algo.copy()  # save the initial parameters for later comparison
-
 trainable_params = [
     "stepsize",
     "lambda",
@@ -172,7 +170,7 @@ data_fidelity = L2()
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration="PGD",
-    params_algo=params_algo,
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -269,5 +267,5 @@ test(
 # ------------------------------------
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo_init, save_dir=RESULTS_DIR / method / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )
