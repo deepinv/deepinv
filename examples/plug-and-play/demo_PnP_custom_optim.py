@@ -89,7 +89,9 @@ class fStepCV(fStep):
         :param torch.Tensor y: Input data.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
-        return self.data_fidelity.prox_d_conjugate(z, y, cur_params["sigma"], lamb=cur_params["lambda"])
+        return self.data_fidelity.prox_d_conjugate(
+            z, y, cur_params["sigma"], lamb=cur_params["lambda"]
+        )
 
 
 class gStepCV(gStep):
@@ -181,10 +183,10 @@ num_workers = 4 if torch.cuda.is_available() else 0
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
-# Set up the PnP algorithm parameters : 
-# the primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. 
+# Set up the PnP algorithm parameters :
+# the primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter.
 # The following parameters are chosen arbitrarily and are not optimized for SOTA performance.
-params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 1., "sigma" : 1.0}
+params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 1.0, "sigma": 1.0}
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
