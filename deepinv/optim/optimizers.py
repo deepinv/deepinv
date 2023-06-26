@@ -441,7 +441,7 @@ def optim_builder(
 
     ::
 
-        # Define the optimisation algorithm
+        # Define the optimization algorithm
         optim_algo = optim_builder(
                         'PGD',
                         prior=prior,
@@ -454,15 +454,15 @@ def optim_builder(
                         early_stop=True,
                     )
 
-        # Run the optimisation algorithm
+        # Run the optimization algorithm
         sol = optim_algo(y, physics)
 
 
-    :param iteration: either name of the algorithm to be used, or an iterator.
+    :param iteration: either the name of the algorithm to be used, or an iterator instance of :class:deepinv.optim.OptimIterator. 
         If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
-    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
-    :param F_fn: Custom user input cost function. default: None.
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
@@ -485,18 +485,14 @@ def optim_builder(
 
     if isinstance(iteration, str):
         iterator_fn = str_to_class(iteration + "Iteration")
-        iterator = iterator_fn(
+        iteration = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
             has_cost=has_cost,
         )
-    else:
-        iterator = iteration
-
-    optimizer = BaseOptim(iterator, has_cost=has_cost, **kwargs)
-    return optimizer
+    return BaseOptim(iteration, has_cost=has_cost, **kwargs)
 
 
 def str_to_class(classname):

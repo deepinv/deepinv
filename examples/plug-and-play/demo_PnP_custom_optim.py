@@ -46,7 +46,7 @@ class CVIteration(OptimIterator):
 
     def forward(self, X, cur_prior, cur_params, y, physics):
         r"""
-        Single iteration of the PD algorithm.
+        Single iteration of the Condat-Vu algorithm.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param dict cur_prior: dictionary containing the prior-related term of interest, e.g. its proximal operator or gradient.
@@ -58,7 +58,7 @@ class CVIteration(OptimIterator):
         x_prev, u_prev = X["est"]
 
         x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_prior, cur_params)
-        u = self.f_step(physics.A(2 * x - x_prev), u_prev, y, cur_params)
+        u = self.f_step(physics.A(2 * x - x_prev), y, cur_params)
 
         F = self.F_fn(x, cur_params, y, physics) if self.has_cost else None
 
@@ -67,30 +67,39 @@ class CVIteration(OptimIterator):
 
 class fStepCV(fStep):
     r"""
-    PD fStep module.
+    Condat-Vu fStep module to compute
+
+    .. math::
+    \begin{equation*}
+    u_{k+1} &= \operatorname{prox}_{\sigma f^*}(z_k)
+    \end{equation*}
+
+    where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+    The proximal operator of :math:`f^*` is computed using the proximal operator of :math:`f` via Moreau's identity.
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def forward(self, Ax_cur, u, y, cur_params):
+    def forward(self, z, y, cur_params):
         r"""
-        Single PD iteration step on the data-fidelity term :math:`f`.
+        Single iteration on the data-fidelity term :math:`f`.
 
-        :param torch.Tensor Ax_cur: Current iterate :math:`2Ax_{k+1}-x_k`
-        :param torch.Tensor u: Current iterate :math:`u_k`.
+        :param torch.Tensor z: Current iterate :math:`z_k = 2Ax_{k+1}-x_k`
         :param torch.Tensor y: Input data.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
         """
-        v = u + cur_params["stepsize"] * Ax_cur
-        return v - cur_params["stepsize"] * self.data_fidelity.prox_d(
-            v, y, 1 / (cur_params["stepsize"] * cur_params["lambda"])
-        )
+        return self.data_fidelity.prox_d_conjugate(z, y, cur_params["sigma"], lamb=cur_params["lambda"])
 
 
 class gStepCV(gStep):
     r"""
-    PD gStep module.
+    Condat-Vu gStep module to compute
+
+    \begin{equation*}
+    x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k) \\
+    \end{equation*}
+
     """
 
     def __init__(self, **kwargs):
@@ -172,8 +181,10 @@ num_workers = 4 if torch.cuda.is_available() else 0
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
-# Set up the PnP algorithm parameters : the `stepsize`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. The following parameters are chosen arbitrarily.
-params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.1}
+# Set up the PnP algorithm parameters : 
+# the primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter. 
+# The following parameters are chosen arbitrarily and are not optimized for SOTA performance.
+params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 1., "sigma" : 1.0}
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
@@ -210,7 +221,7 @@ model = optim_builder(
 y = physics(x)
 x_lin = physics.A_adjoint(y)
 
-# run the model on the problem. When `return_metrics` is set to True, the model requires the ground-truth clean image ``x_gt`` and returns the output and the metrics computed along the iterations.
+# run the model on the problem. When `return_metrics` is set to True, in order to compute the evolution of the PSNR along the iterations, the model requires the ground-truth clean image ``x_gt``.
 x_model, metrics = model(y, physics, x_gt=x)
 
 # compute PSNR
