@@ -179,7 +179,6 @@ train(
 # The testing function will compute test_psnr metrics and plot and save the results.
 
 plot_images = True
-save_images = True
 method = "artifact_removal"
 
 test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
@@ -188,7 +187,6 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / test_dataset_name,
     verbose=verbose,
     wandb_vis=wandb_vis,

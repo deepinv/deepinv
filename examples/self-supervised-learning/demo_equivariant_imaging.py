@@ -226,7 +226,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "equivariant_imaging"
 
 test(
