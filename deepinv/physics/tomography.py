@@ -35,7 +35,7 @@ def deg2rad(x):
 
 class AbstractFilter(nn.Module):
     def __init__(self):
-        super(AbstractFilter, self).__init__()
+        super().__init__()
 
     def forward(self, x):
         input_size = x.shape[2]
@@ -81,15 +81,15 @@ class AbstractFilter(nn.Module):
 
 class RampFilter(AbstractFilter):
     def __init__(self):
-        super(RampFilter, self).__init__()
+        super().__init__()
 
     def create_filter(self, f):
         return f
 
 
 class Radon(nn.Module):
-    def __init__(self, in_size=None, theta=None, circle=True, dtype=torch.float):
-        super(Radon, self).__init__()
+    def __init__(self, in_size=None, theta=None, circle=True, dtype=torch.float, device=torch.device('cpu')):
+        super().__init__()
         self.circle = circle
         self.theta = theta
         if theta is None:
@@ -97,14 +97,14 @@ class Radon(nn.Module):
         self.dtype = dtype
         self.all_grids = None
         if in_size is not None:
-            self.all_grids = self._create_grids(self.theta, in_size, circle)
+            self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)
 
     def forward(self, x):
         N, C, W, H = x.shape
         assert W == H, "Input image must be square"
 
-        if self.all_grids is None:
-            self.all_grids = self._create_grids(self.theta, W, self.circle)
+        if self.all_grids is None: # if in_size was not given, we have to create the grid online.
+            self.all_grids = self._create_grids(self.theta, W, self.circle, device=x.device)
 
         if not self.circle:
             diagonal = SQRT2 * W
@@ -119,7 +119,7 @@ class Radon(nn.Module):
         out = torch.zeros(N, C, W, len(self.theta), device=x.device, dtype=self.dtype)
 
         for i in range(len(self.theta)):
-            rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1).to(x.device))
+            rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1))
             out[..., i] = rotated.sum(2)
 
         return out
@@ -135,7 +135,7 @@ class Radon(nn.Module):
                 dtype=self.dtype,
             )
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
-        return all_grids
+        return torch.stack(all_grids)
 
 
 class IRadon(nn.Module):
@@ -147,8 +147,9 @@ class IRadon(nn.Module):
         use_filter=RampFilter(),
         out_size=None,
         dtype=torch.float,
+        device=torch.device('cpu')
     ):
-        super(IRadon, self).__init__()
+        super().__init__()
         self.circle = circle
         self.theta = theta if theta is not None else torch.arange(180)
         self.out_size = out_size
@@ -157,7 +158,7 @@ class IRadon(nn.Module):
         self.ygrid, self.xgrid, self.all_grids = None, None, None
         if in_size is not None:
             self.ygrid, self.xgrid = self._create_yxgrid(in_size, circle)
-            self.all_grids = self._create_grids(self.theta, in_size, circle)
+            self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)
         self.filter = use_filter if use_filter is not None else lambda x: x
 
     def forward(self, x, filtering=True):
@@ -171,7 +172,7 @@ class IRadon(nn.Module):
         # if None in [self.ygrid, self.xgrid, self.all_grids]:
         if self.ygrid is None or self.xgrid is None or self.all_grids is None:
             self.ygrid, self.xgrid = self._create_yxgrid(self.in_size, self.circle)
-            self.all_grids = self._create_grids(self.theta, self.in_size, self.circle)
+            self.all_grids = self._create_grids(self.theta, self.in_size, self.circle).to(x.device)
 
         x = self.filter(x) if filtering else x
 
@@ -182,7 +183,7 @@ class IRadon(nn.Module):
         )
         for i_theta in range(len(self.theta)):
             reco += grid_sample(
-                x, self.all_grids[i_theta].repeat(reco.shape[0], 1, 1, 1).to(x.device)
+                x, self.all_grids[i_theta].repeat(reco.shape[0], 1, 1, 1)
             )
 
         if not self.circle:
@@ -238,7 +239,7 @@ class IRadon(nn.Module):
             all_grids.append(
                 torch.cat((X.unsqueeze(-1), Y.unsqueeze(-1)), dim=-1).unsqueeze(0)
             )
-        return all_grids
+        return torch.stack(all_grids)
 
 
 class Tomography(LinearPhysics):
@@ -268,7 +269,7 @@ class Tomography(LinearPhysics):
     """
 
     def __init__(self, img_width, angles, circle=False, device="cuda:0", **kwargs):
-        super(Tomography, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         if isinstance(angles, int) or isinstance(angles, float):
             theta = np.linspace(0, 180, angles, endpoint=False)
@@ -286,3 +287,14 @@ class Tomography(LinearPhysics):
 
     def A_adjoint(self, y):
         return self.iradon(y, filtering=False)
+
+
+if __name__== "__main__":
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    view_number = 50
+    theta = np.linspace(0, 180, view_number, endpoint=False)
+    A = Radon(256, theta, device=device)
+    A_dagger = IRadon(256, theta, device=device)
+    x = torch.rand(1, 1, 256, 256, device=device)
+    y = A(x)
+    z = A_dagger(x)
