@@ -72,7 +72,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_shape=(n_channels, img_size, img_size), device=device
+    m=78*1, img_shape=(n_channels, img_size, img_size), device=device
 )
 my_dataset_name = "demo_LICP"
 n_images_max = (
@@ -131,9 +131,9 @@ def nabla(I):
 # Define the smooth TV prior with a Huber loss.
 def g(x, *args):
     dx = nabla(x)
-    tv_smooth = torch.nn.functional.huber_loss(
-        dx, torch.zeros_like(dx), reduction="sum", delta=0.01
-    )
+    tv_smooth = torch.nn.functional.mse_loss(
+        dx, torch.zeros_like(dx), reduction="sum"
+    ).sqrt()
     return tv_smooth
 
 
@@ -159,6 +159,7 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
     "stepsize": stepsize,
     "lambda": lamb,
 }
+params_algo_init = params_algo.copy()  # save the initial parameters for later comparison
 
 trainable_params = [
     "stepsize",
@@ -268,5 +269,5 @@ test(
 # ------------------------------------
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+    model, init_params=params_algo_init, save_dir=RESULTS_DIR / method / operation
 )

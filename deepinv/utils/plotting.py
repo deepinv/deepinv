@@ -223,13 +223,13 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
             get_param(model.params_algo[name_param][k])
             for k in range(len(model.params_algo[name_param]))
         ]
-        if init_params is not None:
+        if init_params is not None and name_param in init_params:
             value_init = [
                 get_param(init_params[name_param][k])
                 for k in range(len(init_params[name_param]))
             ]
-        ax.plot(value_init, "--o", label="init. " + name_param, color=color[i])
-        ax.plot(value, "-o", label="learned " + name_param, color=color[i])
+            ax.plot(value_init, "--o", label="init. " + name_param, color=color[i])
+            ax.plot(value, "-o", label="learned " + name_param, color=color[i])
 
     # Set labels and title
     ax.set_facecolor("white")
