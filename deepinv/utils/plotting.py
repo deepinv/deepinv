@@ -202,7 +202,7 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
     r"""
-    Plot the parameters of the model before and after training. This is used after training Unfolded optimization models. 
+    Plot the parameters of the model before and after training. This is used after training Unfolded optimization models.
 
     Args:
         model torch.nn.Module: the model to plot the parameters of. The parameters are contained in the dictionary ``params_algo`` attribute of the model.
