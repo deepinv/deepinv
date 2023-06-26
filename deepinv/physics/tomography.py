@@ -88,7 +88,14 @@ class RampFilter(AbstractFilter):
 
 
 class Radon(nn.Module):
-    def __init__(self, in_size=None, theta=None, circle=True, dtype=torch.float, device=torch.device('cpu')):
+    def __init__(
+        self,
+        in_size=None,
+        theta=None,
+        circle=True,
+        dtype=torch.float,
+        device=torch.device("cpu"),
+    ):
         super().__init__()
         self.circle = circle
         self.theta = theta
@@ -103,8 +110,12 @@ class Radon(nn.Module):
         N, C, W, H = x.shape
         assert W == H, "Input image must be square"
 
-        if self.all_grids is None: # if in_size was not given, we have to create the grid online.
-            self.all_grids = self._create_grids(self.theta, W, self.circle, device=x.device)
+        if (
+            self.all_grids is None
+        ):  # if in_size was not given, we have to create the grid online.
+            self.all_grids = self._create_grids(
+                self.theta, W, self.circle, device=x.device
+            )
 
         if not self.circle:
             diagonal = SQRT2 * W
@@ -147,7 +158,7 @@ class IRadon(nn.Module):
         use_filter=RampFilter(),
         out_size=None,
         dtype=torch.float,
-        device=torch.device('cpu')
+        device=torch.device("cpu"),
     ):
         super().__init__()
         self.circle = circle
@@ -172,7 +183,9 @@ class IRadon(nn.Module):
         # if None in [self.ygrid, self.xgrid, self.all_grids]:
         if self.ygrid is None or self.xgrid is None or self.all_grids is None:
             self.ygrid, self.xgrid = self._create_yxgrid(self.in_size, self.circle)
-            self.all_grids = self._create_grids(self.theta, self.in_size, self.circle).to(x.device)
+            self.all_grids = self._create_grids(
+                self.theta, self.in_size, self.circle
+            ).to(x.device)
 
         x = self.filter(x) if filtering else x
 
@@ -289,7 +302,7 @@ class Tomography(LinearPhysics):
         return self.iradon(y, filtering=False)
 
 
-if __name__== "__main__":
+if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     view_number = 50
     theta = np.linspace(0, 180, view_number, endpoint=False)
