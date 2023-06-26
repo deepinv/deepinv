@@ -201,6 +201,16 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
 
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
+    r"""
+    Plot the parameters of the model before and after training. This is used after training Unfolded optimization models. 
+
+    Args:
+        model torch.nn.Module: the model to plot the parameters of. The parameters are contained in the dictionary ``params_algo`` attribute of the model.
+        init_params dict (optional): the initial parameters of the model, before training. Defaults to ``None``.
+        save_dir str or Path (optional): the directory where to save the plot. Defaults to ``None``.
+        show bool (optional): whether to show the plot. Defaults to ``True``.
+    """
+
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 
     fig, ax = plt.subplots(figsize=(7, 7))
@@ -239,4 +249,4 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     if show:
         plt.show()
     if save_dir:
-        plt.savefig(save_dir / "parameters.png")
+        plt.savefig(Path(save_dir) / "parameters.png")

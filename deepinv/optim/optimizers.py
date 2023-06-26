@@ -458,7 +458,7 @@ def optim_builder(
         sol = optim_algo(y, physics)
 
 
-    :param iteration: either the name of the algorithm to be used, or an iterator instance of :class:deepinv.optim.OptimIterator.
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used, or an optim iterator .
         If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
     :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
