@@ -38,7 +38,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load base image datasets and degradation operators.
-# ----------------------------------------------------------------------------------------
+# ---------------------------------------------------
 # In this example, we use MNIST as the base dataset.
 
 img_size = 28
@@ -58,7 +58,7 @@ test_base_dataset = datasets.MNIST(
 
 # %%
 # Generate a dataset of compressed measurements and load it.
-# ----------------------------------------------------------------------------
+# ----------------------------------------------------------
 # We use the compressed sensing class from the physics module to generate a dataset of highly-compressed measurements
 # (10% of the total number of pixels).
 #
@@ -114,7 +114,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # We first define the prior in a functional form.
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
-# For fixed trained model prior across iterations, initialize with a single model
+# For fixed trained model prior across iterations, initialize with a single model.
 
 
 # Define the image gradient operator
@@ -128,7 +128,7 @@ def nabla(I):
     return G
 
 
-# Define the smooth TV prior with a Huber loss.
+# Define the smooth TV prior as the mse of the image finite difference.
 def g(x, *args):
     dx = nabla(x)
     tv_smooth = torch.nn.functional.mse_loss(
@@ -232,7 +232,7 @@ train(
 
 # %%
 # Test the network.
-# ---------------------------
+# -----------------
 #
 # We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the
 # measurements back-projected in the image domain, the `Recons` column shows the output of our LISTA network,
@@ -264,7 +264,7 @@ test(
 
 # %%
 # Plotting the trained parameters.
-# ------------------------------------
+# --------------------------------
 
 dinv.utils.plotting.plot_parameters(
     model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
