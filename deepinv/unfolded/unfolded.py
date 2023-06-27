@@ -66,9 +66,10 @@ def unfolded_builder(
     r"""
     Function building the appropriate Unfolded architecture.
 
-    :param algo: either name of the algorithm to be used, or an iterator. If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
-    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
-    :param F_fn: Custom user input cost function. default: None.
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used, or an optim iterator .
+        If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """

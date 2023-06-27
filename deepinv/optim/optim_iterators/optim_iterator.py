@@ -20,7 +20,7 @@ class OptimIterator(nn.Module):
 
     .. note::
         By an abuse of terminology, we call "primal" and "dual" variables the variables that are updated
-        at each step and which may correspond to the actual primal and dual variables from optimisation algorithms
+        at each step and which may correspond to the actual primal and dual variables from 
         (for instance in the case of the PD algorithm), but not necessarily (for instance in the case of the
         PGD algorithm).
 

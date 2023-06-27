@@ -24,7 +24,7 @@ between the data :math:`y` and the forward operator :math:`A` applied to the var
 where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
 operator (see :meth:`deepinv.physics.Physics`)
 
-Optimisation algorithms for minimizing the problem above can be written as fixed point algorithms,
+Optimization algorithms for minimizing the problem above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
 
 .. math::
@@ -33,7 +33,7 @@ i.e. for :math:`k=1,2,...`
 where :math:`x` is a variable converging to the solution of the minimisation problem, and
 :math:`z` is an additional (dual) variable that may be required in the computation of the fixed point operator.
 The implementation of the fixed point algorithm in ``deepinv.optim``,
-following standard optimisation theory, is split in two steps:
+following standard optimization theory, is split in two steps:
 
 .. math::
     z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
@@ -44,7 +44,7 @@ on :math:`\datafidname` and :math:`\regname`, while using additional inputs, suc
 relaxation parameters, etc...
 
 
-Base Optimisation Class
+Base Optimization Class
 ---------------------------
 
 .. autosummary::
@@ -120,7 +120,7 @@ where :math:`x` is a variable converging to the solution of the minimisation pro
 :math:`z` is an additional variable that may be required in the computation of the fixed point operator.
 
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
-following standard optimisation theory, is split in two steps:
+following standard optimization theory, is split in two steps:
 
 .. math::
     z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
@@ -136,7 +136,7 @@ The fStep and gStep classes precisely implement these steps.
 Generic optimizers
 ^^^^^^^^^^^^^^^^^^
 
-The following files contain the base classes on which optimisation algorithms rely.
+The following files contain the base classes on which optimization algorithms rely.
 
 .. autosummary::
    :toctree: stubs

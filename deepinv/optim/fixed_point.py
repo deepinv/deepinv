@@ -63,7 +63,7 @@ class FixedPoint(nn.Module):
 
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
-                                        well as parameters of the optimisation problem (prior, measurements, etc.)
+                                        well as parameters of the optimization problem (prior, measurements, etc.)
     :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: None.
     :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
     :param function init_iterate_fn: function that returns the initial iterate. Default: None.

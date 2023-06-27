@@ -255,7 +255,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             custom_init=custom_init,
         )
 
-        # Run the optimisation algorithm
+        # Run the optimization algorithm
         x = optimalgo(y, physics)
 
         assert optimalgo.has_converged
@@ -519,7 +519,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             custom_init=custom_init_CP,
         )
 
-        # Run the optimisation algorithm
+        # Run the optimization algorithm
         x = optimalgo(y, physics)
 
         print("g_first: ", g_first)
@@ -612,7 +612,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         custom_init=custom_init_CP,
     )
 
-    # Run the optimisation algorithm
+    # Run the optimization algorithm
     x = optimalgo(y, physics)
 
     assert optimalgo.has_converged

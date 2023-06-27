@@ -11,7 +11,7 @@ from deepinv.optim.optim_iterators import *
 
 class BaseOptim(nn.Module):
     r"""
-    Class for optimization algorithms iterating the fixed-point iterator.
+    Class for optimization algorithms, consists in iterating a fixed-point operator.
 
     Module solving the problem
 
@@ -44,10 +44,11 @@ class BaseOptim(nn.Module):
     where :math:`x_k` is a variable converging to the solution of the minimisation problem, and
     :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
 
+    The :func:optim_builder function can be used to instantiate this class with a specific fixed point operator.
 
     ::
 
-        # This example shows how to use the FixedPoint class to solve the problem
+        # This minimal example shows how to use the BaseOptim class to solve the problem
         #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
         # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
@@ -63,39 +64,43 @@ class BaseOptim(nn.Module):
         y = torch.tensor([2, 2], dtype=torch.float64)
 
         # Define the data fidelity term
-        data_fidelity = L2()
+        data_fidelity = dinv.optim.data_fidelity.L2()
 
-        # Define the proximity operator of the prior and store it in a dictionary
-        def prox_g(x, g_param=0.1):
-            return torch.sign(x) * torch.maximum(x.abs() - g_param, torch.tensor([0]))
-
-        prior = {"prox_g": prox_g}
+        # Define the prior
+        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
 
         # Define the parameters of the algorithm
-        params_algo = {"g_param": 0.5, "stepsize": 0.5, "lambda": 1.0}
+        params_algo = {"stepsize": 0.5, "lambda": 1.0}
+
+        # Define the fixed-point iterator
+        iterator = dinv.optim.optim_iterators.PGDIteration(data_fidelity=data_fidelity)
 
         # Define the optimization algorithm
-        iterator = PGDIteration(data_fidelity=data_fidelity)
-        optimalgo = BaseOptim(iterator, prior=prior, params_algo=params_algo)
+        optimalgo = dinv.optim.BaseOptim(iterator,
+                            params_algo=params_algo,
+                            prior=prior,
+                            )
 
         # Run the optimization algorithm
         sol = optimalgo(y, physics)
 
 
-
-    :param deepinv.optim.iterator iterator: Fixed-point iterator of the class of the algorithm of interest.
+    :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                             e.g. the stepsize, regularisation parameters, denoising power...
-    :param dict prior: dictionary containing the regularization prior under the form of a denoiser, proximity operator,
-                       gradient, or simply an auto-differentiable function. Default: {}
+                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            Each value of the dictionary can be either Iterable (distinct value for each iteration) or a single float/int (same value for each iteration).
+                            Default: `{"stepsize": 1.0, "lambda": 1.0}`.
+    :param list, deepinv.optim.Prior: regularization prior.
+                            Either a single instance (same prior for each iteration) or a list of instances of deepinv.optim.Prior (distinct prior for each iteration).
+                            Default: `None`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either `"residual"` (residual
                           of the iterate norm) or `"cost"` (on the cost function). Default: `"residual"`
     :param float thres_conv: value of the threshold for claiming convergence. Default: `1e-05`.
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: `True`.
-    :param bool has_cost: whether the algorithm has a cost function or not. Default: `False`.
+    :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
     :param bool return_aux: whether to return the auxiliary variable or not at the end of the algorithm. Default: `False`.
-    :param bool backtracking: whether to apply a backtracking for stepsize selection. Default: `False`.
+    :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: `False`.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: `0.1`.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: `0.9`.
     :param function custom_init:  intializes the algorithm with `custom_init(y)`. If `None` (default value) algorithm is initilialized with :math:`A^Ty`. Default: `None`.
@@ -107,7 +112,7 @@ class BaseOptim(nn.Module):
         self,
         iterator,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
-        prior={},
+        prior=None,
         max_iter=50,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -139,12 +144,12 @@ class BaseOptim(nn.Module):
         self.custom_init = custom_init
         self.has_cost = has_cost
 
-        # params_algo should contain a g_param parameter, even if None.
+        # By default params_algo should contain a g_param parameter, even if None.
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
 
         # By default, each parameter in params_algo is a list.
-        # If given as a signel number, we convert it to a list of 1 element.
+        # If given as a single number, we convert it to a list of 1 element.
         # If given as a list of more than 1 element, it should have lenght max_iter.
         for key, value in zip(params_algo.keys(), params_algo.values()):
             if not isinstance(value, Iterable):
@@ -437,32 +442,51 @@ def optim_builder(
     **kwargs,
 ):
     r"""
-    Function building the appropriate Optimizer given its name.
+    Helper function for building an instance of the :meth:`BaseOptim` class.
 
     ::
 
-        # Define the optimisation algorithm
-        optim_algo = optim_builder(
+        # This minimal example shows how to use the BaseOptim class to solve the problem
+        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
+        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
+
+        # Create the measurement operator A
+        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        A_forward = lambda v: A @ v
+        A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+
+        # Define the measurement y
+        y = torch.tensor([2, 2], dtype=torch.float64)
+
+        # Define the data fidelity term
+        data_fidelity = dinv.optim.data_fidelity.L2()
+
+        # Define the prior
+        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
+
+        # Define the parameters of the algorithm
+        params_algo = {"stepsize": 0.5, "lambda": 1.0}
+
+        # Define the optimization algorithm
+        optim_algo = dinv.optim.optim_builder(
                         'PGD',
                         prior=prior,
                         data_fidelity=data_fidelity,
-                        max_iter=100,
-                        crit_conv="residual",
-                        thres_conv=1e-11,
-                        verbose=True,
-                        params_algo=params_algo,
-                        early_stop=True,
+                        params_algo=params_algo
                     )
 
-        # Run the optimisation algorithm
+        # Run the optimization algorithm
         sol = optim_algo(y, physics)
 
 
-    :param iteration: either name of the algorithm to be used, or an iterator.
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used, or an optim iterator .
         If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
     :param dict params_algo: dictionary containing the algorithm's relevant parameter.
-    :param deepinv.optim.data_fidelity data_fidelity: data fidelity term in the optimisation problem.
-    :param F_fn: Custom user input cost function. default: None.
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
@@ -485,18 +509,14 @@ def optim_builder(
 
     if isinstance(iteration, str):
         iterator_fn = str_to_class(iteration + "Iteration")
-        iterator = iterator_fn(
+        iteration = iterator_fn(
             data_fidelity=data_fidelity,
             g_first=g_first,
             beta=beta,
             F_fn=F_fn,
             has_cost=has_cost,
         )
-    else:
-        iterator = iteration
-
-    optimizer = BaseOptim(iterator, has_cost=has_cost, **kwargs)
-    return optimizer
+    return BaseOptim(iteration, has_cost=has_cost, **kwargs)
 
 
 def str_to_class(classname):
