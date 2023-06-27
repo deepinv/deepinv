@@ -75,13 +75,15 @@ test_dataset = datasets.MNIST(
 #       We recommend to use the whole set by setting ``n_images_max=None`` to get the best results.
 
 # defined physics
-physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(.1))
+physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-n_images_max = 100 if torch.cuda.is_available() else 5  # number of images used for training
+n_images_max = (
+    100 if torch.cuda.is_available() else 5
+)  # number of images used for training
 
 measurement_dir = DATA_DIR / train_dataset_name / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
@@ -104,7 +106,9 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 #
 # We use a simple U-Net architecture with 2 scales as the denoiser network.
 
-model = dinv.models.ArtifactRemoval(dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device))
+model = dinv.models.ArtifactRemoval(
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
+)
 
 
 # %%
@@ -127,7 +131,7 @@ learning_rate = 5e-4
 batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
-loss = dinv.loss.SurePoissonLoss(gain=.1)
+loss = dinv.loss.SurePoissonLoss(gain=0.1)
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

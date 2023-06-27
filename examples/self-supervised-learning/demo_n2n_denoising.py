@@ -75,13 +75,15 @@ test_dataset = datasets.MNIST(
 #       We recommend to use the whole set by setting ``n_images_max=None`` to get the best results.
 
 # defined physics
-physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(.1))
+physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-n_images_max = 100 if torch.cuda.is_available() else 5  # number of images used for training
+n_images_max = (
+    100 if torch.cuda.is_available() else 5
+)  # number of images used for training
 
 my_dataset_name = "demo_n2n"
 measurement_dir = DATA_DIR / train_dataset_name / operation
@@ -105,7 +107,9 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 #
 # We use a simple U-Net architecture with 2 scales as the denoiser network.
 
-model = dinv.models.ArtifactRemoval(dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device))
+model = dinv.models.ArtifactRemoval(
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
+)
 
 
 # %%

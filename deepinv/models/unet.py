@@ -203,7 +203,7 @@ class UNet(nn.Module):
         :param float sigma: noise level (not used).
         """
 
-        factor = 2**(self.compact-1)
+        factor = 2 ** (self.compact - 1)
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
             return self._forward(x)
         else:
