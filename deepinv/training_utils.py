@@ -47,13 +47,23 @@ def train(
     Trains a reconstruction network.
 
 
+    .. note::
+        The losses can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
+        as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
+        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y, A}`,
+        ``y`` is the measurement vector, ``physics`` is the forward operator
+        and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
+        e.g., self-supervised losses will not make use of ``x``.
+
+
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
     :param torch.utils.data.DataLoader train_dataloader: Train dataloader.
     :param int epochs: Number of training epochs.
     :param torch.nn.Module, list of torch.nn.Module losses: Loss or list of losses used for training the model.
     :param torch.utils.data.DataLoader eval_dataloader: Evaluation dataloader.
-    :param deepinv.physics.Physics physics: Forward operator containing the physics of the inverse problem.
+    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
+        used by the reconstruction network at train time.
     :param torch.nn.optim optimizer: Torch optimizer for training the network.
     :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
     :param torch.device device: gpu or cpu.
@@ -64,6 +74,7 @@ def train(
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :returns: Trained model.
     """
     save_path = Path(save_path)
 
@@ -203,6 +214,7 @@ def test(
     save_folder="results",
     plot_metrics=False,
     verbose=True,
+    plot_only_first_batch=True,
     wandb_vis=False,
     step=0,
     n_plot_max_wandb=8,
@@ -211,16 +223,26 @@ def test(
     r"""
     Tests a reconstruction network.
 
+    This function computes the PSNR of the reconstruction network on the test set,
+    and optionally plots the reconstructions.
+
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
-    :param torch.utils.data.DataLoader test_dataloader:
-    :param deepinv.physics.Physics physics:
+    :param torch.utils.data.DataLoader test_dataloader: Test data loader, which should provide a tuple of (x, y) pairs.
+        See :ref:`datasets <datasets>` for more details.
+    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
+        used by the reconstruction network at test time.
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
     :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
+    :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param int step: Step number for wandb visualization.
+    :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
+    :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
+        reconstruction network and a simple linear inverse on the test set.
     """
     save_folder = Path(save_folder)
 
@@ -234,7 +256,6 @@ def test(
         test_dataloader = [test_dataloader]
 
     G = len(test_dataloader)
-    imgs = []
 
     show_operators = 5
 
@@ -281,23 +302,24 @@ def test(
 
             if plot_images or wandb_vis:
                 if g < show_operators:
-                    if len(y.shape) == 4:
-                        imgs = [y, x_init, x1, x]
-                        name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                    else:
-                        imgs = [x_init, x1, x]
-                        name_imgs = ["Linear", "Recons.", "GT"]
-                    plot(imgs, titles=name_imgs, save_dir=save_folder_im, show=True)
-                    if wandb_vis:
-                        n_plot = min(n_plot_max_wandb, len(x))
-                        captions = [
-                            "Input",
-                            f"Init (or Linear) PSNR:{cur_psnr_init:.2f}",
-                            f"Estimated PSNR:{cur_psnr:.2f}",
-                            "Ground Truth",
-                        ]
-                        imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
-                        wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
+                    if not plot_only_first_batch or (plot_only_first_batch and i == 0):
+                        if len(y.shape) == 4:
+                            imgs = [y, x_init, x1, x]
+                            name_imgs = ["Input", "Linear", "Recons.", "GT"]
+                        else:
+                            imgs = [x_init, x1, x]
+                            name_imgs = ["Linear", "Recons.", "GT"]
+                        plot(imgs, titles=name_imgs, save_dir=save_folder_im, show=True)
+                        if wandb_vis:
+                            n_plot = min(n_plot_max_wandb, len(x))
+                            captions = [
+                                "Input",
+                                f"Linear PSNR:{cur_psnr_init:.2f}",
+                                f"Estimated PSNR:{cur_psnr:.2f}",
+                                "Ground Truth",
+                            ]
+                            imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
+                            wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)
@@ -306,13 +328,13 @@ def test(
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
-    init_psnr = np.mean(psnr_init)
-    init_std_psnr = np.std(psnr_init)
+    linear_psnr = np.mean(psnr_init)
+    linear_std_psnr = np.std(psnr_init)
     if verbose:
         print(
-            f"Test PSNR: Init: {init_psnr:.2f}+-{init_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
+            f"Test PSNR: Linear rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
         )
     if wandb_vis:
         wandb.log({"Test PSNR": test_psnr}, step=step)
 
-    return test_psnr, test_std_psnr, init_psnr, init_std_psnr
+    return test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr
