@@ -6,5 +6,5 @@ from deepinv.loss.score import ScoreLoss
 from deepinv.loss.tv import TVLoss
 from deepinv.loss.sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
-from deepinv.loss.measplit import SplittingLoss
+from deepinv.loss.measplit import SplittingLoss, Neighbor2Neighbor
 from deepinv.loss.metric import LpNorm, CharbonnierLoss
