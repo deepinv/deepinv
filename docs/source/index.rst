@@ -15,7 +15,7 @@ Featuring
 * |:book:| Framework for :ref:`building datasets <datasets>` for inverse problems.
 * |:building_construction:| Easy-to-build :ref:`unfolded architectures <unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
 * |:microscope:| :ref:`Sampling algorithms <sampling>` for uncertainty quantification (Langevin, diffusion, etc.).
-* |:books:| A large number of well-explained :ref:`examples <Examples>`, from basics to state-of-the-art methods.
+* |:books:| A large number of well-explained :ref:`examples <examples>`, from basics to state-of-the-art methods.
 
 
 .. image:: figures/deepinv_schematic.png
@@ -36,7 +36,7 @@ Install the latest version of ``deepinv`` via pip:
 Getting Started
 ==================
 
-Try out one of the following deblurring examples (or pick from :ref:`full list of examples <Examples>`):
+Try out one of the following deblurring examples (or pick from :ref:`full list of examples <examples>`):
 
 .. minigallery:: deepinv.physics.BlurFFT
 
@@ -62,4 +62,5 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
 Lead Developers
 ============================
 
-`Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_, `Samuel Hurault <https://github.com/samuro95/>`_ and `Matthieu Terris <https://matthieutrs.github.io>`_.
+`Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
+`Samuel Hurault <https://github.com/samuro95/>`_ and `Matthieu Terris <https://matthieutrs.github.io>`_.
