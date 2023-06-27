@@ -30,7 +30,7 @@ def fftfreq(n):
 
 
 def deg2rad(x):
-    return x * PI / 180
+    return x * PI.to(x.device) / 180
 
 
 class AbstractFilter(nn.Module):
@@ -130,12 +130,12 @@ class Radon(nn.Module):
         out = torch.zeros(N, C, W, len(self.theta), device=x.device, dtype=self.dtype)
 
         for i in range(len(self.theta)):
-            rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1))
+            rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1).to(x.device))
             out[..., i] = rotated.sum(2)
 
         return out
 
-    def _create_grids(self, angles, grid_size, circle):
+    def _create_grids(self, angles, grid_size, circle, device='cpu'):
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
@@ -143,7 +143,7 @@ class Radon(nn.Module):
             theta = deg2rad(theta)
             R = torch.tensor(
                 [[[theta.cos(), theta.sin(), 0], [-theta.sin(), theta.cos(), 0]]],
-                dtype=self.dtype,
+                dtype=self.dtype, device=device
             )
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
         return torch.stack(all_grids)
@@ -162,7 +162,8 @@ class IRadon(nn.Module):
     ):
         super().__init__()
         self.circle = circle
-        self.theta = theta if theta is not None else torch.arange(180)
+        self.device = device
+        self.theta = theta if theta is not None else torch.arange(180).to(self.device)
         self.out_size = out_size
         self.in_size = in_size
         self.dtype = dtype
@@ -196,7 +197,7 @@ class IRadon(nn.Module):
         )
         for i_theta in range(len(self.theta)):
             reco += grid_sample(
-                x, self.all_grids[i_theta].repeat(reco.shape[0], 1, 1, 1)
+                x, self.all_grids[i_theta].repeat(reco.shape[0], 1, 1, 1).to(x.device)
             )
 
         if not self.circle:
@@ -229,7 +230,7 @@ class IRadon(nn.Module):
     def _create_yxgrid(self, in_size, circle):
         if not circle:
             in_size = int((SQRT2 * in_size).ceil())
-        unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype)
+        unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype, device=self.device)
         return torch.meshgrid(unitrange, unitrange, indexing="ij")
 
     def _XYtoT(self, theta):
@@ -242,7 +243,7 @@ class IRadon(nn.Module):
         all_grids = []
         for i_theta in range(len(angles)):
             X = (
-                torch.ones(grid_size, dtype=self.dtype).view(-1, 1).repeat(1, grid_size)
+                torch.ones(grid_size, dtype=self.dtype, device=self.device).view(-1, 1).repeat(1, grid_size)
                 * i_theta
                 * 2.0
                 / (len(angles) - 1)
@@ -285,12 +286,12 @@ class Tomography(LinearPhysics):
         super().__init__(**kwargs)
 
         if isinstance(angles, int) or isinstance(angles, float):
-            theta = np.linspace(0, 180, angles, endpoint=False)
+            theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1]
         else:
-            theta = angles
+            theta = angles.to(device)
 
         self.radon = Radon(img_width, theta, circle).to(device)
-        self.iradon = IRadon(img_width, theta, circle).to(device)
+        self.iradon = IRadon(img_width, theta, circle, device=device).to(device)
 
     def A(self, x):
         return self.radon(x)
@@ -306,6 +307,7 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     view_number = 50
     theta = np.linspace(0, 180, view_number, endpoint=False)
+    theta = torch.from_numpy(theta).to(device)
     A = Radon(256, theta, device=device)
     A_dagger = IRadon(256, theta, device=device)
     x = torch.rand(1, 1, 256, 256, device=device)
