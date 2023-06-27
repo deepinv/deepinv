@@ -250,7 +250,7 @@ def test_measplit(device):
     y = physics(x)
 
     # choose training losses
-    loss = dinv.loss.SplittingLoss(split_ratio=.5, regular_mask=True)
+    loss = dinv.loss.SplittingLoss(split_ratio=0.5, regular_mask=True)
     x_net = f(y, physics)
     split_loss = loss(y, physics, f)
 
