@@ -46,7 +46,7 @@ Getting Started
 ---------------
 Try out the following plug-and-play image inpainting example:
 
-::
+.. code-block:: python
 
     import deepinv as dinv
     from deepinv.utils import load_url_image
