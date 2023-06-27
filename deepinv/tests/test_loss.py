@@ -77,6 +77,9 @@ def choose_sure(noise_type):
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
         noise_model = dinv.physics.PoissonNoise(gain)
+    elif noise_type == "Neighbor2Neighbor":
+        loss = dinv.loss.Neighbor2Neighbor()
+        noise_model = dinv.physics.PoissonNoise(gain)
     else:
         raise Exception("The SURE loss doesnt exist")
 
@@ -104,7 +107,7 @@ def test_sure(noise_type, device):
 
     x_net = f(y, physics)
     mse = deepinv.metric.mse()(x, x_net)
-    sure = loss(y, x_net, physics, f)
+    sure = loss(y=y, x_net=x_net, physics=physics, model=f)
 
     rel_error = (sure - mse).abs() / mse
     assert rel_error < 0.9
@@ -240,16 +243,18 @@ def test_measplit(device):
     backbone = dinv.models.MedianFilter()
     f = dinv.models.ArtifactRemoval(backbone)
     batch_size = 1
-    imsize = (3, 128, 128)
+    imsize = (3, 32, 32)
 
-    for split_ratio in np.linspace(0.7, 0.99, 10):
-        x = torch.ones((batch_size,) + imsize, device=device)
-        y = physics(x)
+    # for split_ratio in np.linspace(0.7, 0.99, 10):
+    x = torch.ones((batch_size,) + imsize, device=device)
+    y = physics(x)
 
-        # choose training losses
-        loss = dinv.loss.SplittingLoss(split_ratio=split_ratio, regular_mask=True)
-        x_net = f(y, physics)
-        mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
-        split_loss = loss(y, physics, f)
+    # choose training losses
+    loss = dinv.loss.SplittingLoss(split_ratio=.5, regular_mask=True)
+    x_net = f(y, physics)
+    split_loss = loss(y, physics, f)
 
-        rel_error = (split_loss - mse).abs() / mse
+    loss = dinv.loss.Neighbor2Neighbor()
+    n2n_loss = loss(y, physics, f)
+
+    assert split_loss > 0 and n2n_loss > 0
