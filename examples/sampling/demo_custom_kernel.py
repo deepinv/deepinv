@@ -14,7 +14,7 @@ from deepinv.utils.plotting import plot
 import torch
 from deepinv.sampling import ULA
 import numpy as np
-from deepinv.utils.demo import load_image
+from deepinv.utils.demo import load_url_image
 
 # %%
 # Load image from the internet
@@ -28,7 +28,7 @@ url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
-x = load_image(url=url, img_size=32)
+x = load_url_image(url=url, img_size=32)
 
 # %%
 # Define forward operator and noise model

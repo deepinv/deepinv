@@ -5,8 +5,10 @@ from .plotting import (
     plot,
     torch2cpu,
     plot_curves,
+    plot_parameters,
     make_grid,
     wandb_imgs,
     wandb_plot_curves,
 )
+from .demo import load_url_image
 from .nn import get_freer_gpu, TensorList, rand_like, zeros_like, randn_like, ones_like

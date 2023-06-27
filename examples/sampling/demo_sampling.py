@@ -22,7 +22,7 @@ The PnP-ULA method is described in the paper `"Bayesian imaging using Plug & Pla
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils.demo import load_image
+from deepinv.utils.demo import load_url_image
 
 # %%
 # Load image from the internet
@@ -36,7 +36,7 @@ url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
-x = load_image(url=url, img_size=32)
+x = load_url_image(url=url, img_size=32)
 
 # %%
 # Define forward operator and noise model

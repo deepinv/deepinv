@@ -110,14 +110,25 @@ def load_degradation(name, data_dir, kernel_index=0, download=True):
     return kernel_torch
 
 
-def load_image(
-    path=None,
+def load_url_image(
     url=None,
     img_size=None,
     grayscale=False,
     resize_mode="crop",
     device="cpu",
 ):
+    r"""
+
+    Load an image from a URL and return a torch.Tensor.
+
+    :param str url: URL of the image file.
+    :param int, tuple[int] img_size: Size of the image to return.
+    :param bool grayscale: Whether to convert the image to grayscale.
+    :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
+    :param str device: Device on which to load the image (gpu or cpu).
+    :return: :class:`torch.Tensor` containing the image.
+    """
+
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
     transform_list = []

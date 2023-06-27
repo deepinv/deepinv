@@ -2,8 +2,9 @@
 PnP with custom optimization algorithm (Condat-Vu Primal-Dual)
 ====================================================================================================
 
-This example shows how to set its own custom optimization algorithm. 
-For example, here, we implement the Condat-Vu Primal-Dual algorithm for Single Pixel Camera (SPC) reconstruction.
+This example shows how to define your own optimization algorithm.
+For example, here, we implement the Condat-Vu Primal-Dual algorithm,
+and apply it for Single Pixel Camera (SPC) reconstruction.
 """
 import deepinv as dinv
 from pathlib import Path
@@ -12,7 +13,7 @@ from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_image
+from deepinv.utils.demo import load_url_image
 from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
@@ -147,17 +148,18 @@ method = "PnP"
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 64
 url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg"
-x = load_image(
+x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
 )
 operation = "single_pixel"
 
 
 # %%
-# Generate a dataset of blurred images and load it.
+# Set the forward operator
 # --------------------------------------------------------------------------------
-# We use the BlurFFT class from the physics module to generate a dataset of blurred images.
-
+# We use the :class:`deepinv.physics.SinglePixelCamera`
+# class from the physics module to generate a single-pixel measurements.
+# The forward operator consists of the multiplication with the low frequencies of the Hadamard transform.
 
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 1  # 3 for color images, 1 for gray-scale images
@@ -175,17 +177,18 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # %%
 # Set up the PnP algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------
-# We use the Proximal Gradient Descent optimization algoritm.
-# The algorithm alternates between a denoising step and a gradient descent step.
-# The denoising step is performed by a DNCNN pretrained denoiser :class:`deepinv.models.dncnn`.
+# We build the PnP model using the :func:`deepinv.optim.optim_builder` function,
+# and setting the iterator to our custom CondatVu algorithm.
+#
+# The primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`,
+# `g_param` the noise level of the denoiser and `lambda` the regularization parameter.
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+# compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = True
 
 # Set up the PnP algorithm parameters :
-# the primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`, `g_param` the noise level of the denoiser and `lambda` the regularization parameter.
-# The following parameters are chosen arbitrarily and are not optimized for SOTA performance.
 params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 1.0, "sigma": 1.0}
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
@@ -204,9 +207,9 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
-algo = CVIteration(data_fidelity=data_fidelity, F_fn=None, has_cost=False)
+iteration = CVIteration(data_fidelity=data_fidelity, F_fn=None, has_cost=False)
 model = optim_builder(
-    iteration=algo,
+    iteration=iteration,
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
@@ -219,11 +222,14 @@ model = optim_builder(
 # %%
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
+#
+# When `return_metrics` is set to ``True``, in order to compute the evolution of the PSNR along the iterations,
+# the model requires the ground-truth clean image ``x_gt``.
 
 y = physics(x)
 x_lin = physics.A_adjoint(y)
 
-# run the model on the problem. When `return_metrics` is set to True, in order to compute the evolution of the PSNR along the iterations, the model requires the ground-truth clean image ``x_gt``.
+# run the model on the problem.
 x_model, metrics = model(y, physics, x_gt=x)
 
 # compute PSNR

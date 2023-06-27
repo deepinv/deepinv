@@ -94,9 +94,16 @@ def plot(
         col_imgs = []
         for i in range(min(im.shape[0], max_imgs)):
             if im.shape[1] == 2:  # for complex images
-                pimg = im[i, :, :, :].pow(2).sum(dim=0).sqrt().unsqueeze(0)
+                pimg = (
+                    im[i, :, :, :]
+                    .pow(2)
+                    .sum(dim=0)
+                    .sqrt()
+                    .unsqueeze(0)
+                    .type(torch.float32)
+                )
             else:
-                pimg = im[i, :, :, :]
+                pimg = im[i, :, :, :].type(torch.float32)
             if rescale_mode == "min_max":
                 pimg = (pimg - pimg.min()) / (pimg.max() - pimg.min())
             elif rescale_mode == "clip":
@@ -130,6 +137,13 @@ def plot(
 
 
 def plot_curves(metrics, save_dir=None, show=True):
+    r"""
+    Plots the metrics of a Plug-and-Play algorithm.
+
+    :param dict metrics: dictionary of metrics to plot.
+    :param str save_dir: path to save the plot.
+    :param bool show: show the image plot.
+    """
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -202,13 +216,14 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
     r"""
-    Plot the parameters of the model before and after training. This is used after training Unfolded optimization models.
+    Plot the parameters of the model before and after training.
+    This can be used after training Unfolded optimization models.
 
-    Args:
-        model torch.nn.Module: the model to plot the parameters of. The parameters are contained in the dictionary ``params_algo`` attribute of the model.
-        init_params dict (optional): the initial parameters of the model, before training. Defaults to ``None``.
-        save_dir str or Path (optional): the directory where to save the plot. Defaults to ``None``.
-        show bool (optional): whether to show the plot. Defaults to ``True``.
+    :param torch.nn.Module model: the model whose parameters are plotted. The parameters are contained in the dictionary
+        ``params_algo`` attribute of the model.
+    :param dict init_params: the initial parameters of the model, before training. Defaults to ``None``.
+    :param str, Path save_dir: the directory where to save the plot. Defaults to ``None``.
+    :param show bool: whether to show the plot. Defaults to ``True``.
     """
 
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]

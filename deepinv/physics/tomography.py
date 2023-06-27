@@ -306,13 +306,13 @@ class Tomography(LinearPhysics):
         return self.iradon(y, filtering=False)
 
 
-if __name__ == "__main__":
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    view_number = 50
-    theta = np.linspace(0, 180, view_number, endpoint=False)
-    theta = torch.from_numpy(theta).to(device)
-    A = Radon(256, theta, device=device)
-    A_dagger = IRadon(256, theta, device=device)
-    x = torch.rand(1, 1, 256, 256, device=device)
-    y = A(x)
-    z = A_dagger(x)
+# if __name__ == "__main__":
+#     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#     view_number = 50
+#     theta = np.linspace(0, 180, view_number, endpoint=False)
+#     theta = torch.from_numpy(theta).to(device)
+#     A = Radon(256, theta, device=device)
+#     A_dagger = IRadon(256, theta, device=device)
+#     x = torch.rand(1, 1, 256, 256, device=device)
+#     y = A(x)
+#     z = A_dagger(x)
