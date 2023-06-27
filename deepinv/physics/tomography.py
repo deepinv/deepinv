@@ -135,7 +135,7 @@ class Radon(nn.Module):
 
         return out
 
-    def _create_grids(self, angles, grid_size, circle, device='cpu'):
+    def _create_grids(self, angles, grid_size, circle, device="cpu"):
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
@@ -143,7 +143,8 @@ class Radon(nn.Module):
             theta = deg2rad(theta)
             R = torch.tensor(
                 [[[theta.cos(), theta.sin(), 0], [-theta.sin(), theta.cos(), 0]]],
-                dtype=self.dtype, device=device
+                dtype=self.dtype,
+                device=device,
             )
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
         return torch.stack(all_grids)
@@ -243,7 +244,9 @@ class IRadon(nn.Module):
         all_grids = []
         for i_theta in range(len(angles)):
             X = (
-                torch.ones(grid_size, dtype=self.dtype, device=self.device).view(-1, 1).repeat(1, grid_size)
+                torch.ones(grid_size, dtype=self.dtype, device=self.device)
+                .view(-1, 1)
+                .repeat(1, grid_size)
                 * i_theta
                 * 2.0
                 / (len(angles) - 1)
@@ -275,8 +278,8 @@ class Tomography(LinearPhysics):
         The adjoint operator has small numerical errors due to interpolation.
 
     :param int img_width: width/height of the square image input.
-    :param int, numpy.array angles: If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
-        If the type is ``numpy.array``, the angles are the ones provided (e.g., ``np.linspace(0, 180, 10)``).
+    :param int, torch.tensor angles: If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
+        If the type is ``torch.tensor``, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param str device: gpu or cpu.
