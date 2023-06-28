@@ -11,7 +11,7 @@ Featuring
 
 * |:camera_with_flash:|  Large collection of :ref:`predefined imaging operators <physics>` (MRI, CT, deblurring, inpainting, etc.)
 * |:book:| :ref:`Training losses <loss>` for inverse problems (self-supervised learning, regularization, etc.).
-* |:boomerang:| Many :ref:`pretrained deep denoisers <models>` which can be used for :ref:`plug-and-play restoration <optim>`.
+* |:boomerang:| Many :ref:`pretrained deep denoisers <models>` which can be used for :ref:`plug-and-play restoration <pnp>`.
 * |:book:| Framework for :ref:`building datasets <datasets>` for inverse problems.
 * |:building_construction:| Easy-to-build :ref:`unfolded architectures <unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
 * |:microscope:| :ref:`Sampling algorithms <sampling>` for uncertainty quantification (Langevin, diffusion, etc.).
