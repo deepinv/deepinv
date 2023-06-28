@@ -78,6 +78,7 @@ n_images_max = (
     900 if torch.cuda.is_available() else 5
 )  # number of images used for training
 # (the dataset has up to 973 images, however here we use only 900)
+n_images_max = 5
 
 my_dataset_name = "demo_equivariant_imaging"
 measurement_dir = DATA_DIR / train_dataset_name / operation
