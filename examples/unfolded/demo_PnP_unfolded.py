@@ -43,7 +43,9 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "super-resolution"
-train_dataset_name = "CBSD68" # For simplicity, we use a small dataset for training. To be replaced for optimal results.
+train_dataset_name = (
+    "CBSD68"
+)  # For simplicity, we use a small dataset for training. To be replaced for optimal results.
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -102,12 +104,12 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded PnP algorithm. 
+# Define the unfolded PnP algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :meth:`deepinv.unfolded.unfolded_builfer` to defined the Unfolded architecture. 
+# We use the helper function :meth:`deepinv.unfolded.unfolded_builfer` to defined the Unfolded architecture.
 # The chosen algorithm is here DRS (Douglas-Rachford Splitting).
-# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter, 
-# then a distinct model (resp. parameter) is trained for each iteration. 
+# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
+# then a distinct model (resp. parameter) is trained for each iteration.
 # For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
 
 # Unrolled optimization algorithm parameters
@@ -121,7 +123,7 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-lamb = [1.0] * max_iter 
+lamb = [1.0] * max_iter
 stepsize = [1.0] * max_iter
 sigma_denoiser = [0.01] * max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
@@ -202,7 +204,7 @@ train(
 #
 
 method = "unfolded_drs"
-save_folder= RESULTS_DIR / method / operation
+save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_images = True  # plot images. Images are saved in save_folder.
 

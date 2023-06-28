@@ -44,19 +44,15 @@ class BaseDEQ(BaseUnfold):
         with torch.no_grad():  # Perform the forward pass without gradient tracking
             x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
-        cur_prior = self.update_prior_fn(
-            self.max_iter - 1
-        ) 
-        cur_params = self.update_params_fn(
-            self.max_iter - 1
-        )
+        cur_prior = self.update_prior_fn(self.max_iter - 1)
+        cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(x, cur_prior, cur_params, y, physics)["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
             {"est": (x0,)}, cur_prior, cur_params, y, physics
         )["est"][0]
-        
+
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
         def backward_hook(grad):
             class backward_iterator(OptimIterator):
@@ -72,20 +68,20 @@ class BaseDEQ(BaseUnfold):
                             + grad,
                         )
                     }
+
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
             def init_iterate_fn(y, physics, F_fn=None):
-                return {
-                    "est": (grad,),
-                }  # initialize the fixed point algorithm.
+                return {"est": (grad,)}  # initialize the fixed point algorithm.
+
             backward_FP = FixedPoint(
                 backward_iterator(),
                 init_iterate_fn=init_iterate_fn,
                 max_iter=self.max_iter_backward,
-                check_conv_fn=self.check_conv_fn
+                check_conv_fn=self.check_conv_fn,
             )
             g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
             return g
-       
+
         if x.requires_grad:
             x.register_hook(backward_hook)
 

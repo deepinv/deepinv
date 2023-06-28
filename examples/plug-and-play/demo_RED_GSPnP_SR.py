@@ -101,7 +101,9 @@ crit_conv = (
 thres_conv = 1e-5
 backtracking = True  # use backtracking to automatically adjust the stepsize
 use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
-batch_size = 1 # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
+batch_size = (
+    1
+)  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
@@ -138,12 +140,12 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device))
+prior = GSPnP(
+    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
+)
 
 # Logging parameters
-plot_metrics = (
-    True
-)  
+plot_metrics = True
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
@@ -159,7 +161,7 @@ model = optim_builder(
     backtracking=backtracking,
     return_aux=True,
     verbose=True,
-    return_metrics=True # compute performance and convergence metrics along the algorithm.
+    return_metrics=True,  # compute performance and convergence metrics along the algorithm.
 )
 
 # %%
@@ -167,9 +169,9 @@ model = optim_builder(
 # ----------------------------------------------------
 # We evaluate the PnP algorithm on the test dataset, compute the PSNR metrics and plot reconstruction results.
 
-save_folder= RESULTS_DIR / method / operation / dataset_name
+save_folder = RESULTS_DIR / method / operation / dataset_name
 wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True # plot metrics. Metrics are saved in save_folder.
+plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
 plot_images = True  # plot images. Images are saved in save_folder.
 
 
@@ -181,10 +183,10 @@ test(
     test_dataloader=dataloader,
     physics=p,
     device=device,
-    plot_images=plot_images, 
+    plot_images=plot_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=True,
     wandb_vis=wandb_vis,
-    plot_only_first_batch = False # By default only the first batch is plotted.
+    plot_only_first_batch=False,  # By default only the first batch is plotted.
 )

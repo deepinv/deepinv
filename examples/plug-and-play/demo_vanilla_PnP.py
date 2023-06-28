@@ -89,7 +89,7 @@ data_fidelity = L2()
 denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
-    pretrained="download", # automatically downloads the pretrained weights, set to a path to use custom weights.
+    pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
     train=False,
     device=device,
 )
@@ -115,10 +115,10 @@ model = optim_builder(
 # For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)
-x_lin = physics.A_adjoint(y) # linear reconstruction with the adjoint operator
+x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator
 
 # run the model on the problem.
-x_model, metrics = model(y, physics, x_gt=x) # reconstruction with PnP algorithm
+x_model, metrics = model(y, physics, x_gt=x)  # reconstruction with PnP algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
