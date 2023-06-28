@@ -46,7 +46,13 @@ class WaveletPrior(nn.Module):
         elif len(ths.shape) == 0 or ths.shape[0] == 1:
             ths_map = ths.to(self.device)
         else:
-            ths_map = ths.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1).to(self.device)
+            ths_map = (
+                ths.unsqueeze(0)
+                .unsqueeze(0)
+                .unsqueeze(-1)
+                .unsqueeze(-1)
+                .to(self.device)
+            )
         return torch.maximum(
             torch.tensor([0], device=x.device).type(x.dtype), x - ths_map
         ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
