@@ -150,7 +150,7 @@ def train(
                 optimizer.zero_grad()
 
                 out = model(y, physics[g])
-                if type(out) is tuple:
+                if type(out) is tuple and len(out)==2:
                     x_net, _ = out
                 else:
                     x_net = out
