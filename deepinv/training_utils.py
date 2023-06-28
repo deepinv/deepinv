@@ -286,7 +286,7 @@ def test(
                 x = x.to(device)
             y = y.to(device)
             with torch.no_grad():
-                x1, metrics = model(y, physics[g], x, **kwargs)
+                x1, metrics = model(y, physics[g], x_gt=x, **kwargs)
             x_init = physics[g].A_adjoint(y)
 
             cur_psnr_init = cal_psnr(x_init, x)

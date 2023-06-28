@@ -340,9 +340,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = torch.tensor(
-        [[1.0]]
-    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = torch.tensor([[0.1]])  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 
