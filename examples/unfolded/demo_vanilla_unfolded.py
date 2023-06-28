@@ -140,9 +140,7 @@ trainable_params = [
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
-plot_metrics = (
-    True
-)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 
 # Define the unfolded trainable model.

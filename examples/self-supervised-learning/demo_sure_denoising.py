@@ -93,6 +93,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
+    test_datapoints=n_images_max,
     num_workers=num_workers,
     dataset_filename="demo_sure",
 )
