@@ -114,7 +114,7 @@ model = dinv.models.ArtifactRemoval(
 # %%
 # Set up the training parameters
 # --------------------------------------------
-# We set the :class:`deepinv.loss.SurePoissonLoss` loss as the training loss.
+# We set :class:`deepinv.loss.SurePoissonLoss` as the training loss.
 #
 # .. note::
 #

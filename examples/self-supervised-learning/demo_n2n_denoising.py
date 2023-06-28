@@ -115,7 +115,7 @@ model = dinv.models.ArtifactRemoval(
 # %%
 # Set up the training parameters
 # --------------------------------------------
-# We set the :class:`deepinv.loss.Neighbor2Neighbor` loss as the training loss.
+# We set :class:`deepinv.loss.Neighbor2Neighbor` as the training loss.
 #
 # .. note::
 #
