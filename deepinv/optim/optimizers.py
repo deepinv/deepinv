@@ -421,7 +421,9 @@ class BaseOptim(nn.Module):
         :return: If `compute_metrics` is False,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        x, metrics = self.fixed_point(y, physics, x_gt=x_gt, compute_metrics=compute_metrics)
+        x, metrics = self.fixed_point(
+            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+        )
         x = (
             self.get_primal_variable(x)
             if not self.return_aux
@@ -498,7 +500,9 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = (
+            True
+        )  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
     # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.

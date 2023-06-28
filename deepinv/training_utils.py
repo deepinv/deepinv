@@ -285,7 +285,7 @@ def test(
             else:
                 x = x.to(device)
             y = y.to(device)
-            
+
             with torch.no_grad():
                 if plot_metrics:
                     x1, metrics = model(y, physics[g], x_gt=x, compute_metrics=True)

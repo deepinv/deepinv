@@ -127,7 +127,11 @@ class FixedPoint(nn.Module):
             if self.init_iterate_fn
             else None
         )
-        metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn and compute_metrics else None
+        metrics = (
+            self.init_metrics_fn(X, **kwargs)
+            if self.init_metrics_fn and compute_metrics
+            else None
+        )
         it = 0
         while it < self.max_iter:
             cur_params = self.update_params_fn(it) if self.update_params_fn else None

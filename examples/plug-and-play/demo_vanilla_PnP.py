@@ -74,7 +74,9 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = (
+    True
+)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.01}
 max_iter = 100
@@ -101,7 +103,7 @@ model = optim_builder(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo
+    params_algo=params_algo,
 )
 
 # %%
@@ -115,7 +117,9 @@ y = physics(x)
 x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator
 
 # run the model on the problem.
-x_model, metrics = model(y, physics, x_gt=x, compute_metrics=True)  # reconstruction with PnP algorithm
+x_model, metrics = model(
+    y, physics, x_gt=x, compute_metrics=True
+)  # reconstruction with PnP algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")

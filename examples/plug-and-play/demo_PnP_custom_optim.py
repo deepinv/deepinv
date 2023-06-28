@@ -194,7 +194,7 @@ physics = dinv.physics.SinglePixelCamera(
     m=100,
     img_shape=(1, 64, 64),
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-    device=device
+    device=device,
 )
 
 # Use parallel dataloader if using a GPU to fasten training,
@@ -239,7 +239,7 @@ model = optim_builder(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=True,
-    params_algo=params_algo
+    params_algo=params_algo,
 )
 
 # %%

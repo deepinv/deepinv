@@ -148,7 +148,7 @@ model = unfolded_builder(
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior
+    prior=prior,
 )
 
 # %%
