@@ -174,7 +174,7 @@ def get_freer_gpu():
     return device
 
 
-def save_model(epoch, model, optimizer, ckp_interval, epochs, loss, save_path):
+def save_model(epoch, model, optimizer, ckp_interval, epochs, loss, psnr, save_path):
     if (epoch > 0 and epoch % ckp_interval == 0) or epoch + 1 == epochs:
         os.makedirs(save_path, exist_ok=True)
 
@@ -182,6 +182,7 @@ def save_model(epoch, model, optimizer, ckp_interval, epochs, loss, save_path):
             "epoch": epoch,
             "state_dict": model.state_dict(),
             "loss": loss,
+            "psnr": psnr,
             "optimizer": optimizer.state_dict(),
         }
         torch.save(state, os.path.join(save_path, "ckp_{}.pth.tar".format(epoch)))

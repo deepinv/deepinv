@@ -123,6 +123,7 @@ def train(
     G = len(train_dataloader)
 
     loss_history = []
+    psnr_history = []
 
     for epoch in range(epochs):
         if eval_dataloader:
@@ -184,6 +185,7 @@ def train(
             )
 
             eval_psnr_net.update(test_psnr)
+            psnr_history.append(test_psnr)
 
         if scheduler:
             scheduler.step()
@@ -197,7 +199,14 @@ def train(
             progress.display(epoch + 1)
 
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
+            epoch,
+            model,
+            optimizer,
+            ckp_interval,
+            epochs,
+            loss_history,
+            psnr_history,
+            str(save_path),
         )
 
     if wandb_vis:
