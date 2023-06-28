@@ -161,7 +161,7 @@ model = optim_builder(
     backtracking=backtracking,
     return_aux=True,
     verbose=True,
-    return_metrics=True,  # compute performance and convergence metrics along the algorithm.
+    compute_metrics=True,  # compute performance and convergence metrics along the algorithm.
 )
 
 # %%

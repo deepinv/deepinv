@@ -216,14 +216,14 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    return_metrics=plot_metrics,
+    compute_metrics=plot_metrics,
 )
 
 # %%
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
 #
-# When ``return_metrics`` is set to ``True``, the model returns the output and the metrics computed along the iterations.
+# The model returns the output and the metrics computed along the iterations.
 # For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)

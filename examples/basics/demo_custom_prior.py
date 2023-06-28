@@ -165,7 +165,7 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     verbose=verbose,
-    return_metrics=plot_metrics,
+    compute_metrics=plot_metrics,
 )
 
 

@@ -122,7 +122,7 @@ class BaseOptim(nn.Module):
         backtracking=False,
         gamma_backtracking=0.1,
         eta_backtracking=0.9,
-        return_metrics=False,
+        compute_metrics=False,
         custom_metrics=None,
         custom_init=None,
         verbose=False,
@@ -137,7 +137,7 @@ class BaseOptim(nn.Module):
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
-        self.return_metrics = return_metrics
+        self.compute_metrics = compute_metrics
         self.has_converged = False
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
@@ -275,7 +275,7 @@ class BaseOptim(nn.Module):
         :return dict: A dictionary containing the metrics.
         """
         self.batch_size = self.get_primal_variable(X_init).shape[0]
-        if self.return_metrics:
+        if self.compute_metrics:
             init = {}
             x_init = (
                 self.get_primal_variable(X_init)
@@ -427,10 +427,7 @@ class BaseOptim(nn.Module):
             if not self.return_aux
             else self.get_auxiliary_variable(x)
         )
-        if self.return_metrics:
-            return x, metrics
-        else:
-            return x
+        return x, metrics
 
 
 def optim_builder(

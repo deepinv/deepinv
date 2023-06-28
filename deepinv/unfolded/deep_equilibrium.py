@@ -85,10 +85,8 @@ class BaseDEQ(BaseUnfold):
         if x.requires_grad:
             x.register_hook(backward_hook)
 
-        if self.return_metrics:
-            return x, metrics
-        else:
-            return x
+        return x, metrics
+
 
 
 def DEQ_builder(

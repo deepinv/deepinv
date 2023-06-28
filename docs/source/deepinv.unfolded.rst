@@ -19,7 +19,7 @@ where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradie
 :math:`f` and :math:`g` respectively.
 
 Unfolded architectures (sometimes called 'unrolled architectures') are obtained by replacing parts of these algorithms
-by learnable structures. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
+by learnable modules. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
 
 Unfolded
 --------

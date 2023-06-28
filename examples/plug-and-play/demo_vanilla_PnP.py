@@ -74,9 +74,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Logging parameters
 verbose = True
-plot_metrics = (
-    True
-)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = True # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.01}
 max_iter = 100
@@ -104,14 +102,14 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    return_metrics=plot_metrics,
+    compute_metrics=plot_metrics,
 )
 
 # %%
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
 #
-# When ``return_metrics`` is set to ``True``, the model returns the output and the metrics computed along the iterations.
+# The model returns the output and the metrics computed along the iterations.
 # For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)

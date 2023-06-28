@@ -136,7 +136,7 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    return_metrics=plot_metrics,
+    compute_metrics=plot_metrics,
 )
 
 # %%
