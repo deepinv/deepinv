@@ -43,9 +43,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "super-resolution"
-train_dataset_name = (
-    "CBSD68"
-)  # For simplicity, we use a small dataset for training. To be replaced for optimal results.
+train_dataset_name = "CBSD68"  # For simplicity, we use a small dataset for training. To be replaced for optimal results.
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(

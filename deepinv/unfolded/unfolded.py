@@ -49,7 +49,7 @@ def unfolded_builder(
     iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
 ):
     r"""
-    Function building the appropriate Unfolded architecture. 
+    Function building the appropriate Unfolded architecture.
 
     :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used, or an optim iterator .
         If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
@@ -71,9 +71,7 @@ def unfolded_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = (
-            True
-        )  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
 

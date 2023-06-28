@@ -226,7 +226,7 @@ def test(
 
     This function computes the PSNR of the reconstruction network on the test set,
     and optionally plots the reconstructions as well as the metrics computed along the iterations.
-    Note that by default only the batch is plotted. 
+    Note that by default only the batch is plotted.
 
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.

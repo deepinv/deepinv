@@ -229,4 +229,4 @@ class ScorePrior(Prior):
         :param torch.Tensor x: the input tensor.
         :param float sigma: the noise level.
         """
-        return (1 / sigma ** 2) * (x - self.denoiser(x, sigma))
+        return (1 / sigma**2) * (x - self.denoiser(x, sigma))
