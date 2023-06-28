@@ -503,11 +503,12 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = True
+        has_cost = True # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
-
-    if isinstance(iteration, str):
+    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`. 
+    # If the iteration is directly given as an instance of OptimIterator, nothing to do
+    if isinstance(iteration, str): # If the name of the algorithm is given as a string, the correspondong class is automatically called. 
         iterator_fn = str_to_class(iteration + "Iteration")
         iteration = iterator_fn(
             data_fidelity=data_fidelity,

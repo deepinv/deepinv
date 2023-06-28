@@ -101,7 +101,7 @@ class FixedPoint(nn.Module):
 
         if self.check_conv_fn is None and self.early_stop:
             raise Warning(
-                "early_stop is set to True but no check_conv_fn has been defined. Seeting early_stop to False"
+                "early_stop is set to True but no check_conv_fn has been defined."
             )
             self.early_stop = False
 
