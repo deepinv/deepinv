@@ -108,10 +108,6 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 # The algorithm alternates between a denoising step and a data fidelity step, where
 # the denoising step is performed by a pretrained denoiser :class:`deepinv.models.DRUNet`.
 
-# Logging parameters
-verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
 # load specific parameters for DPIR
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
@@ -130,9 +126,8 @@ model = optim_builder(
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
-    verbose=verbose,
-    params_algo=params_algo,
-    compute_metrics=plot_metrics,
+    verbose=True,
+    params_algo=params_algo
 )
 
 # %%
@@ -157,7 +152,7 @@ test(
     plot_images=plot_images,
     save_folder=save_folder,
     plot_metrics=plot_metrics,
-    verbose=verbose,
+    verbose=True,
     wandb_vis=wandb_vis,
     plot_only_first_batch=False,  # By default only the first batch is plotted.
 )

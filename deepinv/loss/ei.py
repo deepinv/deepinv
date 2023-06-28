@@ -60,8 +60,6 @@ class EILoss(nn.Module):
             y = physics.A(x2)
 
         x3 = model(y, physics)
-        if type(x3) is tuple and len(x3)==2:
-            x3, _ = x3
 
         loss_ei = self.weight * self.metric(x3, x2)
         return loss_ei

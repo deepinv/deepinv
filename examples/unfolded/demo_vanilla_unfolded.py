@@ -140,8 +140,6 @@ trainable_params = [
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
@@ -150,8 +148,7 @@ model = unfolded_builder(
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior,
-    compute_metrics=plot_metrics,
+    prior=prior
 )
 
 # %%

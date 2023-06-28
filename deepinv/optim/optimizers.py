@@ -122,7 +122,6 @@ class BaseOptim(nn.Module):
         backtracking=False,
         gamma_backtracking=0.1,
         eta_backtracking=0.9,
-        compute_metrics=False,
         custom_metrics=None,
         custom_init=None,
         verbose=False,
@@ -137,7 +136,6 @@ class BaseOptim(nn.Module):
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
-        self.compute_metrics = compute_metrics
         self.has_converged = False
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
@@ -275,25 +273,24 @@ class BaseOptim(nn.Module):
         :return dict: A dictionary containing the metrics.
         """
         self.batch_size = self.get_primal_variable(X_init).shape[0]
-        if self.compute_metrics:
-            init = {}
-            x_init = (
-                self.get_primal_variable(X_init)
-                if not self.return_aux
-                else self.get_auxiliary_variable(X_init)
-            )
-            if x_gt is not None:
-                psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
-            else:
-                psnr = [[] for i in range(self.batch_size)]
-            init["psnr"] = psnr
-            if self.has_cost:
-                init["cost"] = [[] for i in range(self.batch_size)]
-            init["residual"] = [[] for i in range(self.batch_size)]
-            if self.custom_metrics is not None:
-                for custom_metric_name in self.custom_metrics.keys():
-                    init[custom_metric_name] = [[] for i in range(self.batch_size)]
-            return init
+        init = {}
+        x_init = (
+            self.get_primal_variable(X_init)
+            if not self.return_aux
+            else self.get_auxiliary_variable(X_init)
+        )
+        if x_gt is not None:
+            psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+        else:
+            psnr = [[] for i in range(self.batch_size)]
+        init["psnr"] = psnr
+        if self.has_cost:
+            init["cost"] = [[] for i in range(self.batch_size)]
+        init["residual"] = [[] for i in range(self.batch_size)]
+        if self.custom_metrics is not None:
+            for custom_metric_name in self.custom_metrics.keys():
+                init[custom_metric_name] = [[] for i in range(self.batch_size)]
+        return init
 
     def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
         r"""
@@ -413,23 +410,27 @@ class BaseOptim(nn.Module):
         else:
             return False
 
-    def forward(self, y, physics, x_gt=None):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
-
-        :return: tuple (torch.Tensor, dict): the output and the metrics.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: `False`.
+        :return: If `compute_metrics` is False,  returns (torch.Tensor) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
+        x, metrics = self.fixed_point(y, physics, x_gt=x_gt, compute_metrics=compute_metrics)
         x = (
             self.get_primal_variable(x)
             if not self.return_aux
             else self.get_auxiliary_variable(x)
         )
-        return x, metrics
+        if compute_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def optim_builder(

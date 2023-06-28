@@ -169,7 +169,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Set up the variable to fetch dataset and operators.
 method = "PnP"
 dataset_name = "set3c"
-img_size = 256 if torch.cuda.is_available() else 64
+img_size = 64
 url = (
     "https://mycore.core-cloud.net/index.php/s/"
     "9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg"
@@ -194,6 +194,7 @@ physics = dinv.physics.SinglePixelCamera(
     m=100,
     img_shape=(1, 64, 64),
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+    device=device
 )
 
 # Use parallel dataloader if using a GPU to fasten training,
@@ -210,10 +211,6 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # The primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`,
 # `g_param` the noise level of the denoiser and `lambda` the regularization parameter.
 
-# Logging parameters
-verbose = True
-# compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-plot_metrics = True
 
 # Set up the PnP algorithm parameters :
 params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 1.0, "sigma": 1.0}
@@ -241,9 +238,8 @@ model = optim_builder(
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
-    verbose=verbose,
-    params_algo=params_algo,
-    compute_metrics=plot_metrics,
+    verbose=True,
+    params_algo=params_algo
 )
 
 # %%
@@ -256,8 +252,8 @@ model = optim_builder(
 y = physics(x)
 x_lin = physics.A_adjoint(y)
 
-# run the model on the problem.
-x_model, metrics = model(y, physics, x_gt=x)
+# run the model on the problem. For computing the metrics along the iterations, set ``compute_metrics=True``.
+x_model, metrics = model(y, physics, x_gt=x, compute_metrics=True)
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
@@ -268,5 +264,4 @@ imgs = [x, x_lin, x_model]
 plot(imgs, titles=["GT", "Linear", "Recons."], show=True)
 
 # plot convergence curves
-if plot_metrics:
-    plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
+plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)

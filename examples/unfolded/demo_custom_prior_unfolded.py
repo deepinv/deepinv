@@ -190,7 +190,7 @@ model = unfolded_builder(
 
 
 # Training parameters
-epochs = 20 if torch.cuda.is_available() else 5
+epochs = 10 if torch.cuda.is_available() else 5
 learning_rate = 1e-2
 
 # Choose optimizer and scheduler

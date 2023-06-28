@@ -105,7 +105,7 @@ class FixedPoint(nn.Module):
             )
             self.early_stop = False
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, compute_metrics=False, **kwargs):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -116,16 +116,18 @@ class FixedPoint(nn.Module):
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
 
+        :param bool compute_metrics: if True, the metrics are computed along the iterations. Default: False.
         :param args: optional arguments for the iterator.
         :param kwargs: optional keyword arguments for the iterator.
-        :return: the fixed-point.
+        :return tuple: `(x,metrics)` with `x` the fixed-point solution and 
+                    `metrics` the computed along the iterations if `compute_metrics` is True or None otherwise.
         """
         X = (
             self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)
             if self.init_iterate_fn
             else None
         )
-        metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn else None
+        metrics = self.init_metrics_fn(X, **kwargs) if self.init_metrics_fn and compute_metrics else None
         it = 0
         while it < self.max_iter:
             cur_params = self.update_params_fn(it) if self.update_params_fn else None
@@ -138,7 +140,7 @@ class FixedPoint(nn.Module):
             if check_iteration:
                 metrics = (
                     self.update_metrics_fn(metrics, X_prev, X, **kwargs)
-                    if self.update_metrics_fn
+                    if self.update_metrics_fn and compute_metrics
                     else None
                 )
                 if (

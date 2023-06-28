@@ -33,16 +33,19 @@ class BaseDEQ(BaseUnfold):
         super().__init__(*args, **kwargs)
         self.max_iter_backward = max_iter_backward
 
-    def forward(self, y, physics, x_gt=None):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False):
         r"""
         The forward pass of the DEQ algorithm. Compared to :class:`deepinv.unfolded.BaseUnfold`, the backward algorithm is performed using fixed point iterations.
 
         :param torch.Tensor y: Input tensor.
         :param deepinv.physics physics: Physics object.
-        :return: tuple (torch.Tensor, dict): the output and the metrics.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: `False`.
+        :return: If `compute_metrics` is False,  returns (torch.Tensor) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
-            x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
+            x, metrics = self.fixed_point(y, physics, x_gt=x_gt, compute_metrics=compute_metrics)
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
         cur_prior = self.update_prior_fn(self.max_iter - 1)
         cur_params = self.update_params_fn(self.max_iter - 1)
@@ -85,7 +88,10 @@ class BaseDEQ(BaseUnfold):
         if x.requires_grad:
             x.register_hook(backward_hook)
 
-        return x, metrics
+        if compute_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def DEQ_builder(

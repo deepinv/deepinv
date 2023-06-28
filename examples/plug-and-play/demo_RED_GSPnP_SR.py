@@ -140,9 +140,6 @@ prior = GSPnP(
     denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 )
 
-# Logging parameters
-plot_metrics = True
-
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
     iteration="PGD",
@@ -156,8 +153,7 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     return_aux=True,
-    verbose=True,
-    compute_metrics=True,  # compute performance and convergence metrics along the algorithm.
+    verbose=True
 )
 
 # %%
@@ -169,7 +165,6 @@ save_folder = RESULTS_DIR / method / operation / dataset_name
 wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
 plot_images = True  # plot images. Images are saved in save_folder.
-
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
