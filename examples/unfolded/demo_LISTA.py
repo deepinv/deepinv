@@ -116,7 +116,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
 # which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDict`).
 #
-# We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
+# We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` (``1/g_param``) as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
