@@ -119,7 +119,7 @@ class FixedPoint(nn.Module):
         :param bool compute_metrics: if True, the metrics are computed along the iterations. Default: False.
         :param args: optional arguments for the iterator.
         :param kwargs: optional keyword arguments for the iterator.
-        :return tuple: `(x,metrics)` with `x` the fixed-point solution and 
+        :return tuple: `(x,metrics)` with `x` the fixed-point solution and
                     `metrics` the computed along the iterations if `compute_metrics` is True or None otherwise.
         """
         X = (

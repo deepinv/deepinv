@@ -172,7 +172,7 @@ prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 # We create the preconditioned and standard ULA samplers using
 # the same hyperparameters (step size, number of iterations, etc.).
 
-step_size = 0.5 * (sigma ** 2)
+step_size = 0.5 * (sigma**2)
 iterations = int(1e2) if torch.cuda.is_available() else 10
 g_param = 0.1
 
