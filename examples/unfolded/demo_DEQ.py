@@ -121,15 +121,9 @@ prior = PnP(denoiser=denoiser)  # here the prior model is common for all iterati
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [
-    0.5
-] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [
-    0.01
-] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+lamb = 0.1 # Initial value for the regularization parameter. 
+stepsize = 0.5 # Initial value for the stepsize. A single value is common for each iterations.
+sigma_denoiser = 0.01 # Initial value for the denoiser parameter. A single value is common for each iterations.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -222,11 +216,3 @@ test(
     wandb_vis=wandb_vis,
 )
 
-
-# %%
-# Plotting the trained parameters.
-# ------------------------------------
-
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
-)
