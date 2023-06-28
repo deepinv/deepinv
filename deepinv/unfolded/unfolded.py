@@ -26,19 +26,33 @@ class BaseUnfold(BaseOptim):
     :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the `params_algo` dictionary for the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
                     This does not encompass the trainable weights of the prior module . 
     :param torch.device device: Device on which to perform the computations. Default: `torch.device("cpu")`.
+<<<<<<< HEAD
     :param args:  Non-keyword arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
     :param kwargs: Keyword arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
+=======
+    :param args:  Non-keyword arguments to be passed to the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
+    :param kwargs: Keyword arguments to be passed to the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
+>>>>>>> main
     """
 
     def __init__(
         self,
         *args,
         trainable_params=[],
+<<<<<<< HEAD
         device="cpu",
         **kwargs
     ):  
         super().__init__(*args, **kwargs)
         # Each parameter in `init_params_algo` is a list, which is converted to a `nn.ParameterList` if they should be trained.
+=======
+        custom_g_step=None,
+        custom_f_step=None,
+        device="cpu",
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+>>>>>>> main
         for param_key in trainable_params:
             if param_key in self.init_params_algo.keys():
                 param_value = self.init_params_algo[param_key]
@@ -50,6 +64,15 @@ class BaseUnfold(BaseOptim):
         # The prior (list of instances of :class:`deepinv.optim.Prior) is converted to a `nn.ModuleList` to be trainable.
         self.prior = nn.ModuleList(self.prior)
 
+<<<<<<< HEAD
+=======
+        if custom_g_step is not None:
+            self.iterator.g_step = custom_g_step
+        if custom_f_step is not None:
+            self.iterator.f_step = custom_f_step
+
+
+>>>>>>> main
 def unfolded_builder(
     iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
 ):
@@ -63,7 +86,10 @@ def unfolded_builder(
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
+<<<<<<< HEAD
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
+=======
+>>>>>>> main
     explicit_prior = (
         kwargs["prior"][0].explicit_prior
         if isinstance(kwargs["prior"], list)
@@ -76,6 +102,7 @@ def unfolded_builder(
                 x, cur_params["g_param"]
             )
 
+<<<<<<< HEAD
         has_cost = True # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
@@ -83,6 +110,13 @@ def unfolded_builder(
     # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`. 
     # If the iteration is directly given as an instance of OptimIterator, nothing to do
     if isinstance(iteration, str): # If the name of the algorithm is given as a string, the correspondong class is automatically called. 
+=======
+        has_cost = True
+    else:
+        has_cost = False
+
+    if isinstance(iteration, str):
+>>>>>>> main
         iterator_fn = str_to_class(iteration + "Iteration")
         iteration = iterator_fn(
             data_fidelity=data_fidelity,
