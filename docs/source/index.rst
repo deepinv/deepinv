@@ -51,6 +51,7 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.models
    deepinv.loss
    deepinv.optim
+   deepinv.pnp
    deepinv.unfolded
    deepinv.sampling
    auto_examples/index

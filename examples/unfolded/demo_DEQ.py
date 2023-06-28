@@ -122,12 +122,8 @@ prior = PnP(denoiser=denoiser)
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
 lamb = 0.1  # Initial value for the regularization parameter.
-stepsize = (
-    0.5
-)  # Initial value for the stepsize. A single stepsize is common for each iterations.
-sigma_denoiser = (
-    0.01
-)  # Initial value for the denoiser parameter. A single value is common for each iterations.
+stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
+sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
