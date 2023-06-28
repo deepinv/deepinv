@@ -39,7 +39,7 @@ class BaseDEQ(BaseUnfold):
 
         :param torch.Tensor y: Input tensor.
         :param deepinv.physics physics: Physics object.
-        :return: Output torch.Tensor.
+        :return: tuple (torch.Tensor, dict): the output and the metrics.
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
             x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
