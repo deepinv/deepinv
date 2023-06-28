@@ -185,6 +185,9 @@ def train(
 
             eval_psnr_net.update(test_psnr)
 
+            if wandb_vis:
+                wandb.log({"eval psnr": test_psnr}, step=epoch)
+
         if scheduler:
             scheduler.step()
 
@@ -197,7 +200,7 @@ def train(
             progress.display(epoch + 1)
 
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
+            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path), eval_psnr_net
         )
 
     if wandb_vis:
