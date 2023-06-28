@@ -420,7 +420,7 @@ class BaseOptim(nn.Module):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of `y`.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
-        
+
         :return: tuple (torch.Tensor, dict): the output and the metrics.
         """
         x, metrics = self.fixed_point(y, physics, x_gt=x_gt)
@@ -497,9 +497,7 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = (
-            True
-        )  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
     # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
