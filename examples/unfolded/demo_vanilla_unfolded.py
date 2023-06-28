@@ -49,11 +49,9 @@ operation = "super-resolution"
 # ----------------------------------------------------------------------------------------
 # We use the Downsampling class from the physics module to generate a dataset of low resolution images.
 
-# For simplicity, we use a small dataset for training. 
+# For simplicity, we use a small dataset for training.
 # To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
-train_dataset_name = (
-    "CBSD500"
-) 
+train_dataset_name = "CBSD500"
 test_dataset_name = "set3c"
 # Specify the  train and test transforms to be applied to the input images.
 test_transform = transforms.Compose(
@@ -142,7 +140,9 @@ trainable_params = [
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
-plot_metrics = True # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = (
+    True
+)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 
 # Define the unfolded trainable model.
@@ -153,7 +153,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    compute_metrics=plot_metrics
+    compute_metrics=plot_metrics,
 )
 
 # %%
@@ -199,7 +199,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis, # training visualization can be done in Weight&Bias
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 # %%
@@ -222,7 +222,7 @@ test(
     save_folder=save_folder,
     verbose=verbose,
     plot_metrics=plot_metrics,
-    wandb_vis=wandb_vis # test visualization can be done in Weight&Bias
+    wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
 )
 
 # %%

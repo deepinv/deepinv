@@ -88,7 +88,6 @@ class BaseDEQ(BaseUnfold):
         return x, metrics
 
 
-
 def DEQ_builder(
     iteration,
     data_fidelity=L2(),
@@ -122,7 +121,9 @@ def DEQ_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = (
+            True
+        )  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
     # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.

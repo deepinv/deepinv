@@ -263,7 +263,7 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     plot_images=plot_images,
     save_folder=RESULTS_DIR / method / operation / test_dataset_name,
     verbose=verbose,
-    wandb_vis=wandb_vis, # training vialisations can be done in Weight&Bias
+    wandb_vis=wandb_vis,  # training vialisations can be done in Weight&Bias
 )
 
 # %% Saving the model

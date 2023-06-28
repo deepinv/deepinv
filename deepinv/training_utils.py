@@ -302,7 +302,7 @@ def test(
                     (save_folder / ("G" + str(g))) if G > 1 else save_folder
                 ) / "images"
                 save_folder_im.mkdir(parents=True, exist_ok=True)
-            else :
+            else:
                 save_folder_im = None
             if plot_metrics:
                 save_folder_curve = (

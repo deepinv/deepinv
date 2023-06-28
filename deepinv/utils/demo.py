@@ -60,7 +60,7 @@ def load_dataset(
     else:
         filetype = "zip"
 
-    if dataset_name == "drunet" : 
+    if dataset_name == "drunet":
         url = "https://plmbox.math.cnrs.fr/f/4f56db2f0f7d49a88663/?dl=1"
 
     if download and not dataset_dir.exists():
@@ -71,10 +71,10 @@ def load_dataset(
                 f"download?path=%2Fdatasets&files={dataset_name}.{filetype}"
             )
         response = requests.get(url, stream=True)
-        total_size_in_bytes= int(response.headers.get('content-length', 0))
-        block_size = 1024 #1 Kibibyte
-        print('Downloading ' + str(dataset_dir) + f".{filetype}")
-        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+        total_size_in_bytes = int(response.headers.get("content-length", 0))
+        block_size = 1024  # 1 Kibibyte
+        print("Downloading " + str(dataset_dir) + f".{filetype}")
+        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
         with open(str(dataset_dir) + f".{filetype}", "wb") as file:
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
