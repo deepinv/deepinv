@@ -45,10 +45,7 @@ physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 y = physics(x)
 
 # plot results
-plot(
-    [x, y],
-    titles=["signal", "measurement"],
-)
+plot([x, y], titles=["signal", "measurement"])
 
 # %%
 # Inpainting
@@ -69,10 +66,7 @@ physics = dinv.physics.Inpainting(
 y = physics(x)
 
 # plot results
-plot(
-    [x, y],
-    titles=["signal", "measurement"],
-)
+plot([x, y], titles=["signal", "measurement"])
 
 # %%
 # Compressed Sensing
@@ -88,10 +82,7 @@ physics = dinv.physics.CompressedSensing(
 y = physics(x)
 
 # plot results
-plot(
-    [x, physics.A_dagger(y)],
-    titles=["signal", "linear inverse"],
-)
+plot([x, physics.A_dagger(y)], titles=["signal", "linear inverse"])
 
 # %%
 # Computed Tomography
@@ -158,10 +149,7 @@ physics = dinv.physics.Decolorize()
 y = physics(x)
 
 # plot results
-plot(
-    [x, y],
-    titles=["signal", "measurement"],
-)
+plot([x, y], titles=["signal", "measurement"])
 
 # %%
 # Pan-sharpening
@@ -175,10 +163,7 @@ physics = dinv.physics.Pansharpen(img_size=img_size, device=device)
 y = physics(x)
 
 # plot results
-plot(
-    [x, y[0], y[1]],
-    titles=["signal", "high res gray", "low res rgb"],
-)
+plot([x, y[0], y[1]], titles=["signal", "high res gray", "low res rgb"])
 
 # %%
 # Single-Pixel Camera
@@ -194,10 +179,7 @@ physics = dinv.physics.SinglePixelCamera(
 y = physics(x)
 
 # plot results
-plot(
-    [x, physics.A_adjoint(y)],
-    titles=["signal", "linear inverse"],
-)
+plot([x, physics.A_adjoint(y)], titles=["signal", "linear inverse"])
 
 
 # %%
@@ -215,10 +197,7 @@ physics = dinv.physics.Blur(
 y = physics(x)
 
 # plot results
-plot(
-    [x, y],
-    titles=["signal", "measurement"],
-)
+plot([x, y], titles=["signal", "measurement"])
 
 # %%
 # Super-Resolution
@@ -233,7 +212,4 @@ physics = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device)
 y = physics(x)
 
 # plot results
-plot(
-    [x, y],
-    titles=["signal", "measurement"],
-)
+plot([x, y], titles=["signal", "measurement"])

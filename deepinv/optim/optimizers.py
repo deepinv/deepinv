@@ -434,12 +434,7 @@ class BaseOptim(nn.Module):
 
 
 def optim_builder(
-    iteration,
-    data_fidelity=L2(),
-    F_fn=None,
-    g_first=False,
-    beta=1.0,
-    **kwargs,
+    iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
 ):
     r"""
     Helper function for building an instance of the :meth:`BaseOptim` class.
@@ -503,12 +498,16 @@ def optim_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = True # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = (
+            True
+        )  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
-    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`. 
+    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
     # If the iteration is directly given as an instance of OptimIterator, nothing to do
-    if isinstance(iteration, str): # If the name of the algorithm is given as a string, the correspondong class is automatically called. 
+    if isinstance(
+        iteration, str
+    ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
         iteration = iterator_fn(
             data_fidelity=data_fidelity,

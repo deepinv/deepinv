@@ -69,9 +69,7 @@ def dummy_dataset(imsize, device):
 #     "CP",
 # ]
 
-optim_algos = [
-    "PGD",
-]
+optim_algos = ["PGD"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)

@@ -187,12 +187,7 @@ def test_data_fidelity_l1(device):
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
 
-optim_algos = [
-    "PGD",
-    "ADMM",
-    "DRS",
-    "HQS",
-]
+optim_algos = ["PGD", "ADMM", "DRS", "HQS"]
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
@@ -230,11 +225,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         lamb = 1.1
         max_iter = 1000
-        params_algo = {
-            "stepsize": stepsize,
-            "lambda": lamb,
-            "sigma": sigma,
-        }
+        params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
         def custom_init_CP(x_init, y_init):
             return {"est": (x_init, x_init, y_init)}
@@ -420,7 +411,9 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = (
+        1.0
+    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 

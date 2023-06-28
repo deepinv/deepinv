@@ -104,7 +104,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # ----------------------------------------------------------------------------------------
 # We use the Unfolded class to define the unfolded PnP algorithm.
 # For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values across iterations,
+# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values shared across iterations,
 # initialize them with a single float.
 
 # Select the data fidelity term
@@ -121,9 +121,13 @@ prior = PnP(denoiser=denoiser)  # here the prior model is common for all iterati
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
-lamb = 0.1 # Initial value for the regularization parameter. 
-stepsize = 0.5 # Initial value for the stepsize. A single value is common for each iterations.
-sigma_denoiser = 0.01 # Initial value for the denoiser parameter. A single value is common for each iterations.
+lamb = 0.1  # Initial value for the regularization parameter.
+stepsize = (
+    0.5
+)  # Initial value for the stepsize. A single value is common for each iterations.
+sigma_denoiser = (
+    0.01
+)  # Initial value for the denoiser parameter. A single value is common for each iterations.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -215,4 +219,3 @@ test(
     verbose=verbose,
     wandb_vis=wandb_vis,
 )
-

@@ -145,7 +145,7 @@ prior = Prior(g=g)
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
 # yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
-#
+# For single ``stepsize`` and ``g_param`` shared across iterations, initialize with a single float value.
 
 # Unrolled optimization algorithm parameters
 max_iter = 5

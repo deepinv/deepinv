@@ -136,9 +136,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 # start with a pretrained model to reduce training time
 url = online_weights_path() + "ckp_50_demo_n2n.pth"
 ckpt = torch.hub.load_state_dict_from_url(
-    url,
-    map_location=lambda storage, loc: storage,
-    file_name="ckp_50_demo_n2n.pth",
+    url, map_location=lambda storage, loc: storage, file_name="ckp_50_demo_n2n.pth"
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])
