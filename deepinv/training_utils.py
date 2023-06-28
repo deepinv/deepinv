@@ -149,7 +149,11 @@ def train(
 
                 optimizer.zero_grad()
 
-                x_net, metrics = model(y, physics[g])  # Requires grad ok
+                out = model(y, physics[g])
+                if type(out) is tuple:
+                    x_net, _ = out
+                else:
+                    x_net = out
 
                 loss_total = 0
                 for k, l in enumerate(losses):
@@ -286,7 +290,11 @@ def test(
                 x = x.to(device)
             y = y.to(device)
             with torch.no_grad():
-                x1, metrics = model(y, physics[g], x_gt=x, **kwargs)
+                out = model(y, physics[g], x_gt=x, **kwargs)
+                if type(out) is tuple:
+                    x1, metrics = out
+                else:
+                    x1 = out
             x_init = physics[g].A_adjoint(y)
 
             cur_psnr_init = cal_psnr(x_init, x)
