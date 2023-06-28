@@ -210,7 +210,7 @@ def test(
     model,
     test_dataloader,
     physics,
-    device=torch.device(f"cuda:0"),
+    device="cpu",
     plot_images=False,
     save_folder="results",
     plot_metrics=False,
@@ -225,7 +225,8 @@ def test(
     Tests a reconstruction network.
 
     This function computes the PSNR of the reconstruction network on the test set,
-    and optionally plots the reconstructions.
+    and optionally plots the reconstructions as well as the metrics computed along the iterations.
+    Note that by default only the batch is plotted. 
 
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.

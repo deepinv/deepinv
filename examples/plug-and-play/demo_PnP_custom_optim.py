@@ -18,8 +18,8 @@ from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
 # %%
-# Define the custom optimization algorithm as a subclass of OptimIterator,
-# along with the corresponding custom fStepCV (subclass of fStep) and gStepCV (subclass of gStep) modules.
+# Define the custom optimization algorithm as a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator` ,
+# along with the corresponding custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`) and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
 # ----------------------------------------------------------------------------------------
 #
 
@@ -223,8 +223,8 @@ model = optim_builder(
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
 #
-# When `return_metrics` is set to ``True``, in order to compute the evolution of the PSNR along the iterations,
-# the model requires the ground-truth clean image ``x_gt``.
+# When ``return_metrics`` is set to ``True``, the model returns the output and the metrics computed along the iterations.
+# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)
 x_lin = physics.A_adjoint(y)

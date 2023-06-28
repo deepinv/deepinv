@@ -2,7 +2,8 @@ r"""
 Deep Equilibrium (DEQ) algorithms for image deblurring
 ====================================================================================================
 
-This example shows you how to use DEQ to solve a deblurring problem.
+This a toy example to show you how to use DEQ to solve a deblurring problem. 
+Note that this is a very small dataset for training. For optimal results, use a larger dataset.
 
 """
 
@@ -13,7 +14,7 @@ from torch.utils.data import DataLoader
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import DEQ_builder
+from deepinv.unfolded import DEQ_builder, unfolded_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
@@ -40,7 +41,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # In this example, we use the CBSD68 dataset
 # for training and the Set3C dataset for testing.
 
-img_size = 128 if torch.cuda.is_available() else 32
+img_size = 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "deblurring"
 train_dataset_name = "CBSD68"
@@ -100,12 +101,12 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded PnP algorithm.
+# Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the Unfolded class to define the unfolded PnP algorithm.
-# For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values shared across iterations,
-# initialize them with a single float.
+# We use the helper function :meth:`deepinv.unfolded.DEQ_builfer` to defined the DEQ architecture.
+# The chosen algorithm is here HQS (Half Quadratic Splitting).
+# Note for DEQ, the prior and regularization parameters should be common for all iterations to keep a constant fixed-point operator.
+
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -115,16 +116,15 @@ denoiser = DnCNN(
     in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
 )
 
-# If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
-# iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(denoiser=denoiser)  # here the prior model is common for all iterations
+# Here the prior model is common for all iterations
+prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
 lamb = 0.1  # Initial value for the regularization parameter.
 stepsize = (
     0.5
-)  # Initial value for the stepsize. A single value is common for each iterations.
+)  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = (
     0.01
 )  # Initial value for the denoiser parameter. A single value is common for each iterations.
@@ -133,7 +133,6 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
     "g_param": sigma_denoiser,
     "lambda": lamb,
 }
-
 trainable_params = [
     "lambda",
     "stepsize",
@@ -157,7 +156,7 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 5
+epochs = 5
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
@@ -206,8 +205,10 @@ train(
 #
 #
 
-plot_images = True
 method = "DEQ_HQS"
+save_folder = RESULTS_DIR / method / operation
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_images = True  # plot images. Images are saved in save_folder.
 
 test(
     model=model,
@@ -215,7 +216,7 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
+    save_folder=save_folder,
     verbose=verbose,
     wandb_vis=wandb_vis,
 )

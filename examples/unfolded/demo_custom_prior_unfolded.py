@@ -140,7 +140,7 @@ def g(x, *args):
 # Define the prior. A prior instance from :class:`deepinv.priors` can be simply defined with an explicit potential :math:`g` function as such:
 prior = Prior(g=g)
 
-# We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
+# We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,

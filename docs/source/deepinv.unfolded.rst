@@ -23,7 +23,7 @@ by learnable structures. In turn, they can be trained in an end-to-end fashion t
 
 Unfolded
 --------
-The :class:`deepinv.unfolded.Unfolded` class is a generic class for building unfolded architectures. It provides
+The :class:`deepinv.unfolded.BaseUnfold` class is a generic class for building unfolded architectures. It provides
 a trainable reconstruction network using a either pre-existing optimizer (e.g., "PGD") or
 an iterator defined by the user. The user can choose which parameters (e.g., prior denoiser, step size, regularization
 parameter, etc.) are learnable and which are not.
@@ -33,20 +33,13 @@ parameter, etc.) are learnable and which are not.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.unfolded.Unfolded
+   deepinv.unfolded.BaseUnfold
 
 
 Deep Equilibrium
 ----------------
-Deep equilibrium models are a particular class of unfolded architectures where the reconstruction network is defined
-implicitly as the fixed-point of an optimization algorithm, i.e.,
-
-.. math::
-    \begin{aligned}
-    z &= \operatorname{step}_f(x, z, y, A, ...)\\
-    x &= \operatorname{step}_g(x, z, y, A, ...)
-    \end{aligned}
-
+The :class:`deepinv.unfolded.BaseDEQ` class is a generic class for building Deep Equilibrium (DEQ) architectures.
+Deep Equilibrium models (DEQ) are a particular class of unfolded architectures where the backward pass is performed via Fixed-Point iterations.
 
 .. autosummary::
    :toctree: stubs
