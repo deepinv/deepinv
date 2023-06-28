@@ -202,7 +202,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "multioperator_imaging"
 
 test(
@@ -211,7 +210,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,

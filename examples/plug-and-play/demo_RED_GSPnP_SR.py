@@ -29,7 +29,6 @@ ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
-CKPT_DIR = BASE_DIR / "ckpts"
 
 # Set the global random seed from pytorch to ensure
 # the reproducibility of the example.
@@ -52,7 +51,7 @@ val_transform = transforms.Compose(
 dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 
 # Generate the degradation operator.
-kernel_index = 2
+kernel_index = 1
 kernel_torch = load_degradation(
     "kernels_12.npy", DEG_DIR / "kernels", kernel_index=kernel_index
 )
@@ -65,7 +64,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 factor = 2  # down-sampling factor
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-n_images_max = 3  # Maximal number of images to restore from the input dataset
+n_images_max = 1  # Maximal number of images to restore from the input dataset
 noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
 p = dinv.physics.Downsampling(
     img_size=(n_channels, img_size, img_size),
@@ -136,11 +135,8 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-ckpt_path = CKPT_DIR / "gsdrunet.ckpt"
-
-pretrained = str(ckpt_path) if ckpt_path.exists() else "download"
 prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained=pretrained, train=False).to(device)
+    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 )
 
 # By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
@@ -181,7 +177,6 @@ model = optim_builder(
 
 wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
-save_images = True  # save images in RESULTS_DIR
 batch_size = 1
 
 dataloader = DataLoader(
@@ -193,7 +188,6 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
     verbose=verbose,

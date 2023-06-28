@@ -30,12 +30,12 @@ def fftfreq(n):
 
 
 def deg2rad(x):
-    return x * PI / 180
+    return x * PI.to(x.device) / 180
 
 
 class AbstractFilter(nn.Module):
     def __init__(self):
-        super(AbstractFilter, self).__init__()
+        super().__init__()
 
     def forward(self, x):
         input_size = x.shape[2]
@@ -81,15 +81,22 @@ class AbstractFilter(nn.Module):
 
 class RampFilter(AbstractFilter):
     def __init__(self):
-        super(RampFilter, self).__init__()
+        super().__init__()
 
     def create_filter(self, f):
         return f
 
 
 class Radon(nn.Module):
-    def __init__(self, in_size=None, theta=None, circle=True, dtype=torch.float):
-        super(Radon, self).__init__()
+    def __init__(
+        self,
+        in_size=None,
+        theta=None,
+        circle=True,
+        dtype=torch.float,
+        device=torch.device("cpu"),
+    ):
+        super().__init__()
         self.circle = circle
         self.theta = theta
         if theta is None:
@@ -97,14 +104,18 @@ class Radon(nn.Module):
         self.dtype = dtype
         self.all_grids = None
         if in_size is not None:
-            self.all_grids = self._create_grids(self.theta, in_size, circle)
+            self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)
 
     def forward(self, x):
         N, C, W, H = x.shape
         assert W == H, "Input image must be square"
 
-        if self.all_grids is None:
-            self.all_grids = self._create_grids(self.theta, W, self.circle)
+        if (
+            self.all_grids is None
+        ):  # if in_size was not given, we have to create the grid online.
+            self.all_grids = self._create_grids(
+                self.theta, W, self.circle, device=x.device
+            )
 
         if not self.circle:
             diagonal = SQRT2 * W
@@ -124,7 +135,7 @@ class Radon(nn.Module):
 
         return out
 
-    def _create_grids(self, angles, grid_size, circle):
+    def _create_grids(self, angles, grid_size, circle, device="cpu"):
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
@@ -133,9 +144,10 @@ class Radon(nn.Module):
             R = torch.tensor(
                 [[[theta.cos(), theta.sin(), 0], [-theta.sin(), theta.cos(), 0]]],
                 dtype=self.dtype,
+                device=device,
             )
             all_grids.append(affine_grid(R, torch.Size([1, 1, grid_size, grid_size])))
-        return all_grids
+        return torch.stack(all_grids)
 
 
 class IRadon(nn.Module):
@@ -147,17 +159,19 @@ class IRadon(nn.Module):
         use_filter=RampFilter(),
         out_size=None,
         dtype=torch.float,
+        device=torch.device("cpu"),
     ):
-        super(IRadon, self).__init__()
+        super().__init__()
         self.circle = circle
-        self.theta = theta if theta is not None else torch.arange(180)
+        self.device = device
+        self.theta = theta if theta is not None else torch.arange(180).to(self.device)
         self.out_size = out_size
         self.in_size = in_size
         self.dtype = dtype
         self.ygrid, self.xgrid, self.all_grids = None, None, None
         if in_size is not None:
             self.ygrid, self.xgrid = self._create_yxgrid(in_size, circle)
-            self.all_grids = self._create_grids(self.theta, in_size, circle)
+            self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)
         self.filter = use_filter if use_filter is not None else lambda x: x
 
     def forward(self, x, filtering=True):
@@ -171,7 +185,9 @@ class IRadon(nn.Module):
         # if None in [self.ygrid, self.xgrid, self.all_grids]:
         if self.ygrid is None or self.xgrid is None or self.all_grids is None:
             self.ygrid, self.xgrid = self._create_yxgrid(self.in_size, self.circle)
-            self.all_grids = self._create_grids(self.theta, self.in_size, self.circle)
+            self.all_grids = self._create_grids(
+                self.theta, self.in_size, self.circle
+            ).to(x.device)
 
         x = self.filter(x) if filtering else x
 
@@ -215,8 +231,8 @@ class IRadon(nn.Module):
     def _create_yxgrid(self, in_size, circle):
         if not circle:
             in_size = int((SQRT2 * in_size).ceil())
-        unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype)
-        return torch.meshgrid(unitrange, unitrange)
+        unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype, device=self.device)
+        return torch.meshgrid(unitrange, unitrange, indexing="ij")
 
     def _XYtoT(self, theta):
         T = self.xgrid * (deg2rad(theta)).cos() - self.ygrid * (deg2rad(theta)).sin()
@@ -228,7 +244,9 @@ class IRadon(nn.Module):
         all_grids = []
         for i_theta in range(len(angles)):
             X = (
-                torch.ones(grid_size, dtype=self.dtype).view(-1, 1).repeat(1, grid_size)
+                torch.ones(grid_size, dtype=self.dtype, device=self.device)
+                .view(-1, 1)
+                .repeat(1, grid_size)
                 * i_theta
                 * 2.0
                 / (len(angles) - 1)
@@ -238,7 +256,7 @@ class IRadon(nn.Module):
             all_grids.append(
                 torch.cat((X.unsqueeze(-1), Y.unsqueeze(-1)), dim=-1).unsqueeze(0)
             )
-        return all_grids
+        return torch.stack(all_grids)
 
 
 class Tomography(LinearPhysics):
@@ -260,23 +278,23 @@ class Tomography(LinearPhysics):
         The adjoint operator has small numerical errors due to interpolation.
 
     :param int img_width: width/height of the square image input.
-    :param int, numpy.array angles: If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
-        If the type is ``numpy.array``, the angles are the ones provided (e.g., ``np.linspace(0, 180, 10)``).
+    :param int, torch.tensor angles: If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
+        If the type is ``torch.tensor``, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param str device: gpu or cpu.
     """
 
     def __init__(self, img_width, angles, circle=False, device="cuda:0", **kwargs):
-        super(Tomography, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         if isinstance(angles, int) or isinstance(angles, float):
-            theta = np.linspace(0, 180, angles, endpoint=False)
+            theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1]
         else:
-            theta = angles
+            theta = angles.to(device)
 
         self.radon = Radon(img_width, theta, circle).to(device)
-        self.iradon = IRadon(img_width, theta, circle).to(device)
+        self.iradon = IRadon(img_width, theta, circle, device=device).to(device)
 
     def A(self, x):
         return self.radon(x)
@@ -289,76 +307,12 @@ class Tomography(LinearPhysics):
 
 
 # if __name__ == "__main__":
-#     dtype = torch.float32
-#     # device = torch.device('msp')
-#     device = torch.device("cpu")
-#
-#     img_width = 256
-#     angles = 360
-#
-#     x = torch.zeros(1, 1, img_width, img_width).to(device)
-#     x[:, :, 80:180, 80:180] = 1
-#
-#     print("x:", x.shape, "max={:.4f}".format(x.max()), "min={:.4f}".format(x.min()))
-#
-#     ct = Tomography(img_width, angles, circle=False, non_linearity=True)
-#     y = ct(x)
-#     print("y:", y.shape)
-#     fbp = ct.A_dagger(y)
-#
-#     print(
-#         "fbp:",
-#         fbp.shape,
-#         "max={:.4f}".format(fbp.max()),
-#         "min={:.4f}".format(fbp.min()),
-#     )
-#
-#     x_adjoint = ct.A_adjoint(y)
-#     print(
-#         "x_adjoint:",
-#         x_adjoint.shape,
-#         "max={:.4f}".format(x_adjoint.max()),
-#         "min={:.4f}".format(x_adjoint.min()),
-#     )
-#
-#     imgs = [x, y, fbp, x_adjoint]
-#     titles = ["x", "y", "FBP", "Adjoint"]
-#
-#     n = len(imgs)
-#     import matplotlib.pyplot as plt
-#
-#     for i in range(n):
-#         x = imgs[i]
-#         x = x[0] if isinstance(x, list) else x
-#         if len(x.shape) == 3:
-#             x = x.unsqueeze(1)
-#         x = x.type(dtype).to(device)  # ground-truth signal x
-#
-#         plt.subplot(1, n, i + 1)
-#         plt.imshow(x.squeeze(), cmap="gray")
-#         plt.title(titles[i], fontsize=12)
-#         plt.axis("off")
-#     plt.show()
-#
-#     # test
-#     # deepinv test
-#     from deepinv.tests.test_physics import (
-#         test_operators_norm,
-#         test_operators_adjointness,
-#         test_pseudo_inverse,
-#         device,
-#     )
-#     import deepinv as dinv
-#
-#     print("pinv test....")
-#     test_pseudo_inverse("Tomography", (1, 256, 256), dinv.device)  # pass
-#
-#     print("adjoint test....")
-#     test_operators_adjointness(
-#         "Tomography", (1, 256, 256), dinv.device
-#     )  # pass, tensor(0., device='cuda:0')
-#
-#     print("norm test....")
-#     test_operators_norm("Tomography", (1, 256, 256), dinv.device)  # pass
-#
-#     print("pass all...")
+#     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#     view_number = 50
+#     theta = np.linspace(0, 180, view_number, endpoint=False)
+#     theta = torch.from_numpy(theta).to(device)
+#     A = Radon(256, theta, device=device)
+#     A_dagger = IRadon(256, theta, device=device)
+#     x = torch.rand(1, 1, 256, 256, device=device)
+#     y = A(x)
+#     z = A_dagger(x)

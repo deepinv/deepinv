@@ -27,6 +27,8 @@ We provide some basic plotting functions that are adapted to inverse problems.
    :nosignatures:
 
         deepinv.utils.plot
+        deepinv.utils.plot_curves
+        deepinv.utils.plot_parameters
 
 
 TensorList
@@ -68,4 +70,5 @@ Other
 
         deepinv.utils.cal_psnr
         deepinv.utils.get_freer_gpu
+        deepinv.utils.load_url_image
 

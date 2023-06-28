@@ -149,7 +149,7 @@ class SurePoissonLoss(nn.Module):
         \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y
         +\frac{2\gamma}{m\tau}(b\odot y)^{\top} \left(A\inverse{y+\tau b}-A\inverse{y}\right)
 
-    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,
+    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector of size :math:`m`,
     :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
     :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
@@ -197,7 +197,7 @@ class SurePoissonLoss(nn.Module):
         loss_sure = (
             (y1 - y).pow(2).mean()
             - self.gain * y.mean()
-            + 2.0 * self.gain / self.tau * (b * y * (y2 - y1)).mean()
+            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1)).mean()
         )
 
         return loss_sure

@@ -23,14 +23,12 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
-
 import deepinv as dinv
 from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
-from deepinv.models.denoiser import online_weights_path
 
 # %%
 # Setup paths for data loading and results.
@@ -68,8 +66,13 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 
-train_dataset = load_dataset(train_dataset_name, ORIGINAL_DATA_DIR, train_transform)
-test_dataset = load_dataset(test_dataset_name, ORIGINAL_DATA_DIR, test_transform)
+train_base_dataset = load_dataset(
+    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
+)
+test_base_dataset = load_dataset(
+    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
+)
+
 
 # %%
 # Define forward operator and generate dataset
@@ -99,8 +102,8 @@ n_images_max = (
 my_dataset_name = "demo_training_inpainting"
 measurement_dir = DATA_DIR / train_dataset_name / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
+    train_dataset=train_base_dataset,
+    test_dataset=test_base_dataset,
     physics=physics,
     device=device,
     save_dir=measurement_dir,
@@ -113,8 +116,8 @@ train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True
 test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
 
 
-train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 32 if torch.cuda.is_available() else 1
+train_batch_size = 32 if torch.cuda.is_available() else 3
+test_batch_size = 32 if torch.cuda.is_available() else 3
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -187,10 +190,10 @@ def custom_init_CP(x_init, y_init):
 
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "CP",
+model = unfolded_builder(
+    iteration="CP",
     trainable_params=trainable_params,
-    params_algo=params_algo,
+    params_algo=params_algo.copy(),
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
@@ -200,7 +203,7 @@ model = Unfolded(
 
 # %%
 # Train the model
-# ----------------------------------------------------------------------------------------
+# ---------------
 # We train the model using the :meth:`dinv.training_utils.train` function.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
@@ -250,7 +253,6 @@ train(
 # The testing function will compute test_psnr metrics and plot and save the results.
 
 plot_images = True
-save_images = True
 method = "artifact_removal"
 
 test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
@@ -259,7 +261,6 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / test_dataset_name,
     verbose=verbose,
     wandb_vis=wandb_vis,
@@ -312,7 +313,7 @@ params_algo_new = {
     "K_adjoint": physics.A_adjoint,
 }
 
-model_new = Unfolded(
+model_new = unfolded_builder(
     "CP",
     trainable_params=trainable_params,
     params_algo=params_algo_new,
@@ -332,7 +333,6 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation / test_dataset_name,
     verbose=verbose,
     wandb_vis=wandb_vis,

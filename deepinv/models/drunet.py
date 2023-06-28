@@ -643,10 +643,13 @@ def test_onesplit(model, L, refield=32, sf=1):
 
 
 def test_pad(model, L, modulo=16):
+    """
+    Pads the image to fit the model's expected image size.
+    """
     h, w = L.size()[-2:]
-    paddingBottom = int(np.ceil(h / modulo) * modulo - h)
-    paddingRight = int(np.ceil(w / modulo) * modulo - w)
-    L = torch.nn.ReplicationPad2d((0, paddingRight, 0, paddingBottom))(L)
+    padding_bottom = int(np.ceil(h / modulo) * modulo - h)
+    padding_right = int(np.ceil(w / modulo) * modulo - w)
+    L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
     E = model(L)
     E = E[..., :h, :w]
     return E

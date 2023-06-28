@@ -330,27 +330,6 @@ class IndicatorL2(DataFidelity):
 
     :param float radius: radius of the ball. Default: None.
 
-
-    ::
-
-        # define a loss function
-        loss = IndicatorL2(radius=0.5)
-
-        # create a measurement operator
-        A = torch.Tensor([[2, 0], [0, 0.5]])
-        A_forward = lambda v:A@v
-        A_adjoint = lambda v: A.transpose(0,1)@v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define two points
-        x = torch.Tensor([1, 4])
-        y = torch.Tensor([1, 1])
-
-        # Compute the loss f(Ax, y)
-        f = loss(x, y, physics)  # print f gives 1e16
-
     """
 
     def __init__(self, radius=None):
@@ -384,18 +363,6 @@ class IndicatorL2(DataFidelity):
         where :math:`\operatorname{proj}_{C}(x)` denotes the projection on the closed convex set :math:`C`.
 
 
-        ::
-
-            # define a loss function
-            loss = IndicatorL2(radius=1)
-
-            # Define two points
-            x = torch.Tensor([3, 3])
-            y = torch.Tensor([1, 1])
-
-            # Compute the proximity operator f(x, y)
-            prox_d = loss.prox_d(x, y)  # print prox_d gives [1.707, 1.707]
-
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`x`.
         :param float gamma: step-size. Note that this parameter is not used in this function.
@@ -405,9 +372,9 @@ class IndicatorL2(DataFidelity):
         radius = self.radius if radius is None else radius
         diff = x - y
         dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
-        return y + torch.min(torch.tensor([radius]).to(x.device), dist) * diff / (
-            dist + 1e-12
-        )
+        return y + diff * (
+            torch.min(torch.tensor([radius]).to(x.device), dist) / (dist + 1e-12)
+        ).view(-1, 1, 1, 1)
 
     def prox(
         self, x, y, physics, radius=None, stepsize=None, crit_conv=1e-5, max_iter=100
@@ -421,25 +388,6 @@ class IndicatorL2(DataFidelity):
 
         Since no closed form is available for general measurement operators, we use a dual forward-backward algorithm,
         as suggested in `Proximal Splitting Methods in Signal Processing <https://arxiv.org/pdf/0912.3522.pdf>`_.
-
-        ::
-
-            # Define a loss function
-            data_fidelity = IndicatorL2(radius=0.5)
-
-            # Define two points
-            x = torch.Tensor([1, 4])
-            y = torch.Tensor([1, 1])
-
-            # Define a measurement operator
-            A = torch.Tensor([[2, 0], [0, 0.5]])
-            A_forward = lambda v:A@v
-            A_adjoint = lambda v: A.transpose(0,1)@v
-            physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-            # Compute the proximity operator
-            projected_point = data_fidelity.prox(x, y, physics)  # print gives [0.5290, 2.9917]
-
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.tensor y: Data :math:`y` of the same dimension as :math:`A(x)`.

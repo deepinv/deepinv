@@ -30,7 +30,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
 
     delta = torch.arange(k_size)
 
-    x, y = torch.meshgrid(delta, delta)
+    x, y = torch.meshgrid(delta, delta, indexing="ij")
     x = x - c
     y = y - c
     filt = (x / sigma[0]).pow(2)

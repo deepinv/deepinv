@@ -6,6 +6,9 @@ import zipfile
 import torch
 import torchvision
 import numpy as np
+from torchvision import transforms
+from PIL import Image
+from io import BytesIO
 
 
 class MRIData(torch.utils.data.Dataset):
@@ -105,3 +108,42 @@ def load_degradation(name, data_dir, kernel_index=0, download=True):
     kernels = np.load(kernel_path, allow_pickle=True)
     kernel_torch = torch.from_numpy(kernels[kernel_index])  # .unsqueeze(0).unsqueeze(0)
     return kernel_torch
+
+
+def load_url_image(
+    url=None,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+):
+    r"""
+
+    Load an image from a URL and return a torch.Tensor.
+
+    :param str url: URL of the image file.
+    :param int, tuple[int] img_size: Size of the image to return.
+    :param bool grayscale: Whether to convert the image to grayscale.
+    :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
+    :param str device: Device on which to load the image (gpu or cpu).
+    :return: :class:`torch.Tensor` containing the image.
+    """
+
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
+    transform_list = []
+    if img_size is not None:
+        if resize_mode == "crop":
+            transform_list.append(transforms.CenterCrop(img_size))
+        elif resize_mode == "resize":
+            transform_list.append(transforms.Resize(img_size))
+        else:
+            raise ValueError(
+                f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
+            )
+    if grayscale:
+        transform_list.append(transforms.Grayscale())
+    transform_list.append(transforms.ToTensor())
+    transform = transforms.Compose(transform_list)
+    x = transform(img).unsqueeze(0).to(device)
+    return x

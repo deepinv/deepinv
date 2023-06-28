@@ -20,7 +20,7 @@ class OptimIterator(nn.Module):
 
     .. note::
         By an abuse of terminology, we call "primal" and "dual" variables the variables that are updated
-        at each step and which may correspond to the actual primal and dual variables from optimisation algorithms
+        at each step and which may correspond to the actual primal and dual variables from 
         (for instance in the case of the PD algorithm), but not necessarily (for instance in the case of the
         PGD algorithm).
 
@@ -35,11 +35,11 @@ class OptimIterator(nn.Module):
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are the steps on f and g respectively.
 
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
-    :param g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
+    :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
     :param float beta: relaxation parameter for the fixed-point iterations.
     :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
-    :param str bregman_potential: Bregman potential to be used for the step on g. Default: "L2".
-    """
+    :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
+     """
 
     def __init__(
         self,
@@ -47,22 +47,21 @@ class OptimIterator(nn.Module):
         g_first=False,
         beta=1.0,
         F_fn=None,
-        bregman_potential="L2",
+        has_cost=False,
     ):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity
         self.beta = beta
         self.g_first = g_first
         self.F_fn = F_fn
-        self.bregman_potential = bregman_potential
+        self.has_cost = has_cost
+        if self.F_fn is None:
+            self.has_cost = False
         self.f_step = fStep(
             data_fidelity=self.data_fidelity,
             g_first=self.g_first,
-            bregman_potential=self.bregman_potential,
         )
-        self.g_step = gStep(
-            g_first=self.g_first, bregman_potential=self.bregman_potential
-        )
+        self.g_step = gStep(g_first=self.g_first)
         self.requires_grad_g = False
         self.requires_prox_g = False
 
@@ -98,7 +97,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.F_fn else None
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
         return {"est": (x, z), "cost": F}
 
 
@@ -108,17 +107,13 @@ class fStep(nn.Module):
 
     :param deepinv.optim.data_fidelity data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
-    :param str bregman_potential: Bregman potential to be used for the step on g. Default: "L2".
     :param kwargs: Additional keyword arguments.
     """
 
-    def __init__(
-        self, data_fidelity=L2(), g_first=False, bregman_potential="L2", **kwargs
-    ):
+    def __init__(self, data_fidelity=L2(), g_first=False, **kwargs):
         super(fStep, self).__init__()
         self.data_fidelity = data_fidelity
         self.g_first = g_first
-        self.bregman_potential = bregman_potential
 
         def forward(self, x, cur_params, y, physics):
             r"""
@@ -137,14 +132,12 @@ class gStep(nn.Module):
     Module for the single iteration steps on the prior term :math:`g`.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
-    :param str bregman_potential: Bregman potential to be used for the step on g. Default: "L2".
     :param kwargs: Additional keyword arguments.
     """
 
-    def __init__(self, g_first=False, bregman_potential="L2", **kwargs):
+    def __init__(self, g_first=False, **kwargs):
         super(gStep, self).__init__()
         self.g_first = g_first
-        self.bregman_potential = bregman_potential
 
         def forward(self, x, cur_prior, cur_params):
             r"""

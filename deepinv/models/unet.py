@@ -56,6 +56,10 @@ class UNet(nn.Module):
     r"""
     U-Net convolutional denoiser.
 
+    This network is a fully convolutional denoiser based on the U-Net architecture. The number of downsample steps
+    can be controlled with the `scales` parameter. The number of trainable parameters increases with the number of
+    scales.
+
     :param int in_channels: input image channels
     :param int out_channels: output image channels
     :param bool residual: use a skip-connection between output and output.
@@ -63,7 +67,6 @@ class UNet(nn.Module):
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
-        The input images should have at least :math:`2^{\text{scales}}` pixels in the vertical and horizontal directions.
         The number of trainable parameters increases with the scale.
     """
 
@@ -200,7 +203,7 @@ class UNet(nn.Module):
         :param float sigma: noise level (not used).
         """
 
-        factor = self.compact**2
+        factor = 2 ** (self.compact - 1)
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
             return self._forward(x)
         else:

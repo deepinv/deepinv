@@ -34,6 +34,7 @@ about the forward measurement process.
     deepinv.loss.MCLoss
     deepinv.loss.EILoss
     deepinv.loss.MOILoss
+    deepinv.loss.Neighbor2Neighbor
     deepinv.loss.SplittingLoss
     deepinv.loss.SureGaussianLoss
     deepinv.loss.SurePoissonLoss

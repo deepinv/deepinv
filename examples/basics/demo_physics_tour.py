@@ -33,7 +33,6 @@ img_size = x.shape[1:]
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-
 # %%
 # Denoising
 # ---------------------------------------

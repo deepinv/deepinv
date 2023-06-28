@@ -11,7 +11,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior, PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.plotting import plot, torch2cpu
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.utils import investigate_model
 from deepinv.training_utils import train
 from deepinv.training_utils import test as feature_test
@@ -131,7 +131,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     else:
         custom_init = None
 
-    model_unfolded = Unfolded(
+    model_unfolded = unfolded_builder(
         name_algo,
         params_algo=params_algo,
         trainable_params=trainable_params,
@@ -182,7 +182,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         physics=physics,
         device=device,
         plot_images=False,
-        save_images=False,
         verbose=True,
         wandb_vis=False,
     )

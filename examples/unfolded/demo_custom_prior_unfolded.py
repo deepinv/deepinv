@@ -3,20 +3,19 @@ Learned iterative custom prior
 ==============================
 
 This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
+The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.
 
 """
 from pathlib import Path
-
 import numpy as np
 import torch
 from torchvision import datasets
 from torchvision import transforms
-
 import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 
 import matplotlib.pyplot as plt
@@ -39,7 +38,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load base image datasets and degradation operators.
-# ----------------------------------------------------------------------------------------
+# ---------------------------------------------------
 # In this example, we use MNIST as the base dataset.
 
 img_size = 28
@@ -59,7 +58,7 @@ test_base_dataset = datasets.MNIST(
 
 # %%
 # Generate a dataset of compressed measurements and load it.
-# ----------------------------------------------------------------------------
+# ----------------------------------------------------------
 # We use the compressed sensing class from the physics module to generate a dataset of highly-compressed measurements
 # (10% of the total number of pixels).
 #
@@ -115,7 +114,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # We first define the prior in a functional form.
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
-# For fixed trained model prior across iterations, initialize with a single model
+# For fixed trained model prior across iterations, initialize with a single model.
 
 
 # Define the image gradient operator
@@ -129,20 +128,21 @@ def nabla(I):
     return G
 
 
-# Define the prior
+# Define the smooth TV prior as the mse of the image finite difference.
 def g(x, *args):
     dx = nabla(x)
-    tv_smooth = torch.nn.functional.huber_loss(
-        dx, torch.zeros_like(dx), reduction="sum", delta=0.01
-    )
+    tv_smooth = torch.nn.functional.mse_loss(
+        dx, torch.zeros_like(dx), reduction="sum"
+    ).sqrt()
     return tv_smooth
 
 
+# Define the prior. A prior instance from :class:`deepinv.priors` can be simply defined with an explicit potential :math:`g` function as such:
 prior = Prior(g=g)
 
 # We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
-# thresholding parameters :math:`\lambda` (``1/g_param``) as learnable parameters.
+# thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
 # yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
 #
@@ -155,42 +155,39 @@ lamb = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-reg_param = [
-    0.8
-] * max_iter  # initialization of the regularisation parameter. A distinct reg_param is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": reg_param,
     "lambda": lamb,
 }
-
 trainable_params = [
-    "g_param",
     "stepsize",
+    "lambda",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "PGD",
-    params_algo=params_algo,
+model = unfolded_builder(
+    iteration="PGD",
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    g_first=False,
 )
 
-# %% Define the training parameters.
-# --------------------------------------------------------
+# %%
+# Define the training parameters.
+# -------------------------------
 # We now define training-related parameters,
 # number of epochs, optimizer (Adam) and its hyperparameters, and the train and test batch sizes.
 
 
 # Training parameters
 epochs = 20 if torch.cuda.is_available() else 5
-learning_rate = 1e-3
+learning_rate = 1e-2
 
 # Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
@@ -215,7 +212,7 @@ test_dataloader = DataLoader(
 
 # %%
 # Train the network.
-# -------------------------------------------
+# ------------------
 # We train the network using the library's train function.
 #
 
@@ -235,7 +232,7 @@ train(
 
 # %%
 # Test the network.
-# ---------------------------
+# -----------------
 #
 # We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the
 # measurements back-projected in the image domain, the `Recons` column shows the output of our LISTA network,
@@ -243,7 +240,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "unfolded_pgd"
 
 test(
@@ -252,7 +248,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,
@@ -260,64 +255,17 @@ test(
 
 
 # %%
-# Printing the weights of the network.
-# ----------------------------------------------
+# Plotting the weights of the network.
+# ------------------------------------
 #
 # We now plot the weights of the network that were learned and check that they are different from their initialization
 # values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
 #
 
-list_g_param = [
-    name_param[1].item()
-    for i, name_param in enumerate(model.named_parameters())
-    if name_param[1].requires_grad and "g_param" in name_param[0]
-]
-list_stepsize = [
-    name_param[1].item()
-    for i, name_param in enumerate(model.named_parameters())
-    if name_param[1].requires_grad and "stepsize" in name_param[0]
-]
+# %%
+# Plotting the trained parameters.
+# --------------------------------
 
-# Font size and box color
-plt.rc("font", family="sans-serif", size=10)
-plt.rc("axes", edgecolor="gray")
-
-# Create a figure and axes
-fig, ax = plt.subplots(figsize=(4, 3))
-
-# Set figure background color to white
-ax.set_facecolor("white")
-
-# Plot the data
-ax.plot(
-    np.arange(len(list_stepsize)),
-    stepsize,
-    label="init. stepsize",
-    color="b",
-    linestyle="dashed",
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )
-ax.plot(
-    np.arange(len(list_stepsize)), list_stepsize, label="learned stepsize", color="b"
-)
-
-ax.plot(
-    np.arange(len(list_g_param)),
-    reg_param,
-    label="init. g_param",
-    color="r",
-    linestyle="dashed",
-)
-ax.plot(np.arange(len(list_g_param)), list_g_param, label="learned g_param", color="r")
-
-# Set labels and title
-ax.set_xticks(np.arange(len(list_g_param), step=5))
-ax.set_xlabel("Layer index")
-ax.set_ylabel("Value")
-
-# Set grid, ticks and legend
-ax.grid(True, linestyle="-", alpha=0.5, color="lightgray")
-ax.tick_params(color="lightgray")
-ax.legend()
-
-fig.tight_layout()
-plt.show()

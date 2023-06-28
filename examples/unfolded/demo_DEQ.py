@@ -1,8 +1,8 @@
 r"""
-Unfolded algorithms for super-resolution
+Deep Equilibrium (DEQ) algorithms for image deblurring
 ====================================================================================================
 
-This example shows you how to use unfolded architectures to solve a super-resolution problem.
+This example shows you how to use DEQ to solve a deblurring problem.
 
 """
 
@@ -10,9 +10,10 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
+from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import DEQ_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
@@ -22,7 +23,7 @@ from deepinv.utils.demo import load_dataset
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = Path("../plug-and-play")
+BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
@@ -41,7 +42,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-operation = "super-resolution"
+operation = "deblurring"
 train_dataset_name = "CBSD68"
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
@@ -70,18 +71,16 @@ test_base_dataset = load_dataset(
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Degradation parameters
-factor = 2
 noise_level_img = 0.03
 
 # Generate the gaussian blur downsampling operator.
-physics = dinv.physics.Downsampling(
+physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
-    factor=factor,
-    mode="gauss",
+    filter=dinv.physics.blur.gaussian_blur(),
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
-my_dataset_name = "demo_unfolded_sr"
+my_dataset_name = "demo_DEQ"
 n_images_max = (
     1000 if torch.cuda.is_available() else 10
 )  # maximal number of images used for training
@@ -112,29 +111,25 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 data_fidelity = L2()
 
 # Set up the trainable denoising prior
+denoiser = DnCNN(
+    in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
+)
 
 # If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
 # iteration. For fixed trained model prior across iterations, initialize with a single model.
-
-# here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
+prior = PnP(denoiser=denoiser)  # here the prior model is common for all iterations
 
 # Unrolled optimization algorithm parameters
-
 max_iter = 5  # number of unfolded layers
-
 lamb = [
     1.0
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-
 stepsize = [
-    1.0
+    0.5
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-
-# initialization of the denoiser parameters.
-# A distinct sigma_denoiser is trained for each iteration.
-sigma_denoiser = [0.01] * max_iter
-
+sigma_denoiser = [
+    0.01
+] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -148,9 +143,9 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "DRS",
-    params_algo=params_algo,
+model = DEQ_builder(
+    iteration="HQS",
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -159,15 +154,15 @@ model = Unfolded(
 
 # %%
 # Define the training parameters.
-# ----------------------------------------------------------------------------------------
+# -------------------------------
 # We use the Adam optimizer and the StepLR scheduler.
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 10 if torch.cuda.is_available() else 5
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 32 if torch.cuda.is_available() else 1
+test_batch_size = 3
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
@@ -189,7 +184,7 @@ test_dataloader = DataLoader(
 
 # %%
 # Train the network
-# ----------------------------------------------------------------------------------------
+# -----------------
 # We train the network using the library's train function.
 
 train(
@@ -214,8 +209,7 @@ train(
 #
 
 plot_images = True
-save_images = True
-method = "unfolded_drs"
+method = "DEQ_HQS"
 
 test(
     model=model,
@@ -223,8 +217,16 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,
+)
+
+
+# %%
+# Plotting the trained parameters.
+# ------------------------------------
+
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )

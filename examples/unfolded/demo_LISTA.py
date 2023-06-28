@@ -18,7 +18,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import Unfolded
+from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 
 import matplotlib.pyplot as plt
@@ -157,22 +157,27 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 trainable_params = [
     "g_param",
     "stepsize",
+    "lambda",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = Unfolded(
-    "PGD",
-    params_algo=params_algo,
+model = unfolded_builder(
+    iteration="PGD",
+    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
 )
 
-# %% Define the training parameters.
-# --------------------------------------------------------
+
+# %%
+# Define the training parameters.
+# -------------------------------
+#
 # We now define training-related parameters,
 # number of epochs, optimizer (Adam) and its hyperparameters, and the train and test batch sizes.
+#
 
 
 # Training parameters
@@ -191,7 +196,7 @@ wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
 train_batch_size = 64 if torch.cuda.is_available() else 1
-test_batch_size = 64 if torch.cuda.is_available() else 1
+test_batch_size = 64 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -203,6 +208,7 @@ test_dataloader = DataLoader(
 # %%
 # Train the network.
 # -------------------------------------------
+#
 # We train the network using the library's train function.
 #
 
@@ -230,7 +236,6 @@ train(
 #
 
 plot_images = True
-save_images = True
 method = "unfolded_pgd"
 
 test(
@@ -239,7 +244,6 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_images=save_images,
     save_folder=RESULTS_DIR / method / operation,
     verbose=verbose,
     wandb_vis=wandb_vis,
@@ -247,65 +251,8 @@ test(
 
 
 # %%
-# Printing the weights of the network.
-# ----------------------------------------------
-#
-# We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
-#
-
-list_g_param = [
-    name_param[1][0][0].item()  # .item()
-    for i, name_param in enumerate(model.named_parameters())
-    if name_param[1].requires_grad and "g_param" in name_param[0]
-]
-
-list_stepsize = [
-    name_param[1].item()
-    for i, name_param in enumerate(model.named_parameters())
-    if name_param[1].requires_grad and "stepsize" in name_param[0]
-]
-
-# Font size and box color
-plt.rc("font", family="sans-serif", size=10)
-plt.rc("axes", edgecolor="gray")
-
-# Create a figure and axes
-fig, ax = plt.subplots(figsize=(4, 3))
-
-# Set figure background color to white
-ax.set_facecolor("white")
-
-# Plot the data
-ax.plot(
-    np.arange(len(list_stepsize)),
-    stepsize,
-    label="init. stepsize",
-    color="b",
-    linestyle="dashed",
+# Plotting the learned parameters.
+# ------------------------------------
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )
-ax.plot(
-    np.arange(len(list_stepsize)), list_stepsize, label="learned stepsize", color="b"
-)
-
-ax.plot(
-    np.arange(len(list_g_param)),
-    [sigma_denoiser_init] * len(list_g_param),
-    label="init. g_param",
-    color="r",
-    linestyle="dashed",
-)
-ax.plot(np.arange(len(list_g_param)), list_g_param, label="learned g_param", color="r")
-
-# Set labels and title
-ax.set_xticks(np.arange(len(list_g_param), step=5))
-ax.set_xlabel("Layer index")
-ax.set_ylabel("Value")
-
-# Set grid, ticks and legend
-ax.grid(True, linestyle="-", alpha=0.5, color="lightgray")
-ax.tick_params(color="lightgray")
-ax.legend()
-
-fig.tight_layout()
-plt.show()
