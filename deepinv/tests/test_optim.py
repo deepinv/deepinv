@@ -247,7 +247,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         )
 
         # Run the optimization algorithm
-        x, _ = optimalgo(y, physics)
+        x = optimalgo(y, physics)
 
         assert optimalgo.has_converged
 
@@ -377,7 +377,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         custom_init=custom_init,
     )
 
-    x, _ = pnp(y, physics, x_gt=test_sample)
+    x = pnp(y, physics)
 
     # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
     # plot = True
@@ -433,7 +433,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         g_first=True,
     )
 
-    x, _ = red(y, physics)
+    x = red(y, physics)
 
     assert red.has_converged
 
@@ -511,7 +511,7 @@ def test_CP_K(imsize, dummy_dataset, device):
         )
 
         # Run the optimization algorithm
-        x, _ = optimalgo(y, physics)
+        x = optimalgo(y, physics)
 
         print("g_first: ", g_first)
         assert optimalgo.has_converged
@@ -604,7 +604,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )
 
     # Run the optimization algorithm
-    x, _ = optimalgo(y, physics)
+    x = optimalgo(y, physics)
 
     assert optimalgo.has_converged
 
