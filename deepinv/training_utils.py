@@ -200,7 +200,14 @@ def train(
             progress.display(epoch + 1)
 
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path), eval_psnr_net
+            epoch,
+            model,
+            optimizer,
+            ckp_interval,
+            epochs,
+            loss_history,
+            str(save_path),
+            eval_psnr_net,
         )
 
     if wandb_vis:
