@@ -98,6 +98,7 @@ class CVIteration(OptimIterator):
 #     \end{equation*}
 #
 
+
 class fStepCV(fStep):
     r"""
     Condat-Vu fStep module to compute
@@ -168,8 +169,10 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 method = "PnP"
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 64
-url = ("https://mycore.core-cloud.net/index.php/s/"
-       "9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg")
+url = (
+    "https://mycore.core-cloud.net/index.php/s/"
+    "9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg"
+)
 
 x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
