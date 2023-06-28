@@ -5,7 +5,7 @@ Unfolded algorithms
 
 This package contains a collection of routines turning the optimization algorithms defined in :ref:`Optim <optim>`
 into unfolded architectures.
-Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{\forw{x}}{y} + \reg{x}`
+Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{x}{y} + \reg{x}`
 where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.
 The resulting fixed-point algorithms for solving these problems are of the form (see :ref:`Optim <optim>`)
 
