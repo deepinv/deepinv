@@ -4,7 +4,7 @@ PnP with custom optimization algorithm (Condat-Vu Primal-Dual)
 
 This example shows how to define your own optimization algorithm.
 For example, here, we implement the Condat-Vu Primal-Dual algorithm,
-and apply it for a single pixel camera inverse problem.
+and apply it for Single Pixel Camera (SPC) reconstruction.
 """
 import deepinv as dinv
 from pathlib import Path
@@ -18,7 +18,8 @@ from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
 # %%
-# Define the custom optimization algorithm
+# Define the custom optimization algorithm as a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator` ,
+# along with the corresponding custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`) and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
 # ----------------------------------------------------------------------------------------
 #
 # Creating your optimization algorithm only requires the definition of an iteration step.
@@ -242,15 +243,14 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    return_metrics=plot_metrics,
+    compute_metrics=plot_metrics,
 )
 
 # %%
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
 #
-# When ``return_metrics`` is set to ``True``, the model returns the output
-# and the metrics computed along the iterations.
+# The model returns the output and the metrics computed along the iterations.
 # For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)

@@ -167,6 +167,10 @@ trainable_params = [
 # Select the data fidelity term
 data_fidelity = L2()
 
+# Logging parameters
+verbose = True
+wandb_vis = False  # plot curves and images in Weight&Bias
+
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration="PGD",
@@ -194,10 +198,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 
 # Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
-
-# Logging parameters
-verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
 train_batch_size = 64 if torch.cuda.is_available() else 8
@@ -227,7 +227,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 # %%

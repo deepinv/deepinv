@@ -3,7 +3,8 @@ Deep Equilibrium (DEQ) algorithms for image deblurring
 ====================================================================================================
 
 This a toy example to show you how to use DEQ to solve a deblurring problem. 
-Note that this is a very small dataset for training. For optimal results, use a larger dataset.
+Note that this is a small dataset for training. For optimal results, use a larger dataset.
+For vializing the training, you can use Weight&Bias (wandb) by setting `wandb_vis=True`.
 
 """
 
@@ -38,13 +39,14 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset
-# for training and the Set3C dataset for testing.
+# In this example, we use the CBSD500 dataset and the Set3C dataset for testing.
 
 img_size = 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "deblurring"
-train_dataset_name = "CBSD68"
+# For simplicity, we use a small dataset for training.
+# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
+train_dataset_name = "CBSD500"
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -122,8 +124,12 @@ prior = PnP(denoiser=denoiser)
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
 lamb = 0.1  # Initial value for the regularization parameter.
-stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
-sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
+stepsize = (
+    0.5
+)  # Initial value for the stepsize. A single stepsize is common for each iterations.
+sigma_denoiser = (
+    0.01
+)  # Initial value for the denoiser parameter. A single value is common for each iterations.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -143,6 +149,7 @@ model = DEQ_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    compute_metrics=True,
 )
 
 # %%
@@ -167,6 +174,9 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
+plot_metrics = (
+    True
+)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -192,7 +202,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 # %%
@@ -211,6 +221,7 @@ test(
     test_dataloader=test_dataloader,
     physics=physics,
     device=device,
+    plot_metrics=True,
     plot_images=plot_images,
     save_folder=save_folder,
     verbose=verbose,

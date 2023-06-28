@@ -71,7 +71,9 @@ def unfolded_builder(
                 x, cur_params["g_param"]
             )
 
-        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = (
+            True
+        )  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
 

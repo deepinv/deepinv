@@ -9,6 +9,7 @@ import numpy as np
 from torchvision import transforms
 from PIL import Image
 from io import BytesIO
+from tqdm import tqdm
 
 
 class MRIData(torch.utils.data.Dataset):
@@ -59,6 +60,9 @@ def load_dataset(
     else:
         filetype = "zip"
 
+    if dataset_name == "drunet":
+        url = "https://plmbox.math.cnrs.fr/f/4f56db2f0f7d49a88663/?dl=1"
+
     if download and not dataset_dir.exists():
         dataset_dir.mkdir(parents=True, exist_ok=True)
         if url is None:
@@ -66,22 +70,29 @@ def load_dataset(
                 f"https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
                 f"download?path=%2Fdatasets&files={dataset_name}.{filetype}"
             )
-            with open(str(dataset_dir) + f".{filetype}", "wb") as f:
-                request = requests.get(url)
-                f.write(request.content)
+        response = requests.get(url, stream=True)
+        total_size_in_bytes = int(response.headers.get("content-length", 0))
+        block_size = 1024  # 1 Kibibyte
+        print("Downloading " + str(dataset_dir) + f".{filetype}")
+        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+        with open(str(dataset_dir) + f".{filetype}", "wb") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+        progress_bar.close()
 
-            if filetype == "zip":
-                with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
-                    zip_ref.extractall(str(data_dir))
+        if filetype == "zip":
+            with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
+                zip_ref.extractall(str(data_dir))
 
-                # remove temp file
-                os.remove(str(dataset_dir) + f".{filetype}")
-                print(f"{dataset_name} dataset downloaded in {data_dir}")
-            else:
-                shutil.move(
-                    str(dataset_dir) + f".{filetype}",
-                    str(dataset_dir / dataset_name) + f".{filetype}",
-                )
+            # remove temp file
+            os.remove(str(dataset_dir) + f".{filetype}")
+            print(f"{dataset_name} dataset downloaded in {data_dir}")
+        else:
+            shutil.move(
+                str(dataset_dir) + f".{filetype}",
+                str(dataset_dir / dataset_name) + f".{filetype}",
+            )
 
     if dataset_name == "fastmri_knee_singlecoil":
         dataset = MRIData(

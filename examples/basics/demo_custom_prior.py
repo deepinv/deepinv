@@ -138,11 +138,15 @@ params_algo = {"stepsize": 1, "lambda": 0.1}
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = (
+    True
+)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
-crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
+crit_conv = (
+    "cost"
+)  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = False  # use backtraking to automatically adjust the stepsize
@@ -161,7 +165,7 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     verbose=verbose,
-    return_metrics=plot_metrics,
+    compute_metrics=plot_metrics,
 )
 
 
