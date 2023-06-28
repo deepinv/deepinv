@@ -74,11 +74,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Logging parameters
 verbose = True
-<<<<<<< HEAD
 plot_metrics = True # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-=======
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
->>>>>>> 0e47bf104f52ba310923b633f47e9b3cd906ab2b
 
 params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.01}
 max_iter = 100
