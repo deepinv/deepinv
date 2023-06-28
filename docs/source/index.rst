@@ -30,8 +30,13 @@ Install the latest version of ``deepinv`` via pip:
 
 .. code-block:: bash
 
-    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+    pip install deepinv
 
+You can also install the latest version of ``deepinv`` directly from github:
+
+.. code-block:: bash
+
+    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 Getting Started
 ==================

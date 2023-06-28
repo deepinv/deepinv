@@ -36,7 +36,13 @@ Read the documentation and examples at `https://deepinv.github.io <https://deepi
 Install
 -------
 
-If you can't wait until the next release, install the latest version of ``deepinv`` from source:
+To install the latest stable release of ``deepinv``, you can simply do:
+
+.. code-block:: bash
+
+    pip install deepinv
+
+You can also install the latest version of ``deepinv`` directly from github:
 
 .. code-block:: bash
 
