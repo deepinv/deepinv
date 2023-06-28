@@ -1,9 +1,10 @@
 r"""
-Unfolded algorithms for super-resolution
+Unfolded algorithm for super-resolution
 ====================================================================================================
 
-This example shows you how to use unfolded architectures to solve a super-resolution problem.
-
+This is a example to show how to use vanilla unfolded Plug-and-Play.
+The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly.
+For simplicity, we show how to train the algorithm on a very small dataset. For optimal results, use a larger dataset.
 """
 
 import deepinv as dinv
@@ -36,13 +37,13 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset
+# In this example, we use the CBSD68 dataset for training.
 # for training and the Set3C dataset for testing.
 
 img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "super-resolution"
-train_dataset_name = "CBSD68"
+train_dataset_name = "CBSD68" # For simplicity, we use a small dataset for training. To be replaced for optimal results.
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -101,46 +102,33 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded PnP algorithm.
+# Define the unfolded PnP algorithm. 
 # ----------------------------------------------------------------------------------------
-# We use the Unfolded class to define the unfolded PnP algorithm.
-# For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values across iterations,
-# initialize them with a single float.
+# We use the helper function :meth:`deepinv.unfolded.unfolded_builfer` to defined the Unfolded architecture. 
+# The chosen algorithm is here DRS (Douglas-Rachford Splitting).
+# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter, 
+# then a distinct model (resp. parameter) is trained for each iteration. 
+# For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
+
+# Unrolled optimization algorithm parameters
+max_iter = 5  # number of unfolded layers
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Set up the trainable denoising prior
-
-# If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
-# iteration. For fixed trained model prior across iterations, initialize with a single model.
-
-# here the prior model is common for all iterations
+# Here the prior model is common for all iterations
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
-# Unrolled optimization algorithm parameters
-
-max_iter = 5  # number of unfolded layers
-
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-
-stepsize = [
-    1.0
-] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-
-# initialization of the denoiser parameters.
-# A distinct sigma_denoiser is trained for each iteration.
+# The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
+lamb = [1.0] * max_iter 
+stepsize = [1.0] * max_iter
 sigma_denoiser = [0.01] * max_iter
-
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "lambda": lamb,
     "g_param": sigma_denoiser,
 }
-
 trainable_params = [
     "lambda",
     "g_param",
@@ -213,8 +201,10 @@ train(
 #
 #
 
-plot_images = True
 method = "unfolded_drs"
+save_folder= RESULTS_DIR / method / operation
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_images = True  # plot images. Images are saved in save_folder.
 
 test(
     model=model,
@@ -222,7 +212,7 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
+    save_folder=save_folder,
     verbose=verbose,
     wandb_vis=wandb_vis,
 )

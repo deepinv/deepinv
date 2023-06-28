@@ -144,9 +144,10 @@ model = optim_builder(
 # --------------------------------------------------------------------
 # The test function evaluates the model on the test dataset and computes the metrics.
 
-wandb_vis = False  # plot curves and images in Weight&Bias
-plot_images = True  # plot images
-plot_metrics = True  # plot metrics
+save_folder= RESULTS_DIR / method / operation / dataset_name
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_metrics = True # plot metrics. Metrics are saved in save_folder.
+plot_images = True  # plot images. Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -158,8 +159,9 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
+    save_folder=save_folder,
     plot_metrics=plot_metrics,
     verbose=verbose,
     wandb_vis=wandb_vis,
+    plot_only_first_batch = False # By default only the first batch is plotted.
 )

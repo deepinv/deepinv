@@ -1,5 +1,6 @@
 r"""
-Super-resolution with GSPnP RED.
+Regularization by Denoising (RED) for Suepr-Resolution (SR).
+We use as plugged denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
 ====================================================================================================
 
 Hurault, S., Leclaire, A., & Papadakis, N. 
@@ -64,7 +65,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 factor = 2  # down-sampling factor
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-n_images_max = 1  # Maximal number of images to restore from the input dataset
+n_images_max = 3  # Maximal number of images to restore from the input dataset
 noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
 p = dinv.physics.Downsampling(
     img_size=(n_channels, img_size, img_size),
@@ -100,7 +101,7 @@ crit_conv = (
 thres_conv = 1e-5
 backtracking = True  # use backtracking to automatically adjust the stepsize
 use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
-
+batch_size = 1 # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
@@ -137,24 +138,12 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
-)
-
-# By default, the algorithm is initialized with the adjoint of the forward operator applied to the measurements.
-# For custom initialization, we need to write a function of the measurements.
-if use_bicubic_init:
-    custom_init = lambda y: torch.nn.functional.interpolate(
-        y, scale_factor=factor, mode="bicubic"
-    )
-else:
-    custom_init = None
+prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device))
 
 # Logging parameters
-verbose = True
 plot_metrics = (
     True
-)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+)  
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
@@ -169,9 +158,8 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     return_aux=True,
-    verbose=verbose,
-    return_metrics=plot_metrics,
-    custom_init=custom_init,
+    verbose=True,
+    return_metrics=True # compute performance and convergence metrics along the algorithm.
 )
 
 # %%
@@ -179,9 +167,11 @@ model = optim_builder(
 # ----------------------------------------------------
 # We evaluate the PnP algorithm on the test dataset, compute the PSNR metrics and plot reconstruction results.
 
-wandb_vis = False  # plot curves and images in Weight&Bias
-plot_images = True  # plot results
-batch_size = 1
+save_folder= RESULTS_DIR / method / operation / dataset_name
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_metrics = True # plot metrics. Metrics are saved in save_folder.
+plot_images = True  # plot images. Images are saved in save_folder.
+
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -191,9 +181,10 @@ test(
     test_dataloader=dataloader,
     physics=p,
     device=device,
-    plot_images=plot_images,
+    plot_images=plot_images, 
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_metrics=plot_metrics,
-    verbose=verbose,
+    verbose=True,
     wandb_vis=wandb_vis,
+    plot_only_first_batch = False # By default only the first batch is plotted.
 )
