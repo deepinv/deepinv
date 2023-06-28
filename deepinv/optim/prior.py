@@ -142,8 +142,8 @@ class RED(Prior):
         Calculates the gradient of the prior term :math:`g` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
-        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
         return x - self.denoiser(x, sigma_denoiser)
 
@@ -160,8 +160,8 @@ class Tikhonov(Prior):
         r"""
         Computes the Tikhonov regularizer :math:`g(x) = \frac{1}{2}\|T(x)\|_2^2`.
 
-        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.tensor) prior :math:`g(x)`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
         return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
@@ -169,8 +169,8 @@ class Tikhonov(Prior):
         r"""
         Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`.
 
-        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient at :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.Tensor) gradient at :math:`x`.
         """
         return x
 
@@ -178,9 +178,9 @@ class Tikhonov(Prior):
         r"""
         Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
 
-        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.tensor) proximity operator at :math:`x`.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
         """
         return (1 / (gamma + 1)) * x
 
@@ -199,9 +199,10 @@ class ScorePrior(Prior):
     :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
     which is typically set to a low value.
 
-    If ``sigma_normalize=False``, the score is computed without normalization, i.e.,
-    :math:`x-D(x,\sigma)`. This can be useful when using this class in the context of
-    `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>` which doesn't require the normalization.
+    .. note::
+
+        If math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
+        `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>`_ and doesn't require the normalization.
 
 
     .. note::
@@ -218,7 +219,7 @@ class ScorePrior(Prior):
     """
 
     def __init__(self, denoiser, *args, **kwargs):
-        super(ScorePrior, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.denoiser = denoiser
         self.explicit_prior = False
 
@@ -229,4 +230,4 @@ class ScorePrior(Prior):
         :param torch.Tensor x: the input tensor.
         :param float sigma: the noise level.
         """
-        return (1 / sigma ** 2) * (x - self.denoiser(x, sigma))
+        return (1 / sigma**2) * (x - self.denoiser(x, sigma))

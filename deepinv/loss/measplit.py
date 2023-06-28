@@ -108,7 +108,7 @@ class Neighbor2Neighbor(torch.nn.Module):
     def space_to_depth(self, x, block_size):
         n, c, h, w = x.size()
         unfolded_x = torch.nn.functional.unfold(x, block_size, stride=block_size)
-        return unfolded_x.view(n, c * block_size ** 2, h // block_size, w // block_size)
+        return unfolded_x.view(n, c * block_size**2, h // block_size, w // block_size)
 
     def generate_mask_pair(self, img):
         # prepare masks (N x C x H/2 x W/2)

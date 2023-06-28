@@ -185,6 +185,9 @@ def train(
 
             eval_psnr_net.update(test_psnr)
 
+            if wandb_vis:
+                wandb.log({"eval psnr": test_psnr}, step=epoch)
+
         if scheduler:
             scheduler.step()
 
@@ -197,7 +200,14 @@ def train(
             progress.display(epoch + 1)
 
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
+            epoch,
+            model,
+            optimizer,
+            ckp_interval,
+            epochs,
+            loss_history,
+            str(save_path),
+            eval_psnr_net,
         )
 
     if wandb_vis:
@@ -226,7 +236,7 @@ def test(
 
     This function computes the PSNR of the reconstruction network on the test set,
     and optionally plots the reconstructions as well as the metrics computed along the iterations.
-    Note that by default only the batch is plotted. 
+    Note that by default only the batch is plotted.
 
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
