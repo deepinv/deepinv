@@ -26,14 +26,16 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 # The Condat-Vu Primal-Dual algorithm is defined as follows:
 #
 # .. math::
+#         \begin{equation*}
+#         \begin{aligned}
+#         v_k = x_k-\tau A^\top z_k
+#         x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
+#         u_k &= z_k + \sigma A(2x_{k+1}-x_k) \\
+#         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k) \\
+#         \end{aligned}
+#         \end{equation*}
 #
-#         \begin{align*}
-#         x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k) \\
-#         z_k &= 2Ax_{k+1}-x_k \\
-#         u_{k+1} &= \operatorname{prox}_{\sigma f^*}(z_k)
-#         \end{align*}
-#
-# where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+#     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
 
 
 class CVIteration(OptimIterator):
@@ -56,55 +58,55 @@ class CVIteration(OptimIterator):
         :param dict cur_params: dictionary containing the current parameters of the model.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate
+        :return: Dictionary `{"est": (x,z), "cost": F}` containing the updated current iterate
             and the estimated current cost.
         """
-        x_prev, u_prev = X["est"]
-
-        x = self.g_step(x_prev, physics.A_adjoint(u_prev), cur_prior, cur_params)
-        u = self.f_step(physics.A(2 * x - x_prev), y, cur_params)
-
+        x_prev, z_prev = X["est"]
+        v = x_prev - cur_params["stepsize"] * physics.A_adjoint(z_prev)
+        x = self.g_step(v, cur_prior, cur_params)
+        u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)
+        z = self.f_step(u, y, cur_params)
         F = self.F_fn(x, cur_params, y, physics) if self.has_cost else None
-
-        return {"est": (x, u), "cost": F}
+        return {"est": (x, z), "cost": F}
 
 
 # %%
 # Define the custom fStep and gStep modules
 # ----------------------------------------------------------------------------------------
-# The iterator relies on custom fStepCV (subclass of :class:`deepinv.optim.optim_iterators.fStep`)
-# and gStepCV (subclass of :class:`deepinv.optim.optim_iterators.gStep`) modules.
+# The iterator relies on custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`)
+# and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
 #
-# In this case, the fStep module is defined as follows:
+# In this case the fStep module is defined as follows:
+#
+# .. math::
+#     \begin{equation*}
+#     u_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
+#     \end{equation*}
+#
+#     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+#     The proximal operator of :math:`f^*` is computed using the proximal operator
+#     of :math:`f` via Moreau's identity.
+#
+#
+# and the gStep module is a simple proximal step on the prior term :math:`g`:
 #
 # .. math::
 #
-#     u_{k+1} = \operatorname{prox}_{\sigma f^*}(z_k)
-#
-#
-# where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
-# The proximal operator of :math:`f^*` is computed using the proximal operator
-# of :math:`f` via Moreau's identity.
-#
-#
-# and the gStep module is defined as follows:
-#
-# .. math::
-#
-#     x_{k+1} = \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k)
-#
+#     \begin{equation*}
+#     x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
+#     \end{equation*}
 #
 
 
 class fStepCV(fStep):
     r"""
-    Condat-Vu fStep module to compute
+    Condat-Vu fStep module to compute :math:`\operatorname{prox}_{\sigma f^*}(z_k)``
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def forward(self, z, y, cur_params):
+    def forward(self, u, y, cur_params):
         r"""
         Single iteration on the data-fidelity term :math:`f`.
 
@@ -114,33 +116,28 @@ class fStepCV(fStep):
             (keys `"stepsize"` and `"lambda"`).
         """
         return self.data_fidelity.prox_d_conjugate(
-            z, y, cur_params["sigma"], lamb=cur_params["lambda"]
+            u, y, cur_params["sigma"], lamb=cur_params["lambda"]
         )
 
 
 class gStepCV(gStep):
     r"""
-    Condat-Vu gStep module to compute
+    Condat-Vu gStep module to compute :math:`\operatorname{prox}_{\tau g}(v_k)`
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def forward(self, x, Atu, cur_prior, cur_params):
+    def forward(self, v, cur_prior, cur_params):
         r"""
         Single iteration step on the prior term :math:`g`.
 
-        :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param torch.Tensor Atu: Current iterate :math:`A^\top u_k`.
+        :param torch.Tensor x: Current iterate :math:`v_k = x_k-\tau A^\top u_k`.
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters
-            (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
+            (keys `"stepsize"` and `"g_param"`).
         """
-        return cur_prior.prox(
-            x - cur_params["stepsize"] * Atu,
-            cur_params["stepsize"],
-            cur_params["g_param"],
-        )
+        return cur_prior.prox(v, cur_params["stepsize"], cur_params["g_param"])
 
 
 # %%
@@ -209,7 +206,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 
 # Set up the PnP algorithm parameters :
-params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 1.0, "sigma": 1.0}
+params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 0.5, "sigma": 1.0}
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
