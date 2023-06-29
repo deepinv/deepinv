@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import BaseUnfold
@@ -16,15 +15,17 @@ class BaseDEQ(BaseUnfold):
     The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
 
     .. math::
-    \begin{equation}
-    \label{eq:fixed_point}
-    \tag{1}
-    v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^T v + u.
-    \end{equation}
 
-    where :math:`u` is the incoming gradient from the backward pass, and :math:`x^\star` is the equilibrium point of the forward pass.
+        \begin{equation}
+        \label{eq:fixed_point}
+        \tag{1}
+        v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^T v + u.
+        \end{equation}
 
-    See `<http://implicit-layers-tutorial.org/deep_equilibrium_models/>` for more details.
+    where :math:`u` is the incoming gradient from the backward pass,
+    and :math:`x^\star` is the equilibrium point of the forward pass.
+
+    See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: 50.
     """
@@ -40,9 +41,9 @@ class BaseDEQ(BaseUnfold):
         :param torch.Tensor y: Input tensor.
         :param deepinv.physics physics: Physics object.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
-        :param bool compute_metrics: whether to compute the metrics or not. Default: `False`.
-        :return: If `compute_metrics` is False,  returns (torch.Tensor) the output of the algorithm.
-                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
+                Else, returns (:class:`torch.Tensor`, dict) the output of the algorithm and the metrics.
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
             x, metrics = self.fixed_point(

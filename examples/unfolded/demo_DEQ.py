@@ -4,7 +4,7 @@ Deep Equilibrium (DEQ) algorithms for image deblurring
 
 This a toy example to show you how to use DEQ to solve a deblurring problem. 
 Note that this is a small dataset for training. For optimal results, use a larger dataset.
-For vializing the training, you can use Weight&Bias (wandb) by setting `wandb_vis=True`.
+For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 
 """
 
@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import DEQ_builder, unfolded_builder
+from deepinv.unfolded import DEQ_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
