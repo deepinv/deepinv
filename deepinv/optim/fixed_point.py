@@ -110,17 +110,18 @@ class FixedPoint(nn.Module):
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
         The iterates are stored in a dictionary of the form ``X = {'est': (x_k, u_k), 'cost': F_k}`` where:
-            - `est` is a tuple containing the current primal and auxiliary iterates,
-            - `cost` is the value of the cost function at the current iterate.
+            - ``est`` is a tuple containing the current primal and auxiliary iterates,
+            - ``cost`` is the value of the cost function at the current iterate.
 
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
 
-        :param bool compute_metrics: if True, the metrics are computed along the iterations. Default: False.
+        :param bool compute_metrics: if ``True``, the metrics are computed along the iterations. Default: ``False``.
         :param args: optional arguments for the iterator.
         :param kwargs: optional keyword arguments for the iterator.
-        :return tuple: `(x,metrics)` with `x` the fixed-point solution and
-                    `metrics` the computed along the iterations if `compute_metrics` is True or None otherwise.
+        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution and
+                    ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None``
+                     otherwise.
         """
         X = (
             self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)
