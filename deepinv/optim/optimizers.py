@@ -445,7 +445,7 @@ def optim_builder(
     r"""
     Helper function for building an instance of the :meth:`BaseOptim` class.
 
-    The parameters dictionary can contain the following keys
+    The parameters' dictionary can contain the following keys
 
     .. list-table:: ``"params_algo"``
        :widths: 25 50 75
