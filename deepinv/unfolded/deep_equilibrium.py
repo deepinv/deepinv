@@ -95,18 +95,26 @@ class BaseDEQ(BaseUnfold):
             return x
 
 
-def DEQ_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_fidelity=L2(), F_fn=None, prior=None, g_first=False, **kwargs):
+def DEQ_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_fidelity=L2(),  prior=None, F_fn=None, g_first=False, **kwargs):
     r"""
-    Helper function for building an Unfolded architecture.
+    Helper function for building an instance of the :meth:`BaseDEQ` class.
 
-    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used, or an optim iterator .
-        If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
+        or directly an optim iterator.
+        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
+                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            Each value of the dictionary can be either Iterable (distinct value for each iteration) or
+                            a single float (same value for each iteration).
+                            Default: `{"stepsize": 1.0, "lambda": 1.0}`.
     :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param list, deepinv.optim.Prior prior: regularization prior.
+                            Either a single instance (same prior for each iteration) or a list of instances of
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
-    :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
+    :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-
     iterator = create_iterator(iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first)
     return BaseDEQ(iterator, has_cost=iterator.has_cost, prior=prior, params_algo=params_algo, **kwargs)
