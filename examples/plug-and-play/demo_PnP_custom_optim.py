@@ -4,7 +4,7 @@ PnP with custom optimization algorithm (Condat-Vu Primal-Dual)
 
 This example shows how to define your own optimization algorithm.
 For example, here, we implement the Condat-Vu Primal-Dual algorithm,
-and apply it for Single Pixel Camera (SPC) reconstruction.
+and apply it for Single Pixel Camera reconstruction.
 """
 import deepinv as dinv
 from pathlib import Path
@@ -18,25 +18,22 @@ from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
 # %%
-# Define the custom optimization algorithm as a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator` ,
-# along with the corresponding custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`) and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
+# Define a custom optimization algorithm
 # ----------------------------------------------------------------------------------------
-#
 # Creating your optimization algorithm only requires the definition of an iteration step.
 # The iterator should be a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator`.
 #
 # The Condat-Vu Primal-Dual algorithm is defined as follows:
 #
 # .. math::
-#         \begin{equation*}
-#         \begin{aligned}
-#         x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k) \\
-#         z_k &= 2Ax_{k+1}-x_k\\
-#         u_{k+1} &= \operatorname{prox}_{\sigma f^*}(z_k) \\
-#         \end{aligned}
-#         \end{equation*}
 #
-#     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+#         \begin{align*}
+#         x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k) \\
+#         z_k &= 2Ax_{k+1}-x_k \\
+#         u_{k+1} &= \operatorname{prox}_{\sigma f^*}(z_k)
+#         \end{align*}
+#
+# where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
 
 
 class CVIteration(OptimIterator):
@@ -75,28 +72,27 @@ class CVIteration(OptimIterator):
 # %%
 # Define the custom fStep and gStep modules
 # ----------------------------------------------------------------------------------------
-# The iterator relies on custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`)
-# and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
+# The iterator relies on custom fStepCV (subclass of :class:`deepinv.optim.optim_iterators.fStep`)
+# and gStepCV (subclass of :class:`deepinv.optim.optim_iterators.gStep`) modules.
 #
-# In this case the fStep module is defined as follows:
+# In this case, the fStep module is defined as follows:
 #
 # .. math::
-#     \begin{equation*}
-#     u_{k+1} &= \operatorname{prox}_{\sigma f^*}(z_k)
-#     \end{equation*}
 #
-#     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
-#     The proximal operator of :math:`f^*` is computed using the proximal operator
-#     of :math:`f` via Moreau's identity.
+#     u_{k+1} = \operatorname{prox}_{\sigma f^*}(z_k)
+#
+#
+# where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+# The proximal operator of :math:`f^*` is computed using the proximal operator
+# of :math:`f` via Moreau's identity.
 #
 #
 # and the gStep module is defined as follows:
 #
 # .. math::
 #
-#     \begin{equation*}
-#     x_{k+1} &= \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k) \\
-#     \end{equation*}
+#     x_{k+1} = \operatorname{prox}_{\tau g}(x_k-\tau A^\top u_k)
+#
 #
 
 
@@ -247,7 +243,7 @@ model = optim_builder(
 # --------------------------------------------------------------------
 #
 # The model returns the output and the metrics computed along the iterations.
-# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
+# The ground truth image ``x_gt`` must be provided for computing the PSNR.
 
 y = physics(x)
 x_lin = physics.A_adjoint(y)

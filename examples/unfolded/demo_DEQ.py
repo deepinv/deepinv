@@ -105,9 +105,10 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :meth:`deepinv.unfolded.DEQ_builfer` to defined the DEQ architecture.
+# We use the helper function :meth:`deepinv.unfolded.DEQ_builder` to defined the DEQ architecture.
 # The chosen algorithm is here HQS (Half Quadratic Splitting).
-# Note for DEQ, the prior and regularization parameters should be common for all iterations to keep a constant fixed-point operator.
+# Note for DEQ, the prior and regularization parameters should be common for all iterations
+# to keep a constant fixed-point operator.
 
 
 # Select the data fidelity term
