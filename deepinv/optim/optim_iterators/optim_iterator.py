@@ -40,9 +40,7 @@ class OptimIterator(nn.Module):
     :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
      """
 
-    def __init__(
-        self, data_fidelity=L2(), g_first=False, F_fn=None, has_cost=False
-    ):
+    def __init__(self, data_fidelity=L2(), g_first=False, F_fn=None, has_cost=False):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity
         self.g_first = g_first
@@ -87,7 +85,7 @@ class OptimIterator(nn.Module):
         else:
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
-        x = self.relaxation_step(x, x_prev, cur_params['beta'])
+        x = self.relaxation_step(x, x_prev, cur_params["beta"])
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
         return {"est": (x, z), "cost": F}
 

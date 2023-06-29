@@ -178,7 +178,7 @@ class BaseOptim(nn.Module):
 
         # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
         if "beta" not in params_algo.keys():
-            params_algo["beta"] = 1.
+            params_algo["beta"] = 1.0
 
         # By default, each parameter in ``params_algo` is a list.
         # If given as a single number, we convert it to a list of 1 element.
@@ -472,7 +472,9 @@ class BaseOptim(nn.Module):
             return x
 
 
-def create_iterator(iteration, data_fidelity=L2(), prior=None, F_fn=None, g_first=False):
+def create_iterator(
+    iteration, data_fidelity=L2(), prior=None, F_fn=None, g_first=False
+):
     r"""
     Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
     corresponding to the chosen minimization algorithm .
@@ -491,35 +493,42 @@ def create_iterator(iteration, data_fidelity=L2(), prior=None, F_fn=None, g_firs
     """
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     explicit_prior = (
-        prior[0].explicit_prior
-        if isinstance(prior, list)
-        else prior.explicit_prior
+        prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
     )
     if F_fn is None and explicit_prior:
+
         def F_fn(x, prior, cur_params, y, physics):
             return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
                 x, cur_params["g_param"]
             )
+
         has_cost = (
             True
         )  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
     # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
-    if isinstance(iteration, str):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
+    if isinstance(
+        iteration, str
+    ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
         return iterator_fn(
-            data_fidelity=data_fidelity,
-            g_first=g_first,
-            F_fn=F_fn,
-            has_cost=has_cost,
+            data_fidelity=data_fidelity, g_first=g_first, F_fn=F_fn, has_cost=has_cost
         )
-    else :
+    else:
         # If the iteration is directly given as an instance of OptimIterator, nothing to do
         return iteration
-    
 
-def optim_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_fidelity=L2(), prior=None, F_fn=None, g_first=False, **kwargs):
+
+def optim_builder(
+    iteration,
+    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    data_fidelity=L2(),
+    prior=None,
+    F_fn=None,
+    g_first=False,
+    **kwargs,
+):
     r"""
     Helper function for building an instance of the :meth:`BaseOptim` class.
 
@@ -609,8 +618,16 @@ def optim_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_
 
 
     """
-    iterator = create_iterator(iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first)
-    return BaseOptim(iterator, has_cost=iterator.has_cost, prior=prior, params_algo=params_algo, **kwargs)
+    iterator = create_iterator(
+        iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
+    )
+    return BaseOptim(
+        iterator,
+        has_cost=iterator.has_cost,
+        prior=prior,
+        params_algo=params_algo,
+        **kwargs,
+    )
 
 
 def str_to_class(classname):

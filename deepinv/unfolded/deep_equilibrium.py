@@ -95,7 +95,15 @@ class BaseDEQ(BaseUnfold):
             return x
 
 
-def DEQ_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_fidelity=L2(),  prior=None, F_fn=None, g_first=False, **kwargs):
+def DEQ_builder(
+    iteration,
+    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    data_fidelity=L2(),
+    prior=None,
+    F_fn=None,
+    g_first=False,
+    **kwargs
+):
     r"""
     Helper function for building an instance of the :meth:`BaseDEQ` class.
 
@@ -116,5 +124,13 @@ def DEQ_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_fi
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first)
-    return BaseDEQ(iterator, has_cost=iterator.has_cost, prior=prior, params_algo=params_algo, **kwargs)
+    iterator = create_iterator(
+        iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
+    )
+    return BaseDEQ(
+        iterator,
+        has_cost=iterator.has_cost,
+        prior=prior,
+        params_algo=params_algo,
+        **kwargs
+    )
