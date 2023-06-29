@@ -144,8 +144,11 @@ trainable_params = [
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
-def custom_init(x_init, z_init) : 
-    return {"est": (x_init, z_init, z_init) }
+def custom_init(y, physics) : 
+    z0 = physics.A_adjoint(y)
+    x0 = y
+    u0 = y
+    return {"est": (x0, z0, u0) }
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
