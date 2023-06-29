@@ -83,10 +83,7 @@ physics_concat = physics2 * physics1
 y = physics_concat(x)
 xlin = physics_concat.A_dagger(y)  # compute the linear pseudo-inverse
 
-dinv.utils.plot(
-    [x, y, xlin],
-    titles=["image", "measurement", "linear rec."],
-)
+dinv.utils.plot([x, y, xlin], titles=["image", "measurement", "linear rec."])
 
 
 # %%

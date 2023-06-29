@@ -4,7 +4,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-from sphinx_gallery.sorting import ExplicitOrder
 
 sys.path.insert(0, os.path.abspath("../.."))
 
@@ -44,6 +43,10 @@ sphinx_gallery_conf = {
     "filename_pattern": "/demo_",
     "run_stale_examples": True,
     "ignore_pattern": r"__init__\.py",
+    "reference_url": {
+        # The module you locally document uses None
+        "sphinx_gallery": None,
+    },
     # directory where function/class granular galleries are stored
     "backreferences_dir": "gen_modules/backreferences",
     # Modules for which function/class level galleries are created. In
@@ -71,7 +74,8 @@ mathjax3_config = {
             "datafidname": r"f",
             "distance": [r"{d\left({#1},{#2}\right)}", 2],
             "distancename": r"d",
-            "denoiser": [r"{D\left({#1},{#2}\right)}", 2],
+            "denoiser": [r"{\operatorname{D}_{{#2}}\left({#1}\right)}", 2],
+            "denoisername": r"\operatorname{D}",
             "xset": r"\mathcal{X}",
             "yset": r"\mathcal{Y}",
             "group": r"\mathcal{G}",

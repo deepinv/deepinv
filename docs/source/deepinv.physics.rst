@@ -78,7 +78,7 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
     x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
     x_prox = physics.prox_l2(x, y, .1) # compute the prox operator
 
-Some operators have singular value decompositions (see :class:deepinv.physics.DecomposablePhysics) which
+Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
 have additional methods.
 
 Non-linear operators

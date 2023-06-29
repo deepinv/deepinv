@@ -2,7 +2,9 @@ r"""
 Deep Equilibrium (DEQ) algorithms for image deblurring
 ====================================================================================================
 
-This example shows you how to use DEQ to solve a deblurring problem.
+This a toy example to show you how to use DEQ to solve a deblurring problem. 
+Note that this is a small dataset for training. For optimal results, use a larger dataset.
+For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 
 """
 
@@ -37,13 +39,14 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset
-# for training and the Set3C dataset for testing.
+# In this example, we use the CBSD500 dataset and the Set3C dataset for testing.
 
-img_size = 128 if torch.cuda.is_available() else 32
+img_size = 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "deblurring"
-train_dataset_name = "CBSD68"
+# For simplicity, we use a small dataset for training.
+# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
+train_dataset_name = "CBSD500"
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -100,12 +103,12 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded PnP algorithm.
+# Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the Unfolded class to define the unfolded PnP algorithm.
-# For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values across iterations,
-# initialize them with a single float.
+# We use the helper function :meth:`deepinv.unfolded.DEQ_builfer` to defined the DEQ architecture.
+# The chosen algorithm is here HQS (Half Quadratic Splitting).
+# Note for DEQ, the prior and regularization parameters should be common for all iterations to keep a constant fixed-point operator.
+
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -115,27 +118,19 @@ denoiser = DnCNN(
     in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
 )
 
-# If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
-# iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(denoiser=denoiser)  # here the prior model is common for all iterations
+# Here the prior model is common for all iterations
+prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-stepsize = [
-    0.5
-] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [
-    0.01
-] * max_iter  # initialization of the denoiser parameters. A distinct sigma_denoiser is trained for each iteration.
+lamb = 0.1  # Initial value for the regularization parameter.
+stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
+sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
     "lambda": lamb,
 }
-
 trainable_params = [
     "lambda",
     "stepsize",
@@ -159,7 +154,7 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 5
+epochs = 5
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
@@ -199,7 +194,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 # %%
@@ -208,25 +203,19 @@ train(
 #
 #
 
-plot_images = True
 method = "DEQ_HQS"
+save_folder = RESULTS_DIR / method / operation
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_images = True  # plot images. Images are saved in save_folder.
 
 test(
     model=model,
     test_dataloader=test_dataloader,
     physics=physics,
     device=device,
+    plot_metrics=True,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
+    save_folder=save_folder,
     verbose=verbose,
     wandb_vis=wandb_vis,
-)
-
-
-# %%
-# Plotting the trained parameters.
-# ------------------------------------
-
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )

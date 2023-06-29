@@ -140,12 +140,12 @@ def g(x, *args):
 # Define the prior. A prior instance from :class:`deepinv.priors` can be simply defined with an explicit potential :math:`g` function as such:
 prior = Prior(g=g)
 
-# We use :class:`deepinv.unfolded.Unfolded` to define the unfolded algorithm
+# We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
 # yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
-#
+# For single ``stepsize`` and ``g_param`` shared across iterations, initialize with a single float value.
 
 # Unrolled optimization algorithm parameters
 max_iter = 5
@@ -167,6 +167,10 @@ trainable_params = [
 # Select the data fidelity term
 data_fidelity = L2()
 
+# Logging parameters
+verbose = True
+wandb_vis = False  # plot curves and images in Weight&Bias
+
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration="PGD",
@@ -186,7 +190,7 @@ model = unfolded_builder(
 
 
 # Training parameters
-epochs = 20 if torch.cuda.is_available() else 5
+epochs = 10 if torch.cuda.is_available() else 5
 learning_rate = 1e-2
 
 # Choose optimizer and scheduler
@@ -194,10 +198,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 
 # Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
-
-# Logging parameters
-verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
 train_batch_size = 64 if torch.cuda.is_available() else 8
@@ -227,7 +227,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 # %%

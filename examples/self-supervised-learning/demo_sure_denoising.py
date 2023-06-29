@@ -93,6 +93,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     device=device,
     save_dir=measurement_dir,
     train_datapoints=n_images_max,
+    test_datapoints=n_images_max,
     num_workers=num_workers,
     dataset_filename="demo_sure",
 )
@@ -114,7 +115,7 @@ model = dinv.models.ArtifactRemoval(
 # %%
 # Set up the training parameters
 # --------------------------------------------
-# We set the :class:`deepinv.loss.SurePoissonLoss` loss as the training loss.
+# We set :class:`deepinv.loss.SurePoissonLoss` as the training loss.
 #
 # .. note::
 #
@@ -140,9 +141,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 # start with a pretrained model to reduce training time
 url = online_weights_path() + "ckp_10_demo_sure.pth"
 ckpt = torch.hub.load_state_dict_from_url(
-    url,
-    map_location=lambda storage, loc: storage,
-    file_name="ckp_10_demo_sure.pth",
+    url, map_location=lambda storage, loc: storage, file_name="ckp_10_demo_sure.pth"
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])

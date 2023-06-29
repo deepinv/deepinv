@@ -5,7 +5,7 @@ Unfolded algorithms
 
 This package contains a collection of routines turning the optimization algorithms defined in :ref:`Optim <optim>`
 into unfolded architectures.
-Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{\forw{x}}{y} + \reg{x}`
+Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{x}{y} + \reg{x}`
 where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.
 The resulting fixed-point algorithms for solving these problems are of the form (see :ref:`Optim <optim>`)
 
@@ -19,11 +19,11 @@ where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradie
 :math:`f` and :math:`g` respectively.
 
 Unfolded architectures (sometimes called 'unrolled architectures') are obtained by replacing parts of these algorithms
-by learnable structures. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
+by learnable modules. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
 
 Unfolded
 --------
-The :class:`deepinv.unfolded.Unfolded` class is a generic class for building unfolded architectures. It provides
+The :class:`deepinv.unfolded.BaseUnfold` class is a generic class for building unfolded architectures. It provides
 a trainable reconstruction network using a either pre-existing optimizer (e.g., "PGD") or
 an iterator defined by the user. The user can choose which parameters (e.g., prior denoiser, step size, regularization
 parameter, etc.) are learnable and which are not.
@@ -33,20 +33,13 @@ parameter, etc.) are learnable and which are not.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.unfolded.Unfolded
+   deepinv.unfolded.BaseUnfold
 
 
 Deep Equilibrium
 ----------------
-Deep equilibrium models are a particular class of unfolded architectures where the reconstruction network is defined
-implicitly as the fixed-point of an optimization algorithm, i.e.,
-
-.. math::
-    \begin{aligned}
-    z &= \operatorname{step}_f(x, z, y, A, ...)\\
-    x &= \operatorname{step}_g(x, z, y, A, ...)
-    \end{aligned}
-
+The :class:`deepinv.unfolded.BaseDEQ` class is a generic class for building Deep Equilibrium (DEQ) architectures.
+Deep Equilibrium models (DEQ) are a particular class of unfolded architectures where the backward pass is performed via Fixed-Point iterations.
 
 .. autosummary::
    :toctree: stubs

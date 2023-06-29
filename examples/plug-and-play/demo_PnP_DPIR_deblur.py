@@ -108,10 +108,6 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 # The algorithm alternates between a denoising step and a data fidelity step, where
 # the denoising step is performed by a pretrained denoiser :class:`deepinv.models.DRUNet`.
 
-# Logging parameters
-verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
 # load specific parameters for DPIR
 lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
@@ -130,9 +126,8 @@ model = optim_builder(
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
-    verbose=verbose,
+    verbose=True,
     params_algo=params_algo,
-    return_metrics=plot_metrics,
 )
 
 # %%
@@ -140,9 +135,10 @@ model = optim_builder(
 # --------------------------------------------------------------------
 # The test function evaluates the model on the test dataset and computes the metrics.
 
-wandb_vis = False  # plot curves and images in Weight&Bias
-plot_images = True  # plot images
-plot_metrics = True  # plot metrics
+save_folder = RESULTS_DIR / method / operation / dataset_name
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
+plot_images = True  # plot images. Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -154,8 +150,9 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
+    save_folder=save_folder,
     plot_metrics=plot_metrics,
-    verbose=verbose,
+    verbose=True,
     wandb_vis=wandb_vis,
+    plot_only_first_batch=False,  # By default only the first batch is plotted.
 )

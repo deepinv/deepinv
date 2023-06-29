@@ -33,13 +33,7 @@ def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
-optim_algos = [
-    "PGD",
-    "HQS",
-    "DRS",
-    "ADMM",
-    "CP",
-]
+optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)

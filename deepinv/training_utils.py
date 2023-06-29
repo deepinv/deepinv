@@ -148,7 +148,7 @@ def train(
 
                 optimizer.zero_grad()
 
-                x_net = model(y, physics[g])  # Requires grad ok
+                x_net = model(y, physics[g])
 
                 loss_total = 0
                 for k, l in enumerate(losses):
@@ -184,6 +184,9 @@ def train(
 
             eval_psnr_net.update(test_psnr)
 
+            if wandb_vis:
+                wandb.log({"eval psnr": test_psnr}, step=epoch)
+
         if scheduler:
             scheduler.step()
 
@@ -196,7 +199,14 @@ def train(
             progress.display(epoch + 1)
 
         save_model(
-            epoch, model, optimizer, ckp_interval, epochs, loss_history, str(save_path)
+            epoch,
+            model,
+            optimizer,
+            ckp_interval,
+            epochs,
+            loss_history,
+            str(save_path),
+            eval_psnr_net,
         )
 
     if wandb_vis:
@@ -209,7 +219,7 @@ def test(
     model,
     test_dataloader,
     physics,
-    device=torch.device(f"cuda:0"),
+    device="cpu",
     plot_images=False,
     save_folder="results",
     plot_metrics=False,
@@ -224,7 +234,8 @@ def test(
     Tests a reconstruction network.
 
     This function computes the PSNR of the reconstruction network on the test set,
-    and optionally plots the reconstructions.
+    and optionally plots the reconstructions as well as the metrics computed along the iterations.
+    Note that by default only the batch is plotted.
 
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -273,14 +284,14 @@ def test(
             else:
                 x = x.to(device)
             y = y.to(device)
+
             with torch.no_grad():
                 if plot_metrics:
-                    x1, metrics = model(y, physics[g], x, **kwargs)
+                    x1, metrics = model(y, physics[g], x_gt=x, compute_metrics=True)
                 else:
-                    x1 = model(y, physics[g], **kwargs)
+                    x1 = model(y, physics[g])
 
-                x_init = physics[g].A_adjoint(y)
-
+            x_init = physics[g].A_adjoint(y)
             cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)
             psnr_init.append(cur_psnr_init)
@@ -294,6 +305,8 @@ def test(
                     (save_folder / ("G" + str(g))) if G > 1 else save_folder
                 ) / "images"
                 save_folder_im.mkdir(parents=True, exist_ok=True)
+            else:
+                save_folder_im = None
             if plot_metrics:
                 save_folder_curve = (
                     (save_folder / ("G" + str(g))) if G > 1 else save_folder
@@ -309,17 +322,18 @@ def test(
                         else:
                             imgs = [x_init, x1, x]
                             name_imgs = ["Linear", "Recons.", "GT"]
+                    if plot_images:
                         plot(imgs, titles=name_imgs, save_dir=save_folder_im, show=True)
-                        if wandb_vis:
-                            n_plot = min(n_plot_max_wandb, len(x))
-                            captions = [
-                                "Input",
-                                f"Linear PSNR:{cur_psnr_init:.2f}",
-                                f"Estimated PSNR:{cur_psnr:.2f}",
-                                "Ground Truth",
-                            ]
-                            imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
-                            wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
+                    if wandb_vis:
+                        n_plot = min(n_plot_max_wandb, len(x))
+                        captions = [
+                            "Input",
+                            f"Linear PSNR:{cur_psnr_init:.2f}",
+                            f"Estimated PSNR:{cur_psnr:.2f}",
+                            "Ground Truth",
+                        ]
+                        imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
+                        wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)

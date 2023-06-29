@@ -23,11 +23,7 @@ operators = [
     "pansharpen",
 ]
 
-nonlinear_operators = [
-    "haze",
-    "blind_deblur",
-    "lidar",
-]
+nonlinear_operators = ["haze", "blind_deblur", "lidar"]
 
 
 def find_operator(name, device):

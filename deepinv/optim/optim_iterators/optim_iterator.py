@@ -42,12 +42,7 @@ class OptimIterator(nn.Module):
      """
 
     def __init__(
-        self,
-        data_fidelity=L2(),
-        g_first=False,
-        beta=1.0,
-        F_fn=None,
-        has_cost=False,
+        self, data_fidelity=L2(), g_first=False, beta=1.0, F_fn=None, has_cost=False
     ):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity
@@ -57,10 +52,7 @@ class OptimIterator(nn.Module):
         self.has_cost = has_cost
         if self.F_fn is None:
             self.has_cost = False
-        self.f_step = fStep(
-            data_fidelity=self.data_fidelity,
-            g_first=self.g_first,
-        )
+        self.f_step = fStep(data_fidelity=self.data_fidelity, g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
         self.requires_grad_g = False
         self.requires_prox_g = False

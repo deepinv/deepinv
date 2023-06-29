@@ -1,9 +1,11 @@
 r"""
-Unfolded algorithms for super-resolution
+Vanilla Unfolded algorithm for super-resolution
 ====================================================================================================
 
-This example shows you how to use unfolded architectures to solve a super-resolution problem.
-
+This is a simple example to show how to use vanilla unfolded Plug-and-Play.
+The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly.
+For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
+For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 """
 
 import deepinv as dinv
@@ -36,34 +38,35 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset
-# for training and the Set3C dataset for testing.
+# In this example, we use the CBSD500 dataset for training and the Set3C dataset for testing.
 
-img_size = 128 if torch.cuda.is_available() else 32
+img_size = 64 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "super-resolution"
-train_dataset_name = "CBSD68"
-test_dataset_name = "set3c"
-# Generate training and evaluation datasets in HDF5 folders and load them.
-test_transform = transforms.Compose(
-    [transforms.CenterCrop(img_size), transforms.ToTensor()]
-)
-train_transform = transforms.Compose(
-    [transforms.RandomCrop(img_size), transforms.ToTensor()]
-)
-train_base_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
-)
-test_base_dataset = load_dataset(
-    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
-)
-
 
 # %%
 # Generate a dataset of low resolution images and load it.
 # ----------------------------------------------------------------------------------------
 # We use the Downsampling class from the physics module to generate a dataset of low resolution images.
 
+# For simplicity, we use a small dataset for training.
+# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
+train_dataset_name = "CBSD500"
+test_dataset_name = "set3c"
+# Specify the  train and test transforms to be applied to the input images.
+test_transform = transforms.Compose(
+    [transforms.CenterCrop(img_size), transforms.ToTensor()]
+)
+train_transform = transforms.Compose(
+    [transforms.RandomCrop(img_size), transforms.ToTensor()]
+)
+# Define the base train and test datasets of clean images.
+train_base_dataset = load_dataset(
+    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
+)
+test_base_dataset = load_dataset(
+    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
+)
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
@@ -103,49 +106,40 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded PnP algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the Unfolded class to define the unfolded PnP algorithm.
-# For both 'stepsize' and 'g_param', if initialized with a table of length max_iter, then a distinct stepsize/g_param
-# value is trained for each iteration. For fixed trained 'stepsize' and 'g_param' values across iterations,
-# initialize them with a single float.
+# We use the helper function :meth:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
+# The chosen algorithm is here DRS (Douglas-Rachford Splitting).
+# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
+# then a distinct model (resp. parameter) is trained for each iteration.
+# For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
+
+# Unrolled optimization algorithm parameters
+max_iter = 5  # number of unfolded layers
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Set up the trainable denoising prior
-
-# If the prior is initialized with a list of lenght max_iter, then a distinct model is trained for each
-# iteration. For fixed trained model prior across iterations, initialize with a single model.
-
-# here the prior model is common for all iterations
+# Here the prior model is common for all iterations
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
-# Unrolled optimization algorithm parameters
-
-max_iter = 5  # number of unfolded layers
-
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
-
-stepsize = [
-    1.0
-] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-
-# initialization of the denoiser parameters.
-# A distinct sigma_denoiser is trained for each iteration.
+# The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
+lamb = [1.0] * max_iter
+stepsize = [1.0] * max_iter
 sigma_denoiser = [0.01] * max_iter
-
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "lambda": lamb,
     "g_param": sigma_denoiser,
 }
-
 trainable_params = [
     "lambda",
     "g_param",
     "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
+
+# Logging parameters
+verbose = True
+wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
@@ -176,10 +170,6 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
 
-# Logging parameters
-verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
-
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
 )
@@ -204,7 +194,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 # %%
@@ -213,8 +203,11 @@ train(
 #
 #
 
-plot_images = True
 method = "unfolded_drs"
+save_folder = RESULTS_DIR / method / operation
+wandb_vis = False  # plot curves and images in Weight&Bias.
+plot_images = True  # plot images. Images are saved in save_folder.
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 test(
     model=model,
@@ -222,9 +215,10 @@ test(
     physics=physics,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
+    save_folder=save_folder,
     verbose=verbose,
-    wandb_vis=wandb_vis,
+    plot_metrics=plot_metrics,
+    wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
 )
 
 # %%

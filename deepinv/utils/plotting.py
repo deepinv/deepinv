@@ -202,7 +202,7 @@ def wandb_plot_curves(metrics, batch_idx=0, step=0):
             batch_size, n_iter = len(metric_val), len(metric_val[0])
             wandb.log(
                 {
-                    f"{metric_name} batch {i}": wandb.plot.line_series(
+                    f"{metric_name} batch {batch_idx}": wandb.plot.line_series(
                         xs=range(n_iter),
                         ys=metric_val,
                         keys=[f"image {j}" for j in range(batch_size)],

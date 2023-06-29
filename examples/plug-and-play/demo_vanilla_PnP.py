@@ -32,7 +32,7 @@ torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Set up the variable to fetch dataset and operators.
 method = "PnP"
-img_size = 256 if torch.cuda.is_available() else 32
+img_size = 32
 url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=SheppLogan.png"
 x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
@@ -65,7 +65,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # %%
 # Set up the PnP algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------
-# We use the Proximal Gradient Descent optimization algoritm.
+# We use the Proximal Gradient Descent optimization algorithm.
 # The algorithm alternates between a denoising step and a gradient descent step.
 # The denoising step is performed by a DNCNN pretrained denoiser :class:`deepinv.models.DnCNN`.
 #
@@ -87,7 +87,7 @@ data_fidelity = L2()
 denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
-    pretrained="download",
+    pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
     train=False,
     device=device,
 )
@@ -102,27 +102,28 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    return_metrics=plot_metrics,
 )
 
 # %%
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------
 #
-# When ``return_metrics`` is set to ``True``, the model requires the ground-truth clean image ``x_gt``
-# and returns the output and the metrics computed along the iterations.
+# The model returns the output and the metrics computed along the iterations.
+# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)
-x_lin = physics.A_adjoint(y)
+x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator
 
 # run the model on the problem.
-x_model, metrics = model(y, physics, x_gt=x)
+x_model, metrics = model(
+    y, physics, x_gt=x, compute_metrics=True
+)  # reconstruction with PnP algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
 print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
 
-# plot images
+# plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
 plot(
     imgs,
@@ -131,6 +132,6 @@ plot(
     show=True,
 )
 
-# plot convergence curves
+# plot convergence curves. Metrics are saved in RESULTS_DIR.
 if plot_metrics:
     plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
