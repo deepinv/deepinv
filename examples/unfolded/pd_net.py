@@ -126,21 +126,26 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(
 lamb = [1.0] * max_iter
 stepsize = [1.0] * max_iter
 sigma_denoiser = [0.01] * max_iter
+sigma = [1.0] * max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "lambda": lamb,
     "g_param": sigma_denoiser,
+    "sigma": sigma,
 }
 trainable_params = [
     "lambda",
     "g_param",
     "stepsize",
+    "sigma",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
+def custom_init(x_init, z_init) : 
+    return {"est": (x_init, z_init, z_init) }
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
@@ -150,6 +155,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    custom_init=custom_init
 )
 
 # %%

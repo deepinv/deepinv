@@ -169,12 +169,15 @@ sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
 
 sigma = 1.0  # stepsize for Chambolle-Pock
 
+# Define the parameters of the unfolded Primal-Dual Chambolle-Pock algorithm
+# The CP algorithm requires to specify `params_algo`` the linear operator and its adjoint on which splitting is performed. 
+# See the documentation of the CP algorithm :meth:`deepinv.optim.optim_iterators.CPIteration` for more details.
 params_algo = {
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "lambda": lamb,
-    "sigma": sigma,
-    "K": physics.A,
+    "stepsize": stepsize, # Stepsize for the primal update.
+    "g_param": sigma_denoiser, # prior parameter.
+    "lambda": lamb, # Regularization parameter.
+    "sigma": sigma, # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
+    "K": physics.A, 
     "K_adjoint": physics.A_adjoint,
 }
 
