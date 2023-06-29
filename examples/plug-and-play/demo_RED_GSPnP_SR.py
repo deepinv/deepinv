@@ -1,10 +1,11 @@
 r"""
-Regularization by Denoising (RED) for Suepr-Resolution (SR).
-We use as plugged denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
+Regularization by Denoising (RED) for Super-Resolution.
 ====================================================================================================
 
+We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
+
 Hurault, S., Leclaire, A., & Papadakis, N. 
-Gradient Step Denoiser for convergent Plug-and-Play. 
+"Gradient Step Denoiser for convergent Plug-and-Play"
 In International Conference on Learning Representations.
 """
 

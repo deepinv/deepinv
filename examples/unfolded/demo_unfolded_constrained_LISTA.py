@@ -97,7 +97,7 @@ physics = dinv.physics.Inpainting(
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
-    1000 if torch.cuda.is_available() else 50
+    100 if torch.cuda.is_available() else 50
 )  # maximal number of images used for training
 my_dataset_name = "demo_training_inpainting"
 measurement_dir = DATA_DIR / train_dataset_name / operation
@@ -215,7 +215,7 @@ model = unfolded_builder(
 #       For a good reconstruction quality, we recommend to train for at least 50 epochs.
 #
 
-epochs = 50 if torch.cuda.is_available() else 5  # choose training epochs
+epochs = 10 if torch.cuda.is_available() else 5  # choose training epochs
 learning_rate = 1e-3
 
 verbose = True  # print training information
