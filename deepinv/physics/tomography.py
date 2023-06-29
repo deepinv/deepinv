@@ -218,7 +218,7 @@ class IRadon(nn.Module):
             )
 
         if self.circle:
-            reconstruction_circle = (self.xgrid ** 2 + self.ygrid ** 2) <= 1
+            reconstruction_circle = (self.xgrid**2 + self.ygrid**2) <= 1
             reconstruction_circle = reconstruction_circle.repeat(
                 x.shape[0], ch_size, 1, 1
             )

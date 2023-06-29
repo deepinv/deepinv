@@ -57,7 +57,7 @@ class BaseOptim(nn.Module):
          - Recommended Values
        * - ``"stepsize"``
          - Step size of the optimization algorithm.
-         - Should be positive. Depending on the algorithm, needs to be small enough for convergence. 
+         - Should be positive. Depending on the algorithm, needs to be small enough for convergence.
                 e.g for PGD with `g_first=False`, should be smaller than :math:`1 / (\lambda \|A\|_2^2) `.
        * - ``"lambda"``
          - Regularization parameter :math:`\lambda` multiplying the data fidelity term.
@@ -483,7 +483,7 @@ def create_iterator(
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
-    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem. 
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
                                                 Default: :meth:`deepinv.optim.data_fidelity.L2`.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
@@ -502,9 +502,7 @@ def create_iterator(
                 x, cur_params["g_param"]
             )
 
-        has_cost = (
-            True
-        )  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
     # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
@@ -561,7 +559,7 @@ def optim_builder(
          - Recommended Values
        * - ``"stepsize"``
          - Step size of the optimization algorithm.
-         - Should be positive. Depending on the algorithm, needs to be small enough for convergence. 
+         - Should be positive. Depending on the algorithm, needs to be small enough for convergence.
                 e.g for PGD with `g_first=False`, should be smaller than :math:`1 / (\lambda \|A\|_2^2) `.
        * - ``"lambda"``
          - Regularization parameter :math:`\lambda` multiplying the data fidelity term.
