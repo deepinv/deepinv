@@ -123,31 +123,28 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-lamb = [1.0] * max_iter # regularization parameter (mutltiplies the data fidelity term)
-stepsize = [1.0] * max_iter # stepsize of the algorithm
-sigma_denoiser = [0.01] * max_iter # noise level parameter of the denoiser
-beta = [1.] # relaxation parameter of the DRS agorithm
-
+lamb = [1.0] * max_iter
+stepsize = [1.0] * max_iter
+sigma_denoiser = [0.01] * max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "lambda": lamb,
     "g_param": sigma_denoiser,
-    "beta": beta
 }
 trainable_params = [
     "lambda",
     "g_param",
     "stepsize",
-    "beta"
 ]  # define which parameters from 'params_algo' are trainable
 
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
+
 # Define the unfolded trainable model.
 model = unfolded_builder(
-    iteration="DRS",
+    iteration="CP",
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
@@ -207,7 +204,7 @@ train(
 #
 #
 
-method = "unfolded_drs"
+method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_images = True  # plot images. Images are saved in save_folder.
