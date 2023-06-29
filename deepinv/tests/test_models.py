@@ -19,6 +19,7 @@ def imsize():
 model_list = [
     "unet",
     "drunet",
+    "scunet",
     "dncnn",
     "waveletprior",
     "waveletdict",
@@ -41,6 +42,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "drunet":
         out = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "scunet":
+        out = dinv.models.SCUNet(in_nc=imsize[0])
     elif name == "gsdrunet":
         out = dinv.models.GSDRUNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "bm3d":
