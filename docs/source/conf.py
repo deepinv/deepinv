@@ -43,9 +43,9 @@ sphinx_gallery_conf = {
     "filename_pattern": "/demo_",
     "run_stale_examples": True,
     "ignore_pattern": r"__init__\.py",
-    'reference_url': {
+    "reference_url": {
         # The module you locally document uses None
-        'sphinx_gallery': None,
+        "sphinx_gallery": None,
     },
     # directory where function/class granular galleries are stored
     "backreferences_dir": "gen_modules/backreferences",
