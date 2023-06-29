@@ -38,6 +38,8 @@ class CPIteration(OptimIterator):
 
     with a splitting on :math:`\distancename`, with not differentiability assumption needed on :math:`\distancename`
     or :math:`\regname`, not any invertibility assumption on :math:`A`.
+
+    Note that the algorithm requires an intiliazation of the three variables :math:`x_0`, :math:`z_0` and :math:`u_0`.
     """
 
     def __init__(self, **kwargs):
@@ -71,7 +73,6 @@ class CPIteration(OptimIterator):
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
-
         return {"est": (x, z, u), "cost": F}
 
 

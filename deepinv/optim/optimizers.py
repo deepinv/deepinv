@@ -132,7 +132,7 @@ class BaseOptim(nn.Module):
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param function custom_init:  initializes the algorithm with ``custom_init(y)``.
+    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
                          such as convergence criterion at each iterate. Default: ``False``.
@@ -285,7 +285,7 @@ class BaseOptim(nn.Module):
         )  # reset parameters to initial values
         if self.custom_init:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
-            init_X = self.custom_init(x_init, z_init)
+            init_X = self.custom_init(y, physics)
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}

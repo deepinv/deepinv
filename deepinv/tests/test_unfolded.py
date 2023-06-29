@@ -87,9 +87,11 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
     if name_algo == "CP":
 
-        def custom_init(x_init, y_init):
-            return {"est": (x_init, x_init, y_init)}
-
+        def custom_init(y, physics):
+            x_init = physics.A_adjoint(y)
+            u_init = y
+            return {"est": (x_init, x_init, u_init)}
+        
         params_algo["sigma"] = 1.0
     else:
         custom_init = None
