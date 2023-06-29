@@ -249,7 +249,7 @@ class BaseOptim(nn.Module):
         )  # reset parameters to initial values
         if self.custom_init:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
-            init_X = self.custom_init(x_init, z_init)
+            init_X = self.custom_init(y, physics)
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
