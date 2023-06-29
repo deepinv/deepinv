@@ -55,7 +55,7 @@ class ADMMIteration(OptimIterator):
         else:
             u = self.f_step(x, z, y, physics, cur_params)
             x = self.g_step(u, z, cur_prior, cur_params)
-        z = z + self.beta * (u - x)
+        z = z + cur_params['beta'] * (u - x)
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
         return {"est": (x, z), "cost": F}
 

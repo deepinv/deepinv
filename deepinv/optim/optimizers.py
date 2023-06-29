@@ -46,6 +46,35 @@ class BaseOptim(nn.Module):
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
+    The parameters' dictionary can contain the following keys
+
+    .. list-table:: ``"params_algo"``
+       :widths: 25 50 75
+       :header-rows: 1
+
+       * - Parameter
+         - Meaning
+         - Recommended Values
+       * - ``"stepsize"``
+         - Step size of the optimization algorithm.
+         - Should be positive. Depending on the algorithm, needs to be small enough for convergence. 
+                e.g for PGD with `g_first=False`, should be smaller than :math:`1 / (\lambda \|A\|_2^2) `.
+       * - ``"lambda"``
+         - Regularization parameter :math:`\lambda` multiplying the data fidelity term.
+         - Should be positive.
+       * - ``"g_param"``
+         - Optional parameter to pass to the prior. For priors based on denoisers, corresponds to the noise level.
+        - Should be positive.
+       * - ``"beta"``
+         - Relaxation parameter used in various algorithms (e.g. ADMM, DRS, CP)
+         - Should be positive.
+       * - ``"sigma"``
+         - Step size in the dual update in the Primal Dual algorithm (only used by CP).
+         - Should be positive.
+
+    If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
+    If the value is list of length n_iter, the algorithm will use the corresponding parameter at each iteration.
+
     ::
 
         # This minimal example shows how to use the BaseOptim class to solve the problem
@@ -88,11 +117,11 @@ class BaseOptim(nn.Module):
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
-                            a single float/int (same value for each iteration).
+                            a single float (same value for each iteration).
                             Default: `{"stepsize": 1.0, "lambda": 1.0}`.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: `None`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
                           of the iterate norm) or `"cost"` (on the cost function). Default: ``"residual"``
@@ -143,13 +172,17 @@ class BaseOptim(nn.Module):
         self.custom_init = custom_init
         self.has_cost = has_cost
 
-        # By default params_algo should contain a g_param parameter, even if None.
+        # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
 
-        # By default, each parameter in params_algo is a list.
+        # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
+        if "beta" not in params_algo.keys():
+            params_algo["beta"] = 1.
+
+        # By default, each parameter in ``params_algo` is a list.
         # If given as a single number, we convert it to a list of 1 element.
-        # If given as a list of more than 1 element, it should have lenght max_iter.
+        # If given as a list of more than 1 element, it should have lenght ``max_iter``.
         for key, value in zip(params_algo.keys(), params_algo.values()):
             if not isinstance(value, Iterable):
                 params_algo[key] = [value]
@@ -158,7 +191,7 @@ class BaseOptim(nn.Module):
                     raise ValueError(
                         f"The number of elements in the parameter {key} is inferior to max_iter."
                     )
-        # If stepsize is a list of more than 1 element, backtracking is impossible.
+        # If ``stepsize`` is a list of more than 1 element, backtracking is impossible.
         if len(params_algo["stepsize"]) > 1:
             if self.backtracking:
                 self.backtracking = False
@@ -169,7 +202,7 @@ class BaseOptim(nn.Module):
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
 
-        # By default, self.prior should be a list of elements of the class Prior. The user could want the prior to change at each iteration.
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration.
         if not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
@@ -439,13 +472,70 @@ class BaseOptim(nn.Module):
             return x
 
 
-def optim_builder(
-    iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
-):
+def create_iterator(iteration, data_fidelity=L2(), prior=None, F_fn=None, g_first=False):
+    r"""
+    Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
+    corresponding to the chosen minimization algorithm .
+
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
+        or directly an optim iterator.
+        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem. 
+                                                Default: :meth:`deepinv.optim.data_fidelity.L2`.
+    :param list, deepinv.optim.Prior: regularization prior.
+                            Either a single instance (same prior for each iteration) or a list of instances of
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+    :param callable F_fn: Custom user input cost function. default: None.
+    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
+    """
+    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
+    explicit_prior = (
+        prior[0].explicit_prior
+        if isinstance(prior, list)
+        else prior.explicit_prior
+    )
+    if F_fn is None and explicit_prior:
+        def F_fn(x, prior, cur_params, y, physics):
+            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
+                x, cur_params["g_param"]
+            )
+        has_cost = (
+            True
+        )  # boolean to indicate if there is a cost function to evaluate along the iterations
+    else:
+        has_cost = False
+    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
+    if isinstance(iteration, str):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
+        iterator_fn = str_to_class(iteration + "Iteration")
+        return iterator_fn(
+            data_fidelity=data_fidelity,
+            g_first=g_first,
+            F_fn=F_fn,
+            has_cost=has_cost,
+        )
+    else :
+        # If the iteration is directly given as an instance of OptimIterator, nothing to do
+        return iteration
+    
+
+def optim_builder(iteration, params_algo={"lambda": 1.0, "stepsize": 1.0}, data_fidelity=L2(), F_fn=None, prior=None, g_first=False, **kwargs):
     r"""
     Helper function for building an instance of the :meth:`BaseOptim` class.
 
-    The parameters' dictionary can contain the following keys
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
+        or directly an optim iterator.
+        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param list, deepinv.optim.Prior: regularization prior.
+                            Either a single instance (same prior for each iteration) or a list of instances of
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+    :param callable F_fn: Custom user input cost function. default: None.
+    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+
+
+    The parameters' dictionary can, for instance, contain the following keys
 
     .. list-table:: ``"params_algo"``
        :widths: 25 50 75
@@ -455,21 +545,24 @@ def optim_builder(
          - Meaning
          - Recommended Values
        * - ``"stepsize"``
-         - Step size for the data fidelity term.
-         - Should be positive, in general smaller than :math:`1/\|A\|_2^2`.
+         - Step size of the optimization algorithm.
+         - Should be positive. Depending on the algorithm, needs to be small enough for convergence. 
+                e.g for PGD with `g_first=False`, should be smaller than :math:`1 / (\lambda \|A\|_2^2) `.
        * - ``"lambda"``
          - Regularization parameter :math:`\lambda` multiplying the data fidelity term.
          - Should be positive.
        * - ``"g_param"``
-         - Noise level for priors based on denoisers.
-         - Should be between 0 and 1.
+         - Optional parameter to pass to the prior. For priors based on denoisers, corresponds to the noise level.
+        - Should be positive.
+       * - ``"beta"``
+         - Relaxation parameter used in various algorithms (e.g. ADMM, DRS, CP)
+         - Should be positive.
        * - ``"sigma"``
-         - Step size in the dual (only used by CP).
+         - Step size in the dual update in the Primal Dual algorithm (only used by CP).
          - Should be positive.
 
-    If the value associated with the key is a float, the algorithm will use the same parameter across all iterations
+    If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
     If the value is list of length n_iter, the algorithm will use the corresponding parameter at each iteration.
-
 
     ::
 
@@ -509,48 +602,9 @@ def optim_builder(
         sol = optim_algo(y, physics)
 
 
-    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
-        or an optim iterator.
-        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
-    :param dict params_algo: dictionary containing the algorithm's relevant parameter.
-    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
-    :param callable F_fn: Custom user input cost function. default: None.
-    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
-    :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
     """
-    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    explicit_prior = (
-        kwargs["prior"][0].explicit_prior
-        if isinstance(kwargs["prior"], list)
-        else kwargs["prior"].explicit_prior
-    )
-    if F_fn is None and explicit_prior:
-
-        def F_fn(x, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
-                x, cur_params["g_param"]
-            )
-
-        has_cost = (
-            True
-        )  # boolean to indicate if there is a cost function to evaluate along the iterations
-    else:
-        has_cost = False
-    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
-    # If the iteration is directly given as an instance of OptimIterator, nothing to do
-    if isinstance(
-        iteration, str
-    ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
-        iterator_fn = str_to_class(iteration + "Iteration")
-        iteration = iterator_fn(
-            data_fidelity=data_fidelity,
-            g_first=g_first,
-            beta=beta,
-            F_fn=F_fn,
-            has_cost=has_cost,
-        )
-    return BaseOptim(iteration, has_cost=has_cost, **kwargs)
+    iterator = create_iterator(iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first)
+    return BaseOptim(iterator, has_cost=iterator.has_cost, prior=prior, params_algo=params_algo, **kwargs)
 
 
 def str_to_class(classname):

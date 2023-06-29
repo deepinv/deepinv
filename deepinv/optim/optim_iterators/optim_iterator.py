@@ -36,17 +36,15 @@ class OptimIterator(nn.Module):
 
     :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param float beta: relaxation parameter for the fixed-point iterations.
     :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
     :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
      """
 
     def __init__(
-        self, data_fidelity=L2(), g_first=False, beta=1.0, F_fn=None, has_cost=False
+        self, data_fidelity=L2(), g_first=False, F_fn=None, has_cost=False
     ):
         super(OptimIterator, self).__init__()
         self.data_fidelity = data_fidelity
-        self.beta = beta
         self.g_first = g_first
         self.F_fn = F_fn
         self.has_cost = has_cost
@@ -57,15 +55,16 @@ class OptimIterator(nn.Module):
         self.requires_grad_g = False
         self.requires_prox_g = False
 
-    def relaxation_step(self, u, v):
+    def relaxation_step(self, u, v, beta):
         r"""
         Performs a relaxation step of the form :math:`\beta u + (1-\beta) v`.
 
         :param torch.Tensor u: First tensor.
         :param torch.Tensor v: Second tensor.
+        :param float beta: Relaxation parameter.
         :return: Relaxed tensor.
         """
-        return self.beta * u + (1 - self.beta) * v
+        return beta * u + (1 - beta) * v
 
     def forward(self, X, cur_prior, cur_params, y, physics):
         r"""
@@ -88,7 +87,7 @@ class OptimIterator(nn.Module):
         else:
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_params, y, physics)
-        x = self.relaxation_step(x, x_prev)
+        x = self.relaxation_step(x, x_prev, cur_params['beta'])
         F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
         return {"est": (x, z), "cost": F}
 
