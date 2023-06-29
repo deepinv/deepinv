@@ -50,16 +50,21 @@ The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.Bas
 Deep Equilibrium
 ----------------
 Deep Equilibrium models (DEQ) are a particular class of unfolded architectures where the backward pass
-is performed via Fixed-Point iterations, i.e., the are defined as via the fixed-point equations
+is performed via Fixed-Point iterations. DEQ algorithms can virtually unroll infinitely many layers leveraging the implicit function theorem.
+The backward pass consists in looking for solutions of the fixed-point equation
 
 .. math::
-    \begin{aligned}
-    z &= \operatorname{step}_f(x, z, y, A, ...)\\
-    x &= \operatorname{step}_g(x, z, y, A, ...)
-    \end{aligned}
+
+   \begin{equation}
+   v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^T v + u.
+   \end{equation}
+
+   where :math:`u` is the incoming gradient from the backward pass,
+   and :math:`x^\star` is the equilibrium point of the forward pass.
+
+See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
 The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building Deep Equilibrium (DEQ) architectures.
-
 
 .. autosummary::
    :toctree: stubs

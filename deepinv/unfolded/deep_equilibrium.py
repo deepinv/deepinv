@@ -17,8 +17,6 @@ class BaseDEQ(BaseUnfold):
     .. math::
 
         \begin{equation}
-        \label{eq:fixed_point}
-        \tag{1}
         v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^T v + u.
         \end{equation}
 

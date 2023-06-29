@@ -65,6 +65,9 @@ class BaseOptim(nn.Module):
        * - ``"g_param"``
          - Optional parameter to pass to the prior. For priors based on denoisers, corresponds to the noise level.
         - Should be positive.
+       * - ``"beta"``
+         - Relaxation parameter used in various algorithms (e.g. ADMM, DRS, CP)
+         - Should be positive.
        * - ``"sigma"``
          - Step size in the dual update in the Primal Dual algorithm (only used by CP).
          - Should be positive.
