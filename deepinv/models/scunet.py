@@ -16,7 +16,7 @@ class WMSA(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.head_dim = head_dim
-        self.scale = self.head_dim**-0.5
+        self.scale = self.head_dim ** -0.5
         self.n_heads = input_dim // head_dim
         self.window_size = window_size
         self.type = type
@@ -360,9 +360,7 @@ class SCUNet(nn.Module):
         ]
 
         begin += config[3]
-        self.m_up3 = [
-            nn.ConvTranspose2d(8 * dim, 4 * dim, 2, 2, 0, bias=False),
-        ] + [
+        self.m_up3 = [nn.ConvTranspose2d(8 * dim, 4 * dim, 2, 2, 0, bias=False)] + [
             ConvTransBlock(
                 2 * dim,
                 2 * dim,
@@ -376,9 +374,7 @@ class SCUNet(nn.Module):
         ]
 
         begin += config[4]
-        self.m_up2 = [
-            nn.ConvTranspose2d(4 * dim, 2 * dim, 2, 2, 0, bias=False),
-        ] + [
+        self.m_up2 = [nn.ConvTranspose2d(4 * dim, 2 * dim, 2, 2, 0, bias=False)] + [
             ConvTransBlock(
                 dim,
                 dim,
@@ -392,9 +388,7 @@ class SCUNet(nn.Module):
         ]
 
         begin += config[5]
-        self.m_up1 = [
-            nn.ConvTranspose2d(2 * dim, dim, 2, 2, 0, bias=False),
-        ] + [
+        self.m_up1 = [nn.ConvTranspose2d(2 * dim, dim, 2, 2, 0, bias=False)] + [
             ConvTransBlock(
                 dim // 2,
                 dim // 2,
