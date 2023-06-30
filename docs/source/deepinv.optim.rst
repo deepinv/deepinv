@@ -35,7 +35,8 @@ where :math:`x` is a variable converging to the solution of the minimisation pro
 
 
 The function :meth:`deepinv.optim.optim_builder` returns an instance of :meth:`deepinv.optim.BaseOptim` with the
-optimization algorithm of choice, either a predefined one ("PGD", "ADMM", "HQS", etc.), or with a user-defined one.
+optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
+or with a user-defined one.
 
 .. autosummary::
    :toctree: stubs
@@ -54,6 +55,7 @@ for all optimization algorithms.
    :nosignatures:
 
    deepinv.optim.BaseOptim
+
 
 Data Fidelity
 -------------
@@ -97,6 +99,48 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.ScorePrior
    deepinv.optim.Tikhonov
 
+
+.. _optim-params:
+
+Parameters
+---------------------
+The parameters of the optimization algorithm, such as
+stepsize, regularisation parameter, denoising standard deviation, etc.
+are stored in a dictionary ``"params_algo"``, whose typical entries are:
+
+.. list-table::
+   :widths: 25 30 30
+   :header-rows: 1
+
+   * - Key
+     - Meaning
+     - Recommended Values
+   * - ``"stepsize"``
+     - Step size of the optimization algorithm.
+     - | Should be positive. Depending on the algorithm,
+       | needs to be small enough for convergence;
+       | e.g. for PGD with ``g_first=False``,
+       | should be smaller than :math:`1/(\lambda \|A\|_2^2)`.
+   * - ``"lambda"``
+     - | Regularization parameter :math:`\lambda`
+       | multiplying the data fidelity term.
+     - Should be positive.
+   * - ``"g_param"``
+     - | Optional parameter to pass to the prior.
+       | For priors based on denoisers,
+       | corresponds to the noise level.
+     - Should be positive.
+   * - ``"beta"``
+     - | Relaxation parameter used in
+       | ADMM, DRS, CP.
+     - Should be positive.
+   * - ``"stepsize_dual"``
+     - | Step size in the dual update in the
+       | Primal Dual algorithm (only required by CP).
+     - Should be positive.
+
+Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
+a single float (same value for each iteration).
 
 Iterators
 ---------

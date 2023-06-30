@@ -11,7 +11,7 @@ class CPIteration(OptimIterator):
     algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
     Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
-    If the attribute `"g_first"` is set to False (by default), the iteration is given by
+    If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
 
     .. math::
         \begin{equation*}
@@ -25,7 +25,7 @@ class CPIteration(OptimIterator):
     where :math:`(\lambda F)^*` is the Fenchel-Legendre conjugate of :math:`\lambda F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
 
-    If the attribute `"g_first"` is set to True, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
+    If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
 
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
 
@@ -52,7 +52,7 @@ class CPIteration(OptimIterator):
         Single iteration of the Chambolle-Pock algorithm.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: dictionary containing the current parameters of the model.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.

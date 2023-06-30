@@ -62,10 +62,10 @@ def unfolded_builder(
         If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            e.g. the stepsize, regularisation parameter, denoising standard deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration).
-                            Default: `{"stepsize": 1.0, "lambda": 1.0}`.
+                            Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
     :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
