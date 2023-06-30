@@ -320,19 +320,3 @@ class Tomography(LinearPhysics):
 
     def A_adjoint(self, y):
         return self.iradon(y, filtering=False)
-
-
-if __name__ == "__main__":
-    torch.manual_seed(0)
-    import deepinv
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    dtype = torch.double
-    view_number = 100
-    angles = torch.linspace(0, 180, view_number, device=device, dtype=dtype)
-    CT = deepinv.physics.Tomography(256, angles, device=device, dtype=dtype)
-    x = torch.rand(1, 1, 256, 256, device=device, dtype=dtype)
-    y = CT.A(x)
-    z = CT.A_dagger(y)
-    psnr = deepinv.utils.cal_psnr(x, z)
-    print(psnr)
