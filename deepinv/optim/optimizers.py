@@ -122,7 +122,7 @@ class BaseOptim(nn.Module):
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
                             :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
-    :param list, deepinv.optim.Prior: regularization prior. 
+    :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: `None`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.
