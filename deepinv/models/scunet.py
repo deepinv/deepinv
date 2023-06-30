@@ -261,6 +261,25 @@ class ConvTransBlock(nn.Module):
 
 
 class SCUNet(nn.Module):
+    r"""
+    SCUNet denoising network.
+
+    The Swin-Conv-UNet (SCUNet) denoising was introduced in `Practical Blind Denoising via Swin-Conv-UNet and
+    Data Synthesis <https://arxiv.org/abs/2203.13278>`_.
+
+    :param int in_nc: number of input channels. Default: 3.
+    :param list config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
+    :param int dim: number of channels in each layer. Default: 64.
+    :param float drop_path_rate: drop path per sample rate (stochastic depth) for each layer. Default: 0.0.
+    :param int input_resolution: input resolution. Default: 256.
+    :param bool pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
+    :param bool train: training or testing mode. Default: False.
+    :param str device: gpu or cpu. Default: 'cpu'.
+    ....
+    """
     def __init__(
         self,
         in_nc=3,
@@ -270,7 +289,7 @@ class SCUNet(nn.Module):
         input_resolution=256,
         pretrained="download",
         train=False,
-        device=None,
+        device='cpu',
     ):
         super(SCUNet, self).__init__()
         self.config = config
