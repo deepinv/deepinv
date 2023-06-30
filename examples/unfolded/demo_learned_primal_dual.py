@@ -42,7 +42,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load base image datasets and degradation operators.
-# ----------------------------------------------------------------------------------------
+# ---------------------------------------------------
 # In this example, we use the CBSD500 dataset for training and the Set3C dataset for testing.
 
 img_size = 64 if torch.cuda.is_available() else 32
@@ -51,7 +51,7 @@ operation = "super-resolution"
 
 # %%
 # Generate a dataset of low resolution images and load it.
-# ----------------------------------------------------------------------------------------
+# --------------------------------------------------------
 # We use the Downsampling class from the physics module to generate a dataset of low resolution images.
 
 # For simplicity, we use a small dataset for training.
@@ -110,7 +110,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 # %%
 # Define a custom iterator for the PDNet learned primal-dual algorithm.
-# ----------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # The iterator is a subclass of the Chambolle-Pock iterator :meth:`deepinv.optim.optim_iterators.PDIteration`.
 # In PDNet, the primal (gStep) and dual (fStep) updates are directly replaced by neural networks.
 # We thus redefine the fStep and gStep classes as simple proximal operators of the data fidelity and prior, respectively.
@@ -170,9 +170,9 @@ class gStepPDNet(gStep):
 
 # %%
 # Define the trainable prior and data fidelity terms.
-# ----------------------------------------------------------------------------------------
+# ---------------------------------------------------
 # Prior and data-fidelity are respectively defined as subclass of :meth:`deepinv.optim.Prior` and :meth:`deepinv.optim.DataFidelity`.
-# Their proximal operator is replaced by a trainable models.
+# Their proximal operators are replaced by trainable models.
 
 
 class PDNetPrior(Prior):
@@ -231,7 +231,7 @@ model = unfolded_builder(
 
 # %%
 # Define the training parameters.
-# ----------------------------------------------------------------------------------------
+# -------------------------------
 # We use the Adam optimizer and the StepLR scheduler.
 
 

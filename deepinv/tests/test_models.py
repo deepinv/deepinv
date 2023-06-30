@@ -90,6 +90,117 @@ def test_denoiser(imsize, device, denoiser):
     assert x_hat.shape == x.shape
 
 
+def test_PDNet(imsize, device):
+    # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
+    from deepinv.optim.optimizers import CPIteration, fStep, gStep
+    from deepinv.optim import Prior, DataFidelity
+    from deepinv.models.PDNet import PrimalBlock, DualBlock
+    from deepinv.unfolded import unfolded_builder
+
+    torch.manual_seed(0)
+    sigma = 0.2
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+
+    class PDNetIteration(CPIteration):
+        r"""Single iteration of learned primal dual.
+        We only redefine the fStep and gStep classes.
+        The forward method is inherited from the CPIteration class.
+        """
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.g_step = gStepPDNet(**kwargs)
+            self.f_step = fStepPDNet(**kwargs)
+
+    class fStepPDNet(fStep):
+        r"""
+        Dual update of the PDNet algorithm.
+        We write it as a proximal operator of the data fidelity term.
+        This proximal mapping is to be replaced by a trainable model.
+        """
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
+        def forward(self, x, w, cur_data_fidelity, y, *args):
+            r"""
+            :param torch.Tensor x: Current first variable :math:`u`.
+            :param torch.Tensor w: Current second variable :math:`A z`.
+            :param deepinv.optim.data_fidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data fidelity term.
+            :param torch.Tensor y: Input data.
+            """
+            return cur_data_fidelity.prox(x, w, y)
+
+    class gStepPDNet(gStep):
+        r"""
+        Primal update of the PDNet algorithm.
+        We write it as a proximal operator of the prior term.
+        This proximal mapping is to be replaced by a trainable model.
+        """
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
+        def forward(self, x, w, cur_prior, *args):
+            r"""
+            :param torch.Tensor x: Current first variable :math:`x`.
+            :param torch.Tensor w: Current second variable :math:`A^\top u`.
+            :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+            """
+            return cur_prior.prox(x, w)
+
+    class PDNetPrior(Prior):
+        def __init__(self, model, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.model = model
+
+        def prox(self, x, w):
+            return self.model(x, w)
+
+    class PDNetDataFid(DataFidelity):
+        def __init__(self, model, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.model = model
+
+        def prox(self, x, w, y):
+            return self.model(x, w, y)
+
+    # Unrolled optimization algorithm parameters
+    max_iter = 5  # number of unfolded layers
+
+    # Set up the data fidelity term. Each layer has its own data fidelity module.
+    data_fidelity = [
+        PDNetDataFid(model=DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+    ]
+
+    # Set up the trainable prior. Each layer has its own prior module.
+    prior = [
+        PDNetPrior(model=PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
+    ]
+
+    def custom_init(y, physics):
+        z0 = physics.A_adjoint(y)
+        x0 = physics.A_adjoint(y)
+        u0 = y
+        return {"est": (x0, z0, u0)}
+
+    # Define the unfolded trainable model.
+    model = unfolded_builder(
+        iteration=PDNetIteration(),
+        params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 1.0},
+        data_fidelity=data_fidelity,
+        prior=prior,
+        max_iter=max_iter,
+        custom_init=custom_init,
+    )
+
+    x_hat = model(y, physics)
+
+    assert x_hat.shape == x.shape
+
+
 # def test_dip(imsize, device): TODO: fix this test
 #     torch.manual_seed(0)
 #     channels = 64
