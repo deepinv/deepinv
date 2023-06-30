@@ -120,7 +120,7 @@ class FixedPoint(nn.Module):
 
         :param bool compute_metrics: if ``True``, the metrics are computed along the iterations. Default: ``False``.
         :param torch.Tensor x_gt: ground truth solution. Default: ``None``.
-        :param args: optional arguments for the iterator. Commonly (y,physics) where ``y`` (torch.Tensor y) is the measurement and 
+        :param args: optional arguments for the iterator. Commonly (y,physics) where ``y`` (torch.Tensor y) is the measurement and
                     ``physics`` (deepinv.physics) is the physics model.
         :param kwargs: optional keyword arguments for the iterator.
         :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and
