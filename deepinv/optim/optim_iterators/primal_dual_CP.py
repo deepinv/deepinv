@@ -11,7 +11,7 @@ class CPIteration(OptimIterator):
     algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
     Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
-    If the attribute `"g_first"` is set to False (by default), the iteration is given by
+    If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
 
     .. math::
         \begin{equation*}
@@ -25,7 +25,7 @@ class CPIteration(OptimIterator):
     where :math:`(\lambda F)^*` is the Fenchel-Legendre conjugate of :math:`\lambda F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
 
-    If the attribute `"g_first"` is set to True, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
+    If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
 
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
 
@@ -53,8 +53,8 @@ class CPIteration(OptimIterator):
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
+        :param dict cur_params: dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
@@ -100,9 +100,9 @@ class fStepCP(fStep):
         :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
         :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize_dual"` (or `"stepsize"`) and `"lambda"`).
         """
         if self.g_first:
             p = x - cur_params["stepsize"] * w
@@ -110,9 +110,9 @@ class fStepCP(fStep):
                 p, y, physics, cur_params["stepsize"] * cur_params["lambda"]
             )
         else:
-            p = x + cur_params["sigma"] * w
+            p = x + cur_params["stepsize_dual"] * w
             return cur_data_fidelity.prox_d_conjugate(
-                p, y, cur_params["sigma"], lamb=cur_params["lambda"]
+                p, y, cur_params["stepsize_dual"], lamb=cur_params["lambda"]
             )
 
 
@@ -131,12 +131,12 @@ class gStepCP(gStep):
         :param torch.Tensor x: Current first variable :math:`u` if `"g_first"` and :math:`x` otherwise.
         :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` (or `"stepsize_dual"`) and `"g_param"`).
         """
         if self.g_first:
-            p = x + cur_params["sigma"] * w
+            p = x + cur_params["stepsize_dual"] * w
             return cur_prior.prox_conjugate(
-                p, cur_params["sigma"], cur_params["g_param"]
+                p, cur_params["stepsize_dual"], cur_params["g_param"]
             )
         else:
             p = x - cur_params["stepsize"] * w

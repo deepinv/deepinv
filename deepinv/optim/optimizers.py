@@ -45,34 +45,9 @@ class BaseOptim(nn.Module):
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
-    The parameters' dictionary can contain the following keys
-
-    .. list-table:: ``"params_algo"``
-       :widths: 25 50 75
-       :header-rows: 1
-
-       * - Parameter
-         - Meaning
-         - Recommended Values
-       * - ``"stepsize"``
-         - Step size of the optimization algorithm.
-         - Should be positive. Depending on the algorithm, needs to be small enough for convergence.
-                e.g for PGD with `g_first=False`, should be smaller than :math:`1 / (\lambda \|A\|_2^2) `.
-       * - ``"lambda"``
-         - Regularization parameter :math:`\lambda` multiplying the data fidelity term.
-         - Should be positive.
-       * - ``"g_param"``
-         - Optional parameter to pass to the prior. For priors based on denoisers, corresponds to the noise level.
-        - Should be positive.
-       * - ``"beta"``
-         - Relaxation parameter used in various algorithms (e.g. ADMM, DRS, CP)
-         - Should be positive.
-       * - ``"sigma"``
-         - Step size in the dual update in the Primal Dual algorithm (only used by CP).
-         - Should be positive.
 
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
-    If the value is list of length n_iter, the algorithm will use the corresponding parameter at each iteration.
+    If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
 
     ::
 
@@ -115,16 +90,16 @@ class BaseOptim(nn.Module):
 
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            e.g. the stepsize, regularisation parameter, denoising standard deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
-                            a single float (same value for each iteration). If Iterable, should have length ``max_iter``.
-                            Default: `{"stepsize": 1.0, "lambda": 1.0}`.
+                            a single float (same value for each iteration).
+                            Default: `{"stepsize": 1.0, "lambda": 1.0}`. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
                             :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
                           of the iterate norm) or `"cost"` (on the cost function). Default: ``"residual"``
@@ -132,13 +107,15 @@ class BaseOptim(nn.Module):
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
     :param bool return_aux: whether to return the auxiliary variable or not at the end of the algorithm. Default: ``False``.
+    :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
     :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
-                         such as convergence criterion at each iterate. Default: ``False``.
+        such as convergence criterion at each iterate. Default: ``False``.
+    :return: a torch model that solves the optimization problem.
     """
 
     def __init__(
@@ -511,7 +488,7 @@ class BaseOptim(nn.Module):
 def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     r"""
     Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
-    corresponding to the chosen minimization algorithm .
+    corresponding to the chosen minimization algorithm.
 
     :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
@@ -537,7 +514,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
         has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
-    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
+    # Create an instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
     if isinstance(
         iteration, str
     ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
@@ -567,85 +544,18 @@ def optim_builder(
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
-                            a single float (same value for each iteration).
-                            Default: `{"stepsize": 1.0, "lambda": 1.0}`.
+                            a single float (same value for each iteration). See :any:`optim-params` for more details.
+                            Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
                             :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
-    :param list, deepinv.optim.Prior prior : regularization prior.
+    :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: None.
-    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+    :param callable F_fn: Custom user input cost function. default: `None`.
+    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: `False`
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
-
-
-    The parameters' dictionary can, for instance, contain the following keys
-
-    .. list-table:: ``"params_algo"``
-       :widths: 25 50 75
-       :header-rows: 1
-
-       * - Parameter
-         - Meaning
-         - Recommended Values
-       * - ``"stepsize"``
-         - Step size of the optimization algorithm.
-         - Should be positive. Depending on the algorithm, needs to be small enough for convergence.
-                e.g for PGD with `g_first=False`, should be smaller than :math:`1 / (\lambda \|A\|_2^2) `.
-       * - ``"lambda"``
-         - Regularization parameter :math:`\lambda` multiplying the data fidelity term.
-         - Should be positive.
-       * - ``"g_param"``
-         - Optional parameter to pass to the prior. For priors based on denoisers, corresponds to the noise level.
-        - Should be positive.
-       * - ``"beta"``
-         - Relaxation parameter used in various algorithms (e.g. ADMM, DRS, CP)
-         - Should be positive.
-       * - ``"sigma"``
-         - Step size in the dual update in the Primal Dual algorithm (only used by CP).
-         - Should be positive.
-
-    If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
-    If the value is list of length n_iter, the algorithm will use the corresponding parameter at each iteration.
-
-    ::
-
-        # This minimal example shows how to use the BaseOptim class to solve the problem
-        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
-        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
-
-        # Create the measurement operator A
-        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define the measurement y
-        y = torch.tensor([2, 2], dtype=torch.float64)
-
-        # Define the data fidelity term
-        data_fidelity = dinv.optim.data_fidelity.L2()
-
-        # Define the prior
-        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
-
-        # Define the parameters of the algorithm
-        params_algo = {"stepsize": 0.5, "lambda": 1.0}
-
-        # Define the optimization algorithm
-        optim_algo = dinv.optim.optim_builder(
-                        'PGD',
-                        prior=prior,
-                        data_fidelity=data_fidelity,
-                        params_algo=params_algo
-                    )
-
-        # Run the optimization algorithm
-        sol = optim_algo(y, physics)
-
+    :return: an instance of the :meth:`BaseOptim` class.
 
     """
     iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)

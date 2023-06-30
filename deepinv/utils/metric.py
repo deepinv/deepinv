@@ -13,10 +13,23 @@ def cal_angle(a, b):
     return angle.detach().cpu().numpy()
 
 
-def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):
-    """Computes the peak signal-to-noise ratio (PSNR)"""
-    # a: prediction
-    # b: groundtruth
+def cal_psnr(a, b, max_pixel=1, normalize=False):
+    r"""
+    Computes the peak signal-to-noise ratio (PSNR)
+
+    If the tensors have size (N, C, H, W), then the PSNR is computed as
+
+    .. math::
+        \text{PSNR} = \frac{20}{N} \log_{10} \frac{MAX_I}{\sqrt{\|a- b\|^2_2 / (CHW) }}
+
+    where :math:`MAX_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
+    normalized image), and :math:`a` and :math:`b` are the estimate and reference images.
+
+    :param torch.Tensor a: tensor estimate
+    :param torch.Tensor b: tensor reference
+    :param float max_pixel: maximum pixel value
+    :param bool normalize: if ``True``, a is normalized to have the same norm as b.
+    """
     with torch.no_grad():
         if type(a) is list or type(a) is tuple:
             a = a[0]
@@ -27,17 +40,11 @@ def cal_psnr(a, b, max_pixel=1, complex=False, normalize=False):
         else:
             an = a
 
-        if complex:
-            an = an.abs().permute(0, 2, 3, 1)
-            b = b.abs().permute(0, 2, 3, 1)
+        mse = (an - b).pow(2).reshape(an.shape[0], -1).mean(dim=1)
+        mse[mse == 0] = 1e-10
+        psnr = 20 * torch.log10(max_pixel / mse.sqrt())
 
-        mse = (an - b).pow(2).flatten().mean()
-        if mse == 0:
-            psnr = 100 * torch.ones(1)
-        else:
-            psnr = 20 * torch.log10(max_pixel / mse.sqrt())
-
-        return psnr.detach().cpu().item()
+    return psnr.mean().detach().cpu().item()
 
 
 def cal_mse(a, b):
