@@ -91,17 +91,17 @@ class fStepCP(fStep):
         :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
         :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
         :param torch.Tensor y: Input data.
-        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
+        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize_dual"` and `"lambda"`).
         """
         if self.g_first:
-            p = x - cur_params["stepsize"] * w
+            p = x - cur_params["stepsize_dual"] * w
             return self.data_fidelity.prox(
-                p, y, physics, cur_params["stepsize"] * cur_params["lambda"]
+                p, y, physics, cur_params["stepsize_dual"] * cur_params["lambda"]
             )
         else:
-            p = x + cur_params["sigma"] * w
+            p = x + cur_params["stepsize_dual"] * w
             return self.data_fidelity.prox_d_conjugate(
-                p, y, cur_params["sigma"], lamb=cur_params["lambda"]
+                p, y, cur_params["stepsize_dual"], lamb=cur_params["lambda"]
             )
 
 
