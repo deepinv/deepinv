@@ -211,9 +211,7 @@ method = "unfolded_drs"
 save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = (
-    True
-)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 test(
     model=model,

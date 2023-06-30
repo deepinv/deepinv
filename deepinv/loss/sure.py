@@ -111,7 +111,7 @@ class SureGaussianLoss(nn.Module):
     def __init__(self, sigma, tau=1e-2):
         super(SureGaussianLoss, self).__init__()
         self.name = "SureGaussian"
-        self.sigma2 = sigma ** 2
+        self.sigma2 = sigma**2
         self.tau = tau
 
     def forward(self, y, x_net, physics, model, **kwargs):
@@ -248,7 +248,7 @@ class SurePGLoss(nn.Module):
         super(SurePGLoss, self).__init__()
         self.name = "SurePG"
         # self.sure_loss_weight = sure_loss_weight
-        self.sigma2 = sigma ** 2
+        self.sigma2 = sigma**2
         self.gain = gain
         self.tau1 = tau1
         self.tau2 = tau2
@@ -294,7 +294,7 @@ class SurePGLoss(nn.Module):
             -2
             * self.sigma2
             * self.gain
-            / (self.tau2 ** 2)
+            / (self.tau2**2)
             * (b2 * (meas2p + meas2n - 2 * meas1)).mean()
         )
 
