@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import BaseOptim, str_to_class
+from deepinv.optim.optimizers import BaseOptim, create_iterator
 
 
 class BaseUnfold(BaseOptim):
@@ -23,7 +23,7 @@ class BaseUnfold(BaseOptim):
     These modules encompass trainable parameters of the algorithm (e.g. stepsize :math:`\gamma`, regularization parameter :math:`\lambda`, prior parameter (`g_param`) :math:`\sigma` ...)
     as well as trainable priors (e.g. a deep denoiser).
 
-    :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the `params_algo` dictionary for the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
+    :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo`` dictionary for the :class:`deepinv.optim.optim_iterators.BaseIterator` class.
                     This does not encompass the trainable weights of the prior module . 
     :param torch.device device: Device on which to perform the computations. Default: `torch.device("cpu")`.
     :param args:  Non-keyword arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
@@ -46,46 +46,41 @@ class BaseUnfold(BaseOptim):
 
 
 def unfolded_builder(
-    iteration, data_fidelity=L2(), F_fn=None, g_first=False, beta=1.0, **kwargs
+    iteration,
+    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    data_fidelity=L2(),
+    prior=None,
+    F_fn=None,
+    g_first=False,
+    **kwargs
 ):
     r"""
-    Function building the appropriate Unfolded architecture.
+    Helper function for building an instance of the :meth:`BaseUnfold` class.
 
-    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used, or an optim iterator .
-        If an algorithm name (string), should be either `"PGD"`, `"ADMM"`, `"HQS"`, `"CP"` or `"DRS"`.
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
+        or directly an optim iterator.
+        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
+                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            Each value of the dictionary can be either Iterable (distinct value for each iteration) or
+                            a single float (same value for each iteration).
+                            Default: `{"stepsize": 1.0, "lambda": 1.0}`.
     :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param list, deepinv.optim.Prior prior: regularization prior.
+                            Either a single instance (same prior for each iteration) or a list of instances of
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
-    :param float beta: relaxation parameter in the fixed point algorithm. Default: `1.0`.
+    :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    explicit_prior = (
-        kwargs["prior"][0].explicit_prior
-        if isinstance(kwargs["prior"], list)
-        else kwargs["prior"].explicit_prior
+    iterator = create_iterator(
+        iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
     )
-    if F_fn is None and explicit_prior:
-
-        def F_fn(x, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
-                x, cur_params["g_param"]
-            )
-
-        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
-    else:
-        has_cost = False
-
-    # Create a instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
-    # If the iteration is directly given as an instance of OptimIterator, nothing to do
-    if isinstance(
-        iteration, str
-    ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
-        iterator_fn = str_to_class(iteration + "Iteration")
-        iteration = iterator_fn(
-            data_fidelity=data_fidelity,
-            g_first=g_first,
-            beta=beta,
-            F_fn=F_fn,
-            has_cost=has_cost,
-        )
-    return BaseUnfold(iteration, has_cost=has_cost, **kwargs)
+    return BaseUnfold(
+        iterator,
+        has_cost=iterator.has_cost,
+        prior=prior,
+        params_algo=params_algo,
+        **kwargs
+    )

@@ -109,6 +109,9 @@ class Prior(nn.Module):
 class PnP(Prior):
     r"""
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`.
+
+
+    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -130,6 +133,9 @@ class PnP(Prior):
 class RED(Prior):
     r"""
     Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`.
+
+
+    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):

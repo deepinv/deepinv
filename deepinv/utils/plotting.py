@@ -6,6 +6,7 @@ import wandb
 import math
 import matplotlib.pyplot as plt
 from pathlib import Path
+from collections.abc import Iterable
 import matplotlib
 
 matplotlib.rcParams.update({"font.size": 17})
@@ -229,6 +230,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 
     fig, ax = plt.subplots(figsize=(7, 7))
+
+    for key, value in zip(init_params.keys(), init_params.values()):
+        if not isinstance(value, Iterable):
+            init_params[key] = [value]
 
     def get_param(param):
         if torch.is_tensor(param):

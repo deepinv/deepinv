@@ -351,4 +351,4 @@ def test(
     if wandb_vis:
         wandb.log({"Test PSNR": test_psnr}, step=step)
 
-    return test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr
+    return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr

@@ -97,8 +97,10 @@ trainable_params = [
 
 
 # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-def custom_init_CP(x_init, y_init):
-    return {"est": (x_init, x_init, y_init)}
+def custom_init_CP(y, physics):
+    x_init = physics.A_adjoint(y)
+    u_init = y
+    return {"est": (x_init, x_init, u_init)}
 
 
 # Define the unfolded trainable model.
