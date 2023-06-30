@@ -44,7 +44,6 @@ The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.Bas
    :nosignatures:
 
    deepinv.unfolded.BaseUnfold
-   deepinv.unfolded.BaseUnfold
 
 
 Deep Equilibrium
@@ -80,5 +79,4 @@ The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.Bas
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.unfolded.DEQ_builder
     deepinv.unfolded.BaseDEQ

@@ -48,7 +48,7 @@ class BaseOptim(nn.Module):
 
 
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
-    If the value is list of length n_iter, the algorithm will use the corresponding parameter at each iteration.
+    If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
 
     ::
 
@@ -576,7 +576,7 @@ def optim_builder(
          - Should be positive.
 
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
-    If the value is list of length n_iter, the algorithm will use the corresponding parameter at each iteration.
+    If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
     """
     iterator = create_iterator(
         iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
