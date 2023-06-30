@@ -97,9 +97,7 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
     num_workers=num_workers,
 )
 
-batch_size = (
-    3
-)  # batch size for testing. As the number of iterations is fixed, we can use batch_size > 1
+batch_size = 3  # batch size for testing. As the number of iterations is fixed, we can use batch_size > 1
 # and restore multiple images in parallel.
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 

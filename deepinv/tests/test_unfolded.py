@@ -91,7 +91,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             x_init = physics.A_adjoint(y)
             u_init = y
             return {"est": (x_init, x_init, u_init)}
-        
+
         params_algo["sigma"] = 1.0
     else:
         custom_init = None

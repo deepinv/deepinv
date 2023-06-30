@@ -29,10 +29,12 @@ def imsize():
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
+
 def custom_init_CP(y, physics):
     x_init = physics.A_adjoint(y)
     u_init = y
     return {"est": (x_init, x_init, u_init)}
+
 
 def test_data_fidelity_l2(device):
     data_fidelity = L2()
@@ -409,9 +411,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = (
-        1.0
-    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 
