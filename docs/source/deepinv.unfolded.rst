@@ -58,8 +58,9 @@ The backward pass consists in looking for solutions of the fixed-point equation
    v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^T v + u.
    \end{equation}
 
-   where :math:`u` is the incoming gradient from the backward pass,
-   and :math:`x^\star` is the equilibrium point of the forward pass.
+
+where :math:`u` is the incoming gradient from the backward pass,
+and :math:`x^\star` is the equilibrium point of the forward pass.
 
 See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
