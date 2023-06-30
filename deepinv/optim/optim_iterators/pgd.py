@@ -43,13 +43,13 @@ class fStepPGD(fStep):
 
     def forward(self, x, cur_data_fidelity, cur_params, y, physics):
         r"""
-        Single PGD iteration step on the data-fidelity term :math:`f`.
+         Single PGD iteration step on the data-fidelity term :math:`f`.
 
-        :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-       :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-        :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+         :param torch.Tensor x: Current iterate :math:`x_k`.
+         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+         :param torch.Tensor y: Input data.
+         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
             # if cur_params["lambda"] >= 2:

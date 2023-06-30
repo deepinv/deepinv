@@ -118,8 +118,8 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 
 class PDNetIteration(CPIteration):
-    r""" Single iteration of learned primal dual. 
-    We only redefine the fStep and gStep classes. 
+    r"""Single iteration of learned primal dual.
+    We only redefine the fStep and gStep classes.
     The forward method is inherited from the CPIteration class.
     """
 
@@ -131,9 +131,9 @@ class PDNetIteration(CPIteration):
 
 class fStepPDNet(fStep):
     r"""
-    Dual update of the PDNet algorithm. 
+    Dual update of the PDNet algorithm.
     We write it as a proximal operator of the data fidelity term.
-    This proximal mapping is to be replaced by a trainable model. 
+    This proximal mapping is to be replaced by a trainable model.
     """
 
     def __init__(self, **kwargs):
@@ -285,9 +285,7 @@ method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = (
-    True
-)  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 test(
     model=model,
