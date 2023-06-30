@@ -3,7 +3,6 @@ import sys
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.data_fidelity import L2
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
@@ -102,10 +101,11 @@ class BaseOptim(nn.Module):
         params_algo = {"stepsize": 0.5, "lambda": 1.0}
 
         # Define the fixed-point iterator
-        iterator = dinv.optim.optim_iterators.PGDIteration(data_fidelity=data_fidelity)
+        iterator = dinv.optim.optim_iterators.PGDIteration()
 
         # Define the optimization algorithm
         optimalgo = dinv.optim.BaseOptim(iterator,
+                            data_fidelity=data_fidelity,
                             params_algo=params_algo,
                             prior=prior)
 
@@ -117,8 +117,11 @@ class BaseOptim(nn.Module):
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
-                            a single float (same value for each iteration).
+                            a single float (same value for each iteration). If Iterable, should have length ``max_iter``.
                             Default: `{"stepsize": 1.0, "lambda": 1.0}`.
+    :param list, deepinv.optim.DataFidelity: data-fidelity term.
+                            Either a single instance (same data-fidelity for each iteration) or a list of instances of
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: `None`.
@@ -142,6 +145,7 @@ class BaseOptim(nn.Module):
         self,
         iterator,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
+        data_fidelity=None,
         prior=None,
         max_iter=50,
         crit_conv="residual",
@@ -192,12 +196,15 @@ class BaseOptim(nn.Module):
                         f"The number of elements in the parameter {key} is inferior to max_iter."
                     )
         # If ``stepsize`` is a list of more than 1 element, backtracking is impossible.
-        if len(params_algo["stepsize"]) > 1:
-            if self.backtracking:
-                self.backtracking = False
-                raise Warning(
-                    "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
-                )
+        if (
+            "stepsize" in params_algo.keys()
+            and len(params_algo["stepsize"]) > 1
+            and self.backtracking
+        ):
+            self.backtracking = False
+            raise Warning(
+                "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
+            )
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
@@ -208,10 +215,17 @@ class BaseOptim(nn.Module):
         else:
             self.prior = prior
 
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the prior to change at each iteration.
+        if not isinstance(data_fidelity, Iterable):
+            self.data_fidelity = [data_fidelity]
+        else:
+            self.data_fidelity = data_fidelity
+
         # Initialize the fixed-point module
         self.fixed_point = FixedPoint(
             iterator=iterator,
             update_params_fn=self.update_params_fn,
+            update_data_fidelity_fn=self.update_data_fidelity_fn,
             update_prior_fn=self.update_prior_fn,
             check_iteration_fn=self.check_iteration_fn,
             check_conv_fn=self.check_conv_fn,
@@ -244,8 +258,23 @@ class BaseOptim(nn.Module):
         :param int it: iteration number.
         :return: a dictionary containing the prior of iteration ``it``.
         """
-        prior_cur = self.prior[it] if len(self.prior) > 1 else self.prior[0]
-        return prior_cur
+        cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
+        return cur_prior
+
+    def update_data_fidelity_fn(self, it):
+        r"""
+        For each data_fidelity function in `data_fidelity`, selects the data_fidelity value for iteration ``it``
+        (if this data_fidelity depends on the iteration number).
+
+        :param int it: iteration number.
+        :return: a dictionary containing the data_fidelity of iteration ``it``.
+        """
+        cur_data_fidelity = (
+            self.data_fidelity[it]
+            if len(self.data_fidelity) > 1
+            else self.data_fidelity[0]
+        )
+        return cur_data_fidelity
 
     def get_primal_variable(self, X):
         r"""
@@ -290,7 +319,14 @@ class BaseOptim(nn.Module):
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
         F = (
-            F_fn(x_init, self.update_prior_fn(0), self.update_params_fn(0), y, physics)
+            F_fn(
+                x_init,
+                self.update_data_fidelity_fn(0),
+                self.update_prior_fn(0),
+                self.update_params_fn(0),
+                y,
+                physics,
+            )
             if self.has_cost and F_fn is not None
             else None
         )
@@ -472,9 +508,7 @@ class BaseOptim(nn.Module):
             return x
 
 
-def create_iterator(
-    iteration, data_fidelity=L2(), prior=None, F_fn=None, g_first=False
-):
+def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     r"""
     Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
     corresponding to the chosen minimization algorithm .
@@ -483,8 +517,6 @@ def create_iterator(
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
-    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
-                                                Default: :meth:`deepinv.optim.data_fidelity.L2`.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
@@ -497,8 +529,8 @@ def create_iterator(
     )
     if F_fn is None and explicit_prior:
 
-        def F_fn(x, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior.g(
+        def F_fn(x, data_fidelity, prior, cur_params, y, physics):
+            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior(
                 x, cur_params["g_param"]
             )
 
@@ -510,9 +542,7 @@ def create_iterator(
         iteration, str
     ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
-        return iterator_fn(
-            data_fidelity=data_fidelity, g_first=g_first, F_fn=F_fn, has_cost=has_cost
-        )
+        return iterator_fn(g_first=g_first, F_fn=F_fn, has_cost=has_cost)
     else:
         # If the iteration is directly given as an instance of OptimIterator, nothing to do
         return iteration
@@ -521,7 +551,7 @@ def create_iterator(
 def optim_builder(
     iteration,
     params_algo={"lambda": 1.0, "stepsize": 1.0},
-    data_fidelity=L2(),
+    data_fidelity=None,
     prior=None,
     F_fn=None,
     g_first=False,
@@ -539,7 +569,9 @@ def optim_builder(
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration).
                             Default: `{"stepsize": 1.0, "lambda": 1.0}`.
-    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param list, deepinv.optim.DataFidelity: data-fidelity term.
+                            Either a single instance (same data-fidelity for each iteration) or a list of instances of
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
     :param list, deepinv.optim.Prior prior : regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
@@ -616,12 +648,11 @@ def optim_builder(
 
 
     """
-    iterator = create_iterator(
-        iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
-    )
+    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
     return BaseOptim(
         iterator,
         has_cost=iterator.has_cost,
+        data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
         **kwargs,

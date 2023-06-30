@@ -360,9 +360,7 @@ class SCUNet(nn.Module):
         ]
 
         begin += config[3]
-        self.m_up3 = [
-            nn.ConvTranspose2d(8 * dim, 4 * dim, 2, 2, 0, bias=False),
-        ] + [
+        self.m_up3 = [nn.ConvTranspose2d(8 * dim, 4 * dim, 2, 2, 0, bias=False)] + [
             ConvTransBlock(
                 2 * dim,
                 2 * dim,
@@ -376,9 +374,7 @@ class SCUNet(nn.Module):
         ]
 
         begin += config[4]
-        self.m_up2 = [
-            nn.ConvTranspose2d(4 * dim, 2 * dim, 2, 2, 0, bias=False),
-        ] + [
+        self.m_up2 = [nn.ConvTranspose2d(4 * dim, 2 * dim, 2, 2, 0, bias=False)] + [
             ConvTransBlock(
                 dim,
                 dim,
@@ -392,9 +388,7 @@ class SCUNet(nn.Module):
         ]
 
         begin += config[5]
-        self.m_up1 = [
-            nn.ConvTranspose2d(2 * dim, dim, 2, 2, 0, bias=False),
-        ] + [
+        self.m_up1 = [nn.ConvTranspose2d(2 * dim, dim, 2, 2, 0, bias=False)] + [
             ConvTransBlock(
                 dim // 2,
                 dim // 2,
