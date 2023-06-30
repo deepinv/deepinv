@@ -7,7 +7,6 @@ The algorithm is trained on a dataset of compressed sensing measurements of MNIS
 
 """
 from pathlib import Path
-import numpy as np
 import torch
 from torchvision import datasets
 from torchvision import transforms
@@ -17,8 +16,6 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
 from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
-
-import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
