@@ -26,16 +26,14 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 # The Condat-Vu Primal-Dual algorithm is defined as follows:
 #
 # .. math::
-#         \begin{equation*}
-#         \begin{aligned}
+#         \begin{align*}
 #         v_k = x_k-\tau A^\top z_k
 #         x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
 #         u_k &= z_k + \sigma A(2x_{k+1}-x_k) \\
-#         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k) \\
-#         \end{aligned}
-#         \end{equation*}
+#         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
+#         \end{align*}
 #
-#     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+# where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
 
 
 class CVIteration(OptimIterator):
@@ -73,28 +71,22 @@ class CVIteration(OptimIterator):
 # %%
 # Define the custom fStep and gStep modules
 # ----------------------------------------------------------------------------------------
-# The iterator relies on custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`)
-# and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
+# The iterator relies on custom fStepCV (subclass of :class:`deepinv.optim.optim_iterators.fStep`)
+# and gStepCV (subclass of :class:`deepinv.optim.optim_iterators.gStep`) modules.
 #
 # In this case the fStep module is defined as follows:
 #
 # .. math::
-#     \begin{equation*}
-#     u_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
-#     \end{equation*}
+#     u_{k+1} = \operatorname{prox}_{\sigma f^*}(u_k)
 #
-#     where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
-#     The proximal operator of :math:`f^*` is computed using the proximal operator
-#     of :math:`f` via Moreau's identity.
-#
-#
+# where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+# The proximal operator of :math:`f^*` is computed using the proximal operator
+# of :math:`f` via Moreau's identity,
 # and the gStep module is a simple proximal step on the prior term :math:`g`:
 #
 # .. math::
 #
-#     \begin{equation*}
-#     x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
-#     \end{equation*}
+#     x_{k+1} = \operatorname{prox}_{\tau g}(v_k)
 #
 
 
@@ -201,8 +193,8 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # We build the PnP model using the :func:`deepinv.optim.optim_builder` function,
 # and setting the iterator to our custom CondatVu algorithm.
 #
-# The primal dual stepsizes :math:`\tau` as `stepsize` and :math:`\sigma` as `sigma`,
-# `g_param` the noise level of the denoiser and `lambda` the regularization parameter.
+# The primal dual stepsizes :math:`\tau` as ``stepsize`` and :math:`\sigma` as ``sigma``,
+# ``g_param`` the noise level of the denoiser and `lambda` the regularization parameter.
 
 
 # Set up the PnP algorithm parameters :
