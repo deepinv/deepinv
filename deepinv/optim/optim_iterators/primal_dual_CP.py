@@ -91,12 +91,12 @@ class fStepCP(fStep):
         :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
         :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
         :param torch.Tensor y: Input data.
-        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize_dual"` and `"lambda"`).
+        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize_dual"` (or `"stepsize"`) and `"lambda"`).
         """
         if self.g_first:
-            p = x - cur_params["stepsize_dual"] * w
+            p = x - cur_params["stepsize"] * w
             return self.data_fidelity.prox(
-                p, y, physics, cur_params["stepsize_dual"] * cur_params["lambda"]
+                p, y, physics, cur_params["stepsize"] * cur_params["lambda"]
             )
         else:
             p = x + cur_params["stepsize_dual"] * w
@@ -120,12 +120,12 @@ class gStepCP(gStep):
         :param torch.Tensor x: Current first variable :math:`u` if `"g_first"` and :math:`x` otherwise.
         :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
+        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` (or `"stepsize_dual"`) and `"g_param"`).
         """
         if self.g_first:
-            p = x + cur_params["sigma"] * w
+            p = x + cur_params["stepsize_dual"] * w
             return cur_prior.prox_conjugate(
-                p, cur_params["sigma"], cur_params["g_param"]
+                p, cur_params["stepsize_dual"], cur_params["g_param"]
             )
         else:
             p = x - cur_params["stepsize"] * w

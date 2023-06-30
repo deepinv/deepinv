@@ -233,8 +233,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
-        custom_init = custom_init_CP if name_algo == "CP" else None
-
         optimalgo = optim_builder(
             name_algo,
             prior=prior,
@@ -246,7 +244,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             params_algo=params_algo,
             early_stop=True,
             g_first=g_first,
-            custom_init=custom_init,
         )
 
         # Run the optimization algorithm
@@ -355,12 +352,12 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
     )  # here the prior model is common for all iterations
 
-    sigma = 1.0 if pnp_algo == "CP" else None
+    stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
         "stepsize": stepsize,
         "g_param": sigma_denoiser,
         "lambda": lamb,
-        "sigma": sigma,
+        "stepsize_dual": stepsize_dual,
     }
 
     custom_init = custom_init_CP if pnp_algo == "CP" else None
@@ -479,7 +476,7 @@ def test_CP_K(imsize, dummy_dataset, device):
         # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
         stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
         reg_param = 1.0
-        sigma = 1.0
+        stepsize_dual = 1.0
 
         lamb = 1.5
         max_iter = 1000
@@ -488,7 +485,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             "stepsize": stepsize,
             "g_param": reg_param,
             "lambda": lamb,
-            "sigma": sigma,
+            "stepsize_dual": stepsize_dual,
             "K": K_forward,
             "K_adjoint": K_adjoint,
         }
@@ -569,7 +566,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
     stepsize = 0.9 / torch.linalg.norm(A, ord=2).item() ** 2
     reg_param = 1.0
-    sigma = 1.0
+    stepsize_dual = 1.0
 
     lamb = 1.5
     max_iter = 1000
@@ -578,7 +575,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         "stepsize": stepsize,
         "g_param": reg_param,
         "lambda": lamb,
-        "sigma": sigma,
+        "stepsize_dual": stepsize_dual,
         "K": A_forward,
         "K_adjoint": A_adjoint,
     }
