@@ -29,10 +29,12 @@ def imsize():
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
+
 def custom_init_CP(y, physics):
     x_init = physics.A_adjoint(y)
     u_init = y
     return {"est": (x_init, x_init, u_init)}
+
 
 def test_data_fidelity_l2(device):
     data_fidelity = L2()
