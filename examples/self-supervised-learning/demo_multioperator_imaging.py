@@ -137,7 +137,7 @@ model = model.to(device)
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
 #       for 100 epochs.
 
-epochs = 100 if torch.cuda.is_available() else 1  # choose training epochs
+epochs = 1
 learning_rate = 5e-4
 batch_size = 64 if torch.cuda.is_available() else 1
 

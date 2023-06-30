@@ -4,7 +4,7 @@ PnP with custom optimization algorithm (Condat-Vu Primal-Dual)
 
 This example shows how to define your own optimization algorithm.
 For example, here, we implement the Condat-Vu Primal-Dual algorithm,
-and apply it for Single Pixel Camera (SPC) reconstruction.
+and apply it for Single Pixel Camera reconstruction.
 """
 import deepinv as dinv
 from pathlib import Path
@@ -18,10 +18,8 @@ from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
 # %%
-# Define the custom optimization algorithm as a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator` ,
-# along with the corresponding custom fStepCV (subclass of class:`deepinv.optim.optim_iterators.fStep`) and gStepCV (subclass of class:`deepinv.optim.optim_iterators.gStep`) modules.
+# Define a custom optimization algorithm
 # ----------------------------------------------------------------------------------------
-#
 # Creating your optimization algorithm only requires the definition of an iteration step.
 # The iterator should be a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator`.
 #
@@ -60,13 +58,13 @@ class CVIteration(OptimIterator):
         :param dict cur_params: dictionary containing the current parameters of the model.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        :return: Dictionary `{"est": (x,z), "cost": F}` containing the updated current iterates
+        :return: Dictionary `{"est": (x,z), "cost": F}` containing the updated current iterate
             and the estimated current cost.
         """
         x_prev, z_prev = X["est"]
-        v = x_prev - cur_params["stepsize"]*physics.A_adjoint(z_prev)
+        v = x_prev - cur_params["stepsize"] * physics.A_adjoint(z_prev)
         x = self.g_step(v, cur_prior, cur_params)
-        u = z_prev + cur_params["stepsize"]*physics.A(2*x - x_prev)
+        u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)
         z = self.f_step(u, y, cur_params)
         F = self.F_fn(x, cur_params, y, physics) if self.has_cost else None
         return {"est": (x, z), "cost": F}
@@ -117,7 +115,9 @@ class fStepCV(fStep):
         :param dict cur_params: Dictionary containing the current fStep parameters
             (keys `"stepsize"` and `"lambda"`).
         """
-        return self.data_fidelity.prox_d_conjugate(u, y, cur_params["sigma"], lamb=cur_params["lambda"])
+        return self.data_fidelity.prox_d_conjugate(
+            u, y, cur_params["sigma"], lamb=cur_params["lambda"]
+        )
 
 
 class gStepCV(gStep):
@@ -137,7 +137,7 @@ class gStepCV(gStep):
         :param dict cur_params: Dictionary containing the current gStep parameters
             (keys `"stepsize"` and `"g_param"`).
         """
-        return cur_prior.prox(v,cur_params["stepsize"],cur_params["g_param"])
+        return cur_prior.prox(v, cur_params["stepsize"], cur_params["g_param"])
 
 
 # %%
@@ -240,7 +240,7 @@ model = optim_builder(
 # --------------------------------------------------------------------
 #
 # The model returns the output and the metrics computed along the iterations.
-# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
+# The ground truth image ``x_gt`` must be provided for computing the PSNR.
 
 y = physics(x)
 x_lin = physics.A_adjoint(y)

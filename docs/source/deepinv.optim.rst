@@ -32,29 +32,10 @@ i.e. for :math:`k=1,2,...`
 
 where :math:`x` is a variable converging to the solution of the minimisation problem, and
 :math:`z` is an additional (dual) variable that may be required in the computation of the fixed point operator.
-The implementation of the fixed point algorithm in ``deepinv.optim``,
-following standard optimization theory, is split in two steps:
-
-.. math::
-    z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)
-
-where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_{\regname}` are gradient and/or proximal steps
-on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
-relaxation parameters, etc...
 
 
-Base Optimization Class
----------------------------
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.optim.BaseOptim
-   deepinv.optim.FixedPoint
-
+The function :meth:`deepinv.optim.optim_builder` returns an instance of :meth:`deepinv.optim.BaseOptim` with the
+optimization algorithm of choice, either a predefined one ("PGD", "ADMM", "HQS", etc.), or with a user-defined one.
 
 .. autosummary::
    :toctree: stubs
@@ -63,6 +44,16 @@ Base Optimization Class
 
    deepinv.optim.optim_builder
 
+
+Optimization algorithm inherit from the base class :meth:`deepinv.optim.BaseOptim`, which serves as a common interface
+for all optimization algorithms.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.BaseOptim
 
 Data Fidelity
 -------------
@@ -110,14 +101,21 @@ computing the proximity operator is overwritten by a method performing denoising
 Iterators
 ---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \lambda \datafidname + \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled by an instance of physics
-and :math:`\regname` is a regularizer. The fixed point iteration takes the form
+:math:`F = \lambda \datafidname + \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
+by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
 .. math::
     \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...)
 
 where :math:`x` is a variable converging to the solution of the minimisation problem, and
 :math:`z` is an additional variable that may be required in the computation of the fixed point operator.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.FixedPoint
 
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimization theory, is split in two steps:
@@ -136,7 +134,7 @@ The fStep and gStep classes precisely implement these steps.
 Generic optimizers
 ^^^^^^^^^^^^^^^^^^
 
-The following files contain the base classes on which optimization algorithms rely.
+The following files contain the base classes for implementing generic optimizers:
 
 .. autosummary::
    :toctree: stubs
