@@ -34,15 +34,16 @@ class ADMMIteration(OptimIterator):
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
 
-    def forward(self, X, cur_prior, cur_params, y, physics):
+    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         Single iteration of the ADMM algorithm.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: dictionary containing the current parameters of the model.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x, z = X["est"]
@@ -51,12 +52,16 @@ class ADMMIteration(OptimIterator):
             z = torch.zeros_like(x)
         if self.g_first:
             u = self.g_step(x, z, cur_prior, cur_params)
-            x = self.f_step(u, z, y, physics, cur_params)
+            x = self.f_step(u, z, cur_data_fidelity, cur_params, y, physics)
         else:
-            u = self.f_step(x, z, y, physics, cur_params)
+            u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
+        F = (
+            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.has_cost
+            else None
+        )
         return {"est": (x, z), "cost": F}
 
 
@@ -68,21 +73,22 @@ class fStepADMM(fStep):
     def __init__(self, **kwargs):
         super(fStepADMM, self).__init__(**kwargs)
 
-    def forward(self, x, z, y, physics, cur_params):
+    def forward(self, x, z, cur_data_fidelity, cur_params, y, physics):
         r"""
         Single iteration step on the data-fidelity term :math:`\lambda f`.
 
-        :param torch.Tensor x: current primal variable
-        :param torch.Tensor z: current dual variable
+        :param torch.Tensor x: current first variable
+        :param torch.Tensor z: current second variable
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
         """
         if self.g_first:
             p = x + z
         else:
             p = x - z
-        return self.data_fidelity.prox(
+        return cur_data_fidelity.prox(
             p, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
@@ -99,10 +105,10 @@ class gStepADMM(gStep):
         r"""
         Single iteration step on the prior term :math:`g`.
 
-        :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param torch.Tensor z: Current iterate :math:`z_k`.
+        :param torch.Tensor x: current first variable
+        :param torch.Tensor z: current second variable
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
         if self.g_first:
             p = x - z

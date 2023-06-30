@@ -78,6 +78,7 @@ class FixedPoint(nn.Module):
         self,
         iterator=None,
         update_params_fn=None,
+        update_data_fidelity_fn=None,
         update_prior_fn=None,
         init_iterate_fn=None,
         init_metrics_fn=None,
@@ -92,6 +93,7 @@ class FixedPoint(nn.Module):
         self.max_iter = max_iter
         self.early_stop = early_stop
         self.update_params_fn = update_params_fn
+        self.update_data_fidelity_fn = update_data_fidelity_fn
         self.update_prior_fn = update_prior_fn
         self.init_iterate_fn = init_iterate_fn
         self.init_metrics_fn = init_metrics_fn
@@ -105,7 +107,7 @@ class FixedPoint(nn.Module):
             )
             self.early_stop = False
 
-    def forward(self, *args, compute_metrics=False, **kwargs):
+    def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -117,9 +119,11 @@ class FixedPoint(nn.Module):
         the prior and parameters are updated before each call to the iterator.
 
         :param bool compute_metrics: if ``True``, the metrics are computed along the iterations. Default: ``False``.
-        :param args: optional arguments for the iterator.
+        :param torch.Tensor x_gt: ground truth solution. Default: ``None``.
+        :param args: optional arguments for the iterator. Commonly (y,physics) where ``y`` (torch.Tensor y) is the measurement and
+                    ``physics`` (deepinv.physics) is the physics model.
         :param kwargs: optional keyword arguments for the iterator.
-        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution and
+        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and
                     ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None``
                      otherwise.
         """
@@ -129,22 +133,27 @@ class FixedPoint(nn.Module):
             else None
         )
         metrics = (
-            self.init_metrics_fn(X, **kwargs)
+            self.init_metrics_fn(X, x_gt=x_gt)
             if self.init_metrics_fn and compute_metrics
             else None
         )
         it = 0
         while it < self.max_iter:
             cur_params = self.update_params_fn(it) if self.update_params_fn else None
+            cur_data_fidelity = (
+                self.update_data_fidelity_fn(it)
+                if self.update_data_fidelity_fn
+                else None
+            )
             cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
             X_prev = X
-            X = self.iterator(X_prev, cur_prior, cur_params, *args)
+            X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
             check_iteration = (
                 self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
             )
             if check_iteration:
                 metrics = (
-                    self.update_metrics_fn(metrics, X_prev, X, **kwargs)
+                    self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
                     if self.update_metrics_fn and compute_metrics
                     else None
                 )

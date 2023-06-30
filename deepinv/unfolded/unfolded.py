@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.optim_iterators import *
-from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import BaseOptim, create_iterator
 
 
@@ -43,12 +42,13 @@ class BaseUnfold(BaseOptim):
         self.params_algo = self.init_params_algo.copy()
         # The prior (list of instances of :class:`deepinv.optim.Prior) is converted to a `nn.ModuleList` to be trainable.
         self.prior = nn.ModuleList(self.prior)
+        self.data_fidelity = nn.ModuleList(self.data_fidelity)
 
 
 def unfolded_builder(
     iteration,
     params_algo={"lambda": 1.0, "stepsize": 1.0},
-    data_fidelity=L2(),
+    data_fidelity=None,
     prior=None,
     F_fn=None,
     g_first=False,
@@ -66,7 +66,9 @@ def unfolded_builder(
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration).
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
-    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param list, deepinv.optim.DataFidelity: data-fidelity term.
+                            Either a single instance (same data-fidelity for each iteration) or a list of instances of
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
@@ -74,12 +76,11 @@ def unfolded_builder(
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(
-        iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
-    )
+    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
     return BaseUnfold(
         iterator,
         has_cost=iterator.has_cost,
+        data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
         **kwargs

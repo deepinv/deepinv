@@ -40,16 +40,17 @@ class fStepHQS(fStep):
     def __init__(self, **kwargs):
         super(fStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, cur_params, y, physics):
+    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
         r"""
-        Single iteration step on the data-fidelity term :math:`f`.
+        Single proximal step on the data-fidelity term :math:`f`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return self.data_fidelity.prox(
+        return cur_data_fidelity.prox(
             x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
         )
 
@@ -64,10 +65,10 @@ class gStepHQS(gStep):
 
     def forward(self, x, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`g`.
+        Single proximal step on the prior term :math:`g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Class containing the current prior.
-        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"` and `"g_param"`).
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
         return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])

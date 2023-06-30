@@ -48,13 +48,16 @@ class BaseDEQ(BaseUnfold):
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics
             )
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
+        cur_data_fidelity = self.update_data_fidelity_fn(self.max_iter - 1)
         cur_prior = self.update_prior_fn(self.max_iter - 1)
         cur_params = self.update_params_fn(self.max_iter - 1)
-        x = self.fixed_point.iterator(x, cur_prior, cur_params, y, physics)["est"][0]
+        x = self.fixed_point.iterator(
+            x, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
-            {"est": (x0,)}, cur_prior, cur_params, y, physics
+            {"est": (x0,)}, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["est"][0]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
@@ -116,7 +119,9 @@ def DEQ_builder(
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration).
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
-    :param deepinv.optim.DataFidelity data_fidelity: data fidelity term in the optimization problem.
+    :param list, deepinv.optim.DataFidelity: data-fidelity term.
+                            Either a single instance (same data-fidelity for each iteration) or a list of instances of
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
@@ -124,12 +129,11 @@ def DEQ_builder(
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(
-        iteration, data_fidelity=data_fidelity, prior=prior, F_fn=F_fn, g_first=g_first
-    )
+    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
     return BaseDEQ(
         iterator,
         has_cost=iterator.has_cost,
+        data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
         **kwargs
