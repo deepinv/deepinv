@@ -1,4 +1,5 @@
 from .drunet import DRUNet
+from .scunet import SCUNet
 from .ae import AutoEncoder
 from .unet import UNet
 from .dncnn import DnCNN
