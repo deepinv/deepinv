@@ -18,6 +18,104 @@ from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
+from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
+
+
+
+class PDNet(CPIteration):
+    r""" TODO: update docstring
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.g_step = gStepPDNet(**kwargs)
+        self.f_step = fStepPDNet(**kwargs)
+
+    def forward(self, X, cur_prior, cur_params, y, physics):
+        r"""
+        Single iteration of the Chambolle-Pock algorithm.
+
+        :param dict X: Dictionary containing the current iterate and the estimated cost.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param dict cur_params: dictionary containing the current parameters of the model.
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
+        """
+        x_prev, z_prev, u_prev = X["est"]
+        K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
+        K_adjoint = (
+            lambda x: cur_params["K_adjoint"](x)
+            if "K_adjoint" in cur_params.keys()
+            else x
+        )
+        if self.g_first:
+            u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
+            x = self.f_step(x_prev, K_adjoint(u), y, physics, cur_params)
+        else:
+            u = self.f_step(u_prev, K(z_prev), y, physics, cur_params)
+            x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
+        z = x + self.beta * (x - x_prev)
+        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
+
+        return {"est": (x, z, u), "cost": F}
+
+
+class fStepPDNet(fStep):
+    r"""
+    Chambolle-Pock fStep module.
+    """
+
+    def __init__(self, **kwargs):
+        super(fStepCP, self).__init__(**kwargs)
+
+    def forward(self, x, w, y, physics, cur_params):
+        r"""
+        Single Chambolle-Pock iteration step on the data-fidelity term :math:`\lambda f`.
+
+        :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
+        :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
+        :param torch.Tensor y: Input data.
+        :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize"` and `"lambda"`).
+        """
+        if self.g_first:
+            p = x - cur_params["stepsize"] * w
+            return self.data_fidelity.prox(
+                p, y, physics, cur_params["stepsize"] * cur_params["lambda"]
+            )
+        else:
+            p = x + cur_params["sigma"] * w
+            return self.data_fidelity.prox_d_conjugate(
+                p, y, cur_params["sigma"], lamb=cur_params["lambda"]
+            )
+
+
+class gStepPDNet(gStep):
+    r"""
+    Chambolle-Pock gStep module.
+    """
+
+    def __init__(self, **kwargs):
+        super(gStepCP, self).__init__(**kwargs)
+
+    def forward(self, x, w, cur_prior, cur_params):
+        r"""
+        Single Chambolle-Pock iteration step on the prior term :math:`g`.
+
+        :param torch.Tensor x: Current first variable :math:`u` if `"g_first"` and :math:`x` otherwise.
+        :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` and `"g_param"`).
+        """
+        if self.g_first:
+            p = x + cur_params["sigma"] * w
+            return cur_prior.prox_conjugate(
+                p, cur_params["sigma"], cur_params["g_param"]
+            )
+        else:
+            p = x - cur_params["stepsize"] * w
+            return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
+
 
 # %%
 # Setup paths for data loading and results.
@@ -132,6 +230,8 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
     "lambda": lamb,
     "g_param": sigma_denoiser,
     "sigma": sigma,
+    "K": physics.A,
+    "K_adjoint": physics.A_adjoint
 }
 trainable_params = [
     "lambda",
@@ -146,7 +246,7 @@ wandb_vis = False  # plot curves and images in Weight&Bias
 
 def custom_init(y, physics) : 
     z0 = physics.A_adjoint(y)
-    x0 = y
+    x0 = physics.A_adjoint(y)
     u0 = y
     return {"est": (x0, z0, u0) }
 
