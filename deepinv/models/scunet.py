@@ -280,6 +280,7 @@ class SCUNet(nn.Module):
     :param str device: gpu or cpu. Default: 'cpu'.
     ....
     """
+
     def __init__(
         self,
         in_nc=3,
@@ -289,7 +290,7 @@ class SCUNet(nn.Module):
         input_resolution=256,
         pretrained="download",
         train=False,
-        device='cpu',
+        device="cpu",
     ):
         super(SCUNet, self).__init__()
         self.config = config
