@@ -117,12 +117,12 @@ class BaseOptim(nn.Module):
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
-                            a single float (same value for each iteration).
+                            a single float (same value for each iteration). If Iterable, should have length ``max_iter``.
                             Default: `{"stepsize": 1.0, "lambda": 1.0}`.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
                             :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
-    :param list, deepinv.optim.Prior: regularization prior.
+    :param list, deepinv.optim.Prior: regularization prior. 
                             Either a single instance (same prior for each iteration) or a list of instances of
                             :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: `None`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.

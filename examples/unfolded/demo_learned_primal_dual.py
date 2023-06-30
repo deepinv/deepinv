@@ -7,7 +7,7 @@ Adler, Jonas, and Ozan Öktem.
 "Learned primal-dual reconstruction." 
 IEEE transactions on medical imaging 37.6 (2018): 1322-1332.
 
-where both the data fidelity and the prior are learned.
+where both the data fidelity and the prior are learned modules, distinct for each iterations.
 
 """
 
