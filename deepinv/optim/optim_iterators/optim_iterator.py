@@ -34,40 +34,35 @@ class OptimIterator(nn.Module):
 
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are the steps on f and g respectively.
 
-    :param data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param float beta: relaxation parameter for the fixed-point iterations.
     :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
     :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
      """
 
-    def __init__(
-        self, data_fidelity=L2(), g_first=False, beta=1.0, F_fn=None, has_cost=False
-    ):
+    def __init__(self, g_first=False, F_fn=None, has_cost=False):
         super(OptimIterator, self).__init__()
-        self.data_fidelity = data_fidelity
-        self.beta = beta
         self.g_first = g_first
         self.F_fn = F_fn
         self.has_cost = has_cost
         if self.F_fn is None:
             self.has_cost = False
-        self.f_step = fStep(data_fidelity=self.data_fidelity, g_first=self.g_first)
+        self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
         self.requires_grad_g = False
         self.requires_prox_g = False
 
-    def relaxation_step(self, u, v):
+    def relaxation_step(self, u, v, beta):
         r"""
         Performs a relaxation step of the form :math:`\beta u + (1-\beta) v`.
 
         :param torch.Tensor u: First tensor.
         :param torch.Tensor v: Second tensor.
+        :param float beta: Relaxation parameter.
         :return: Relaxed tensor.
         """
-        return self.beta * u + (1 - self.beta) * v
+        return beta * u + (1 - beta) * v
 
-    def forward(self, X, cur_prior, cur_params, y, physics):
+    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F = \lambda f + g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
@@ -75,21 +70,26 @@ class OptimIterator(nn.Module):
         $X$ of the form `{'est': (x,z), 'cost': F}`.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: dictionary containing the current parameters of the model.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev = X["est"][0]
         if not self.g_first:
-            z = self.f_step(x_prev, cur_params, y, physics)
+            z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(z, cur_prior, cur_params)
         else:
             z = self.g_step(x_prev, cur_prior, cur_params)
-            x = self.f_step(z, cur_params, y, physics)
-        x = self.relaxation_step(x, x_prev)
-        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
+            x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
+        x = self.relaxation_step(x, x_prev, cur_params["beta"])
+        F = (
+            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.has_cost
+            else None
+        )
         return {"est": (x, z), "cost": F}
 
 
@@ -97,24 +97,23 @@ class fStep(nn.Module):
     r"""
     Module for the single iteration steps on the data-fidelity term :math:`f`.
 
-    :param deepinv.optim.data_fidelity data_fidelity: data_fidelity instance modeling the data-fidelity term.
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
     :param kwargs: Additional keyword arguments.
     """
 
-    def __init__(self, data_fidelity=L2(), g_first=False, **kwargs):
+    def __init__(self, g_first=False, **kwargs):
         super(fStep, self).__init__()
-        self.data_fidelity = data_fidelity
         self.g_first = g_first
 
-        def forward(self, x, cur_params, y, physics):
+        def forward(self, x, cur_data_fidelity, cur_params, y, physics):
             r"""
             Single iteration step on the data-fidelity term :math:`f`.
 
             :param torch.Tensor x: Current iterate.
-            :param dict cur_params: Dictionary containing the current fStep parameters (e.g. stepsizes).
+            :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+            :param dict cur_params: Dictionary containing the current parameters of the algorithm.
             :param torch.Tensor y: Input data.
-            :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+            :param deepinv.physics physics: Instance of the physics modeling the observation.
             """
             pass
 
@@ -137,6 +136,6 @@ class gStep(nn.Module):
 
             :param torch.Tensor x: Current iterate.
             :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-            :param dict cur_params: Dictionary containing the current gStep parameters (e.g. stepsizes and regularisation parameters).
+            :param dict cur_params: Dictionary containing the current parameters of the algorithm.
             """
             pass

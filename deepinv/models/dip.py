@@ -45,8 +45,8 @@ class ConvDecoder(nn.Module):
         )
         hidden_size = [
             (
-                int(np.ceil(scale_x**n * in_size[0])),
-                int(np.ceil(scale_y**n * in_size[1])),
+                int(np.ceil(scale_x ** n * in_size[0])),
+                int(np.ceil(scale_y ** n * in_size[1])),
             )
             for n in range(1, (layers - 1))
         ] + [out_size]

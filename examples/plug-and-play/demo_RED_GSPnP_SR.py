@@ -1,10 +1,11 @@
 r"""
-Regularization by Denoising (RED) for Suepr-Resolution (SR).
-We use as plugged denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
+Regularization by Denoising (RED) for Super-Resolution.
 ====================================================================================================
 
+We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
+
 Hurault, S., Leclaire, A., & Papadakis, N. 
-Gradient Step Denoiser for convergent Plug-and-Play. 
+"Gradient Step Denoiser for convergent Plug-and-Play"
 In International Conference on Learning Representations.
 """
 
@@ -94,12 +95,16 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
-crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
+crit_conv = (
+    "cost"
+)  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True  # use backtracking to automatically adjust the stepsize
 use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
-batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
+batch_size = (
+    1
+)  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(

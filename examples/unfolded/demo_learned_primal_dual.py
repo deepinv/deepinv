@@ -1,23 +1,28 @@
 r"""
-Vanilla Unfolded algorithm for super-resolution
+Learned Primal-Dual algorithm for image super-resolution (PDNet).
 ====================================================================================================
+Implementation of the Unfolded Primal-Dual algorithm from
 
-This is a simple example to show how to use vanilla unfolded Plug-and-Play.
-The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly.
-For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
-For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
+Adler, Jonas, and Ozan Öktem. 
+"Learned primal-dual reconstruction." 
+IEEE transactions on medical imaging 37.6 (2018): 1322-1332.
+
+where both the data fidelity and the prior are learned.
+
 """
 
 import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
+from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
+from deepinv.models.PDNet import PrimalBlock, DualBlock
+from deepinv.optim import Prior, DataFidelity
+
 
 # %%
 # Setup paths for data loading and results.
@@ -104,56 +109,124 @@ train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Tr
 test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded PnP algorithm.
+# Define a custom iterator for the PDNet learned primal-dual algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :meth:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
-# The chosen algorithm is here DRS (Douglas-Rachford Splitting).
-# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
-# then a distinct model (resp. parameter) is trained for each iteration.
-# For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
+# The iterator is a subclass of the Chambolle-Pock iterator :meth:`deepinv.optim.optim_iterators.PDIteration`.
+# In PDNet, the primal (gStep) and dual (fStep) updates are directly replaced by neural networks.
+# We thus redefine the fStep and gStep classes as simple proximal operators of the data fidelity and prior, respectively.
+# Afterwards, both the data fidelity and the prior proximal operators are defined as trainable models.
+
+
+class PDNetIteration(CPIteration):
+    r""" Single iteration of learned primal dual. 
+    We only redefine the fStep and gStep classes. 
+    The forward method is inherited from the CPIteration class.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.g_step = gStepPDNet(**kwargs)
+        self.f_step = fStepPDNet(**kwargs)
+
+
+class fStepPDNet(fStep):
+    r"""
+    Dual update of the PDNet algorithm. 
+    We write it as a proximal operator of the data fidelity term.
+    This proximal mapping is to be replaced by a trainable model. 
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def forward(self, x, w, cur_data_fidelity, y, *args):
+        r"""
+        :param torch.Tensor x: Current first variable :math:`u`.
+        :param torch.Tensor w: Current second variable :math:`A z`.
+        :param deepinv.optim.data_fidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data fidelity term.
+        :param torch.Tensor y: Input data.
+        """
+        return cur_data_fidelity.prox(x, w, y)
+
+
+class gStepPDNet(gStep):
+    r"""
+    Primal update of the PDNet algorithm.
+    We write it as a proximal operator of the prior term.
+    This proximal mapping is to be replaced by a trainable model.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def forward(self, x, w, cur_prior, *args):
+        r"""
+        :param torch.Tensor x: Current first variable :math:`x`.
+        :param torch.Tensor w: Current second variable :math:`A^\top u`.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        """
+        return cur_prior.prox(x, w)
+
+
+# %%
+# Define the trainable prior and data fidelity terms.
+# ----------------------------------------------------------------------------------------
+# Prior and data-fidelity are respectively defined as subclass of :meth:`deepinv.optim.Prior` and :meth:`deepinv.optim.DataFidelity`.
+# Their proximal operator is replaced by a trainable models.
+
+
+class PDNetPrior(Prior):
+    def __init__(self, model, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model = model
+
+    def prox(self, x, w):
+        return self.model(x, w)
+
+
+class PDNetDataFid(DataFidelity):
+    def __init__(self, model, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model = model
+
+    def prox(self, x, w, y):
+        return self.model(x, w, y)
+
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
 
-# Select the data fidelity term
-data_fidelity = L2()
+# Set up the data fidelity term. Each layer has its own data fidelity module.
+data_fidelity = [
+    PDNetDataFid(model=DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+]
 
-# Set up the trainable denoising prior
-# Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
+# Set up the trainable prior. Each layer has its own prior module.
+prior = [
+    PDNetPrior(model=PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
+]
 
-# The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-lamb = [
-    1.0
-] * max_iter  # regularization parameter (multiplier of the data fidelity term)
-stepsize = [1.0] * max_iter  # stepsize of the algorithm
-sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
-beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "lambda": lamb,
-    "g_param": sigma_denoiser,
-    "beta": beta,
-}
-trainable_params = [
-    "lambda",
-    "g_param",
-    "stepsize",
-    "beta",
-]  # define which parameters from 'params_algo' are trainable
 
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
+
+def custom_init(y, physics):
+    z0 = physics.A_adjoint(y)
+    x0 = physics.A_adjoint(y)
+    u0 = y
+    return {"est": (x0, z0, u0)}
+
+
 # Define the unfolded trainable model.
 model = unfolded_builder(
-    iteration="DRS",
-    params_algo=params_algo.copy(),
-    trainable_params=trainable_params,
+    iteration=PDNetIteration(),
+    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 1.0},
     data_fidelity=data_fidelity,
-    max_iter=max_iter,
     prior=prior,
+    max_iter=max_iter,
+    custom_init=custom_init,
 )
 
 # %%
@@ -208,7 +281,7 @@ train(
 #
 #
 
-method = "unfolded_drs"
+method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_images = True  # plot images. Images are saved in save_folder.
@@ -226,12 +299,4 @@ test(
     verbose=verbose,
     plot_metrics=plot_metrics,
     wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
-)
-
-# %%
-# Plotting the trained parameters.
-# ------------------------------------
-
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
 )

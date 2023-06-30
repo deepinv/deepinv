@@ -30,6 +30,12 @@ def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
+def custom_init_CP(y, physics):
+    x_init = physics.A_adjoint(y)
+    u_init = y
+    return {"est": (x_init, x_init, u_init)}
+
+
 def test_data_fidelity_l2(device):
     data_fidelity = L2()
 
@@ -227,9 +233,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
-        def custom_init_CP(x_init, y_init):
-            return {"est": (x_init, x_init, y_init)}
-
         custom_init = custom_init_CP if name_algo == "CP" else None
 
         optimalgo = optim_builder(
@@ -360,9 +363,6 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         "sigma": sigma,
     }
 
-    def custom_init_CP(x_init, y_init):
-        return {"est": (x_init, x_init, y_init)}
-
     custom_init = custom_init_CP if pnp_algo == "CP" else None
 
     pnp = optim_builder(
@@ -411,7 +411,9 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     )  # 2. Set a physical experiment (here, deblurring)
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = (
+        1.0
+    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
     lamb = 1.0
 
@@ -492,9 +494,6 @@ def test_CP_K(imsize, dummy_dataset, device):
             "K": K_forward,
             "K_adjoint": K_adjoint,
         }
-
-        def custom_init_CP(x_init, y_init):
-            return {"est": (x_init, x_init, y_init)}
 
         optimalgo = optim_builder(
             "CP",
@@ -585,9 +584,6 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         "K": A_forward,
         "K_adjoint": A_adjoint,
     }
-
-    def custom_init_CP(x_init, y_init):
-        return {"est": (x_init, x_init, y_init)}
 
     optimalgo = optim_builder(
         "CP",

@@ -173,8 +173,14 @@ class IRadon(nn.Module):
         self.ygrid, self.xgrid, self.all_grids = None, None, None
         if in_size is not None:
             self.ygrid, self.xgrid = self._create_yxgrid(in_size, circle)
-            self.all_grids = self._create_grids(self.theta, in_size, circle).to(self.device)
-        self.filter = RampFilter(dtype=self.dtype, device=self.device) if use_filter else lambda x: x
+            self.all_grids = self._create_grids(self.theta, in_size, circle).to(
+                self.device
+            )
+        self.filter = (
+            RampFilter(dtype=self.dtype, device=self.device)
+            if use_filter
+            else lambda x: x
+        )
 
     def forward(self, x, filtering=True):
         it_size = x.shape[2]
@@ -187,9 +193,7 @@ class IRadon(nn.Module):
         # if None in [self.ygrid, self.xgrid, self.all_grids]:
         if self.ygrid is None or self.xgrid is None or self.all_grids is None:
             self.ygrid, self.xgrid = self._create_yxgrid(self.in_size, self.circle)
-            self.all_grids = self._create_grids(
-                self.theta, self.in_size, self.circle
-            )
+            self.all_grids = self._create_grids(self.theta, self.in_size, self.circle)
 
         x = self.filter(x) if filtering else x
 
@@ -214,7 +218,7 @@ class IRadon(nn.Module):
             )
 
         if self.circle:
-            reconstruction_circle = (self.xgrid**2 + self.ygrid**2) <= 1
+            reconstruction_circle = (self.xgrid ** 2 + self.ygrid ** 2) <= 1
             reconstruction_circle = reconstruction_circle.repeat(
                 x.shape[0], ch_size, 1, 1
             )
@@ -285,16 +289,28 @@ class Tomography(LinearPhysics):
     :param str device: gpu or cpu.
     """
 
-    def __init__(self, img_width, angles, circle=False, device=torch.device("cpu"), dtype=torch.float, **kwargs):
+    def __init__(
+        self,
+        img_width,
+        angles,
+        circle=False,
+        device=torch.device("cpu"),
+        dtype=torch.float,
+        **kwargs
+    ):
         super().__init__(**kwargs)
 
-        if isinstance(angles, int) or isinstance(angles, float) :
+        if isinstance(angles, int) or isinstance(angles, float):
             theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1]
         else:
             theta = angles.to(device)
 
-        self.radon = Radon(img_width, theta, circle, device=device, dtype=dtype).to(device)
-        self.iradon = IRadon(img_width, theta, circle,  device=device, dtype=dtype).to(device)
+        self.radon = Radon(img_width, theta, circle, device=device, dtype=dtype).to(
+            device
+        )
+        self.iradon = IRadon(img_width, theta, circle, device=device, dtype=dtype).to(
+            device
+        )
 
     def A(self, x):
         return self.radon(x)
@@ -304,18 +320,3 @@ class Tomography(LinearPhysics):
 
     def A_adjoint(self, y):
         return self.iradon(y, filtering=False)
-
-
-if __name__ == "__main__":
-    torch.manual_seed(0)
-    import deepinv
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    dtype = torch.double
-    view_number = 100
-    angles = torch.linspace(0, 180, view_number, device=device, dtype=dtype)
-    CT = deepinv.physics.Tomography(256, angles, device=device, dtype=dtype)
-    x = torch.rand(1, 1, 256, 256, device=device, dtype=dtype)
-    y = CT.A(x)
-    z = CT.A_dagger(y)
-    psnr = deepinv.utils.cal_psnr(x, z) 
-    print(psnr)

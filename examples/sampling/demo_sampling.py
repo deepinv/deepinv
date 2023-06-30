@@ -36,7 +36,7 @@ url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
-x = load_url_image(url=url, img_size=32)
+x = load_url_image(url=url, img_size=32).to(device)
 
 # %%
 # Define forward operator and noise model
@@ -100,7 +100,7 @@ prior = dinv.optim.ScorePrior(
 # ``iterations`` controls the number of iterations of the sampler.
 
 regularization = 0.9
-step_size = 0.01 * (sigma**2)
+step_size = 0.01 * (sigma ** 2)
 iterations = int(5e3) if torch.cuda.is_available() else 10
 f = dinv.sampling.ULA(
     prior=prior,

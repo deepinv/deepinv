@@ -97,7 +97,7 @@ physics = dinv.physics.Inpainting(
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
-    1000 if torch.cuda.is_available() else 50
+    100 if torch.cuda.is_available() else 50
 )  # maximal number of images used for training
 my_dataset_name = "demo_training_inpainting"
 measurement_dir = DATA_DIR / train_dataset_name / operation
@@ -170,26 +170,26 @@ sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
 sigma = 1.0  # stepsize for Chambolle-Pock
 
 # Define the parameters of the unfolded Primal-Dual Chambolle-Pock algorithm
-# The CP algorithm requires to specify `params_algo`` the linear operator and its adjoint on which splitting is performed. 
+# The CP algorithm requires to specify `params_algo`` the linear operator and its adjoint on which splitting is performed.
 # See the documentation of the CP algorithm :meth:`deepinv.optim.optim_iterators.CPIteration` for more details.
 params_algo = {
-    "stepsize": stepsize, # Stepsize for the primal update.
-    "g_param": sigma_denoiser, # prior parameter.
-    "lambda": lamb, # Regularization parameter.
-    "sigma": sigma, # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
-    "K": physics.A, 
+    "stepsize": stepsize,  # Stepsize for the primal update.
+    "g_param": sigma_denoiser,  # prior parameter.
+    "lambda": lamb,  # Regularization parameter.
+    "sigma": sigma,  # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
+    "K": physics.A,
     "K_adjoint": physics.A_adjoint,
 }
 
-trainable_params = [
-    "g_param",
-    "stepsize",
-]  # define which parameters from 'params_algo' are trainable
+# define which parameters from 'params_algo' are trainable
+trainable_params = ["g_param", "stepsize"]
 
 
 # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-def custom_init_CP(x_init, y_init):
-    return {"est": (x_init, x_init, y_init)}
+def custom_init_CP(y, physics):
+    x_init = physics.A_adjoint(y)
+    u_init = y
+    return {"est": (x_init, x_init, u_init)}
 
 
 # Define the unfolded trainable model.
@@ -218,7 +218,7 @@ model = unfolded_builder(
 #       For a good reconstruction quality, we recommend to train for at least 50 epochs.
 #
 
-epochs = 50 if torch.cuda.is_available() else 5  # choose training epochs
+epochs = 10 if torch.cuda.is_available() else 5  # choose training epochs
 learning_rate = 1e-3
 
 verbose = True  # print training information

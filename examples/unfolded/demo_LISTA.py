@@ -8,8 +8,6 @@ soft-thresholding proximal operator with learnable thresholding parameters.
 
 """
 from pathlib import Path
-
-import numpy as np
 import torch
 from torchvision import datasets
 from torchvision import transforms
@@ -168,7 +166,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-)
+).to(device)
 
 
 # %%

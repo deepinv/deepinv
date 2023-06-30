@@ -28,7 +28,7 @@ url = (
     "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
     "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
 )
-x = load_url_image(url=url, img_size=32)
+x = load_url_image(url=url, img_size=32).to(device)
 
 # %%
 # Define forward operator and noise model
@@ -172,7 +172,7 @@ prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 # We create the preconditioned and standard ULA samplers using
 # the same hyperparameters (step size, number of iterations, etc.).
 
-step_size = 0.5 * (sigma**2)
+step_size = 0.5 * (sigma ** 2)
 iterations = int(1e2) if torch.cuda.is_available() else 10
 g_param = 0.1
 
