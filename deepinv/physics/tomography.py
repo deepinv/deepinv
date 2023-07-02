@@ -94,7 +94,7 @@ class Radon(nn.Module):
         self,
         in_size=None,
         theta=None,
-        circle=True,
+        circle=False,
         dtype=torch.float,
         device=torch.device("cpu"),
     ):
@@ -157,7 +157,7 @@ class IRadon(nn.Module):
         self,
         in_size=None,
         theta=None,
-        circle=True,
+        circle=False,
         use_filter=True,
         out_size=None,
         dtype=torch.float,
@@ -305,10 +305,10 @@ class Tomography(LinearPhysics):
         else:
             theta = angles.to(device)
 
-        self.radon = Radon(img_width, theta, circle, device=device, dtype=dtype).to(
+        self.radon = Radon(img_width, theta, circle=circle, device=device, dtype=dtype).to(
             device
         )
-        self.iradon = IRadon(img_width, theta, circle, device=device, dtype=dtype).to(
+        self.iradon = IRadon(img_width, theta, circle=circle, device=device, dtype=dtype).to(
             device
         )
 
