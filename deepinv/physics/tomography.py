@@ -305,12 +305,12 @@ class Tomography(LinearPhysics):
         else:
             theta = angles.to(device)
 
-        self.radon = Radon(img_width, theta, circle=circle, device=device, dtype=dtype).to(
-            device
-        )
-        self.iradon = IRadon(img_width, theta, circle=circle, device=device, dtype=dtype).to(
-            device
-        )
+        self.radon = Radon(
+            img_width, theta, circle=circle, device=device, dtype=dtype
+        ).to(device)
+        self.iradon = IRadon(
+            img_width, theta, circle=circle, device=device, dtype=dtype
+        ).to(device)
 
     def A(self, x):
         return self.radon(x)
