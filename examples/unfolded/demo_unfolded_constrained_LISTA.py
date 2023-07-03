@@ -8,12 +8,14 @@ This problem can be reformulated as the following minimisation problem:
 .. math::
 
     \begin{equation*}
-    \underset{x}{\operatorname{min}} \,\, \lambda \iota_{\mathcal{B}_2(y, r)}(Ax) + \regname(x)
+    \underset{x}{\operatorname{min}} \,\, \iota_{\mathcal{B}_2(y, r)}(Ax) + \regname(x)
     \end{equation*}
 
 
 where :math:`\iota_{\mathcal{B}_2(y, r)}` is the indicator function of the ball of radius :math:`r` centered at
-:math:`y` for the :math:`\ell_2` norm, and :math:`\regname` is a regularisation.
+:math:`y` for the :math:`\ell_2` norm, and :math:`\regname` is a regularisation. Recall that the indicator function of
+a convex set :math:`\mathcal{C}` is defined as :math:`\iota_{\mathcal{C}}(x) = 0` if :math:`x \in \mathcal{C}` and
+:math:`\iota_{\mathcal{C}}(x) = +\infty` otherwise.
 
 In this example, we unfold the Chambolle-Pock algorithm to solve this problem, and learn the thresholding parameters of
 a wavelet denoiser in a LISTA fashion.
@@ -269,15 +271,17 @@ test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
     wandb_vis=wandb_vis,  # training vialisations can be done in Weight&Bias
 )
 
-# %% Saving the model
-# -------------------
+# %%
+# Saving the model
+# ----------------
 # We can save the trained model following the standard PyTorch procedure.
 
 # Save the model
 torch.save(model.state_dict(), CKPT_DIR / operation / "model.pth")
 
-# %% Loading the model
-# -------------------
+# %%
+# Loading the model
+# -----------------
 # Similarly, we can load our trained unfolded architecture following the standard PyTorch procedure.
 # To check that the loading is performed correctly, we use new variables for the initialization of the model.
 
