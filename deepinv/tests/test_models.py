@@ -76,7 +76,7 @@ def choose_denoiser(name, imsize):
     elif name == "autoencoder":
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
     elif name == "swinir":
-        out = dinv.models.SwinIR(img_size=(imsize[1], imsize[2]), in_chans=imsize[0])
+        out = dinv.models.SwinIR(img_size=(imsize[1], imsize[2]), in_chans=imsize[0], upscale=1, window_size=1)
     else:
         raise Exception("Unknown denoiser")
 
