@@ -1,6 +1,10 @@
 from deepinv.physics.forward import LinearPhysics
 
-from mrinufft import get_operator
+MRINUFFT_AVAILABLE = True
+try:
+    from mrinufft import get_operator
+except ImportError:
+    MRINUFFT_AVAILABLE = False
 
 class MRI_NC(LinearPhysics):
     """MRI Non-Cartesian Multicoil operator.
@@ -9,6 +13,8 @@ class MRI_NC(LinearPhysics):
 
     def __init__(self, kspace_trajectory, shape, n_coils, smaps,density=True, backend="cufinufft",**kwargs):
         super().__init__(**kwargs)
+        if MRINUFFT_AVAILABLE is False:
+            raise RuntimeError("mri-nufft is not installed.")
 
         self.backend = backend
 
