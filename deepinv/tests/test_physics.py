@@ -198,10 +198,15 @@ def test_tomography(device):
 
     :param device: (torch.device) cpu or cuda:x
     """
-    physics, imsize, _ = find_operator("Tomography", device)
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    for circle in [True, False]:
+        imsize = (1, 16, 16)
+        physics = dinv.physics.Tomography(
+            img_width=imsize[-1], angles=imsize[-1], device=device, circle=circle
+        )
 
-    r = physics.A_adjoint(physics.A(x))
-    y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    assert error < 0.2
+        x = torch.randn(imsize, device=device).unsqueeze(0)
+
+        r = physics.A_adjoint(physics.A(x))
+        y = physics.A(r)
+        error = (physics.A_dagger(y) - r).flatten().mean().abs()
+        assert error < 0.2
