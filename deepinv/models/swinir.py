@@ -640,14 +640,19 @@ class SwinIR(nn.Module):
     :param float img_range: Image range. 1. or 255.
     :param str|None upsampler: The reconstruction reconstruction module. 'pixelshuffle'/'pixelshuffledirect'/'nearest+conv'/None
     :param str resi_connection: The convolutional block before residual connection. '1conv'/'3conv'
+    :param str|None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
+        random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
+        an online repository (only available for the default architecture). Finally, ``pretrained`` can also be set as a
+        path to the user's own pretrained weights. Default: 'download'
     """
 
-    def __init__(self, img_size=64, patch_size=1, in_chans=3,
-                 embed_dim=96, depths=[6, 6, 6, 6], num_heads=[6, 6, 6, 6],
-                 window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
+    def __init__(self, img_size=128, patch_size=1, in_chans=3,
+                 embed_dim=180, depths=[6, 6, 6, 6, 6, 6], num_heads=[6, 6, 6, 6, 6, 6],
+                 window_size=8, mlp_ratio=2, qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
-                 use_checkpoint=False, upscale=2, img_range=1., upsampler='', resi_connection='1conv',
+                 use_checkpoint=False, upscale=1, img_range=1., upsampler='', resi_connection='1conv',
+                 pretrained='download',
                  **kwargs):
         super(SwinIR, self).__init__()
         num_in_ch = in_chans
@@ -761,6 +766,25 @@ class SwinIR(nn.Module):
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
+
+        if pretrained is not None:
+            if pretrained == "download":
+                if in_chans == 1:
+                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise15.pth"
+                elif in_chans == 3:
+                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise15.pth"
+                else:
+                    raise Exception(f"Unsupported value for in_chans parameter '{in_chans}'")
+                pretrained_weights = torch.hub.load_state_dict_from_url(
+                    weights_url, map_location=lambda storage, loc: storage
+                )
+            else:
+                pretrained_weights = torch.load(
+                    pretrained, map_location=lambda storage, loc: storage
+                )
+            param_key_g = "params"
+            pretrained_weights = pretrained_weights[param_key_g] if param_key_g in pretrained_weights.keys() else pretrained_weights
+            self.load_state_dict(pretrained_weights, strict=True)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
