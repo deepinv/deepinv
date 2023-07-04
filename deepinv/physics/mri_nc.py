@@ -31,16 +31,15 @@ class MRI_NC(LinearPhysics):
         self.backend = backend
 
         opKlass = get_operator(backend)
-        self._operator = opKlass(kspace_trajectory, shape, density=density, n_coils=n_coils, smaps=smaps)
-        self.norm_fact = np.sqrt(np.prod(shape) * (2**len(shape)))
+        self._operator = opKlass(kspace_trajectory, shape, density=density, n_coils=n_coils, smaps=smaps, keep_dims=True)
 
     def A(self, x):
         r"""
         Forward operator.
         """
-        x_np = np.complex64(x.squeeze().cpu().numpy())
+        x_np = np.complex64(x.cpu().numpy())
         y_np = self._operator.op(x_np)
-        return torch.from_numpy(y_np).unsqueeze(0).unsqueeze(0).type(x.type()) / self.norm_fact
+        return torch.from_numpy(y_np).type(x.type())
 
     def A_adjoint(self, y):
         r"""
@@ -48,4 +47,4 @@ class MRI_NC(LinearPhysics):
         """
         y_np = np.complex64(y.squeeze().cpu().numpy())
         x_np = self._operator.adj_op(y_np)
-        return torch.from_numpy(x_np).unsqueeze(0).unsqueeze(0).type(y.type()) / self.norm_fact
+        return torch.from_numpy(x_np).type(y.type())
