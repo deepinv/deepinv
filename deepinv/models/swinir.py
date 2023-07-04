@@ -769,12 +769,23 @@ class SwinIR(nn.Module):
 
         if pretrained is not None:
             if pretrained == "download":
+                assert img_size == 128
+                assert in_chans in [1, 3]
+                assert upscale == 1
+                assert window_size == 8
+                assert img_range == 1.
+                assert embed_dim == 180
+                assert mlp_ratio == 2
+                assert upsampler == ""
+                assert resi_connection == "1conv"
+                assert depths == [6, 6, 6, 6, 6, 6]
+                assert num_heads == [6, 6, 6, 6, 6, 6]
+
                 if in_chans == 1:
                     weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise15.pth"
                 elif in_chans == 3:
                     weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise15.pth"
-                else:
-                    raise Exception(f"Unsupported value for in_chans parameter '{in_chans}'")
+
                 pretrained_weights = torch.hub.load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
                 )
