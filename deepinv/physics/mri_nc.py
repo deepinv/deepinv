@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from deepinv.physics.forward import LinearPhysics
 
@@ -22,15 +23,12 @@ class MRI_NC(LinearPhysics):
         opKlass = get_operator(backend)
         self._operator = opKlass(kspace_trajectory, shape, density=density, n_coils=n_coils, smaps=smaps)
 
-        # self.A = self._operator.op
-        # self.A_adjoint = self._operator.adj_op
-
     def A(self, x):
-        x_np = x.cpu().numpy()
+        x_np = np.complex64(x.squeeze().cpu().numpy())
         y_np = self._operator.op(x_np)
-        return torch.from_numpy(y_np).to(x.type())
+        return torch.from_numpy(y_np).unsqueeze(0).unsqueeze(0).type(x.type())
 
     def A_adjoint(self, y):
-        y_np = y.cpu().numpy()
-        x_np = self._operator.op(y_np)
-        return torch.from_numpy(x_np).to(y.type())
+        y_np = np.complex64(y.squeeze().cpu().numpy())
+        x_np = self._operator.adj_op(y_np)
+        return torch.real(torch.from_numpy(x_np).unsqueeze(0).unsqueeze(0).type(y.type()))
