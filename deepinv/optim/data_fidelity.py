@@ -399,7 +399,7 @@ class IndicatorL2(DataFidelity):
         """
         radius = self.radius if radius is None else radius
 
-        if (physics.A(x) == x).all():
+        if (physics.A(x).shape == x.shape) and (physics.A(x) == x).all():
             return self.prox_d(x, y, gamma=None, radius=radius)
         else:
             norm_AtA = physics.compute_norm(x, verbose=True)
