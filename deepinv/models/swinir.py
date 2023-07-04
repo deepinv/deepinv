@@ -769,17 +769,20 @@ class SwinIR(nn.Module):
 
         if pretrained is not None:
             if pretrained == "download":
-                assert img_size == 128
-                assert in_chans in [1, 3]
-                assert upscale == 1
-                assert window_size == 8
-                assert img_range == 1.
-                assert embed_dim == 180
-                assert mlp_ratio == 2
-                assert upsampler == ""
-                assert resi_connection == "1conv"
-                assert depths == [6, 6, 6, 6, 6, 6]
-                assert num_heads == [6, 6, 6, 6, 6, 6]
+                try:
+                    assert img_size == 128
+                    assert in_chans in [1, 3]
+                    assert upscale == 1
+                    assert window_size == 8
+                    assert img_range == 1.
+                    assert embed_dim == 180
+                    assert mlp_ratio == 2
+                    assert upsampler == ""
+                    assert resi_connection == "1conv"
+                    assert depths == [6, 6, 6, 6, 6, 6]
+                    assert num_heads == [6, 6, 6, 6, 6, 6]
+                except AssertionError:
+                    raise Exception("The model parameters are unsuitable for loading the pretrained weights. You may want to use the default constructor parameters instead.")
 
                 if in_chans == 1:
                     weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise15.pth"
