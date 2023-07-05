@@ -17,7 +17,7 @@ def imsize():
 
 
 @pytest.fixture
-def imsize_1d():
+def imsize_1_channel():
     h = 37
     w = 31
     c = 1
@@ -98,7 +98,7 @@ def test_denoiser(imsize, device, denoiser):
     assert x_hat.shape == x.shape
 
 
-model_list_1d = [
+model_list_1_channel = [
     "drunet",
     "dncnn",
     "waveletprior",
@@ -109,8 +109,8 @@ model_list_1d = [
 ]
 
 
-@pytest.mark.parametrize("denoiser", model_list_1d)
-def test_denoiser_1d(imsize_1d, device, denoiser):
+@pytest.mark.parametrize("denoiser", model_list_1_channel)
+def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     if denoiser in ("waveletprior", "waveletdict"):
         try:
             import pytorch_wavelets
@@ -123,10 +123,10 @@ def test_denoiser_1d(imsize_1d, device, denoiser):
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize_1d, device=device).unsqueeze(0)
+    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
     y = physics(x)
 
-    f = choose_denoiser(denoiser, imsize_1d).to(device)
+    f = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     x_hat = f(y, sigma)
 
