@@ -1,6 +1,8 @@
 DeepInverse: a Pytorch library for imaging with deep learning
 ==================================================================
 
+|Test Status| |Docs Status| |Python 3.6+| |codecov| |Black|
+
 Deep Inverse is a Pytorch based library for solving imaging inverse problems with deep learning.
 
 Github repository: `<https://github.com/deepinv/deepinv>`_.
@@ -63,6 +65,11 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.notation
    deepinv.contributing
 
+Finding Help
+==================
+If you have any questions or suggestions, please join the conversation in our
+`Discord server <https://discord.gg/QG3hGWsm>`_. The recommended way to get in touch with the developers is to open an issue on the
+`issue tracker <https://github.com/deepinv/deepinv/issues>`_.
 
 
 Lead Developers
@@ -70,3 +77,16 @@ Lead Developers
 
 `Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
 `Samuel Hurault <https://github.com/samuro95/>`_ and `Matthieu Terris <https://matthieutrs.github.io>`_.
+
+
+
+.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
+.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml
+.. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
+   :target: https://www.python.org/downloads/release/python-360/
+.. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
+   :target: https://codecov.io/gh/deepinv/deepinv

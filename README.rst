@@ -90,7 +90,8 @@ for more details.
 Finding help
 ------------
 
-The recommended way to get in touch with the developers is to open an issue on the
+If you have any questions or suggestions, please join the conversation in our
+`Discord server <https://discord.gg/QG3hGWsm>`_. The recommended way to get in touch with the developers is to open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_.
 
 
