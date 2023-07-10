@@ -322,18 +322,23 @@ def test(
                         else:
                             imgs = [x_init, x1, x]
                             name_imgs = ["Linear", "Recons.", "GT"]
-                    if plot_images:
-                        plot(imgs, titles=name_imgs, save_dir=save_folder_im, show=True)
-                    if wandb_vis:
-                        n_plot = min(n_plot_max_wandb, len(x))
-                        captions = [
-                            "Input",
-                            f"Linear PSNR:{cur_psnr_init:.2f}",
-                            f"Estimated PSNR:{cur_psnr:.2f}",
-                            "Ground Truth",
-                        ]
-                        imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
-                        wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
+                        if plot_images:
+                            plot(
+                                imgs,
+                                titles=name_imgs,
+                                save_dir=save_folder_im,
+                                show=True,
+                            )
+                        if wandb_vis:
+                            n_plot = min(n_plot_max_wandb, len(x))
+                            captions = [
+                                "Input",
+                                f"Linear PSNR:{cur_psnr_init:.2f}",
+                                f"Estimated PSNR:{cur_psnr:.2f}",
+                                "Ground Truth",
+                            ]
+                            imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
+                            wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)
