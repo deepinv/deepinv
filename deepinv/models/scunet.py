@@ -16,7 +16,7 @@ class WMSA(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.head_dim = head_dim
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
         self.n_heads = input_dim // head_dim
         self.window_size = window_size
         self.type = type

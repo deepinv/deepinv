@@ -46,13 +46,13 @@ class BaseOptim(nn.Module):
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
-    the value of the cost function is computed along the iterations and can be used for convergence criterion. 
-    Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consits in chosing 
-    the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved. 
+    the value of the cost function is computed along the iterations and can be used for convergence criterion.
+    Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consits in chosing
+    the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
     the following update rule is applied at each iteration :math:`k`:
     .. math::
-        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau       
+        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
 
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
     If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
@@ -525,9 +525,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
                 x, cur_params["g_param"]
             )
 
-        has_cost = (
-            True
-        )  # boolean to indicate if there is a cost function to evaluate along the iterations
+        has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
     # Create an instance of :class:`deepinv.optim.optim_iterators.OptimIterator`.
