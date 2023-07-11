@@ -1,5 +1,5 @@
 import sys
-
+import warnings
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
@@ -179,8 +179,14 @@ class BaseOptim(nn.Module):
             and self.backtracking
         ):
             self.backtracking = False
-            raise Warning(
+            warnings.warn(
                 "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
+            )
+        # If no cost function, backtracking is impossible.
+        if not self.has_cost:
+            self.backtracking = False
+            warnings.warn(
+                "Backtracking impossible when no cost function is given. Setting backtracking to False."
             )
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)

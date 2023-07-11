@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import warnings
 
 class FixedPoint(nn.Module):
     """
@@ -102,7 +102,7 @@ class FixedPoint(nn.Module):
         self.check_iteration_fn = check_iteration_fn
 
         if self.check_conv_fn is None and self.early_stop:
-            raise Warning(
+            warnings.warn(
                 "early_stop is set to True but no check_conv_fn has been defined."
             )
             self.early_stop = False
