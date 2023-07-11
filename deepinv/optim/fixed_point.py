@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import warnings
 
+
 class FixedPoint(nn.Module):
     """
     Fixed-point iterations module.

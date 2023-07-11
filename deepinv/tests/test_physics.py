@@ -81,7 +81,7 @@ def find_operator(name, device):
     elif name == "super_resolution":
         img_size = (1, 32, 32)
         factor = 2
-        norm = 1 / factor**2
+        norm = 1 / factor ** 2
         p = dinv.physics.Downsampling(img_size=img_size, factor=factor, device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
