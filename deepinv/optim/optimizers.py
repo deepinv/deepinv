@@ -1,5 +1,5 @@
 import sys
-
+import warnings
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
@@ -45,9 +45,22 @@ class BaseOptim(nn.Module):
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
+    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
+    the value of the cost function is computed along the iterations and can be used for convergence criterion.
+    Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consits in chosing
+    the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
+    More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
+    the following update rule is applied at each iteration :math:`k`:
+    .. math::
+        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
 
+    The variable ```params_algo``` is a dictionary containing all the relevant parameters for running the algorithm.
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
     If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
+
+    The variable ```data_fidelity``` is a list of instances of :meth:`deepinv.optim.DataFidelity` (or a single instance).
+    If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
+    The same holds for the variable ```prior``` which is a list of instances of :meth:`deepinv.optim.Prior` (or a single instance).
 
     ::
 
@@ -179,8 +192,14 @@ class BaseOptim(nn.Module):
             and self.backtracking
         ):
             self.backtracking = False
-            raise Warning(
+            warnings.warn(
                 "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
+            )
+        # If no cost function, backtracking is impossible.
+        if not self.has_cost:
+            self.backtracking = False
+            warnings.warn(
+                "Backtracking impossible when no cost function is given. Setting backtracking to False."
             )
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
