@@ -54,8 +54,13 @@ class BaseOptim(nn.Module):
     .. math::
         \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
 
+    The variable ```params_algo``` is a dictionary containing all the relevant parameters for running the algorithm.
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
     If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
+
+    The variable ```data_fidelity``` is a list of instances of :meth:`deepinv.optim.DataFidelity` (or a single instance).
+    If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
+    The same holds for the variable ```prior``` which is a list of instances of :meth:`deepinv.optim.Prior` (or a single instance).
 
     ::
 
