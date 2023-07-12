@@ -13,6 +13,7 @@ New Features
 
 Fixed
 ^^^^^
+- added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
 
 
 Changed
@@ -23,3 +24,4 @@ Authors
 ^^^^^^^
 
 .. _Julian Tachella: https://github.com/tachella
+.. _Jérémy Scanvic: https://github.com/jscanvic
