@@ -30,7 +30,7 @@ i.e. for :math:`k=1,2,...`
 .. math::
     \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
-where :math:`x` is a variable converging to the solution of the minimisation problem, and
+where :math:`x` is a variable converging to the solution of the minimization problem, and
 :math:`z` is an additional (dual) variable that may be required in the computation of the fixed point operator.
 
 
@@ -151,7 +151,7 @@ by an instance of physics and :math:`\regname` is a regularizer. The fixed point
 .. math::
     \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...)
 
-where :math:`x` is a variable converging to the solution of the minimisation problem, and
+where :math:`x` is a variable converging to the solution of the minimization problem, and
 :math:`z` is an additional variable that may be required in the computation of the fixed point operator.
 
 .. autosummary::

@@ -40,7 +40,7 @@ class BaseOptim(nn.Module):
         \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
 
-    where :math:`x_k` is a variable converging to the solution of the minimisation problem, and
+    where :math:`x_k` is a variable converging to the solution of the minimization problem, and
     :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
@@ -51,6 +51,7 @@ class BaseOptim(nn.Module):
     the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
     the following update rule is applied at each iteration :math:`k`:
+
     .. math::
         \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
 

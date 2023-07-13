@@ -14,10 +14,12 @@ New Features
 Fixed
 ^^^^^
 - added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
+- Automatically disable backtracking is no explicit cost (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
 
 Changed
 ^^^^^^^
+- Update docstring (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
 
 Authors

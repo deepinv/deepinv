@@ -14,7 +14,7 @@ class OptimIterator(nn.Module):
     .. math::
         \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
-    where :math:`x` is a "primal" variable converging to the solution of the minimisation problem, and
+    where :math:`x` is a "primal" variable converging to the solution of the minimization problem, and
     :math:`z` is a "dual" variable.
 
 
