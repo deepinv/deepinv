@@ -40,10 +40,10 @@ class BaseOptim(nn.Module):
         \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
 
 
-    where :math:`x_k` is a variable converging to the solution of the minimisation problem, and
+    where :math:`x_k` is a variable converging to the solution of the minimization problem, and
     :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
 
-    The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
+    The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator. 
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
