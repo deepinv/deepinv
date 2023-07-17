@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
 
 class WaveletPrior(nn.Module):
@@ -24,7 +23,7 @@ class WaveletPrior(nn.Module):
     :param str device: cpu or gpu
     """
 
-    def __init__(self, level=3, wv="db8", device="cpu"):
+    def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
         super().__init__()
         self.level = level
         try:
@@ -39,8 +38,9 @@ class WaveletPrior(nn.Module):
         self.dwt = DWTForward(J=self.level, wave=wv).to(device)
         self.iwt = DWTInverse(wave=wv).to(device)
         self.device = device
+        self.non_linearity = non_linearity
 
-    def prox_l1(self, x, ths=0.1):
+    def get_ths_map(self, ths):
         if isinstance(ths, float):
             ths_map = ths
         elif len(ths.shape) == 0 or ths.shape[0] == 1:
@@ -53,9 +53,20 @@ class WaveletPrior(nn.Module):
                 .unsqueeze(-1)
                 .to(self.device)
             )
+        return ths_map
+
+    def prox_l1(self, x, ths=0.1):
+        ths_map = self.get_ths_map(ths)
         return torch.maximum(
             torch.tensor([0], device=x.device).type(x.dtype), x - ths_map
         ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
+
+    def prox_l0(self, x, ths=0.1):  # Beware: this is not differentiable
+        ths_map = self.get_ths_map(ths)
+        ths_map = ths_map.repeat(1, 1, 1, x.shape[-2], x.shape[-1])
+        out = x.clone()
+        out[abs(out) < ths_map] = 0
+        return out
 
     def forward(self, x, ths=0.0):
         h, w = x.size()[-2:]
@@ -70,7 +81,10 @@ class WaveletPrior(nn.Module):
                 if (isinstance(ths, float) or len(ths.shape) == 0 or ths.shape[0] == 1)
                 else ths[l]
             )
-            coeffs[1][l] = self.prox_l1(coeffs[1][l], ths_cur)
+            if self.non_linearity == "soft":
+                coeffs[1][l] = self.prox_l1(coeffs[1][l], ths_cur)
+            elif self.non_linearity == "hard":
+                coeffs[1][l] = self.prox_l0(coeffs[1][l], ths_cur)
         y = self.iwt(coeffs)
 
         y = y[..., :h, :w]
@@ -98,11 +112,11 @@ class WaveletDict(nn.Module):
     :param str device: cpu or gpu.
     """
 
-    def __init__(self, level=3, list_wv=["db8", "db4"], max_iter=10):
+    def __init__(self, level=3, list_wv=["db8", "db4"], max_iter=10, non_linearity="soft"):
         super().__init__()
         self.level = level
         self.list_prox = nn.ModuleList(
-            [WaveletPrior(level=level, wv=wv) for wv in list_wv]
+            [WaveletPrior(level=level, wv=wv, non_linearity=non_linearity) for wv in list_wv]
         )
         self.max_iter = max_iter
 
