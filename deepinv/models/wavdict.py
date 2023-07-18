@@ -61,14 +61,14 @@ class WaveletPrior(nn.Module):
             torch.tensor([0], device=x.device).type(x.dtype), x - ths_map
         ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
 
-    def prox_l0(self, x, ths=0.1):  # Beware: this is not differentiable
+    def prox_l0(self, x, ths=0.1):
         ths_map = self.get_ths_map(ths)
-        ths_map = ths_map.repeat(1, 1, 1, x.shape[-2], x.shape[-1])
+        ths_map = ths_map.repeat(1, 1, 1, x.shape[-2], x.shape[-1])  # Reshaping to image wavelet shape
         out = x.clone()
         out[abs(out) < ths_map] = 0
         return out
 
-    def forward(self, x, ths=0.0):
+    def forward(self, x, ths=0.1):
         h, w = x.size()[-2:]
         padding_bottom = h % 2
         padding_right = w % 2
@@ -120,7 +120,7 @@ class WaveletDict(nn.Module):
         )
         self.max_iter = max_iter
 
-    def forward(self, y, ths=0.0):
+    def forward(self, y, ths=0.1):
         z_p = y.repeat(len(self.list_prox), 1, 1, 1, 1)
         p_p = torch.zeros_like(z_p)
         x = p_p.clone()
