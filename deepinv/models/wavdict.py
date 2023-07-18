@@ -65,10 +65,13 @@ class WaveletPrior(nn.Module):
         ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
 
     def prox_l0(self, x, ths=0.1):
-        ths_map = self.get_ths_map(ths)
-        ths_map = ths_map.repeat(
-            1, 1, 1, x.shape[-2], x.shape[-1]
-        )  # Reshaping to image wavelet shape
+        if isinstance(ths, float):
+            ths_map = ths
+        else:
+            ths_map = self.get_ths_map(ths)
+            ths_map = ths_map.repeat(
+                1, 1, 1, x.shape[-2], x.shape[-1]
+            )  # Reshaping to image wavelet shape
         out = x.clone()
         out[abs(out) < ths_map] = 0
         return out
