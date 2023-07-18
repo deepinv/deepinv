@@ -11,16 +11,19 @@ class WaveletPrior(nn.Module):
 
     .. math::
 
-        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_1
+        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_n
 
-    where :math:`\Psi` is an orthonormal wavelet transform and :math:`\lambda>0` is a hyperparameter.
+    where :math:`\Psi` is an orthonormal wavelet transform, :math:`\lambda>0` is a hyperparameter, and where
+    :math:`\|\cdot\|_n` is either the :math:`\ell_1` norm (``non_linearity="soft"``) or
+    the :math:`\ell_0` norm (``non_linearity="hard"``).
 
     The solution is available in closed-form, thus the denoiser is cheap to compute.
 
     :param int level: decomposition level of the wavelet transform
     :param str wv: mother wavelet (follows the `PyWavelets convention
-        <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_)
+        <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_) (default: "db8")
     :param str device: cpu or gpu
+    :param str non_linearity: "soft" or "hard" thresholding (default: "soft")
     """
 
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
@@ -63,7 +66,9 @@ class WaveletPrior(nn.Module):
 
     def prox_l0(self, x, ths=0.1):
         ths_map = self.get_ths_map(ths)
-        ths_map = ths_map.repeat(1, 1, 1, x.shape[-2], x.shape[-1])  # Reshaping to image wavelet shape
+        ths_map = ths_map.repeat(
+            1, 1, 1, x.shape[-2], x.shape[-1]
+        )  # Reshaping to image wavelet shape
         out = x.clone()
         out[abs(out) < ths_map] = 0
         return out
@@ -99,24 +104,33 @@ class WaveletDict(nn.Module):
 
     .. math::
 
-        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_1
+        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_n
 
     where :math:`\Psi` is an overcomplete wavelet transform, composed of 2 or more wavelets, i.e.,
-    :math:`\Psi=[\Psi_1,\Psi_2,\dots,\Psi_L]`, and :math:`\lambda>0` is a hyperparameter.
+    :math:`\Psi=[\Psi_1,\Psi_2,\dots,\Psi_L]`, :math:`\lambda>0` is a hyperparameter, and where
+    :math:`\|\cdot\|_n` is either the :math:`\ell_1` norm (``non_linearity="soft"``) or
+    the :math:`\ell_0` norm (``non_linearity="hard"``).
 
-    The solution is not available in closed-form, thus the denoiser runs an optimization for each test image.
+    The solution is not available in closed-form, thus the denoiser runs an optimization algorithm for each test image.
 
     :param int level: decomposition level of the wavelet transform.
     :param list[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
-        <https://wavelets.pybytes.com/>`_.
+        <https://wavelets.pybytes.com/>`_. (default: ["db8", "db4"]).
     :param str device: cpu or gpu.
+    :param int max_iter: number of iterations of the optimization algorithm (default: 10).
+    :param str non_linearity: "soft" or "hard" thresholding (default: "soft")
     """
 
-    def __init__(self, level=3, list_wv=["db8", "db4"], max_iter=10, non_linearity="soft"):
+    def __init__(
+        self, level=3, list_wv=["db8", "db4"], max_iter=10, non_linearity="soft"
+    ):
         super().__init__()
         self.level = level
         self.list_prox = nn.ModuleList(
-            [WaveletPrior(level=level, wv=wv, non_linearity=non_linearity) for wv in list_wv]
+            [
+                WaveletPrior(level=level, wv=wv, non_linearity=non_linearity)
+                for wv in list_wv
+            ]
         )
         self.max_iter = max_iter
 
