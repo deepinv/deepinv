@@ -27,6 +27,7 @@ class WaveletPrior(nn.Module):
     :param str device: cpu or gpu
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
     """
+
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
         super().__init__()
         self.level = level
@@ -89,7 +90,7 @@ class WaveletPrior(nn.Module):
         out[abs(out) < ths_map] = 0
         return out
 
-    def hard_threshold_topk(self, x, ths=0.1):  # Only keep the top k coefficients, set others to 0
+    def hard_threshold_topk(self, x, ths=0.1):
         r"""
         Hard thresholding of the wavelet coefficients by keeping only the top-k coefficients and setting the others to
         0.
@@ -114,7 +115,9 @@ class WaveletPrior(nn.Module):
         topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
 
         # Set output's top-k elements to values from original x
-        out[tuple(topk_indices.view(-1, 2).t())] = x_flat[tuple(topk_indices.view(-1, 2).t())]
+        out[tuple(topk_indices.view(-1, 2).t())] = x_flat[
+            tuple(topk_indices.view(-1, 2).t())
+        ]
         return torch.reshape(out, x.shape)
 
     def forward(self, x, ths=0.1):
@@ -174,6 +177,7 @@ class WaveletDict(nn.Module):
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
     """
+
     def __init__(
         self, level=3, list_wv=["db8", "db4"], max_iter=10, non_linearity="soft"
     ):
