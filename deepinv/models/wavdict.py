@@ -147,7 +147,6 @@ class WaveletPrior(nn.Module):
                 if (
                     isinstance(ths, int)
                     or isinstance(ths, float)
-                    or isinstance(ths, int)
                     or len(ths.shape) == 0
                     or ths.shape[0] == 1
                 )
