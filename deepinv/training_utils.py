@@ -190,10 +190,10 @@ def train(
         if scheduler:
             scheduler.step()
 
-        loss_history.append(loss_total.detach().cpu().numpy())
+        loss_history.append(loss_meter.avg)
 
         if wandb_vis:
-            wandb.log({"training loss": loss_total}, step=epoch)
+            wandb.log({"training loss": loss_meter.avg}, step=epoch)
 
         if (epoch + 1) % log_interval == 0:
             progress.display(epoch + 1)
