@@ -41,7 +41,9 @@ def find_operator(name, device):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
-        norm = (1+np.sqrt(np.prod(img_size)/m))**2 - .7  # Marcenko-Pastur law, second term is a small n correction
+        norm = (
+            1 + np.sqrt(np.prod(img_size) / m)
+        ) ** 2 - 0.7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device
