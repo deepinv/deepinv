@@ -69,7 +69,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_shape=(n_channels, img_size, img_size), device=device
+    m=78, img_shape=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LICP"
 n_images_max = (
@@ -258,10 +258,6 @@ test(
 # We now plot the weights of the network that were learned and check that they are different from their initialization
 # values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
 #
-
-# %%
-# Plotting the trained parameters.
-# --------------------------------
 
 dinv.utils.plotting.plot_parameters(
     model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation

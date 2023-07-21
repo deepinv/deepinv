@@ -43,7 +43,8 @@ class SinglePixelCamera(DecomposablePhysics):
     according to the `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
-    If ``fast=False``, the operator is a random iid binary matrix with equal probability of 1 or -1.
+    If ``fast=False``, the operator is a random iid binary matrix with equal probability of :math:`1/\sqrt{m}` or
+    :math:`-1/\sqrt{m}`.
 
     Both options allow for an efficient singular value decomposition (see :meth:`deepinv.physics.DecomposablePhysics`)
     The operator is always applied independently across channels.
@@ -51,8 +52,8 @@ class SinglePixelCamera(DecomposablePhysics):
     It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
 
-    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
-    in a similar fashion to `:meth:torch.nn.Module`.
+    An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
+    in a similar fashion to :meth:`torch.nn.Module`.
 
     :param int m: number of single pixel measurements per acquisition.
     :param tuple img_shape: shape (C, H, W) of images.
@@ -91,14 +92,14 @@ class SinglePixelCamera(DecomposablePhysics):
 
         else:
             n = int(np.prod(img_shape[1:]))
-            A = np.ones((m, n))
-            A[np.random.rand(m, n) > 0.5] = -1.0
-            A /= np.sqrt(n) * (1 + np.sqrt(m / n))  # normalize
-            u, mask, vh = np.linalg.svd(A, full_matrices=False)
+            A = torch.ones((m, n), device=device)
+            A[torch.randn_like(A) > 0.5] = -1.0
+            A /= np.sqrt(m)  # normalize
+            u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
-            self.mask = torch.from_numpy(mask).to(device).unsqueeze(0).type(dtype)
-            self.vh = torch.from_numpy(vh).to(device).type(dtype)
-            self.u = torch.from_numpy(u).to(device).type(dtype)
+            self.mask = mask.to(device).unsqueeze(0).type(dtype)
+            self.vh = vh.to(device).type(dtype)
+            self.u = u.to(device).type(dtype)
 
             self.u = torch.nn.Parameter(self.u, requires_grad=False)
             self.vh = torch.nn.Parameter(self.vh, requires_grad=False)

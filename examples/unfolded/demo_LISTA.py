@@ -73,7 +73,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_shape=(n_channels, img_size, img_size), device=device
+    m=78, img_shape=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LISTA"
 n_images_max = (
@@ -130,7 +130,7 @@ data_fidelity = L2()
 max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
 level = 2
 prior = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level).to(device))
+    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 
