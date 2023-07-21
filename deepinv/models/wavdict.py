@@ -111,7 +111,9 @@ class WaveletPrior(nn.Module):
         topk_indices_flat = torch.topk(abs(x_flat), k, dim=-1)[1]
 
         # Convert the flattened indices to the original indices of x
-        batch_indices = torch.arange(x.shape[0]).unsqueeze(1).repeat(1, k)
+        batch_indices = (
+            torch.arange(x.shape[0], device=x.device).unsqueeze(1).repeat(1, k)
+        )
         topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
 
         # Set output's top-k elements to values from original x
@@ -136,7 +138,12 @@ class WaveletPrior(nn.Module):
         for l in range(self.level):
             ths_cur = (
                 ths
-                if (isinstance(ths, float) or len(ths.shape) == 0 or ths.shape[0] == 1)
+                if (
+                    isinstance(ths, float)
+                    or isinstance(ths, int)
+                    or len(ths.shape) == 0
+                    or ths.shape[0] == 1
+                )
                 else ths[l]
             )
             if self.non_linearity == "soft":
