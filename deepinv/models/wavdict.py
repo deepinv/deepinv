@@ -25,7 +25,8 @@ class WaveletPrior(nn.Module):
     :param str wv: mother wavelet (follows the `PyWavelets convention
         <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_) (default: "db8")
     :param str device: cpu or gpu
-    :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
+    :param str non_linearity: ``"soft"``, ``"hard"`` or ``"topk"`` thresholding (default: ``"soft"``).
+        If ``"topk"``, only the top-k wavelet coefficients are kept.
     """
 
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
@@ -96,8 +97,8 @@ class WaveletPrior(nn.Module):
         0.
 
         :param torch.Tensor x: wavelet coefficients.
-        :param float, int ths: top k coefficients to keep. If float, it is interpreted as a proportion of the total
-        number of coefficients. If int, it is interpreted as the number of coefficients to keep.
+        :param float, int ths: top k coefficients to keep. If ``float``, it is interpreted as a proportion of the total
+            number of coefficients. If ``int``, it is interpreted as the number of coefficients to keep.
         """
         if isinstance(ths, float):
             k = int(ths * x.shape[-2] * x.shape[-1])
@@ -127,7 +128,12 @@ class WaveletPrior(nn.Module):
         Run the model on a noisy image.
 
         :param torch.Tensor x: noisy image.
-        :param float, torch.Tensor ths: noise level.
+        :param int, float, torch.Tensor ths: thresholding parameter.
+            If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
+            thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
+            ``ths`` can indicate the number of wavelet coefficients
+            that are kept (if ``int``) or the proportion of coefficients that are kept (if ``float``).
+
         """
         h, w = x.size()[-2:]
         padding_bottom = h % 2
@@ -139,7 +145,8 @@ class WaveletPrior(nn.Module):
             ths_cur = (
                 ths
                 if (
-                    isinstance(ths, float)
+                    isinstance(ths, int)
+                    or isinstance(ths, float)
                     or isinstance(ths, int)
                     or len(ths.shape) == 0
                     or ths.shape[0] == 1
