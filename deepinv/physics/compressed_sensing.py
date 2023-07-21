@@ -28,12 +28,14 @@ def dst1(x):
 
 class CompressedSensing(LinearPhysics):
     r"""
-    Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where n= prod(img_shape).
+    Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
+    number of elements of the signal, i.e., ``np.prod(img_shape)`` and ``m`` is the number of measurements.
+
     This class generates a random iid Gaussian matrix if ``fast=False``
 
     .. math::
 
-        A_{i,j} \sim \mathcal{N}(0,\frac{1}{\sqrt{n} + \sqrt{m}})
+        A_{i,j} \sim \mathcal{N}(0,\frac{1}{m})
 
     or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see https://arxiv.org/abs/1506.03521)
 
@@ -49,7 +51,14 @@ class CompressedSensing(LinearPhysics):
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
-    in a similar fashion to torch.nn.Module.
+    in a similar fashion to :class:`torch.nn.Module`.
+
+    .. note::
+
+        If ``fast=False``, the forward operator has a norm which tends to :math:`(1+\sqrt{n/m})^2` for large :math:`n`
+        and :math:`m` due to the `Marcenko-Pastur law
+        <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
+        If ``fast=True``, the forward operator has a unit norm.
 
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
@@ -94,7 +103,7 @@ class CompressedSensing(LinearPhysics):
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            A = np.random.randn(m, n) / (np.sqrt(n) * (1 + np.sqrt(m / n)))
+            A = np.random.randn(m, n) / np.sqrt(m)
             A_dagger = np.linalg.pinv(A)
             self._A = torch.from_numpy(A).type(dtype).to(device)
             self._A_dagger = torch.from_numpy(A_dagger).type(dtype).to(device)

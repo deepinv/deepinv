@@ -1,6 +1,7 @@
 import pytest
 import torch
 import deepinv as dinv
+import numpy as np
 
 
 @pytest.fixture
@@ -38,7 +39,9 @@ def find_operator(name, device):
     norm = 1
     torch.manual_seed(0)
     if name == "CS":
-        p = dinv.physics.CompressedSensing(m=30, img_shape=img_size, device=device)
+        m = 30
+        p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
+        norm = (1+np.sqrt(np.prod(img_size)/m))**2 - .7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device

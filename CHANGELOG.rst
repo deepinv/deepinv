@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Changed norm of CS to 1/m (:gh:`72` by `Julian Tachella`_) - 21/07/2023
 - Added hard-threshold (:gh:`71` by `Matthieu Terris`_) - 18/07/2023
 - Added discord server (:gh:`64` by `Julian Tachella`_) - 10/07/2023
 - Added changelog file (:gh:`64` by `Julian Tachella`_) - 10/07/2023
