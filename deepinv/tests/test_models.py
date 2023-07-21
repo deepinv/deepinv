@@ -31,6 +31,8 @@ model_list = [
     "dncnn",
     "waveletprior",
     "waveletdict",
+    "waveletdict_hard",
+    "waveletdict_topk",
     "tgv",
     "median",
     "autoencoder",
@@ -62,6 +64,10 @@ def choose_denoiser(name, imsize):
         out = dinv.models.WaveletPrior()
     elif name == "waveletdict":
         out = dinv.models.WaveletDict()
+    elif name == "waveletdict_hard":
+        out = dinv.models.WaveletDict(non_linearity="hard")
+    elif name == "waveletdict_topk":
+        out = dinv.models.WaveletDict(non_linearity="topk")
     elif name == "tgv":
         out = dinv.models.TGV(n_it_max=10)
     elif name == "median":
