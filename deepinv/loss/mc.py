@@ -19,7 +19,7 @@ class MCLoss(nn.Module):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
-    :param int metric: metric used for computing data consistency, which is set as the mean squared error by default.
+    :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     """
 
     def __init__(self, metric=torch.nn.MSELoss()):

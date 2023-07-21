@@ -25,7 +25,6 @@ results/
 /docs/source/stubs/*
 
 # Miscellaneous
-/onebitcs/
 /experimental/
 /deepinv/datasets/reside/
 deepinv/version.py

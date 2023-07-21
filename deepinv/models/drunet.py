@@ -30,7 +30,7 @@ class DRUNet(nn.Module):
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
-    :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for the default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
