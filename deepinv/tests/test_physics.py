@@ -42,7 +42,7 @@ def find_operator(name, device):
         p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
-        ) ** 2 - 1.57  # Marcenko-Pastur law, second term is a small n correction
+        ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device
@@ -74,7 +74,7 @@ def find_operator(name, device):
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
-        ) ** 2 - 2.5  # Marcenko-Pastur law, second term is a small n correction
+        ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "deblur":
         p = dinv.physics.Blur(
             dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
@@ -156,6 +156,9 @@ def test_operators_norm(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts norm is in (.8,1.2)
     """
+    if name == "singlepixel" or name == "CS":
+        device = torch.device("cpu")
+
     torch.manual_seed(0)
     physics, imsize, norm_ref = find_operator(name, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)

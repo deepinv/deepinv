@@ -29,5 +29,5 @@ Authors
 
 .. _Julian Tachella: https://github.com/tachella
 .. _Jérémy Scanvic: https://github.com/jscanvic
-.. _Samuel Hurault:: https://github.com/samuro95
+.. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
