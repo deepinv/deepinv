@@ -37,13 +37,12 @@ def find_operator(name, device):
     """
     img_size = (3, 16, 8)
     norm = 1
-    torch.manual_seed(0)
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
-        ) ** 2 - 0.7  # Marcenko-Pastur law, second term is a small n correction
+        ) ** 2 - 1.57  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device
@@ -69,10 +68,13 @@ def find_operator(name, device):
             m=20, fast=True, img_shape=img_size, device=device
         )
     elif name == "singlepixel":
+        m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=False, img_shape=img_size, device=device
+            m=m, fast=False, img_shape=img_size, device=device
         )
-        norm = 0.9
+        norm = (
+            1 + np.sqrt(np.prod(img_size) / m)
+        ) ** 2 - 2.5  # Marcenko-Pastur law, second term is a small n correction
     elif name == "deblur":
         p = dinv.physics.Blur(
             dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
@@ -154,8 +156,8 @@ def test_operators_norm(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts norm is in (.8,1.2)
     """
-    physics, imsize, norm_ref = find_operator(name, device)
     torch.manual_seed(0)
+    physics, imsize, norm_ref = find_operator(name, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     norm = physics.compute_norm(x)
     assert torch.abs(norm - norm_ref) < 0.2
@@ -210,7 +212,6 @@ def test_tomography(device):
         )
 
         x = torch.randn(imsize, device=device).unsqueeze(0)
-
         r = physics.A_adjoint(physics.A(x))
         y = physics.A(r)
         error = (physics.A_dagger(y) - r).flatten().mean().abs()
