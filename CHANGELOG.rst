@@ -14,12 +14,14 @@ New Features
 
 Fixed
 ^^^^^
+- Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
 - Automatically disable backtracking is no explicit cost (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 - Added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
 
 
 Changed
 ^^^^^^^
+- Changed normalization CS and SPC to 1/m (:gh:`72` by `Julian Tachella`_) - 21/07/2023
 - Update docstring (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
 
@@ -28,5 +30,5 @@ Authors
 
 .. _Julian Tachella: https://github.com/tachella
 .. _Jérémy Scanvic: https://github.com/jscanvic
-.. _Samuel Hurault:: https://github.com/samuro95
+.. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
