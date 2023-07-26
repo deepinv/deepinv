@@ -23,7 +23,8 @@ check the following points:
   after making the desired changes.
 
 If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
-`issue tracker <https://github.com/deepinv/deepinv/issues>`_. We will then try to address the issue as soon as possible.
+`issue tracker <https://github.com/deepinv/deepinv/issues>`_ and also ask any question in our discord server
+`Discord server <https://discord.gg/ZT9hMe3G>`_. We will then try to address the issue as soon as possible.
 You can also send an email to any of the main developers with your questions or ideas.
 
 

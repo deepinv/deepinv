@@ -68,7 +68,7 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
 Finding Help
 ==================
 If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/QG3hGWsm>`_. The recommended way to get in touch with the developers is to open an issue on the
+`Discord server <https://discord.gg/ZT9hMe3G>`_. The recommended way to get in touch with the developers is to open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_.
 
 
