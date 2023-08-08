@@ -3,7 +3,7 @@ Implementing DiffPIR
 ====================
 
 In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from
-`Zhou et al. <https://arxiv.org/abs/2305.08995>`_.
+`Zhou et al. <https://arxiv.org/abs/2305.08995>`_
 """
 import numpy as np
 import torch
