@@ -37,7 +37,6 @@ model_list = [
     "median",
     "autoencoder",
     "gsdrunet",
-    "swinir",
 ]
 
 try:  # install of BM3D may fail on some architectures (arm64)
@@ -75,14 +74,6 @@ def choose_denoiser(name, imsize):
         out = dinv.models.MedianFilter()
     elif name == "autoencoder":
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
-    elif name == "swinir":
-        out = dinv.models.SwinIR(
-            img_size=(imsize[1], imsize[2]),
-            in_chans=imsize[0],
-            upscale=1,
-            window_size=1,
-            pretrained=None,
-        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -107,6 +98,25 @@ def test_denoiser(imsize, device, denoiser):
     y = physics(x)
 
     f = choose_denoiser(denoiser, imsize).to(device)
+
+    x_hat = f(y, sigma)
+
+    assert x_hat.shape == x.shape
+
+
+def test_swinir_denoiser(device):
+    imsize = (3, 128, 128)  # SwinIR requires 128x128 images
+    torch.manual_seed(0)
+    sigma = 0.2
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+
+    f = dinv.models.SwinIR(
+            img_size=imsize[1],
+            in_chans=imsize[0],
+            pretrained='download',
+        )
 
     x_hat = f(y, sigma)
 

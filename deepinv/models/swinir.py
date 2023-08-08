@@ -1,3 +1,5 @@
+# This file is taken (with only mild modifications) from the SwinIR repository:
+# https://github.com/JingyunLiang/SwinIR/blob/main/models/network_swinir.py
 # -----------------------------------------------------------------------------------
 # SwinIR: Image Restoration Using Swin Transformer, https://arxiv.org/abs/2108.10257
 # Originally Written by Ze Liu, Modified by Jingyun Liang.
@@ -780,7 +782,7 @@ class UpsampleOneStep(nn.Sequential):
 
 class SwinIR(nn.Module):
     r"""SwinIR
-        A PyTorch impl of : `SwinIR: Image Restoration Using Swin Transformer`, based on Swin Transformer.
+    A PyTorch impl of : `SwinIR: Image Restoration Using Swin Transformer`, based on Swin Transformer.
 
     :param int|tuple img_size: Input image size. Default 128
     :param int|tuple patch_size: Patch size. Default: 1
@@ -973,22 +975,17 @@ class SwinIR(nn.Module):
 
         if pretrained is not None:
             if pretrained == "download":
-                try:
-                    assert img_size == 128
-                    assert in_chans in [1, 3]
-                    assert upscale == 1
-                    assert window_size == 8
-                    assert img_range == 1.0
-                    assert embed_dim == 180
-                    assert mlp_ratio == 2
-                    assert upsampler == ""
-                    assert resi_connection == "1conv"
-                    assert depths == [6, 6, 6, 6, 6, 6]
-                    assert num_heads == [6, 6, 6, 6, 6, 6]
-                except AssertionError:
-                    raise Exception(
-                        "The model parameters are unsuitable for loading the pretrained weights. You may want to use the default constructor parameters instead."
-                    )
+                assert img_size == 128
+                assert in_chans in [1, 3]
+                assert upscale == 1
+                assert window_size == 8
+                assert img_range == 1.0
+                assert embed_dim == 180
+                assert mlp_ratio == 2
+                assert upsampler == ""
+                assert resi_connection == "1conv"
+                assert depths == [6, 6, 6, 6, 6, 6]
+                assert num_heads == [6, 6, 6, 6, 6, 6]
 
                 if in_chans == 1:
                     weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise15.pth"
@@ -1050,6 +1047,12 @@ class SwinIR(nn.Module):
         return x
 
     def forward(self, x, sigma=None):
+        r"""
+        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+
+        :param torch.Tensor x: noisy image, of shape B, C, W, H.
+        :param float sigma: noise level (not used).
+        """
         H, W = x.shape[2:]
         x = self.check_image_size(x)
 
@@ -1106,27 +1109,3 @@ class SwinIR(nn.Module):
         flops += H * W * 3 * self.embed_dim * self.embed_dim
         flops += self.upsample.flops()
         return flops
-
-
-if __name__ == "__main__":
-    upscale = 4
-    window_size = 8
-    height = (1024 // upscale // window_size + 1) * window_size
-    width = (720 // upscale // window_size + 1) * window_size
-    model = SwinIR(
-        upscale=2,
-        img_size=(height, width),
-        window_size=window_size,
-        img_range=1.0,
-        depths=[6, 6, 6, 6],
-        embed_dim=60,
-        num_heads=[6, 6, 6, 6],
-        mlp_ratio=2,
-        upsampler="pixelshuffledirect",
-    )
-    print(model)
-    print(height, width, model.flops() / 1e9)
-
-    x = torch.randn((1, 3, height, width))
-    x = model(x)
-    print(x.shape)
