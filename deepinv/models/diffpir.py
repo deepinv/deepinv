@@ -152,6 +152,13 @@ def create_unet_model(
 
 
 def get_model_defaults(model_config=MODEL_CONFIG_FFHQ, device="cpu"):
+    r"""
+    This function returns the UNet model with default configurations.
+
+    :param dict model_config: model configuration (can be either MODEL_CONFIG_FFHQ or MODEL_CONFIG_DIFUC)
+    :param str device: device to use (cpu or cuda)
+    :return: UNet model
+    """
     args = create_argparser(model_config).parse_args([])
     model = create_unet_model(**args_to_dict(args, model_defaults().keys()))
     if model_config["model_path"] is not None:  # If path is specified by user, load it
@@ -615,7 +622,7 @@ class QKVAttention(nn.Module):
 
 
 class UNetModel(nn.Module):
-    """
+    r"""
     The full UNet model with attention and timestep embedding.
 
     :param in_channels: channels in the input Tensor.
@@ -853,8 +860,12 @@ class UNetModel(nn.Module):
         self.output_blocks.apply(convert_module_to_f32)
 
     def forward(self, x, timesteps, y=None):
-        """
+        r"""
         Apply the model to an input batch.
+
+        Unlike other models in deepinv, this model takes a noisy image and a timestep as input (and not a noise level).
+        The image is assumed to be in range [-1, 1] and to have dimensions with width and height divisible by a
+        power of 2.
 
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
