@@ -80,7 +80,8 @@ def train(
     save_path = Path(save_path)
 
     if wandb_vis:
-        wandb.init()
+        if wandb.run is None:
+            wandb.init()
 
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
@@ -271,7 +272,8 @@ def test(
     show_operators = 5
 
     if wandb_vis:
-        wandb.init()
+        if wandb.run is None:
+            wandb.init()
         psnr_data = []
 
     for g in range(G):
