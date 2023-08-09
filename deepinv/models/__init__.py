@@ -9,6 +9,7 @@ from .wavdict import WaveletPrior, WaveletDict
 from .GSPnP import GSDRUNet, ProxDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
+from .swinir import SwinIR
 
 try:
     from .bm3d import BM3D
