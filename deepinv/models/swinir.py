@@ -781,37 +781,42 @@ class UpsampleOneStep(nn.Sequential):
 
 
 class SwinIR(nn.Module):
-    r"""SwinIR
-    A PyTorch impl of : `SwinIR: Image Restoration Using Swin Transformer`, based on Swin Transformer.
+    r"""SwinIR denoising network.
 
-    :param int|tuple img_size: Input image size. Default 128
-    :param int|tuple patch_size: Patch size. Default: 1
-    :param int in_chans: Number of input image channels. Default: 3
-    :param int embed_dim: Patch embedding dimension. Default: 180
+    The Swin Image Restoration (SwinIR) denoising network was introduced in `SwinIR: Image Restoration Using Swin
+    Transformer <https://arxiv.org/abs/2108.10257>`_. This code is adapted from the official implementation by the
+    authors.
+
+    :param int|tuple img_size: Input image size. Default 128.
+    :param int|tuple patch_size: Patch size. Default: 1.
+    :param int in_chans: Number of input image channels. Default: 3.
+    :param int embed_dim: Patch embedding dimension. Default: 180.
     :param tuple depths: Depth of each Swin Transformer layer.
     :param tuple num_heads: Number of attention heads in different layers.
-    :param int window_size: Window size. Default: 8
-    :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 2
-    :param bool qkv_bias: If True, add a learnable bias to query, key, value. Default: True
-    :param float qk_scale: Override default qk scale of head_dim ** -0.5 if set. Default: None
+    :param int window_size: Window size. Default: 8.
+    :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 2.
+    :param bool qkv_bias: If True, add a learnable bias to query, key, value. Default: True.
+    :param float qk_scale: Override default qk scale of head_dim ** -0.5 if set. Default: None.
     :param float drop_rate: Dropout rate. Default: 0.
-    :param float attn_drop_rate: Attention dropout rate. Default: 0
-    :param float drop_path_rate: Stochastic depth rate. Default: 0.1
+    :param float attn_drop_rate: Attention dropout rate. Default: 0.
+    :param float drop_path_rate: Stochastic depth rate. Default: 0.1.
     :param nn.Module norm_layer: Normalization layer. Default: nn.LayerNorm.
-    :param bool ape: If True, add absolute position embedding to the patch embedding. Default: False
-    :param bool patch_norm: If True, add normalization after patch embedding. Default: True
-    :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False
+    :param bool ape: If True, add absolute position embedding to the patch embedding. Default: False.
+    :param bool patch_norm: If True, add normalization after patch embedding. Default: True.
+    :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
     :param int upscale: Upscale factor. 2/3/4/8 for image SR, 1 for denoising and compress artifact reduction
-    :param float img_range: Image range. 1. or 255.
-    :param str|None upsampler: The reconstruction module. 'pixelshuffle'/'pixelshuffledirect'/'nearest+conv'/None
-    :param str resi_connection: The convolutional block before residual connection. '1conv'/'3conv'
+    :param float img_range: Image range. 1. or 255. Default: 1.
+    :param str|None upsampler: The reconstruction module. ''/'pixelshuffle'/'pixelshuffledirect'/'nearest+conv'/None.
+        Default: ''.
+    :param str resi_connection: The convolutional block before residual connection. Should be either '1conv' or '3conv'.
+        Default: '1conv'.
     :param str|None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
         the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
         default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        Default: 'download'
-    :param int pretrained_noise_level: The noise level of pretrained model (in 0-255 scale). This value is directly
-        concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15
+        Default: 'download'.
+    :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
+        value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
     """
 
     def __init__(
