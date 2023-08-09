@@ -807,8 +807,11 @@ class SwinIR(nn.Module):
     :param str resi_connection: The convolutional block before residual connection. '1conv'/'3conv'
     :param str|None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
-        an online repository (only available for the default architecture). Finally, ``pretrained`` can also be set as a
-        path to the user's own pretrained weights. Default: 'download'
+        the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
+        default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        Default: 'download'
+    :param int pretrained_noise_level: The noise level of pretrained model (in 0-255 scale). This value is directly
+        concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15
     """
 
     def __init__(
@@ -835,6 +838,7 @@ class SwinIR(nn.Module):
         upsampler="",
         resi_connection="1conv",
         pretrained="download",
+        pretrained_noise_level=15,
         **kwargs,
     ):
         super(SwinIR, self).__init__()
@@ -988,9 +992,9 @@ class SwinIR(nn.Module):
                 assert num_heads == [6, 6, 6, 6, 6, 6]
 
                 if in_chans == 1:
-                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise15.pth"
+                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise"+str(pretrained_noise_level)+".pth"
                 elif in_chans == 3:
-                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise15.pth"
+                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise"+str(pretrained_noise_level)+".pth"
 
                 pretrained_weights = torch.hub.load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
