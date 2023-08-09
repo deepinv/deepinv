@@ -992,9 +992,17 @@ class SwinIR(nn.Module):
                 assert num_heads == [6, 6, 6, 6, 6, 6]
 
                 if in_chans == 1:
-                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise"+str(pretrained_noise_level)+".pth"
+                    weights_url = (
+                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise"
+                        + str(pretrained_noise_level)
+                        + ".pth"
+                    )
                 elif in_chans == 3:
-                    weights_url = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise"+str(pretrained_noise_level)+".pth"
+                    weights_url = (
+                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise"
+                        + str(pretrained_noise_level)
+                        + ".pth"
+                    )
 
                 pretrained_weights = torch.hub.load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
