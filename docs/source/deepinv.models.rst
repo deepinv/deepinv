@@ -64,6 +64,7 @@ The following denoisers have **pretrained weights** available.
    deepinv.models.DRUNet
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
+   deepinv.models.SwinIR
 
 
 Diffusion models
