@@ -146,7 +146,7 @@ def test_diffpirmodel(imsize, device):
 
     from deepinv.models import get_diffpir_model_defaults
 
-    model = get_diffpir_model_defaults()
+    model = get_diffpir_model_defaults(device=device)
 
     torch.manual_seed(0)
     sigma = 0.2

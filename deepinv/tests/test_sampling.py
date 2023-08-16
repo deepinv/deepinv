@@ -123,11 +123,10 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
 
-def test_DiffPIR():
+def test_DiffPIR(device):
     from deepinv.models import get_diffpir_model_defaults
 
-    x = torch.ones((1, 3, 128, 128))
-    device = "cpu"
+    x = torch.ones((1, 3, 128, 128)).to(device)
 
     sigma = 12.75 / 255.0  # noise level
 
@@ -140,7 +139,7 @@ def test_DiffPIR():
 
     y = physics(x)
 
-    model = get_diffpir_model_defaults()
+    model = get_diffpir_model_defaults(device=device)
     likelihood = L2()
 
     algorithm = DiffPIR(
