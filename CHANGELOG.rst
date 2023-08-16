@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added prox of TV (:gh:`79` by `Matthieu Terris`_) - 16/08/2023
 - Added SwinIR model (:gh:`76` by `Jérémy Scanvic`_) - 02/08/2023
 - Added hard-threshold (:gh:`71` by `Matthieu Terris`_) - 18/07/2023
 - Added discord server (:gh:`64` by `Julian Tachella`_) - 10/07/2023
