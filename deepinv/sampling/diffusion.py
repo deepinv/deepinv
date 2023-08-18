@@ -181,8 +181,24 @@ class DiffPIR(nn.Module):
 
     This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in https://arxiv.org/abs/2305.08995.
 
-    The DiffPIR algorithm is an HQS PnP algorithm, where the denoiser is a conditional diffusion denoiser,
-    combined with a diffusion process.
+    The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
+    is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
+    for :math:`t` decreasing from :math:`T` to :math:`1`:
+
+    .. math::
+            \begin{equation*}
+            \begin{aligned}
+            x_{0}^{t} &= \left(x_t + (1 - \overline{\alpha}_t)\mathbf{s}_\theta(x_t,t))\right)/\sqrt{\overline{\alpha}_t} \\
+            \widehat{x}_{0}^{t} &= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\
+            \widehat{\varepsilon} &= \left(x_t - \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t\right)/\sqrt{1-\overline{\alpha}_t} \\
+            \varepsilon_t &= \mathcal{N}(0, \mathbf{I}) \\
+            x_{t-1} &= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t} \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),
+            \end{aligned}
+            \end{equation*}
+
+
+    where :math:`\mathbf{s}_\theta(x_t,t)` is the conditional denoiser and :math:`f(y, \cdot)` is the data fidelity
+    term.
 
     :param torch.nn.Module model: a conditional noise estimation model
     :param float sigma: the noise level of the data
@@ -196,8 +212,8 @@ class DiffPIR(nn.Module):
     def __init__(
         self,
         model,
-        sigma,
         data_fidelity,
+        sigma=0.05,
         max_iter=100,
         zeta=0.3,
         verbose=False,
@@ -207,7 +223,6 @@ class DiffPIR(nn.Module):
         self.model = model
         self.data_fidelity = data_fidelity
         self.max_iter = max_iter
-        self.sigma = sigma
         self.zeta = zeta
         self.verbose = verbose
         self.device = device
@@ -223,7 +238,7 @@ class DiffPIR(nn.Module):
             self.betas,
         ) = self.get_alpha_beta()
 
-        self.rhos, self.sigmas, self.seq = self.get_noise_schedule()
+        self.rhos, self.sigmas, self.seq = self.get_noise_schedule(sigma=sigma)
 
     def get_alpha_beta(self):
         betas = np.linspace(
@@ -251,7 +266,7 @@ class DiffPIR(nn.Module):
             betas,
         )
 
-    def get_noise_schedule(self, lambda_=7.0):
+    def get_noise_schedule(self, sigma, lambda_=7.0):
         sigmas = []
         sigma_ks = []
         rhos = []
@@ -260,7 +275,7 @@ class DiffPIR(nn.Module):
             sigma_ks.append(
                 (self.sqrt_1m_alphas_cumprod[i] / self.sqrt_alphas_cumprod[i])
             )
-            rhos.append(lambda_ * (self.sigma**2) / (sigma_ks[i] ** 2))
+            rhos.append(lambda_ * (sigma**2) / (sigma_ks[i] ** 2))
         rhos, sigmas = torch.tensor(rhos).to(self.device), torch.tensor(sigmas).to(
             self.device
         )
@@ -276,17 +291,23 @@ class DiffPIR(nn.Module):
         idx = (np.abs(array - value)).argmin()
         return idx
 
-    def forward(self, y, physics: deepinv.physics.DecomposablePhysics, seed=None):
+    def forward(
+        self, y, physics: deepinv.physics.LinearPhysics, sigma: float = None, seed=None
+    ):
         r"""
         Runs the diffusion to obtain a random sample of the posterior distribution.
 
         :param torch.Tensor y: the measurements.
-        :param deepinv.physics.DecomposablePhysics physics: the physics operator
+        :param deepinv.physics.LinearPhysics physics: the physics operator.
+        :param float sigma: the noise level of the data.
         :param int seed: the seed for the random number generator.
         """
 
         if seed:
             torch.manual_seed(seed)
+
+        if sigma is not None:  # Then we overwrite the default values
+            self.rhos, self.sigmas, self.seq = self.get_noise_schedule(sigma=sigma)
 
         # Initialization
         x = 2 * y - 1

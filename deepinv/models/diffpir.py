@@ -625,6 +625,8 @@ class UNetModel(nn.Module):
     r"""
     The full UNet model with attention and timestep embedding.
 
+    This is the model from https://arxiv.org/abs/2108.02938; code is adapted from https://github.com/jychoi118/ilvr_adm.
+
     :param in_channels: channels in the input Tensor.
     :param model_channels: base channel count for the model.
     :param out_channels: channels in the output Tensor.

@@ -4,7 +4,6 @@ import torch.nn
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR
-from deepinv.models import get_diffpir_model_defaults
 import numpy as np
 
 
@@ -142,10 +141,7 @@ def test_DiffPIR(device):
     model = get_diffpir_model_defaults(device=device)
     likelihood = L2()
 
-    algorithm = DiffPIR(
-        model, sigma, likelihood, max_iter=5, verbose=False, device="cpu"
-    )
+    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device="cpu")
 
-    out = algorithm(y, physics)
-
+    out = algorithm(y, physics, sigma=0.05)
     assert out.shape == x.shape
