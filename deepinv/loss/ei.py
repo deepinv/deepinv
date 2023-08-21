@@ -30,7 +30,7 @@ class EILoss(nn.Module):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
-    :param bool no_grad: if ``True``, the gradient of :math:`T_g(x)` is not computed.
+    :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``True``.
     """
 
     def __init__(
