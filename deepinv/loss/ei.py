@@ -30,7 +30,7 @@ class EILoss(nn.Module):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
-    :param bool stop_gradient: if ``True``, the gradient of :math:`x_2` is stopped.
+    :param bool no_grad: if ``True``, the gradient of :math:`T_g(x)` is not computed.
     """
 
     def __init__(
@@ -39,7 +39,7 @@ class EILoss(nn.Module):
         metric=torch.nn.MSELoss(),
         apply_noise=True,
         weight=1.0,
-        stop_gradient=False,
+        no_grad=True,
     ):
         super(EILoss, self).__init__()
         self.name = "ei"
@@ -47,7 +47,7 @@ class EILoss(nn.Module):
         self.weight = weight
         self.T = transform
         self.noise = apply_noise
-        self.stop_gradient = stop_gradient
+        self.no_grad = no_grad
 
     def forward(self, x_net, physics, model, **kwargs):
         r"""
@@ -59,7 +59,7 @@ class EILoss(nn.Module):
         :return: (torch.Tensor) loss.
         """
 
-        if self.stop_gradient:
+        if self.no_grad:
             with torch.no_grad():
                 x2 = self.T(x_net)
         else:
