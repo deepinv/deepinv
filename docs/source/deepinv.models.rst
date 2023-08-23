@@ -53,7 +53,7 @@ Learnable Denoisers
    deepinv.models.ConvDecoder
    deepinv.models.UNet
 
-The following denoisers have **pretrained weights** available.
+The following denoisers have **pretrained weights** available:
 
 .. autosummary::
    :toctree: stubs
@@ -65,12 +65,13 @@ The following denoisers have **pretrained weights** available.
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
+   deepinv.models.diffpir.UNetModel
 
 
 Diffusion models
 ^^^^^^^^^^^^^^^^
 
-The following conditional diffusion models are available (with pretrained weigths):
+The following time-conditional diffusion models with pretrained weigths are available:
 
 .. autosummary::
    :toctree: stubs

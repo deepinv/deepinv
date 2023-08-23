@@ -861,17 +861,43 @@ class UNetModel(nn.Module):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward(self, x, timesteps, y=None):
+    def forward(self, x, t, y=None, type_t="timestep"):
         r"""
         Apply the model to an input batch.
 
-        Unlike other models in deepinv, this model takes a noisy image and a timestep as input (and not a noise level).
+        This function takes a noisy image and either a timestep or a noise level as input. Depending on the nature of
+        ``t``, the model returns either a noise map (if ``type_t='timestep'``) or a denoised image (if
+        ``type_t='noise_level'``).
+
+        :param x: an [N x C x ...] Tensor of inputs.
+        :param t: a 1-D batch of timesteps or noise levels.
+        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
+        :param type_t: Nature of the embedding `t`. In traditional diffusion model, and in the authors' code, `t` is
+                       a timestep linked to a noise level; in this case, set ``type_t='timestep'``. We can also choose
+                       ``t`` to be a noise level directly and use the model as a denoiser; in this case, set
+                       ``type_t='noise_level'``. Default: ``'timestep'``.
+        :return: an [N x C x ...] Tensor of outputs. Either a noise map (if ``type_t='timestep'``) or a denoised image
+                    (if ``type_t='noise_level'``).
+        """
+        if type_t == "timestep":
+            return self.forward_diffusion(x, t, y=y)
+        elif type_t == "noise_level":
+            return self.forward_denoise(x, t, y=y)
+        else:
+            raise ValueError('type_t must be either "timestep" or "noise_level"')
+
+    def forward_diffusion(self, x, timesteps, y=None):
+        r"""
+        Apply the model to an input batch.
+
+        This function takes a noisy image and a timestep as input (and not a noise level) and estimates the noise map
+        in the input image.
         The image is assumed to be in range [-1, 1] and to have dimensions with width and height divisible by a
         power of 2.
 
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
-        :param y: an [N] Tensor of labels, if class-conditional.
+        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
         :return: an [N x C x ...] Tensor of outputs.
         """
         assert (y is not None) == (
@@ -895,6 +921,74 @@ class UNetModel(nn.Module):
             h = module(h, emb)
         h = h.type(x.dtype)
         return self.out(h)
+
+    def get_alpha_prod(
+        self, beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=1000
+    ):
+        """
+        Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.
+        """
+        betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
+        betas = torch.from_numpy(
+            betas
+        )  # .to(self.device) Removing this for now, can be done outside
+        alphas = 1.0 - betas
+        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
+
+        # Useful sequences deriving from alphas_cumprod
+        sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
+        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod)
+        reduced_alpha_cumprod = torch.div(sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod)
+        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1)
+        return (
+            reduced_alpha_cumprod,
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+        )
+
+    def find_nearest(self, array, value):
+        """
+        Find the argmin of the nearest value in an array.
+        """
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return idx
+
+    def forward_denoise(self, x, sigma, y=None):
+        r"""
+        Apply the denoising model to an input batch.
+
+        This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless
+        underlying image in the input image.
+        The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height
+        divisible by a power of 2.
+
+        :param x: an [N x C x ...] Tensor of inputs.
+        :param sigma: a 1-D batch of noise levels.
+        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
+        :return: an [N x C x ...] Tensor of outputs.
+        """
+        x = 2.0 * x - 1.0
+        (
+            reduced_alpha_cumprod,
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+        ) = self.get_alpha_prod()
+        timesteps = self.find_nearest(
+            reduced_alpha_cumprod, sigma * 2
+        )  # Factor 2 because image rescaled in [-1, 1]
+
+        noise_est_sample_var = self.forward_diffusion(
+            x, torch.tensor([timesteps]).to(x.device), y=y
+        )
+        noise_est = noise_est_sample_var[:, :3, ...]
+        denoised = (
+            sqrt_recip_alphas_cumprod[timesteps] * x
+            - sqrt_recipm1_alphas_cumprod[timesteps] * noise_est
+        )
+        denoised = denoised.clamp(-1, 1)
+        return denoised / 2.0 + 0.5
 
 
 def checkpoint(func, inputs, params, flag):

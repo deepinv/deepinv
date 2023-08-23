@@ -241,6 +241,9 @@ class DiffPIR(nn.Module):
         self.rhos, self.sigmas, self.seq = self.get_noise_schedule(sigma=sigma)
 
     def get_alpha_beta(self):
+        """
+        Get the alpha and beta sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
+        """
         betas = np.linspace(
             self.beta_start, self.beta_end, self.num_train_timesteps, dtype=np.float32
         )
@@ -267,6 +270,9 @@ class DiffPIR(nn.Module):
         )
 
     def get_noise_schedule(self, sigma, lambda_=7.0):
+        """
+        Get the noise schedule for the algorithm.
+        """
         sigmas = []
         sigma_ks = []
         rhos = []
@@ -287,6 +293,9 @@ class DiffPIR(nn.Module):
         return rhos, sigmas, seq
 
     def find_nearest(self, array, value):
+        """
+        Find the argmin of the nearest value in an array.
+        """
         array = np.asarray(array)
         idx = (np.abs(array - value)).argmin()
         return idx

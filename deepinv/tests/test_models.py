@@ -167,6 +167,14 @@ def test_diffpirmodel(imsize, device):
 
     assert x_hat.shape == x.shape
 
+    # Now we check that the denoise_forward method works
+    x_hat = model(y, sigma, type_t="noise_level")
+    assert x_hat.shape == x.shape
+
+    with pytest.raises(Exception):
+        # The following should raise an exception because type_t is not in ['noise_level', 'timestep'].
+        x_hat = model(y, sigma, type_t="wrong_type")
+
 
 def test_PDNet(imsize, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
