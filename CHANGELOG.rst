@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added `no_grad` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
 - Added diffpir demo + model (:gh:`77` by `Matthieu Terris`_) - 08/08/2023
 - Added SwinIR model (:gh:`76` by `Jérémy Scanvic`_) - 02/08/2023
 - Added hard-threshold (:gh:`71` by `Matthieu Terris`_) - 18/07/2023
@@ -16,6 +17,7 @@ New Features
 
 Fixed
 ^^^^^
+- Call `wandb.init` only when needed (:gh:`78` by `Jérémy Scanvic`_) - 09/08/2023
 - Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
 - Automatically disable backtracking is no explicit cost (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 - Added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
