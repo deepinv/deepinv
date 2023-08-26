@@ -8,7 +8,8 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
-- Added `stop_gradient` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
+- Added `no_grad` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
+- Added diffpir demo + model (:gh:`77` by `Matthieu Terris`_) - 08/08/2023
 - Added SwinIR model (:gh:`76` by `Jérémy Scanvic`_) - 02/08/2023
 - Added hard-threshold (:gh:`71` by `Matthieu Terris`_) - 18/07/2023
 - Added discord server (:gh:`64` by `Julian Tachella`_) - 10/07/2023

@@ -142,6 +142,40 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     assert x_hat.shape == x.shape
 
 
+def test_diffpirmodel(imsize, device):
+    # This model is a bit different from others as not strictly a denoiser as such.
+    # The diffpir diffusion model only works for color, square image with powers of two in w, h.
+    # Smallest size accepted so far is (3, 32, 32), but probably not meaningful at that size since trained at 256x256.
+
+    from deepinv.models import get_diffpir_model_defaults
+
+    model = get_diffpir_model_defaults(device=device)
+
+    torch.manual_seed(0)
+    sigma = 0.2
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+    x = torch.ones((3, 32, 32), device=device).unsqueeze(
+        0
+    )  # Testing the smallest size possible
+    y = physics(x)
+
+    timestep = torch.tensor([1]).to(
+        device
+    )  # We pick a random timestep, goal is to check that model inference is ok.
+    x_hat = model(y, timestep)
+    x_hat = x_hat[:, :3, ...]
+
+    assert x_hat.shape == x.shape
+
+    # Now we check that the denoise_forward method works
+    x_hat = model(y, sigma, type_t="noise_level")
+    assert x_hat.shape == x.shape
+
+    with pytest.raises(Exception):
+        # The following should raise an exception because type_t is not in ['noise_level', 'timestep'].
+        x_hat = model(y, sigma, type_t="wrong_type")
+
+
 def test_PDNet(imsize, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
     from deepinv.optim.optimizers import CPIteration, fStep, gStep
