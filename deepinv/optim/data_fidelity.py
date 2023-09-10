@@ -377,14 +377,22 @@ class IndicatorL2(DataFidelity):
         ).view(-1, 1, 1, 1)
 
     def prox(
-        self, x, y, physics, radius=None, stepsize=None, crit_conv=1e-5, max_iter=100
+        self,
+        x,
+        y,
+        physics,
+        radius=None,
+        stepsize=None,
+        crit_conv=1e-5,
+        max_iter=100,
+        gamma=None,
     ):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 
         .. math::
 
-            \operatorname{prox}_{\iota_{\mathcal{B}_2(y, r)}(A\cdot)}(x) = \underset{u}{\text{argmin}} \,\, \iota_{\mathcal{B}_2(y, r)}(Au)+\frac{1}{2}\|u-x\|_2^2
+            \operatorname{prox}_{\gamma \iota_{\mathcal{B}_2(y, r)}(A\cdot)}(x) = \underset{u}{\text{argmin}} \,\, \iota_{\mathcal{B}_2(y, r)}(Au)+\frac{1}{2}\|u-x\|_2^2
 
         Since no closed form is available for general measurement operators, we use a dual forward-backward algorithm,
         as suggested in `Proximal Splitting Methods in Signal Processing <https://arxiv.org/pdf/0912.3522.pdf>`_.
@@ -395,16 +403,18 @@ class IndicatorL2(DataFidelity):
         :param float stepsize: step-size of the dual-forward-backward algorithm.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
+        :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
+                            operator since the indicator is scale invariant. Default: None.
         :return: (torch.tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
 
-        if (physics.A(x) == x).all():
+        if physics.A(x).shape == x.shape and (physics.A(x) == x).all():  # Identity case
             return self.prox_d(x, y, gamma=None, radius=radius)
         else:
-            norm_AtA = physics.compute_norm(x, verbose=True)
+            norm_AtA = physics.compute_norm(x, verbose=False)
             stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
-            u = x.clone()
+            u = physics.A(x)
             for it in range(max_iter):
                 u_prev = u.clone()
 

@@ -141,9 +141,8 @@ class CompressedSensing(LinearPhysics):
             N2 = N
 
         if self.fast:
-            # x = dct1(y)
             y2 = torch.zeros((N2, self.n), device=y.device)
-            y2[:, self.mask] = y
+            y2[:, self.mask] = y.type(y2.dtype)
             x = dst1(y2) * self.D
         else:
             x = torch.einsum("im, nm->in", y, self._A_adjoint)  # x:(N, n, 1)

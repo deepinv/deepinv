@@ -301,7 +301,12 @@ class DiffPIR(nn.Module):
         return idx
 
     def forward(
-        self, y, physics: deepinv.physics.LinearPhysics, sigma: float = None, seed=None
+        self,
+        y,
+        physics: deepinv.physics.LinearPhysics,
+        sigma: float = None,
+        seed=None,
+        x_init=None,
     ):
         r"""
         Runs the diffusion to obtain a random sample of the posterior distribution.
@@ -310,6 +315,7 @@ class DiffPIR(nn.Module):
         :param deepinv.physics.LinearPhysics physics: the physics operator.
         :param float sigma: the noise level of the data.
         :param int seed: the seed for the random number generator.
+        :param torch.Tensor x_init: the initial guess for the reconstruction.
         """
 
         if seed:
@@ -319,7 +325,10 @@ class DiffPIR(nn.Module):
             self.rhos, self.sigmas, self.seq = self.get_noise_schedule(sigma=sigma)
 
         # Initialization
-        x = 2 * y - 1
+        if x_init is None:  # Necessary when x and y don't live in the same space
+            x = 2 * y - 1
+        else:
+            x = 2 * x_init - 1
 
         for i in range(len(self.seq)):
             # Current noise level
