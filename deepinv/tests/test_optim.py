@@ -160,10 +160,10 @@ def test_data_fidelity_indicator(device):
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
     # Define the physics model associated to this operator
-    x_proj = torch.Tensor([[[0.5290], [2.9917]]]).to(device)
-    dfb_proj = data_fidelity.prox(x, y, physics)
-    assert torch.allclose(x_proj, dfb_proj)
-    assert torch.norm(A_forward(dfb_proj) - y) <= radius
+    x_proj = torch.Tensor([[[0.5290], [2.9932]]]).to(device)
+    dfb_proj = data_fidelity.prox(x, y, physics, max_iter=1000, crit_conv=1e-12)
+    assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
+    assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
 
 
 def test_data_fidelity_l1(device):

@@ -420,9 +420,11 @@ class IndicatorL2(DataFidelity):
 
                 t = x - physics.A_adjoint(u)
                 u_ = u + stepsize * physics.A(t)
-                u = u_ - stepsize * self.prox_d(u_ / stepsize, y, radius=radius)
+                u = u_ - stepsize * self.prox_d(
+                    u_ / stepsize, y, radius=radius, gamma=None
+                )
                 rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
-                if rel_crit < crit_conv and it > 1:
+                if rel_crit < crit_conv:
                     break
             return t
 
