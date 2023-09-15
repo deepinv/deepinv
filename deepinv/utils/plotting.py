@@ -11,12 +11,10 @@ import matplotlib
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-darkgrid")
+matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
 
-use_tex = matplotlib.checkdep_usetex(True)
-if use_tex:
-    plt.rcParams["text.usetex"] = True
+plt.rcParams["text.usetex"] = True
 import torch
 
 

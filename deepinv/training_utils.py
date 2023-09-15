@@ -16,11 +16,8 @@ from pathlib import Path
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-darkgrid")
-use_tex = matplotlib.checkdep_usetex(True)
-if use_tex:
-    plt.rcParams["text.usetex"] = True
-
+matplotlib.style.use("seaborn-v0_8-darkgrid")
+plt.rcParams["text.usetex"] = True
 
 def train(
     model,
