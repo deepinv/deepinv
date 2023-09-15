@@ -19,6 +19,7 @@ matplotlib.rcParams["lines.linewidth"] = 2
 matplotlib.style.use("seaborn-v0_8-darkgrid")
 plt.rcParams["text.usetex"] = True
 
+
 def train(
     model,
     train_dataloader,
