@@ -163,7 +163,7 @@ physics = dinv.physics.Pansharpen(img_size=img_size, device=device)
 y = physics(x)
 
 # plot results
-plot([x, y[0], y[1]], titles=["signal", "high res gray", "low res rgb"])
+plot([x, y[0], y[1]], titles=["signal", "low res rgb", "high res gray"])
 
 # %%
 # Single-Pixel Camera
