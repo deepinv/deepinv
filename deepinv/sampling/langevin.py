@@ -273,7 +273,7 @@ class ULA(MonteCarlo):
         prior,
         data_fidelity,
         step_size=1.0,
-        sigma=.05,
+        sigma=0.05,
         alpha=1.0,
         max_iter=1e3,
         thinning=5,
@@ -404,7 +404,7 @@ class SKRock(MonteCarlo):
         save_chain=False,
         g_statistic=lambda x: x,
         verbose=False,
-        sigma=.05,
+        sigma=0.05,
     ):
         iterator = SKRockIterator(
             step_size=step_size,
