@@ -58,6 +58,9 @@ class MonteCarlo(nn.Module):
     :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
+    :param function_handle g_statistic: The sampler will compute the posterior mean and variance
+        of the function g_statistic. By default, it is the identity function (lambda x: x),
+        and thus the sampler computes the posterior mean and variance.
     :param bool verbose: prints progress of the algorithm.
 
     """
@@ -247,6 +250,8 @@ class ULA(MonteCarlo):
         noise distribution in the acquisition physics.
     :param float step_size: step size :math:`\eta>0` of the algorithm.
         Tip: use :meth:`deepinv.physics.Physics.compute_norm()` to compute the Lipschitz constant of the forward operator.
+    :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
+        a more regularized reconstruction.
     :param float alpha: regularization parameter :math:`\alpha`
     :param int max_iter: number of Monte Carlo iterations.
     :param int thinning: Thins the Markov Chain by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``
@@ -256,6 +261,9 @@ class ULA(MonteCarlo):
     :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
+    :param function_handle g_statistic: The sampler will compute the posterior mean and variance
+        of the function g_statistic. By default, it is the identity function (lambda x: x),
+        and thus the sampler computes the posterior mean and variance.
     :param bool verbose: prints progress of the algorithm.
 
     """
@@ -265,6 +273,7 @@ class ULA(MonteCarlo):
         prior,
         data_fidelity,
         step_size=1.0,
+        sigma=.05,
         alpha=1.0,
         max_iter=1e3,
         thinning=5,
@@ -274,7 +283,6 @@ class ULA(MonteCarlo):
         save_chain=False,
         g_statistic=lambda x: x,
         verbose=False,
-        sigma=None,
     ):
         iterator = ULAIterator(step_size=step_size, alpha=alpha, sigma=sigma)
         super().__init__(
@@ -372,6 +380,11 @@ class SKRock(MonteCarlo):
     :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.
         If ``None``, the algorithm will not project the samples.
     :param bool verbose: prints progress of the algorithm.
+    :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
+        a more regularized reconstruction.
+    :param function_handle g_statistic: The sampler will compute the posterior mean and variance
+        of the function g_statistic. By default, it is the identity function (lambda x: x),
+        and thus the sampler computes the posterior mean and variance.
 
     """
 
@@ -391,7 +404,7 @@ class SKRock(MonteCarlo):
         save_chain=False,
         g_statistic=lambda x: x,
         verbose=False,
-        sigma=None,
+        sigma=.05,
     ):
         iterator = SKRockIterator(
             step_size=step_size,
