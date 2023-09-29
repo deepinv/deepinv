@@ -11,12 +11,10 @@ import matplotlib
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-darkgrid")
+matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
 
-use_tex = matplotlib.checkdep_usetex(True)
-if use_tex:
-    plt.rcParams["text.usetex"] = True
+plt.rcParams["text.usetex"] = True
 import torch
 
 
@@ -115,14 +113,14 @@ def plot(
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
-    plt.figure(figsize=(len(imgs), len(imgs[0]) * 1.3))
+    plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
             plt.subplot(len(imgs[0]), len(imgs), r * len(imgs) + i + 1)
             plt.imshow(img, cmap="gray")
             if titles and r == 0:
-                plt.title(titles[i], size=8)
+                plt.title(titles[i], size=9)
             plt.axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
