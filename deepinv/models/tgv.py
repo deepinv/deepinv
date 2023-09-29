@@ -9,11 +9,11 @@ class TGV(nn.Module):
 
     (see K. Bredies, K. Kunisch, and T. Pock, "Total generalized variation," SIAM J. Imaging Sci., 3(3), 492-526, 2010.)
 
-    This algorithm converges to the unique image x (and the auxiliary vector field r) minimizing
+    This algorithm converges to the unique image :math:`x` (and the auxiliary vector field :math:`r`) minimizing
 
     .. math::
 
-        \frac{1}{2}\|x-y\|_2^2 + \lambda_1 \|r\|_{1,2} + \lambda_2 \|J(Dx-r)\|_{1,F}
+        \underset{x, r}{\arg\min} \;  \frac{1}{2}\|x-y\|_2^2 + \lambda_1 \|r\|_{1,2} + \lambda_2 \|J(Dx-r)\|_{1,F}
 
     where :math:`D` maps an image to its gradient field and :math:`J` maps a vector field to its Jacobian.
     For a large value of :math:`\lambda_2`, the TGV behaves like the TV.

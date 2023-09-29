@@ -34,6 +34,7 @@ model_list = [
     "waveletdict_hard",
     "waveletdict_topk",
     "tgv",
+    "tv",
     "median",
     "autoencoder",
     "gsdrunet",
@@ -71,6 +72,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.WaveletDict(non_linearity="topk")
     elif name == "tgv":
         out = dinv.models.TGV(n_it_max=10)
+    elif name == "tv":
+        out = dinv.models.TV(n_it_max=10)
     elif name == "median":
         out = dinv.models.MedianFilter()
     elif name == "autoencoder":
