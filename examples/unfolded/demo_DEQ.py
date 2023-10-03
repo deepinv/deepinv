@@ -46,7 +46,7 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "deblurring"
 # For simplicity, we use a small dataset for training.
 # To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
-train_dataset_name = "CBSD500"
+train_dataset_name = "CBSD68"
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -123,10 +123,14 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
-max_iter = 5  # number of unfolded layers
+max_iter = 20  # number of unfolded layers
 lamb = 0.1  # Initial value for the regularization parameter.
 stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
+anderson_acceleration_forward = True # use Anderson acceleration for the forward pass.
+anderson_acceleration_backward = True # use Anderson acceleration for the backward pass.
+anderson_history_size = 3
+
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -146,6 +150,10 @@ model = DEQ_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    anderson_acceleration=anderson_acceleration_forward,
+    anderson_acceleration_backward=anderson_acceleration_backward,
+    history_size_backward=anderson_history_size,
+    history_size=anderson_history_size,
 )
 
 # %%
@@ -155,7 +163,7 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 5
+epochs = 3
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3

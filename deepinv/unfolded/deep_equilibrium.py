@@ -25,12 +25,20 @@ class BaseDEQ(BaseUnfold):
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    :param int max_iter_backward: Maximum number of backward iterations. Default: 50.
+    :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
+    :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
+    :param int history_size_backward: size of the history used for the Anderson acceleration for the backward pass. Default: ``5``.
+    :param float beta_anderson_acc_backward: momentum of the Anderson acceleration step for the backward pass. Default: ``1.0``.
+    :param float eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step for the backward pass. Default: ``1e-4``.
     """
 
-    def __init__(self, *args, max_iter_backward=50, **kwargs):
+    def __init__(self, *args, max_iter_backward=50, anderson_acceleration_backward=False, history_size_backward=5, beta_anderson_acc_backward = 1.0, eps_anderson_acc_backward = 1e-4, **kwargs):
         super().__init__(*args, **kwargs)
         self.max_iter_backward = max_iter_backward
+        self.anderson_acceleration = anderson_acceleration_backward
+        self.history_size = history_size_backward
+        self.beta_anderson_acc = beta_anderson_acc_backward
+        self.eps_anderson_acc = eps_anderson_acc_backward
 
     def forward(self, y, physics, x_gt=None, compute_metrics=False):
         r"""
@@ -82,9 +90,13 @@ class BaseDEQ(BaseUnfold):
 
             backward_FP = FixedPoint(
                 backward_iterator(),
-                init_iterate_fn=init_iterate_fn,
-                max_iter=self.max_iter_backward,
-                check_conv_fn=self.check_conv_fn,
+                init_iterate_fn = init_iterate_fn,
+                max_iter = self.max_iter_backward,
+                check_conv_fn = self.check_conv_fn,
+                anderson_acceleration = self.anderson_acceleration,
+                history_size = self.history_size,
+                beta_anderson_acc = self.beta_anderson_acc,
+                eps_anderson_acc = self.eps_anderson_acc
             )
             g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
             return g
