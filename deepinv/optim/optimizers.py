@@ -153,13 +153,12 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         custom_metrics=None,
         custom_init=None,
-        anderson_acceleration=False, 
-        history_size=5, 
-        beta_anderson_acc=1.0, 
+        anderson_acceleration=False,
+        history_size=5,
+        beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
         verbose=False,
     ):
-        
         super(BaseOptim, self).__init__()
 
         self.early_stop = early_stop
@@ -243,7 +242,7 @@ class BaseOptim(nn.Module):
             anderson_acceleration=anderson_acceleration,
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
-            eps_anderson_acc=eps_anderson_acc
+            eps_anderson_acc=eps_anderson_acc,
         )
 
     def update_params_fn(self, it):

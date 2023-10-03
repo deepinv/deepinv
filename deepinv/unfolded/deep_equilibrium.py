@@ -32,7 +32,16 @@ class BaseDEQ(BaseUnfold):
     :param float eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step for the backward pass. Default: ``1e-4``.
     """
 
-    def __init__(self, *args, max_iter_backward=50, anderson_acceleration_backward=False, history_size_backward=5, beta_anderson_acc_backward = 1.0, eps_anderson_acc_backward = 1e-4, **kwargs):
+    def __init__(
+        self,
+        *args,
+        max_iter_backward=50,
+        anderson_acceleration_backward=False,
+        history_size_backward=5,
+        beta_anderson_acc_backward=1.0,
+        eps_anderson_acc_backward=1e-4,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.max_iter_backward = max_iter_backward
         self.anderson_acceleration = anderson_acceleration_backward
@@ -90,13 +99,13 @@ class BaseDEQ(BaseUnfold):
 
             backward_FP = FixedPoint(
                 backward_iterator(),
-                init_iterate_fn = init_iterate_fn,
-                max_iter = self.max_iter_backward,
-                check_conv_fn = self.check_conv_fn,
-                anderson_acceleration = self.anderson_acceleration,
-                history_size = self.history_size,
-                beta_anderson_acc = self.beta_anderson_acc,
-                eps_anderson_acc = self.eps_anderson_acc
+                init_iterate_fn=init_iterate_fn,
+                max_iter=self.max_iter_backward,
+                check_conv_fn=self.check_conv_fn,
+                anderson_acceleration=self.anderson_acceleration,
+                history_size=self.history_size,
+                beta_anderson_acc=self.beta_anderson_acc,
+                eps_anderson_acc=self.eps_anderson_acc,
             )
             g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
             return g
