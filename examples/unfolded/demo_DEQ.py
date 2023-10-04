@@ -46,7 +46,7 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "deblurring"
 # For simplicity, we use a small dataset for training.
 # To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
-train_dataset_name = "CBSD68"
+train_dataset_name = "CBSD500"
 test_dataset_name = "set3c"
 # Generate training and evaluation datasets in HDF5 folders and load them.
 test_transform = transforms.Compose(
@@ -106,7 +106,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
 # We use the helper function :meth:`deepinv.unfolded.DEQ_builder` to defined the DEQ architecture.
-# The chosen algorithm is here HQS (Half Quadratic Splitting).
+# The chosen algorithm is here HQS (Half Quplt.rcParams["text.usetex"] = Trueadratic Splitting).
 # Note for DEQ, the prior and regularization parameters should be common for all iterations
 # to keep a constant fixed-point operator.
 
@@ -163,7 +163,7 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 3
+epochs = 10
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
@@ -215,7 +215,7 @@ train(
 method = "DEQ_HQS"
 save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = True  # plot images. Images are saved in save_folder.
+plot_images = False  # plot images. Images are saved in save_folder.
 
 test(
     model=model,
