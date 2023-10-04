@@ -127,8 +127,10 @@ max_iter = 20  # number of unfolded layers
 lamb = 0.1  # Initial value for the regularization parameter.
 stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
-anderson_acceleration_forward = True # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = True # use Anderson acceleration for the backward pass.
+anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
+anderson_acceleration_backward = (
+    True  # use Anderson acceleration for the backward pass.
+)
 anderson_history_size = 3
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary

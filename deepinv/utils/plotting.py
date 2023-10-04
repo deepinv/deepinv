@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from collections.abc import Iterable
 import matplotlib
+
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
 matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
+
 plt.rcParams["text.usetex"] = True
 import torch
 
