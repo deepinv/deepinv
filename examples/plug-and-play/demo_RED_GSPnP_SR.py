@@ -163,7 +163,7 @@ model = optim_builder(
 # We evaluate the PnP algorithm on the test dataset, compute the PSNR metrics and plot reconstruction results.
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = True  # plot curves and images in Weight&Bias.
+wandb_vis = False  # plot curves and images in Weight&Bias.
 plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
 plot_images = True  # plot images. Images are saved in save_folder.
 
