@@ -137,6 +137,7 @@ def train(
             for g in G_perm:
                 if fly_estimate:
                     x, _ = next(iterators[g])  # In this case the dataloader outputs also a class label
+                    x = x.to(device)
                     physics_cur = physics[g]
                     y = physics_cur(x)
                 else:
