@@ -40,6 +40,7 @@ def train(
     plot_metrics=False,
     wandb_vis=False,
     n_plot_max_wandb=8,
+    fly_estimate=False,
 ):
     r"""
     Trains a reconstruction network.
@@ -73,6 +74,8 @@ def train(
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param bool fly_estimate: Use a fly estimate, i.e., the network is trained on the fly, with physics and measurements
+        being generated at each iteration.
     :returns: Trained model.
     """
     save_path = Path(save_path)
@@ -132,22 +135,28 @@ def train(
             G_perm = np.random.permutation(G)
 
             for g in G_perm:
-                if unsupervised:
-                    y = next(iterators[g])
-                    x = None
+                if fly_estimate:
+                    x, _ = next(iterators[g])  # In this case the dataloader outputs also a class label
+                    physics_cur = physics[g]
+                    y = physics(x)
                 else:
-                    x, y = next(iterators[g])
-
-                    if type(x) is list or type(x) is tuple:
-                        x = [s.to(device) for s in x]
+                    if unsupervised:
+                        y = next(iterators[g])
+                        x = None
                     else:
-                        x = x.to(device)
+                        x, y = next(iterators[g])
+
+                        if type(x) is list or type(x) is tuple:
+                            x = [s.to(device) for s in x]
+                        else:
+                            x = x.to(device)
+                    physics_cur = physics[g]
 
                 y = y.to(device)
 
                 optimizer.zero_grad()
 
-                x_net = model(y, physics[g])
+                x_net = model(y, physics_cur)
 
                 loss_total = 0
                 for k, l in enumerate(losses):
