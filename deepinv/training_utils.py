@@ -1,3 +1,5 @@
+import torchvision.utils
+
 from deepinv.utils import (
     save_model,
     AverageMeter,
@@ -28,6 +30,7 @@ def train(
     eval_dataloader=None,
     physics=None,
     optimizer=None,
+    grad_clip=None,
     scheduler=None,
     device="cpu",
     ckp_interval=1,
@@ -39,6 +42,7 @@ def train(
     plot_images=False,
     plot_metrics=False,
     wandb_vis=False,
+    wandb_setup={},
     n_plot_max_wandb=8,
     fly_estimate=False,
 ):
@@ -82,7 +86,7 @@ def train(
 
     if wandb_vis:
         if wandb.run is None:
-            wandb.init()
+            wandb.init(**wandb_setup)
 
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
@@ -155,6 +159,10 @@ def train(
 
                 y = y.to(device)
 
+                # Useful for later
+                # in_image = physics_cur.A_adjoint(y)
+                # sigma = physics_cur.noise_model.sigma
+
                 optimizer.zero_grad()
 
                 x_net = model(y, physics_cur)
@@ -171,7 +179,25 @@ def train(
                     train_psnr_net.update(cal_psnr(x_net, x))
 
                 loss_total.backward()
+
+                if grad_clip is not None:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+
                 optimizer.step()
+
+                if wandb_vis:
+                    wandb.log({"training loss": loss_total.item()})
+
+        if wandb_vis:  # Note that this may not be 16 images because the last batch may be smaller
+            in_image = physics_cur.A_adjoint(y)
+            vis_array = torch.cat((in_image, x_net, x), dim=0)
+            vis_array = torch.clip(vis_array, 0, 1)
+            grid_image = torchvision.utils.make_grid(vis_array, nrow=3)
+            images = wandb.Image(
+                grid_image,
+                caption="Top: Input, Middle: Output, Bottom: target"
+            )
+            wandb.log({"Training samples": images})
 
         if (
             (not unsupervised)
@@ -194,7 +220,7 @@ def train(
             eval_psnr_net.update(test_psnr)
 
             if wandb_vis:
-                wandb.log({"eval psnr": test_psnr}, step=epoch)
+                wandb.log({"eval psnr": test_psnr, "epoch": epoch})
 
         if scheduler:
             scheduler.step()
@@ -202,7 +228,7 @@ def train(
         loss_history.append(loss_meter.avg)
 
         if wandb_vis:
-            wandb.log({"training loss": loss_meter.avg}, step=epoch)
+            wandb.log({"mean training loss": loss_meter.avg, "epoch": epoch})
 
         if (epoch + 1) % log_interval == 0:
             progress.display(epoch + 1)
