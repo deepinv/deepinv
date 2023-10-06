@@ -138,7 +138,7 @@ def train(
                 if fly_estimate:
                     x, _ = next(iterators[g])  # In this case the dataloader outputs also a class label
                     physics_cur = physics[g]
-                    y = physics(x)
+                    y = physics_cur(x)
                 else:
                     if unsupervised:
                         y = next(iterators[g])
