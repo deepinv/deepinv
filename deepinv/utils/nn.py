@@ -162,8 +162,12 @@ def get_freer_gpu():
 
     """
     try:
-        os.system("nvidia-smi -q -d Memory |grep -A5 GPU|grep Free >tmp")
-        memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
+        if os.name == 'posix':
+            os.system("nvidia-smi -q -d Memory |grep -A5 GPU|grep Free >tmp")
+            memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
+        else:
+            os.system('bash -c "nvidia-smi -q -d Memory |grep -A5 GPU|grep Free >tmp"')
+            memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
         idx = np.argmax(memory_available)
         device = torch.device(f"cuda:{idx}")
         print(f"Selected GPU {idx} with {np.max(memory_available)} MB free memory ")
