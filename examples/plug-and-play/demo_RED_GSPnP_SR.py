@@ -104,7 +104,7 @@ batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping 
 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
-    operation, noise_level_img, kernel_index
+    operation, noise_level_img
 )
 
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
