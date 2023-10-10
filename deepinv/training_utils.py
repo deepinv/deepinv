@@ -140,9 +140,12 @@ def train(
 
             for g in G_perm:
                 if fly_estimate:
-                    x, _ = next(iterators[g])  # In this case the dataloader outputs also a class label
+                    x, _ = next(
+                        iterators[g]
+                    )  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
+                    physics_cur.reset()
                     y = physics_cur(x)
                 else:
                     if unsupervised:
@@ -188,14 +191,15 @@ def train(
                 if wandb_vis:
                     wandb.log({"training loss": loss_total.item()})
 
-        if wandb_vis:  # Note that this may not be 16 images because the last batch may be smaller
+        if (
+            wandb_vis
+        ):  # Note that this may not be 16 images because the last batch may be smaller
             in_image = physics_cur.A_adjoint(y)
             vis_array = torch.cat((in_image, x_net, x), dim=0)
             vis_array = torch.clip(vis_array, 0, 1)
-            grid_image = torchvision.utils.make_grid(vis_array, nrow=3)
+            grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
             images = wandb.Image(
-                grid_image,
-                caption="Top: Input, Middle: Output, Bottom: target"
+                grid_image, caption="Top: Input, Middle: Output, Bottom: target"
             )
             wandb.log({"Training samples": images})
 

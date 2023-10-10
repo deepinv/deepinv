@@ -4,7 +4,7 @@ import torch
 class GaussianNoise(torch.nn.Module):
     r"""
 
-    Additive gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
+    Additive Gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
     It can be added to a physics operator in its construction or by setting the ``noise_model``
     attribute of the physics operator.
@@ -35,6 +35,48 @@ class GaussianNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         return x + torch.randn_like(x) * self.sigma
+
+
+class UniformGaussianNoise(torch.nn.Module):
+    r"""
+
+    Additive Gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where
+    :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)` and where :math:`\sigma` sampled uniformly at random in
+    :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`
+
+    It can be added to a physics operator in its construction or by setting:
+    ::
+
+        physics.noise_model = UniformGaussianNoise()
+
+    :param float sigma_min: minimum standard deviation of the noise.
+    :param float sigma_max: maximum standard deviation of the noise.
+    :param float, torch.Tensor sigma: standard deviation of the noise. If None, the noise is sampled uniformly at random
+        in :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`) during the forward pass. Default: None.
+    """
+
+    def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None):
+        super().__init__()
+        self.sigma_min = sigma_min
+        self.sigma_max = sigma_max
+        self.sigma = sigma
+
+    def forward(self, x):
+        r"""
+        Adds the noise to measurements x.
+
+        :param torch.Tensor x: measurements;
+        :return noisy measurements.
+        """
+        if self.sigma is None:
+            sigma = (
+                torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2))
+                * (self.sigma_max - self.sigma_min)
+                + self.sigma_min
+            )
+            self.sigma = sigma.to(x.device)
+        noise = torch.randn_like(x) * self.sigma
+        return x + noise
 
 
 class PoissonNoise(torch.nn.Module):
