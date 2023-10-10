@@ -162,7 +162,7 @@ def get_freer_gpu():
 
     """
     try:
-        if os.name == 'posix':
+        if os.name == "posix":
             os.system("nvidia-smi -q -d Memory |grep -A5 GPU|grep Free >tmp")
             memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
         else:
