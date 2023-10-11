@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added on-the-fly physics computations in training (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Added `no_grad` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
 - Added prox of TV (:gh:`79` by `Matthieu Terris`_) - 16/08/2023
 - Added diffpir demo + model (:gh:`77` by `Matthieu Terris`_) - 08/08/2023
@@ -18,12 +19,15 @@ New Features
 
 Fixed
 ^^^^^
+- Doc typos (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Minor fixes DiffPIR + other typos (:gh:`81` by `Matthieu Terris`_) - 10/09/2023
 - Call `wandb.init` only when needed (:gh:`78` by `Jérémy Scanvic`_) - 09/08/2023
 - Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
 - Automatically disable backtracking is no explicit cost (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 - Added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
 - Fixed get_freer_gpu grep statement to work for different versions of nvidia-smi (:gh: `82` by `Alexander Mehta`_) - 20/09/2023
+- Fixed get_freer_gpu to work on different operating systems (:gh: `87` by `Andrea Sebastiani`_) - 10/10/2023
+- Fixed Discord server and contributiong links  (:gh: `87` by `Andrea Sebastiani`_) - 10/10/2023
 
 
 Changed
@@ -40,3 +44,4 @@ Authors
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
+.. _Andrea Sebastiani: https://github.com/sedaboni 
