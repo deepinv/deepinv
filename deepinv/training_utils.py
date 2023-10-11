@@ -233,7 +233,13 @@ def train(
 
         if wandb_vis:
             last_lr = scheduler.get_last_lr()[0]
-            wandb.log({"mean training loss": loss_meter.avg, "epoch": epoch, "learning rate": last_lr})
+            wandb.log(
+                {
+                    "mean training loss": loss_meter.avg,
+                    "epoch": epoch,
+                    "learning rate": last_lr,
+                }
+            )
 
         if (epoch + 1) % log_interval == 0:
             progress.display(epoch + 1)

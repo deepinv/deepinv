@@ -199,5 +199,5 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         save_path=str(CKPT_DIR),
         verbose=True,
         wandb_vis=False,
-        fly_estimate=True
+        fly_estimate=True,
     )
