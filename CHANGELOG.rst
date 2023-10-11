@@ -24,6 +24,8 @@ Fixed
 - Automatically disable backtracking is no explicit cost (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 - Added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
 - Fixed get_freer_gpu grep statement to work for different versions of nvidia-smi (:gh: `82` by `Alexander Mehta`_) - 20/09/2023
+- Fixed get_freer_gpu to work on different operating systems (:gh: `87` by `Andrea Sebastiani`_) - 10/10/2023
+- Fixed Discord server and contributiong links  (:gh: `87` by `Andrea Sebastiani`_) - 10/10/2023
 
 
 Changed
@@ -40,3 +42,4 @@ Authors
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
+.. _Andrea Sebastiani: https://github.com/sedaboni 
