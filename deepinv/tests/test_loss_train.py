@@ -186,7 +186,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         wandb_vis=False,
     )
 
-    # Now check that on the fly training works as well
+    # Now check that training with online measurements works as well
     train(
         model=model_unfolded,
         train_dataloader=train_dataloader,
@@ -199,5 +199,5 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         save_path=str(CKPT_DIR),
         verbose=True,
         wandb_vis=False,
-        fly_estimate=True,
+        online_measurements=True,
     )

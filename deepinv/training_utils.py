@@ -44,7 +44,7 @@ def train(
     wandb_vis=False,
     wandb_setup={},
     n_plot_max_wandb=8,
-    fly_estimate=False,
+    online_measurements=False,
 ):
     r"""
     Trains a reconstruction network.
@@ -69,6 +69,7 @@ def train(
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at train time.
     :param torch.nn.optim optimizer: Torch optimizer for training the network.
+    :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
@@ -78,8 +79,13 @@ def train(
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
-    :param bool fly_estimate: Use a fly estimate, i.e., the network is trained on the fly, with physics and measurements
-        being generated at each iteration.
+    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
+    :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
+    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
+        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
+         parameters of the forward operator or noise realizations, can change between each sample; these are updated
+         with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are generated
+        offline before training and saved in memory.
     :returns: Trained model.
     """
     save_path = Path(save_path)
@@ -139,7 +145,7 @@ def train(
             G_perm = np.random.permutation(G)
 
             for g in G_perm:
-                if fly_estimate:
+                if online_measurements:
                     x, _ = next(
                         iterators[g]
                     )  # In this case the dataloader outputs also a class label
@@ -161,10 +167,6 @@ def train(
                     physics_cur = physics[g]
 
                 y = y.to(device)
-
-                # Useful for later
-                # in_image = physics_cur.A_adjoint(y)
-                # sigma = physics_cur.noise_model.sigma
 
                 optimizer.zero_grad()
 
