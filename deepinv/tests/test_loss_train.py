@@ -162,7 +162,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
     optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
 
-    train(
+    trained_unfolded_model = train(
         model=model_unfolded,
         train_dataloader=train_dataloader,
         eval_dataloader=test_dataloader,
@@ -177,11 +177,27 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     )
 
     results = feature_test(
-        model=model_unfolded,
+        model=trained_unfolded_model,
         test_dataloader=test_dataloader,
         physics=physics,
         device=device,
         plot_images=False,
         verbose=True,
         wandb_vis=False,
+    )
+
+    # Now check that on the fly training works as well
+    train(
+        model=model_unfolded,
+        train_dataloader=train_dataloader,
+        eval_dataloader=test_dataloader,
+        epochs=epochs,
+        losses=losses,
+        physics=physics,
+        optimizer=optimizer,
+        device=device,
+        save_path=str(CKPT_DIR),
+        verbose=True,
+        wandb_vis=False,
+        fly_estimate=True
     )
