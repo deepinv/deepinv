@@ -3,72 +3,74 @@
 import argparse
 
 import torch
-from .denoiser import online_weights_path
+# from .denoiser import online_weights_path
+# TO SWITCH
+def online_weights_path():
+    return "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files="
+
+# MODEL_PATH_FFHQ = None
+# MODEL_CONFIG_FFHQ = dict(
+#     model_path=MODEL_PATH_FFHQ,
+#     model_name="diffusion_ffhq_10m.pt",
+#     num_channels=128,
+#     num_res_blocks=1,
+#     attention_resolutions="16",
+# )
+#
+# MODEL_PATH_DIFUNC = None
+# MODEL_CONFIG_DIFUC = dict(
+#     model_path=MODEL_PATH_DIFUNC,
+#     num_channels=256,
+#     num_res_blocks=2,
+#     attention_resolutions="8,16,32",
+# )
 
 
-MODEL_PATH_FFHQ = None
-MODEL_CONFIG_FFHQ = dict(
-    model_path=MODEL_PATH_FFHQ,
-    model_name="diffusion_ffhq_10m.pt",
-    num_channels=128,
-    num_res_blocks=1,
-    attention_resolutions="16",
-)
-
-MODEL_PATH_DIFUNC = None
-MODEL_CONFIG_DIFUC = dict(
-    model_path=MODEL_PATH_DIFUNC,
-    num_channels=256,
-    num_res_blocks=2,
-    attention_resolutions="8,16,32",
-)
-
-
-def create_argparser(model_config):
-    defaults = dict(
-        clip_denoised=True,
-        num_samples=1,
-        batch_size=1,
-        use_ddim=False,
-        model_path="",
-        diffusion_steps=1000,
-        noise_schedule="linear",
-        num_head_channels=64,
-        resblock_updown=True,
-        use_fp16=False,
-        use_scale_shift_norm=True,
-        num_heads=4,
-        num_heads_upsample=-1,
-        use_new_attention_order=False,
-        timestep_respacing="",
-        use_kl=False,
-        predict_xstart=False,
-        rescale_timesteps=False,
-        rescale_learned_sigmas=False,
-        channel_mult="",
-        learn_sigma=True,
-        class_cond=False,
-        use_checkpoint=False,
-        image_size=256,
-        num_channels=128,
-        num_res_blocks=1,
-        attention_resolutions="16",
-        dropout=0.1,
-    )
-    defaults.update(model_config)
-    parser = argparse.ArgumentParser()
-    add_dict_to_argparser(parser, defaults)
-    return parser
-
-
-def add_dict_to_argparser(parser, default_dict):
-    for k, v in default_dict.items():
-        v_type = type(v)
-        if v is None:
-            v_type = str
-        elif isinstance(v, bool):
-            v_type = str2bool
-        parser.add_argument(f"--{k}", default=v, type=v_type)
+# def create_argparser(model_config):
+#     defaults = dict(
+#         clip_denoised=True,
+#         num_samples=1,
+#         batch_size=1,
+#         use_ddim=False,
+#         model_path="",
+#         diffusion_steps=1000,
+#         noise_schedule="linear",
+#         num_head_channels=64,
+#         resblock_updown=True,
+#         use_fp16=False,
+#         use_scale_shift_norm=True,
+#         num_heads=4,
+#         num_heads_upsample=-1,
+#         use_new_attention_order=False,
+#         timestep_respacing="",
+#         use_kl=False,
+#         predict_xstart=False,
+#         rescale_timesteps=False,
+#         rescale_learned_sigmas=False,
+#         channel_mult="",
+#         learn_sigma=True,
+#         class_cond=False,
+#         use_checkpoint=False,
+#         image_size=256,
+#         num_channels=128,
+#         num_res_blocks=1,
+#         attention_resolutions="16",
+#         dropout=0.1,
+#     )
+#     defaults.update(model_config)
+#     parser = argparse.ArgumentParser()
+#     add_dict_to_argparser(parser, defaults)
+#     return parser
+#
+#
+# def add_dict_to_argparser(parser, default_dict):
+#     for k, v in default_dict.items():
+#         v_type = type(v)
+#         if v is None:
+#             v_type = str
+#         elif isinstance(v, bool):
+#             v_type = str2bool
+#         parser.add_argument(f"--{k}", default=v, type=v_type)
 
 
 def str2bool(v):
@@ -85,71 +87,71 @@ def str2bool(v):
         raise argparse.ArgumentTypeError("boolean value expected")
 
 
-def model_defaults():
-    """
-    Defaults for image training.
-    """
-    return dict(
-        image_size=64,
-        num_channels=128,
-        num_res_blocks=2,
-        num_heads=4,
-        num_heads_upsample=-1,
-        num_head_channels=-1,
-        attention_resolutions="16,8",
-        channel_mult="",
-        dropout=0.0,
-        class_cond=False,
-        use_checkpoint=False,
-        learn_sigma=False,
-        use_scale_shift_norm=True,
-        resblock_updown=False,
-        use_fp16=False,
-        use_new_attention_order=False,
-    )
+# def model_defaults():
+#     """
+#     Defaults for image training.
+#     """
+#     return dict(
+#         image_size=64,
+#         num_channels=128,
+#         num_res_blocks=2,
+#         num_heads=4,
+#         num_heads_upsample=-1,
+#         num_head_channels=-1,
+#         attention_resolutions="16,8",
+#         channel_mult="",
+#         dropout=0.0,
+#         class_cond=False,
+#         use_checkpoint=False,
+#         learn_sigma=False,
+#         use_scale_shift_norm=True,
+#         resblock_updown=False,
+#         use_fp16=False,
+#         use_new_attention_order=False,
+#     )
+#
+#
+# def args_to_dict(args, keys):
+#     return {k: getattr(args, k) for k in keys}
+#
 
-
-def args_to_dict(args, keys):
-    return {k: getattr(args, k) for k in keys}
-
-
-def create_unet_model(
-    image_size,
-    class_cond,
-    learn_sigma,
-    num_channels,
-    num_res_blocks,
-    channel_mult,
-    num_heads,
-    num_head_channels,
-    num_heads_upsample,
-    attention_resolutions,
-    dropout,
-    use_checkpoint,
-    use_scale_shift_norm,
-    resblock_updown,
-    use_fp16,
-    use_new_attention_order,
-):
-    return create_model(
-        image_size,
-        num_channels,
-        num_res_blocks,
-        channel_mult=channel_mult,
-        learn_sigma=learn_sigma,
-        class_cond=class_cond,
-        use_checkpoint=use_checkpoint,
-        attention_resolutions=attention_resolutions,
-        num_heads=num_heads,
-        num_head_channels=num_head_channels,
-        num_heads_upsample=num_heads_upsample,
-        use_scale_shift_norm=use_scale_shift_norm,
-        dropout=dropout,
-        resblock_updown=resblock_updown,
-        use_fp16=use_fp16,
-        use_new_attention_order=use_new_attention_order,
-    )
-
+# def create_unet_model(
+#     image_size,
+#     class_cond,
+#     learn_sigma,
+#     num_channels,
+#     num_res_blocks,
+#     channel_mult,
+#     num_heads,
+#     num_head_channels,
+#     num_heads_upsample,
+#     attention_resolutions,
+#     dropout,
+#     use_checkpoint,
+#     use_scale_shift_norm,
+#     resblock_updown,
+#     use_fp16,
+#     use_new_attention_order,
+# ):
+#     return create_model(
+#         image_size,
+#         num_channels,
+#         num_res_blocks,
+#         channel_mult=channel_mult,
+#         learn_sigma=learn_sigma,
+#         class_cond=class_cond,
+#         use_checkpoint=use_checkpoint,
+#         attention_resolutions=attention_resolutions,
+#         num_heads=num_heads,
+#         num_head_channels=num_head_channels,
+#         num_heads_upsample=num_heads_upsample,
+#         use_scale_shift_norm=use_scale_shift_norm,
+#         dropout=dropout,
+#         resblock_updown=resblock_updown,
+#         use_fp16=use_fp16,
+#         use_new_attention_order=use_new_attention_order,
+#     )
+#
 
 # def get_model_defaults(model_config=MODEL_CONFIG_FFHQ, device="cpu"):
 #     r"""
@@ -182,61 +184,61 @@ def create_unet_model(
 #     return model
 
 
-def create_model(
-    image_size,
-    num_channels,
-    num_res_blocks,
-    channel_mult="",
-    learn_sigma=False,
-    class_cond=False,
-    use_checkpoint=False,
-    attention_resolutions="16",
-    num_heads=1,
-    num_head_channels=-1,
-    num_heads_upsample=-1,
-    use_scale_shift_norm=False,
-    dropout=0,
-    resblock_updown=False,
-    use_fp16=False,
-    use_new_attention_order=False,
-):
-    if channel_mult == "":
-        if image_size == 512:
-            channel_mult = (0.5, 1, 1, 2, 2, 4, 4)
-        elif image_size == 256:
-            channel_mult = (1, 1, 2, 2, 4, 4)
-        elif image_size == 128:
-            channel_mult = (1, 1, 2, 3, 4)
-        elif image_size == 64:
-            channel_mult = (1, 2, 3, 4)
-        else:
-            raise ValueError(f"unsupported image size: {image_size}")
-    else:
-        channel_mult = tuple(int(ch_mult) for ch_mult in channel_mult.split(","))
-
-    attention_ds = []
-    for res in attention_resolutions.split(","):
-        attention_ds.append(image_size // int(res))
-
-    return DiffUNet(
-        image_size=image_size,
-        in_channels=3,
-        model_channels=num_channels,
-        out_channels=(3 if not learn_sigma else 6),
-        num_res_blocks=num_res_blocks,
-        attention_resolutions=tuple(attention_ds),
-        dropout=dropout,
-        channel_mult=channel_mult,
-        num_classes=None,  # class_cond otherwise
-        use_checkpoint=use_checkpoint,
-        use_fp16=use_fp16,
-        num_heads=num_heads,
-        num_head_channels=num_head_channels,
-        num_heads_upsample=num_heads_upsample,
-        use_scale_shift_norm=use_scale_shift_norm,
-        resblock_updown=resblock_updown,
-        use_new_attention_order=use_new_attention_order,
-    )
+# def create_model(
+#     image_size,
+#     num_channels,
+#     num_res_blocks,
+#     channel_mult="",
+#     learn_sigma=False,
+#     class_cond=False,
+#     use_checkpoint=False,
+#     attention_resolutions="16",
+#     num_heads=1,
+#     num_head_channels=-1,
+#     num_heads_upsample=-1,
+#     use_scale_shift_norm=False,
+#     dropout=0,
+#     resblock_updown=False,
+#     use_fp16=False,
+#     use_new_attention_order=False,
+# ):
+#     if channel_mult == "":
+#         if image_size == 512:
+#             channel_mult = (0.5, 1, 1, 2, 2, 4, 4)
+#         elif image_size == 256:
+#             channel_mult = (1, 1, 2, 2, 4, 4)
+#         elif image_size == 128:
+#             channel_mult = (1, 1, 2, 3, 4)
+#         elif image_size == 64:
+#             channel_mult = (1, 2, 3, 4)
+#         else:
+#             raise ValueError(f"unsupported image size: {image_size}")
+#     else:
+#         channel_mult = tuple(int(ch_mult) for ch_mult in channel_mult.split(","))
+#
+#     attention_ds = []
+#     for res in attention_resolutions.split(","):
+#         attention_ds.append(image_size // int(res))
+#
+#     return DiffUNet(
+#         image_size=image_size,
+#         in_channels=3,
+#         model_channels=num_channels,
+#         out_channels=(3 if not learn_sigma else 6),
+#         num_res_blocks=num_res_blocks,
+#         attention_resolutions=tuple(attention_ds),
+#         dropout=dropout,
+#         channel_mult=channel_mult,
+#         num_classes=None,  # class_cond otherwise
+#         use_checkpoint=use_checkpoint,
+#         use_fp16=use_fp16,
+#         num_heads=num_heads,
+#         num_head_channels=num_head_channels,
+#         num_heads_upsample=num_heads_upsample,
+#         use_scale_shift_norm=use_scale_shift_norm,
+#         resblock_updown=resblock_updown,
+#         use_new_attention_order=use_new_attention_order,
+#     )
 
 
 # This code is taken (with minor modifications) from https://github.com/yuanzhi-zhu/DiffPIR/tree/main
@@ -661,31 +663,43 @@ class DiffUNet(nn.Module):
     :param bool use_new_attention_order: use a different attention pattern for potentially
                                     increased efficiency.
     """
-
     def __init__(
         self,
-        image_size,
+        architecture=None,
+        image_size=256,
         in_channels=3,
         model_channels=128,
-        out_channels=3,
+        out_channels=6,
         num_res_blocks=1,
         attention_resolutions=(16,),
         pretrained='download',
-        dropout=0,
+        dropout=0.1,
         channel_mult=(1, 2, 4, 8),
         conv_resample=True,
         dims=2,
         num_classes=None,
         use_checkpoint=False,
         use_fp16=False,
-        num_heads=1,
-        num_head_channels=-1,
+        num_heads=4,
+        num_head_channels=64,
         num_heads_upsample=-1,
-        use_scale_shift_norm=False,
-        resblock_updown=False,
+        use_scale_shift_norm=True,
+        resblock_updown=True,
         use_new_attention_order=False,
     ):
         super().__init__()
+
+        if architecture is not None and architecture=='small':
+            model_channels = 128
+            num_res_blocks = 1
+            channel_mult = (1, 1, 2, 2, 4, 4)
+            attention_resolutions = (16,)
+        elif architecture is not None and architecture=='large':
+            model_channels=256
+            num_res_blocks=2
+            channel_mult = (1, 1, 2, 2, 4, 4)
+            attention_resolutions = (32, 16, 8)
+
 
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
@@ -858,18 +872,18 @@ class DiffUNet(nn.Module):
             if pretrained == "download":
                 if model_channels == 128 and num_res_blocks == 1 and attention_resolutions[0] == 16:
                     name = "diffusion_ffhq_10m.pt"
-
-                #elif num_channels == 256 and num_res_blocks == 2 and attention_resolutions == "8,16,32":
-                #   name = "" TODO
-
-                    url = online_weights_path() + name
-                    ckpt = torch.hub.load_state_dict_from_url(
-                        url, map_location=lambda storage, loc: storage, file_name=name
-                    )
+                elif model_channels == 256 and num_res_blocks == 2 and attention_resolutions == (32, 16, 8):
+                    name = "256x256_diffusion_uncond.pt"
                 else:
                     raise ValueError(
                         "no existing pretrained model matches the requested configuration"
                     )
+
+                url = online_weights_path() + name
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                    )
+
             else:
                 ckpt = torch.load(
                     pretrained, map_location=lambda storage, loc: storage
@@ -1232,3 +1246,20 @@ def convert_module_to_f32(l):
         l.weight.data = l.weight.data.float()
         if l.bias is not None:
             l.bias.data = l.bias.data.float()
+
+
+
+# Create a main to test this module
+if __name__ == "__main__":
+
+    # FFHQ case
+    model = DiffUNet(
+        architecture='small',
+        pretrained='download'
+    )
+
+    # OPENAI
+    model = DiffUNet(
+        architecture='large',
+        pretrained='download'
+    )
