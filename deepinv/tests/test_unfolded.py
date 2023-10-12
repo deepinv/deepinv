@@ -186,4 +186,3 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     for idx, (name, param) in enumerate(model.named_parameters()):
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
-
