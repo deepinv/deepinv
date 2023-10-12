@@ -151,35 +151,35 @@ def create_unet_model(
     )
 
 
-def get_model_defaults(model_config=MODEL_CONFIG_FFHQ, device="cpu"):
-    r"""
-    This function returns the UNet model with default configurations.
-
-    :param dict model_config: model configuration (can be either MODEL_CONFIG_FFHQ or MODEL_CONFIG_DIFUC)
-    :param str device: device to use (cpu or cuda)
-    :return: UNet model
-    """
-    args = create_argparser(model_config).parse_args([])
-    model = create_unet_model(**args_to_dict(args, model_defaults().keys()))
-    if model_config["model_path"] is not None:  # If path is specified by user, load it
-        model.load_state_dict(
-            torch.load(model_config["model_path"], map_location=device)
-        )
-    else:  # Else, download it
-        url = online_weights_path() + model_config["model_name"]
-        ckpt = torch.hub.load_state_dict_from_url(
-            url,
-            map_location=lambda storage, loc: storage,
-            file_name=model_config["model_name"],
-        )
-        model.load_state_dict(ckpt, strict=True)
-    model.eval()
-    if True:  # generate_mode != 'DPS_y0':
-        for k, v in model.named_parameters():
-            v.requires_grad = False
-    model = model.to(device)
-
-    return model
+# def get_model_defaults(model_config=MODEL_CONFIG_FFHQ, device="cpu"):
+#     r"""
+#     This function returns the UNet model with default configurations.
+#
+#     :param dict model_config: model configuration (can be either MODEL_CONFIG_FFHQ or MODEL_CONFIG_DIFUC)
+#     :param str device: device to use (cpu or cuda)
+#     :return: UNet model
+#     """
+#     args = create_argparser(model_config).parse_args([])
+#     model = create_unet_model(**args_to_dict(args, model_defaults().keys()))
+#     if model_config["model_path"] is not None:  # If path is specified by user, load it
+#         model.load_state_dict(
+#             torch.load(model_config["model_path"], map_location=device)
+#         )
+#     else:  # Else, download it
+#         url = online_weights_path() + model_config["model_name"]
+#         ckpt = torch.hub.load_state_dict_from_url(
+#             url,
+#             map_location=lambda storage, loc: storage,
+#             file_name=model_config["model_name"],
+#         )
+#         model.load_state_dict(ckpt, strict=True)
+#     model.eval()
+#     if True:  # generate_mode != 'DPS_y0':
+#         for k, v in model.named_parameters():
+#             v.requires_grad = False
+#     model = model.to(device)
+#
+#     return model
 
 
 def create_model(
@@ -218,7 +218,7 @@ def create_model(
     for res in attention_resolutions.split(","):
         attention_ds.append(image_size // int(res))
 
-    return UNetModel(
+    return DiffUNet(
         image_size=image_size,
         in_channels=3,
         model_channels=num_channels,
@@ -621,47 +621,56 @@ class QKVAttention(nn.Module):
         return count_flops_attn(model, _x, y)
 
 
-class UNetModel(nn.Module):
+class DiffUNet(nn.Module):
     r"""
-    The full UNet model with attention and timestep embedding.
+    The full UNet model with attention and timestep/noise_level embedding.
 
     This is the model from https://arxiv.org/abs/2108.02938; code is adapted from https://github.com/jychoi118/ilvr_adm.
 
-    :param in_channels: channels in the input Tensor.
-    :param model_channels: base channel count for the model.
-    :param out_channels: channels in the output Tensor.
+    A pretrained network for (in_channels=out_channels=1)
+    can be downloaded via setting ``pretrained='download'``.
+
+    :param int image_size: Number of pixels along one dimension of the image. The image is assumed to be square.
+    :param int in_channels: channels in the input Tensor.
+    :param int model_channels: base channel count for the model.
+    :param int out_channels: channels in the output Tensor.
     :param num_res_blocks: number of residual blocks per downsample.
-    :param attention_resolutions: a collection of downsample rates at which
+    :param list, tuple, int attention_resolutions: a collection of downsample rates at which
         attention will take place. May be a set, list, or tuple.
         For example, if this contains 4, then at 4x downsampling, attention
         will be used.
-    :param dropout: the dropout probability.
-    :param channel_mult: channel multiplier for each level of the UNet.
-    :param conv_resample: if True, use learned convolutions for upsampling and
-        downsampling.
-    :param dims: determines if the signal is 1D, 2D, or 3D.
-    :param num_classes: if specified (as an int), then this model will be
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at
+        random using Pytorch's default initialization.
+        If ``pretrained='download'``, the weights will be downloaded from an online repository
+        (only available for the default architecture with 3 input and output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+    :param float dropout: the dropout probability.
+    :param int channel_mult: channel multiplier for each level of the UNet.
+    :param bool conv_resample: if True, use learned convolutions for upsampling and downsampling.
+    :param int dims: determines if the signal is 1D, 2D, or 3D.
+    :param int, None num_classes: if specified (as an int), then this model will be
         class-conditional with `num_classes` classes.
-    :param use_checkpoint: use gradient checkpointing to reduce memory usage.
-    :param num_heads: the number of attention heads in each attention layer.
-    :param num_heads_channels: if specified, ignore num_heads and instead use
+    :param bool use_checkpoint: use gradient checkpointing to reduce memory usage.
+    :param int num_heads: the number of attention heads in each attention layer.
+    :param int num_heads_channels: if specified, ignore num_heads and instead use
                                a fixed channel width per attention head.
-    :param num_heads_upsample: works with num_heads to set a different number
+    :param int num_heads_upsample: works with num_heads to set a different number
                                of heads for upsampling. Deprecated.
-    :param use_scale_shift_norm: use a FiLM-like conditioning mechanism.
-    :param resblock_updown: use residual blocks for up/downsampling.
-    :param use_new_attention_order: use a different attention pattern for potentially
+    :param bool use_scale_shift_norm: use a FiLM-like conditioning mechanism.
+    :param bool resblock_updown: use residual blocks for up/downsampling.
+    :param bool use_new_attention_order: use a different attention pattern for potentially
                                     increased efficiency.
     """
 
     def __init__(
         self,
         image_size,
-        in_channels,
-        model_channels,
-        out_channels,
-        num_res_blocks,
-        attention_resolutions,
+        in_channels=3,
+        model_channels=128,
+        out_channels=3,
+        num_res_blocks=1,
+        attention_resolutions=(16,),
+        pretrained='download',
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         conv_resample=True,
@@ -845,6 +854,29 @@ class UNetModel(nn.Module):
             zero_module(conv_nd(dims, input_ch, out_channels, 3, padding=1)),
         )
 
+        if pretrained is not None:
+            if pretrained == "download":
+                if model_channels == 128 and num_res_blocks == 1 and attention_resolutions[0] == 16:
+                    name = "diffusion_ffhq_10m.pt"
+
+                #elif num_channels == 256 and num_res_blocks == 2 and attention_resolutions == "8,16,32":
+                #   name = "" TODO
+
+                    url = online_weights_path() + name
+                    ckpt = torch.hub.load_state_dict_from_url(
+                        url, map_location=lambda storage, loc: storage, file_name=name
+                    )
+                else:
+                    raise ValueError(
+                        "no existing pretrained model matches the requested configuration"
+                    )
+            else:
+                ckpt = torch.load(
+                    pretrained, map_location=lambda storage, loc: storage
+                )
+
+            self.load_state_dict(ckpt, strict=True)
+
     def convert_to_fp16(self):
         """
         Convert the torso of the model to float16.
@@ -861,7 +893,7 @@ class UNetModel(nn.Module):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward(self, x, t, y=None, type_t="timestep"):
+    def forward(self, x, t, y=None, type_t="noise_level"):
         r"""
         Apply the model to an input batch.
 
@@ -952,6 +984,7 @@ class UNetModel(nn.Module):
         Find the argmin of the nearest value in an array.
         """
         array = np.asarray(array)
+        value = np.asarray(value.cpu())
         idx = (np.abs(array - value)).argmin()
         return idx
 
