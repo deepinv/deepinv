@@ -1,5 +1,7 @@
 import torchvision.utils
 
+from torch.profiler import profile, record_function, ProfilerActivity  # to delete
+
 from deepinv.utils import (
     save_model,
     AverageMeter,
@@ -102,14 +104,14 @@ def train(
     eval_psnr_net = []
 
     losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
-    train_psnr_net = AverageMeter("Train_psnr_model", ":.2f")
+    train_psnr = AverageMeter("Train_psnr_model", ":.2f")
     if eval_dataloader:
         eval_psnr_net = AverageMeter("Eval_psnr_model", ":.2f")
 
     for loss in losses_verbose:
         meters.append(loss)
 
-    meters.append(train_psnr_net)
+    meters.append(train_psnr)
     if eval_dataloader:
         meters.append(eval_psnr_net)
 
@@ -137,10 +139,13 @@ def train(
     loss_history = []
 
     for epoch in range(epochs):
+        model.train()
+
         for meter in meters:
             meter.reset()
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
+
         for i in range(batches):
             G_perm = np.random.permutation(G)
 
@@ -178,11 +183,6 @@ def train(
                     loss_total += loss
                     losses_verbose[k].update(loss.item())
 
-                loss_meter.update(loss_total.item())
-
-                if (not unsupervised) and verbose:
-                    train_psnr_net.update(cal_psnr(x_net, x))
-
                 loss_total.backward()
 
                 if grad_clip is not None:
@@ -192,6 +192,11 @@ def train(
 
                 if wandb_vis:
                     wandb.log({"training loss": loss_total.item()})
+
+                loss_meter.update(loss_total.item())
+
+                if not unsupervised:
+                    train_psnr.update(cal_psnr(x_net, x))
 
         if (
             wandb_vis
@@ -204,6 +209,12 @@ def train(
                 grid_image, caption="Top: Input, Middle: Output, Bottom: target"
             )
             wandb.log({"Training samples": images})
+
+        check = (
+            (not unsupervised)
+            and eval_dataloader is not None
+            and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
+        )
 
         if (
             (not unsupervised)
@@ -218,15 +229,16 @@ def train(
                 verbose=False,
                 plot_images=plot_images,
                 plot_metrics=plot_metrics,
-                wandb_vis=wandb_vis,
+                wandb_vis=False,
                 step=epoch,
                 n_plot_max_wandb=n_plot_max_wandb,
+                online_measurements=online_measurements,
             )
 
             eval_psnr_net.update(test_psnr)
 
             if wandb_vis:
-                wandb.log({"eval psnr": test_psnr, "epoch": epoch})
+                wandb.log({"eval psnr": test_psnr})
 
         if scheduler:
             scheduler.step()
@@ -234,14 +246,25 @@ def train(
         loss_history.append(loss_meter.avg)
 
         if wandb_vis:
-            last_lr = scheduler.get_last_lr()[0]
-            wandb.log(
-                {
-                    "mean training loss": loss_meter.avg,
-                    "epoch": epoch,
-                    "learning rate": last_lr,
-                }
-            )
+            last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
+            if not unsupervised:
+                wandb.log(
+                    {
+                        "mean training loss": loss_meter.avg,
+                        "mean training psnr": train_psnr.avg,
+                        "mean eval psnr": eval_psnr_net.avg,
+                        "epoch": epoch,
+                        "learning rate": last_lr,
+                    }
+                )
+            else:
+                wandb.log(
+                    {
+                        "mean training loss": loss_meter.avg,
+                        "epoch": epoch,
+                        "learning rate": last_lr,
+                    }
+                )
 
         if (epoch + 1) % log_interval == 0:
             progress.display(epoch + 1)
@@ -276,6 +299,7 @@ def test(
     wandb_vis=False,
     step=0,
     n_plot_max_wandb=8,
+    online_measurements=False,
     **kwargs,
 ):
     r"""
@@ -308,6 +332,8 @@ def test(
     psnr_init = []
     psnr_net = []
 
+    model.eval()
+
     if type(physics) is not list:
         physics = [physics]
 
@@ -327,16 +353,24 @@ def test(
         dataloader = test_dataloader[g]
         if verbose:
             print(f"Processing data of operator {g+1} out of {G}")
-        for i, (x, y) in enumerate(tqdm(dataloader, disable=not verbose)):
-            if type(x) is list or type(x) is tuple:
-                x = [s.to(device) for s in x]
-            else:
+        for i, batch in enumerate(tqdm(dataloader, disable=not verbose)):
+            if online_measurements:
+                x, _ = batch  # In this case the dataloader outputs also a class label
                 x = x.to(device)
-            y = y.to(device)
+                physics_cur = physics[g]
+                physics_cur.reset()
+                y = physics_cur(x)
+            else:
+                if type(x) is list or type(x) is tuple:
+                    x = [s.to(device) for s in x]
+                else:
+                    x = x.to(device)
+                physics_cur = physics[g]
+                y = y.to(device)
 
             with torch.no_grad():
                 if plot_metrics:
-                    x1, metrics = model(y, physics[g], x_gt=x, compute_metrics=True)
+                    x1, metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
                 else:
                     x1 = model(y, physics[g])
 
