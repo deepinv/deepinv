@@ -18,6 +18,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fix BlurFFT adjoint (:gh:`89` by `Matthieu Terris`_) - 15/10/2023
 - Minor fixes DiffPIR + other typos (:gh:`81` by `Matthieu Terris`_) - 10/09/2023
 - Call `wandb.init` only when needed (:gh:`78` by `Jérémy Scanvic`_) - 09/08/2023
 - Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
