@@ -216,11 +216,12 @@ def train(
             and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
         )
 
-        if (
+        perform_eval = (
             (not unsupervised)
             and eval_dataloader
             and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
-        ):
+        )
+        if perform_eval:
             test_psnr, _, _, _ = test(
                 model,
                 eval_dataloader,
@@ -229,16 +230,14 @@ def train(
                 verbose=False,
                 plot_images=plot_images,
                 plot_metrics=plot_metrics,
-                wandb_vis=False,
+                wandb_vis=wandb_vis,
+                wandb_setup=wandb_setup,
                 step=epoch,
                 n_plot_max_wandb=n_plot_max_wandb,
                 online_measurements=online_measurements,
             )
 
             eval_psnr_net.update(test_psnr)
-
-            if wandb_vis:
-                wandb.log({"eval psnr": test_psnr})
 
         if scheduler:
             scheduler.step()
@@ -247,7 +246,7 @@ def train(
 
         if wandb_vis:
             last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
-            if not unsupervised:
+            if not unsupervised and perform_eval:
                 wandb.log(
                     {
                         "mean training loss": loss_meter.avg,
@@ -261,6 +260,7 @@ def train(
                 wandb.log(
                     {
                         "mean training loss": loss_meter.avg,
+                        "mean training psnr": train_psnr.avg,
                         "epoch": epoch,
                         "learning rate": last_lr,
                     }
@@ -297,6 +297,7 @@ def test(
     verbose=True,
     plot_only_first_batch=True,
     wandb_vis=False,
+    wandb_setup={},
     step=0,
     n_plot_max_wandb=8,
     online_measurements=False,
@@ -322,6 +323,7 @@ def test(
     :param bool verbose: Output training progress information in the console.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param int step: Step number for wandb visualization.
     :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
@@ -346,7 +348,7 @@ def test(
 
     if wandb_vis:
         if wandb.run is None:
-            wandb.init()
+            wandb.init(**wandb_setup)
         psnr_data = []
 
     for g in range(G):
@@ -361,6 +363,7 @@ def test(
                 physics_cur.reset()
                 y = physics_cur(x)
             else:
+                x, y = batch
                 if type(x) is list or type(x) is tuple:
                     x = [s.to(device) for s in x]
                 else:
@@ -374,7 +377,7 @@ def test(
                 else:
                     x1 = model(y, physics[g])
 
-            x_init = physics[g].A_adjoint(y)
+            x_init = physics_cur.A_adjoint(y)
             cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)
             psnr_init.append(cur_psnr_init)
@@ -413,15 +416,14 @@ def test(
                                 show=True,
                             )
                         if wandb_vis:
-                            n_plot = min(n_plot_max_wandb, len(x))
-                            captions = [
-                                "Input",
-                                f"Linear PSNR:{cur_psnr_init:.2f}",
-                                f"Estimated PSNR:{cur_psnr:.2f}",
-                                "Ground Truth",
-                            ]
-                            imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
-                            wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
+                            vis_array = torch.cat(imgs, dim=0)
+                            vis_array = torch.clip(vis_array, 0, 1)
+                            grid_image = torchvision.utils.make_grid(vis_array, nrow=4)
+                            images = wandb.Image(
+                                grid_image,
+                                caption="Input (Left) / Backprojection (optional) / Output / Target (optional)",
+                            )
+                            wandb.log({f"Test images batch_{i} (G={g}) ": images})
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)
