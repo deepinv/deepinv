@@ -46,7 +46,7 @@ def train(
     wandb_vis=False,
     wandb_setup={},
     n_plot_max_wandb=8,
-    online_measurements=False,
+    online_measurements=False
 ):
     r"""
     Trains a reconstruction network.
@@ -152,7 +152,7 @@ def train(
             for g in G_perm:
                 if online_measurements:
                     x, _ = next(
-                        iterators[g]
+                         iterators[g]
                     )  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]

@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class PrimalBlock(nn.Module):
-    def __init__(self, in_channels=5, out_channels=3, depth=3, bias=True, nf=5):
+    def __init__(self, in_channels=2, out_channels=1, depth=3, bias=True, nf=5):
         r"""
         Primal block for primal-dual network.
 
@@ -12,8 +12,8 @@ class PrimalBlock(nn.Module):
         primal block is the concatenation of the current primal variable and the backprojected dual variable along
         the channel dimension. The output of each primal block is the current primal variable.
 
-        :param int in_channels: number of input channels. Default: 6.
-        :param int out_channels: number of output channels. Default: 3.
+        :param int in_channels: number of input channels. Default: 2.
+        :param int out_channels: number of output channels. Default: 1.
         :param int depth: number of convolutional layers in the block. Default: 3.
         :param bool bias: whether to use bias in convolutional layers. Default: True.
         :param int nf: number of features in the convolutional layers. Default: 5.
@@ -51,7 +51,7 @@ class PrimalBlock(nn.Module):
 
 
 class DualBlock(nn.Module):
-    def __init__(self, in_channels=7, out_channels=3, depth=3, bias=True, nf=5):
+    def __init__(self, in_channels=3, out_channels=1, depth=3, bias=True, nf=5):
         r"""
         Dual block for primal-dual network.
 
@@ -59,8 +59,8 @@ class DualBlock(nn.Module):
         primal block is the concatenation of the current dual variable with the projected primal variable and
         the measurements. The output of each dual block is the current primal variable.
 
-        :param int in_channels: number of input channels. Default: 7.
-        :param int out_channels: number of output channels. Default: 3.
+        :param int in_channels: number of input channels. Default: 3.
+        :param int out_channels: number of output channels. Default: 1.
         :param int depth: number of convolutional layers in the block. Default: 3.
         :param bool bias: whether to use bias in convolutional layers. Default: True.
         :param int nf: number of features in the convolutional layers. Default: 5.

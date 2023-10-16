@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models.PDNet import PrimalBlock, DualBlock
 from deepinv.optim import Prior, DataFidelity
@@ -45,68 +45,22 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # ---------------------------------------------------
 # In this example, we use the CBSD500 dataset for training and the Set3C dataset for testing.
 
-img_size = 64 if torch.cuda.is_available() else 32
-n_channels = 3  # 3 for color images, 1 for gray-scale images
-operation = "super-resolution"
-
-# %%
-# Generate a dataset of low resolution images and load it.
-# --------------------------------------------------------
-# We use the Downsampling class from the physics module to generate a dataset of low resolution images.
-
-# For simplicity, we use a small dataset for training.
-# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
-train_dataset_name = "CBSD500"
-test_dataset_name = "set3c"
-# Specify the  train and test transforms to be applied to the input images.
-test_transform = transforms.Compose(
-    [transforms.CenterCrop(img_size), transforms.ToTensor()]
-)
-train_transform = transforms.Compose(
-    [transforms.RandomCrop(img_size), transforms.ToTensor()]
-)
-# Define the base train and test datasets of clean images.
-train_base_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
-)
-test_base_dataset = load_dataset(
-    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
-)
-
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
-# dataloading.
-num_workers = 4 if torch.cuda.is_available() else 0
+img_size = 128 if torch.cuda.is_available() else 32
+n_channels = 1  # 3 for color images, 1 for gray-scale images
+operation = "CT"
 
 # Degradation parameters
-factor = 2
-noise_level_img = 0.03
+noise_level_img = 0.05
 
-# Generate the gaussian blur downsampling operator.
-physics = dinv.physics.Downsampling(
-    img_size=(n_channels, img_size, img_size),
-    factor=factor,
-    mode="gauss",
+# Generate the CT operator.
+physics = dinv.physics.Tomography(
+    img_width=img_size,
+    angles=20,
+    circle=False,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
-my_dataset_name = "demo_unfolded_sr"
-n_images_max = (
-    1000 if torch.cuda.is_available() else 10
-)  # maximal number of images used for training
-measurement_dir = DATA_DIR / train_dataset_name / operation
-generated_datasets_path = dinv.datasets.generate_dataset(
-    train_dataset=train_base_dataset,
-    test_dataset=test_base_dataset,
-    physics=physics,
-    device=device,
-    save_dir=measurement_dir,
-    train_datapoints=n_images_max,
-    num_workers=num_workers,
-    dataset_filename=str(my_dataset_name),
-)
 
-train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
 # Define a custom iterator for the PDNet learned primal-dual algorithm.
@@ -194,23 +148,21 @@ class PDNetDataFid(DataFidelity):
 
 
 # Unrolled optimization algorithm parameters
-max_iter = 5  # number of unfolded layers
+max_iter = 10 if torch.cuda.is_available() else 3 # number of unfolded layers
 
 # Set up the data fidelity term. Each layer has its own data fidelity module.
 data_fidelity = [
-    PDNetDataFid(model=DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+    PDNetDataFid(model=DualBlock().to(device)) for i in range(max_iter)
 ]
 
 # Set up the trainable prior. Each layer has its own prior module.
 prior = [
-    PDNetPrior(model=PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
+    PDNetPrior(model=PrimalBlock().to(device)) for i in range(max_iter)
 ]
-
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
-
+wandb_vis = True  # plot curves and images in Weight&Bias
 
 def custom_init(y, physics):
     z0 = physics.A_adjoint(y)
@@ -237,19 +189,30 @@ model = unfolded_builder(
 
 # training parameters
 epochs = 10 if torch.cuda.is_available() else 2
-learning_rate = 5e-4
-train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 3
+learning_rate = 1e-3
+num_workers = 4 if torch.cuda.is_available() else 0
+train_batch_size = 128 if torch.cuda.is_available() else 32
+test_batch_size = 1
+n_iter_training = int(1e5)
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.99))
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
 
+# %%
+# Training dataset of random phantoms.
+# --------------------------------------------------------
+
+# Define the base train and test datasets of clean images.
+train_dataset_name = 'random_phantom'
+train_dataset = RandomPhantomDataset(size=img_size,length=n_iter_training // epochs)
+test_dataset = SheppLoganDataset(size=img_size)
+
 train_dataloader = DataLoader(
-    train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
+    train_dataset, batch_size=train_batch_size, num_workers=num_workers
 )
 test_dataloader = DataLoader(
     test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
