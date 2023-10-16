@@ -214,7 +214,7 @@ train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers
 )
 test_dataloader = DataLoader(
-    test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
+    test_dataset, batch_size=test_batch_size, num_workers=num_workers
 )
 
 # %%
@@ -235,6 +235,7 @@ train(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
+    online_measurements=True
 )
 
 # %%
