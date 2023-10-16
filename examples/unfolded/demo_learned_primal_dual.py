@@ -23,7 +23,6 @@ from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models.PDNet import PrimalBlock, DualBlock
 from deepinv.optim import Prior, DataFidelity
 
-
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
