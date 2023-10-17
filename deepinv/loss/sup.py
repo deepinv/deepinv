@@ -23,7 +23,7 @@ class SupLoss(nn.Module):
 
     def __init__(self, metric=torch.nn.MSELoss()):
         super(SupLoss, self).__init__()
-        self.name = "sup"
+        self.name = "supervised"
         self.metric = metric
 
     def forward(self, x, x_net, **kwargs):

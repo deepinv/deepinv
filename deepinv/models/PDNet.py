@@ -106,6 +106,4 @@ class DualBlock(nn.Module):
             x_l = self.conv_list[i](x_)
             x_ = self.nl_list[i + 1](x_l)
 
-        x_out = self.out_conv(x_) + Ax_cur
-
-        return x_out
+        return self.out_conv(x_) + u

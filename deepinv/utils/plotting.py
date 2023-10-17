@@ -1,22 +1,19 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 import wandb
 import math
+import torch
 import matplotlib.pyplot as plt
 from pathlib import Path
 from collections.abc import Iterable
 import matplotlib
-
+import shutil
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
 matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
-
-plt.rcParams["text.usetex"] = True
-import torch
-
+plt.rcParams['text.usetex']=True if shutil.which('latex') else False
 
 def torch2cpu(img):
     if img.shape[1] == 2:  # for complex images (e.g. in MRI)
@@ -43,6 +40,15 @@ def tensor2uint(img):
 def numpy2uint(img):
     img = img.clip(0, 1)
     return np.uint8((img * 255.0).round())
+
+def rescale_img(img, rescale_mode="min_max"):
+    if rescale_mode == "min_max":
+        img = (img - img.min()) / (img.max() - img.min())
+    elif rescale_mode == "clip":
+        img = img.clamp(min=0.0, max=1.0)
+    else:
+        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
+    return img
 
 
 def plot(
@@ -103,13 +109,7 @@ def plot(
                 )
             else:
                 pimg = im[i, :, :, :].type(torch.float32)
-            if rescale_mode == "min_max":
-                pimg = (pimg - pimg.min()) / (pimg.max() - pimg.min())
-            elif rescale_mode == "clip":
-                pimg = pimg.clamp(min=0.0, max=1.0)
-            else:
-                raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-
+            pimg = rescale_img(pimg, rescale_mode = rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
@@ -156,13 +156,13 @@ def plot_curves(metrics, save_dir=None, show=True):
             axs[i].spines["right"].set_visible(False)
             axs[i].spines["top"].set_visible(False)
             if metric_name == "residual":
-                label = r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$"
+                label = r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$" if plt.rcParams['text.usetex'] else "residual"
                 log_scale = True
             elif metric_name == "psnr":
-                label = r"$PSNR(x_k)$"
+                label = r"$PSNR(x_k)$" if plt.rcParams['text.usetex'] else "PSNR"
                 log_scale = False
             elif metric_name == "cost":
-                label = r"$F(x_k)$"
+                label = r"$F(x_k)$" if plt.rcParams['text.usetex'] else "F"
                 log_scale = True
             else:
                 label = metric_name

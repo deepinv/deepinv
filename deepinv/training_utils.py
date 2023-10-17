@@ -1,7 +1,4 @@
 import torchvision.utils
-
-from torch.profiler import profile, record_function, ProfilerActivity  # to delete
-
 from deepinv.utils import (
     save_model,
     AverageMeter,
@@ -9,19 +6,12 @@ from deepinv.utils import (
     get_timestamp,
     cal_psnr,
 )
-from deepinv.utils import plot, plot_curves, wandb_imgs, wandb_plot_curves
+from deepinv.utils import plot, plot_curves, wandb_imgs, wandb_plot_curves, rescale_img
 import numpy as np
 from tqdm import tqdm
 import torch
 import wandb
-import matplotlib.pyplot as plt
-import matplotlib
 from pathlib import Path
-
-matplotlib.rcParams.update({"font.size": 17})
-matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-v0_8-darkgrid")
-plt.rcParams["text.usetex"] = True
 
 
 def train(
@@ -92,45 +82,39 @@ def train(
     """
     save_path = Path(save_path)
 
+    # wandb initialiation
     if wandb_vis:
         if wandb.run is None:
             wandb.init(**wandb_setup)
 
+    # set the different metrics
+    meters = []
+    total_loss = AverageMeter("loss", ":.2e")
+    meters.append(total_loss)
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
-
-    loss_meter = AverageMeter("loss", ":.2e")
-    meters = [loss_meter]
-    eval_psnr_net = []
-
-    losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
-    train_psnr = AverageMeter("Train_psnr_model", ":.2f")
-    if eval_dataloader:
-        eval_psnr_net = AverageMeter("Eval_psnr_model", ":.2f")
-
+    losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]    
     for loss in losses_verbose:
         meters.append(loss)
-
+    train_psnr = AverageMeter("Train_psnr_model", ":.2f")
     meters.append(train_psnr)
     if eval_dataloader:
-        meters.append(eval_psnr_net)
+        eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
+        meters.append(eval_psnr)
 
-    progress = ProgressMeter(epochs, meters)
+    # progress = ProgressMeter(epochs, meters)
 
     save_path = f"{save_path}/{get_timestamp()}"
 
+    # count the overall training parameters
     params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"The model has {params} trainable parameters")
 
+    # make physics and data_loaders of list type
     if type(physics) is not list:
         physics = [physics]
-
-    if type(losses) is not list:
-        losses = [losses]
-
     if type(train_dataloader) is not list:
         train_dataloader = [train_dataloader]
-
     if eval_dataloader and type(eval_dataloader) is not list:
         eval_dataloader = [eval_dataloader]
 
@@ -138,89 +122,13 @@ def train(
 
     loss_history = []
 
-    for epoch in range(epochs):
-        model.train()
+    log_dict = {}
 
-        for meter in meters:
-            meter.reset()
-        iterators = [iter(loader) for loader in train_dataloader]
-        batches = len(train_dataloader[G - 1])
+    for epoch in range(epochs): 
+    
+        ### Evaluation 
 
-        for i in (progress_bar := tqdm(range(batches), disable = not verbose)):
-
-            progress_bar.set_description(f"Epoch {epoch + 1}")
-
-            G_perm = np.random.permutation(G)
-
-            for g in G_perm:
-                if online_measurements:
-                    x, _ = next(
-                         iterators[g]
-                    )  # In this case the dataloader outputs also a class label
-                    x = x.to(device)
-                    physics_cur = physics[g]
-                    physics_cur.reset()
-                    y = physics_cur(x)
-                else:
-                    if unsupervised:
-                        y = next(iterators[g])
-                        x = None
-                    else:
-                        x, y = next(iterators[g])
-
-                        if type(x) is list or type(x) is tuple:
-                            x = [s.to(device) for s in x]
-                        else:
-                            x = x.to(device)
-                    physics_cur = physics[g]
-
-                y = y.to(device)
-
-                optimizer.zero_grad()
-
-                x_net = model(y, physics_cur)
-
-                loss_total = 0
-                for k, l in enumerate(losses):
-                    loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
-                    loss_total += loss
-                    losses_verbose[k].update(loss.item())
-
-                loss_total.backward()
-
-                if grad_clip is not None:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-
-                optimizer.step()
-
-                if wandb_vis:
-                    wandb.log({"training loss": loss_total.item()})
-
-                loss_meter.update(loss_total.item())
-
-                if not unsupervised:
-                    train_psnr.update(cal_psnr(x_net, x))
-
-                progress_bar.set_postfix(loss=loss_meter.avg, train_psnr=train_psnr.avg)
-
-        if (
-            wandb_vis
-        ):  # Note that this may not be 16 images because the last batch may be smaller
-            in_image = physics_cur.A_adjoint(y)
-            vis_array = torch.cat((in_image, x_net, x), dim=0)
-            vis_array = torch.clip(vis_array, 0, 1)
-            grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-            images = wandb.Image(
-                grid_image, caption="Top: Backprojection, Middle: Output, Bottom: target"
-            )
-            wandb.log({"Training samples": images})
-
-        check = (
-            (not unsupervised)
-            and eval_dataloader is not None
-            and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
-        )
-
+        # perform evaluation every eval_interval epoch
         perform_eval = (
             (not unsupervised)
             and eval_dataloader
@@ -241,38 +149,119 @@ def train(
                 n_plot_max_wandb=n_plot_max_wandb,
                 online_measurements=online_measurements,
             )
+            eval_psnr.update(test_psnr)
+            log_dict['eval_psnr'] = test_psnr
 
-            eval_psnr_net.update(test_psnr)
+        # wandb logging
+        if wandb_vis:
+            last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
+            wandb.log(
+                    {
+                        "epoch": epoch,
+                        "learning rate": last_lr,
+                    }
+                )
+            if perform_eval:
+                wandb.log({"eval psnr": test_psnr})
+        
+        ### Training   
+
+        model.train()
+
+        for meter in meters:
+            meter.reset() # reset the metric at each epoch 
+
+        iterators = [iter(loader) for loader in train_dataloader]
+        batches = len(train_dataloader[G - 1])
+        
+        for i in (progress_bar := tqdm(range(batches), disable = not verbose)):
+
+            progress_bar.set_description(f"Epoch {epoch + 1}")
+
+            # random permulation of the dataloaders
+            G_perm = np.random.permutation(G)
+
+            for g in G_perm: # for each dataloader
+                
+                if online_measurements: # the measurements y are created on-the-fly
+                    x, _ = next(
+                         iterators[g]
+                    )  # In this case the dataloader outputs also a class label
+                    x = x.to(device)
+                    physics_cur = physics[g]
+                    physics_cur.reset()
+                    y = physics_cur(x)
+                
+                else: # the measurements y were pre-computed
+                    if unsupervised:
+                        y = next(iterators[g])
+                        x = None
+                    else:
+                        x, y = next(iterators[g])
+                        if type(x) is list or type(x) is tuple:
+                            x = [s.to(device) for s in x]
+                        else:
+                            x = x.to(device)
+                    physics_cur = physics[g]
+
+                y = y.to(device)
+
+                optimizer.zero_grad()
+
+                # run the forward model 
+                x_net = model(y, physics_cur)
+
+                # compute the losses
+                loss_total = 0
+                for k, l in enumerate(losses):
+                    loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
+                    loss_total += loss
+                    losses_verbose[k].update(loss.item())
+                    if len(losses)>1 :
+                        log_dict['loss_' + l.name] = losses_verbose[k].avg
+                        if wandb_vis:
+                            wandb.log({'loss_' + l.name: loss.item()})
+                if wandb_vis:
+                    wandb.log({"training loss": loss_total.item()})
+                total_loss.update(loss_total.item())
+                log_dict['total_loss'] = total_loss.avg
+
+                # backward the total loss 
+                loss_total.backward()
+
+                # gradient clipping
+                if grad_clip is not None:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                
+                # optimize step 
+                optimizer.step()
+
+                # training psnr and logging
+                if not unsupervised:
+                    psnr = cal_psnr(x_net, x)
+                    train_psnr.update(psnr)
+                    if wandb_vis:
+                        wandb.log({"training psnr": psnr})
+                    log_dict['train_psnr'] = train_psnr.avg
+
+                progress_bar.set_postfix(log_dict)
+
+        # wandb plotting of training images
+        if wandb_vis:  # Note that this may not be 16 images because the last batch may be smaller
+            y_reshaped = torch.nn.functional.interpolate(y, size = x.shape[2])
+            vis_array = torch.cat((y_reshaped, physics_cur.A_adjoint(y), x_net, x), dim=0)
+            for i in range(len(vis_array)):
+                vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
+            grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
+            images = wandb.Image(
+                grid_image, caption="From top to bottom : Input, Backprojection, Output, Target"
+            )
+            wandb.log({"Training samples": images})
+
+        loss_history.append(total_loss.avg)
 
         if scheduler:
             scheduler.step()
-
-        loss_history.append(loss_meter.avg)
-
-        if wandb_vis:
-            last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
-            if not unsupervised and perform_eval:
-                wandb.log(
-                    {
-                        "mean training loss": loss_meter.avg,
-                        "mean training psnr": train_psnr.avg,
-                        "mean eval psnr": eval_psnr_net.avg,
-                        "epoch": epoch,
-                        "learning rate": last_lr,
-                    }
-                )
-            else:
-                wandb.log(
-                    {
-                        "mean training loss": loss_meter.avg,
-                        "mean training psnr": train_psnr.avg,
-                        "epoch": epoch,
-                        "learning rate": last_lr,
-                    }
-                )
-
-        if (epoch + 1) % log_interval == 0:
-            progress.display(epoch + 1)
 
         save_model(
             epoch,
@@ -282,7 +271,7 @@ def train(
             epochs,
             loss_history,
             str(save_path),
-            eval_psnr_net,
+            eval_psnr,
         )
 
     if wandb_vis:
@@ -407,12 +396,10 @@ def test(
             if plot_images or wandb_vis:
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if x.shape == y.shape : # then y can be plotted
-                            imgs = [y, x_init, x1, x]
-                            name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                        else: # do not plot y 
-                            imgs = [x_init, x1, x]
-                            name_imgs = ["Linear", "Recons.", "GT"]
+                        if y.shape != x.shape :
+                            y = torch.nn.functional.interpolate(y, size = x.shape[2])
+                        imgs = [y, x_init, x1, x]
+                        name_imgs = ["Input", "Linear", "Recons.", "GT"]
                         if plot_images:
                             plot(
                                 imgs,
@@ -422,11 +409,12 @@ def test(
                             )
                         if wandb_vis:
                             vis_array = torch.cat(imgs, dim=0)
-                            vis_array = torch.clip(vis_array, 0, 1)
+                            for i in range(len(vis_array)):
+                                vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
                             grid_image = torchvision.utils.make_grid(vis_array, nrow=4)
                             images = wandb.Image(
                                 grid_image,
-                                caption="Input (Left) / Backprojection (optional) / Output / Target (optional)",
+                                caption= " ".join(name_imgs),
                             )
                             wandb.log({f"Test images batch_{i} (G={g}) ": images})
 

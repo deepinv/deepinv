@@ -170,12 +170,13 @@ wandb_vis = True  # plot curves and images in Weight&Bias
 # We use the Adam optimizer and the StepLR scheduler.
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 10 
 learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
 test_batch_size = 1
-n_iter_training = int(1e5)
+n_iter_training = int(1e5) if torch.cuda.is_available() else 1000
+n_iter_training = 1000
 n_data = 1 # number of channels in the input
 n_primal = 5 # extend the primal space
 n_dual = 5 # extend the dual space
@@ -259,8 +260,8 @@ train(
 
 method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
-plot_images = False  # plot images. Images are saved in save_folder.
-plot_metrics = False  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_images = True  # plot images. Images are saved in save_folder.
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR and shown in wandb.
 
 test(
     model=model,
