@@ -27,7 +27,6 @@ def train(
     device="cpu",
     ckp_interval=1,
     eval_interval=1,
-    log_interval=1,
     save_path=".",
     verbose=False,
     unsupervised=False,
@@ -72,7 +71,6 @@ def train(
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
-    :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
          parameters of the forward operator or noise realizations, can change between each sample; these are updated
@@ -101,8 +99,6 @@ def train(
     if eval_dataloader:
         eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
         meters.append(eval_psnr)
-
-    # progress = ProgressMeter(epochs, meters)
 
     save_path = f"{save_path}/{get_timestamp()}"
 
@@ -145,7 +141,6 @@ def train(
                 wandb_vis=wandb_vis,
                 wandb_setup=wandb_setup,
                 step=epoch,
-                n_plot_max_wandb=n_plot_max_wandb,
                 online_measurements=online_measurements,
             )
             eval_psnr.update(test_psnr)
@@ -295,7 +290,6 @@ def test(
     wandb_vis=False,
     wandb_setup={},
     step=0,
-    n_plot_max_wandb=8,
     online_measurements=False,
     **kwargs,
 ):
@@ -304,7 +298,7 @@ def test(
 
     This function computes the PSNR of the reconstruction network on the test set,
     and optionally plots the reconstructions as well as the metrics computed along the iterations.
-    Note that by default only the batch is plotted.
+    Note that by default only the first batch is plotted.
 
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -321,7 +315,6 @@ def test(
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param int step: Step number for wandb visualization.
-    :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
