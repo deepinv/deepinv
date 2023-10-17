@@ -1,14 +1,13 @@
 r"""
 Learned Primal-Dual algorithm for image super-resolution (PDNet).
 ====================================================================================================
-Implementation of the Unfolded Primal-Dual algorithm from
+Implementation of the Unfolded Primal-Dual algorithm from 
 
 Adler, Jonas, and Ozan Öktem. 
 "Learned primal-dual reconstruction." 
 IEEE transactions on medical imaging 37.6 (2018): 1322-1332.
 
 where both the data fidelity and the prior are learned modules, distinct for each iterations.
-
 """
 
 import deepinv as dinv
