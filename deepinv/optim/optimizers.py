@@ -148,7 +148,7 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         custom_metrics=None,
         custom_init=None,
-        get_output=lambda X : X['est'][0],
+        get_output=lambda X: X["est"][0],
         verbose=False,
     ):
         super(BaseOptim, self).__init__()

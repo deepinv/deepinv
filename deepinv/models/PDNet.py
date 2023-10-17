@@ -6,7 +6,8 @@ import torch.nn as nn
 def init_weights(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform(m.weight)
-        m.bias.data.fill_(0.)
+        m.bias.data.fill_(0.0)
+
 
 class PrimalBlock(nn.Module):
     def __init__(self, in_channels=6, out_channels=5, depth=3, bias=True, nf=32):
@@ -96,7 +97,6 @@ class DualBlock(nn.Module):
         self.nl_list = nn.ModuleList([nn.PReLU() for _ in range(self.depth - 1)])
 
     def forward(self, u, Ax_cur, y):
-
         x_in = torch.cat((u, Ax_cur, y), dim=1)
 
         x_ = self.in_conv(x_in)

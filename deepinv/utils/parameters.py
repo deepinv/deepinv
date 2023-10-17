@@ -3,7 +3,7 @@ import numpy as np
 
 def get_DPIR_params(noise_level_img):
     r"""
-    Default parameters for the DPIR Plug-and-Play algorithm. 
+    Default parameters for the DPIR Plug-and-Play algorithm.
 
     :param float noise_level_img: Noise level of the input image.
     """
@@ -20,7 +20,7 @@ def get_DPIR_params(noise_level_img):
 
 def get_GSPnP_params(problem, noise_level_img):
     r"""
-    Default parameters for the GSPnP Plug-and-Play algorithm. 
+    Default parameters for the GSPnP Plug-and-Play algorithm.
 
     :param str problem: Type of inverse-problem problem to solve. Can be ``deblur``, ``super-resolution``, or ``inpaint``.
     :param float noise_level_img: Noise level of the input image.

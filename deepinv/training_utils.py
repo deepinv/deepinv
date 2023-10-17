@@ -36,7 +36,7 @@ def train(
     wandb_vis=False,
     wandb_setup={},
     n_plot_max_wandb=8,
-    online_measurements=False
+    online_measurements=False,
 ):
     r"""
     Trains a reconstruction network.
@@ -93,7 +93,7 @@ def train(
     meters.append(total_loss)
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
-    losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]    
+    losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
     for loss in losses_verbose:
         meters.append(loss)
     train_psnr = AverageMeter("Train_psnr_model", ":.2f")
@@ -124,9 +124,8 @@ def train(
 
     log_dict = {}
 
-    for epoch in range(epochs): 
-    
-        ### Evaluation 
+    for epoch in range(epochs):
+        ### Evaluation
 
         # perform evaluation every eval_interval epoch
         perform_eval = (
@@ -150,49 +149,47 @@ def train(
                 online_measurements=online_measurements,
             )
             eval_psnr.update(test_psnr)
-            log_dict['eval_psnr'] = test_psnr
+            log_dict["eval_psnr"] = test_psnr
 
         # wandb logging
         if wandb_vis:
             last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
             wandb.log(
-                    {
-                        "epoch": epoch,
-                        "learning rate": last_lr,
-                    }
-                )
+                {
+                    "epoch": epoch,
+                    "learning rate": last_lr,
+                }
+            )
             if perform_eval:
                 wandb.log({"eval psnr": test_psnr})
-        
-        ### Training   
+
+        ### Training
 
         model.train()
 
         for meter in meters:
-            meter.reset() # reset the metric at each epoch 
+            meter.reset()  # reset the metric at each epoch
 
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
-        
-        for i in (progress_bar := tqdm(range(batches), disable = not verbose)):
 
+        for i in (progress_bar := tqdm(range(batches), disable=not verbose)):
             progress_bar.set_description(f"Epoch {epoch + 1}")
 
             # random permulation of the dataloaders
             G_perm = np.random.permutation(G)
 
-            for g in G_perm: # for each dataloader
-                
-                if online_measurements: # the measurements y are created on-the-fly
+            for g in G_perm:  # for each dataloader
+                if online_measurements:  # the measurements y are created on-the-fly
                     x, _ = next(
-                         iterators[g]
+                        iterators[g]
                     )  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
                     physics_cur.reset()
                     y = physics_cur(x)
-                
-                else: # the measurements y were pre-computed
+
+                else:  # the measurements y were pre-computed
                     if unsupervised:
                         y = next(iterators[g])
                         x = None
@@ -208,7 +205,7 @@ def train(
 
                 optimizer.zero_grad()
 
-                # run the forward model 
+                # run the forward model
                 x_net = model(y, physics_cur)
 
                 # compute the losses
@@ -217,23 +214,23 @@ def train(
                     loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
                     loss_total += loss
                     losses_verbose[k].update(loss.item())
-                    if len(losses)>1 :
-                        log_dict['loss_' + l.name] = losses_verbose[k].avg
+                    if len(losses) > 1:
+                        log_dict["loss_" + l.name] = losses_verbose[k].avg
                         if wandb_vis:
-                            wandb.log({'loss_' + l.name: loss.item()})
+                            wandb.log({"loss_" + l.name: loss.item()})
                 if wandb_vis:
                     wandb.log({"training loss": loss_total.item()})
                 total_loss.update(loss_total.item())
-                log_dict['total_loss'] = total_loss.avg
+                log_dict["total_loss"] = total_loss.avg
 
-                # backward the total loss 
+                # backward the total loss
                 loss_total.backward()
 
                 # gradient clipping
                 if grad_clip is not None:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-                
-                # optimize step 
+
+                # optimize step
                 optimizer.step()
 
                 # training psnr and logging
@@ -242,19 +239,24 @@ def train(
                     train_psnr.update(psnr)
                     if wandb_vis:
                         wandb.log({"training psnr": psnr})
-                    log_dict['train_psnr'] = train_psnr.avg
+                    log_dict["train_psnr"] = train_psnr.avg
 
                 progress_bar.set_postfix(log_dict)
 
         # wandb plotting of training images
-        if wandb_vis:  # Note that this may not be 16 images because the last batch may be smaller
-            y_reshaped = torch.nn.functional.interpolate(y, size = x.shape[2])
-            vis_array = torch.cat((y_reshaped, physics_cur.A_adjoint(y), x_net, x), dim=0)
+        if (
+            wandb_vis
+        ):  # Note that this may not be 16 images because the last batch may be smaller
+            y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
+            vis_array = torch.cat(
+                (y_reshaped, physics_cur.A_adjoint(y), x_net, x), dim=0
+            )
             for i in range(len(vis_array)):
                 vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
             grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
             images = wandb.Image(
-                grid_image, caption="From top to bottom : Input, Backprojection, Output, Target"
+                grid_image,
+                caption="From top to bottom : Input, Backprojection, Output, Target",
             )
             wandb.log({"Training samples": images})
 
@@ -396,8 +398,8 @@ def test(
             if plot_images or wandb_vis:
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if y.shape != x.shape :
-                            y = torch.nn.functional.interpolate(y, size = x.shape[2])
+                        if y.shape != x.shape:
+                            y = torch.nn.functional.interpolate(y, size=x.shape[2])
                         imgs = [y, x_init, x1, x]
                         name_imgs = ["Input", "Linear", "Recons.", "GT"]
                         if plot_images:
@@ -410,11 +412,13 @@ def test(
                         if wandb_vis:
                             vis_array = torch.cat(imgs, dim=0)
                             for i in range(len(vis_array)):
-                                vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
+                                vis_array[i] = rescale_img(
+                                    vis_array[i], rescale_mode="min_max"
+                                )
                             grid_image = torchvision.utils.make_grid(vis_array, nrow=4)
                             images = wandb.Image(
                                 grid_image,
-                                caption= " ".join(name_imgs),
+                                caption=" ".join(name_imgs),
                             )
                             wandb.log({f"Test images batch_{i} (G={g}) ": images})
 

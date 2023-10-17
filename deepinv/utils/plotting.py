@@ -9,11 +9,14 @@ from pathlib import Path
 from collections.abc import Iterable
 import matplotlib
 import shutil
+
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
 matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
-plt.rcParams['text.usetex']=True if shutil.which('latex') else False
+
+plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+
 
 def torch2cpu(img):
     if img.shape[1] == 2:  # for complex images (e.g. in MRI)
@@ -40,6 +43,7 @@ def tensor2uint(img):
 def numpy2uint(img):
     img = img.clip(0, 1)
     return np.uint8((img * 255.0).round())
+
 
 def rescale_img(img, rescale_mode="min_max"):
     if rescale_mode == "min_max":
@@ -109,7 +113,7 @@ def plot(
                 )
             else:
                 pimg = im[i, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode = rescale_mode)
+            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
@@ -156,13 +160,17 @@ def plot_curves(metrics, save_dir=None, show=True):
             axs[i].spines["right"].set_visible(False)
             axs[i].spines["top"].set_visible(False)
             if metric_name == "residual":
-                label = r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$" if plt.rcParams['text.usetex'] else "residual"
+                label = (
+                    r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$"
+                    if plt.rcParams["text.usetex"]
+                    else "residual"
+                )
                 log_scale = True
             elif metric_name == "psnr":
-                label = r"$PSNR(x_k)$" if plt.rcParams['text.usetex'] else "PSNR"
+                label = r"$PSNR(x_k)$" if plt.rcParams["text.usetex"] else "PSNR"
                 log_scale = False
             elif metric_name == "cost":
-                label = r"$F(x_k)$" if plt.rcParams['text.usetex'] else "F"
+                label = r"$F(x_k)$" if plt.rcParams["text.usetex"] else "F"
                 log_scale = True
             else:
                 label = metric_name

@@ -134,7 +134,7 @@ class PDNetPrior(Prior):
         self.model = model
 
     def prox(self, x, w):
-        return self.model(x, w[:,1,:,:].unsqueeze(1))
+        return self.model(x, w[:, 1, :, :].unsqueeze(1))
 
 
 class PDNetDataFid(DataFidelity):
@@ -143,21 +143,17 @@ class PDNetDataFid(DataFidelity):
         self.model = model
 
     def prox(self, x, w, y):
-        return self.model(x, w[:,2,:,:].unsqueeze(1), y)
+        return self.model(x, w[:, 2, :, :].unsqueeze(1), y)
 
 
 # Unrolled optimization algorithm parameters
-max_iter = 10 if torch.cuda.is_available() else 3 # number of unfolded layers
+max_iter = 10 if torch.cuda.is_available() else 3  # number of unfolded layers
 
 # Set up the data fidelity term. Each layer has its own data fidelity module.
-data_fidelity = [
-    PDNetDataFid(model=DualBlock().to(device)) for i in range(max_iter)
-]
+data_fidelity = [PDNetDataFid(model=DualBlock().to(device)) for i in range(max_iter)]
 
 # Set up the trainable prior. Each layer has its own prior module.
-prior = [
-    PDNetPrior(model=PrimalBlock().to(device)) for i in range(max_iter)
-]
+prior = [PDNetPrior(model=PrimalBlock().to(device)) for i in range(max_iter)]
 
 # Logging parameters
 verbose = True
@@ -170,45 +166,49 @@ wandb_vis = True  # plot curves and images in Weight&Bias
 # We use the Adam optimizer and the StepLR scheduler.
 
 # training parameters
-epochs = 10 
+epochs = 10
 learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
 test_batch_size = 1
 n_iter_training = int(1e5) if torch.cuda.is_available() else 1000
 n_iter_training = 1000
-n_data = 1 # number of channels in the input
-n_primal = 5 # extend the primal space
-n_dual = 5 # extend the dual space
-
+n_data = 1  # number of channels in the input
+n_primal = 5  # extend the primal space
+n_dual = 5  # extend the dual space
 
 
 # %%
 # Define the model.
 # -------------------------------
 
+
 def custom_init(y, physics):
     x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
     u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
     return {"est": (x0, x0, u0)}
 
+
 def custom_output(X):
-    return X["est"][0][:,1,:,:].unsqueeze(1)
+    return X["est"][0][:, 1, :, :].unsqueeze(1)
+
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration=PDNetIteration(),
-    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 0.},
+    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 0.0},
     data_fidelity=data_fidelity,
     prior=prior,
     max_iter=max_iter,
     custom_init=custom_init,
-    get_output=custom_output
+    get_output=custom_output,
 )
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.99))
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epochs)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+    optimizer=optimizer, T_max=epochs
+)
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
@@ -218,9 +218,11 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
 # --------------------------------------------------------
 
 # Define the base train and test datasets of clean images.
-train_dataset_name = 'random_phantom'
-train_dataset = RandomPhantomDataset(size=img_size, n_data = 1, length=n_iter_training // epochs)
-test_dataset = SheppLoganDataset(size=img_size,  n_data = 1)
+train_dataset_name = "random_phantom"
+train_dataset = RandomPhantomDataset(
+    size=img_size, n_data=1, length=n_iter_training // epochs
+)
+test_dataset = SheppLoganDataset(size=img_size, n_data=1)
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers
@@ -228,7 +230,6 @@ train_dataloader = DataLoader(
 test_dataloader = DataLoader(
     test_dataset, batch_size=test_batch_size, num_workers=num_workers
 )
-
 
 
 # %%
@@ -249,7 +250,7 @@ train(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
-    online_measurements=True
+    online_measurements=True,
 )
 
 # %%
@@ -273,5 +274,5 @@ test(
     verbose=verbose,
     plot_metrics=plot_metrics,
     wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
-    online_measurements=True
+    online_measurements=True,
 )
