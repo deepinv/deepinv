@@ -152,6 +152,7 @@ class FixedPoint(nn.Module):
         self,
         it,
         X_prev,
+        TX_prev,
         x_hist,
         T_hist,
         H,
@@ -166,6 +167,7 @@ class FixedPoint(nn.Module):
 
         :param int it: current iteration.
         :param dict X_prev: previous iterate.
+        :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
         :param torch.Tensor x_hist: history of last ``history-size`` iterates.
         :param torch.Tensor T_hist: history of T evlauaton at the last ``history-size``, where T is the fixed-point operator.
         :param torch.Tensor H: H in the Anderson acceleration linear system Hp = q .
@@ -175,9 +177,8 @@ class FixedPoint(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        TX = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
         x_prev = X_prev["est"][0]
-        Tx_prev = TX["est"][0]
+        Tx_prev = TX_prev["est"][0]
         b = x_prev.shape[0]
         x_hist[:, it % self.history_size] = x_prev.view(b, -1)
         T_hist[:, it % self.history_size] = Tx_prev.view(b, -1)
@@ -246,14 +247,12 @@ class FixedPoint(nn.Module):
             )
             cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
             X_prev = X
-            if not self.anderson_acceleration:
-                X = self.iterator(
-                    X_prev, cur_data_fidelity, cur_prior, cur_params, *args
-                )
-            else:
+            X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+            if self.anderson_acceleration:
                 X = self.anderson_acceleration_step(
                     it,
                     X_prev,
+                    X,
                     x_hist,
                     T_hist,
                     H,
