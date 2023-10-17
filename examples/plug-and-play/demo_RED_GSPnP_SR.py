@@ -141,6 +141,10 @@ prior = GSPnP(
     denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 )
 
+# we want to output the intermediate PGD update to finish with a denoising step.
+def custom_output(X):
+    return X["est"][1]
+
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
     iteration="PGD",
@@ -153,7 +157,7 @@ model = optim_builder(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    return_aux=True,
+    get_output = custom_output,
     verbose=True,
 )
 

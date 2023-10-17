@@ -54,7 +54,7 @@ noise_level_img = 0.05
 # Generate the CT operator.
 physics = dinv.physics.Tomography(
     img_width=img_size,
-    angles=20,
+    angles=30,
     circle=False,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
@@ -134,7 +134,7 @@ class PDNetPrior(Prior):
         self.model = model
 
     def prox(self, x, w):
-        return self.model(x, w)
+        return self.model(x, w[:,1,:,:].unsqueeze(1))
 
 
 class PDNetDataFid(DataFidelity):
@@ -143,7 +143,7 @@ class PDNetDataFid(DataFidelity):
         self.model = model
 
     def prox(self, x, w, y):
-        return self.model(x, w, y)
+        return self.model(x, w[:,2,:,:].unsqueeze(1), y)
 
 
 # Unrolled optimization algorithm parameters
@@ -163,40 +163,51 @@ prior = [
 verbose = True
 wandb_vis = True  # plot curves and images in Weight&Bias
 
-def custom_init(y, physics):
-    z0 = physics.A_adjoint(y)
-    x0 = physics.A_adjoint(y)
-    u0 = y
-    return {"est": (x0, z0, u0)}
-
-
-# Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration=PDNetIteration(),
-    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 1.0},
-    data_fidelity=data_fidelity,
-    prior=prior,
-    max_iter=max_iter,
-    custom_init=custom_init,
-)
 
 # %%
 # Define the training parameters.
 # -------------------------------
 # We use the Adam optimizer and the StepLR scheduler.
 
-
 # training parameters
 epochs = 10 if torch.cuda.is_available() else 2
 learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
-train_batch_size = 128 if torch.cuda.is_available() else 32
+train_batch_size = 5
 test_batch_size = 1
 n_iter_training = int(1e5)
+n_data = 1 # number of channels in the input
+n_primal = 5 # extend the primal space
+n_dual = 5 # extend the dual space
+
+
+
+# %%
+# Define the model.
+# -------------------------------
+
+def custom_init(y, physics):
+    x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
+    u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+    return {"est": (x0, x0, u0)}
+
+def custom_output(X):
+    return X["est"][0][:,1,:,:].unsqueeze(1)
+
+# Define the unfolded trainable model.
+model = unfolded_builder(
+    iteration=PDNetIteration(),
+    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 0.},
+    data_fidelity=data_fidelity,
+    prior=prior,
+    max_iter=max_iter,
+    custom_init=custom_init,
+    get_output=custom_output
+)
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.99))
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epochs)
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
@@ -207,8 +218,8 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
 
 # Define the base train and test datasets of clean images.
 train_dataset_name = 'random_phantom'
-train_dataset = RandomPhantomDataset(size=img_size,length=n_iter_training // epochs)
-test_dataset = SheppLoganDataset(size=img_size)
+train_dataset = RandomPhantomDataset(size=img_size, n_data = 1, length=n_iter_training // epochs)
+test_dataset = SheppLoganDataset(size=img_size,  n_data = 1)
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers
@@ -216,6 +227,8 @@ train_dataloader = DataLoader(
 test_dataloader = DataLoader(
     test_dataset, batch_size=test_batch_size, num_workers=num_workers
 )
+
+
 
 # %%
 # Train the network
@@ -246,9 +259,8 @@ train(
 
 method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_images = False  # plot images. Images are saved in save_folder.
+plot_metrics = False  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 test(
     model=model,
@@ -260,4 +272,5 @@ test(
     verbose=verbose,
     plot_metrics=plot_metrics,
     wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
+    online_measurements=True
 )

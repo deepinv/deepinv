@@ -146,7 +146,10 @@ def train(
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
 
-        for i in range(batches):
+        for i in (progress_bar := tqdm(range(batches), disable = not verbose)):
+
+            progress_bar.set_description(f"Epoch {epoch + 1}")
+
             G_perm = np.random.permutation(G)
 
             for g in G_perm:
@@ -198,6 +201,8 @@ def train(
                 if not unsupervised:
                     train_psnr.update(cal_psnr(x_net, x))
 
+                progress_bar.set_postfix(loss=loss_meter.avg, train_psnr=train_psnr.avg)
+
         if (
             wandb_vis
         ):  # Note that this may not be 16 images because the last batch may be smaller
@@ -206,7 +211,7 @@ def train(
             vis_array = torch.clip(vis_array, 0, 1)
             grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
             images = wandb.Image(
-                grid_image, caption="Top: Input, Middle: Output, Bottom: target"
+                grid_image, caption="Top: Backprojection, Middle: Output, Bottom: target"
             )
             wandb.log({"Training samples": images})
 
@@ -402,10 +407,10 @@ def test(
             if plot_images or wandb_vis:
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if len(y.shape) == 4:
+                        if x.shape == y.shape : # then y can be plotted
                             imgs = [y, x_init, x1, x]
                             name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                        else:
+                        else: # do not plot y 
                             imgs = [x_init, x1, x]
                             name_imgs = ["Linear", "Recons.", "GT"]
                         if plot_images:
