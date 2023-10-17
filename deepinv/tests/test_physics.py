@@ -76,10 +76,12 @@ def find_operator(name, device):
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "deblur":
+        img_size = (3, 17, 19)
         p = dinv.physics.Blur(
             dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
         )
     elif name == "deblur_fft":
+        img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
