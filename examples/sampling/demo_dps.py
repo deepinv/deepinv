@@ -7,7 +7,6 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 :class:`deepinv.sampling.diffusion.DPS`.
 """
 
-
 # %% Installing dependencies
 # -----------------------------
 # Let us ``import`` the relevant packages, and load a sample
@@ -20,9 +19,8 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image
-from deepinv.models.denoiser import online_weights_path
-from deepinv.models.diffpir import create_argparser, create_unet_model, model_defaults, args_to_dict
-import tqdm # to visualize progress
+import tqdm  # to visualize progress
+
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 url = (
@@ -63,30 +61,8 @@ plot(
 # which is very different from the image that we consider in our example. Nevertheless, we will see later on that
 # ``DPS`` generalizes sufficiently well even in such case.
 
-MODEL_PATH_FFHQ = None
-model_config = dict(
-    model_path=MODEL_PATH_FFHQ,
-    model_name="diffusion_ffhq_10m.pt",
-    num_channels=128,
-    num_res_blocks=1,
-    attention_resolutions="16",
-)
 
-
-args = create_argparser(model_config).parse_args([])
-print(args)
-model = dinv.models.DiffUNet(image_size=256).to(device)
-
-# model = create_unet_model(**args_to_dict(args, model_defaults().keys()))
-#
-# url = online_weights_path() + model_config["model_name"]
-# ckpt = torch.hub.load_state_dict_from_url(
-#     url,
-#     map_location=lambda storage, loc: storage,
-#     file_name=model_config["model_name"],
-# )
-# model.load_state_dict(ckpt, strict=True)
-# model = model.to(device)
+model = dinv.models.DiffUNet(image_size=256, large_model=True).to(device)
 
 # %%
 # Define diffusion schedule
@@ -109,8 +85,9 @@ model = dinv.models.DiffUNet(image_size=256).to(device)
 
 num_train_timesteps = 1000  # Number of timesteps used during training
 
+
 def get_alpha_beta(
-    beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=num_train_timesteps
+        beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=num_train_timesteps
 ):
     betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
     betas = torch.from_numpy(betas).to(device)
@@ -175,28 +152,20 @@ def compute_alpha(beta, t):
     a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
     return a
 
-# [0, 1] -> [-1, 1]
-x0 = x_true * 2. - 1.
-x0 = x0.view(1, 3, 256, 256).to(device)
 
-# xt ~ q(xt|x0)
-i = 200  # noise level (discretized)
-t = (torch.ones(1) * i).to(device)
-at = compute_alpha(betas, t.long())
-xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
+x0 = x_true
+xt = x0 + .1 * torch.randn_like(x0)
 
-# Tweedie
-et = model(xt, t)
-et = et[:, :3]
-x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
+sigma_t = .1
+# apply denoiser
+x0_t = model(xt, sigma_t)
 
 # Visualize
 imgs = [x0, xt, x0_t]
 plot(
     imgs,
-    titles=["groundtruth", "noisy", "posteriormean"],
+    titles=["ground-truth", "noisy", "posterior mean"],
 )
-
 
 # %%
 # DPS approximation
@@ -247,7 +216,7 @@ xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
 with torch.enable_grad():
     # Turn on gradient
     xt.requires_grad_()
-    et = model(xt, t)
+    et = model(xt, t, type_t='timestep')
     et = et[:, :3]
     x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
     # Log-likelihood
@@ -290,7 +259,15 @@ plot(
 # With these in mind, let us solve the inverse problem with DPS!
 
 
+# %%
+# .. note::
+#
+#   We only use 30 steps to reduce the computational time of this example. As suggested by the authors of DPS, the
+#   algorithm works best with ``num_steps = 1000``.
+#
+
 num_steps = 1000
+
 skip = num_train_timesteps // num_steps
 
 batch_size = 1
@@ -303,17 +280,15 @@ time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 # measurement
 x0 = x_true * 2. - 1.
 y = physics(x0.to(device))
-print(f"y max: {y.max()}")
-print(f"y min: {y.min()}")
 
 # initial sample from x_T
 x = torch.randn(
-        y.shape[0],
-        3,
-        256,
-        256,
-        device=device,
-    )
+    y.shape[0],
+    3,
+    256,
+    256,
+    device=device,
+)
 
 xs = [x]
 x0_preds = []
@@ -326,32 +301,34 @@ for i, j in tqdm.tqdm(time_pairs):
     at_next = compute_alpha(betas, next_t.long())
 
     c1 = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
-    c2 = ((1 - at_next) - c1**2).sqrt()
+    c2 = ((1 - at_next) - c1 ** 2).sqrt()
 
     xt = xs[-1].to(device)
 
     # 1. NFE
     with torch.enable_grad():
         xt.requires_grad_()
-        et = model(xt, t)
-        et = et[:, :3]  # same with DiffPIR, we don't use the variance estimates
 
-        # 2. Tweedie
-        x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
-        x0_t = torch.clip(x0_t, -1., 1.) # optional
+        # we call the denoiser using standard deviation instead of the time step.
+        aux_x = xt / 2 + 0.5
+        x0_t = 2 * model(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+        x0_t = torch.clip(x0_t, -1., 1.)  # optional
 
         # 3. DPS
-        l2_loss = torch.linalg.norm(physics(x0_t) - y)
+        l2_loss = data_fidelity(x0_t, y, physics).sqrt().sum()
+
+    # Tweedie
+    et = (xt - at.sqrt() * x0_t) / (1 - at).sqrt()
 
     norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
     norm_grad = norm_grad.detach()
 
     # 4. DDPM(IM) step
     xt_next = (
-        at_next.sqrt() * x0_t
-        + c1 * torch.randn_like(x0_t)
-        + c2 * et.detach()
-        - norm_grad
+            at_next.sqrt() * x0_t
+            + c1 * torch.randn_like(x0_t)
+            + c2 * et.detach()
+            - norm_grad
     )
 
     # 5. clear out memory

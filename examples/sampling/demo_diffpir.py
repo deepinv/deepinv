@@ -9,7 +9,7 @@ In this tutorial, we revisit the implementation of the DiffPIR diffusion algorit
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-
+from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
@@ -29,7 +29,7 @@ url = (
     "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
     "download?path=%2Fdatasets&files=butterfly.png"
 )
-x_true = load_url_image(url=url, img_size=256)
+x_true = load_url_image(url=url, img_size=256, device=device)
 x = x_true.clone()
 
 sigma = 12.75 / 255.0  # noise level
@@ -46,7 +46,7 @@ y = physics(x)
 imgs = [y, x_true]
 plot(
     imgs,
-    titles=["measurement", "groundtruth"],
+    titles=["measurement", "ground-truth"],
 )
 
 # %%
@@ -83,9 +83,8 @@ plot(
 # In this section, we show how to use the denoising diffusion model from DiffPIR.
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
 # of DiffPIR use a U-Net architecture, which can be loaded as follows:
-from deepinv.models import get_diffpir_model_defaults
 
-model = get_diffpir_model_defaults()
+model = dinv.models.DiffUNet(image_size=256, large_model=True).to(device)
 
 # %%
 # Now, recall that the forward diffusion can be rewritten as, for all :math:`t`,
@@ -172,32 +171,12 @@ def find_nearest(array, value):
 # We can now apply the model to a noisy image. We first generate a noisy image
 x_noisy = x_true + torch.randn_like(x_true) * sigma
 
-# Next, we compute the timestep corresponding to the noise power sigma
-t_i = find_nearest(reduced_alpha_cumprod.cpu().numpy(), sigma * 2)
+den = model(x_noisy, sigma)
 
-# Eventually, we apply the model to the noisy image
-x_noisy = 2 * x_noisy - 1  # Rescale to [-1, 1] (the model expects this range)
-noise_est = model(x_noisy, torch.tensor([t_i]).to(y.device))
-
-# The model outputs a tensor of shape (1, 6, H, W), where the last three channels correspond to a standard
-# deviation map. We only keep the first three channels, which correspond to the point estimate.
-noise_est = noise_est[:, :3, ...]
-
-# Compute the denoised image
-den = (
-    sqrt_recip_alphas_cumprod[t_i] * x_noisy
-    - sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-)
-
-# Rescale to [0, 1]
-x_noisy = x_noisy * 0.5 + 0.5
-noise_est = noise_est * 0.5 + 0.5
-den = den * 0.5 + 0.5
-
-imgs = [x_noisy, noise_est, den, den - x_true]
+imgs = [x_noisy, den, den - x_true]
 plot(
     imgs,
-    titles=["noisy input", "model output", "denoised image", "error"],
+    titles=["noisy input", "denoised image", "error"],
 )
 
 # %%
@@ -211,6 +190,10 @@ data_fidelity = L2()
 
 # In order to take a meaningful data fidelity step, it is best if we apply it to denoised measurements.
 # First, rescale the measurements in [-1, 1] and denoise it
+
+# We compute the timestep corresponding to the noise power sigma
+t_i = find_nearest(reduced_alpha_cumprod.cpu().numpy(), sigma * 2)
+
 y_scaled = 2 * y - 1
 noise_est_sample_var = model(y_scaled, torch.tensor([t_i]).to(y.device))
 noise_est = noise_est_sample_var[:, :3, ...]
@@ -277,7 +260,7 @@ plot(
 # noise schedule (i.e. the sequence of noise powers and regularization parameters) appropriately. This is done with the
 # following function:
 
-max_iter = 30  # Maximum number of iterations of the DiffPIR algorithm
+max_iter = 100  # Maximum number of iterations of the DiffPIR algorithm
 
 # %%
 # .. note::
@@ -285,7 +268,6 @@ max_iter = 30  # Maximum number of iterations of the DiffPIR algorithm
 #   We only use 30 steps to reduce the computational time of this example. As suggested by the authors of DiffPIR, the
 #   algorithm works best with ``max_iter = 100``.
 #
-
 
 def get_noise_schedule(max_iter=max_iter, num_train_timesteps=num_train_timesteps):
     lambda_ = 7.0
@@ -311,13 +293,11 @@ rhos, sigmas, seq = get_noise_schedule()
 # Plot the noise and regularization schedules
 plt.figure(figsize=(6, 3))
 plt.subplot(121)
-plt.plot(
-    2 / rhos.numpy()[::-1]
-)  # Note that the regularization parameter is 2/rho and not rho
+plt.plot(2 / rhos.cpu().numpy()[::-1])  # Note that the regularization parameter is 2/rho and not rho
 plt.xlabel(r"$t$")
 plt.ylabel(r"$\rho$")
 plt.subplot(122)
-plt.plot(sigmas.numpy()[::-1])
+plt.plot(sigmas.cpu().numpy()[::-1])
 plt.xlabel(r"$t$")
 plt.ylabel(r"$\sigma$")
 plt.suptitle("Regularisation parameter and noise schedules")
@@ -329,42 +309,45 @@ plt.show()
 #
 
 # Initialization
-x = 2 * y - 1
+x = 2 * physics.A_adjoint(y) - 1
 
-for i in range(len(seq)):
-    # Current noise level
-    curr_sigma = sigmas[seq[i]].cpu().numpy()
+with torch.no_grad():
+    for i in tqdm(range(len(seq))):
+        # Current noise level
+        curr_sigma = sigmas[seq[i]].cpu().numpy()
 
-    # time step associated with the noise level sigmas[i]
-    t_i = find_nearest(reduced_alpha_cumprod, curr_sigma)
 
-    # Denoising step
-    noise_est_sample_var = model(x, torch.tensor([t_i]).to(y.device))
-    noise_est = noise_est_sample_var[:, :3, ...]
-    x0 = (
-        sqrt_recip_alphas_cumprod[t_i] * x
-        - sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-    )
-    x0 = x0.clamp(-1, 1)
+        # Denoising step
+        xin = x / 2 + 0.5
 
-    if not seq[i] == seq[-1]:
-        # Data fidelity step
-        x0_p = x0 / 2 + 0.5
-        x0_p = data_fidelity.prox(x0_p, y, physics, gamma=1 / (2 * rhos[t_i]))
-        x0 = x0_p * 2 - 1
+        x0 = model(xin, curr_sigma / 2)
 
-        # Sampling step
-        t_im1 = find_nearest(
-            reduced_alpha_cumprod, sigmas[seq[i + 1]].cpu().numpy()
-        )  # time step associated with the next noise level
-        eps = (x - sqrt_alphas_cumprod[t_i] * x0) / sqrt_1m_alphas_cumprod[
-            t_i
-        ]  # effective noise
-        x = (
-            sqrt_alphas_cumprod[t_im1] * x0
-            + torch.sqrt(sqrt_1m_alphas_cumprod[t_im1] ** 2) * np.sqrt(1 - zeta) * eps
-            + sqrt_1m_alphas_cumprod[t_im1] * np.sqrt(zeta) * torch.randn_like(x)
-        )  # sampling
+        x0 = 2*x0 - 1
+        x0 = x0.clamp(-1, 1)
+
+        # time step associated with the noise level sigmas[i]
+        t_i = find_nearest(reduced_alpha_cumprod, curr_sigma)
+
+        noise_est = (sqrt_recip_alphas_cumprod[t_i] * x - x0)/sqrt_recipm1_alphas_cumprod[t_i]
+
+        if not seq[i] == seq[-1]:
+            # Data fidelity step
+            x0_p = x0 / 2 + 0.5
+            x0_p = data_fidelity.prox(x0_p, y, physics, gamma=1 / (2 * rhos[t_i]))
+            x0 = x0_p * 2 - 1
+
+            # Sampling step
+            t_im1 = find_nearest(
+                reduced_alpha_cumprod, sigmas[seq[i + 1]].cpu().numpy()
+            )  # time step associated with the next noise level
+            eps = (x - sqrt_alphas_cumprod[t_i] * x0) / sqrt_1m_alphas_cumprod[
+                t_i
+            ]  # effective noise
+            x = (
+                sqrt_alphas_cumprod[t_im1] * x0
+                + torch.sqrt(sqrt_1m_alphas_cumprod[t_im1] ** 2) * np.sqrt(1 - zeta) * eps
+                + sqrt_1m_alphas_cumprod[t_im1] * np.sqrt(zeta) * torch.randn_like(x)
+            )  # sampling
 
 
 # Plotting the results
@@ -373,5 +356,5 @@ x = x / 2 + 0.5
 imgs = [y, x, x_true]
 plot(
     imgs,
-    titles=["measurement", "model output", "groundtruth"],
+    titles=["measurement", "model output", "ground-truth"],
 )
