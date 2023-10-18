@@ -29,7 +29,7 @@ url = (
     "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
     "download?path=%2Fdatasets&files=butterfly.png"
 )
-x_true = load_url_image(url=url, img_size=256, device=device)
+x_true = load_url_image(url=url, img_size=32, device=device)
 x = x_true.clone()
 
 sigma = 12.75 / 255.0  # noise level
@@ -84,7 +84,7 @@ plot(
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
 # of DiffPIR use a U-Net architecture, which can be loaded as follows:
 
-model = dinv.models.DiffUNet(image_size=256, large_model=True).to(device)
+model = dinv.models.DiffUNet(large_model=True).to(device)
 
 # %%
 # Now, recall that the forward diffusion can be rewritten as, for all :math:`t`,
@@ -260,7 +260,7 @@ plot(
 # noise schedule (i.e. the sequence of noise powers and regularization parameters) appropriately. This is done with the
 # following function:
 
-max_iter = 100  # Maximum number of iterations of the DiffPIR algorithm
+diffusion_steps = 30  # Maximum number of iterations of the DiffPIR algorithm
 
 # %%
 # .. note::
@@ -269,7 +269,8 @@ max_iter = 100  # Maximum number of iterations of the DiffPIR algorithm
 #   algorithm works best with ``max_iter = 100``.
 #
 
-def get_noise_schedule(max_iter=max_iter, num_train_timesteps=num_train_timesteps):
+
+def get_noise_schedule(max_iter=diffusion_steps, num_train_timesteps=num_train_timesteps):
     lambda_ = 7.0
 
     sigmas = []

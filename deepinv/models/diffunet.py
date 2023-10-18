@@ -14,19 +14,22 @@ class DiffUNet(nn.Module):
     r"""
     The full UNet model with attention and timestep/noise_level embedding.
 
-    This is the model from https://arxiv.org/abs/2108.02938; code is adapted from https://github.com/jychoi118/ilvr_adm.
+    This is the model from [`Ho et al. <https://arxiv.org/abs/2108.02938>`_];
+    code is adapted from https://github.com/jychoi118/ilvr_adm.
 
-    It is possible to choose the standard model with 128 hidden channels per layer (trained on FFHQ)
-    and a `larger model <https://arxiv.org/abs/2105.05233>`_ with 256 hidden channels per layer (trained on ImageNet256)
+    It is possible to choose the `standard model <https://arxiv.org/abs/2108.02938>`_
+    with 128 hidden channels per layer (trained on FFHQ)
+    and a `larger model <https://arxiv.org/abs/2105.05233>`_ with 256 hidden channels per layer (trained on ImageNet128)
 
     A pretrained network for (in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
 
-    :param int image_size: Number of pixels along one dimension of the image. The image is assumed to be square and
-        can be of size 64, 128, 256, or 512.
+    The network can handle images of size :math:`2^{n_1}\times 2^{n_2}` with :math:`n_1,n_2 \geq 5`.
+
+
     :param int in_channels: channels in the input Tensor.
     :param int out_channels: channels in the output Tensor.
-    :param bool large_model: if True, use the large model with 256 hidden channels per layer trained on ImageNet256
+    :param bool large_model: if True, use the large model with 256 hidden channels per layer trained on ImageNet128
         (weights size: 2.1 GB).
         Otherwise, use a smaller model with 128 hidden channels per layer trained on FFHQ (weights size: 357 MB).
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at
@@ -38,7 +41,6 @@ class DiffUNet(nn.Module):
 
     def __init__(
         self,
-        image_size,
         in_channels=3,
         out_channels=3,
         large_model=False,
@@ -57,7 +59,6 @@ class DiffUNet(nn.Module):
             attention_resolutions = "16"
 
         dropout = 0.1
-        channel_mult = ""
         conv_resample = True
         dims = 2
         num_classes = None
@@ -70,21 +71,24 @@ class DiffUNet(nn.Module):
         use_new_attention_order = False
 
         out_channels = 6 if out_channels == 3 else out_channels
+        #channel_mult = ""
+        channel_mult = (1, 1, 2, 2, 4, 4)
 
-        if channel_mult == "":
-            if image_size == 512:
-                channel_mult = (0.5, 1, 1, 2, 2, 4, 4)
-            elif image_size == 256:
-                channel_mult = (1, 1, 2, 2, 4, 4)
-            elif image_size == 128:
-                channel_mult = (1, 1, 2, 3, 4)
-            elif image_size == 64:
-                channel_mult = (1, 2, 3, 4)
-            else:
-                raise ValueError(f"unsupported image size: {image_size}")
-        else:
-            channel_mult = tuple(int(ch_mult) for ch_mult in channel_mult.split(","))
+        # if channel_mult == "":
+        #     if image_size == 512:
+        #         channel_mult = (0.5, 1, 1, 2, 2, 4, 4)
+        #     elif image_size == 256:
+        #         channel_mult = (1, 1, 2, 2, 4, 4)
+        #     elif image_size == 128:
+        #         channel_mult = (1, 1, 2, 3, 4)
+        #     elif image_size == 64:
+        #         channel_mult = (1, 2, 3, 4)
+        #     else:
+        #         raise ValueError(f"unsupported image size: {image_size}")
+        # else:
+        #     channel_mult = tuple(int(ch_mult) for ch_mult in channel_mult.split(","))
 
+        image_size = 256
         attention_ds = []
         for res in attention_resolutions.split(","):
             attention_ds.append(image_size // int(res))

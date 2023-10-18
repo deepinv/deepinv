@@ -62,7 +62,7 @@ plot(
 # ``DPS`` generalizes sufficiently well even in such case.
 
 
-model = dinv.models.DiffUNet(image_size=256, large_model=True).to(device)
+model = dinv.models.DiffUNet(large_model=False).to(device)
 
 # %%
 # Define diffusion schedule
