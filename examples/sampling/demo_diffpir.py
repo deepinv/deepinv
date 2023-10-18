@@ -20,6 +20,11 @@ from deepinv.optim.data_fidelity import L2
 #
 # We first generate a deblurring problem with the Butterly image. We use a square blur kernel of size 5x5 and
 # Gaussian noise with standard deviation 12.75/255.0.
+#
+# .. note::
+#           We work with an image of size 64x64 to reduce the computational time of this example.
+#           The algorithm works best with images of size 256x256.
+#
 
 from deepinv.utils.demo import load_url_image
 
@@ -29,7 +34,7 @@ url = (
     "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
     "download?path=%2Fdatasets&files=butterfly.png"
 )
-x_true = load_url_image(url=url, img_size=32, device=device)
+x_true = load_url_image(url=url, img_size=64, device=device)
 x = x_true.clone()
 
 sigma = 12.75 / 255.0  # noise level
@@ -84,7 +89,7 @@ plot(
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
 # of DiffPIR use a U-Net architecture, which can be loaded as follows:
 
-model = dinv.models.DiffUNet(large_model=True).to(device)
+model = dinv.models.DiffUNet(large_model=False).to(device)
 
 # %%
 # Now, recall that the forward diffusion can be rewritten as, for all :math:`t`,
@@ -249,15 +254,14 @@ plot(
 # We can now put all the steps together and implement the DiffPIR algorithm. The only remaining step is to set the
 # noise schedule (i.e. the sequence of noise powers and regularization parameters) appropriately. This is done with the
 # following function:
-
-diffusion_steps = 30  # Maximum number of iterations of the DiffPIR algorithm
-
-# %%
+#
 # .. note::
 #
 #   We only use 30 steps to reduce the computational time of this example. As suggested by the authors of DiffPIR, the
 #   algorithm works best with ``max_iter = 100``.
 #
+
+diffusion_steps = 30  # Maximum number of iterations of the DiffPIR algorithm
 
 
 def get_noise_schedule(max_iter=diffusion_steps, num_train_timesteps=num_train_timesteps):
@@ -300,7 +304,7 @@ plt.show()
 #
 
 # Initialization
-x = 2 * physics.A_adjoint(y) - 1
+x = 2 * y - 1
 
 with torch.no_grad():
     for i in tqdm(range(len(seq))):

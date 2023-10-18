@@ -200,11 +200,18 @@ class DiffPIR(nn.Module):
     where :math:`\mathbf{s}_\theta(x_t,t)` is the conditional denoiser and :math:`f(y, \cdot)` is the data fidelity
     term.
 
+    .. note::
+
+            The algorithm might require careful tunning of the hyperparameters :math:`\lambda` and :math:`\zeta` to
+            obtain optimal results.
+
     :param torch.nn.Module model: a conditional noise estimation model
     :param float sigma: the noise level of the data
-    :param deepinv.physics.DecomposablePhysics data_fidelity: the data fidelity operator
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
     :param int max_iter: the number of iterations to run the algorithm (default: 100)
-    :param float zeta: hyperparameter for the sampling step
+    :param float zeta: hyperparameter :math:`\zeta` for the sampling step
+    :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step (:math:`\rho_t = \lambda
+        \frac{\sigma_n^2}{\bar{\sigma}_t^2}` in the paper)
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
     """
@@ -215,12 +222,14 @@ class DiffPIR(nn.Module):
         data_fidelity,
         sigma=0.05,
         max_iter=100,
-        zeta=0.3,
+        zeta=1.,
+        lambda_=7.,
         verbose=False,
         device="cpu",
     ):
         super(DiffPIR, self).__init__()
         self.model = model
+        self.lambda_ = lambda_
         self.data_fidelity = data_fidelity
         self.max_iter = max_iter
         self.zeta = zeta
@@ -269,10 +278,11 @@ class DiffPIR(nn.Module):
             betas,
         )
 
-    def get_noise_schedule(self, sigma, lambda_=7.0):
+    def get_noise_schedule(self, sigma):
         """
         Get the noise schedule for the algorithm.
         """
+        lambda_ = self.lambda_
         sigmas = []
         sigma_ks = []
         rhos = []
@@ -357,53 +367,54 @@ class DiffPIR(nn.Module):
 
         reduced_alpha_cumprod, sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
 
-        for i in range(len(self.seq)):
-            # Current noise level
-            curr_sigma = self.sigmas[self.seq[i]].cpu().numpy()
+        with torch.no_grad():
+            for i in range(len(self.seq)):
+                # Current noise level
+                curr_sigma = self.sigmas[self.seq[i]].cpu().numpy()
 
-            # time step associated with the noise level sigmas[i]
-            t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
+                # time step associated with the noise level sigmas[i]
+                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
 
-            # Denoising step
-            x_aux = x / 2 + 0.5
-            denoised = 2 * self.model(x_aux, curr_sigma/2) - 1
-            noise_est = (sqrt_recip_alphas_cumprod[t_i] * x - denoised)/sqrt_recipm1_alphas_cumprod[t_i]
+                # Denoising step
+                x_aux = x / 2 + 0.5
+                denoised = 2 * self.model(x_aux, curr_sigma/2) - 1
+                noise_est = (sqrt_recip_alphas_cumprod[t_i] * x - denoised)/sqrt_recipm1_alphas_cumprod[t_i]
 
-            #noise_est = noise_est_sample_var[:, :3, ...]
+                #noise_est = noise_est_sample_var[:, :3, ...]
 
-            x0 = (
-                self.sqrt_recip_alphas_cumprod[t_i] * x
-                - self.sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-            )
-            x0 = x0.clamp(-1, 1)
-
-            if not self.seq[i] == self.seq[-1]:
-                # Data fidelity step
-                x0_p = x0 / 2 + 0.5
-                x0_p = self.data_fidelity.prox(
-                    x0_p, y, physics, gamma=1 / (2 * self.rhos[t_i])
+                x0 = (
+                    self.sqrt_recip_alphas_cumprod[t_i] * x
+                    - self.sqrt_recipm1_alphas_cumprod[t_i] * noise_est
                 )
-                x0 = x0_p * 2 - 1
+                x0 = x0.clamp(-1, 1)
 
-                # Sampling step
-                t_im1 = self.find_nearest(
-                    self.reduced_alpha_cumprod,
-                    self.sigmas[self.seq[i + 1]].cpu().numpy(),
-                )  # time step associated with the next noise level
-                eps = (
-                    x - self.sqrt_alphas_cumprod[t_i] * x0
-                ) / self.sqrt_1m_alphas_cumprod[
-                    t_i
-                ]  # effective noise
-                x = (
-                    self.sqrt_alphas_cumprod[t_im1] * x0
-                    + torch.sqrt(self.sqrt_1m_alphas_cumprod[t_im1] ** 2)
-                    * np.sqrt(1 - self.zeta)
-                    * eps
-                    + self.sqrt_1m_alphas_cumprod[t_im1]
-                    * np.sqrt(self.zeta)
-                    * torch.randn_like(x)
-                )  # sampling
+                if not self.seq[i] == self.seq[-1]:
+                    # Data fidelity step
+                    x0_p = x0 / 2 + 0.5
+                    x0_p = self.data_fidelity.prox(
+                        x0_p, y, physics, gamma=1 / (2 * self.rhos[t_i])
+                    )
+                    x0 = x0_p * 2 - 1
+
+                    # Sampling step
+                    t_im1 = self.find_nearest(
+                        self.reduced_alpha_cumprod,
+                        self.sigmas[self.seq[i + 1]].cpu().numpy(),
+                    )  # time step associated with the next noise level
+                    eps = (
+                        x - self.sqrt_alphas_cumprod[t_i] * x0
+                    ) / self.sqrt_1m_alphas_cumprod[
+                        t_i
+                    ]  # effective noise
+                    x = (
+                        self.sqrt_alphas_cumprod[t_im1] * x0
+                        + torch.sqrt(self.sqrt_1m_alphas_cumprod[t_im1] ** 2)
+                        * np.sqrt(1 - self.zeta)
+                        * eps
+                        + self.sqrt_1m_alphas_cumprod[t_im1]
+                        * np.sqrt(self.zeta)
+                        * torch.randn_like(x)
+                    )  # sampling
 
         out = x / 2 + 0.5  # back to [0, 1] range
 
@@ -531,7 +542,6 @@ class DPS(nn.Module):
             xs = [x]
 
         xt = x.to(self.device)
-
 
         for i, j in tqdm(time_pairs, disable=(not self.verbose)):
             t = (torch.ones(batch_size) * i).to(self.device)
