@@ -189,21 +189,8 @@ plot(
 data_fidelity = L2()
 
 # In order to take a meaningful data fidelity step, it is best if we apply it to denoised measurements.
-# First, rescale the measurements in [-1, 1] and denoise it
-
-# We compute the timestep corresponding to the noise power sigma
-t_i = find_nearest(reduced_alpha_cumprod.cpu().numpy(), sigma * 2)
-
-y_scaled = 2 * y - 1
-noise_est_sample_var = model(y_scaled, torch.tensor([t_i]).to(y.device))
-noise_est = noise_est_sample_var[:, :3, ...]
-y_denoised_scaled = (
-    sqrt_recip_alphas_cumprod[t_i] * y_scaled
-    - sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-)
-
-# Rescale back to [0, 1]
-y_denoised = (y_denoised_scaled + 1) / 2
+# First, denoise the measurements:
+y_denoised = model(y, sigma)
 
 # Next, apply the proximity operator of the data fidelity term (this is the data fidelity step). In the algorithm,
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to 1/sigma.
@@ -224,6 +211,9 @@ plot(
 # reconstruction and the data fidelity step. This is done as follows:
 
 x_prox_scaled = 2 * x_prox - 1  # Rescale the output of the proximal step in [-1, 1]
+y_scaled = 2 * y - 1  # Rescale the measurement in [-1, 1]
+
+t_i = find_nearest(reduced_alpha_cumprod.cpu().numpy(), sigma * 2) # time step associated with the noise level sigma
 eps = (y_scaled - sqrt_alphas_cumprod[t_i] * x_prox_scaled) / sqrt_1m_alphas_cumprod[
     t_i
 ]
@@ -239,7 +229,7 @@ x_sampled_scaled = (
     + np.sqrt(zeta) * sqrt_1m_alphas_cumprod[t_i - 1] * torch.randn_like(x)
 )
 
-x_sampled = (x_sampled_scaled + 1) / 2
+x_sampled = (x_sampled_scaled + 1) / 2  # Rescale the output in [0, 1]
 
 imgs = [y, y_denoised, x_prox, x_sampled]
 plot(
@@ -314,28 +304,21 @@ x = 2 * physics.A_adjoint(y) - 1
 
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
-        # Current noise level
+
+        # Current noise level and associated time step
         curr_sigma = sigmas[seq[i]].cpu().numpy()
-
-
-        # Denoising step
-        xin = x / 2 + 0.5
-
-        x0 = model(xin, curr_sigma / 2)
-
-        x0 = 2*x0 - 1
-        x0 = x0.clamp(-1, 1)
-
-        # time step associated with the noise level sigmas[i]
         t_i = find_nearest(reduced_alpha_cumprod, curr_sigma)
 
-        noise_est = (sqrt_recip_alphas_cumprod[t_i] * x - x0)/sqrt_recipm1_alphas_cumprod[t_i]
+        # Denoising step
+        x0 = model(x, curr_sigma)
 
         if not seq[i] == seq[-1]:
             # Data fidelity step
-            x0_p = x0 / 2 + 0.5
-            x0_p = data_fidelity.prox(x0_p, y, physics, gamma=1 / (2 * rhos[t_i]))
-            x0 = x0_p * 2 - 1
+            x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (2 * rhos[t_i]))
+
+            # Normalize data for sampling
+            x0 = 2*x0-1
+            x = 2*x-1
 
             # Sampling step
             t_im1 = find_nearest(
@@ -350,10 +333,11 @@ with torch.no_grad():
                 + sqrt_1m_alphas_cumprod[t_im1] * np.sqrt(zeta) * torch.randn_like(x)
             )  # sampling
 
+            # Rescale the output in [0, 1]
+            x = (x + 1) / 2
+
 
 # Plotting the results
-x = x / 2 + 0.5
-
 imgs = [y, x, x_true]
 plot(
     imgs,
