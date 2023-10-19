@@ -27,7 +27,9 @@ class MRI(DecomposablePhysics):
     :param torch.device device: cpu or gpu.
     """
 
-    def __init__(self, mask=None, image_size=(320, 320), device="cpu", seed=None, **kwargs):
+    def __init__(
+        self, mask=None, image_size=(320, 320), device="cpu", seed=None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.device = device
         self.image_size = image_size
@@ -35,7 +37,11 @@ class MRI(DecomposablePhysics):
         if mask is not None:
             mask = mask.to(device).unsqueeze(0).unsqueeze(0)
         else:
-            mask = self.sample_mask(image_size=image_size, seed=seed).unsqueeze(0).unsqueeze(0)
+            mask = (
+                self.sample_mask(image_size=image_size, seed=seed)
+                .unsqueeze(0)
+                .unsqueeze(0)
+            )
 
         self.mask = torch.nn.Parameter(
             torch.cat([mask, mask], dim=1), requires_grad=False
@@ -46,7 +52,11 @@ class MRI(DecomposablePhysics):
         Resets the physics, i.e. re-samples a new mask and new noise realization (if any).
         """
         super().reset(**kwargs)
-        mask = self.sample_mask(image_size=self.image_size, **kwargs).unsqueeze(0).unsqueeze(0)
+        mask = (
+            self.sample_mask(image_size=self.image_size, **kwargs)
+            .unsqueeze(0)
+            .unsqueeze(0)
+        )
 
         self.mask = torch.nn.Parameter(
             torch.cat([mask, mask], dim=1), requires_grad=False
@@ -91,10 +101,16 @@ class MRI(DecomposablePhysics):
             side_lines_percent = 0.125 - central_lines_percent
             num_lines_side = int(side_lines_percent * image_size[-1])
         mask = torch.zeros(image_size)
-        center_line_indices = torch.linspace(image_size[0] // 2 - num_lines_center // 2,
-                                             image_size[0] // 2 + num_lines_center // 2 + 1, steps=50, dtype=torch.int)
+        center_line_indices = torch.linspace(
+            image_size[0] // 2 - num_lines_center // 2,
+            image_size[0] // 2 + num_lines_center // 2 + 1,
+            steps=50,
+            dtype=torch.int,
+        )
         mask[:, center_line_indices] = 1
-        random_line_indices = np.random.choice(image_size[0], size=(num_lines_side // 2,), replace=False)
+        random_line_indices = np.random.choice(
+            image_size[0], size=(num_lines_side // 2,), replace=False
+        )
         mask[:, random_line_indices] = 1
         return mask.float().to(self.device)
 

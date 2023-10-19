@@ -224,7 +224,7 @@ def test_reset_MRI(device):
     physics.reset()
     y2 = physics.A(x)
     if y1.shape == y2.shape:
-        error = (y1.abs()-y2.abs()).flatten().mean().abs()
+        error = (y1.abs() - y2.abs()).flatten().mean().abs()
         assert error > 0.01
 
 
