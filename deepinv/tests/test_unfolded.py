@@ -1,18 +1,13 @@
-import math
 import pytest
-from pathlib import Path
+# from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.optim import DataFidelity
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import Prior, PnP
+from deepinv.optim.prior import PnP  #Prior
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot, torch2cpu
 from deepinv.unfolded import unfolded_builder, DEQ_builder
-from deepinv.utils import investigate_model
 
 
 @pytest.fixture
@@ -38,14 +33,6 @@ optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]
 
 @pytest.mark.parametrize("unfolded_algo", optim_algos)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
-    # pths
-    BASE_DIR = Path(".")
-    ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-    # DATA_DIR = BASE_DIR / "measurements"
-    # RESULTS_DIR = BASE_DIR / "results"
-    # DEG_DIR = BASE_DIR / "degradations"
-    CKPT_DIR = BASE_DIR / "ckpts"
-
     # Select the data fidelity term
     data_fidelity = L2()
 
@@ -113,14 +100,6 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("unfolded_algo", optim_algos)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
-    # pths
-    BASE_DIR = Path(".")
-    ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-    # DATA_DIR = BASE_DIR / "measurements"
-    # RESULTS_DIR = BASE_DIR / "results"
-    # DEG_DIR = BASE_DIR / "degradations"
-    CKPT_DIR = BASE_DIR / "ckpts"
-
     # Select the data fidelity term
     data_fidelity = L2()
 
@@ -145,11 +124,13 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
 
     sigma_denoiser_init = 0.01
     sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
+    stepsize_dual = 1.0 if unfolded_algo == "CP" else None
     # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,
         "lambda": lamb,
+        "stepsize_dual": stepsize_dual
     }
 
     trainable_params = [
@@ -171,18 +152,46 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     else:
         custom_init = None
 
-    model = DEQ_builder(
-        unfolded_algo,
-        params_algo=params_algo,
-        trainable_params=trainable_params,
-        data_fidelity=data_fidelity,
-        max_iter=max_iter,
-        prior=prior,
-        custom_init=custom_init,
-        anderson_acceleration=True,
-        anderson_acceleration_backward=True,
-    )
+    for and_acc in [False, True]:
 
-    for idx, (name, param) in enumerate(model.named_parameters()):
-        assert param.requires_grad
-        assert (trainable_params[0] in name) or (trainable_params[1] in name)
+        model = DEQ_builder(
+            unfolded_algo,
+            params_algo=params_algo,
+            trainable_params=trainable_params,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            prior=prior,
+            custom_init=custom_init,
+            anderson_acceleration=and_acc,
+            anderson_acceleration_backward=and_acc,
+        )
+
+        for idx, (name, param) in enumerate(model.named_parameters()):
+            assert param.requires_grad
+            assert (trainable_params[0] in name) or (trainable_params[1] in name)
+
+        # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+        batch_size = 5
+        n_channels, img_size_w, img_size_h = imsize
+        noise_level = 0.01
+
+        torch.manual_seed(0)
+        test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h)
+        groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h)
+
+        physics = dinv.physics.BlurFFT(
+            img_size=(n_channels, img_size_w, img_size_h),
+            filter=dinv.physics.blur.gaussian_blur(),
+            device=device,
+            noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+        )
+
+        y = physics(test_sample).type(test_sample.dtype).to(device)
+
+        out = model(y, physics=physics)
+
+        assert out.shape == test_sample.shape
+
+        loss_fn = dinv.loss.SupLoss(metric=dinv.metric.mse())
+        loss = loss_fn(groundtruth_sample, out)
+        loss.backward()

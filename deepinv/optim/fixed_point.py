@@ -180,8 +180,8 @@ class FixedPoint(nn.Module):
         x_prev = X_prev["est"][0] # current iterate Tx 
         Tx_prev = TX_prev["est"][0] # current iterate x
         b = x_prev.shape[0] # batchsize 
-        x_hist[:, it % self.history_size] = x_prev.view(b, -1) # prepare history of x
-        T_hist[:, it % self.history_size] = Tx_prev.view(b, -1) # prepare history of Tx
+        x_hist[:, it % self.history_size] = x_prev.reshape(b, -1) # prepare history of x
+        T_hist[:, it % self.history_size] = Tx_prev.reshape(b, -1) # prepare history of Tx
         m = min(it + 1, self.history_size)
         G = T_hist[:, :m] - x_hist[:, :m]
         H[:, 1 : m + 1, 1 : m + 1] = (
@@ -202,10 +202,9 @@ class FixedPoint(nn.Module):
             if self.iterator.has_cost
             else None
         )
-        X = Tx_prev
-        X["est"][0] = x
-        X["cost"] = F
-        return X
+        est = list(TX_prev["est"])
+        est[0] = x
+        return {"est" : est, "cost" : F}
 
     def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
         r"""
