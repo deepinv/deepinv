@@ -148,8 +148,8 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
         noise_level = 0.01
 
         torch.manual_seed(0)
-        test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h)
-        groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h)
+        test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(device)
+        groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(device)
 
         physics = dinv.physics.BlurFFT(
             img_size=(n_channels, img_size_w, img_size_h),
