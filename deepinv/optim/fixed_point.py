@@ -177,11 +177,11 @@ class FixedPoint(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        x_prev = X_prev["est"][0]
-        Tx_prev = TX_prev["est"][0]
-        b = x_prev.shape[0]
-        x_hist[:, it % self.history_size] = x_prev.view(b, -1)
-        T_hist[:, it % self.history_size] = Tx_prev.view(b, -1)
+        x_prev = X_prev["est"][0] # current iterate Tx 
+        Tx_prev = TX_prev["est"][0] # current iterate x
+        b = x_prev.shape[0] # batchsize 
+        x_hist[:, it % self.history_size] = x_prev.view(b, -1) # prepare history of x
+        T_hist[:, it % self.history_size] = Tx_prev.view(b, -1) # prepare history of Tx
         m = min(it + 1, self.history_size)
         G = T_hist[:, :m] - x_hist[:, :m]
         H[:, 1 : m + 1, 1 : m + 1] = (
@@ -202,7 +202,9 @@ class FixedPoint(nn.Module):
             if self.iterator.has_cost
             else None
         )
-        X = {"est": (x,), "cost": F}
+        X = Tx_prev
+        X["est"][0] = x
+        X["cost"] = F
         return X
 
     def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
