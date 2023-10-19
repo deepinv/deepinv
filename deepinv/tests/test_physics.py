@@ -24,6 +24,10 @@ operators = [
     "pansharpen",
 ]
 
+operators_reset = [
+    "MRI",
+]
+
 nonlinear_operators = ["haze", "blind_deblur", "lidar"]
 
 
@@ -202,6 +206,26 @@ def test_pseudo_inverse(name, device):
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
     assert error < 0.01
+
+
+def test_reset_MRI(device):
+    r"""
+    Tests that the reset function works.
+
+    :param name: operator name (see find_operator)
+    :param imsize: (tuple) image size tuple in (C, H, W)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts error is less than 1e-3
+    """
+    physics = dinv.physics.MRI(mask=None, device=device)
+    x = torch.randn((2, 320, 320), device=device).unsqueeze(0)
+
+    y1 = physics.A(x)
+    physics.reset()
+    y2 = physics.A(x)
+    if y1.shape == y2.shape:
+        error = (y1.abs()-y2.abs()).flatten().mean().abs()
+        assert error > 0.01
 
 
 def test_tomography(device):
