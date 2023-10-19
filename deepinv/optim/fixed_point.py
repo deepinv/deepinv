@@ -180,8 +180,8 @@ class FixedPoint(nn.Module):
         x_prev = X_prev["est"][0]
         Tx_prev = TX_prev["est"][0]
         b = x_prev.shape[0]
-        x_hist[:, it % self.history_size] = x_prev.view(b, -1)
-        T_hist[:, it % self.history_size] = Tx_prev.view(b, -1)
+        x_hist[:, it % self.history_size] = x_prev.reshape(b, -1)  # x_prev.view(b, -1)
+        T_hist[:, it % self.history_size] = Tx_prev.reshape(b, -1)  # Tx_prev.view(b, -1)
         m = min(it + 1, self.history_size)
         G = T_hist[:, :m] - x_hist[:, :m]
         H[:, 1 : m + 1, 1 : m + 1] = (
