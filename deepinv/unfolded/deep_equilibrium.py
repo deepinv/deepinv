@@ -10,7 +10,7 @@ class BaseDEQ(BaseUnfold):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
 
-    Enables to turn any iterative optimization algorithm into a DEQ algorithm, i.e. an algorithm
+    Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
     that can be virtually unrolled infinitely leveraging the implicit function theorem.
     The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
 
@@ -24,6 +24,8 @@ class BaseDEQ(BaseUnfold):
     and :math:`x^\star` is the equilibrium point of the forward pass.
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
+
+    For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
@@ -61,7 +63,7 @@ class BaseDEQ(BaseUnfold):
                 Else, returns (:class:`torch.Tensor`, dict) the output of the algorithm and the metrics.
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
-            x, metrics = self.fixed_point(
+            X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics
             )
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
@@ -69,7 +71,7 @@ class BaseDEQ(BaseUnfold):
         cur_prior = self.update_prior_fn(self.max_iter - 1)
         cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(
-            x, cur_data_fidelity, cur_prior, cur_params, y, physics
+            X, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()

@@ -6,6 +6,8 @@ This a toy example to show you how to use DEQ to solve a deblurring problem.
 Note that this is a small dataset for training. For optimal results, use a larger dataset.
 For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 
+For now DEQ is only possible with PGD, HQS and GD optimization algorithms. 
+
 """
 
 import deepinv as dinv
@@ -146,7 +148,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iteration="HQS",
+    iteration="HQS",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,

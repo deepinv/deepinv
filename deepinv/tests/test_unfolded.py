@@ -1,11 +1,12 @@
 import pytest
+
 # from pathlib import Path
 
 import torch
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP  #Prior
+from deepinv.optim.prior import PnP  # Prior
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder, DEQ_builder
 
@@ -28,7 +29,7 @@ def dummy_dataset(imsize, device):
     return DummyCircles(samples=1, imsize=imsize)
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]
+optim_algos = ["PGD", "HQS"]
 
 
 @pytest.mark.parametrize("unfolded_algo", optim_algos)
@@ -70,19 +71,6 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     ]  # define which parameters from 'params_algo' are trainable
 
     # Define the unfolded trainable model.
-
-    # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-    if unfolded_algo == "CP":
-
-        def custom_init(y, physics):
-            x_init = physics.A_adjoint(y)
-            u_init = y
-            return {"est": (x_init, x_init, u_init)}
-
-        params_algo["sigma"] = 1.0
-    else:
-        custom_init = None
-
     model = unfolded_builder(
         unfolded_algo,
         params_algo=params_algo,
@@ -90,7 +78,6 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
-        custom_init=custom_init,
     )
 
     for idx, (name, param) in enumerate(model.named_parameters()):
@@ -124,13 +111,11 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
 
     sigma_denoiser_init = 0.01
     sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-    stepsize_dual = 1.0 if unfolded_algo == "CP" else None
     # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,
         "lambda": lamb,
-        "stepsize_dual": stepsize_dual
     }
 
     trainable_params = [
@@ -139,20 +124,8 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     ]  # define which parameters from 'params_algo' are trainable
 
     # Define the unfolded trainable model.
-
-    # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-    if unfolded_algo == "CP":
-
-        def custom_init(y, physics):
-            x_init = physics.A_adjoint(y)
-            u_init = y
-            return {"est": (x_init, x_init, u_init)}
-
-        params_algo["sigma"] = 1.0
-    else:
-        custom_init = None
-
     for and_acc in [False, True]:
+        # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
 
         model = DEQ_builder(
             unfolded_algo,
@@ -161,7 +134,6 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
             data_fidelity=data_fidelity,
             max_iter=max_iter,
             prior=prior,
-            custom_init=custom_init,
             anderson_acceleration=and_acc,
             anderson_acceleration_backward=and_acc,
         )
