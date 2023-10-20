@@ -14,7 +14,7 @@ class DiffUNet(nn.Module):
     r"""
     The full UNet model with attention and timestep/noise_level embedding.
 
-    This is the model from [`Ho et al. <https://arxiv.org/abs/2108.02938>`_];
+    This is the model from `Ho et al. <https://arxiv.org/abs/2108.02938>`_;
     code is adapted from https://github.com/jychoi118/ilvr_adm.
 
     It is possible to choose the `standard model <https://arxiv.org/abs/2108.02938>`_
@@ -35,7 +35,7 @@ class DiffUNet(nn.Module):
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using Pytorch's default initialization.
         If ``pretrained='download'``, the weights will be downloaded from an online repository
-        (only available for the default architecture with 3 input and output channels).
+        (only available for 3 input and output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
     """
 
@@ -45,7 +45,7 @@ class DiffUNet(nn.Module):
         out_channels=3,
         large_model=False,
         use_fp16=False,
-        pretrained='download',
+        pretrained="download",
     ):
         super().__init__()
 
@@ -71,22 +71,7 @@ class DiffUNet(nn.Module):
         use_new_attention_order = False
 
         out_channels = 6 if out_channels == 3 else out_channels
-        #channel_mult = ""
         channel_mult = (1, 1, 2, 2, 4, 4)
-
-        # if channel_mult == "":
-        #     if image_size == 512:
-        #         channel_mult = (0.5, 1, 1, 2, 2, 4, 4)
-        #     elif image_size == 256:
-        #         channel_mult = (1, 1, 2, 2, 4, 4)
-        #     elif image_size == 128:
-        #         channel_mult = (1, 1, 2, 3, 4)
-        #     elif image_size == 64:
-        #         channel_mult = (1, 2, 3, 4)
-        #     else:
-        #         raise ValueError(f"unsupported image size: {image_size}")
-        # else:
-        #     channel_mult = tuple(int(ch_mult) for ch_mult in channel_mult.split(","))
 
         image_size = 256
         attention_ds = []
@@ -277,9 +262,7 @@ class DiffUNet(nn.Module):
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:
-                ckpt = torch.load(
-                    pretrained, map_location=lambda storage, loc: storage
-                )
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
             self.load_state_dict(ckpt, strict=True)
 
@@ -803,7 +786,6 @@ class QKVAttention(nn.Module):
     @staticmethod
     def count_flops(model, _x, y):
         return count_flops_attn(model, _x, y)
-
 
 
 def checkpoint(func, inputs, params, flag):
