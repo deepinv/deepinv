@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added on-the-fly physics computations in training (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Added `no_grad` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
 - Added prox of TV (:gh:`79` by `Matthieu Terris`_) - 16/08/2023
 - Added diffpir demo + model (:gh:`77` by `Matthieu Terris`_) - 08/08/2023
@@ -19,6 +20,7 @@ New Features
 Fixed
 ^^^^^
 - Fix BlurFFT adjoint (:gh:`89` by `Matthieu Terris`_) - 15/10/2023
+- Doc typos (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Minor fixes DiffPIR + other typos (:gh:`81` by `Matthieu Terris`_) - 10/09/2023
 - Call `wandb.init` only when needed (:gh:`78` by `Jérémy Scanvic`_) - 09/08/2023
 - Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
@@ -43,4 +45,4 @@ Authors
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
-.. _Andrea Sebastiani: https://github.com/sedaboni 
+.. _Andrea Sebastiani: https://github.com/sedaboni
