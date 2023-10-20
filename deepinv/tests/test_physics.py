@@ -266,12 +266,7 @@ def choose_noise(noise_type):
 @pytest.mark.parametrize("noise_type", list_noise)
 def test_noise(device, noise_type):
     r"""
-    Tests that the reset function works.
-
-    :param name: operator name (see find_operator)
-    :param imsize: (tuple) image size tuple in (C, H, W)
-    :param device: (torch.device) cpu or cuda:x
-    :return: asserts error is less than 1e-3
+    Tests noise models.
     """
     physics = dinv.physics.DecomposablePhysics()
     physics.noise_model = choose_noise(noise_type)
@@ -293,10 +288,8 @@ def test_reset_noise(device):
     r"""
     Tests that the reset function works.
 
-    :param name: operator name (see find_operator)
-    :param imsize: (tuple) image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :return: asserts error is less than 1e-3
+    :return: asserts error is > 0
     """
     physics = dinv.physics.DecomposablePhysics()
     physics.noise_model = dinv.physics.UniformGaussianNoise(
