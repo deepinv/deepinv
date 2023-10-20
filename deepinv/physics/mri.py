@@ -28,7 +28,13 @@ class MRI(DecomposablePhysics):
     """
 
     def __init__(
-        self, mask=None, image_size=(320, 320), device="cpu", seed=None, **kwargs
+        self,
+        mask=None,
+        image_size=(320, 320),
+        acceleration_factor=4,
+        device="cpu",
+        seed=None,
+        **kwargs
     ):
         super().__init__(**kwargs)
         self.device = device
@@ -38,7 +44,11 @@ class MRI(DecomposablePhysics):
             mask = mask.to(device).unsqueeze(0).unsqueeze(0)
         else:
             mask = (
-                self.sample_mask(image_size=image_size, seed=seed)
+                self.sample_mask(
+                    image_size=image_size,
+                    acceleration_factor=acceleration_factor,
+                    seed=seed,
+                )
                 .unsqueeze(0)
                 .unsqueeze(0)
             )
