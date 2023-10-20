@@ -11,7 +11,6 @@ import matplotlib
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-# matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
 
 plt.rcParams["text.usetex"] = True
@@ -125,11 +124,11 @@ def plot(
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
-        plt.savefig(save_dir / "images.svg", dpi=1200)
+        plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
                 plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".svg"), img, cmap="gray"
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap="gray"
                 )
     if show:
         plt.show()

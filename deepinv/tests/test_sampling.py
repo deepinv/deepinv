@@ -48,7 +48,6 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
     elif algo == "DDRM":
         diff = dinv.sampling.DDRM(
             denoiser=GaussianDenoiser(sigma_prior),
-            sigma_noise=sigma,
             eta=1,
             sigmas=np.linspace(1, 0, 100),
         )
