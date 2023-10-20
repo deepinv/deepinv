@@ -185,8 +185,6 @@ class DRUNet(nn.Module):
                 .to(x.device)
             )
         else:
-            print(x.shape)
-            print(sigma.shape)
             noise_level_map = sigma.view(x.size(0), 1, 1, 1)
             noise_level_map = noise_level_map.expand(x.size(0), 1, x.size(2), x.size(3))
         x = torch.cat((x, noise_level_map), 1)
