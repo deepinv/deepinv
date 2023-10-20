@@ -16,7 +16,6 @@ from pathlib import Path
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-v0_8-darkgrid")
 plt.rcParams["text.usetex"] = True
 
 
@@ -39,6 +38,7 @@ def train(
     plot_images=False,
     plot_metrics=False,
     wandb_vis=False,
+    on_the_fly=False,
     n_plot_max_wandb=8,
 ):
     r"""
@@ -132,16 +132,21 @@ def train(
             G_perm = np.random.permutation(G)
 
             for g in G_perm:
-                if unsupervised:
-                    y = next(iterators[g])
-                    x = None
+                if on_the_fly:
+                    x, _ = next(iterators[g])
+                    x = x.to(device)
+                    y = physics[g](x)
                 else:
-                    x, y = next(iterators[g])
-
-                    if type(x) is list or type(x) is tuple:
-                        x = [s.to(device) for s in x]
+                    if unsupervised:
+                        y = next(iterators[g])
+                        x = None
                     else:
-                        x = x.to(device)
+                        x, y = next(iterators[g])
+
+                        if type(x) is list or type(x) is tuple:
+                            x = [s.to(device) for s in x]
+                        else:
+                            x = x.to(device)
 
                 y = y.to(device)
 
@@ -177,6 +182,7 @@ def train(
                 plot_images=plot_images,
                 plot_metrics=plot_metrics,
                 wandb_vis=wandb_vis,
+                on_the_fly=on_the_fly,
                 step=epoch,
                 n_plot_max_wandb=n_plot_max_wandb,
             )
@@ -225,6 +231,7 @@ def test(
     verbose=True,
     plot_only_first_batch=True,
     wandb_vis=False,
+    on_the_fly=False,
     step=0,
     n_plot_max_wandb=8,
     **kwargs,
@@ -283,7 +290,11 @@ def test(
                 x = [s.to(device) for s in x]
             else:
                 x = x.to(device)
-            y = y.to(device)
+
+            if on_the_fly:
+                y = physics[g](x)
+            else:
+                y = y.to(device)
 
             with torch.no_grad():
                 if plot_metrics:
