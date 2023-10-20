@@ -3,7 +3,7 @@ import torch.nn
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
 import numpy as np
 
 
@@ -122,10 +122,10 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
 
-def test_DiffPIR(device):
-    from deepinv.models import get_diffpir_model_defaults
+def test_diffpir(device):
+    from deepinv.models import DiffUNet
 
-    x = torch.ones((1, 3, 128, 128)).to(device)
+    x = torch.ones((1, 3, 32, 32)).to(device)
 
     sigma = 12.75 / 255.0  # noise level
 
@@ -138,10 +138,35 @@ def test_DiffPIR(device):
 
     y = physics(x)
 
-    model = get_diffpir_model_defaults(device=device)
+    model = DiffUNet().to(device)
     likelihood = L2()
 
-    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device="cpu")
+    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device=device)
 
-    out = algorithm(y, physics, sigma=0.05)
+    out = algorithm(y, physics)
+    assert out.shape == x.shape
+
+
+def test_dps(device):
+    from deepinv.models import DiffUNet
+
+    x = torch.ones((1, 3, 32, 32)).to(device)
+
+    sigma = 12.75 / 255.0  # noise level
+
+    physics = dinv.physics.BlurFFT(
+        img_size=(3, x.shape[-2], x.shape[-1]),
+        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    )
+
+    y = physics(x)
+
+    model = DiffUNet().to(device)
+    likelihood = L2()
+
+    algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
+
+    out = algorithm(y, physics)
     assert out.shape == x.shape

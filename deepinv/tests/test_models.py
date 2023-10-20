@@ -145,14 +145,14 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     assert x_hat.shape == x.shape
 
 
-def test_diffpirmodel(imsize, device):
+def test_diffunetmodel(imsize, device):
     # This model is a bit different from others as not strictly a denoiser as such.
     # The diffpir diffusion model only works for color, square image with powers of two in w, h.
     # Smallest size accepted so far is (3, 32, 32), but probably not meaningful at that size since trained at 256x256.
 
-    from deepinv.models import get_diffpir_model_defaults
+    from deepinv.models import DiffUNet
 
-    model = get_diffpir_model_defaults(device=device)
+    model = DiffUNet().to(device)
 
     torch.manual_seed(0)
     sigma = 0.2
@@ -171,7 +171,7 @@ def test_diffpirmodel(imsize, device):
     assert x_hat.shape == x.shape
 
     # Now we check that the denoise_forward method works
-    x_hat = model(y, sigma, type_t="noise_level")
+    x_hat = model(y, sigma)
     assert x_hat.shape == x.shape
 
     with pytest.raises(Exception):

@@ -73,7 +73,6 @@ class DDRM(nn.Module):
     it is :meth:`deepinv.physics.DecomposablePhysics` class.
 
     :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
-    :param float sigma_noise: the noise level of the data
     :param list[int], numpy.array sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
         order from 1 to 0.
     :param float eta: hyperparameter
@@ -84,7 +83,6 @@ class DDRM(nn.Module):
     def __init__(
         self,
         denoiser,
-        sigma_noise,
         sigmas=np.linspace(1, 0, 100),
         eta=0.85,
         etab=1.0,
@@ -94,7 +92,6 @@ class DDRM(nn.Module):
         self.denoiser = denoiser
         self.sigmas = sigmas
         self.max_iter = len(sigmas)
-        self.sigma_noise = sigma_noise
         self.eta = eta
         self.verbose = verbose
         self.etab = etab
@@ -114,6 +111,11 @@ class DDRM(nn.Module):
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
+            if hasattr(physics.noise_model, "sigma"):
+                sigma_noise = physics.noise_model.sigma
+            else:
+                sigma_noise = 0.01
+
             if physics.__class__ == deepinv.physics.Denoising:
                 mask = torch.ones_like(
                     y
@@ -123,10 +125,10 @@ class DDRM(nn.Module):
 
             c = np.sqrt(1 - self.eta**2)
             y_bar = physics.U_adjoint(y)
-            case = mask > self.sigma_noise
+            case = mask > sigma_noise
             y_bar[case] = y_bar[case] / mask[case]
             nsr = torch.zeros_like(mask)
-            nsr[case] = self.sigma_noise / mask[case]
+            nsr[case] = sigma_noise / mask[case]
 
             # iteration 1
             # compute init noise
@@ -338,7 +340,6 @@ class DiffPIR(nn.Module):
         self,
         y,
         physics: deepinv.physics.LinearPhysics,
-        sigma: float = None,
         seed=None,
         x_init=None,
     ):
@@ -355,7 +356,8 @@ class DiffPIR(nn.Module):
         if seed:
             torch.manual_seed(seed)
 
-        if sigma is not None:  # Then we overwrite the default values
+        if hasattr(physics.noise_model, "sigma"):
+            sigma = physics.noise_model.sigma  # Then we overwrite the default values
             self.rhos, self.sigmas, self.seq = self.get_noise_schedule(sigma=sigma)
 
         # Initialization
