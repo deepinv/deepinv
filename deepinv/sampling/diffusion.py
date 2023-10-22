@@ -214,9 +214,10 @@ class DiffPIR(nn.Module):
     :param float sigma: the noise level of the data
     :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
     :param int max_iter: the number of iterations to run the algorithm (default: 100)
-    :param float zeta: hyperparameter :math:`\zeta` for the sampling step (must be between 0 and 1)
-    :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step (:math:`\rho_t = \lambda
-        \frac{\sigma_n^2}{\bar{\sigma}_t^2}` in the paper)
+    :param float zeta: hyperparameter :math:`\zeta` for the sampling step (must be between 0 and 1). Default: 1.0.
+    :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step
+        (:math:`\rho_t = \lambda \frac{\sigma_n^2}{\bar{\sigma}_t^2}` in the paper where the optimal value range
+         between 3.0 and 25.0 depending on the problem). Default: 7.0.
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
     """
@@ -362,7 +363,7 @@ class DiffPIR(nn.Module):
 
         # Initialization
         if x_init is None:  # Necessary when x and y don't live in the same space
-            x = 2 * physics.A_adjoint(y) - 1  # 2 * y - 1
+            x = 2 * physics.A_adjoint(y) - 1
         else:
             x = 2 * x_init - 1
 
@@ -593,7 +594,6 @@ class DPS(nn.Module):
                 xs.append(xt_next.to("cpu"))
             xt = xt_next.clone()
 
-        # out = x / 2 + 0.5  # back to [0, 1] range
         if self.save_iterates:
             return xs
         else:

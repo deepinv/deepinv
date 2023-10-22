@@ -119,7 +119,7 @@ class MonteCarlo(nn.Module):
 
             # Initialization
             if x_init is None:
-                x = physics.A_adjoint(y)  # .cuda(device).detach().clone()
+                x = physics.A_adjoint(y)
             else:
                 x = x_init
 
