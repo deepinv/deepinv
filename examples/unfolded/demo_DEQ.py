@@ -125,15 +125,13 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
-max_iter = 20  # number of unfolded layers
+max_iter = 10 if torch.cuda.is_available() else 20
 lamb = 0.1  # Initial value for the regularization parameter.
 stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
 anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = (
-    True  # use Anderson acceleration for the backward pass.
-)
-anderson_history_size = 3
+anderson_acceleration_backward = True  # use Anderson acceleration for the backward pass.
+anderson_history_size = 3 if torch.cuda.is_available() else 5  # history size for Anderson acceleration.
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -219,7 +217,7 @@ train(
 method = "DEQ_HQS"
 save_folder = RESULTS_DIR / method / operation
 wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = False  # plot images. Images are saved in save_folder.
+plot_images = True  # plot images. Images are saved in save_folder.
 
 test(
     model=model,
