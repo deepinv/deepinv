@@ -127,6 +127,10 @@ class BaseOptim(nn.Module):
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
     :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
+    :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
+    :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
+    :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
+    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
     :return: a torch model that solves the optimization problem.
@@ -149,6 +153,10 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         custom_metrics=None,
         custom_init=None,
+        anderson_acceleration=False,
+        history_size=5,
+        beta_anderson_acc=1.0,
+        eps_anderson_acc=1e-4,
         verbose=False,
     ):
         super(BaseOptim, self).__init__()
@@ -197,7 +205,7 @@ class BaseOptim(nn.Module):
                 "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
             )
         # If no cost function, backtracking is impossible.
-        if not self.has_cost:
+        if not self.has_cost and self.backtracking:
             self.backtracking = False
             warnings.warn(
                 "Backtracking impossible when no cost function is given. Setting backtracking to False."
@@ -231,6 +239,10 @@ class BaseOptim(nn.Module):
             update_metrics_fn=self.update_metrics_fn,
             max_iter=max_iter,
             early_stop=early_stop,
+            anderson_acceleration=anderson_acceleration,
+            history_size=history_size,
+            beta_anderson_acc=beta_anderson_acc,
+            eps_anderson_acc=eps_anderson_acc,
         )
 
     def update_params_fn(self, it):
@@ -415,7 +427,7 @@ class BaseOptim(nn.Module):
         :param dict X_prev: dictionary containing the primal and dual previous iterates.
         :param dict X: dictionary containing the current primal and dual iterates.
         """
-        if self.backtracking and X_prev is not None:
+        if self.backtracking and self.has_cost and X_prev is not None:
             x_prev = self.get_primal_variable(X_prev)
             x = self.get_primal_variable(X)
             x_prev = x_prev.reshape((x_prev.shape[0], -1))

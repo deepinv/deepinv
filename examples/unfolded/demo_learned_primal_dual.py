@@ -1,5 +1,5 @@
 r"""
-Learned Primal-Dual algorithm for image super-resolution (PDNet).
+Learned Primal-Dual algorithm for CT scan.
 ====================================================================================================
 Implementation of the Unfolded Primal-Dual algorithm from
 
@@ -47,7 +47,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 img_size = 64 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-operation = "super-resolution"
+operation = "CT"
 
 # %%
 # Generate a dataset of low resolution images and load it.
