@@ -25,6 +25,8 @@ class CPIteration(OptimIterator):
     where :math:`(\lambda F)^*` is the Fenchel-Legendre conjugate of :math:`\lambda F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
 
+    Here, the concatenation :math:`(x_k,u_k,z_k)` is the iterate i.e. the fixed point variable iterated by the algorithm and :math:`x_k` is the estimate i.e. the primal estimation of the solution of the minimization problem.
+
     If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
 
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
@@ -47,6 +49,15 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
+    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+        """
+        Get the minimizer of F from the fixed point variable x.
+
+        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :return: Minimizer of F.
+        """
+        return x[0]
+
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         Single iteration of the Chambolle-Pock algorithm.
@@ -59,7 +70,7 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, z_prev, u_prev = X["est"]
+        x_prev, u_prev, z_prev = X["fp"]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)
@@ -77,12 +88,14 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
+        fp = (x, u, z)
+        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"est": (x, z, u), "cost": F}
+        return {"fp" : fp, "est": est, "cost": F}
 
 
 class fStepCP(fStep):

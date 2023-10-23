@@ -8,29 +8,26 @@ class OptimIterator(nn.Module):
     Base class for all :meth:`Optim` iterators.
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-    :math:`F = \lambda*f + g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    :math:`F = \lambda*f + g` where :math:`f` is a data-fidelity term that will be modeled by an instance of physics
     and g is a regularizer. The fixed point iteration takes the form
 
     .. math::
-        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
+        \qquad x_{k+1} = \operatorname{FixedPoint}(x_k, f, g, A, y, ...)
 
-    where :math:`x` is a "primal" variable converging to the solution of the minimization problem, and
-    :math:`z` is a "dual" variable.
-
+    where :math:`x` is an iterated fixed-point variable. 
 
     .. note::
-        By an abuse of terminology, we call "primal" and "dual" variables the variables that are updated
-        at each step and which may correspond to the actual primal and dual variables from 
-        (for instance in the case of the PD algorithm), but not necessarily (for instance in the case of the
-        PGD algorithm).
+        The fixed-point variable does not necessarily correspond to the minimizer of :math:`F`. 
+        This is typically the save for Douglas-Rachford splitting, ADMM or primal-dual algorithms. 
+        In order to get the curent estimate of the minimizer of :math:`F` from the current iterate, one can use the function :math:`get_minimizer_from_FP`.
 
 
     The implementation of the fixed point algorithm in :meth:`deepinv.optim`  is split in two steps, alternating between
     a step on f and a step on g, that is for :math:`k=1,2,...`
 
     .. math::
-        z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
-        x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)
+        z_{k+1} = \operatorname{step}_f(x_k, y, A, ...)\\
+        x_{k+1} = \operatorname{step}_g(z_k, y, A, ...)
 
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are the steps on f and g respectively.
 
@@ -61,23 +58,33 @@ class OptimIterator(nn.Module):
         :return: Relaxed tensor.
         """
         return beta * u + (1 - beta) * v
+    
+    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+        """
+        Get the minimizer of F from the fixed point variable x.
+
+        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :return: Minimizer of F.
+        """
+        return x
+
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F = \lambda f + g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
-        The primal and dual variables as well as the estimated cost at the current iterate are stored in a dictionary
-        $X$ of the form `{'est': (x,z), 'cost': F}`.
+        The fixed-point variable, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
+        $X$ of the form `{'fp' : x,  'est': z , 'cost': F}`.
 
-        :param dict X: Dictionary containing the current iterate and the estimated cost.
+        :param dict X: Dictionary containing the current iterate, current estimate and cost at the current estimate.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
+        :return: Dictionary `{'fp' : x,  'est': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        x_prev = X["est"][0]
+        x_prev = X["fp"]
         if not self.g_first:
             z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(z, cur_prior, cur_params)
@@ -85,12 +92,13 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
+        est = self.get_minimizer_from_FP(x)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"est": (x, z), "cost": F}
+        return {"fp" : x, "est": est, "cost": F}
 
 
 class fStep(nn.Module):

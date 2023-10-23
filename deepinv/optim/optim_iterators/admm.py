@@ -22,6 +22,7 @@ class ADMMIteration(OptimIterator):
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
+    Here, the concatenation :math:`(x_k,z_k)` is the iterate i.e. the fixed point variable iterated by the algorithm and :math:`x_k` is the estimate i.e. the estimation of the solution of the minimization problem.
 
     If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`g` are
     inverted in the previous iteration.
@@ -33,6 +34,15 @@ class ADMMIteration(OptimIterator):
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
+
+    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+        """
+        Get the minimizer of F from the fixed point variable x.
+
+        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :return: Minimizer of F.
+        """
+        return x[0]
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -46,7 +56,7 @@ class ADMMIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x, z = X["est"]
+        x,z = X["fp"]
         if z.shape != x.shape:
             # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
@@ -57,12 +67,14 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
+        fp = (x,z)
+        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"est": (x, z), "cost": F}
+        return {"fp" : fp, "est": est, "cost": F}
 
 
 class fStepADMM(fStep):
