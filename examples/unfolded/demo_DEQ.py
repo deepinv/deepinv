@@ -125,13 +125,13 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
-max_iter = 10 if torch.cuda.is_available() else 20
-lamb = 0.1  # Initial value for the regularization parameter.
-stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
-sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
+max_iter = 20 if torch.cuda.is_available() else 10
+lamb = 1.  # Initial value for the regularization parameter.
+stepsize = 1.  # Initial value for the stepsize. A single stepsize is common for each iterations.
+sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
 anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
 anderson_acceleration_backward = True  # use Anderson acceleration for the backward pass.
-anderson_history_size = 3 if torch.cuda.is_available() else 5  # history size for Anderson acceleration.
+anderson_history_size = 5 if torch.cuda.is_available() else 3  # history size for Anderson acceleration.
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
