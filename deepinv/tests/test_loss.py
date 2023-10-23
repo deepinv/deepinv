@@ -11,7 +11,7 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
 list_losses = ["sup", "mcei"]
-list_sure = ["Gaussian", "Poisson", "PoissonGaussian"]
+list_sure = ["Gaussian", "Poisson", "PoissonGaussian", "UniformGaussian"]
 
 
 @pytest.fixture
@@ -74,6 +74,11 @@ def choose_sure(noise_type):
     elif noise_type == "Gaussian":
         loss = dinv.loss.SureGaussianLoss(sigma=sigma)
         noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "UniformGaussian":
+        loss = dinv.loss.SureGaussianLoss(sigma=sigma)
+        noise_model = dinv.physics.UniformGaussianNoise(
+            sigma=sigma
+        )  # This is equivalent to GaussianNoise when sigma is fixed
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
         noise_model = dinv.physics.PoissonNoise(gain)

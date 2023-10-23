@@ -110,6 +110,10 @@ class Physics(torch.nn.Module):  # parent class for forward models
             tol=self.tol,
         )
 
+    def reset(self, **kwargs):
+        if isinstance(self.noise_model, torch.nn.Module):
+            self.noise_model.__init__(**kwargs)
+
     def forward(self, x):
         r"""
         Computes forward operator :math:`y = N(A(x))` (with noise and/or sensor non-linearities)

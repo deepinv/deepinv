@@ -1,3 +1,7 @@
+import torchvision.utils
+
+from torch.profiler import profile, record_function, ProfilerActivity  # to delete
+
 from deepinv.utils import (
     save_model,
     AverageMeter,
@@ -27,6 +31,7 @@ def train(
     eval_dataloader=None,
     physics=None,
     optimizer=None,
+    grad_clip=None,
     scheduler=None,
     device="cpu",
     ckp_interval=1,
@@ -38,8 +43,9 @@ def train(
     plot_images=False,
     plot_metrics=False,
     wandb_vis=False,
-    on_the_fly=False,
+    wandb_setup={},
     n_plot_max_wandb=8,
+    online_measurements=False,
 ):
     r"""
     Trains a reconstruction network.
@@ -64,6 +70,7 @@ def train(
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at train time.
     :param torch.nn.optim optimizer: Torch optimizer for training the network.
+    :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
@@ -73,13 +80,20 @@ def train(
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
+    :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
+    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
+        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
+         parameters of the forward operator or noise realizations, can change between each sample; these are updated
+         with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are generated
+        offline before training and saved in memory.
     :returns: Trained model.
     """
     save_path = Path(save_path)
 
     if wandb_vis:
         if wandb.run is None:
-            wandb.init()
+            wandb.init(**wandb_setup)
 
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
@@ -89,14 +103,14 @@ def train(
     eval_psnr_net = []
 
     losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
-    train_psnr_net = AverageMeter("Train_psnr_model", ":.2f")
+    train_psnr = AverageMeter("Train_psnr_model", ":.2f")
     if eval_dataloader:
         eval_psnr_net = AverageMeter("Eval_psnr_model", ":.2f")
 
     for loss in losses_verbose:
         meters.append(loss)
 
-    meters.append(train_psnr_net)
+    meters.append(train_psnr)
     if eval_dataloader:
         meters.append(eval_psnr_net)
 
@@ -124,18 +138,25 @@ def train(
     loss_history = []
 
     for epoch in range(epochs):
+        model.train()
+
         for meter in meters:
             meter.reset()
         iterators = [iter(loader) for loader in train_dataloader]
         batches = len(train_dataloader[G - 1])
+
         for i in range(batches):
             G_perm = np.random.permutation(G)
 
             for g in G_perm:
-                if on_the_fly:
-                    x, _ = next(iterators[g])
+                if online_measurements:
+                    x, _ = next(
+                        iterators[g]
+                    )  # In this case the dataloader outputs also a class label
                     x = x.to(device)
-                    y = physics[g](x)
+                    physics_cur = physics[g]
+                    physics_cur.reset()
+                    y = physics_cur(x)
                 else:
                     if unsupervised:
                         y = next(iterators[g])
@@ -147,12 +168,14 @@ def train(
                             x = [s.to(device) for s in x]
                         else:
                             x = x.to(device)
+                            
+                    physics_cur = physics[g]
 
                 y = y.to(device)
 
                 optimizer.zero_grad()
 
-                x_net = model(y, physics[g])
+                x_net = model(y, physics_cur)
 
                 loss_total = 0
                 for k, l in enumerate(losses):
@@ -160,19 +183,45 @@ def train(
                     loss_total += loss
                     losses_verbose[k].update(loss.item())
 
-                loss_meter.update(loss_total.item())
-
-                if (not unsupervised) and verbose:
-                    train_psnr_net.update(cal_psnr(x_net, x))
-
                 loss_total.backward()
+
+                if grad_clip is not None:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+
                 optimizer.step()
 
+                if wandb_vis:
+                    wandb.log({"training loss": loss_total.item()})
+
+                loss_meter.update(loss_total.item())
+
+                if not unsupervised:
+                    train_psnr.update(cal_psnr(x_net, x))
+
         if (
+            wandb_vis
+        ):  # Note that this may not be 16 images because the last batch may be smaller
+            in_image = physics_cur.A_adjoint(y)
+            vis_array = torch.cat((in_image, x_net, x), dim=0)
+            vis_array = torch.clip(vis_array, 0, 1)
+            grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
+            images = wandb.Image(
+                grid_image, caption="Top: Input, Middle: Output, Bottom: target"
+            )
+            wandb.log({"Training samples": images})
+
+        check = (
+            (not unsupervised)
+            and eval_dataloader is not None
+            and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
+        )
+
+        perform_eval = (
             (not unsupervised)
             and eval_dataloader
             and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
-        ):
+        )
+        if perform_eval:
             test_psnr, _, _, _ = test(
                 model,
                 eval_dataloader,
@@ -182,15 +231,13 @@ def train(
                 plot_images=plot_images,
                 plot_metrics=plot_metrics,
                 wandb_vis=wandb_vis,
-                on_the_fly=on_the_fly,
+                wandb_setup=wandb_setup,
                 step=epoch,
                 n_plot_max_wandb=n_plot_max_wandb,
+                online_measurements=online_measurements,
             )
 
             eval_psnr_net.update(test_psnr)
-
-            if wandb_vis:
-                wandb.log({"eval psnr": test_psnr}, step=epoch)
 
         if scheduler:
             scheduler.step()
@@ -198,7 +245,26 @@ def train(
         loss_history.append(loss_meter.avg)
 
         if wandb_vis:
-            wandb.log({"training loss": loss_meter.avg}, step=epoch)
+            last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
+            if not unsupervised and perform_eval:
+                wandb.log(
+                    {
+                        "mean training loss": loss_meter.avg,
+                        "mean training psnr": train_psnr.avg,
+                        "mean eval psnr": eval_psnr_net.avg,
+                        "epoch": epoch,
+                        "learning rate": last_lr,
+                    }
+                )
+            else:
+                wandb.log(
+                    {
+                        "mean training loss": loss_meter.avg,
+                        "mean training psnr": train_psnr.avg,
+                        "epoch": epoch,
+                        "learning rate": last_lr,
+                    }
+                )
 
         if (epoch + 1) % log_interval == 0:
             progress.display(epoch + 1)
@@ -231,9 +297,10 @@ def test(
     verbose=True,
     plot_only_first_batch=True,
     wandb_vis=False,
-    on_the_fly=False,
+    wandb_setup={},
     step=0,
     n_plot_max_wandb=8,
+    online_measurements=False,
     **kwargs,
 ):
     r"""
@@ -256,6 +323,7 @@ def test(
     :param bool verbose: Output training progress information in the console.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param int step: Step number for wandb visualization.
     :param int n_plot_max_wandb: Maximum number of images to plot in wandb visualization.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
@@ -265,6 +333,8 @@ def test(
 
     psnr_init = []
     psnr_net = []
+
+    model.eval()
 
     if type(physics) is not list:
         physics = [physics]
@@ -278,31 +348,37 @@ def test(
 
     if wandb_vis:
         if wandb.run is None:
-            wandb.init()
+            wandb.init(**wandb_setup)
         psnr_data = []
 
     for g in range(G):
         dataloader = test_dataloader[g]
         if verbose:
             print(f"Processing data of operator {g+1} out of {G}")
-        for i, (x, y) in enumerate(tqdm(dataloader, disable=not verbose)):
-            if type(x) is list or type(x) is tuple:
-                x = [s.to(device) for s in x]
-            else:
+        for i, batch in enumerate(tqdm(dataloader, disable=not verbose)):
+            if online_measurements:
+                x, _ = batch  # In this case the dataloader outputs also a class label
                 x = x.to(device)
-
-            if on_the_fly:
-                y = physics[g](x)
+                physics_cur = physics[g]
+                physics_cur.reset()
+                y = physics_cur(x)
             else:
+                x, y = batch
+                if type(x) is list or type(x) is tuple:
+                    x = [s.to(device) for s in x]
+                else:
+                    x = x.to(device)
+                physics_cur = physics[g]
+                
                 y = y.to(device)
 
             with torch.no_grad():
                 if plot_metrics:
-                    x1, metrics = model(y, physics[g], x_gt=x, compute_metrics=True)
+                    x1, metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
                 else:
                     x1 = model(y, physics[g])
 
-            x_init = physics[g].A_adjoint(y)
+            x_init = physics_cur.A_adjoint(y)
             cur_psnr_init = cal_psnr(x_init, x)
             cur_psnr = cal_psnr(x1, x)
             psnr_init.append(cur_psnr_init)
@@ -341,15 +417,14 @@ def test(
                                 show=True,
                             )
                         if wandb_vis:
-                            n_plot = min(n_plot_max_wandb, len(x))
-                            captions = [
-                                "Input",
-                                f"Linear PSNR:{cur_psnr_init:.2f}",
-                                f"Estimated PSNR:{cur_psnr:.2f}",
-                                "Ground Truth",
-                            ]
-                            imgs = wandb_imgs(imgs, captions=captions, n_plot=n_plot)
-                            wandb.log({f"Images batch_{i} (G={g}) ": imgs}, step=step)
+                            vis_array = torch.cat(imgs, dim=0)
+                            vis_array = torch.clip(vis_array, 0, 1)
+                            grid_image = torchvision.utils.make_grid(vis_array, nrow=4)
+                            images = wandb.Image(
+                                grid_image,
+                                caption="Input (Left) / Backprojection (optional) / Output / Target (optional)",
+                            )
+                            wandb.log({f"Test images batch_{i} (G={g}) ": images})
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)

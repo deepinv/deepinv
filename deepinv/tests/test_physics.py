@@ -24,6 +24,19 @@ operators = [
     "pansharpen",
 ]
 
+list_noise = [
+    "Gaussian",
+    "Poisson",
+    "PoissonGaussian",
+    "UniformGaussian",
+    "Uniform",
+    "Neighbor2Neighbor",
+]
+
+operators_reset = [
+    "MRI",
+]
+
 nonlinear_operators = ["haze", "blind_deblur", "lidar"]
 
 
@@ -76,10 +89,12 @@ def find_operator(name, device):
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "deblur":
+        img_size = (3, 17, 19)
         p = dinv.physics.Blur(
             dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
         )
     elif name == "deblur_fft":
+        img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
@@ -200,6 +215,95 @@ def test_pseudo_inverse(name, device):
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
     assert error < 0.01
+
+
+def test_MRI(device):
+    r"""
+    Test MRI function
+
+    :param name: operator name (see find_operator)
+    :param imsize: (tuple) image size tuple in (C, H, W)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts error is less than 1e-3
+    """
+    physics = dinv.physics.MRI(mask=None, device=device, acceleration_factor=4)
+    x = torch.randn((2, 320, 320), device=device).unsqueeze(0)
+    x2 = physics.A_adjoint(physics.A(x))
+    assert x2.shape == x.shape
+
+    physics = dinv.physics.MRI(mask=None, device=device, acceleration_factor=8, seed=0)
+    y1 = physics.A(x)
+    physics.reset()
+    y2 = physics.A(x)
+    if y1.shape == y2.shape:
+        error = (y1.abs() - y2.abs()).flatten().mean().abs()
+        assert error > 0.0
+
+
+def choose_noise(noise_type):
+    gain = 0.1
+    sigma = 0.1
+    if noise_type == "PoissonGaussian":
+        noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    elif noise_type == "Gaussian":
+        noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "UniformGaussian":
+        noise_model = dinv.physics.UniformGaussianNoise(
+            sigma=sigma
+        )  # This is equivalent to GaussianNoise when sigma is fixed
+    elif noise_type == "Uniform":
+        noise_model = dinv.physics.UniformNoise(a=gain)
+    elif noise_type == "Poisson":
+        noise_model = dinv.physics.PoissonNoise(gain)
+    elif noise_type == "Neighbor2Neighbor":
+        noise_model = dinv.physics.PoissonNoise(gain)
+    else:
+        raise Exception("Noise model not found")
+
+    return noise_model
+
+
+@pytest.mark.parametrize("noise_type", list_noise)
+def test_noise(device, noise_type):
+    r"""
+    Tests noise models.
+    """
+    physics = dinv.physics.DecomposablePhysics()
+    physics.noise_model = choose_noise(noise_type)
+    x = torch.ones((1, 12, 7), device=device).unsqueeze(0)
+
+    y1 = physics(
+        x
+    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    assert y1.shape == x.shape
+
+    if noise_type == "UniformGaussian":
+        physics.reset()
+        y2 = physics(x)
+        error = (y1 - y2).flatten().abs().sum()
+        assert error > 0.0
+
+
+def test_reset_noise(device):
+    r"""
+    Tests that the reset function works.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts error is > 0
+    """
+    physics = dinv.physics.DecomposablePhysics()
+    physics.noise_model = dinv.physics.UniformGaussianNoise(
+        sigma=None
+    )  # Should be 20/255 (to check)
+    x = torch.ones((1, 12, 7), device=device).unsqueeze(0)
+
+    y1 = physics(
+        x
+    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    physics.reset()
+    y2 = physics(x)
+    error = (y1 - y2).flatten().abs().sum()
+    assert error > 0.0
 
 
 def test_tomography(device):

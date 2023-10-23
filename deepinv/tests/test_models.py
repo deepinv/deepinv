@@ -145,9 +145,39 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     assert x_hat.shape == x.shape
 
 
+def test_drunet_inputs(imsize_1_channel, device):
+    f = dinv.models.DRUNet(
+        in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
+    )
+
+    torch.manual_seed(0)
+    sigma = 0.2
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+    y = physics(x)
+
+    # Case 1: sigma is a float
+    x_hat = f(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Case 2: sigma is a torch tensor with batch dimension
+    batch_size = 3
+    x = torch.ones((batch_size, 1, 31, 37), device=device)
+    y = physics(x)
+    sigma_tensor = torch.tensor([sigma] * batch_size).to(device)
+    x_hat = f(y, sigma_tensor)
+    assert x_hat.shape == x.shape
+
+    # Case 3: image has shape mulitple of 8
+    x = torch.ones((3, 1, 32, 40), device=device)
+    y = physics(x)
+    x_hat = f(y, sigma_tensor)
+    assert x_hat.shape == x.shape
+
+
 def test_diffunetmodel(imsize, device):
     # This model is a bit different from others as not strictly a denoiser as such.
-    # The diffpir diffusion model only works for color, square image with powers of two in w, h.
+    # The Ho et al. diffusion model only works for color, square image with powers of two in w, h.
     # Smallest size accepted so far is (3, 32, 32), but probably not meaningful at that size since trained at 256x256.
 
     from deepinv.models import DiffUNet
