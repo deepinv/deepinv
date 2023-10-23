@@ -66,17 +66,5 @@ The following denoisers have **pretrained weights** available:
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
-   deepinv.models.diffpir.UNetModel
+   deepinv.models.DiffUNet
 
-
-Diffusion models
-^^^^^^^^^^^^^^^^
-
-The following time-conditional diffusion models with pretrained weigths are available:
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.diffpir.UNetModel

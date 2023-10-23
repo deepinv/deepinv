@@ -20,7 +20,6 @@ from pathlib import Path
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-v0_8-darkgrid")
 plt.rcParams["text.usetex"] = True
 
 
@@ -169,6 +168,7 @@ def train(
                             x = [s.to(device) for s in x]
                         else:
                             x = x.to(device)
+
                     physics_cur = physics[g]
 
                 y = y.to(device)
@@ -369,6 +369,7 @@ def test(
                 else:
                     x = x.to(device)
                 physics_cur = physics[g]
+
                 y = y.to(device)
 
             with torch.no_grad():

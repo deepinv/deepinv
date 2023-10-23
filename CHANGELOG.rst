@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added `DPS` diffusion method (:gh:`92` by `Julian Tachella`_ and `Hyungjin Chung`_) - 20/10/2023
 - Added on-the-fly physics computations in training (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Added `no_grad` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
 - Added prox of TV (:gh:`79` by `Matthieu Terris`_) - 16/08/2023

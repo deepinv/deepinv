@@ -68,3 +68,4 @@ Diffusion
 
     deepinv.sampling.DDRM
     deepinv.sampling.DiffPIR
+    deepinv.sampling.DPS
