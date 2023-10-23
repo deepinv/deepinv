@@ -127,7 +127,7 @@ def train(
         perform_eval = (
             (not unsupervised)
             and eval_dataloader
-            and ((epoch + 1) % eval_interval == 0 or (epoch + 1) == epochs)
+            and (epoch + 1 % eval_interval == 0 or epoch + 1 == epochs)
         )
         if perform_eval:
             test_psnr, _, _, _ = test(
@@ -145,7 +145,7 @@ def train(
             )
             eval_psnr.update(test_psnr)
             log_dict["eval_psnr"] = test_psnr
-
+            
         # wandb logging
         if wandb_vis:
             last_lr = None if scheduler is None else scheduler.get_last_lr()[0]

@@ -157,6 +157,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 train(
     model=model,
     train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
