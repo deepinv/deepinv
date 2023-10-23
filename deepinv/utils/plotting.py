@@ -12,7 +12,6 @@ import shutil
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
-matplotlib.style.use("seaborn-v0_8-darkgrid")
 from matplotlib.ticker import MaxNLocator
 
 plt.rcParams["text.usetex"] = True if shutil.which("latex") else False

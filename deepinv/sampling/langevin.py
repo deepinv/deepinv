@@ -98,7 +98,7 @@ class MonteCarlo(nn.Module):
         self.save_chain = save_chain
         self.chain = []
 
-    def forward(self, y, physics, seed=None):
+    def forward(self, y, physics, seed=None, x_init=None):
         r"""
         Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
@@ -118,7 +118,10 @@ class MonteCarlo(nn.Module):
                 C_upper_lim = self.C_set[1]
 
             # Initialization
-            x = physics.A_adjoint(y)  # .cuda(device).detach().clone()
+            if x_init is None:
+                x = physics.A_adjoint(y)
+            else:
+                x = x_init
 
             # Monte Carlo loop
             start_time = time.time()
@@ -134,7 +137,7 @@ class MonteCarlo(nn.Module):
                 if self.C_set:
                     x = projbox(x, C_lower_lim, C_upper_lim)
 
-                if it > self.burnin_iter and (it % self.thinning) == 0:
+                if it >= self.burnin_iter and (it % self.thinning) == 0:
                     if it >= (self.max_iter - self.thinning):
                         mean_prev = statistics.mean().clone()
                         var_prev = statistics.var().clone()

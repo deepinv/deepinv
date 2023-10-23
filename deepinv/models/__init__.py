@@ -10,7 +10,7 @@ from .wavdict import WaveletPrior, WaveletDict
 from .GSPnP import GSDRUNet, ProxDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
-from .diffpir import get_model_defaults as get_diffpir_model_defaults
+from .diffunet import DiffUNet
 from .swinir import SwinIR
 
 try:

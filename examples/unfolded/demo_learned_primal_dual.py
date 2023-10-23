@@ -1,5 +1,5 @@
 r"""
-Learned Primal-Dual algorithm for image super-resolution (PDNet).
+Learned Primal-Dual algorithm for CT scan.
 ====================================================================================================
 Implementation of the Unfolded Primal-Dual algorithm from 
 

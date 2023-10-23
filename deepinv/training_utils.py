@@ -193,6 +193,7 @@ def train(
                             x = [s.to(device) for s in x]
                         else:
                             x = x.to(device)
+
                     physics_cur = physics[g]
 
                 y = y.to(device)
@@ -357,6 +358,7 @@ def test(
                 else:
                     x = x.to(device)
                 physics_cur = physics[g]
+
                 y = y.to(device)
 
             with torch.no_grad():
