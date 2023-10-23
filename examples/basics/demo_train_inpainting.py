@@ -165,11 +165,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
-    log_interval=2,
-    eval_interval=2,
-    ckp_interval=2,
-)
+    wandb_vis=wandb_vis
 
 # %%
 # Test the network

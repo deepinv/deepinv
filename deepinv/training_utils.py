@@ -4,7 +4,7 @@ from deepinv.utils import (
     AverageMeter,
     ProgressMeter,
     get_timestamp,
-    cal_psnr,
+    cal_psnr
 )
 from deepinv.utils import plot, plot_curves, wandb_imgs, wandb_plot_curves, rescale_img
 import numpy as np
@@ -34,8 +34,8 @@ def train(
     plot_metrics=False,
     wandb_vis=False,
     wandb_setup={},
-    n_plot_max_wandb=8,
     online_measurements=False,
+    plot_measurements=True
 ):
     r"""
     Trains a reconstruction network.
@@ -75,6 +75,7 @@ def train(
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
          parameters of the forward operator or noise realizations, can change between each sample; these are updated
          with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
+    :param bool plot_measurements: Plot the measurements y. default=True.
     :returns: Trained model.
     """
     save_path = Path(save_path)
@@ -242,16 +243,20 @@ def train(
         if (
             wandb_vis
         ):  # Note that this may not be 16 images because the last batch may be smaller
-            y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
-            vis_array = torch.cat(
-                (y_reshaped, physics_cur.A_adjoint(y), x_net, x), dim=0
-            )
+            if plot_measurements and y.shape != x.shape:
+                y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
+                imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
+                caption="From top to bottom : Input, Backprojection, Output, Target"
+            else :
+                imgs = [physics_cur.A_adjoint(y), x_net, x]
+                caption="From top to bottom : Backprojection, Output, Target"
+            vis_array = torch.cat(imgs, dim=0)
             for i in range(len(vis_array)):
                 vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
             grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
             images = wandb.Image(
                 grid_image,
-                caption="From top to bottom : Input, Backprojection, Output, Target",
+                caption=caption,
             )
             wandb.log({"Training samples": images})
 
@@ -291,6 +296,7 @@ def test(
     wandb_setup={},
     step=0,
     online_measurements=False,
+    plot_measurements=True,
     **kwargs,
 ):
     r"""
@@ -315,6 +321,9 @@ def test(
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param int step: Step number for wandb visualization.
+    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
+        ``physics(x)``. 
+    :param bool plot_measurements: Plot the measurements y. default=True.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
@@ -392,10 +401,15 @@ def test(
             if plot_images or wandb_vis:
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if y.shape != x.shape:
+                        if plot_measurements and y.shape != x.shape:
                             y = torch.nn.functional.interpolate(y, size=x.shape[2])
-                        imgs = [y, x_init, x1, x]
-                        name_imgs = ["Input", "Linear", "Recons.", "GT"]
+                            imgs = [y, x_init, x1, x]
+                            name_imgs = ["Input", "Linear", "Recons.", "GT"]
+                            nrows = 4
+                        else :
+                            imgs = [x_init, x1, x]
+                            name_imgs = ["Linear", "Recons.", "GT"]
+                            nrows = 3
                         if plot_images:
                             plot(
                                 imgs,
@@ -409,10 +423,10 @@ def test(
                                 vis_array[i] = rescale_img(
                                     vis_array[i], rescale_mode="min_max"
                                 )
-                            grid_image = torchvision.utils.make_grid(vis_array, nrow=4)
+                            grid_image = torchvision.utils.make_grid(vis_array, nrow=nrows)
                             images = wandb.Image(
                                 grid_image,
-                                caption=" ".join(name_imgs),
+                                caption="  /  ".join(name_imgs),
                             )
                             wandb.log({f"Test images batch_{i} (G={g}) ": images})
 

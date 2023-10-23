@@ -8,6 +8,9 @@ Adler, Jonas, and Ozan Öktem.
 IEEE transactions on medical imaging 37.6 (2018): 1322-1332.
 
 where both the data fidelity and the prior are learned modules, distinct for each iterations.
+
+The algorithm is used for CT reconstruction trained on random phantoms. 
+The phantoms are generated on the fly during training using the odl library (https://odlgroup.github.io/odl/).
 """
 
 import deepinv as dinv
@@ -173,7 +176,6 @@ num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
 test_batch_size = 1
 n_iter_training = int(1e5) if torch.cuda.is_available() else 1000
-n_iter_training = 1000
 n_data = 1  # number of channels in the input
 n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space

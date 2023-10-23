@@ -9,12 +9,43 @@ from pathlib import Path
 from collections.abc import Iterable
 import matplotlib
 import shutil
+import torchvision.transforms as T
+import torchvision.transforms.functional as F
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
 from matplotlib.ticker import MaxNLocator
 
 plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+
+
+def resize_pad_square_tensor(tensor, size):
+    r"""
+    Resize a tensor BxCxWxH to a square tensor BxCxsizexsize with the same aspect ratio thanks to zero-padding.
+
+    :param torch.Tensor tensor: the tensor to resize.
+    :param int size: the new size.
+    :return torch.Tensor: the resized tensor.
+    """
+
+    class SquarePad:
+        def __call__(self, image):
+            W, H = image.size
+            print(W,H)
+            max_wh = np.max([W, H])
+            hp = int((max_wh - W) / 2)
+            vp = int((max_wh - H) / 2)
+            padding = (hp, vp, hp, vp)
+            return F.pad(image, padding, fill=0 , padding_mode = 'constant')
+    
+    transform = T.Compose([
+        T.ToPILImage(),
+        SquarePad(),
+        T.Resize(size),
+        T.ToTensor()
+    ])
+    return torch.stack([transform(el) for el in tensor])
+
 
 
 def torch2cpu(img):

@@ -10,6 +10,7 @@ from .plotting import (
     make_grid,
     wandb_imgs,
     wandb_plot_curves,
+    resize_pad_square_tensor
 )
 from .demo import load_url_image
 from .nn import get_freer_gpu, TensorList, rand_like, zeros_like, randn_like, ones_like
