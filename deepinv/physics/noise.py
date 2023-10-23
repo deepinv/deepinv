@@ -177,4 +177,4 @@ class UniformNoise(torch.nn.Module):
         :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
-        return x + (self.rand_like(x) - 0.5) * 2 * self.a
+        return x + (torch.rand_like(x) - 0.5) * 2 * self.a

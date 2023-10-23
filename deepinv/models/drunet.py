@@ -189,8 +189,8 @@ class DRUNet(nn.Module):
             noise_level_map = noise_level_map.expand(x.size(0), 1, x.size(2), x.size(3))
         x = torch.cat((x, noise_level_map), 1)
         if self.training or (
-            x.size(2) // 8 == 0
-            and x.size(3) // 8 == 0
+            x.size(2) % 8 == 0
+            and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
         ):
