@@ -145,7 +145,7 @@ def train(
             )
             eval_psnr.update(test_psnr)
             log_dict["eval_psnr"] = test_psnr
-            
+
         # wandb logging
         if wandb_vis:
             last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
