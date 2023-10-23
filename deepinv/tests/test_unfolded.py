@@ -87,6 +87,10 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("unfolded_algo", optim_algos)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
+    torch.set_grad_enabled(
+        True
+    )  # Disabled somewhere in previous test files, necessary for this test to pass
+
     # Select the data fidelity term
     data_fidelity = L2()
 
