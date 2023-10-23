@@ -74,8 +74,7 @@ def train(
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
          parameters of the forward operator or noise realizations, can change between each sample; these are updated
-         with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are generated
-        offline before training and saved in memory.
+         with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :returns: Trained model.
     """
     save_path = Path(save_path)
