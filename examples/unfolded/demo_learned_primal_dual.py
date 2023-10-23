@@ -19,7 +19,7 @@ from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
-from deepinv.models.PDNet import PrimalBlock, DualBlock
+from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
 
 # %%
@@ -149,10 +149,10 @@ class PDNetDataFid(DataFidelity):
 max_iter = 10 if torch.cuda.is_available() else 3  # number of unfolded layers
 
 # Set up the data fidelity term. Each layer has its own data fidelity module.
-data_fidelity = [PDNetDataFid(model=DualBlock().to(device)) for i in range(max_iter)]
+data_fidelity = [PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)]
 
 # Set up the trainable prior. Each layer has its own prior module.
-prior = [PDNetPrior(model=PrimalBlock().to(device)) for i in range(max_iter)]
+prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]
 
 # Logging parameters
 verbose = True

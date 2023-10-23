@@ -9,10 +9,10 @@ def init_weights(m):
         m.bias.data.fill_(0.0)
 
 
-class PrimalBlock(nn.Module):
+class PDNet_PrimalBlock(nn.Module):
     def __init__(self, in_channels=6, out_channels=5, depth=3, bias=True, nf=32):
         r"""
-        Primal block for primal-dual network.
+        Primal block for the Primal-Dual unfolding model (PDNet) from https://arxiv.org/abs/1707.06474.
 
         Primal variables are images of shape (batch_size, in_channels, height, width). The input of each
         primal block is the concatenation of the current primal variable and the backprojected dual variable along
@@ -24,7 +24,7 @@ class PrimalBlock(nn.Module):
         :param bool bias: whether to use bias in convolutional layers. Default: True.
         :param int nf: number of features in the convolutional layers. Default: 32.
         """
-        super(PrimalBlock, self).__init__()
+        super(PDNet_PrimalBlock, self).__init__()
 
         self.depth = depth
 
@@ -59,10 +59,10 @@ class PrimalBlock(nn.Module):
         return self.out_conv(x_) + x
 
 
-class DualBlock(nn.Module):
+class PDNet_DualBlock(nn.Module):
     def __init__(self, in_channels=7, out_channels=5, depth=3, bias=True, nf=32):
         r"""
-        Dual block for primal-dual network.
+        Dual block for the Primal-Dual unfolding model (PDNet) from https://arxiv.org/abs/1707.06474.
 
         Dual variables are images of shape (batch_size, in_channels, height, width). The input of each
         primal block is the concatenation of the current dual variable with the projected primal variable and
@@ -74,7 +74,7 @@ class DualBlock(nn.Module):
         :param bool bias: whether to use bias in convolutional layers. Default: True.
         :param int nf: number of features in the convolutional layers. Default: 32.
         """
-        super(DualBlock, self).__init__()
+        super(PDNet_DualBlock, self).__init__()
 
         self.depth = depth
 

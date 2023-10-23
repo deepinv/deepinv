@@ -213,7 +213,7 @@ def test_PDNet(imsize, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
     from deepinv.optim.optimizers import CPIteration, fStep, gStep
     from deepinv.optim import Prior, DataFidelity
-    from deepinv.models.PDNet import PrimalBlock, DualBlock
+    from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
     from deepinv.unfolded import unfolded_builder
 
     torch.manual_seed(0)
@@ -291,12 +291,12 @@ def test_PDNet(imsize, device):
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock(in_channels=9).to(device)) for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
     prior = [
-        PDNetPrior(model=PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
+        PDNetPrior(model=PDNet_PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
     ]
 
     def custom_init(y, physics):

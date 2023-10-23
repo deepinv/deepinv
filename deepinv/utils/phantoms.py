@@ -1,6 +1,6 @@
 import numpy as np
-import odl
 import torch
+import odl
 
 
 def random_shapes(interior=False):
@@ -36,18 +36,28 @@ def random_phantom(spc, n_ellipse=50, interior=False):
 
 
 class RandomPhantomDataset(torch.utils.data.Dataset):
-    def __init__(self, size=128, n_data=1, transform=None, length=np.inf):
+    """
+    Dataset of random ellipsoid phantoms. The phantoms are generated on the fly. The dataset has then infinite length.
+    The phantoms are generated using the odl library (https://odlgroup.github.io/odl/).
+
+    :param int size: Size of the phantom (square) image.
+    :param int n_data: Number of phantoms to generate per sample.
+    :param transform: Transformation to apply to the output image.
+    """
+    def __init__(self, size=128, n_data=1, transform=None):
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
         )
         self.transform = transform
-        self.length = length
         self.n_data = n_data
 
     def __len__(self):
-        return self.length
+        return np.inf
 
     def __getitem__(self, index):
+        """
+        :return tuple : A tuple (phantom, 0) where phantom is a torch tensor of shape (n_data, size, size).
+        """
         phantom_np = np.array([random_phantom(self.space) for i in range(self.n_data)])
         phantom = torch.from_numpy(phantom_np).float()
         if self.transform is not None:
@@ -56,6 +66,9 @@ class RandomPhantomDataset(torch.utils.data.Dataset):
 
 
 class SheppLoganDataset(torch.utils.data.Dataset):
+    """
+    Dataset for the single Shepp-Logan phantom. The dataset has length 1.
+    """
     def __init__(self, size=128, n_data=1, transform=None):
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
