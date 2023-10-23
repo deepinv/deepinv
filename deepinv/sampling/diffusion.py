@@ -70,10 +70,9 @@ class DDRM(nn.Module):
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
     It requires that the physics operator has a singular value decomposition, i.e.,
-    it is :meth:`deepinv.Physics.DecomposablePhysics` class.
+    it is :meth:`deepinv.physics.DecomposablePhysics` class.
 
-    :param deepinv.models.Denoiser, torch.nn.Module denoiser: a denoiser model
-    :param float sigma_noise: the noise level of the data
+    :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
     :param list[int], numpy.array sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
         order from 1 to 0.
     :param float eta: hyperparameter
@@ -84,7 +83,6 @@ class DDRM(nn.Module):
     def __init__(
         self,
         denoiser,
-        sigma_noise,
         sigmas=np.linspace(1, 0, 100),
         eta=0.85,
         etab=1.0,
@@ -94,7 +92,6 @@ class DDRM(nn.Module):
         self.denoiser = denoiser
         self.sigmas = sigmas
         self.max_iter = len(sigmas)
-        self.sigma_noise = sigma_noise
         self.eta = eta
         self.verbose = verbose
         self.etab = etab
@@ -114,6 +111,11 @@ class DDRM(nn.Module):
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
+            if hasattr(physics.noise_model, "sigma"):
+                sigma_noise = physics.noise_model.sigma
+            else:
+                sigma_noise = 0.01
+
             if physics.__class__ == deepinv.physics.Denoising:
                 mask = torch.ones_like(
                     y
@@ -123,10 +125,10 @@ class DDRM(nn.Module):
 
             c = np.sqrt(1 - self.eta**2)
             y_bar = physics.U_adjoint(y)
-            case = mask > self.sigma_noise
+            case = mask > sigma_noise
             y_bar[case] = y_bar[case] / mask[case]
             nsr = torch.zeros_like(mask)
-            nsr[case] = self.sigma_noise / mask[case]
+            nsr[case] = sigma_noise / mask[case]
 
             # iteration 1
             # compute init noise
@@ -179,32 +181,43 @@ class DiffPIR(nn.Module):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
-    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in https://arxiv.org/abs/2305.08995.
+    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described
+    in https://arxiv.org/abs/2305.08995.
 
     The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
     is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
     for :math:`t` decreasing from :math:`T` to :math:`1`:
 
-    .. math::
-            \begin{equation*}
-            \begin{aligned}
-            x_{0}^{t} &= \left(x_t + (1 - \overline{\alpha}_t)\mathbf{s}_\theta(x_t,t))\right)/\sqrt{\overline{\alpha}_t} \\
-            \widehat{x}_{0}^{t} &= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\
-            \widehat{\varepsilon} &= \left(x_t - \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t\right)/\sqrt{1-\overline{\alpha}_t} \\
-            \varepsilon_t &= \mathcal{N}(0, \mathbf{I}) \\
-            x_{t-1} &= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t} \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),
-            \end{aligned}
-            \end{equation*}
+     .. math::
+             \begin{equation*}
+             \begin{aligned}
+             x_{0}^{t} &= D_{\theta}(x_t, \frac{\sqrt{1-\overline{\alpha}_t}}{\sqrt{\overline{\alpha}_t}}) \\
+             \widehat{x}_{0}^{t} &= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\
+             \widehat{\varepsilon} &= \left(x_t - \sqrt{\overline{\alpha}_t} \,\,
+             \widehat{x}_{0}^t\right)/\sqrt{1-\overline{\alpha}_t} \\
+             \varepsilon_t &= \mathcal{N}(0, \mathbf{I}) \\
+             x_{t-1} &= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t}
+             \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),
+             \end{aligned}
+             \end{equation*}
 
-
-    where :math:`\mathbf{s}_\theta(x_t,t)` is the conditional denoiser and :math:`f(y, \cdot)` is the data fidelity
+    where :math:`D_\theta(\cdot,\sigma)` is a Gaussian denoiser network with noise level :math:`\sigma`
+    and :math:`f(y, \cdot)` is the data fidelity
     term.
+
+    .. note::
+
+            The algorithm might require careful tunning of the hyperparameters :math:`\lambda` and :math:`\zeta` to
+            obtain optimal results.
 
     :param torch.nn.Module model: a conditional noise estimation model
     :param float sigma: the noise level of the data
-    :param deepinv.physics.DecomposablePhysics data_fidelity: the data fidelity operator
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
     :param int max_iter: the number of iterations to run the algorithm (default: 100)
-    :param float zeta: hyperparameter for the sampling step
+    :param float zeta: hyperparameter :math:`\zeta` for the sampling step (must be between 0 and 1). Default: 1.0.
+    :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step
+        (:math:`\rho_t = \lambda \frac{\sigma_n^2}{\bar{\sigma}_t^2}` in the paper where the optimal value range
+         between 3.0 and 25.0 depending on the problem). Default: 7.0.
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
     """
@@ -215,12 +228,14 @@ class DiffPIR(nn.Module):
         data_fidelity,
         sigma=0.05,
         max_iter=100,
-        zeta=0.3,
+        zeta=1.0,
+        lambda_=7.0,
         verbose=False,
         device="cpu",
     ):
         super(DiffPIR, self).__init__()
         self.model = model
+        self.lambda_ = lambda_
         self.data_fidelity = data_fidelity
         self.max_iter = max_iter
         self.zeta = zeta
@@ -269,10 +284,11 @@ class DiffPIR(nn.Module):
             betas,
         )
 
-    def get_noise_schedule(self, sigma, lambda_=7.0):
+    def get_noise_schedule(self, sigma):
         """
         Get the noise schedule for the algorithm.
         """
+        lambda_ = self.lambda_
         sigmas = []
         sigma_ks = []
         rhos = []
@@ -300,11 +316,31 @@ class DiffPIR(nn.Module):
         idx = (np.abs(array - value)).argmin()
         return idx
 
+    def get_alpha_prod(
+        self, beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=1000
+    ):
+        """
+        Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.
+        """
+        betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
+        betas = torch.from_numpy(
+            betas
+        )  # .to(self.device) Removing this for now, can be done outside
+        alphas = 1.0 - betas
+        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
+
+        # Useful sequences deriving from alphas_cumprod
+        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1)
+        return (
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+        )
+
     def forward(
         self,
         y,
         physics: deepinv.physics.LinearPhysics,
-        sigma: float = None,
         seed=None,
         x_init=None,
     ):
@@ -321,62 +357,247 @@ class DiffPIR(nn.Module):
         if seed:
             torch.manual_seed(seed)
 
-        if sigma is not None:  # Then we overwrite the default values
+        if hasattr(physics.noise_model, "sigma"):
+            sigma = physics.noise_model.sigma  # Then we overwrite the default values
             self.rhos, self.sigmas, self.seq = self.get_noise_schedule(sigma=sigma)
 
         # Initialization
         if x_init is None:  # Necessary when x and y don't live in the same space
-            x = 2 * y - 1
+            x = 2 * physics.A_adjoint(y) - 1
         else:
             x = 2 * x_init - 1
 
-        for i in range(len(self.seq)):
-            # Current noise level
-            curr_sigma = self.sigmas[self.seq[i]].cpu().numpy()
+        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
 
-            # time step associated with the noise level sigmas[i]
-            t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
+        with torch.no_grad():
+            for i in range(len(self.seq)):
+                # Current noise level
+                curr_sigma = self.sigmas[self.seq[i]].cpu().numpy()
 
-            # Denoising step
-            noise_est_sample_var = self.model(x, torch.tensor([t_i]).to(y.device))
-            noise_est = noise_est_sample_var[:, :3, ...]
-            x0 = (
-                self.sqrt_recip_alphas_cumprod[t_i] * x
-                - self.sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-            )
-            x0 = x0.clamp(-1, 1)
+                # time step associated with the noise level sigmas[i]
+                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
 
-            if not self.seq[i] == self.seq[-1]:
-                # Data fidelity step
-                x0_p = x0 / 2 + 0.5
-                x0_p = self.data_fidelity.prox(
-                    x0_p, y, physics, gamma=1 / (2 * self.rhos[t_i])
+                # Denoising step
+                x_aux = x / 2 + 0.5
+                denoised = 2 * self.model(x_aux, curr_sigma / 2) - 1
+                noise_est = (
+                    sqrt_recip_alphas_cumprod[t_i] * x - denoised
+                ) / sqrt_recipm1_alphas_cumprod[t_i]
+
+                x0 = (
+                    self.sqrt_recip_alphas_cumprod[t_i] * x
+                    - self.sqrt_recipm1_alphas_cumprod[t_i] * noise_est
                 )
-                x0 = x0_p * 2 - 1
+                x0 = x0.clamp(-1, 1)
 
-                # Sampling step
-                t_im1 = self.find_nearest(
-                    self.reduced_alpha_cumprod,
-                    self.sigmas[self.seq[i + 1]].cpu().numpy(),
-                )  # time step associated with the next noise level
-                eps = (
-                    x - self.sqrt_alphas_cumprod[t_i] * x0
-                ) / self.sqrt_1m_alphas_cumprod[
-                    t_i
-                ]  # effective noise
-                x = (
-                    self.sqrt_alphas_cumprod[t_im1] * x0
-                    + torch.sqrt(self.sqrt_1m_alphas_cumprod[t_im1] ** 2)
-                    * np.sqrt(1 - self.zeta)
-                    * eps
-                    + self.sqrt_1m_alphas_cumprod[t_im1]
-                    * np.sqrt(self.zeta)
-                    * torch.randn_like(x)
-                )  # sampling
+                if not self.seq[i] == self.seq[-1]:
+                    # Data fidelity step
+                    x0_p = x0 / 2 + 0.5
+                    x0_p = self.data_fidelity.prox(
+                        x0_p, y, physics, gamma=1 / (2 * self.rhos[t_i])
+                    )
+                    x0 = x0_p * 2 - 1
+
+                    # Sampling step
+                    t_im1 = self.find_nearest(
+                        self.reduced_alpha_cumprod,
+                        self.sigmas[self.seq[i + 1]].cpu().numpy(),
+                    )  # time step associated with the next noise level
+                    eps = (
+                        x - self.sqrt_alphas_cumprod[t_i] * x0
+                    ) / self.sqrt_1m_alphas_cumprod[
+                        t_i
+                    ]  # effective noise
+                    x = (
+                        self.sqrt_alphas_cumprod[t_im1] * x0
+                        + self.sqrt_1m_alphas_cumprod[t_im1]
+                        * np.sqrt(1 - self.zeta)
+                        * eps
+                        + self.sqrt_1m_alphas_cumprod[t_im1]
+                        * np.sqrt(self.zeta)
+                        * torch.randn_like(x)
+                    )  # sampling
 
         out = x / 2 + 0.5  # back to [0, 1] range
 
         return out
+
+
+class DPS(nn.Module):
+    r"""
+    Diffusion Posterior Sampling (DPS).
+
+    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in
+    https://arxiv.org/abs/2209.14687.
+
+    DPS is an approximation of a gradient-based posterior sampling algorithm,
+    which has minimal assumptions on the forward model. The only restriction is that
+    the measurement model has to be differentiable, which is generally the case.
+
+    The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
+
+    .. math::
+
+            \begin{equation*}
+            \begin{aligned}
+            \widehat{\mathbf{x}}_{t} &= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
+            \\
+            \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
+            \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
+            \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
+            + b_t \, \, \widehat{\mathbf{x}}_t
+            + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
+            \end{aligned}
+            \end{equation*}
+
+    where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
+    :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
+
+    .. math::
+            \begin{equation*}
+            \begin{aligned}
+              \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
+              \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
+              a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
+              b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
+              \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.
+            \end{aligned}
+            \end{equation*}
+
+    :param torch.nn.Module model: a denoiser network that can handle different noise levels
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param int max_iter: the number of diffusion iterations to run the algorithm (default: 1000)
+    :param float eta: DDIM hyperparameter which controls the stochasticity
+    :param bool verbose: if True, print progress
+    :param str device: the device to use for the computations
+    """
+
+    def __init__(
+        self,
+        model,
+        data_fidelity,
+        max_iter=1000,
+        eta=1.0,
+        verbose=False,
+        device="cpu",
+        save_iterates=False,
+    ):
+        super(DPS, self).__init__()
+        self.model = model
+        self.model.requires_grad_(True)
+        self.data_fidelity = data_fidelity
+        self.max_iter = max_iter
+        self.eta = eta
+        self.verbose = verbose
+        self.device = device
+        self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
+        self.num_train_timesteps = 1000
+        self.save_iterates = save_iterates
+
+        self.betas, self.alpha_cumprod = self.compute_alpha_betas()
+
+    def compute_alpha_betas(self):
+        r"""
+
+        Get the beta and alpha sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
+
+        """
+        betas = np.linspace(
+            self.beta_start, self.beta_end, self.num_train_timesteps, dtype=np.float32
+        )
+        betas = torch.from_numpy(betas).to(self.device)
+
+        alpha_cumprod = (
+            1 - torch.cat([torch.zeros(1).to(betas.device), betas], dim=0)
+        ).cumprod(dim=0)
+        return betas, alpha_cumprod
+
+    def get_alpha(self, alpha_cumprod, t):
+        a = alpha_cumprod.index_select(0, t + 1).view(-1, 1, 1, 1)
+        return a
+
+    def forward(
+        self,
+        y,
+        physics: deepinv.physics.Physics,
+        seed=None,
+        x_init=None,
+    ):
+        r"""
+        Runs the diffusion to obtain a random sample of the posterior distribution.
+
+        :param torch.Tensor y: the measurements.
+        :param deepinv.physics.LinearPhysics physics: the physics operator.
+        :param int seed: the seed for the random number generator.
+        :param torch.Tensor x_init: the initial guess for the reconstruction.
+        """
+
+        if seed:
+            torch.manual_seed(seed)
+
+        # Initialization
+        if x_init is None:  # Necessary when x and y don't live in the same space
+            x = 2 * physics.A_adjoint(y) - 1
+        else:
+            x = 2 * x_init - 1
+
+        skip = self.num_train_timesteps // self.max_iter
+        batch_size = y.shape[0]
+
+        seq = range(0, self.num_train_timesteps, skip)
+        seq_next = [-1] + list(seq[:-1])
+        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+
+        if self.save_iterates:
+            xs = [x]
+
+        xt = x.to(self.device)
+
+        for i, j in tqdm(time_pairs, disable=(not self.verbose)):
+            t = (torch.ones(batch_size) * i).to(self.device)
+            next_t = (torch.ones(batch_size) * j).to(self.device)
+
+            at = self.get_alpha(self.alpha_cumprod, t.long())
+            at_next = self.get_alpha(self.alpha_cumprod, next_t.long())
+
+            with torch.enable_grad():
+                xt.requires_grad_(True)
+
+                # 1. Denoising
+                # we call the denoiser using standard deviation instead of the time step.
+                aux_x = xt / 2 + 0.5
+                x0_t = 2 * self.model(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+
+                x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+
+                # DPS
+                l2_loss = self.data_fidelity(x0_t, y, physics).sqrt().sum()
+
+            norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
+            norm_grad = norm_grad.detach()
+
+            c1 = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * self.eta
+            c2 = ((1 - at_next) - c1**2).sqrt()
+
+            # 3. noise step
+            epsilon = torch.randn_like(xt)
+
+            # 4. DDPM(IM) step
+            xt_next = (
+                (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
+                + c1 * epsilon
+                + c2 * xt / (1 - at).sqrt()
+                - norm_grad
+            )
+
+            if self.save_iterates:
+                xs.append(xt_next.to("cpu"))
+            xt = xt_next.clone()
+
+        if self.save_iterates:
+            return xs
+        else:
+            return xt
 
 
 # if __name__ == "__main__":
