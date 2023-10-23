@@ -31,21 +31,15 @@ def resize_pad_square_tensor(tensor, size):
     class SquarePad:
         def __call__(self, image):
             W, H = image.size
-            print(W,H)
+            print(W, H)
             max_wh = np.max([W, H])
             hp = int((max_wh - W) / 2)
             vp = int((max_wh - H) / 2)
             padding = (hp, vp, hp, vp)
-            return F.pad(image, padding, fill=0 , padding_mode = 'constant')
-    
-    transform = T.Compose([
-        T.ToPILImage(),
-        SquarePad(),
-        T.Resize(size),
-        T.ToTensor()
-    ])
-    return torch.stack([transform(el) for el in tensor])
+            return F.pad(image, padding, fill=0, padding_mode="constant")
 
+    transform = T.Compose([T.ToPILImage(), SquarePad(), T.Resize(size), T.ToTensor()])
+    return torch.stack([transform(el) for el in tensor])
 
 
 def torch2cpu(img):

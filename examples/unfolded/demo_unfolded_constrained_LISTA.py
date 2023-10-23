@@ -244,7 +244,7 @@ train(
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis
+    wandb_vis=wandb_vis,
 )
 
 # %%

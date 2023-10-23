@@ -214,7 +214,7 @@ train(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
-    ckp_interval=10
+    ckp_interval=10,
 )
 
 # %%

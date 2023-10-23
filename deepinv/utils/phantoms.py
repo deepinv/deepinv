@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import odl
 
+
 def random_shapes(interior=False):
     """
     Generate random shape parameters.
@@ -42,7 +43,7 @@ class RandomPhantomDataset(torch.utils.data.Dataset):
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
     :param transform: Transformation to apply to the output image.
-    :param float length: Length of the dataset. Useful for iterating the data-loader for a certain nb of iterations. 
+    :param float length: Length of the dataset. Useful for iterating the data-loader for a certain nb of iterations.
     """
 
     def __init__(self, size=128, n_data=1, transform=None, length=np.inf):
@@ -71,6 +72,7 @@ class SheppLoganDataset(torch.utils.data.Dataset):
     """
     Dataset for the single Shepp-Logan phantom. The dataset has length 1.
     """
+
     def __init__(self, size=128, n_data=1, transform=None):
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
