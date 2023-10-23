@@ -149,7 +149,9 @@ class PDNetDataFid(DataFidelity):
 max_iter = 10 if torch.cuda.is_available() else 3  # number of unfolded layers
 
 # Set up the data fidelity term. Each layer has its own data fidelity module.
-data_fidelity = [PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)]
+data_fidelity = [
+    PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)
+]
 
 # Set up the trainable prior. Each layer has its own prior module.
 prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]

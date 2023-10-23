@@ -291,12 +291,14 @@ def test_PDNet(imsize, device):
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=PDNet_DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock(in_channels=9).to(device))
+        for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
     prior = [
-        PDNetPrior(model=PDNet_PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
+        PDNetPrior(model=PDNet_PrimalBlock(in_channels=6).to(device))
+        for i in range(max_iter)
     ]
 
     def custom_init(y, physics):

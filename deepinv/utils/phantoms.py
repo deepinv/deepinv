@@ -44,6 +44,7 @@ class RandomPhantomDataset(torch.utils.data.Dataset):
     :param int n_data: Number of phantoms to generate per sample.
     :param transform: Transformation to apply to the output image.
     """
+
     def __init__(self, size=128, n_data=1, transform=None):
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
@@ -69,6 +70,7 @@ class SheppLoganDataset(torch.utils.data.Dataset):
     """
     Dataset for the single Shepp-Logan phantom. The dataset has length 1.
     """
+
     def __init__(self, size=128, n_data=1, transform=None):
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
