@@ -205,7 +205,7 @@ class BaseOptim(nn.Module):
                 "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
             )
         # If no cost function, backtracking is impossible.
-        if not self.has_cost:
+        if not self.has_cost and self.backtracking:
             self.backtracking = False
             warnings.warn(
                 "Backtracking impossible when no cost function is given. Setting backtracking to False."
