@@ -30,13 +30,10 @@ jobs:
       - name: Install deepinv and its dependencies
         run: |
           pip install git+https://github.com/fbcotter/pytorch_wavelets.git#egg=pytorch_wavelets
-          pip install -e .
-          pip install pytest
-          pip install pytest-cov
+          pip install -e .[test]
 
       - name: Test with pytest and generate coverage report
         run: |
-          conda install pytest
           python -m pytest deepinv/tests
           pytest --cov=./ --cov-report=xml
 

@@ -1,13 +1,84 @@
 [build-system]
-requires = [
-  "setuptools>=42",
-  "wheel",
-  "setuptools_scm>=6.2"
-]
+requires = ["setuptools>=61.2"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepinv"
+authors = [{name = "Julian Tachella", email = "tachellajulian@gmail.com"}]
+license = {text = "BSD 3-Clause"}
+description = "Pytorch library for solving inverse problems with deep learning"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries",
+]
+requires-python = ">=3.8"
+version = "0.0.1"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "hdf5storage",
+    "torch",
+    "einops",
+    "torchvision",
+    "wandb",
+    "bm3d",
+    "fastmri",
+    "kornia",
+    "timm",
+]
+
+[tool.setuptools]
+platforms = ["any"]
+
+[project.readme]
+file = "README.rst"
+content-type = "text/x-rst"
+
+[project.urls]
+Homepage = "https://deepinv.github.io/"
+Source = "https://github.com/deepinv/deepinv"
+Tracker = "https://github.com/deepinv/deepinv/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+]
+
+doc = [
+    "sphinx",
+    "sphinx_gallery",
+    "sphinx_rtd_theme",
+    "sphinxemoji"
+]
+
+
+#####################################################################
+# Pytest configuration and coverage reporting
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
     "deepinv/tests",
 ]
+
+[tool.coverage.run]
+branch = true
+# omit = examples/*,src/db/versions/*  # define paths to omit
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
