@@ -52,7 +52,7 @@ def unfolded_builder(
     prior=None,
     F_fn=None,
     g_first=False,
-    **kwargs
+    **kwargs,
 ):
     r"""
     Helper function for building an instance of the :meth:`BaseUnfold` class.
@@ -83,5 +83,5 @@ def unfolded_builder(
         data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
-        **kwargs
+        **kwargs,
     )
