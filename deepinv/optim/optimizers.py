@@ -40,8 +40,8 @@ class BaseOptim(nn.Module):
         \qquad x_{k+1} = \operatorname{FixedPoint}(x_k, f, g, A, y, ...)
 
 
-    where :math:`x_k` is the current iterate i.e. the fixed-point varaible iterated by the algorithm. 
-    The fixed-point variable does not necessarily correspond to the minimizer of :math:`F`. 
+    where :math:`x_k` is the current iterate i.e. the fixed-point varaible iterated by the algorithm.
+    The fixed-point variable does not necessarily correspond to the minimizer of :math:`F`.
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
@@ -290,11 +290,11 @@ class BaseOptim(nn.Module):
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary with keys ``fp`` , ``est`` and ``cost``, where:
             - ``fp`` is the first fixed-point iterate of the algorithm. It has dimension NxBxCxHxW, where N is the number of images in the fixed-point variable (1 by default).
-            - ``est`` is the first estimate of the algorithm. It has dimension BxCxHxW. 
+            - ``est`` is the first estimate of the algorithm. It has dimension BxCxHxW.
             - ``cost`` is the value of the cost function at the first estimate.
 
         The default initialization is defined in the iterator class (see :meth:`deepinv.optim.optim_iterators.OptimIterator.init_algo`).
-        A different custom initialization is possible with the custom_init argument. 
+        A different custom initialization is possible with the custom_init argument.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
@@ -311,7 +311,7 @@ class BaseOptim(nn.Module):
 
         F = (
             F_fn(
-                init_X['est'],
+                init_X["est"],
                 self.update_data_fidelity_fn(0),
                 self.update_prior_fn(0),
                 self.update_params_fn(0),
@@ -336,7 +336,7 @@ class BaseOptim(nn.Module):
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
         :return dict: A dictionary containing the metrics.
         """
-        est_init = X_init['est']
+        est_init = X_init["est"]
         self.batch_size = est_init.shape[0]
         init = {}
         psnr = [[] for i in range(self.batch_size)]
@@ -364,8 +364,8 @@ class BaseOptim(nn.Module):
         :return dict: a dictionary containing the updated metrics.
         """
         if metrics is not None:
-            est_prev = X_prev['est']
-            est = X['est']
+            est_prev = X_prev["est"]
+            est = X["est"]
             for i in range(self.batch_size):
                 residual = (
                     ((est_prev[i] - est[i]).norm() / (est[i].norm() + 1e-06))
@@ -401,8 +401,8 @@ class BaseOptim(nn.Module):
         :param dict X: dictionary containing the current iterate, current estimate and cost at the current estimate.
         """
         if self.backtracking and self.has_cost and X_prev is not None:
-            est_prev = X_prev['est']
-            est = X['est']
+            est_prev = X_prev["est"]
+            est = X["est"]
             est_prev = est_prev.reshape((est_prev.shape[0], -1))
             est = est.reshape((est.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
@@ -434,8 +434,8 @@ class BaseOptim(nn.Module):
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         if self.crit_conv == "residual":
-            est_prev = X_prev['est']
-            est = X['est']
+            est_prev = X_prev["est"]
+            est = X["est"]
             est_prev = est_prev.reshape((est_prev.shape[0], -1))
             est = est.reshape((est.shape[0], -1))
             crit_cur = (
@@ -471,8 +471,8 @@ class BaseOptim(nn.Module):
         X, metrics = self.fixed_point(
             y, physics, x_gt=x_gt, compute_metrics=compute_metrics
         )
-        est = X['est']
-        out = self.custom_output(est) if self.custom_output else est 
+        est = X["est"]
+        out = self.custom_output(est) if self.custom_output else est
         if compute_metrics:
             return out, metrics
         else:

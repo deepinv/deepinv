@@ -47,7 +47,9 @@ class CVIteration(OptimIterator):
         self.g_step = gStepCV(**kwargs)
         self.f_step = fStepCV(**kwargs)
 
-    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_minimizer_from_FP(
+        self, x, cur_data_fidelity, cur_prior, cur_params, y, physics
+    ):
         """
         Get the minimizer of F from the fixed point variable x.
 
@@ -55,20 +57,20 @@ class CVIteration(OptimIterator):
         :return: Minimizer of F.
         """
         return x[0]
-    
+
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For CV, the first iterate is chosen as :math:`(A^{\top}y,y)`.
         The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
-        
+
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
 
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp" : torch.stacl((x, y)), "est": x}
+        return {"fp": torch.stacl((x, y)), "est": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -89,14 +91,17 @@ class CVIteration(OptimIterator):
         x = self.g_step(v, cur_prior, cur_params)
         u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)
         z = self.f_step(u, cur_data_fidelity, cur_params, y, physics)
-        fp = (x,z)
-        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        fp = (x, z)
+        est = self.get_minimizer_from_FP(
+            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp" : fp, "est": est, "cost": F}
+        return {"fp": fp, "est": est, "cost": F}
+
 
 # %%
 # Define the custom fStep and gStep modules

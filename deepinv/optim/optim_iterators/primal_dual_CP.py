@@ -49,7 +49,9 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
-    def get_minimizer_from_FP(self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_minimizer_from_FP(
+        self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+    ):
         """
         Get the minimizer of F from the fixed point variable x.
 
@@ -57,7 +59,7 @@ class CPIteration(OptimIterator):
         :return: Minimizer of F.
         """
         return fp[0]
-    
+
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
@@ -70,7 +72,7 @@ class CPIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp" : torch.stack((x, y, torch.zeros_like(x))), "est": x}
+        return {"fp": torch.stack((x, y, torch.zeros_like(x))), "est": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -103,13 +105,15 @@ class CPIteration(OptimIterator):
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
         fp = (x, u, z)
-        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        est = self.get_minimizer_from_FP(
+            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp" : fp, "est": est, "cost": F}
+        return {"fp": fp, "est": est, "cost": F}
 
 
 class fStepCP(fStep):

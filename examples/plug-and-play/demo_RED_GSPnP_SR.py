@@ -89,8 +89,9 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
 )
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
+
 # %%
-# Setup the PnP prior. 
+# Setup the PnP prior.
 # ------------------------------------------------------------------------------------------------------
 # The GSPnP prior corresponds to a RED prior with an explicit `g`.
 # We thus write a class that inherits from RED for this custom prior.
@@ -114,7 +115,7 @@ class GSPnP(RED):
 
 
 # %%
-# Setup the PnP parameters. 
+# Setup the PnP parameters.
 # ------------------------------------------------------------------------------------------------------
 
 # Parameters of the algorithm to solve the inverse problem
@@ -143,11 +144,13 @@ prior = GSPnP(
     denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 )
 
+
 # The GSPnP-PGD algorithm outputs the denoising step. We need to define a custom output function.
 # Note that with this function, computing the PSNR can take time as it requires an additional denoising step.
 # For optimal performance, we recommend to use plot_metrics=False in the test function.
 def custom_output(est):
     return prior.denoiser(est, sigma_denoiser)
+
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

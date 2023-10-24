@@ -82,13 +82,15 @@ class BaseDEQ(BaseUnfold):
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
         def backward_hook(grad):
-
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
 
                 def forward(self, X, *args, **kwargs):
-                    return {"fp": torch.autograd.grad(f0, x0, X["fp"], retain_graph=True)[0] + grad}
+                    return {
+                        "fp": torch.autograd.grad(f0, x0, X["fp"], retain_graph=True)[0]
+                        + grad
+                    }
 
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
             def init_iterate_fn(y, physics, F_fn=None):
@@ -109,10 +111,12 @@ class BaseDEQ(BaseUnfold):
 
         if x.requires_grad:
             x.register_hook(backward_hook)
-        
-        # Get estimation from the fixed-point iteration 
-        est = self.fixed_point.iterator.get_minimizer_from_FP(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-        out = self.custom_output(est) if self.custom_output else est 
+
+        # Get estimation from the fixed-point iteration
+        est = self.fixed_point.iterator.get_minimizer_from_FP(
+            x, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
+        out = self.custom_output(est) if self.custom_output else est
         if compute_metrics:
             return out, metrics
         else:

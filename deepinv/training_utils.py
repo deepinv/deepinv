@@ -331,8 +331,8 @@ def test(
     """
     save_folder = Path(save_folder)
 
-    psnr_lin = [] # psnr with linear reconstruction A^Ty (for comparison) 
-    psnr_net = [] # psnr with model
+    psnr_lin = []  # psnr with linear reconstruction A^Ty (for comparison)
+    psnr_net = []  # psnr with model
 
     model.eval()
 
@@ -342,20 +342,22 @@ def test(
     if type(test_dataloader) is not list:
         test_dataloader = [test_dataloader]
 
-    G = len(test_dataloader) # we can handle multiple operators.
+    G = len(test_dataloader)  # we can handle multiple operators.
 
-    show_operators = 5 # maximum numbers of operators (test_dataloaders) to visualize.
+    show_operators = 5  # maximum numbers of operators (test_dataloaders) to visualize.
 
-    if wandb_vis: # initialize wandb visualization.
+    if wandb_vis:  # initialize wandb visualization.
         if wandb.run is None:
             wandb.init(**wandb_setup)
         psnr_data = []
 
-    for g in range(G): # for each operator
+    for g in range(G):  # for each operator
         dataloader = test_dataloader[g]
         if verbose and G > 1:
             print(f"Processing data of operator {g+1} out of {G}")
-        for i, batch in enumerate(tqdm(dataloader, disable = not verbose)): # for each batch
+        for i, batch in enumerate(
+            tqdm(dataloader, disable=not verbose)
+        ):  # for each batch
             if verbose:
                 print(f"Processing batch {i} out of {len(dataloader)}")
             if online_measurements:
@@ -374,13 +376,13 @@ def test(
 
                 y = y.to(device)
 
-            with torch.no_grad(): # run the model
+            with torch.no_grad():  # run the model
                 if plot_metrics:
                     x1, metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
                 else:
                     x1 = model(y, physics[g])
 
-            x_lin = physics_cur.A_adjoint(y) # linear reconstruction
+            x_lin = physics_cur.A_adjoint(y)  # linear reconstruction
             cur_psnr_lin = cal_psnr(x_lin, x)
             cur_psnr = cal_psnr(x1, x)
             psnr_lin.append(cur_psnr_lin)

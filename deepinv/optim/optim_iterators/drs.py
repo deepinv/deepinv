@@ -33,7 +33,9 @@ class DRSIteration(OptimIterator):
         self.f_step = fStepDRS(**kwargs)
         self.requires_prox_g = True
 
-    def get_minimizer_from_FP(self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_minimizer_from_FP(
+        self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+    ):
         """
         Get the minimizer of F from the fixed point variable x.
 
@@ -45,7 +47,6 @@ class DRSIteration(OptimIterator):
             return self.g_step(x, x, cur_prior, cur_params, y, physics)
         else:
             return self.f_step(x, x, cur_data_fidelity, cur_params, y, physics)
-    
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -68,13 +69,15 @@ class DRSIteration(OptimIterator):
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (x - u)
         fp = x.unsqueeze(0)
-        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        est = self.get_minimizer_from_FP(
+            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp" : fp, "est": est, "cost": F}
+        return {"fp": fp, "est": est, "cost": F}
 
 
 class fStepDRS(fStep):

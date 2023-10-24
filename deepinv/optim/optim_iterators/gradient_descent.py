@@ -53,7 +53,8 @@ class GDIteration(OptimIterator):
             if self.has_cost
             else None
         )
-        return {"fp" : fp, "est": est, "cost": F}
+        return {"fp": fp, "est": est, "cost": F}
+
 
 class fStepGD(fStep):
     r"""
