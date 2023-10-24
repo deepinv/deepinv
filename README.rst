@@ -99,7 +99,7 @@ If you have any questions or suggestions, please join the conversation in our
     :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
-.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml/badge.svg
+.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml
 .. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
    :target: https://www.python.org/downloads/release/python-360/
