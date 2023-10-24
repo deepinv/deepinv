@@ -160,7 +160,7 @@ class FixedPoint(nn.Module):
         cur_data_fidelity,
         cur_prior,
         cur_params,
-        *args,
+        *args
     ):
         r"""
         Anderson acceleration step.
@@ -265,7 +265,7 @@ class FixedPoint(nn.Module):
                     cur_data_fidelity,
                     cur_prior,
                     cur_params,
-                    *args,
+                    *args
                 )
             check_iteration = (
                 self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True

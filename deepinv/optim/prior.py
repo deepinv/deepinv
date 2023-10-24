@@ -75,7 +75,7 @@ class Prior(nn.Module):
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
-        **kwargs,
+        **kwargs
     ):
         r"""
         Calculates the proximity operator of :math:`g` at :math:`x`. By default, the proximity operator is computed using internal gradient descent.

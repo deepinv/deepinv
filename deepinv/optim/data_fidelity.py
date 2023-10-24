@@ -84,7 +84,7 @@ class DataFidelity(nn.Module):
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
-        **kwargs,
+        **kwargs
     ):
         r"""
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`. Note
@@ -135,7 +135,7 @@ class DataFidelity(nn.Module):
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
-        **kwargs,
+        **kwargs
     ):
         r"""
         Calculates the proximity operator of :math:`\datafidname` at :math:`x`.

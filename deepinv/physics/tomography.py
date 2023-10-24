@@ -296,7 +296,7 @@ class Tomography(LinearPhysics):
         circle=False,
         device=torch.device("cpu"),
         dtype=torch.float,
-        **kwargs,
+        **kwargs
     ):
         super().__init__(**kwargs)
 

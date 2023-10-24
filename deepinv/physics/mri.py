@@ -34,7 +34,7 @@ class MRI(DecomposablePhysics):
         acceleration_factor=4,
         device="cpu",
         seed=None,
-        **kwargs,
+        **kwargs
     ):
         super().__init__(**kwargs)
         self.device = device

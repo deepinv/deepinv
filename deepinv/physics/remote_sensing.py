@@ -56,7 +56,7 @@ class Pansharpen(LinearPhysics):
         filter="gaussian",
         device="cpu",
         padding="circular",
-        **kwargs,
+        **kwargs
     ):
         super().__init__(**kwargs)
 
