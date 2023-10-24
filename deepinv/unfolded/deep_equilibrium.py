@@ -72,7 +72,8 @@ class BaseDEQ(BaseUnfold):
         cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(
             X, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )["est"][0]
+        )["fp"]
+
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(

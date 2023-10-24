@@ -44,8 +44,7 @@ class DRSIteration(OptimIterator):
             return self.g_step(x, x, cur_prior, cur_params, y, physics)
         else:
             return self.f_step(x, x, cur_data_fidelity, cur_params, y, physics)
-
-
+    
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""

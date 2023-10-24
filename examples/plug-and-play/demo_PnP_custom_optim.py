@@ -27,13 +27,14 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 #
 # .. math::
 #         \begin{align*}
-#         v_k = x_k-\tau A^\top z_k
-#         x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
-#         u_k &= z_k + \sigma A(2x_{k+1}-x_k) \\
-#         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
+#         v_{k+1} = x_k-\tau A^\top z_k
+#         x_{k+1} &= \operatorname{prox}_{\tau g}(v_{k+1}) \\
+#         u_{k+1} &= z_k + \sigma A(2x_{k+1}-x_k) \\
+#         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_{k+1})
 #         \end{align*}
 #
 # where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
+# Here, the concatenation :math:`(x_k,z_k)` is the iterate i.e. the fixed point variable iterated by the algorithm and :math:`x_k` is the estimate i.e. the estimation of the solution of the minimization problem.
 
 
 class CVIteration(OptimIterator):
@@ -45,6 +46,28 @@ class CVIteration(OptimIterator):
         super().__init__(**kwargs)
         self.g_step = gStepCV(**kwargs)
         self.f_step = fStepCV(**kwargs)
+
+    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+        """
+        Get the minimizer of F from the fixed point variable x.
+
+        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :return: Minimizer of F.
+        """
+        return x[0]
+    
+    def init_algo(self, y, physics):
+        """
+        Initialize the fixed-point algorithm by computing the initial iterate and estimate.
+        For CV, the first iterate is chosen as :math:`(A^{\top}y,y)`.
+
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
+
+        :return: Dictionary containing the initial iterate and initial estimate.
+        """
+        x = physics.A_adjoint(y)
+        return {"fp" : (x, y), "est": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -60,18 +83,19 @@ class CVIteration(OptimIterator):
         :return: Dictionary `{"est": (x,z), "cost": F}` containing the updated current iterate
             and the estimated current cost.
         """
-        x_prev, z_prev = X["est"]
+        x_prev, z_prev = X["fp"]
         v = x_prev - cur_params["stepsize"] * physics.A_adjoint(z_prev)
         x = self.g_step(v, cur_prior, cur_params)
         u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)
         z = self.f_step(u, cur_data_fidelity, cur_params, y, physics)
+        fp = (x,z)
+        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_params, y, physics)
+            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"est": (x, z), "cost": F}
-
+        return {"fp" : fp, "est": est, "cost": F}
 
 # %%
 # Define the custom fStep and gStep modules
@@ -136,6 +160,16 @@ class gStepCV(gStep):
             (keys `"stepsize"` and `"g_param"`).
         """
         return cur_prior.prox(v, cur_params["stepsize"], cur_params["g_param"])
+
+
+# %%
+# Define the custom initialization of the fixed-point variable
+# ----------------------------------------------------------------------------------------
+# Because the CV algorithm uses both x and z in the fixed-point variable, we need to define a custom initialization.
+def custom_init_CV(y, physics):
+    x_init = physics.A_adjoint(y)
+    z_init = y
+    return {"fp": (x_init, z_init), "est": x_init}
 
 
 # %%
@@ -231,6 +265,7 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=True,
     params_algo=params_algo,
+    custom_init=custom_init_CV,
 )
 
 # %%

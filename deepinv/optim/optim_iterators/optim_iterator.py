@@ -67,6 +67,19 @@ class OptimIterator(nn.Module):
         :return: Minimizer of F.
         """
         return x
+    
+    def init_algo(self, y, physics):
+        """
+        Initialize the fixed-point algorithm by computing the initial iterate and estimate.
+        By default, the first iterate is chosen as :math:`A^{\top}x`.
+
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
+
+        :return: Dictionary containing the initial iterate and initial estimate.
+        """
+        x = physics.A_adjoint(y)
+        return {"fp" : x, "est": x}
 
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
@@ -92,7 +105,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
-        est = self.get_minimizer_from_FP(x)
+        est = self.get_minimizer_from_FP(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost

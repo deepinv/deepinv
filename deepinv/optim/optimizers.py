@@ -120,13 +120,13 @@ class BaseOptim(nn.Module):
     :param float thres_conv: value of the threshold for claiming convergence. Default: ``1e-05``.
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
-    :param bool return_aux: whether to return the auxiliary variable or not at the end of the algorithm. Default: ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
     :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
+    :param function custom_output:  custom operation on the final output of the algorithm. Default: ``None``.
     :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
@@ -147,12 +147,12 @@ class BaseOptim(nn.Module):
         thres_conv=1e-5,
         early_stop=False,
         has_cost=False,
-        return_aux=False,
         backtracking=False,
         gamma_backtracking=0.1,
         eta_backtracking=0.9,
         custom_metrics=None,
         custom_init=None,
+        custom_output=None,
         anderson_acceleration=False,
         history_size=5,
         beta_anderson_acc=1.0,
@@ -165,7 +165,6 @@ class BaseOptim(nn.Module):
         self.crit_conv = crit_conv
         self.verbose = verbose
         self.max_iter = max_iter
-        self.return_aux = return_aux
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
@@ -173,6 +172,7 @@ class BaseOptim(nn.Module):
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
+        self.custom_output = custom_output
         self.has_cost = has_cost
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
@@ -293,8 +293,8 @@ class BaseOptim(nn.Module):
             - ``est`` is the first estimate of the algorithm.
             - ``cost`` is the value of the cost function at the first estimate.
 
-        By default, the first iterate of the algorithm is chosen as :math:`A^{\top}x`.
-        A custom initialization is possible with the custom_init argument.
+        The default initialization is defined in the iterator class (see :meth:`deepinv.optim.optim_iterators.OptimIterator.init_algo`).
+        A different custom initialization is possible with the custom_init argument. 
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
@@ -307,11 +307,10 @@ class BaseOptim(nn.Module):
         if self.custom_init:
             init_X = self.custom_init(y, physics)
         else:
-            est_init = physics.A_adjoint(y)
-            init_X = {"fp": est_init, "est": est_init}
+            init_X = self.fixed_point.iterator.init_algo(y, physics)
         F = (
             F_fn(
-                est_init,
+                init_X['est'],
                 self.update_data_fidelity_fn(0),
                 self.update_prior_fn(0),
                 self.update_params_fn(0),
@@ -336,13 +335,14 @@ class BaseOptim(nn.Module):
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
         :return dict: A dictionary containing the metrics.
         """
-        fp_init, est_init =  X_init['fp'], X_init['est']
-        self.batch_size = fp_init.shape[0]
+        est_init = X_init['est']
+        self.batch_size = est_init.shape[0]
         init = {}
+        psnr = [[] for i in range(self.batch_size)]
         if x_gt is not None:
-            psnr = [[cal_psnr(est_init[i], x_gt[i])] for i in range(self.batch_size)]
-        else:
-            psnr = [[] for i in range(self.batch_size)]
+            out = self.custom_output(est_init) if self.custom_output else est_init
+            for i in range(self.batch_size):
+                psnr[i].append(cal_psnr(out[i], x_gt[i]))
         init["psnr"] = psnr
         if self.has_cost:
             init["cost"] = [[] for i in range(self.batch_size)]
@@ -374,7 +374,9 @@ class BaseOptim(nn.Module):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = cal_psnr(est[i], x_gt[i])
+                    # apply custom output function if given, for PSNR computation.
+                    out = self.custom_output(est) if self.custom_output else est
+                    psnr = cal_psnr(out[i], x_gt[i])
                     metrics["psnr"][i].append(psnr)
                 if self.has_cost:
                     F = X["cost"][i]
@@ -436,7 +438,7 @@ class BaseOptim(nn.Module):
             est_prev = est_prev.reshape((est_prev.shape[0], -1))
             est = est.reshape((est.shape[0], -1))
             crit_cur = (
-                (est_prev - est).norm(p=2, dim=-1) / (set.norm(p=2, dim=-1) + 1e-06)
+                (est_prev - est).norm(p=2, dim=-1) / (est.norm(p=2, dim=-1) + 1e-06)
             ).mean()
         elif self.crit_conv == "cost":
             F_prev = X_prev["cost"]
@@ -469,10 +471,11 @@ class BaseOptim(nn.Module):
             y, physics, x_gt=x_gt, compute_metrics=compute_metrics
         )
         est = X['est']
+        out = self.custom_output(est) if self.custom_output else est 
         if compute_metrics:
-            return est, metrics
+            return out, metrics
         else:
-            return est
+            return out
 
 
 def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
