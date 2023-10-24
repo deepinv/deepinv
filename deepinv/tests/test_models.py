@@ -44,25 +44,24 @@ model_list = [
 
 
 def choose_denoiser(name, imsize):
-
     if name in ("waveletprior", "waveletdict"):
         pytest.importorskip(
             "pytorch_wavelets",
             reason="This test requires pytorch_wavelets. It should be "
             "installed with `pip install "
-            "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
         )
     if name == "bm3d":
         pytest.importorskip(
             "bm3d",
             reason="This test requires bm3d. It should be "
-            "installed with `pip install bm3d`"
+            "installed with `pip install bm3d`",
         )
     if name == "swinir":
         pytest.importorskip(
             "timm",
             reason="This test requires bm3d. It should be "
-            "installed with `pip install timm`"
+            "installed with `pip install timm`",
         )
 
     if name == "unet":
@@ -128,7 +127,6 @@ model_list_1_channel = [
 
 @pytest.mark.parametrize("denoiser", model_list_1_channel)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)

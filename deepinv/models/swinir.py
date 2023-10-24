@@ -15,11 +15,13 @@ import torch.utils.checkpoint as checkpoint
 try:
     from timm.models.layers import trunc_normal_, to_2tuple, DropPath
 except ImportError:
+
     def raise_import_error(*args, **kwargs):
         raise ImportError(
             "timm is needed to use the SCUNet class. "
             "It should be installed with `pip install timm`"
         )
+
     trunc_normal_ = DropPath = to_2tuple = raise_import_error
 
 

@@ -10,11 +10,13 @@ from .denoiser import online_weights_path
 try:
     from timm.models.layers import trunc_normal_, DropPath
 except ImportError:
+
     def raise_import_error(*args, **kwargs):
         raise ImportError(
             "timm is needed to use the SCUNet class. "
             "It should be installed with `pip install timm`"
         )
+
     trunc_normal_ = DropPath = raise_import_error
 
 
