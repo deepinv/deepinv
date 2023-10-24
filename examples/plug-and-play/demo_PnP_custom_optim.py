@@ -60,14 +60,15 @@ class CVIteration(OptimIterator):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For CV, the first iterate is chosen as :math:`(A^{\top}y,y)`.
-
+        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
+        
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
 
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp" : (x, y), "est": x}
+        return {"fp" : torch.stacl((x, y)), "est": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -83,7 +84,7 @@ class CVIteration(OptimIterator):
         :return: Dictionary `{"est": (x,z), "cost": F}` containing the updated current iterate
             and the estimated current cost.
         """
-        x_prev, z_prev = X["fp"]
+        x_prev, z_prev = X["fp"][0], X["fp"][1]
         v = x_prev - cur_params["stepsize"] * physics.A_adjoint(z_prev)
         x = self.g_step(v, cur_prior, cur_params)
         u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)

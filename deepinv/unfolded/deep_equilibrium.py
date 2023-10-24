@@ -77,28 +77,22 @@ class BaseDEQ(BaseUnfold):
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
-            {"est": (x0,)}, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )["est"][0]
+            {"fp": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )["fp"]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
         def backward_hook(grad):
+
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
 
                 def forward(self, X, *args, **kwargs):
-                    return {
-                        "est": (
-                            torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
-                                0
-                            ]
-                            + grad,
-                        )
-                    }
+                    return {"fp": torch.autograd.grad(f0, x0, X["fp"], retain_graph=True)[0] + grad}
 
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
             def init_iterate_fn(y, physics, F_fn=None):
-                return {"est": (grad,)}  # initialize the fixed point algorithm.
+                return {"fp": grad}  # initialize the fixed point algorithm.
 
             backward_FP = FixedPoint(
                 backward_iterator(),
@@ -110,16 +104,19 @@ class BaseDEQ(BaseUnfold):
                 beta_anderson_acc=self.beta_anderson_acc,
                 eps_anderson_acc=self.eps_anderson_acc,
             )
-            g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
+            g = backward_FP({"fp": grad}, None)[0]["fp"]
             return g
 
         if x.requires_grad:
             x.register_hook(backward_hook)
-
+        
+        # Get estimation from the fixed-point iteration 
+        est = self.fixed_point.iterator.get_minimizer_from_FP(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        out = self.custom_output(est) if self.custom_output else est 
         if compute_metrics:
-            return x, metrics
+            return out, metrics
         else:
-            return x
+            return out
 
 
 def DEQ_builder(

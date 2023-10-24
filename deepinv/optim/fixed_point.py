@@ -53,14 +53,14 @@ class FixedPoint(nn.Module):
 
         # Iterate the iterator
         x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
-        X = {"fp": x_init, "est": x_init, "cost": []}  # Iterates are stored in a dictionary containing the current iterate, current estimate and cost at the current estimate.
+        X = {"fp": torch.stack((x_init,)), "est": x_init, "cost": []}  # Iterates are stored in a dictionary containing the current iterate, current estimate and cost at the current estimate.
 
         max_iter = 50
         for it in range(max_iter):
             X = iterator(X,  prior, params, y, physics)
 
-        # Return the fixed-point solution
-        sol = X["fp"]  # sol = [1, 1]
+        # Return the  solution
+        sol = X["est"]  # sol = [1, 1]
 
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
@@ -127,15 +127,15 @@ class FixedPoint(nn.Module):
         :param dict X: initial iterate.
         """
         x = X["fp"]
-        b, d, h, w = x.shape
+        N, B, C, H, W= x.shape
         x_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            B, self.history_size, N*C*H*W, dtype=x.dtype, device=x.device
         )  # history of iterates.
         T_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            B, self.history_size, N*C*H*W, dtype=x.dtype, device=x.device
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
-            b,
+            B,
             self.history_size + 1,
             self.history_size + 1,
             dtype=x.dtype,
@@ -143,7 +143,7 @@ class FixedPoint(nn.Module):
         )  # H in the Anderson acceleration linear system Hp = q .
         H[:, 0, 1:] = H[:, 1:, 0] = 1.0
         q = torch.zeros(
-            b, self.history_size + 1, 1, dtype=x.dtype, device=x.device
+        B, self.history_size + 1, 1, dtype=x.dtype, device=x.device
         )  # q in the Anderson acceleration linear system Hp = q .
         q[:, 0] = 1
         return x_hist, T_hist, H, q
@@ -177,13 +177,13 @@ class FixedPoint(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        x_prev = X_prev["fp"]  # current iterate Tx
-        Tx_prev = TX_prev["fp"]  # current iterate x
-        b = x_prev.shape[0]  # batchsize
-        x_hist[:, it % self.history_size] = x_prev.reshape(
+        x_prev = X_prev["fp"]  # current iterate x
+        Tx_prev = TX_prev["fp"]  # current iterate Tx
+        b = x_prev.shape[1]  # batchsize
+        x_hist[:, it % self.history_size] = x_prev.view(
             b, -1
         )  # prepare history of x
-        T_hist[:, it % self.history_size] = Tx_prev.reshape(
+        T_hist[:, it % self.history_size] = Tx_prev.view(
             b, -1
         )  # prepare history of Tx
         m = min(it + 1, self.history_size)

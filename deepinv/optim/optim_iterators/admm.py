@@ -35,19 +35,20 @@ class ADMMIteration(OptimIterator):
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
 
-    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_minimizer_from_FP(self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics):
         """
         Get the minimizer of F from the fixed point variable x.
 
         :param torch.Tensor x: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return x[0]
+        return fp[0]
     
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For ADMM, the first iterate is chosen as :math:`(A^{\top}y,0)`.
+        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
@@ -55,7 +56,7 @@ class ADMMIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp" : (x, torch.zeros_like(x)), "est": x}
+        return {"fp" : torch.stack((x, torch.zeros_like(x))), "est": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -69,7 +70,7 @@ class ADMMIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x,z = X["fp"]
+        x,z = X["fp"][0], X["fp"][1]
         if z.shape != x.shape:
             # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
@@ -80,7 +81,7 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        fp = (x,z)
+        fp = torch.stack((x,z))
         est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)

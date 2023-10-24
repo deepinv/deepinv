@@ -49,19 +49,20 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
-    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_minimizer_from_FP(self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics):
         """
         Get the minimizer of F from the fixed point variable x.
 
         :param torch.Tensor x: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return x[0]
+        return fp[0]
     
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For primal-dual, the first iterate is chosen as :math:`(A^{\top}y,y,0)`.
+        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
@@ -69,7 +70,7 @@ class CPIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp" : (x, y, torch.zeros_like(x)), "est": x}
+        return {"fp" : torch.stack((x, y, torch.zeros_like(x))), "est": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -83,7 +84,7 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, u_prev, z_prev = X["fp"]
+        x_prev, u_prev, z_prev = X["fp"][0], X["fp"][1], X["fp"][2]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)

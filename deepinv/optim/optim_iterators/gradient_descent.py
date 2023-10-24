@@ -40,19 +40,20 @@ class GDIteration(OptimIterator):
         :param torch.Tensor y: Input data.
          :return: Dictionary `{'fp' : x,  'est': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        x_prev = X["fp"]
+        x_prev = X["fp"][0]
         grad = cur_params["stepsize"] * (
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
         x = gradient_descent_step(x_prev, grad)
-        est = self.get_minimizer_from_FP(x)
+        fp = x.unsqueeze(0)
+        est = self.get_minimizer_from_FP(fp)
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp" : x, "est": est, "cost": F}
+        return {"fp" : fp, "est": est, "cost": F}
 
 class fStepGD(fStep):
     r"""

@@ -33,13 +33,14 @@ class DRSIteration(OptimIterator):
         self.f_step = fStepDRS(**kwargs)
         self.requires_prox_g = True
 
-    def get_minimizer_from_FP(self, x, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_minimizer_from_FP(self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics):
         """
         Get the minimizer of F from the fixed point variable x.
 
         :param torch.Tensor x: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
+        x = fp[0]
         if self.g_first:
             return self.g_step(x, x, cur_prior, cur_params, y, physics)
         else:
@@ -58,7 +59,7 @@ class DRSIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{'fp' : x,  'est': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        z = X["fp"]
+        z = X["fp"][0]
         if self.g_first:
             u = self.g_step(z, z, cur_prior, cur_params)
             x = self.f_step(u, z, cur_data_fidelity, cur_params, y, physics)
@@ -66,13 +67,14 @@ class DRSIteration(OptimIterator):
             u = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (x - u)
-        est = self.get_minimizer_from_FP(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        fp = x.unsqueeze(0)
+        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp" : x, "est": est, "cost": F}
+        return {"fp" : fp, "est": est, "cost": F}
 
 
 class fStepDRS(fStep):
