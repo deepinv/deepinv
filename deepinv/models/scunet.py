@@ -3,9 +3,21 @@ import torch
 import torch.nn as nn
 import numpy as np
 from einops import rearrange
-from einops.layers.torch import Rearrange, Reduce
-from timm.models.layers import trunc_normal_, DropPath
+from einops.layers.torch import Rearrange
 from .denoiser import online_weights_path
+
+# Compatibility with optional dependencies
+try:
+    from timm.models.layers import trunc_normal_, DropPath
+except ImportError:
+
+    def raise_import_error(*args, **kwargs):
+        raise ImportError(
+            "timm is needed to use the SCUNet class. "
+            "It should be installed with `pip install timm`"
+        )
+
+    trunc_normal_ = DropPath = raise_import_error
 
 
 class WMSA(nn.Module):

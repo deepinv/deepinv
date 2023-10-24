@@ -25,31 +25,45 @@ def imsize_1_channel():
 
 
 model_list = [
-    "unet",
+    "autoencoder",
+    "bm3d",
     "drunet",
-    "scunet",
     "dncnn",
+    "gsdrunet",
+    "median",
+    "scunet",
+    "swinir",
+    "tgv",
+    "tv",
+    "unet",
     "waveletprior",
     "waveletdict",
     "waveletdict_hard",
     "waveletdict_topk",
-    "tgv",
-    "tv",
-    "median",
-    "autoencoder",
-    "gsdrunet",
-    "swinir",
 ]
-
-try:  # install of BM3D may fail on some architectures (arm64)
-    from dinv.models.bm3d import bm3d
-
-    model_list.append("bm3d")
-except ImportError:
-    print("Could not find bm3d; not testing bm3d.")
 
 
 def choose_denoiser(name, imsize):
+    if name in ("waveletprior", "waveletdict"):
+        pytest.importorskip(
+            "pytorch_wavelets",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+    if name == "bm3d":
+        pytest.importorskip(
+            "bm3d",
+            reason="This test requires bm3d. It should be "
+            "installed with `pip install bm3d`",
+        )
+    if name == "swinir":
+        pytest.importorskip(
+            "timm",
+            reason="This test requires bm3d. It should be "
+            "installed with `pip install timm`",
+        )
+
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "drunet":
@@ -88,24 +102,14 @@ def choose_denoiser(name, imsize):
 
 @pytest.mark.parametrize("denoiser", model_list)
 def test_denoiser(imsize, device, denoiser):
-    if denoiser in ("waveletprior", "waveletdict"):
-        try:
-            import pytorch_wavelets
-        except ImportError:
-            pytest.xfail(
-                "This test requires pytorch_wavelets. "
-                "It should be installed with `pip install"
-                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-            )
+    model = choose_denoiser(denoiser, imsize).to(device)
+
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     x = torch.ones(imsize, device=device).unsqueeze(0)
     y = physics(x)
-
-    f = choose_denoiser(denoiser, imsize).to(device)
-
-    x_hat = f(y, sigma)
+    x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
 
@@ -123,24 +127,15 @@ model_list_1_channel = [
 
 @pytest.mark.parametrize("denoiser", model_list_1_channel)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-    if denoiser in ("waveletprior", "waveletdict"):
-        try:
-            import pytorch_wavelets
-        except ImportError:
-            pytest.xfail(
-                "This test requires pytorch_wavelets. "
-                "It should be installed with `pip install"
-                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-            )
+    model = choose_denoiser(denoiser, imsize_1_channel).to(device)
+
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
     y = physics(x)
 
-    f = choose_denoiser(denoiser, imsize_1_channel).to(device)
-
-    x_hat = f(y, sigma)
+    x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
 
