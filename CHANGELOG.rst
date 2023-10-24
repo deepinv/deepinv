@@ -49,3 +49,4 @@ Authors
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
 .. _Andrea Sebastiani: https://github.com/sedaboni
+.. _Hyungjin Chung: https://www.hj-chung.com/
