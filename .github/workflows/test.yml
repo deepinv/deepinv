@@ -9,8 +9,8 @@ on:
     - main
 
 jobs:
-  test_no_conda:
-    name: Test without conda
+  test:
+    name: Test DeepInv
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
