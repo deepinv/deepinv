@@ -24,19 +24,16 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.8"
-version = "0.0.1"
+version = "0.1.0dev0"
 dependencies = [
     "numpy",
     "matplotlib",
     "hdf5storage",
     "torch",
-    "einops",
     "torchvision",
+    "einops",
     "wandb",
-    "bm3d",
     "fastmri",
-    "kornia",
-    "timm",
 ]
 
 [tool.setuptools]
@@ -63,6 +60,13 @@ doc = [
     "sphinx_gallery",
     "sphinx_rtd_theme",
     "sphinxemoji"
+]
+
+# optional dependencies for specific denoisers
+denoisers = [
+    "bm3d",
+    "timm",
+    "pytorch_wavelets @ git+https://github.com/fbcotter/pytorch_wavelets.git"
 ]
 
 

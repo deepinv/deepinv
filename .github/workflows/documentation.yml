@@ -24,7 +24,7 @@ jobs:
       - name: Install deepinv and its dependencies
         run: |
           pip install git+https://github.com/fbcotter/pytorch_wavelets.git#egg=pytorch_wavelets
-          pip install -e .[doc]
+          pip install -e .[denoisers,doc]
       - name: Sphinx build
         run: |
           sphinx-build docs/source _build
