@@ -91,6 +91,7 @@ def test_sure(noise_type, device):
     loss, noise = choose_sure(noise_type)
 
     # choose noise
+    torch.manual_seed(0)  # for reproducibility
     physics = dinv.physics.Denoising(noise=noise)
 
     batch_size = 1
