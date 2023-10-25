@@ -87,7 +87,7 @@ def plot(
     max_imgs=4,
     rescale_mode="min_max",
     show=True,
-    return_fig=False
+    return_fig=False,
 ):
     r"""
     Plots a list of images.
@@ -143,15 +143,20 @@ def plot(
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
-    fig, axs = plt.subplots(len(imgs[0]), len(imgs), figsize=(len(imgs) * 2, len(imgs[0]) * 2), squeeze=False)
+    fig, axs = plt.subplots(
+        len(imgs[0]),
+        len(imgs),
+        figsize=(len(imgs) * 2, len(imgs[0]) * 2),
+        squeeze=False,
+    )
 
-    #plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
+    # plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r,i].imshow(img, cmap="gray")
+            axs[r, i].imshow(img, cmap="gray")
             if titles and r == 0:
-                axs[r,i].set_title(titles[i], size=9)
-            axs[r,i].axis("off")
+                axs[r, i].set_title(titles[i], size=9)
+            axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:

@@ -413,10 +413,12 @@ def test(
                             titles=name_imgs,
                             save_dir=save_folder_im if plot_images else None,
                             show=plot_images,
-                            return_fig = True
+                            return_fig=True,
                         )
                         if wandb_vis:
-                            wandb.log({f"Test images batch_{i} (G={g}) ": wandb.Image(fig)})
+                            wandb.log(
+                                {f"Test images batch_{i} (G={g}) ": wandb.Image(fig)}
+                            )
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)
