@@ -11,18 +11,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 
-# Compatibility with optional dependencies
+# Compatibility with optional dependency on timm
 try:
-    from timm.models.layers import trunc_normal_, to_2tuple, DropPath
-except ImportError:
-
-    def raise_import_error(*args, **kwargs):
-        raise ImportError(
-            "timm is needed to use the SCUNet class. "
-            "It should be installed with `pip install timm`"
-        )
-
-    trunc_normal_ = DropPath = to_2tuple = raise_import_error
+    import timm
+except ImportError as e:
+    timm = e
 
 
 class Mlp(nn.Module):
@@ -146,7 +139,7 @@ class WindowAttention(nn.Module):
 
         self.proj_drop = nn.Dropout(proj_drop)
 
-        trunc_normal_(self.relative_position_bias_table, std=0.02)
+        timm.trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, mask=None):
@@ -269,7 +262,7 @@ class SwinTransformerBlock(nn.Module):
         self.norm1 = norm_layer(dim)
         self.attn = WindowAttention(
             dim,
-            window_size=to_2tuple(self.window_size),
+            window_size=timm.to_2tuple(self.window_size),
             num_heads=num_heads,
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
@@ -277,7 +270,7 @@ class SwinTransformerBlock(nn.Module):
             proj_drop=drop,
         )
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = timm.DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(
@@ -672,8 +665,8 @@ class PatchEmbed(nn.Module):
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
         super().__init__()
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
+        img_size = timm.to_2tuple(img_size)
+        patch_size = timm.to_2tuple(patch_size)
         patches_resolution = [
             img_size[0] // patch_size[0],
             img_size[1] // patch_size[1],
@@ -720,8 +713,8 @@ class PatchUnEmbed(nn.Module):
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
         super().__init__()
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
+        img_size = timm.to_2tuple(img_size)
+        patch_size = timm.to_2tuple(patch_size)
         patches_resolution = [
             img_size[0] // patch_size[0],
             img_size[1] // patch_size[1],
@@ -858,6 +851,11 @@ class SwinIR(nn.Module):
         pretrained_noise_level=15,
         **kwargs,
     ):
+        if isinstance(timm, ImportError):
+            raise ImportError(
+                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
+            ) from timm
+
         super(SwinIR, self).__init__()
         num_in_ch = in_chans
         num_out_ch = in_chans
@@ -911,7 +909,7 @@ class SwinIR(nn.Module):
             self.absolute_pos_embed = nn.Parameter(
                 torch.zeros(1, num_patches, embed_dim)
             )
-            trunc_normal_(self.absolute_pos_embed, std=0.02)
+            timm.trunc_normal_(self.absolute_pos_embed, std=0.02)
 
         self.pos_drop = nn.Dropout(p=drop_rate)
 
@@ -1038,7 +1036,7 @@ class SwinIR(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
+            timm.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):

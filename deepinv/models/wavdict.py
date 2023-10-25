@@ -1,6 +1,11 @@
 import torch
 import torch.nn as nn
 
+try:
+    import pytorch_wavelets
+except ImportError as e:
+    pytorch_wavelets = e
+
 
 class WaveletPrior(nn.Module):
     r"""
@@ -30,19 +35,16 @@ class WaveletPrior(nn.Module):
     """
 
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
+        if isinstance(pytorch_wavelets, ImportError):
+            raise ImportError(
+                "pywavelets is needed to use the WaveletPrior class. "
+                "It should be installed with `pip install "
+                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
+            ) from pytorch_wavelets
         super().__init__()
         self.level = level
-        try:
-            from pytorch_wavelets import DWTForward, DWTInverse
-        except ImportError as e:
-            print(
-                "pywavelets is needed to use the WaveletPrior class. "
-                "It should be installed with `pip install"
-                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-            )
-            raise e
-        self.dwt = DWTForward(J=self.level, wave=wv).to(device)
-        self.iwt = DWTInverse(wave=wv).to(device)
+        self.dwt = pytorch_wavelets.DWTForward(J=self.level, wave=wv).to(device)
+        self.iwt = pytorch_wavelets.DWTInverse(wave=wv).to(device)
         self.device = device
         self.non_linearity = non_linearity
 

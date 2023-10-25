@@ -1,4 +1,3 @@
-import math
 import pytest
 from pathlib import Path
 
@@ -6,28 +5,12 @@ import torch
 from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.optim import DataFidelity
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import Prior, PnP
+from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot, torch2cpu
 from deepinv.unfolded import unfolded_builder
-from deepinv.utils import investigate_model
 from deepinv.training_utils import train
 from deepinv.training_utils import test as feature_test
-
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def imsize():
-    h = 28
-    w = 32
-    c = 3
-    return c, h, w
 
 
 def test_generate_dataset(tmp_path, imsize, device):
@@ -56,11 +39,6 @@ def test_generate_dataset(tmp_path, imsize, device):
     assert x.shape == imsize
 
 
-@pytest.fixture
-def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
-
-
 # optim_algos = [
 #     "PGD",
 #     "HQS",
@@ -73,7 +51,7 @@ optim_algos = ["PGD"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
-def test_optim_algo(name_algo, imsize, dummy_dataset, device):
+def test_optim_algo(name_algo, imsize, device):
     # pths
     BASE_DIR = Path(".")
     ORIGINAL_DATA_DIR = BASE_DIR / "datasets"

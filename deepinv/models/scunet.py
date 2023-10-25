@@ -6,24 +6,21 @@ from einops import rearrange
 from einops.layers.torch import Rearrange
 from .denoiser import online_weights_path
 
-# Compatibility with optional dependencies
+# Compatibility with optional dependency on timm
 try:
-    from timm.models.layers import trunc_normal_, DropPath
-except ImportError:
-
-    def raise_import_error(*args, **kwargs):
-        raise ImportError(
-            "timm is needed to use the SCUNet class. "
-            "It should be installed with `pip install timm`"
-        )
-
-    trunc_normal_ = DropPath = raise_import_error
+    import timm
+except ImportError as e:
+    timm = e
 
 
 class WMSA(nn.Module):
     """Self-attention module in Swin Transformer"""
 
     def __init__(self, input_dim, output_dim, head_dim, window_size, type):
+        if isinstance(timm, ImportError):
+            raise ImportError(
+                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
+            ) from timm
         super(WMSA, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -41,7 +38,7 @@ class WMSA(nn.Module):
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
 
-        trunc_normal_(self.relative_position_params, std=0.02)
+        timm.trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
             self.relative_position_params.view(
                 2 * window_size - 1, 2 * window_size - 1, self.n_heads
@@ -187,7 +184,7 @@ class Block(nn.Module):
         )
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = timm.DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.ln2 = nn.LayerNorm(input_dim)
         self.mlp = nn.Sequential(
             nn.Linear(input_dim, 4 * input_dim),
@@ -474,7 +471,7 @@ class SCUNet(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
+            timm.trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
