@@ -11,18 +11,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 
-# Compatibility with optional dependencies
+# Compatibility with optional dependency on timm
 try:
-    from timm.models.layers import trunc_normal_, to_2tuple, DropPath
-except ImportError:
-
-    def raise_import_error(*args, **kwargs):
-        raise ImportError(
-            "timm is needed to use the SCUNet class. "
-            "It should be installed with `pip install timm`"
-        )
-
-    trunc_normal_ = DropPath = to_2tuple = raise_import_error
+    import timm
+    from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+except ImportError as e:
+    timm = e
 
 
 class Mlp(nn.Module):
@@ -858,6 +852,11 @@ class SwinIR(nn.Module):
         pretrained_noise_level=15,
         **kwargs,
     ):
+        if isinstance(timm, ImportError):
+            raise ImportError(
+                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
+            ) from timm
+
         super(SwinIR, self).__init__()
         num_in_ch = in_chans
         num_out_ch = in_chans

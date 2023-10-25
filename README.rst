@@ -100,7 +100,7 @@ If you have any questions or suggestions, please join the conversation in our
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yaml
+   :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
 .. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
    :target: https://www.python.org/downloads/release/python-360/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh

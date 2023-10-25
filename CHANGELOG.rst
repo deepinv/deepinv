@@ -35,7 +35,7 @@ Fixed
 
 Changed
 ^^^^^^^
-- Update CI (:gh:`95` by `Thomas Moreau`_) - 24/10/2023
+- Update CI (:gh:`95` :gh:`99` by `Thomas Moreau`_) - 24/10/2023
 - Changed normalization CS and SPC to 1/m (:gh:`72` by `Julian Tachella`_) - 21/07/2023
 - Update docstring (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
