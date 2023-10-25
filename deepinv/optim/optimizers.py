@@ -310,7 +310,7 @@ class BaseOptim(nn.Module):
             init_X = {"est": (x_init, z_init)}
         F = (
             F_fn(
-                x_init,
+                init_X['est'][0],
                 self.update_data_fidelity_fn(0),
                 self.update_prior_fn(0),
                 self.update_params_fn(0),
