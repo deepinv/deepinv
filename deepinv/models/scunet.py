@@ -9,6 +9,7 @@ from .denoiser import online_weights_path
 # Compatibility with optional dependency on timm
 try:
     import timm
+    from timm.models.layers import trunc_normal_, DropPath
 except ImportError as e:
     timm = e
 
@@ -38,7 +39,7 @@ class WMSA(nn.Module):
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
 
-        timm.models.layers.trunc_normal_(self.relative_position_params, std=0.02)
+        trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
             self.relative_position_params.view(
                 2 * window_size - 1, 2 * window_size - 1, self.n_heads
@@ -184,7 +185,7 @@ class Block(nn.Module):
         )
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
-        self.drop_path = timm.DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.ln2 = nn.LayerNorm(input_dim)
         self.mlp = nn.Sequential(
             nn.Linear(input_dim, 4 * input_dim),
@@ -471,7 +472,7 @@ class SCUNet(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            timm.models.layers.trunc_normal_(m.weight, std=0.02)
+            trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
