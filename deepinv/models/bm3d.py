@@ -1,12 +1,12 @@
-import warnings
-
-try:  # install of BM3D may fail on some architectures (arm64)
-    import bm3d
-except:
-    raise warnings.warn("Could not import bm3d. ")
 import numpy as np
 import torch
 import torch.nn as nn
+
+# Compat for optional dependency on BM3D
+try:
+    import bm3d
+except ImportError as e:
+    bm3d = e
 
 
 class BM3D(nn.Module):
@@ -24,7 +24,11 @@ class BM3D(nn.Module):
     """
 
     def __init__(self):
-        super(BM3D, self).__init__()
+        super().__init__()
+        if isinstance(bm3d, ImportError):
+            raise ImportError(
+                "BM3D denoiser not available. Please install the bm3d package with `pip install bm3d`."
+            ) from bm3d
 
     def forward(self, x, sigma):
         r"""

@@ -1,16 +1,12 @@
 import pytest
 import torch
-import deepinv as dinv
 import numpy as np
 
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+import deepinv as dinv
 
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
-operators = [
+OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
@@ -23,8 +19,9 @@ operators = [
     "MRI",
     "pansharpen",
 ]
+NONLINEAR_OPERATORS = ["haze", "blind_deblur", "lidar"]
 
-list_noise = [
+NOISES = [
     "Gaussian",
     "Poisson",
     "PoissonGaussian",
@@ -32,12 +29,6 @@ list_noise = [
     "Uniform",
     "Neighbor2Neighbor",
 ]
-
-operators_reset = [
-    "MRI",
-]
-
-nonlinear_operators = ["haze", "blind_deblur", "lidar"]
 
 
 def find_operator(name, device):
@@ -143,7 +134,7 @@ def find_nonlinear_operator(name, device):
     return p, x
 
 
-@pytest.mark.parametrize("name", operators)
+@pytest.mark.parametrize("name", OPERATORS)
 def test_operators_adjointness(name, device):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
@@ -160,7 +151,7 @@ def test_operators_adjointness(name, device):
     assert error < 1e-3
 
 
-@pytest.mark.parametrize("name", operators)
+@pytest.mark.parametrize("name", OPERATORS)
 def test_operators_norm(name, device):
     r"""
     Tests if a linear physics operator has a norm close to 1.
@@ -181,7 +172,7 @@ def test_operators_norm(name, device):
     assert torch.abs(norm - norm_ref) < 0.2
 
 
-@pytest.mark.parametrize("name", nonlinear_operators)
+@pytest.mark.parametrize("name", NONLINEAR_OPERATORS)
 def test_nonlinear_operators(name, device):
     r"""
     Tests if a linear physics operator has a norm close to 1.
@@ -197,7 +188,7 @@ def test_nonlinear_operators(name, device):
     assert x.shape == xhat.shape
 
 
-@pytest.mark.parametrize("name", operators)
+@pytest.mark.parametrize("name", OPERATORS)
 def test_pseudo_inverse(name, device):
     r"""
     Tests if a linear physics operator has a well defined pseudoinverse.
@@ -263,7 +254,7 @@ def choose_noise(noise_type):
     return noise_model
 
 
-@pytest.mark.parametrize("noise_type", list_noise)
+@pytest.mark.parametrize("noise_type", NOISES)
 def test_noise(device, noise_type):
     r"""
     Tests noise models.
