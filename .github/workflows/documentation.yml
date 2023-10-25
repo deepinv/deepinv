@@ -1,4 +1,4 @@
-name: docs
+name: Build docs
 
 # Runs on pushes targeting the default branch
 on:
@@ -23,14 +23,7 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install git+https://github.com/fbcotter/pytorch_wavelets.git#egg=pytorch_wavelets
-          pip install https://github.com/odlgroup/odl/archive/master.zip
-          pip install -e .
-      - name: Install sphinx libs
-        run: |
-          pip install sphinx sphinx_rtd_theme
-          pip install sphinx-gallery
-          pip install sphinxemoji
+          pip install -e .[denoisers,doc]
       - name: Sphinx build
         run: |
           sphinx-build docs/source _build

@@ -1,39 +1,19 @@
 import pytest
-
-# from pathlib import Path
-
 import torch
 
 import deepinv as dinv
+from deepinv.optim.prior import PnP
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP  # Prior
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder, DEQ_builder
 
 
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+OPTIM_ALGO = ["PGD", "HQS"]
 
 
-@pytest.fixture
-def imsize():
-    h = 28
-    w = 32
-    c = 3
-    return c, h, w
-
-
-@pytest.fixture
-def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
-
-
-optim_algos = ["PGD", "HQS"]
-
-
-@pytest.mark.parametrize("unfolded_algo", optim_algos)
+@pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
+    pytest.importorskip("pytorch_wavelets")
+
     # Select the data fidelity term
     data_fidelity = L2()
 
@@ -85,8 +65,9 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
 
-@pytest.mark.parametrize("unfolded_algo", optim_algos)
+@pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
+    pytest.importorskip("pytorch_wavelets")
     torch.set_grad_enabled(
         True
     )  # Disabled somewhere in previous test files, necessary for this test to pass

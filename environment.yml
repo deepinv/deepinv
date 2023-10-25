@@ -2,10 +2,9 @@ name: deepinv
 dependencies:
   - python=3.9
   - conda-forge::numpy=1.21.*
-  - pip
+  - hdf5storage
   - pytorch
   - torchvision
-  - plotly
-  - hdf5storage
+  - pip
   - pip:
     - fastmri

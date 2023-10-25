@@ -1,6 +1,10 @@
 import numpy as np
 import torch
-import odl
+
+try:
+    import odl
+except ImportError as e:
+    odl = e
 
 
 def random_shapes(interior=False):
