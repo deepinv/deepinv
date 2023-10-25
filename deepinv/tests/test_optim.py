@@ -297,13 +297,10 @@ def test_denoiser(imsize, dummy_dataset, device):
 # GD not implemented for this one
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
-
     pytest.importorskip("pytorch_wavelets")
 
     # 1. Generate a dummy dataset
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
     # 2. Set a physical experiment (here, deblurring)
@@ -320,9 +317,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     # here the prior model is common for all iterations
-    prior = PnP(
-        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
-    )
+    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -368,9 +363,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # 1. Generate a dummy dataset
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
     # 2. Set a physical experiment (here, deblurring)

@@ -287,13 +287,16 @@ def test_PDNet(imsize, device):
     assert x_hat.shape == x.shape
 
 
-@pytest.mark.parametrize("denoiser, dep", [
-    ("BM3D", "bm3d"),
-    ("SCUNet", "timm"),
-    ("SwinIR", "timm"),
-    ("WaveletPrior", "pytorch_wavelets"),
-    ("WaveletDict", "pytorch_wavelets"),
-])
+@pytest.mark.parametrize(
+    "denoiser, dep",
+    [
+        ("BM3D", "bm3d"),
+        ("SCUNet", "timm"),
+        ("SwinIR", "timm"),
+        ("WaveletPrior", "pytorch_wavelets"),
+        ("WaveletDict", "pytorch_wavelets"),
+    ],
+)
 def test_optional_dependencies(denoiser, dep):
     # Skip the test if the optional dependency is installed
     if dep in sys.modules:
@@ -302,6 +305,7 @@ def test_optional_dependencies(denoiser, dep):
     klass = getattr(dinv.models, denoiser)
     with pytest.raises(ImportError, match=f"pip install .*{dep}"):
         klass()
+
 
 # def test_dip(imsize, device): TODO: fix this test
 #     torch.manual_seed(0)
