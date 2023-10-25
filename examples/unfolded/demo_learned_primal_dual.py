@@ -136,7 +136,7 @@ class PDNetPrior(Prior):
         self.model = model
 
     def prox(self, x, w):
-        return self.model(x, w[:, 1, :, :].unsqueeze(1))
+        return self.model(x, w[:, 0:1, :, :])
 
 
 class PDNetDataFid(DataFidelity):
@@ -145,7 +145,7 @@ class PDNetDataFid(DataFidelity):
         self.model = model
 
     def prox(self, x, w, y):
-        return self.model(x, w[:, 2, :, :].unsqueeze(1), y)
+        return self.model(x, w[:, 1:2, :, :], y)
 
 
 # Unrolled optimization algorithm parameters
