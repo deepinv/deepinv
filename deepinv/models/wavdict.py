@@ -37,7 +37,7 @@ class WaveletPrior(nn.Module):
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
         if isinstance(pytorch_wavelets, ImportError):
             raise ImportError(
-                "pywavelets is needed to use the WaveletPrior class. "
+                "pytorch_wavelets is needed to use the WaveletPrior class. "
                 "It should be installed with `pip install "
                 "git+https://github.com/fbcotter/pytorch_wavelets.git`"
             ) from pytorch_wavelets

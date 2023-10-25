@@ -52,12 +52,12 @@ optim_algos = ["PGD"]
 
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, device):
+    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # TODO: we could use a dummy trainable denoiser with a linear layer instead
+    pytest.importorskip("pytorch_wavelets")
+
     # pths
     BASE_DIR = Path(".")
-    ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-    # DATA_DIR = BASE_DIR / "measurements"
-    # RESULTS_DIR = BASE_DIR / "results"
-    # DEG_DIR = BASE_DIR / "degradations"
     CKPT_DIR = BASE_DIR / "ckpts"
 
     # Select the data fidelity term
@@ -90,10 +90,8 @@ def test_optim_algo(name_algo, imsize, device):
         "lambda": lamb,
     }
 
-    trainable_params = [
-        "g_param",
-        "stepsize",
-    ]  # define which parameters from 'params_algo' are trainable
+    # define which parameters from 'params_algo' are trainable
+    trainable_params = ["g_param", "stepsize"]
 
     # Define the unfolded trainable model.
 

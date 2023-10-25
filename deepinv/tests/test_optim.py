@@ -362,6 +362,10 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
+    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # TODO: we could use a dummy trainable denoiser with a linear layer instead
+    pytest.importorskip("pytorch_wavelets")
+
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
