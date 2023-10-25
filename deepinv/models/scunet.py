@@ -38,7 +38,7 @@ class WMSA(nn.Module):
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
 
-        timm.trunc_normal_(self.relative_position_params, std=0.02)
+        timm.models.layers.trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
             self.relative_position_params.view(
                 2 * window_size - 1, 2 * window_size - 1, self.n_heads
@@ -471,7 +471,7 @@ class SCUNet(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            timm.trunc_normal_(m.weight, std=0.02)
+            timm.models.layers.trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
