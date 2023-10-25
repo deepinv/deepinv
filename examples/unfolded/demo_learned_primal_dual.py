@@ -161,7 +161,7 @@ prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_ite
 
 # Logging parameters
 verbose = True
-wandb_vis = True  # plot curves and images in Weight&Bias
+wandb_vis = False  # plot curves and images in Weight&Bias
 
 
 # %%
