@@ -402,7 +402,7 @@ def test(
             if plot_images or wandb_vis:
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if plot_measurements:
+                        if plot_measurements and len(y.shape) == 4:
                             imgs = [y, x_init, x1, x]
                             name_imgs = ["Input", "Linear", "Recons.", "GT"]
                         else:
