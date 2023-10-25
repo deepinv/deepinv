@@ -273,7 +273,7 @@ def train(
             epochs,
             loss_history,
             str(save_path),
-            eval_psnr = eval_psnr if perform_eval else None,
+            eval_psnr=eval_psnr if perform_eval else None,
         )
 
     if wandb_vis:

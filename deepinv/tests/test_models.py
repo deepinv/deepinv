@@ -277,7 +277,6 @@ def test_PDNet(imsize_1_channel, device):
         def prox(self, x, w):
             return self.model(x, w[:, 1, :, :].unsqueeze(1))
 
-
     class PDNetDataFid(DataFidelity):
         def __init__(self, model, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -285,30 +284,26 @@ def test_PDNet(imsize_1_channel, device):
 
         def prox(self, x, w, y):
             return self.model(x, w[:, 2, :, :].unsqueeze(1), y)
-        
+
     # Unrolled optimization algorithm parameters
     max_iter = 5  # number of unfolded layers
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=PDNet_DualBlock().to(device))
-        for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
-    prior = [
-        PDNetPrior(model=PDNet_PrimalBlock().to(device))
-        for i in range(max_iter)
-    ]
+    prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]
 
     n_primal = 5  # extend the primal space
-    n_dual = 5  # extend the dual space 
+    n_dual = 5  # extend the dual space
 
     def custom_init(y, physics):
         x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
         u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
         return {"est": (x0, x0, u0)}
-        
+
     def custom_output(X):
         return X["est"][0][:, 1, :, :].unsqueeze(1)
 
@@ -320,7 +315,7 @@ def test_PDNet(imsize_1_channel, device):
         prior=prior,
         max_iter=max_iter,
         custom_init=custom_init,
-        get_output=custom_output
+        get_output=custom_output,
     )
 
     x_hat = model(y, physics)
