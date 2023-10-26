@@ -36,6 +36,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Update CI (:gh:`95` :gh:`99` by `Thomas Moreau`_) - 24/10/2023
 - Changed normalization CS and SPC to 1/m (:gh:`72` by `Julian Tachella`_) - 21/07/2023
 - Update docstring (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
@@ -49,4 +50,5 @@ Authors
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
 .. _Andrea Sebastiani: https://github.com/sedaboni
+.. _Thomas Moreau: https://github.com/tomMoral
 .. _Hyungjin Chung: https://www.hj-chung.com/

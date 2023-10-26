@@ -1,33 +1,13 @@
-import math
 import pytest
+
+import torch
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.prior import Prior, PnP, RED
-from deepinv.optim.optimizers import *
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot, torch2cpu
-
-from torch.utils.data import DataLoader
-
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def imsize():
-    h = 28
-    w = 32
-    c = 3
-    return c, h, w
-
-
-@pytest.fixture
-def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
+from deepinv.optim.optimizers import optim_builder
 
 
 def custom_init_CP(y, physics):
@@ -193,11 +173,8 @@ def test_data_fidelity_l1(device):
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
 
-optim_algos = ["PGD", "ADMM", "DRS", "HQS"]
-
-
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
-@pytest.mark.parametrize("name_algo", optim_algos)
+@pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
@@ -317,40 +294,30 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
-
-
-@pytest.mark.parametrize("pnp_algo", optim_algos)
+# GD not implemented for this one
+@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
-    try:
-        import pytorch_wavelets
-    except ImportError:
-        pytest.xfail(
-            "This test requires pytorch_wavelets. "
-            "It should be installed with `pip install"
-            "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-        )
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )  # 1. Generate a dummy dataset
+    pytest.importorskip("pytorch_wavelets")
+
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
+    # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
-    )  # 2. Set a physical experiment (here, deblurring)
+    )
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = torch.tensor(
-        [[0.1]]
-    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = torch.tensor([[0.1]])
     stepsize = 1.0
     lamb = 1.0
 
     data_fidelity = L2()
 
-    prior = PnP(
-        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
-    )  # here the prior model is common for all iterations
+    # here the prior model is common for all iterations
+    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -393,19 +360,20 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     assert pnp.has_converged
 
 
-optim_algos = ["PGD", "GD"]  # GD not implemented for this one
-
-
-@pytest.mark.parametrize("red_algo", optim_algos)
+@pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )  # 1. Generate a dummy dataset
+    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # TODO: we could use a dummy trainable denoiser with a linear layer instead
+    pytest.importorskip("pytorch_wavelets")
+
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
+    # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
-    )  # 2. Set a physical experiment (here, deblurring)
+    )
     y = physics(test_sample)
     max_iter = 1000
     sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
@@ -430,7 +398,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         g_first=True,
     )
 
-    x = red(y, physics)
+    red(y, physics)
 
     assert red.has_converged
 
