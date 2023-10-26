@@ -228,10 +228,10 @@ class ULAIterator(nn.Module):
 
 class ULA(MonteCarlo):
     r"""
-    Plug-and-Play Unadjusted Langevin Algorithm.
+    Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
     The algorithm runs the following markov chain iteration
-    https://arxiv.org/abs/2103.04715 :
+    (Algorithm 2 from https://arxiv.org/abs/2103.04715):
 
     .. math::
 
@@ -239,14 +239,15 @@ class ULA(MonteCarlo):
         \eta \alpha \nabla \log p(x_{k}) + \sqrt{2\eta}z_{k+1} \right).
 
     where :math:`x_{k}` is the :math:`k` th sample of the Markov chain,
-    :math:`\log p(y|x)` is the log-likelihood function, :math:`\log p(x)` is the log-prior
+    :math:`\log p(y|x)` is the log-likelihood function, :math:`\log p(x)` is the log-prior,
     :math:`\eta>0` is the step size, :math:`\alpha>0` controls the amount of regularization,
     :math:`\Pi_{[a,b]}(x)` projects the entries of :math:`x` to the interval :math:`[a,b]` and
     :math:`z\sim \mathcal{N}(0,I)` is a standard Gaussian vector.
 
 
-    - PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
+    - Projected PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
+
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the

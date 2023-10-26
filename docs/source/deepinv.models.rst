@@ -60,7 +60,7 @@ Learnable Denoisers
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
 
-
+.. _pretrained-weights:
 Pretrained weights
 ------------------
 The following denoisers have **pretrained weights** available; we next briefly summarize the origin of the weights,
