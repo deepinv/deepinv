@@ -87,30 +87,30 @@ associated reference and relevant details.
    * - Model
      - Weight
    * - :meth:`deepinv.models.DnCNN`
-     - weights from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_
+     - from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_
        trained on noise level 2.0/255. `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_gray.pth>`_ `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_color.pth>`_.
    * -
-     - weights from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_ with Lipschitz
+     - from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_ with Lipschitz
        constraint to ensure approximate firm nonexpansiveness, trained on noise level 2.0/255. `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_lipschitz_gray.pth>`_ `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_lipschitz_color.pth>`_.
    * - :meth:`deepinv.models.DRUNet`
-     - weights from `DPIR <https://github.com/cszn/DPIR>`_,
+     - from `DPIR <https://github.com/cszn/DPIR>`_,
        trained on noise levels in [0, 20]/255. `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_gray.pth>`_ `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_color.pth>`_.
    * -
-     - weights trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
+     - trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
        and on the same dataset as DPIR. `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_lipschitz_color.pth>`_.
    * - :meth:`deepinv.models.GSDRUNet`
      - weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 20]/255.
        `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt>`_.
    * - :meth:`deepinv.models.SCUNet`
-     - weights from `SCUNet <https://github.com/cszn/SCUNet>`_,
+     - from `SCUNet <https://github.com/cszn/SCUNet>`_,
        trained on images degraded with synthetic realistic noise and camera artefacts. `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=scunet_color_real_psnr.pth>`_.
    * - :meth:`deepinv.models.SwinIR`
-     - weights from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.
+     - from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.
        The weights are automatically downloaded from the authors' `project page <https://github.com/JingyunLiang/SwinIR/releases>`_.
    * - :meth:`deepinv.models.DiffUNet`
-     - weights from `Ho et al. <https://arxiv.org/abs/2108.02938>`_ trained on FFHQ (128 hidden channels per layer).
+     - from `Ho et al. <https://arxiv.org/abs/2108.02938>`_ trained on FFHQ (128 hidden channels per layer).
        `[weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=diffusion_ffhq_10m.pt>`_.
    * -
-     - weights from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
+     - from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
        `[weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=diffusion_openai.pt>`_.
 
