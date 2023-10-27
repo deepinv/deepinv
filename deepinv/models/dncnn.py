@@ -8,7 +8,8 @@ class DnCNN(nn.Module):
     DnCNN convolutional denoiser.
 
     The architecture was introduced by Zhang et al. in https://arxiv.org/abs/1608.03981 and is composed of a series of
-    convolutional layers with ReLU activation functions. The number of layers can be specified by the user.
+    convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
+    original paper, this implementation does not include batch normalization layers.
 
     The network can be initialized with pretrained weights, which can be downloaded from an online repository. The
     pretrained weights are trained with the default parameters of the network, i.e. 20 layers, 64 channels and biases.
@@ -24,6 +25,7 @@ class DnCNN(nn.Module):
         It is possible to download weights trained via the regularization method in https://epubs.siam.org/doi/abs/10.1137/20M1387961
         using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode
     :param str device: gpu or cpu
     """

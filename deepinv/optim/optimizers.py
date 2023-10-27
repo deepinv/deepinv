@@ -289,8 +289,9 @@ class BaseOptim(nn.Module):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
-            - ``est`` is a tuple containing the first primal and auxiliary iterates.
-            - ``cost`` is the value of the cost function at the first iterate.
+
+            * ``est`` is a tuple containing the first primal and auxiliary iterates.
+            * ``cost`` is the value of the cost function at the first iterate.
 
         By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^{\top}y, A^{\top}y)`.
         A custom initialization is possible with the custom_init argument.

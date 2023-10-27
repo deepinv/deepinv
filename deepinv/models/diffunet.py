@@ -12,9 +12,9 @@ import torch.nn.functional as F
 
 class DiffUNet(nn.Module):
     r"""
-    The full UNet model with attention and timestep/noise_level embedding.
+    Diffusion UNet model.
 
-    This is the model from `Ho et al. <https://arxiv.org/abs/2108.02938>`_;
+    This is the model with attention and timestep embeddings from `Ho et al. <https://arxiv.org/abs/2108.02938>`_;
     code is adapted from https://github.com/jychoi118/ilvr_adm.
 
     It is possible to choose the `standard model <https://arxiv.org/abs/2108.02938>`_
@@ -37,6 +37,7 @@ class DiffUNet(nn.Module):
         If ``pretrained='download'``, the weights will be downloaded from an online repository
         (only available for 3 input and output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     """
 
     def __init__(
