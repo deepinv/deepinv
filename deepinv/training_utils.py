@@ -12,6 +12,7 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
+from torchvision import transforms as T
 
 
 def train(
@@ -273,7 +274,7 @@ def train(
             epochs,
             loss_history,
             str(save_path),
-            eval_psnr,
+            eval_psnr=eval_psnr if perform_eval else None,
         )
 
     if wandb_vis:
@@ -401,36 +402,23 @@ def test(
             if plot_images or wandb_vis:
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if plot_measurements and y.shape != x.shape:
-                            y = torch.nn.functional.interpolate(y, size=x.shape[2])
+                        if plot_measurements and len(y.shape) == 4:
                             imgs = [y, x_init, x1, x]
                             name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                            nrows = 4
                         else:
                             imgs = [x_init, x1, x]
                             name_imgs = ["Linear", "Recons.", "GT"]
-                            nrows = 3
-                        if plot_images:
-                            plot(
-                                imgs,
-                                titles=name_imgs,
-                                save_dir=save_folder_im,
-                                show=True,
-                            )
+                        fig = plot(
+                            imgs,
+                            titles=name_imgs,
+                            save_dir=save_folder_im if plot_images else None,
+                            show=plot_images,
+                            return_fig=True,
+                        )
                         if wandb_vis:
-                            vis_array = torch.cat(imgs, dim=0)
-                            for i in range(len(vis_array)):
-                                vis_array[i] = rescale_img(
-                                    vis_array[i], rescale_mode="min_max"
-                                )
-                            grid_image = torchvision.utils.make_grid(
-                                vis_array, nrow=nrows
+                            wandb.log(
+                                {f"Test images batch_{i} (G={g}) ": wandb.Image(fig)}
                             )
-                            images = wandb.Image(
-                                grid_image,
-                                caption="  /  ".join(name_imgs),
-                            )
-                            wandb.log({f"Test images batch_{i} (G={g}) ": images})
 
             if plot_metrics:
                 plot_curves(metrics, save_dir=save_folder_curve, show=True)

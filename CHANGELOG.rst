@@ -21,10 +21,7 @@ New Features
 
 Fixed
 ^^^^^
-<<<<<<< HEAD
-=======
 - Fix BlurFFT adjoint (:gh:`89` by `Matthieu Terris`_) - 15/10/2023
->>>>>>> main
 - Doc typos (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Minor fixes DiffPIR + other typos (:gh:`81` by `Matthieu Terris`_) - 10/09/2023
 - Call `wandb.init` only when needed (:gh:`78` by `Jérémy Scanvic`_) - 09/08/2023
@@ -38,6 +35,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Update CI (:gh:`95` :gh:`99` by `Thomas Moreau`_) - 24/10/2023
 - Changed normalization CS and SPC to 1/m (:gh:`72` by `Julian Tachella`_) - 21/07/2023
 - Update docstring (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
@@ -50,8 +48,5 @@ Authors
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
-<<<<<<< HEAD
-.. _Andrea Sebastiani: https://github.com/sedaboni 
-=======
 .. _Andrea Sebastiani: https://github.com/sedaboni
->>>>>>> main
+.. _Thomas Moreau: https://github.com/tomMoral
