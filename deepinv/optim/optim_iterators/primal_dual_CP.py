@@ -5,7 +5,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class CPIteration(OptimIterator):
     r"""
-    Single iteration of the Chambolle-Pock algorithm.
+    Iterator for Chambolle-Pock.
 
     Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
     algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
@@ -59,7 +59,7 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, z_prev, u_prev = X["est"]
+        x_prev, z_prev, u_prev = X["est"]  # x : primal, z : relaxed primal, u : dual
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)

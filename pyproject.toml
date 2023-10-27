@@ -66,7 +66,8 @@ doc = [
 denoisers = [
     "bm3d",
     "timm",
-    "pytorch_wavelets @ git+https://github.com/fbcotter/pytorch_wavelets.git"
+    "pytorch_wavelets @ git+https://github.com/fbcotter/pytorch_wavelets.git",
+    "odl @ git+https://github.com/odlgroup/odl.git"
 ]
 
 

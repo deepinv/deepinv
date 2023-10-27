@@ -176,17 +176,16 @@ def test_diffunetmodel(imsize, device):
         x_hat = model(y, sigma, type_t="wrong_type")
 
 
-def test_PDNet(imsize, device):
+def test_PDNet(imsize_1_channel, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
     from deepinv.optim.optimizers import CPIteration, fStep, gStep
     from deepinv.optim import Prior, DataFidelity
-    from deepinv.models.PDNet import PrimalBlock, DualBlock
+    from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
     from deepinv.unfolded import unfolded_builder
 
-    torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize, device=device).unsqueeze(0)
+    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
     y = physics(x)
 
     class PDNetIteration(CPIteration):
@@ -243,7 +242,7 @@ def test_PDNet(imsize, device):
             self.model = model
 
         def prox(self, x, w):
-            return self.model(x, w)
+            return self.model(x, w[:, 0:1, :, :])
 
     class PDNetDataFid(DataFidelity):
         def __init__(self, model, *args, **kwargs):
@@ -251,26 +250,29 @@ def test_PDNet(imsize, device):
             self.model = model
 
         def prox(self, x, w, y):
-            return self.model(x, w, y)
+            return self.model(x, w[:, 1:2, :, :], y)
 
     # Unrolled optimization algorithm parameters
     max_iter = 5  # number of unfolded layers
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
-    prior = [
-        PDNetPrior(model=PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
-    ]
+    prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]
+
+    n_primal = 5  # extend the primal space
+    n_dual = 5  # extend the dual space
 
     def custom_init(y, physics):
-        z0 = physics.A_adjoint(y)
-        x0 = physics.A_adjoint(y)
-        u0 = y
-        return {"est": (x0, z0, u0)}
+        x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
+        u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+        return {"est": (x0, x0, u0)}
+
+    def custom_output(X):
+        return X["est"][0][:, 1, :, :].unsqueeze(1)
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
@@ -280,6 +282,7 @@ def test_PDNet(imsize, device):
         prior=prior,
         max_iter=max_iter,
         custom_init=custom_init,
+        get_output=custom_output,
     )
 
     x_hat = model(y, physics)
