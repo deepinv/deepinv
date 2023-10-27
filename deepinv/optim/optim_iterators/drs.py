@@ -5,7 +5,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class DRSIteration(OptimIterator):
     r"""
-    Single iteration of DRS.
+    Iterator for Douglas-Rachford Splitting.
 
     Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimising
     :math:`\lambda f(x) + g(x)`.

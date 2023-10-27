@@ -68,3 +68,15 @@ The following denoisers have **pretrained weights** available:
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
 
+
+Unfolded architectures
+---------
+Some more specific unfolded architectures are also available. 
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.PDNet_PrimalBlock 
+   deepinv.models.PDNet_DualBlock

@@ -4,7 +4,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class ADMMIteration(OptimIterator):
     r"""
-    Single iteration of ADMM.
+    Iterator for alternating direction method of multipliers.
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for
     minimising :math:`\lambda f(x) + g(x)`.

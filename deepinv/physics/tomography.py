@@ -134,7 +134,6 @@ class Radon(nn.Module):
         for i in range(len(self.theta)):
             rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1).to(x.device))
             out[..., i] = rotated.sum(2)
-
         return out
 
     def _create_grids(self, angles, grid_size, circle, device="cpu"):
@@ -296,7 +295,7 @@ class Tomography(LinearPhysics):
         circle=False,
         device=torch.device("cpu"),
         dtype=torch.float,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 

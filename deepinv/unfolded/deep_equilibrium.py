@@ -42,7 +42,7 @@ class BaseDEQ(BaseUnfold):
         history_size_backward=5,
         beta_anderson_acc_backward=1.0,
         eps_anderson_acc_backward=1e-4,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.max_iter_backward = max_iter_backward
@@ -130,7 +130,7 @@ def DEQ_builder(
     prior=None,
     F_fn=None,
     g_first=False,
-    **kwargs
+    **kwargs,
 ):
     r"""
     Helper function for building an instance of the :meth:`BaseDEQ` class.
@@ -161,5 +161,5 @@ def DEQ_builder(
         data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
-        **kwargs
+        **kwargs,
     )

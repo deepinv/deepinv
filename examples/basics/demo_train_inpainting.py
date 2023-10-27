@@ -157,6 +157,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 train(
     model=model,
     train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
@@ -166,11 +167,7 @@ train(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
-    log_interval=2,
-    eval_interval=2,
-    ckp_interval=2,
 )
-
 # %%
 # Test the network
 # --------------------------------------------

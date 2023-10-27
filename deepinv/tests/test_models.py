@@ -1,55 +1,52 @@
+import sys
 import pytest
-import deepinv as dinv
 import torch
 
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+import deepinv as dinv
 
 
-@pytest.fixture
-def imsize():
-    h = 37
-    w = 31
-    c = 3
-    return c, h, w
-
-
-@pytest.fixture
-def imsize_1_channel():
-    h = 37
-    w = 31
-    c = 1
-    return c, h, w
-
-
-model_list = [
-    "unet",
+MODEL_LIST_1_CHANNEL = [
+    "autoencoder",
     "drunet",
-    "scunet",
     "dncnn",
+    "median",
+    "tgv",
     "waveletprior",
     "waveletdict",
+]
+MODEL_LIST = MODEL_LIST_1_CHANNEL + [
+    "bm3d",
+    "gsdrunet",
+    "scunet",
+    "swinir",
+    "tv",
+    "unet",
     "waveletdict_hard",
     "waveletdict_topk",
-    "tgv",
-    "tv",
-    "median",
-    "autoencoder",
-    "gsdrunet",
-    "swinir",
 ]
-
-try:  # install of BM3D may fail on some architectures (arm64)
-    from dinv.models.bm3d import bm3d
-
-    model_list.append("bm3d")
-except ImportError:
-    print("Could not find bm3d; not testing bm3d.")
 
 
 def choose_denoiser(name, imsize):
+    if name.startswith("waveletdict") or name == "waveletprior":
+        pytest.importorskip(
+            "pytorch_wavelets",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+    if name == "bm3d":
+        pytest.importorskip(
+            "bm3d",
+            reason="This test requires bm3d. It should be "
+            "installed with `pip install bm3d`",
+        )
+    if name in ("swinir", "scunet"):
+        pytest.importorskip(
+            "timm",
+            reason="This test requires timm. It should be "
+            "installed with `pip install timm`",
+        )
+
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "drunet":
@@ -86,61 +83,31 @@ def choose_denoiser(name, imsize):
     return out
 
 
-@pytest.mark.parametrize("denoiser", model_list)
+@pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser(imsize, device, denoiser):
-    if denoiser in ("waveletprior", "waveletdict"):
-        try:
-            import pytorch_wavelets
-        except ImportError:
-            pytest.xfail(
-                "This test requires pytorch_wavelets. "
-                "It should be installed with `pip install"
-                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-            )
+    model = choose_denoiser(denoiser, imsize).to(device)
+
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     x = torch.ones(imsize, device=device).unsqueeze(0)
     y = physics(x)
-
-    f = choose_denoiser(denoiser, imsize).to(device)
-
-    x_hat = f(y, sigma)
+    x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
 
 
-model_list_1_channel = [
-    "drunet",
-    "dncnn",
-    "waveletprior",
-    "waveletdict",
-    "tgv",
-    "median",
-    "autoencoder",
-]
-
-
-@pytest.mark.parametrize("denoiser", model_list_1_channel)
+@pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-    if denoiser in ("waveletprior", "waveletdict"):
-        try:
-            import pytorch_wavelets
-        except ImportError:
-            pytest.xfail(
-                "This test requires pytorch_wavelets. "
-                "It should be installed with `pip install"
-                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-            )
+    model = choose_denoiser(denoiser, imsize_1_channel).to(device)
+
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
     y = physics(x)
 
-    f = choose_denoiser(denoiser, imsize_1_channel).to(device)
-
-    x_hat = f(y, sigma)
+    x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
 
@@ -209,17 +176,16 @@ def test_diffunetmodel(imsize, device):
         x_hat = model(y, sigma, type_t="wrong_type")
 
 
-def test_PDNet(imsize, device):
+def test_PDNet(imsize_1_channel, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
     from deepinv.optim.optimizers import CPIteration, fStep, gStep
     from deepinv.optim import Prior, DataFidelity
-    from deepinv.models.PDNet import PrimalBlock, DualBlock
+    from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
     from deepinv.unfolded import unfolded_builder
 
-    torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize, device=device).unsqueeze(0)
+    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
     y = physics(x)
 
     class PDNetIteration(CPIteration):
@@ -276,7 +242,7 @@ def test_PDNet(imsize, device):
             self.model = model
 
         def prox(self, x, w):
-            return self.model(x, w)
+            return self.model(x, w[:, 0:1, :, :])
 
     class PDNetDataFid(DataFidelity):
         def __init__(self, model, *args, **kwargs):
@@ -284,26 +250,29 @@ def test_PDNet(imsize, device):
             self.model = model
 
         def prox(self, x, w, y):
-            return self.model(x, w, y)
+            return self.model(x, w[:, 1:2, :, :], y)
 
     # Unrolled optimization algorithm parameters
     max_iter = 5  # number of unfolded layers
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=DualBlock(in_channels=9).to(device)) for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
-    prior = [
-        PDNetPrior(model=PrimalBlock(in_channels=6).to(device)) for i in range(max_iter)
-    ]
+    prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]
+
+    n_primal = 5  # extend the primal space
+    n_dual = 5  # extend the dual space
 
     def custom_init(y, physics):
-        z0 = physics.A_adjoint(y)
-        x0 = physics.A_adjoint(y)
-        u0 = y
-        return {"est": (x0, z0, u0)}
+        x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
+        u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+        return {"est": (x0, x0, u0)}
+
+    def custom_output(X):
+        return X["est"][0][:, 1, :, :].unsqueeze(1)
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
@@ -313,11 +282,32 @@ def test_PDNet(imsize, device):
         prior=prior,
         max_iter=max_iter,
         custom_init=custom_init,
+        get_output=custom_output,
     )
 
     x_hat = model(y, physics)
 
     assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize(
+    "denoiser, dep",
+    [
+        ("BM3D", "bm3d"),
+        ("SCUNet", "timm"),
+        ("SwinIR", "timm"),
+        ("WaveletPrior", "pytorch_wavelets"),
+        ("WaveletDict", "pytorch_wavelets"),
+    ],
+)
+def test_optional_dependencies(denoiser, dep):
+    # Skip the test if the optional dependency is installed
+    if dep in sys.modules:
+        pytest.skip(f"Optional dependency {dep} is installed.")
+
+    klass = getattr(dinv.models, denoiser)
+    with pytest.raises(ImportError, match=f"pip install .*{dep}"):
+        klass()
 
 
 # def test_dip(imsize, device): TODO: fix this test

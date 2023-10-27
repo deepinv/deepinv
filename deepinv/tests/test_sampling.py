@@ -1,23 +1,13 @@
 import pytest
 import torch.nn
+import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
-import numpy as np
 
 
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def imsize():
-    h = 2
-    w = 2
-    c = 1
-    return c, h, w
+SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
 
 def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
@@ -27,23 +17,23 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
             likelihood,
             max_iter=500,
             thinning=1,
-            verbose=True,
             step_size=0.01 / (1 / sigma**2 + 1 / sigma_prior**2),
             clip=(-100, 100),
             thresh_conv=thresh_conv,
             sigma=1,
+            verbose=True,
         )
     elif algo == "SKRock":
         out = SKRock(
             GaussianScore(sigma_prior),
             likelihood,
             max_iter=500,
-            verbose=True,
-            thresh_conv=thresh_conv,
             inner_iter=5,
             step_size=1 / (1 / sigma**2 + 1 / sigma_prior**2),
             clip=(-100, 100),
+            thresh_conv=thresh_conv,
             sigma=1,
+            verbose=True,
         )
     elif algo == "DDRM":
         diff = dinv.sampling.DDRM(
@@ -56,9 +46,6 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
         raise Exception("The sampling algorithm doesnt exist")
 
     return out
-
-
-sampling_algo = ["DDRM", "ULA", "SKRock"]
 
 
 class GaussianScore(torch.nn.Module):
@@ -79,9 +66,9 @@ class GaussianDenoiser(torch.nn.Module):
         return x / (1 + sigma**2 / self.sigma_prior2)
 
 
-@pytest.mark.parametrize("algo", sampling_algo)
+@pytest.mark.parametrize("algo", SAMPLING_ALGOS)
 def test_sampling_algo(algo, imsize, device):
-    test_sample = torch.ones((1, 1, 2, 2))
+    test_sample = torch.ones((1, *imsize))
 
     sigma = 1
     sigma_prior = 1

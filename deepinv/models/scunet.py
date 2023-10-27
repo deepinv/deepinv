@@ -3,15 +3,25 @@ import torch
 import torch.nn as nn
 import numpy as np
 from einops import rearrange
-from einops.layers.torch import Rearrange, Reduce
-from timm.models.layers import trunc_normal_, DropPath
+from einops.layers.torch import Rearrange
 from .denoiser import online_weights_path
+
+# Compatibility with optional dependency on timm
+try:
+    import timm
+    from timm.models.layers import trunc_normal_, DropPath
+except ImportError as e:
+    timm = e
 
 
 class WMSA(nn.Module):
     """Self-attention module in Swin Transformer"""
 
     def __init__(self, input_dim, output_dim, head_dim, window_size, type):
+        if isinstance(timm, ImportError):
+            raise ImportError(
+                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
+            ) from timm
         super(WMSA, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
