@@ -1,20 +1,45 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 import wandb
 import math
+import torch
 import matplotlib.pyplot as plt
 from pathlib import Path
 from collections.abc import Iterable
 import matplotlib
+import shutil
+import torchvision.transforms as T
+import torchvision.transforms.functional as F
 
 matplotlib.rcParams.update({"font.size": 17})
 matplotlib.rcParams["lines.linewidth"] = 2
 from matplotlib.ticker import MaxNLocator
 
-plt.rcParams["text.usetex"] = True
-import torch
+plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+
+
+def resize_pad_square_tensor(tensor, size):
+    r"""
+    Resize a tensor BxCxWxH to a square tensor BxCxsizexsize with the same aspect ratio thanks to zero-padding.
+
+    :param torch.Tensor tensor: the tensor to resize.
+    :param int size: the new size.
+    :return torch.Tensor: the resized tensor.
+    """
+
+    class SquarePad:
+        def __call__(self, image):
+            W, H = image.size
+            print(W, H)
+            max_wh = np.max([W, H])
+            hp = int((max_wh - W) / 2)
+            vp = int((max_wh - H) / 2)
+            padding = (hp, vp, hp, vp)
+            return F.pad(image, padding, fill=0, padding_mode="constant")
+
+    transform = T.Compose([T.ToPILImage(), SquarePad(), T.Resize(size), T.ToTensor()])
+    return torch.stack([transform(el) for el in tensor])
 
 
 def torch2cpu(img):
@@ -44,6 +69,16 @@ def numpy2uint(img):
     return np.uint8((img * 255.0).round())
 
 
+def rescale_img(img, rescale_mode="min_max"):
+    if rescale_mode == "min_max":
+        img = (img - img.min()) / (img.max() - img.min())
+    elif rescale_mode == "clip":
+        img = img.clamp(min=0.0, max=1.0)
+    else:
+        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
+    return img
+
+
 def plot(
     img_list,
     titles=None,
@@ -52,6 +87,7 @@ def plot(
     max_imgs=4,
     rescale_mode="min_max",
     show=True,
+    return_fig=False,
 ):
     r"""
     Plots a list of images.
@@ -76,6 +112,7 @@ def plot(
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
+    :param bool return_fig: return the figure object.
     """
     if save_dir:
         save_dir = Path(save_dir)
@@ -102,25 +139,24 @@ def plot(
                 )
             else:
                 pimg = im[i, :, :, :].type(torch.float32)
-            if rescale_mode == "min_max":
-                pimg = (pimg - pimg.min()) / (pimg.max() - pimg.min())
-            elif rescale_mode == "clip":
-                pimg = pimg.clamp(min=0.0, max=1.0)
-            else:
-                raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-
+            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
-    plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
+    fig, axs = plt.subplots(
+        len(imgs[0]),
+        len(imgs),
+        figsize=(len(imgs) * 2, len(imgs[0]) * 2),
+        squeeze=False,
+    )
 
+    # plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            plt.subplot(len(imgs[0]), len(imgs), r * len(imgs) + i + 1)
-            plt.imshow(img, cmap="gray")
+            axs[r, i].imshow(img, cmap="gray")
             if titles and r == 0:
-                plt.title(titles[i], size=9)
-            plt.axis("off")
+                axs[r, i].set_title(titles[i], size=9)
+            axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
@@ -132,6 +168,9 @@ def plot(
                 )
     if show:
         plt.show()
+
+    if return_fig:
+        return fig
 
 
 def plot_curves(metrics, save_dir=None, show=True):
@@ -155,13 +194,17 @@ def plot_curves(metrics, save_dir=None, show=True):
             axs[i].spines["right"].set_visible(False)
             axs[i].spines["top"].set_visible(False)
             if metric_name == "residual":
-                label = r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$"
+                label = (
+                    r"Residual $\frac{||x_{k+1} - x_k||}{||x_k||}$"
+                    if plt.rcParams["text.usetex"]
+                    else "residual"
+                )
                 log_scale = True
             elif metric_name == "psnr":
-                label = r"$PSNR(x_k)$"
+                label = r"$PSNR(x_k)$" if plt.rcParams["text.usetex"] else "PSNR"
                 log_scale = False
             elif metric_name == "cost":
-                label = r"$F(x_k)$"
+                label = r"$F(x_k)$" if plt.rcParams["text.usetex"] else "F"
                 log_scale = True
             else:
                 label = metric_name

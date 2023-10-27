@@ -120,12 +120,12 @@ class BaseOptim(nn.Module):
     :param float thres_conv: value of the threshold for claiming convergence. Default: ``1e-05``.
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
-    :param bool return_aux: whether to return the auxiliary variable or not at the end of the algorithm. Default: ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
     :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
+    :param function get_output: get the image output given the current dictionary update containing primal and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
         If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
     :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
@@ -147,12 +147,12 @@ class BaseOptim(nn.Module):
         thres_conv=1e-5,
         early_stop=False,
         has_cost=False,
-        return_aux=False,
         backtracking=False,
         gamma_backtracking=0.1,
         eta_backtracking=0.9,
         custom_metrics=None,
         custom_init=None,
+        get_output=lambda X: X["est"][0],
         anderson_acceleration=False,
         history_size=5,
         beta_anderson_acc=1.0,
@@ -165,7 +165,6 @@ class BaseOptim(nn.Module):
         self.crit_conv = crit_conv
         self.verbose = verbose
         self.max_iter = max_iter
-        self.return_aux = return_aux
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
@@ -173,6 +172,7 @@ class BaseOptim(nn.Module):
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
+        self.get_output = get_output
         self.has_cost = has_cost
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
@@ -285,24 +285,6 @@ class BaseOptim(nn.Module):
         )
         return cur_data_fidelity
 
-    def get_primal_variable(self, X):
-        r"""
-        Returns the primal variable.
-
-        :param dict X: dictionary containing the primal and auxiliary variables.
-        :return: the primal variable.
-        """
-        return X["est"][0]
-
-    def get_auxiliary_variable(self, X):
-        r"""
-        Returns the auxiliary variable.
-
-        :param dict X: dictionary containing the primal and auxiliary variables.
-        :return torch.Tensor X["est"][1]: the auxiliary variable.
-        """
-        return X["est"][1]
-
     def init_iterate_fn(self, y, physics, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
@@ -323,14 +305,13 @@ class BaseOptim(nn.Module):
             self.init_params_algo.copy()
         )  # reset parameters to initial values
         if self.custom_init:
-            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = self.custom_init(y, physics)
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
         F = (
             F_fn(
-                x_init,
+                init_X["est"][0],
                 self.update_data_fidelity_fn(0),
                 self.update_prior_fn(0),
                 self.update_params_fn(0),
@@ -355,13 +336,9 @@ class BaseOptim(nn.Module):
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
         :return dict: A dictionary containing the metrics.
         """
-        self.batch_size = self.get_primal_variable(X_init).shape[0]
         init = {}
-        x_init = (
-            self.get_primal_variable(X_init)
-            if not self.return_aux
-            else self.get_auxiliary_variable(X_init)
-        )
+        x_init = self.get_output(X_init)
+        self.batch_size = x_init.shape[0]
         if x_gt is not None:
             psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
         else:
@@ -386,16 +363,8 @@ class BaseOptim(nn.Module):
         :return dict: a dictionary containing the updated metrics.
         """
         if metrics is not None:
-            x_prev = (
-                self.get_primal_variable(X_prev)
-                if not self.return_aux
-                else self.get_auxiliary_variable(X_prev)
-            )
-            x = (
-                self.get_primal_variable(X)
-                if not self.return_aux
-                else self.get_auxiliary_variable(X)
-            )
+            x_prev = self.get_output(X_prev)
+            x = self.get_output(X)
             for i in range(self.batch_size):
                 residual = (
                     ((x_prev[i] - x[i]).norm() / (x[i].norm() + 1e-06))
@@ -429,8 +398,8 @@ class BaseOptim(nn.Module):
         :param dict X: dictionary containing the current primal and dual iterates.
         """
         if self.backtracking and self.has_cost and X_prev is not None:
-            x_prev = self.get_primal_variable(X_prev)
-            x = self.get_primal_variable(X)
+            x_prev = self.get_output(X_prev)
+            x = self.get_output(X)
             x_prev = x_prev.reshape((x_prev.shape[0], -1))
             x = x.reshape((x.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
@@ -462,18 +431,10 @@ class BaseOptim(nn.Module):
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         if self.crit_conv == "residual":
-            x_prev = (
-                self.get_primal_variable(X_prev)
-                if not self.return_aux
-                else self.get_auxiliary_variable(X_prev)
-            )
-            x_prev = x_prev.reshape(x_prev.shape[0], -1)
-            x = (
-                self.get_primal_variable(X)
-                if not self.return_aux
-                else self.get_auxiliary_variable(X)
-            )
-            x = x.reshape(x.shape[0], -1)
+            x_prev = self.get_output(X_prev)
+            x = self.get_output(X)
+            x_prev = x_prev.reshape((x_prev.shape[0], -1))
+            x = x.reshape((x.shape[0], -1))
             crit_cur = (
                 (x_prev - x).norm(p=2, dim=-1) / (x.norm(p=2, dim=-1) + 1e-06)
             ).mean()
@@ -504,14 +465,10 @@ class BaseOptim(nn.Module):
         :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        x, metrics = self.fixed_point(
+        X, metrics = self.fixed_point(
             y, physics, x_gt=x_gt, compute_metrics=compute_metrics
         )
-        x = (
-            self.get_primal_variable(x)
-            if not self.return_aux
-            else self.get_auxiliary_variable(x)
-        )
+        x = self.get_output(X)
         if compute_metrics:
             return x, metrics
         else:

@@ -60,6 +60,19 @@ Learnable Denoisers
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
 
+Unfolded architectures
+----------------------
+Some more specific unfolded architectures are also available.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.PDNet_PrimalBlock
+   deepinv.models.PDNet_DualBlock
+
+
 .. _pretrained-weights:
 Pretrained weights
 ------------------
@@ -100,3 +113,4 @@ associated reference and relevant details.
    * -
      - weights from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
        `[weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=diffusion_openai.pt>`_.
+

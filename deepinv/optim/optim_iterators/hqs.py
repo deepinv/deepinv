@@ -3,7 +3,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class HQSIteration(OptimIterator):
     r"""
-    Single iteration of HQS.
+    Single iteration of half-quadratic splitting.
 
     Class for a single iteration of the Half-Quadratic Splitting (HQS) algorithm for minimising :math:`\lambda f(x) + g(x)`.
     The iteration is given by
