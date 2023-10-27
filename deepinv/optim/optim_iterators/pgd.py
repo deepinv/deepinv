@@ -4,7 +4,7 @@ from .utils import gradient_descent_step
 
 class PGDIteration(OptimIterator):
     r"""
-    Single iteration of PGD.
+    Iterator for proximal gradient descent.
 
     Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimising :math:`\lambda f(x) + g(x)`.
 

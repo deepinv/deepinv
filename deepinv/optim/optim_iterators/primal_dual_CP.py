@@ -5,7 +5,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class CPIteration(OptimIterator):
     r"""
-    Single iteration of the Chambolle-Pock algorithm.
+    Iterator for Chambolle-Pock.
 
     Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
     algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
