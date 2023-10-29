@@ -8,6 +8,7 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added Kaiming init (:gh:`102` by `Matthieu Terris`_) - 29/10/2023
 - Added Anderson Acceleration (:gh:`86` by `Samuel Hurault`_) - 23/10/2023
 - Added `DPS` diffusion method (:gh:`92` by `Julian Tachella`_ and `Hyungjin Chung`_) - 20/10/2023
 - Added on-the-fly physics computations in training (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
