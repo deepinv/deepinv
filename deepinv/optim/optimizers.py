@@ -288,18 +288,10 @@ class BaseOptim(nn.Module):
     def init_iterate_fn(self, y, physics, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
-<<<<<<< HEAD
         The first iterate is stored in a dictionary with keys ``fp`` , ``est`` and ``cost``, where:
             - ``fp`` is the first fixed-point iterate of the algorithm. It has dimension NxBxCxHxW, where N is the number of images in the fixed-point variable (1 by default).
             - ``est`` is the first estimate of the algorithm. It has dimension BxCxHxW.
             - ``cost`` is the value of the cost function at the first estimate.
-=======
-        The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
-
-            * ``est`` is a tuple containing the first primal and auxiliary iterates.
-            * ``cost`` is the value of the cost function at the first iterate.
->>>>>>> main
-
         The default initialization is defined in the iterator class (see :meth:`deepinv.optim.optim_iterators.OptimIterator.init_algo`).
         A different custom initialization is possible with the custom_init argument.
 
