@@ -204,7 +204,7 @@ model = unfolded_builder(
     prior=prior,
     max_iter=max_iter,
     custom_init=custom_init,
-    get_output=custom_output,
+    custom_output=custom_output,
 )
 
 # choose optimizer and scheduler

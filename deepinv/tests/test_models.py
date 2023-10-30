@@ -282,7 +282,7 @@ def test_PDNet(imsize_1_channel, device):
         prior=prior,
         max_iter=max_iter,
         custom_init=custom_init,
-        get_output=custom_output,
+        custom_output=custom_output,
     )
 
     x_hat = model(y, physics)
