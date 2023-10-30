@@ -244,7 +244,7 @@ def train(
                 progress_bar.set_postfix(log_dict)
 
         # wandb plotting of training images
-        if wandb_vis and epoch + 1 % log_image_interval == 0 :  
+        if wandb_vis and epoch + 1 % log_image_interval == 0:
             # Note that this may not be 16 images because the last batch may be smaller
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
@@ -386,7 +386,7 @@ def test(
                     x1 = model(y, physics[g])
 
                 x_lin = physics_cur.A_adjoint(y)
-                cur_psnr_lin= cal_psnr(x_lin, x)
+                cur_psnr_lin = cal_psnr(x_lin, x)
                 cur_psnr = cal_psnr(x1, x)
                 psnr_lin.append(cur_psnr_lin)
                 psnr_net.append(cur_psnr)
