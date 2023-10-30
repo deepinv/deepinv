@@ -28,6 +28,7 @@ def train(
     device="cpu",
     ckp_interval=1,
     eval_interval=1,
+    log_image_interval=1,
     save_path=".",
     verbose=False,
     unsupervised=False,
@@ -66,6 +67,7 @@ def train(
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
+    :param int log_image_interval: Number of epochs between image logging in wandb.
     :param str save_path: Directory in which to save the trained model.
     :param bool verbose: Output training progress information in the console.
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
@@ -242,9 +244,8 @@ def train(
                 progress_bar.set_postfix(log_dict)
 
         # wandb plotting of training images
-        if (
-            wandb_vis
-        ):  # Note that this may not be 16 images because the last batch may be smaller
+        if wandb_vis and epoch + 1 % log_image_interval == 0 :  
+            # Note that this may not be 16 images because the last batch may be smaller
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
                     y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
@@ -352,7 +353,6 @@ def test(
     if wandb_vis:  # initialize wandb visualization.
         if wandb.run is None:
             wandb.init(**wandb_setup)
-        psnr_data = []
 
     for g in range(G):  # for each operator
         dataloader = test_dataloader[g]
@@ -390,9 +390,6 @@ def test(
                 cur_psnr = cal_psnr(x1, x)
                 psnr_lin.append(cur_psnr_lin)
                 psnr_net.append(cur_psnr)
-
-                if wandb_vis:
-                    psnr_data.append([g, i, cur_psnr_lin, cur_psnr])
 
                 if plot_images:
                     save_folder_im = (
