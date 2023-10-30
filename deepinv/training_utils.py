@@ -232,11 +232,12 @@ def train(
 
                 # training psnr and logging
                 if not unsupervised:
-                    psnr = cal_psnr(x_net, x)
-                    train_psnr.update(psnr)
-                    if wandb_vis:
-                        wandb.log({"training psnr": psnr})
-                    log_dict["train_psnr"] = train_psnr.avg
+                    with torch.no_grad():
+                        psnr = cal_psnr(x_net, x)
+                        train_psnr.update(psnr)
+                        if wandb_vis:
+                            wandb.log({"training psnr": psnr})
+                        log_dict["train_psnr"] = train_psnr.avg
 
                 progress_bar.set_postfix(log_dict)
 
@@ -244,22 +245,25 @@ def train(
         if (
             wandb_vis
         ):  # Note that this may not be 16 images because the last batch may be smaller
-            if plot_measurements and y.shape != x.shape:
-                y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
-                imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
-                caption = "From top to bottom : Input, Backprojection, Output, Target"
-            else:
-                imgs = [physics_cur.A_adjoint(y), x_net, x]
-                caption = "From top to bottom : Backprojection, Output, Target"
-            vis_array = torch.cat(imgs, dim=0)
-            for i in range(len(vis_array)):
-                vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
-            grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-            images = wandb.Image(
-                grid_image,
-                caption=caption,
-            )
-            wandb.log({"Training samples": images})
+            with torch.no_grad():
+                if plot_measurements and y.shape != x.shape:
+                    y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
+                    imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
+                    caption = (
+                        "From top to bottom : Input, Backprojection, Output, Target"
+                    )
+                else:
+                    imgs = [physics_cur.A_adjoint(y), x_net, x]
+                    caption = "From top to bottom : Backprojection, Output, Target"
+                vis_array = torch.cat(imgs, dim=0)
+                for i in range(len(vis_array)):
+                    vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
+                grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
+                images = wandb.Image(
+                    grid_image,
+                    caption=caption,
+                )
+                wandb.log({"Training samples": images})
 
         loss_history.append(total_loss.avg)
 
@@ -354,26 +358,26 @@ def test(
         dataloader = test_dataloader[g]
         if verbose and G > 1:
             print(f"Processing data of operator {g+1} out of {G}")
-        for i, batch in enumerate(
-            tqdm(dataloader, disable=not verbose)
-        ):  # for each batch
-            if verbose:
-                print(f"Processing batch {i} out of {len(dataloader)}")
-            if online_measurements:
-                x, _ = batch  # In this case the dataloader outputs also a class label
-                x = x.to(device)
-                physics_cur = physics[g]
-                physics_cur.reset()
-                y = physics_cur(x)
-            else:
-                x, y = batch
-                if type(x) is list or type(x) is tuple:
-                    x = [s.to(device) for s in x]
-                else:
+        for i, batch in enumerate(tqdm(dataloader, disable=not verbose)):
+            with torch.no_grad():
+                if online_measurements:
+                    (
+                        x,
+                        _,
+                    ) = batch  # In this case the dataloader outputs also a class label
                     x = x.to(device)
-                physics_cur = physics[g]
+                    physics_cur = physics[g]
+                    physics_cur.reset()
+                    y = physics_cur(x)
+                else:
+                    x, y = batch
+                    if type(x) is list or type(x) is tuple:
+                        x = [s.to(device) for s in x]
+                    else:
+                        x = x.to(device)
+                    physics_cur = physics[g]
 
-                y = y.to(device)
+                    y = y.to(device)
 
             with torch.no_grad():  # run the model
                 if plot_metrics:
@@ -381,53 +385,59 @@ def test(
                 else:
                     x1 = model(y, physics[g])
 
-            x_lin = physics_cur.A_adjoint(y)  # linear reconstruction
-            cur_psnr_lin = cal_psnr(x_lin, x)
-            cur_psnr = cal_psnr(x1, x)
-            psnr_lin.append(cur_psnr_lin)
-            psnr_net.append(cur_psnr)
+                x_lin = physics_cur.A_adjoint(y)
+                cur_psnr_lin= cal_psnr(x_lin, x)
+                cur_psnr = cal_psnr(x1, x)
+                psnr_lin.append(cur_psnr_lin)
+                psnr_net.append(cur_psnr)
 
-            if wandb_vis:
-                psnr_data.append([g, i, cur_psnr_lin, cur_psnr])
-
-            if plot_images:
-                save_folder_im = (
-                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                ) / "images"
-                save_folder_im.mkdir(parents=True, exist_ok=True)
-            else:
-                save_folder_im = None
-            if plot_metrics:
-                save_folder_curve = (
-                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                ) / "curves"
-                save_folder_curve.mkdir(parents=True, exist_ok=True)
-
-            if plot_images or wandb_vis:
-                if g < show_operators:
-                    if not plot_only_first_batch or (plot_only_first_batch and i == 0):
-                        if plot_measurements and len(y.shape) == 4:
-                            imgs = [y, x_lin, x1, x]
-                            name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                        else:
-                            imgs = [x_lin, x1, x]
-                            name_imgs = ["Linear", "Recons.", "GT"]
-                        fig = plot(
-                            imgs,
-                            titles=name_imgs,
-                            save_dir=save_folder_im if plot_images else None,
-                            show=plot_images,
-                            return_fig=True,
-                        )
-                        if wandb_vis:
-                            wandb.log(
-                                {f"Test images batch_{i} (G={g}) ": wandb.Image(fig)}
-                            )
-
-            if plot_metrics:
-                plot_curves(metrics, save_dir=save_folder_curve, show=True)
                 if wandb_vis:
-                    wandb_plot_curves(metrics, batch_idx=i, step=step)
+                    psnr_data.append([g, i, cur_psnr_lin, cur_psnr])
+
+                if plot_images:
+                    save_folder_im = (
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "images"
+                    save_folder_im.mkdir(parents=True, exist_ok=True)
+                else:
+                    save_folder_im = None
+                if plot_metrics:
+                    save_folder_curve = (
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "curves"
+                    save_folder_curve.mkdir(parents=True, exist_ok=True)
+
+                if plot_images or wandb_vis:
+                    if g < show_operators:
+                        if not plot_only_first_batch or (
+                            plot_only_first_batch and i == 0
+                        ):
+                            if plot_measurements and len(y.shape) == 4:
+                                imgs = [y, x_lin, x1, x]
+                                name_imgs = ["Input", "Linear", "Recons.", "GT"]
+                            else:
+                                imgs = [x_lin, x1, x]
+                                name_imgs = ["Linear", "Recons.", "GT"]
+                            fig = plot(
+                                imgs,
+                                titles=name_imgs,
+                                save_dir=save_folder_im if plot_images else None,
+                                show=plot_images,
+                                return_fig=True,
+                            )
+                            if wandb_vis:
+                                wandb.log(
+                                    {
+                                        f"Test images batch_{i} (G={g}) ": wandb.Image(
+                                            fig
+                                        )
+                                    }
+                                )
+
+                if plot_metrics:
+                    plot_curves(metrics, save_dir=save_folder_curve, show=True)
+                    if wandb_vis:
+                        wandb_plot_curves(metrics, batch_idx=i, step=step)
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)

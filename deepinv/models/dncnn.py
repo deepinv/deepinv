@@ -8,7 +8,8 @@ class DnCNN(nn.Module):
     DnCNN convolutional denoiser.
 
     The architecture was introduced by Zhang et al. in https://arxiv.org/abs/1608.03981 and is composed of a series of
-    convolutional layers with ReLU activation functions. The number of layers can be specified by the user.
+    convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
+    original paper, this implementation does not include batch normalization layers.
 
     The network can be initialized with pretrained weights, which can be downloaded from an online repository. The
     pretrained weights are trained with the default parameters of the network, i.e. 20 layers, 64 channels and biases.
@@ -24,6 +25,7 @@ class DnCNN(nn.Module):
         It is possible to download weights trained via the regularization method in https://epubs.siam.org/doi/abs/10.1137/20M1387961
         using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode
     :param str device: gpu or cpu
     """
@@ -92,6 +94,8 @@ class DnCNN(nn.Module):
             self.eval()
             for _, v in self.named_parameters():
                 v.requires_grad = False
+        else:
+            self.apply(weights_init_kaiming)
 
         if device is not None:
             self.to(device)
@@ -111,3 +115,16 @@ class DnCNN(nn.Module):
             x1 = self.nl_list[i + 1](x_l)
 
         return self.out_conv(x1) + x
+
+
+def weights_init_kaiming(m):
+    classname = m.__class__.__name__
+    if classname.find("Conv") != -1:
+        nn.init.kaiming_normal_(m.weight.data, a=0, mode="fan_in")
+    elif classname.find("Linear") != -1:
+        nn.init.kaiming_normal_(m.weight.data, a=0, mode="fan_in")
+    elif classname.find("BatchNorm") != -1:
+        m.weight.data.normal_(mean=0, std=math.sqrt(2.0 / 9.0 / 64.0)).clamp_(
+            -0.025, 0.025
+        )
+        nn.init.constant(m.bias.data, 0.0)

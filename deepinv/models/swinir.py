@@ -821,6 +821,7 @@ class SwinIR(nn.Module):
         the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
         default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         Default: 'download'.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
     """
