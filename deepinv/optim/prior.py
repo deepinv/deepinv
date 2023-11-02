@@ -70,8 +70,8 @@ class Prior(nn.Module):
     def prox(
         self,
         x,
-        gamma,
         *args,
+        gamma=1.0,
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
@@ -92,7 +92,7 @@ class Prior(nn.Module):
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
-    def prox_conjugate(self, x, gamma, *args, lamb=1, **kwargs):
+    def prox_conjugate(self, x, *args, gamma = 1.0, lamb=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula.
 
@@ -119,7 +119,7 @@ class PnP(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def prox(self, x, gamma, sigma_denoiser, *args, **kwargs):
+    def prox(self, x, sigma_denoiser, *args, **kwargs):
         r"""
         Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`.
 
@@ -180,7 +180,7 @@ class Tikhonov(Prior):
         """
         return x
 
-    def prox(self, x, gamma):
+    def prox(self, x, gamma=1.):
         r"""
         Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
 
