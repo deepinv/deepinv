@@ -172,7 +172,7 @@ class DataFidelity(nn.Module):
             computed in :math:`x`.
         """
         return x - gamma * self.prox(
-            x / gamma, y, physics, lamb / gamma, *args, **kwargs
+            x / gamma, y, physics, *args, gamma = lamb / gamma, **kwargs
         )
 
     def prox_d_conjugate(self, u, y, *args, gamma=1., lamb=1., **kwargs):
@@ -191,7 +191,7 @@ class DataFidelity(nn.Module):
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \distancename)^*}(x)`,
             computed in :math:`x`.
         """
-        return u - gamma * self.prox_d(u / gamma, y, lamb / gamma, *args, **kwargs)
+        return u - gamma * self.prox_d(u / gamma, y, *args, gamma = lamb / gamma, **kwargs)
 
 
 class L2(DataFidelity):
@@ -351,7 +351,7 @@ class IndicatorL2(DataFidelity):
         loss = (dist > radius) * 1e16
         return loss
 
-    def prox_d(self, x, y, radius=None):
+    def prox_d(self, x, y, radius=None, gamma=None):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 

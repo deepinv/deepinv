@@ -124,7 +124,7 @@ class PnP(Prior):
         Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`.
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
+        :param float sigma_denoiser: noise level parameter of the denoiser.
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
         return self.denoiser(x, sigma_denoiser)
