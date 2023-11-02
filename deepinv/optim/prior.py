@@ -154,43 +154,6 @@ class RED(Prior):
         return x - self.denoiser(x, sigma_denoiser)
 
 
-class Tikhonov(Prior):
-    r"""
-    Tikhonov regularizer :math:`g(x) = \frac{1}{2}\| x \|_2^2`.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.explicit_prior = True
-
-    def g(self, x):
-        r"""
-        Computes the Tikhonov regularizer :math:`g(x) = \frac{1}{2}\|T(x)\|_2^2`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`g(x)`.
-        """
-        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
-
-    def grad(self, x):
-        r"""
-        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.Tensor) gradient at :math:`x`.
-        """
-        return x
-
-    def prox(self, x, gamma=1.):
-        r"""
-        Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
-        """
-        return (1 / (gamma + 1)) * x
-
-
 class ScorePrior(Prior):
     r"""
     Score via MMSE denoiser :math:`\nabla g(x)=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`.
@@ -237,3 +200,106 @@ class ScorePrior(Prior):
         :param float sigma: the noise level.
         """
         return (1 / sigma**2) * (x - self.denoiser(x, sigma))
+
+
+class Tikhonov(Prior):
+    r"""
+    Tikhonov regularizer :math:`g(x) = \frac{1}{2}\| x \|_2^2`.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.explicit_prior = True
+
+    def g(self, x):
+        r"""
+        Computes the Tikhonov regularizer :math:`g(x) = \frac{1}{2}\|T(x)\|_2^2`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
+        """
+        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+
+    def grad(self, x):
+        r"""
+        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.Tensor) gradient at :math:`x`.
+        """
+        return x
+
+    def prox(self, x, gamma=1.):
+        r"""
+        Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return (1 / (gamma + 1)) * x
+    
+def nabla(I):
+    r"""
+    Compute the forward finite difference operator :math:`\nabla` on an image. 
+    """
+    b, c, h, w = I.shape
+    G = torch.zeros((b, c, h, w, 2), device=I.device).type(I.dtype)
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
+    return G
+
+
+def nablaT(G):
+    r"""
+    Compute the transpose of the forward finite difference operator :math:`\nabla` on an image.
+    """
+    b, c, h, w = G.shape[:-1]
+    I = torch.zeros((b, c, h, w), device=G.device).type(
+        G.dtype
+    )  # note that we just reversed left and right sides of each line to obtain the transposed operator
+    I[:, :, :-1] = I[:, :, :-1] - G[:, :, :-1, :, 0]
+    I[:, :, 1:] = I[:, :, 1:] + G[:, :, :-1, :, 0]
+    I[..., :-1] = I[..., :-1] - G[..., :-1, 1]
+    I[..., 1:] = I[..., 1:] + G[..., :-1, 1]
+    return I
+
+class TV(Prior):
+    r"""
+    TV regularizer :math:`g(x) = \|Dx\|_{2}`
+    where :math:`D` maps an image to its gradient field.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.explicit_prior = True
+
+    def g(self, x):
+        r"""
+        Computes the TV regularizer :math:`g(x) = \|Dx\|_{2}`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
+        """
+        return torch.sum(torch.sqrt(torch.sum(nabla(self.x) ** 2, axis=-1)))
+
+    def grad(self, x):
+        r"""
+        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.Tensor) gradient at :math:`x`.
+        """
+        return x
+
+    def prox(self, x, y, gamma=1.):
+        r"""
+        Calculates the proximity operator of the TV regularization term :math:`g` at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return (x + gamma * y) / (1 + gamma)
+    
+

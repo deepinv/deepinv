@@ -57,7 +57,7 @@ class DataFidelity(nn.Module):
         :param torch.tensor y: Data :math:`y`.
         :return: (torch.tensor) data fidelity :math:`\distance{u}{y}`.
         """
-        return self._d(u - y, *args, **kwargs)
+        return self._d(u, y, *args, **kwargs)
 
     def grad_d(self, u, y, *args, **kwargs):
         r"""
