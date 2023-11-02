@@ -433,12 +433,12 @@ class BaseOptim(nn.Module):
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         if self.crit_conv == "residual":
-            est_prev = X_prev["est"]
-            est = X["est"]
-            est_prev = est_prev.reshape((est_prev.shape[0], -1))
-            est = est.reshape((est.shape[0], -1))
+            fp_prev = X_prev["fp"]
+            fp = X["fp"]
+            fp_prev = fp_prev.reshape((fp_prev.shape[0], -1))
+            fp = fp.reshape((fp.shape[0], -1))
             crit_cur = (
-                (est_prev - est).norm(p=2, dim=-1) / (est.norm(p=2, dim=-1) + 1e-06)
+                (fp_prev - fp).norm(p=2, dim=-1) / (fp.norm(p=2, dim=-1) + 1e-06)
             ).mean()
         elif self.crit_conv == "cost":
             F_prev = X_prev["cost"]
@@ -470,8 +470,7 @@ class BaseOptim(nn.Module):
         X, metrics = self.fixed_point(
             y, physics, x_gt=x_gt, compute_metrics=compute_metrics
         )
-        est = X["est"]
-        out = self.custom_output(est) if self.custom_output else est
+        out = self.custom_output(X) if self.custom_output else X["est"]
         if compute_metrics:
             return out, metrics
         else:

@@ -42,11 +42,12 @@ class DRSIteration(OptimIterator):
         :param torch.Tensor x: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        x = fp[0]
+        z = fp[0]
         if self.g_first:
-            return self.g_step(x, x, cur_prior, cur_params, y, physics)
+            u = self.g_step(z, z, cur_prior, cur_params)
         else:
-            return self.f_step(x, x, cur_data_fidelity, cur_params, y, physics)
+            u = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
+        return u
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -68,7 +69,7 @@ class DRSIteration(OptimIterator):
             u = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (x - u)
-        fp = x.unsqueeze(0)
+        fp = z.unsqueeze(0)
         est = self.get_minimizer_from_FP(
             fp, cur_data_fidelity, cur_prior, cur_params, y, physics
         )

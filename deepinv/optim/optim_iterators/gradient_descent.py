@@ -47,7 +47,7 @@ class GDIteration(OptimIterator):
         )
         x = gradient_descent_step(x_prev, grad)
         fp = x.unsqueeze(0)
-        est = self.get_minimizer_from_FP(fp)
+        est = self.get_minimizer_from_FP(fp, cur_data_fidelity, cur_prior, cur_params, y, physics)
         F = (
             self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
