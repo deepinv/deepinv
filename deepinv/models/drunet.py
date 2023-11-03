@@ -182,15 +182,25 @@ class DRUNet(nn.Module):
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
             If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
-        if not isinstance(sigma, torch.Tensor):
+        if isinstance(sigma, torch.Tensor):
+            if len(sigma.size()) > 0:
+                noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
+                noise_level_map = noise_level_map.expand(
+                    x.size(0), 1, x.size(2), x.size(3)
+                )
+            else:
+                sigma = sigma.item()
+                noise_level_map = (
+                    torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
+                    .fill_(sigma)
+                    .to(x.device)
+                )
+        else:
             noise_level_map = (
                 torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
                 .fill_(sigma)
                 .to(x.device)
             )
-        else:
-            noise_level_map = sigma.view(x.size(0), 1, 1, 1)
-            noise_level_map = noise_level_map.expand(x.size(0), 1, x.size(2), x.size(3))
         x = torch.cat((x, noise_level_map), 1)
         if self.training or (
             x.size(2) % 8 == 0

@@ -107,12 +107,12 @@ class fStepCP(fStep):
         if self.g_first:
             p = x - cur_params["stepsize"] * w
             return cur_data_fidelity.prox(
-                p, y, physics, cur_params["stepsize"] * cur_params["lambda"]
+                p, y, physics, gamma=cur_params["stepsize"] * cur_params["lambda"]
             )
         else:
             p = x + cur_params["stepsize_dual"] * w
             return cur_data_fidelity.prox_d_conjugate(
-                p, y, cur_params["stepsize_dual"], lamb=cur_params["lambda"]
+                p, y, gamma=cur_params["stepsize_dual"], lamb=cur_params["lambda"]
             )
 
 
@@ -136,8 +136,10 @@ class gStepCP(gStep):
         if self.g_first:
             p = x + cur_params["stepsize_dual"] * w
             return cur_prior.prox_conjugate(
-                p, cur_params["stepsize_dual"], cur_params["g_param"]
+                p, cur_params["g_param"], gamma=cur_params["stepsize_dual"]
             )
         else:
             p = x - cur_params["stepsize"] * w
-            return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
+            return cur_prior.prox(
+                p, cur_params["g_param"], gamma=cur_params["stepsize"]
+            )

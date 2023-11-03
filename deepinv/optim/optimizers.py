@@ -114,7 +114,7 @@ class BaseOptim(nn.Module):
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.
-    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 50.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
                           of the iterate norm) or `"cost"` (on the cost function). Default: ``"residual"``
     :param float thres_conv: value of the threshold for claiming convergence. Default: ``1e-05``.
@@ -142,7 +142,7 @@ class BaseOptim(nn.Module):
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         data_fidelity=None,
         prior=None,
-        max_iter=50,
+        max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
         early_stop=False,
