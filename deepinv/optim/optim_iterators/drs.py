@@ -87,7 +87,7 @@ class fStepDRS(fStep):
         else:
             p = z
         return cur_data_fidelity.prox(
-            p, y, physics, gamma = cur_params["lambda"] * cur_params["stepsize"]
+            p, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
@@ -112,4 +112,4 @@ class gStepDRS(gStep):
             p = z
         else:
             p = 2 * x - z
-        return cur_prior.prox(p, cur_params["g_param"], gamma = cur_params["stepsize"])
+        return cur_prior.prox(p, cur_params["g_param"], gamma=cur_params["stepsize"])

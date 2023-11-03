@@ -183,16 +183,16 @@ class DRUNet(nn.Module):
             If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
         if isinstance(sigma, torch.Tensor):
-            if len(sigma.size()) > 0: 
+            if len(sigma.size()) > 0:
                 noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
-            else :
+            else:
                 sigma = sigma.item()
                 noise_level_map = (
-                torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
-                .fill_(sigma)
-                .to(x.device)
-            )
-        else :
+                    torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
+                    .fill_(sigma)
+                    .to(x.device)
+                )
+        else:
             noise_level_map = (
                 torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
                 .fill_(sigma)

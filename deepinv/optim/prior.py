@@ -92,7 +92,7 @@ class Prior(nn.Module):
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
-    def prox_conjugate(self, x, *args, gamma = 1.0, lamb=1.0, **kwargs):
+    def prox_conjugate(self, x, *args, gamma=1.0, lamb=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula.
 
@@ -228,7 +228,7 @@ class Tikhonov(Prior):
         """
         return x
 
-    def prox(self, x, gamma=1.):
+    def prox(self, x, gamma=1.0):
         r"""
         Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
 
@@ -237,8 +237,8 @@ class Tikhonov(Prior):
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
         return (1 / (gamma + 1)) * x
-    
-    
+
+
 class L1(Prior):
     r"""
     L1 regularizer :math:`g(x) = \| T x \|_1`.
@@ -256,7 +256,7 @@ class L1(Prior):
         """
         return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
 
-    def prox(self, x, gamma=1.):
+    def prox(self, x, gamma=1.0):
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`g` at :math:`x`.
 
@@ -265,4 +265,3 @@ class L1(Prior):
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
         return torch.sign(x) * torch.max(torch.abs(x) - gamma, torch.zeros_like(x))
-    
