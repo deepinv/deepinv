@@ -10,7 +10,7 @@ class TV(nn.Module):
 
     .. math::
 
-        \underset{x}{\arg\min} \;  \frac{1}{2}\|x-y\|_2^2 + \lambda \|Dx\|_{2},
+        \underset{x}{\arg\min} \;  \frac{1}{2}\|x-y\|_2^2 + \lambda \|Dx\|_{1,2},
 
     where :math:`D` maps an image to its gradient field.
 
