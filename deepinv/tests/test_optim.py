@@ -66,7 +66,7 @@ def test_data_fidelity_l2(device):
     )
 
     # Compute the deepinv proximity operator
-    deepinv_prox = data_fidelity.prox(x, y, physics, gamma)
+    deepinv_prox = data_fidelity.prox(x, y, physics, gamma=gamma)
 
     assert torch.allclose(deepinv_prox, manual_prox)
 
@@ -77,8 +77,8 @@ def test_data_fidelity_l2(device):
     assert torch.allclose(grad_deepinv, grad_manual)
 
     # 5. Testing the torch autograd implementation of the gradient
-    def dummy_torch_l2(x):
-        return 0.5 * torch.norm((B @ x).flatten(), p=2, dim=-1) ** 2
+    def dummy_torch_l2(x, y):
+        return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_grad = torch_loss.grad_d(x, y)
@@ -86,12 +86,10 @@ def test_data_fidelity_l2(device):
     assert torch.allclose(torch_loss_grad, grad_manual)
 
     # 6. Testing the torch autograd implementation of the prox
-    def dummy_torch_l2(x):
-        return 0.5 * torch.norm((B @ x).flatten(), p=2) ** 2
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_prox = torch_loss.prox_d(
-        x, y, gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
+        x, y, gamma=gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
     )
 
     manual_prox = (Id + gamma * B.transpose(0, 1) @ B).inverse() @ (
@@ -126,7 +124,7 @@ def test_data_fidelity_indicator(device):
 
     # 2. Testing trivial operations on f (and not f \circ A)
     x_proj = torch.Tensor([[[1.0], [1 + radius]]]).to(device)
-    assert torch.allclose(data_fidelity.prox_d(x, y, gamma=None), x_proj)
+    assert torch.allclose(data_fidelity.prox_d(x, y), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
@@ -238,7 +236,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             if not g_first:
                 subdiff = prior.grad(x)
                 moreau_grad = (
-                    x - data_fidelity.prox(x, y, physics, lamb * stepsize)
+                    x - data_fidelity.prox(x, y, physics, gamma=lamb * stepsize)
                 ) / (
                     lamb * stepsize
                 )  # Gradient of the moreau envelope
@@ -248,7 +246,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             else:
                 subdiff = lamb * data_fidelity.grad(x, y, physics)
                 moreau_grad = (
-                    x - prior.prox(x, stepsize)
+                    x - prior.prox(x, gamma=stepsize)
                 ) / stepsize  # Gradient of the moreau envelope
                 assert torch.allclose(
                     moreau_grad, -subdiff, atol=1e-8

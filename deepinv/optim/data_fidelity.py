@@ -57,7 +57,7 @@ class DataFidelity(nn.Module):
         :param torch.tensor y: Data :math:`y`.
         :return: (torch.tensor) data fidelity :math:`\distance{u}{y}`.
         """
-        return self._d(u - y, *args, **kwargs)
+        return self._d(u, y, *args, **kwargs)
 
     def grad_d(self, u, y, *args, **kwargs):
         r"""
@@ -79,8 +79,8 @@ class DataFidelity(nn.Module):
         self,
         u,
         y,
-        gamma,
         *args,
+        gamma=1.0,
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
@@ -130,8 +130,8 @@ class DataFidelity(nn.Module):
         x,
         y,
         physics,
-        gamma,
         *args,
+        gamma=1.0,
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
@@ -149,12 +149,12 @@ class DataFidelity(nn.Module):
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`, computed in :math:`x`.
         """
-        grad = lambda z: gamma * self.grad(z, y, *args, **kwargs) + (z - x)
+        grad = lambda z: gamma * self.grad(z, y, physics, *args, **kwargs) + (z - x)
         return gradient_descent(
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
-    def prox_conjugate(self, x, y, physics, gamma, *args, lamb=1, **kwargs):
+    def prox_conjugate(self, x, y, physics, *args, gamma=1.0, lamb=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda \datafidname)^*` at :math:`x`,
         using the Moreau formula.
@@ -172,10 +172,10 @@ class DataFidelity(nn.Module):
             computed in :math:`x`.
         """
         return x - gamma * self.prox(
-            x / gamma, y, physics, lamb / gamma, *args, **kwargs
+            x / gamma, y, physics, *args, gamma=lamb / gamma, **kwargs
         )
 
-    def prox_d_conjugate(self, u, y, gamma, *args, lamb=1, **kwargs):
+    def prox_d_conjugate(self, u, y, *args, gamma=1.0, lamb=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda \distancename)^*` at :math:`u`,
         using the Moreau formula.
@@ -191,7 +191,9 @@ class DataFidelity(nn.Module):
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \distancename)^*}(x)`,
             computed in :math:`x`.
         """
-        return u - gamma * self.prox_d(u / gamma, y, lamb / gamma, *args, **kwargs)
+        return u - gamma * self.prox_d(
+            u / gamma, y, *args, gamma=lamb / gamma, **kwargs
+        )
 
 
 class L2(DataFidelity):
@@ -272,7 +274,7 @@ class L2(DataFidelity):
         """
         return self.norm * (u - y)
 
-    def prox_d(self, x, y, gamma):
+    def prox_d(self, x, y, gamma=1.0):
         r"""
         Proximal operator of :math:`\gamma \distance{x}{y} = \frac{\gamma}{2\sigma^2}\|x-y\|^2`.
 
@@ -291,7 +293,7 @@ class L2(DataFidelity):
         gamma_ = self.norm * gamma
         return (x + gamma_ * y) / (1 + gamma_)
 
-    def prox(self, x, y, physics, gamma):
+    def prox(self, x, y, physics, gamma=1.0):
         r"""
         Proximal operator of :math:`\gamma \datafid{Ax}{y} = \frac{\gamma}{2\sigma^2}\|Ax-y\|^2`.
 
@@ -351,7 +353,7 @@ class IndicatorL2(DataFidelity):
         loss = (dist > radius) * 1e16
         return loss
 
-    def prox_d(self, x, y, gamma=None, radius=None):
+    def prox_d(self, x, y, radius=None, gamma=None):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 
@@ -385,7 +387,6 @@ class IndicatorL2(DataFidelity):
         stepsize=None,
         crit_conv=1e-5,
         max_iter=100,
-        gamma=None,
     ):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
@@ -466,7 +467,7 @@ class PoissonLikelihood(DataFidelity):
             y = y * self.gain
         return (1 / self.gain) * (torch.ones_like(x) - y / (self.gain * x + self.bkg))
 
-    def prox_d(self, x, y, gamma):
+    def prox_d(self, x, y, gamma=1.0):
         if self.normalize:
             y = y * self.gain
         out = (
@@ -516,7 +517,7 @@ class L1(DataFidelity):
         """
         return torch.sign(x - y)
 
-    def prox_d(self, u, y, gamma):
+    def prox_d(self, u, y, gamma=1.0):
         r"""
         Proximal operator of the :math:`\ell_1` norm, i.e.
 
@@ -538,7 +539,9 @@ class L1(DataFidelity):
         )
         return aux + y
 
-    def prox(self, x, y, physics, gamma, stepsize=None, crit_conv=1e-5, max_iter=100):
+    def prox(
+        self, x, y, physics, gamma=1.0, stepsize=None, crit_conv=1e-5, max_iter=100
+    ):
         r"""
         Proximal operator of the :math:`\ell_1` norm composed with A, i.e.
 

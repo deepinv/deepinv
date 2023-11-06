@@ -141,6 +141,11 @@ def test_drunet_inputs(imsize_1_channel, device):
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
 
+    # Case 4: sigma is a tensor with no dimension
+    sigma_tensor = torch.tensor(sigma).to(device)
+    x_hat = f(y, sigma_tensor)
+    assert x_hat.shape == x.shape
+
 
 def test_diffunetmodel(imsize, device):
     # This model is a bit different from others as not strictly a denoiser as such.

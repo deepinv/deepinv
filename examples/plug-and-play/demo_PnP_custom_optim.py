@@ -144,7 +144,7 @@ class fStepCV(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         return cur_data_fidelity.prox_d_conjugate(
-            u, y, cur_params["sigma"], lamb=cur_params["lambda"]
+            u, y, gamma=cur_params["sigma"], lamb=cur_params["lambda"]
         )
 
 
@@ -165,7 +165,7 @@ class gStepCV(gStep):
         :param dict cur_params: Dictionary containing the current gStep parameters
             (keys `"stepsize"` and `"g_param"`).
         """
-        return cur_prior.prox(v, cur_params["stepsize"], cur_params["g_param"])
+        return cur_prior.prox(v, cur_params["g_param"], gamma=cur_params["stepsize"])
 
 
 # %%

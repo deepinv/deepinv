@@ -130,8 +130,9 @@ def train(
         perform_eval = (
             (not unsupervised)
             and eval_dataloader
-            and (epoch + 1 % eval_interval == 0 or epoch + 1 == epochs)
+            and ((epoch + 1) % eval_interval == 0 or epoch + 1 == epochs)
         )
+
         if perform_eval:
             test_psnr, _, _, _ = test(
                 model,
