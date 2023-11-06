@@ -38,24 +38,24 @@ class GDIteration(OptimIterator):
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-         :return: Dictionary `{'fp' : x,  'est': z , 'cost': F}` containing the updated iterate, estimate and cost value.
+         :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        x_prev = X["fp"][0]
+        x_prev = X["iterate"][0]
         grad = cur_params["stepsize"] * (
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
         x = gradient_descent_step(x_prev, grad)
-        fp = x.unsqueeze(0)
-        est = self.get_minimizer_from_FP(
-            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        iterate = (x,)
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
-        F = (
-            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp": fp, "est": est, "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
 
 class fStepGD(fStep):

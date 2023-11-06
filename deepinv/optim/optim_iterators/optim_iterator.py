@@ -17,9 +17,9 @@ class OptimIterator(nn.Module):
     where :math:`x` is an iterated fixed-point variable. 
 
     .. note::
-        The fixed-point variable does not necessarily correspond to the minimizer of :math:`F`. 
+        The fixed-point iterate :math:`x` does not necessarily correspond to the minimizer of :math:`F`. 
         This is typically the save for Douglas-Rachford splitting, ADMM or primal-dual algorithms. 
-        In order to get the curent estimate of the minimizer of :math:`F` from the current iterate, one can use the function :math:`get_minimizer_from_FP`.
+        In order to get the curent estimate of the minimizer of :math:`F` from the current iterate, one can use the function :math:`get_estimate_from_iterate`.
 
 
     The implementation of the fixed point algorithm in :meth:`deepinv.optim`  is split in two steps, alternating between
@@ -32,16 +32,16 @@ class OptimIterator(nn.Module):
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are the steps on f and g respectively.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
+    :param cost_fn: function that returns the function F to be minimized at each iteration. Default: None.
     :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
      """
 
-    def __init__(self, g_first=False, F_fn=None, has_cost=False):
+    def __init__(self, g_first=False, cost_fn=None, has_cost=False):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
-        self.F_fn = F_fn
+        self.cost_fn = cost_fn
         self.has_cost = has_cost
-        if self.F_fn is None:
+        if self.cost_fn is None:
             self.has_cost = False
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
@@ -59,22 +59,21 @@ class OptimIterator(nn.Module):
         """
         return beta * u + (1 - beta) * v
 
-    def get_minimizer_from_FP(
-        self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
     ):
         """
-        Get the minimizer of F from the fixed point variable x.
+        Get the minimizer of F from the fixed point iterate.
 
-        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return fp[0]
+        return iterate[0]
 
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         By default, the first iterate is chosen as :math:`A^{\top}x`.
-        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
@@ -82,16 +81,16 @@ class OptimIterator(nn.Module):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp": torch.stack((x,)), "est": x}
+        return {"iterate": (x,), "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F = \lambda f + g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
-        The fixed-point variable, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
-        $X$ of the form `{'fp' : x,  'est': z , 'cost': F}`.
-        The iterate 'fp' is un shape NxBxCxHxW, where N is the number of images in the fixed-point variable (N=1 by default here).
-        The estimate 'est' is in shape BxCxHxW.
+        The fixed-point iterate, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
+        $X$ of the form `{'iterate' : x,  'estimate': z , 'cost': F}`.
+        The variabme 'iterate' has shape NxBxCxHxW, where N is the number of images in the fixed-point iterate (N=1 by default here).
+        The estimate 'estimate' is in shape BxCxHxW.
 
         :param dict X: Dictionary containing the current iterate, current estimate and cost at the current estimate.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -99,9 +98,9 @@ class OptimIterator(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{'fp' : x,  'est': z , 'cost': F}` containing the updated iterate, estimate and cost value.
+        :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        x_prev = X["fp"][0]
+        x_prev = X["iterate"][0]
         if not self.g_first:
             z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(z, cur_prior, cur_params)
@@ -109,16 +108,16 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
-        fp = x.unsqueeze(0)  # fp varaible has dimension NxBxCxHxW
-        est = self.get_minimizer_from_FP(
-            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        iterate = (x,)
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
-        F = (
-            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp": fp, "est": est, "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
 
 class fStep(nn.Module):

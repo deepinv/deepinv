@@ -47,16 +47,16 @@ class CVIteration(OptimIterator):
         self.g_step = gStepCV(**kwargs)
         self.f_step = fStepCV(**kwargs)
 
-    def get_minimizer_from_FP(
-        self, x, cur_data_fidelity, cur_prior, cur_params, y, physics
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
     ):
         """
-        Get the minimizer of F from the fixed point variable x.
+        Get the minimizer of F from the fixed point iterate x.
 
-        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return x[0]
+        return iterate[0]
 
     def init_algo(self, y, physics):
         """
@@ -70,7 +70,7 @@ class CVIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp": torch.stacl((x, y)), "est": x}
+        return {"iterate": torch.stacl((x, y)), "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -86,21 +86,21 @@ class CVIteration(OptimIterator):
         :return: Dictionary `{"est": (x,z), "cost": F}` containing the updated current iterate
             and the estimated current cost.
         """
-        x_prev, z_prev = X["fp"][0], X["fp"][1]
+        x_prev, z_prev = X["iterate"][0], X["iterate"][1]
         v = x_prev - cur_params["stepsize"] * physics.A_adjoint(z_prev)
         x = self.g_step(v, cur_prior, cur_params)
         u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)
         z = self.f_step(u, cur_data_fidelity, cur_params, y, physics)
-        fp = (x, z)
-        est = self.get_minimizer_from_FP(
-            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        iterate = torch.stack((x, z))
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
-        F = (
-            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp": fp, "est": est, "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
 
 # %%
@@ -175,7 +175,7 @@ class gStepCV(gStep):
 def custom_init_CV(y, physics):
     x_init = physics.A_adjoint(y)
     z_init = y
-    return {"fp": (x_init, z_init), "est": x_init}
+    return {"iterate": torch.stack((x_init, z_init)), "estimate": x_init}
 
 
 # %%
@@ -262,7 +262,7 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
-iteration = CVIteration(F_fn=None, has_cost=False)
+iteration = CVIteration(cost_fn=None, has_cost=False)
 model = optim_builder(
     iteration=iteration,
     prior=prior,

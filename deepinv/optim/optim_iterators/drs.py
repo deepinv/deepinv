@@ -33,21 +33,21 @@ class DRSIteration(OptimIterator):
         self.f_step = fStepDRS(**kwargs)
         self.requires_prox_g = True
 
-    def get_minimizer_from_FP(
-        self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
     ):
         """
         Get the minimizer of F from the fixed point variable x.
 
-        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        z = fp[0]
+        z = iterate[0]
         if self.g_first:
-            u = self.g_step(z, z, cur_prior, cur_params)
+            estimate = self.g_step(z, z, cur_prior, cur_params)
         else:
-            u = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
-        return u
+            estimate = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
+        return estimate
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -59,9 +59,9 @@ class DRSIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{'fp' : x,  'est': z , 'cost': F}` containing the updated iterate, estimate and cost value.
+        :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        z = X["fp"][0]
+        z = X["iterate"][0]
         if self.g_first:
             u = self.g_step(z, z, cur_prior, cur_params)
             x = self.f_step(u, z, cur_data_fidelity, cur_params, y, physics)
@@ -69,16 +69,16 @@ class DRSIteration(OptimIterator):
             u = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (x - u)
-        fp = z.unsqueeze(0)
-        est = self.get_minimizer_from_FP(
-            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        iterate = (z,)
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
         F = (
-            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp": fp, "est": est, "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": F}
 
 
 class fStepDRS(fStep):

@@ -53,14 +53,14 @@ class FixedPoint(nn.Module):
 
         # Iterate the iterator
         x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
-        X = {"fp": torch.stack((x_init,)), "est": x_init, "cost": []}  # Iterates are stored in a dictionary containing the current iterate, current estimate and cost at the current estimate.
+        X = {"iterate": torch.stack((x_init,)), "estimate": x_init, "cost": []}  # Iterates are stored in a dictionary containing the current iterate, current estimate and cost at the current estimate.
 
         max_iter = 50
         for it in range(max_iter):
             X = iterator(X,  prior, params, y, physics)
 
         # Return the  solution
-        sol = X["est"]  # sol = [1, 1]
+        sol = X["estimate"]  # sol = [1, 1]
 
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
@@ -126,13 +126,17 @@ class FixedPoint(nn.Module):
 
         :param dict X: initial iterate.
         """
-        x = X["fp"]
-        N, B, C, H, W = x.shape
+        iterate = X["iterate"]
+        N = len(iterate)
+        len_hist = 0 
+        for x in iterate : # each tensor in the iterate tuple x has shape (B, C, H, W)
+            B, C, H, W = x.shape
+            len_hist += C * H * W
         x_hist = torch.zeros(
-            B, self.history_size, N * C * H * W, dtype=x.dtype, device=x.device
+            B, self.history_size, len_hist, dtype=x.dtype, device=x.device
         )  # history of iterates.
         T_hist = torch.zeros(
-            B, self.history_size, N * C * H * W, dtype=x.dtype, device=x.device
+            B, self.history_size, len_hist, dtype=x.dtype, device=x.device
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
             B,
@@ -177,17 +181,18 @@ class FixedPoint(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        x_prev = X_prev["fp"]  # current iterate x
-        Tx_prev = TX_prev["fp"]  # current iterate Tx
-        b = x_prev.shape[1]  # batchsize
-        x_hist[:, it % self.history_size] = x_prev.view(b, -1)  # prepare history of x
-        T_hist[:, it % self.history_size] = Tx_prev.view(b, -1)  # prepare history of Tx
+        iterate_prev = X_prev["iterate"]  # current iterate x
+        iterate = TX_prev["iterate"]  # current iterate Tx
+        batch_size = iterate_prev[0].shape[0]
+        x_prev, Tx_prev = [el.view((batch_size, -1)) for el in iterate_prev], [el.view((batch_size, -1)) for el in iterate]
+        x_hist[:, it % self.history_size] = torch.cat(x_prev, dim = 1)  # prepare history of x
+        T_hist[:, it % self.history_size] = torch.cat(Tx_prev, dim = 1)  # prepare history of Tx
         m = min(it + 1, self.history_size)
         G = T_hist[:, :m] - x_hist[:, :m]
         H[:, 1 : m + 1, 1 : m + 1] = (
             torch.bmm(G, G.transpose(1, 2))
             + self.eps_anderson_acc
-            * torch.eye(m, dtype=Tx_prev.dtype, device=Tx_prev.device)[None]
+            * torch.eye(m, dtype=x_prev[0].dtype, device=x_prev[0].device)[None]
         )
         p = torch.linalg.solve(H[:, : m + 1, : m + 1], q[:, : m + 1])[
             :, 1 : m + 1, 0
@@ -196,25 +201,25 @@ class FixedPoint(nn.Module):
             self.beta_anderson_acc * (p[:, None] @ T_hist[:, :m])[:, 0]
             + (1 - self.beta_anderson_acc) * (p[:, None] @ x_hist[:, :m])[:, 0]
         )  # Anderson acceleration step.
-        x = x.view(x_prev.shape)
-        est = self.iterator.get_minimizer_from_FP(
-            x, cur_data_fidelity, cur_prior, cur_params, *args
+        iterate = tuple([x[:,0:len(x_prev[0][0])].view(iterate[0].shape)] + [x[:,len(x_prev[i][0]):len(x_prev[i+1][0])].view(iterate[i].shape) for i in range(len(x_prev)-1)])
+        estimate = self.iterator.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, *args
         )
-        F = (
-            self.iterator.F_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
+        cost = (
+            self.iterator.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, *args)
             if self.iterator.has_cost
             else None
         )
-        return {"fp": x, "est": est, "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
     def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
-        The iterates are stored in a dictionary of the form ``X = {'fp' : x, 'est': z, 'cost': F_k}`` where:
-            - ``fp`` is a the current fixed-point iterate.
-            - ``est`` is the current estimate of the solution (e.g. the minimizer of the cost function).
-            - ``est`` is the value of the cost function at the current estimate.
+        The iterates are stored in a dictionary of the form ``X = {'iterate' : x, 'estimate': z, 'cost': F_k}`` where:
+            - ``iterate`` is a the current fixed-point iterate.
+            - ``estimate`` is the current estimate of the solution (e.g. the minimizer of the cost function).
+            - ``cost`` is the value of the cost function at the current estimate.
 
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
@@ -229,7 +234,7 @@ class FixedPoint(nn.Module):
                      otherwise.
         """
         X = (
-            self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)
+            self.init_iterate_fn(*args, cost_fn=self.iterator.cost_fn)
             if self.init_iterate_fn
             else None
         )

@@ -189,11 +189,12 @@ n_dual = 5  # extend the dual space
 def custom_init(y, physics):
     x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
     u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
-    return {"fp": (x0, x0, u0), "est": x0}
+    z0 = torch.zeros_like(x0)
+    return {"iterate": (x0, u0, z0), "estimate": x0}
 
 
 def custom_output(X):
-    return X["est"][:, 1:2, :, :]
+    return X["estimate"][:, 1:2, :, :]
 
 
 # Define the unfolded trainable model.

@@ -72,13 +72,13 @@ class BaseDEQ(BaseUnfold):
         cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(
             X, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )["fp"]
+        )["iterate"]
 
         # Another iteration for jacobian computation via automatic differentiation.
-        x0 = x.clone().detach().requires_grad_()
+        x0 = tuple([el.clone().detach().requires_grad_() for el in x])
         f0 = self.fixed_point.iterator(
-            {"fp": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )["fp"]
+            {"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )["iterate"]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
         def backward_hook(grad):
@@ -88,13 +88,15 @@ class BaseDEQ(BaseUnfold):
 
                 def forward(self, X, *args, **kwargs):
                     return {
-                        "fp": torch.autograd.grad(f0, x0, X["fp"], retain_graph=True)[0]
+                        "iterate": torch.autograd.grad(
+                            f0, x0, X["iterate"], retain_graph=True
+                        )[0]
                         + grad
                     }
 
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-            def init_iterate_fn(y, physics, F_fn=None):
-                return {"fp": grad}  # initialize the fixed point algorithm.
+            def init_iterate_fn(y, physics, cost_fn=None):
+                return {"iterate": grad}  # initialize the fixed point algorithm.
 
             backward_FP = FixedPoint(
                 backward_iterator(),
@@ -106,14 +108,14 @@ class BaseDEQ(BaseUnfold):
                 beta_anderson_acc=self.beta_anderson_acc,
                 eps_anderson_acc=self.eps_anderson_acc,
             )
-            g = backward_FP({"fp": grad}, None)[0]["fp"]
+            g = backward_FP({"iterate": grad}, None)[0]["iterate"]
             return g
 
         if x.requires_grad:
             x.register_hook(backward_hook)
 
         # Get estimation from the fixed-point iteration
-        est = self.fixed_point.iterator.get_minimizer_from_FP(
+        est = self.fixed_point.iterator.get_estimate_from_iterate(
             x, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
         out = self.custom_output(est) if self.custom_output else est
@@ -128,7 +130,7 @@ def DEQ_builder(
     params_algo={"lambda": 1.0, "stepsize": 1.0},
     data_fidelity=L2(),
     prior=None,
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     **kwargs,
 ):
@@ -150,11 +152,11 @@ def DEQ_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: None.
+    :param callable cost_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(iteration, prior=prior, cost_fn=cost_fn, g_first=g_first)
     return BaseDEQ(
         iterator,
         has_cost=iterator.has_cost,

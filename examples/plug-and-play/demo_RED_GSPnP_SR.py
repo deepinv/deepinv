@@ -149,7 +149,7 @@ batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping 
 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
-    operation, noise_level_img, kernel_index
+    operation, noise_level_img
 )
 
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
@@ -159,16 +159,16 @@ data_fidelity = L2()
 
 method = "GSPnP"
 denoiser_name = "gsdrunet"
+denoiser = dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 # Specify the Denoising prior
 prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
+    denoiser=denoiser
 )
-
 
 # we want to output the intermediate PGD update to finish with a denoising step.
 def custom_output(X):
-    return X["est"][1]
-
+    estimate = X["estimate"]
+    return denoiser(estimate, sigma_denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

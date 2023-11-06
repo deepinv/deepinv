@@ -49,16 +49,16 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
-    def get_minimizer_from_FP(
-        self, fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
     ):
         """
-        Get the minimizer of F from the fixed point variable x.
+        Get the minimizer of F from the fixed point iterate x.
 
-        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return fp[0]
+        return iterate[0]
 
     def init_algo(self, y, physics):
         """
@@ -72,7 +72,7 @@ class CPIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"fp": torch.stack((x, y, torch.zeros_like(x))), "est": x}
+        return {"iterate": (x, y, torch.zeros_like(x)), "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -86,7 +86,7 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, u_prev, z_prev = X["fp"][0], X["fp"][1], X["fp"][2]
+        x_prev, u_prev, z_prev = X["iterate"][0], X["iterate"][1], X["iterate"][2]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)
@@ -104,16 +104,16 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
-        fp = torch.stack((x, u, z))
-        est = self.get_minimizer_from_FP(
-            fp, cur_data_fidelity, cur_prior, cur_params, y, physics
+        iterate = (x, u, z)
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
-        F = (
-            self.F_fn(est, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"fp": fp, "est": est, "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
 
 class fStepCP(fStep):
