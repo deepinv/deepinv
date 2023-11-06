@@ -109,7 +109,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
-        fp = x.unsqueeze(0) # fp varaible has dimension NxBxCxHxW
+        fp = x.unsqueeze(0)  # fp varaible has dimension NxBxCxHxW
         est = self.get_minimizer_from_FP(
             fp, cur_data_fidelity, cur_prior, cur_params, y, physics
         )

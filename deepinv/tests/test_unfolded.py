@@ -7,7 +7,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder, DEQ_builder
 
 
-OPTIM_ALGO = ["PGD", "HQS", 'DRS', 'ADMM']
+OPTIM_ALGO = ["PGD", "HQS", "DRS", "ADMM"]
 
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
