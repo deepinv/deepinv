@@ -9,6 +9,7 @@ from torchvision import transforms
 from PIL import Image
 from io import BytesIO
 from tqdm import tqdm
+from pathlib import Path
 
 
 class MRIData(torch.utils.data.Dataset):
@@ -54,7 +55,7 @@ def get_git_root():
 def load_dataset(
     dataset_name, data_dir, transform, download=True, url=None, train=True
 ):
-    dataset_dir = data_dir / dataset_name
+    dataset_dir = Path(data_dir) / dataset_name 
 
     if dataset_name == "fastmri_knee_singlecoil":
         filetype = "pt"
