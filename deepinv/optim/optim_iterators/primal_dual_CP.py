@@ -104,7 +104,7 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
-        fp = (x, u, z)
+        fp = torch.stack((x, u, z))
         est = self.get_minimizer_from_FP(
             fp, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
