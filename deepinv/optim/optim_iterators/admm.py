@@ -35,9 +35,7 @@ class ADMMIteration(OptimIterator):
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
 
-    def get_estimate_from_iterate(
-        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
-    ):
+    def get_estimate_from_iterate(self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics):
         """
         Get the minimizer of F from the fixed point iterate x.
 
@@ -58,7 +56,8 @@ class ADMMIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"iterate": (x, torch.zeros_like(x)), "estimate": x}
+        z = torch.zeros_like(x)
+        return {"iterate": torch.block_diag(x,z), "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -83,7 +82,7 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        iterate = (x, z)
+        iterate = torch.block_diag(x,z)
         estimate = self.get_estimate_from_iterate(
             iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )

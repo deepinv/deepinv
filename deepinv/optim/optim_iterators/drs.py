@@ -42,7 +42,7 @@ class DRSIteration(OptimIterator):
         :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        z = iterate[0]
+        z = iterate
         if self.g_first:
             estimate = self.g_step(z, z, cur_prior, cur_params)
         else:
@@ -61,7 +61,7 @@ class DRSIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        z = X["iterate"][0]
+        z = X["iterate"]
         if self.g_first:
             u = self.g_step(z, z, cur_prior, cur_params)
             x = self.f_step(u, z, cur_data_fidelity, cur_params, y, physics)
@@ -69,7 +69,7 @@ class DRSIteration(OptimIterator):
             u = self.f_step(z, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (x - u)
-        iterate = (z,)
+        iterate = z
         estimate = self.get_estimate_from_iterate(
             iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )

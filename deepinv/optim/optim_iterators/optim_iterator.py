@@ -68,7 +68,7 @@ class OptimIterator(nn.Module):
         :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return iterate[0]
+        return iterate
 
     def init_algo(self, y, physics):
         """
@@ -81,7 +81,7 @@ class OptimIterator(nn.Module):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"iterate": (x,), "estimate": x}
+        return {"iterate": x, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -89,7 +89,7 @@ class OptimIterator(nn.Module):
         between a step on :math:`f` and a step on :math:`g`.
         The fixed-point iterate, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
         $X$ of the form `{'iterate' : x,  'estimate': z , 'cost': F}`.
-        The variabme 'iterate' has shape NxBxCxHxW, where N is the number of images in the fixed-point iterate (N=1 by default here).
+        The variable 'iterate' has shape BxCxH'xW', where N is the number of images in the fixed-point iterate (N=1 by default here).
         The estimate 'estimate' is in shape BxCxHxW.
 
         :param dict X: Dictionary containing the current iterate, current estimate and cost at the current estimate.
@@ -100,7 +100,7 @@ class OptimIterator(nn.Module):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
         """
-        x_prev = X["iterate"][0]
+        x_prev = X["iterate"]
         if not self.g_first:
             z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(z, cur_prior, cur_params)
@@ -108,7 +108,7 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
-        iterate = (x,)
+        iterate = x
         estimate = self.get_estimate_from_iterate(
             iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )
