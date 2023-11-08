@@ -11,6 +11,7 @@ where both the data fidelity and the prior are learned modules, distinct for eac
 
 The algorithm is used for CT reconstruction trained on random phantoms. 
 The phantoms are generated on the fly during training using the odl library (https://odlgroup.github.io/odl/).
+Install the odl library with `pip install https://github.com/odlgroup/odl/archive/master.zip`.
 """
 
 import deepinv as dinv
