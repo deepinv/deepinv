@@ -1,5 +1,4 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .utils import gradient_descent_step
 
 
 class GDIteration(OptimIterator):
@@ -45,7 +44,7 @@ class GDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        x = gradient_descent_step(x_prev, grad)
+        x = x_prev - grad
         iterate = x
         estimate = self.get_estimate_from_iterate(
             iterate, cur_data_fidelity, cur_prior, cur_params, y, physics

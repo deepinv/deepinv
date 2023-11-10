@@ -1,6 +1,6 @@
 import torch
-
 from .optim_iterator import OptimIterator, fStep, gStep
+from deepinv.optim.utils import create_block_image
 
 
 class CPIteration(OptimIterator):
@@ -58,8 +58,9 @@ class CPIteration(OptimIterator):
         :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return iterate[0]
-
+        _,_,H,W = self.x_shape
+        return iterate[:,:,:H,:W]
+    
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
@@ -72,7 +73,11 @@ class CPIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"iterate": (x, y, torch.zeros_like(x)), "estimate": x}
+        u = y
+        z = torch.zeros_like(x)
+        self.x_shape, self.u_shape  = x.shape, y.shape 
+        iterate = create_block_image([x,u,z])
+        return {"iterate": iterate, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -86,13 +91,17 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, u_prev, z_prev = X["iterate"][0], X["iterate"][1], X["iterate"][2]
+        iterate = X['iterate']
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)
             if "K_adjoint" in cur_params.keys()
             else x
         )
+        if not (hasattr(self,'x_shape') and hasattr(self,'u_shape')):
+            self.x_shape, self.u_shape = K_adjoint(y).shape, y.shape
+        (_,_,Hx,Wx),  (_,_,Hu,Wu)  = self.x_shape, self.u_shape
+        x_prev, u_prev, z_prev = iterate[:,:,:Hx,:Wx], iterate[:,:,Hx:(Hx+Hu),Wx:(Wx+Wu)], iterate[:,:,(Hx+Hu):,(Wx+Wu):]
         if self.g_first:
             u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
             x = self.f_step(
@@ -104,10 +113,8 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
-        iterate = (x, u, z)
-        estimate = self.get_estimate_from_iterate(
-            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )
+        iterate = create_block_image([x,u,z])
+        estimate = x
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost

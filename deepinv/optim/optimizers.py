@@ -433,9 +433,9 @@ class BaseOptim(nn.Module):
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         if self.crit_conv == "residual":
-            batch_size = X["iterate"][0].shape[0]
-            iterate_prev = torch.cat([el.view((batch_size, -1)) for el in X_prev["iterate"]], dim = 1)
-            iterate = torch.cat([el.view((batch_size, -1)) for el in X["iterate"]], dim = 1)
+            batch_size = X["iterate"].shape[0]
+            iterate_prev = X_prev["iterate"].view((batch_size, -1))
+            iterate = X["iterate"].view((batch_size, -1))
             crit_cur = (
                 (iterate_prev - iterate).norm(p=2, dim=-1) / (iterate.norm(p=2, dim=-1) + 1e-06)
             ).mean()

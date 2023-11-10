@@ -126,17 +126,13 @@ class FixedPoint(nn.Module):
 
         :param dict X: initial iterate.
         """
-        iterate = X["iterate"]
-        N = len(iterate)
-        len_hist = 0 
-        for x in iterate : # each tensor in the iterate tuple x has shape (B, C, H, W)
-            B, C, H, W = x.shape
-            len_hist += C * H * W
+        x = X["iterate"]
+        B, C, H, W = x.shape
         x_hist = torch.zeros(
-            B, self.history_size, len_hist, dtype=x.dtype, device=x.device
+            B, self.history_size, C*H*W, dtype=x.dtype, device=x.device
         )  # history of iterates.
         T_hist = torch.zeros(
-            B, self.history_size, len_hist, dtype=x.dtype, device=x.device
+            B, self.history_size, C*H*W, dtype=x.dtype, device=x.device
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
             B,
@@ -181,12 +177,11 @@ class FixedPoint(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        iterate_prev = X_prev["iterate"]  # current iterate x
-        iterate = TX_prev["iterate"]  # current iterate Tx
-        batch_size = iterate_prev[0].shape[0]
-        x_prev, Tx_prev = [el.view((batch_size, -1)) for el in iterate_prev], [el.view((batch_size, -1)) for el in iterate]
-        x_hist[:, it % self.history_size] = torch.cat(x_prev, dim = 1)  # prepare history of x
-        T_hist[:, it % self.history_size] = torch.cat(Tx_prev, dim = 1)  # prepare history of Tx
+        x_prev = X_prev["iterate"]  # current iterate x
+        Tx_prev = TX_prev["iterate"]  # current iterate Tx
+        batch_size = x_prev.shape[0]
+        x_hist[:, it % self.history_size] = x_prev.view((batch_size, -1))
+        T_hist[:, it % self.history_size] = Tx_prev.view((batch_size, -1))
         m = min(it + 1, self.history_size)
         G = T_hist[:, :m] - x_hist[:, :m]
         H[:, 1 : m + 1, 1 : m + 1] = (
@@ -201,16 +196,16 @@ class FixedPoint(nn.Module):
             self.beta_anderson_acc * (p[:, None] @ T_hist[:, :m])[:, 0]
             + (1 - self.beta_anderson_acc) * (p[:, None] @ x_hist[:, :m])[:, 0]
         )  # Anderson acceleration step.
-        iterate = tuple([x[:,0:len(x_prev[0][0])].view(iterate[0].shape)] + [x[:,len(x_prev[i][0]):len(x_prev[i+1][0])].view(iterate[i].shape) for i in range(len(x_prev)-1)])
+        x = x.view(x_prev.shape)
         estimate = self.iterator.get_estimate_from_iterate(
-            iterate, cur_data_fidelity, cur_prior, cur_params, *args
+            x, cur_data_fidelity, cur_prior, cur_params, *args
         )
         cost = (
             self.iterator.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, *args)
             if self.iterator.has_cost
             else None
         )
-        return {"iterate": iterate, "estimate": estimate, "cost": cost}
+        return {"iterate": x, "estimate": estimate, "cost": cost}
 
     def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
         r"""

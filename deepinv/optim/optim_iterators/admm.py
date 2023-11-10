@@ -1,6 +1,6 @@
 import torch
 from .optim_iterator import OptimIterator, fStep, gStep
-
+from deepinv.optim.utils import create_block_image
 
 class ADMMIteration(OptimIterator):
     r"""
@@ -42,13 +42,14 @@ class ADMMIteration(OptimIterator):
         :param torch.Tensor x: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        return iterate[0]
+        _,_,H,W = self.x_shape
+        return iterate[:,:,:H,:W]
 
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For ADMM, the first iterate is chosen as :math:`(A^{\top}y,0)`.
-        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
+        The fixed-point iterate should be a tensor of shape BxCxH'xW'.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
@@ -57,7 +58,9 @@ class ADMMIteration(OptimIterator):
         """
         x = physics.A_adjoint(y)
         z = torch.zeros_like(x)
-        return {"iterate": torch.block_diag(x,z), "estimate": x}
+        self.x_shape = x.shape
+        iterate = create_block_image([x,z])
+        return {"iterate": iterate, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -71,7 +74,9 @@ class ADMMIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"iterate": (x, z), "estimate" : x, "cost": F}` containing the updated current iterate, estimate and cost.
         """
-        x, z = X["iterate"][0], X["iterate"][1]
+        iterate = X['iterate']
+        _,_,H,W = self.x_shape
+        x, z = iterate[:,:,:H,:W], iterate[:,:,H:,W:]
         if z.shape != x.shape:
             # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
@@ -82,10 +87,8 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        iterate = torch.block_diag(x,z)
-        estimate = self.get_estimate_from_iterate(
-            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )
+        iterate = create_block_image([x,z])
+        estimate = x
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost

@@ -25,6 +25,7 @@ from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
+from deepinv.optim.utils import create_block_image
 
 # %%
 # Setup paths for data loading and results.
@@ -191,7 +192,8 @@ def custom_init(y, physics):
     x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
     u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
     z0 = torch.zeros_like(x0)
-    return {"iterate": (x0, u0, z0), "estimate": x0}
+    iterate = create_block_image([x0, u0, z0])
+    return {"iterate": iterate, "estimate": x0}
 
 
 def custom_output(X):

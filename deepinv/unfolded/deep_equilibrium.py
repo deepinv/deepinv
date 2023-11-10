@@ -75,7 +75,7 @@ class BaseDEQ(BaseUnfold):
         )["iterate"]
 
         # Another iteration for jacobian computation via automatic differentiation.
-        x0 = tuple([el.clone().detach().requires_grad_() for el in x])
+        x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
             {"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["iterate"]

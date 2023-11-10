@@ -82,3 +82,15 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
         if check_conv(x_prev, x, i, thres_conv=tol):
             break
     return x
+
+def create_block_image(x):
+    '''
+    Concatenates a list of images :math:`x_i` of different shapes :math:`(B,C,H_i,W_i)` into a single image of shape :math:`(B,C, \prod_i H_i, \prod_i W_i)` with diagonal blocks.
+    
+    :param list x: List of images :math:`x_i` of different shapes :math:`(B,C,H_i,W_i)`.
+    '''
+    B, C = x[0].shape[0], x[0].shape[1]
+    return torch.stack([torch.stack([torch.block_diag(*[el[j,i,:,:] for el in x]) for i in range(C)]) for j in range(B)])
+
+
+    

@@ -70,8 +70,9 @@ class DataFidelity(nn.Module):
         """
         with torch.enable_grad():
             u = u.requires_grad_()
+            d = self.d(u, y, *args, **kwargs)
             grad = torch.autograd.grad(
-                self.d(u, y, *args, **kwargs), u, create_graph=True, only_inputs=True
+               d , u, torch.ones_like(d), create_graph=True, only_inputs=True
             )[0]
         return grad
 
