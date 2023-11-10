@@ -175,16 +175,23 @@ def test_data_fidelity_l1(device):
 @pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
-        # Define two points
-        x = torch.tensor([[[10], [10]]], dtype=torch.float64)
+
+        # First with batch size > 1
+
+        # Define two images
+        B = 2
+        C = 1
+        W = 8
+        H = 8
+        x = torch.rand((B,C,W,H), device=device)
 
         # Create a measurement operator
-        B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
-        B_forward = lambda v: B @ v
-        B_adjoint = lambda v: B.transpose(0, 1) @ v
+        A = torch.diag(torch.rand((C*W*H), device=device))
+        A_forward = lambda v: (torch.matmul(A, v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        A_adjoint = lambda v: (torch.matmul(A.transpose(0,1), v.reshape(B,-1).T).T).reshape(B, C, W, H)
 
         # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
+        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
         y = physics(x)
 
         data_fidelity = L2()  # The data fidelity term
@@ -192,8 +199,10 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         def prior_g(x, *args):
             ths = 0.1
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
-
+        
         prior = Prior(g=prior_g)  # The prior term
+
+        print(physics.compute_norm(x, tol=1e-4).item())
 
         if (
             name_algo == "CP"
@@ -205,16 +214,63 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             sigma = None
 
         lamb = 1.1
-        max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
         optimalgo = optim_builder(
             name_algo,
             prior=prior,
             data_fidelity=data_fidelity,
-            max_iter=max_iter,
+            max_iter=100,
+            verbose=True,
+            params_algo=params_algo,
+            early_stop=False,
+            g_first=g_first,
+        )
+
+         # Run the optimization algorithm with 
+        out = optimalgo(y, physics)
+
+        assert x.shape == out.shape
+
+        # Second with batch size = 1 (necessary for early stopping) and with verification of convergence.
+
+        # Define two images
+        B = 1
+        C = 1
+        W = 8
+        H = 8
+        x = torch.rand((B,C,W,H), dtype=torch.float64, device=device)
+
+        # Create a measurement operator
+        A = torch.rand((C*W*H, C*W*H), dtype=torch.float64, device=device)
+        A_forward = lambda v: (torch.matmul(A, v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        A_adjoint = lambda v: (torch.matmul(A.transpose(0,1), v.reshape(B,-1).T).T).reshape(B, C, W, H)
+
+        # Define the physics model associated to this operator
+        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        y = physics(x)
+
+        data_fidelity = L2()  # The data fidelity term
+
+        if (
+            name_algo == "CP"
+        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            sigma = 1.0
+        else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
+            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            sigma = None
+
+        lamb = 1.1
+        params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
+
+        optimalgo = optim_builder(
+            name_algo,
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=1000,
             crit_conv="residual",
-            thres_conv=1e-11,
+            thres_conv=1e-8,
             verbose=True,
             params_algo=params_algo,
             early_stop=True,
@@ -222,7 +278,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         )
 
         # Run the optimization algorithm
-        x = optimalgo(y, physics)
+        out = optimalgo(y, physics)
 
         assert optimalgo.has_converged
 

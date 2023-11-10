@@ -1,7 +1,7 @@
 import sys
 import pytest
 import torch
-
+from deepinv.optim.utils import create_block_image
 import deepinv as dinv
 
 
@@ -274,7 +274,9 @@ def test_PDNet(imsize_1_channel, device):
     def custom_init(y, physics):
         x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
         u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
-        return {"iterate": (x0, x0, u0), "estimate": x0}
+        z0 = torch.zeros_like(x0)
+        iterate = create_block_image([x0, u0, z0])
+        return {"iterate": iterate, "estimate": x0}
 
     def custom_output(X):
         return X["estimate"][:, 1:2, :, :]
@@ -286,8 +288,8 @@ def test_PDNet(imsize_1_channel, device):
         data_fidelity=data_fidelity,
         prior=prior,
         max_iter=max_iter,
-        custom_init=custom_init,
         custom_output=custom_output,
+        custom_init=custom_init
     )
 
     x_hat = model(y, physics)

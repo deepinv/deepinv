@@ -18,6 +18,7 @@ OPERATORS = [
     "super_resolution",
     "MRI",
     "pansharpen",
+    "random_diag",
 ]
 NONLINEAR_OPERATORS = ["haze", "blind_deblur", "lidar"]
 
@@ -96,6 +97,15 @@ def find_operator(name, device):
         factor = 2
         norm = 1 / factor**2
         p = dinv.physics.Downsampling(img_size=img_size, factor=factor, device=device)
+    elif name == "random_diag":
+        img_size = (2, 1, 32, 32)
+        B, C, W, H = img_size
+        diag = torch.rand((C*W*H), device=device)
+        A = torch.diag(diag)
+        A_forward = lambda v: (torch.matmul(A, v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        A_adjoint = lambda v: (torch.matmul(A.transpose(0,1), v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        p = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        norm = torch.max(diag).item()
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm
