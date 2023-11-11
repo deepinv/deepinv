@@ -124,6 +124,9 @@ def train(
     for epoch in range(epochs):
         ### Evaluation
 
+        if wandb_vis:
+            wandb_log_dict_epoch = {'epoch': epoch}
+
         # perform evaluation every eval_interval epoch
         perform_eval = (
             (not unsupervised)
@@ -147,18 +150,14 @@ def train(
             )
             eval_psnr.update(test_psnr)
             log_dict["eval_psnr"] = test_psnr
+            wandb_log_dict_epoch["eval_psnr"] = test_psnr
 
         # wandb logging
         if wandb_vis:
             last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
-            wandb.log(
-                {
-                    "epoch": epoch,
-                    "learning rate": last_lr,
-                }
-            )
-            if perform_eval:
-                wandb.log({"eval psnr": test_psnr})
+            wandb_log_dict_epoch["learning rate"] = last_lr
+
+            wandb.log(wandb_log_dict_epoch)
 
         ### Training
 
@@ -172,6 +171,9 @@ def train(
 
         for i in (progress_bar := tqdm(range(batches), disable=not verbose)):
             progress_bar.set_description(f"Epoch {epoch + 1}")
+
+            if wandb_vis:
+                wandb_log_dict_iter = {}
 
             # random permulation of the dataloaders
             G_perm = np.random.permutation(G)
@@ -215,9 +217,9 @@ def train(
                     if len(losses) > 1:
                         log_dict["loss_" + l.name] = losses_verbose[k].avg
                         if wandb_vis:
-                            wandb.log({"loss_" + l.name: loss.item()})
+                            wandb_log_dict_iter["loss_" + l.name: loss.item()]
                 if wandb_vis:
-                    wandb.log({"training loss": loss_total.item()})
+                    wandb_log_dict_iter["training loss": loss_total.item()]
                 total_loss.update(loss_total.item())
                 log_dict["total_loss"] = total_loss.avg
 
@@ -236,8 +238,9 @@ def train(
                     with torch.no_grad():
                         psnr = cal_psnr(x_net, x)
                         train_psnr.update(psnr)
+                        wandb_log_dict_iter["train_psnr"] = psnr
                         if wandb_vis:
-                            wandb.log({"training psnr": psnr})
+                            wandb.log(wandb_log_dict_iter)
                         log_dict["train_psnr"] = train_psnr.avg
 
                 progress_bar.set_postfix(log_dict)
@@ -245,7 +248,13 @@ def train(
         # wandb plotting of training images
         if (
             wandb_vis
-        ):  # Note that this may not be 16 images because the last batch may be smaller
+        ):
+
+            # log average training metrics
+            log_dict_post_epoch = {}
+            log_dict_post_epoch["mean training loss"] = total_loss.avg
+            log_dict_post_epoch["mean training psnr"] = train_psnr.avg
+
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
                     y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
@@ -264,7 +273,9 @@ def train(
                     grid_image,
                     caption=caption,
                 )
-                wandb.log({"Training samples": images})
+                log_dict_post_epoch["Training samples"] = images
+
+        wandb.log(log_dict_post_epoch)
 
         loss_history.append(total_loss.avg)
 

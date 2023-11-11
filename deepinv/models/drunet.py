@@ -158,6 +158,8 @@ class DRUNet(nn.Module):
             self.eval()
             for _, v in self.named_parameters():
                 v.requires_grad = False
+        else:
+            self.apply(weights_init_drunet)
 
         if device is not None:
             self.to(device)
@@ -675,3 +677,9 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[..., :h, :w]
     return E
+
+
+def weights_init_drunet(m):
+    classname = m.__class__.__name__
+    if classname.find("Conv") != -1:
+        nn.init.orthogonal_(m.weight.data, gain=0.2)
