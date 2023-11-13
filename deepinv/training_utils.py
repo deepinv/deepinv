@@ -37,6 +37,7 @@ def train(
     wandb_setup={},
     online_measurements=False,
     plot_measurements=True,
+    check_grad=False,
 ):
     r"""
     Trains a reconstruction network.
@@ -100,6 +101,9 @@ def train(
     if eval_dataloader:
         eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
         meters.append(eval_psnr)
+    if check_grad:
+        check_grad_val = AverageMeter("Gradient norm", ":.2e")
+        meters.append(check_grad_val)
 
     save_path = f"{save_path}/{get_timestamp()}"
 
@@ -217,9 +221,9 @@ def train(
                     if len(losses) > 1:
                         log_dict["loss_" + l.name] = losses_verbose[k].avg
                         if wandb_vis:
-                            wandb_log_dict_iter["loss_" + l.name: loss.item()]
+                            wandb_log_dict_iter["loss_" + l.name] = loss.item()
                 if wandb_vis:
-                    wandb_log_dict_iter["training loss": loss_total.item()]
+                    wandb_log_dict_iter["training loss"] = loss_total.item()
                 total_loss.update(loss_total.item())
                 log_dict["total_loss"] = total_loss.avg
 
@@ -229,6 +233,13 @@ def train(
                 # gradient clipping
                 if grad_clip is not None:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+
+                if check_grad:
+                    # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
+                    grads = [param.grad.detach().flatten() for param in model.parameters() if param.grad is not None]
+                    norm_grads = torch.cat(grads).norm()
+                    wandb_log_dict_iter["gradient norm"] = norm_grads.item()
+                    check_grad_val.update(norm_grads.item())
 
                 # optimize step
                 optimizer.step()
@@ -254,6 +265,8 @@ def train(
             log_dict_post_epoch = {}
             log_dict_post_epoch["mean training loss"] = total_loss.avg
             log_dict_post_epoch["mean training psnr"] = train_psnr.avg
+            if check_grad:
+                log_dict_post_epoch["mean gradient norm"] = check_grad_val.avg
 
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
