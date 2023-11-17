@@ -27,6 +27,21 @@ class Inpainting(DecomposablePhysics):
         the mask will be set to this tensor.
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
+
+    :Examples:
+    >>> x = torch.rand((1, 3, 5, 5))
+    >>> # Inpainting Operator with defined mask
+    >>> inpainting_defined_mask = Inpainting((3, 5, 5), mask=torch.Tensor([1, 0, 1, 0, 1]))
+    >>> inpainting_defined_mask(x)[0,0,0,1].item() == 0.0
+    True
+    >>> # Inpainting Operator with mask rate 1.0
+    >>> inpainting_1_mask_rate = Inpainting((3, 5, 5), mask=1.0)
+    >>> torch.sum(inpainting_1_mask_rate(x)).item() == torch.sum(x).item()
+    True
+    >>> # Inpainting Operator with mask rate 0.0
+    >>> inpainting_0_mask_rate = Inpainting((3, 5, 5), mask=0.0)
+    >>> torch.sum(inpainting_0_mask_rate(x)).item() == 0.0
+    True
     """
 
     def __init__(self, tensor_size, mask=0.3, pixelwise=True, device="cpu", **kwargs):
@@ -44,4 +59,12 @@ class Inpainting(DecomposablePhysics):
             else:
                 self.mask[:, aux[0, :, :] > mask_rate] = 0
 
-        self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
+        self.mask = torch.nn.Parameter(
+            self.mask.unsqueeze(0), requires_grad=False)
+
+
+if __name__ == '__main__':
+    import doctest
+    import collections
+    collections.Callable = collections.abc.Callable
+    doctest.testmod(verbose=True)
