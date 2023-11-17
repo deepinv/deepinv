@@ -95,14 +95,6 @@ class Downsampling(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
 
-    ::
-
-        >>> x = torch.rand((1, 3, 16, 16))
-        >>> # Downsampling with a gaussian filter and factor 2
-        >>> downsampling = Downsampling(img_size=(1, 3, 4, 4))
-        >>> y = downsampling(x)
-        >>> print(y)
-
     """
 
     def __init__(
@@ -433,14 +425,16 @@ class Blur(LinearPhysics):
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
 
-    :Examples:
-    >>> physics = BlindBlur(kernel_size=2)
-    >>> x = torch.zeros((1, 1, 3, 3)) # Defining black image of size 3x3
-    >>> x[:, :, 1, 1] = 1 # Defining one white pixel in the middle
-    >>> w = torch.ones((1, 1, 2, 2)) / 4 # Blur kernel
-    >>> y = physics([x, w]) # Blurred image
-    >>> y[0, 0, 1, 1].item() == 0.25
-    True
+    :: 
+
+        >>> physics = BlindBlur(kernel_size=2)
+        >>> x = torch.zeros((1, 1, 3, 3)) # Defining black image of size 3x3
+        >>> x[:, :, 1, 1] = 1 # Defining one white pixel in the middle
+        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Blur kernel
+        >>> y = physics([x, w]) # Blurred image
+        >>> y[0, 0, 1, 1].item() == 0.25
+        True
+
     """
 
     def __init__(self, filter, padding="circular", device="cpu", **kwargs):
