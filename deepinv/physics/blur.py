@@ -95,6 +95,14 @@ class Downsampling(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
 
+    ::
+
+        >>> x = torch.rand((1, 3, 16, 16))
+        >>> # Downsampling with a gaussian filter and factor 2
+        >>> downsampling = Downsampling(img_size=(1, 3, 4, 4))
+        >>> y = downsampling(x)
+        >>> print(y)
+
     """
 
     def __init__(
@@ -554,9 +562,3 @@ class BlurFFT(DecomposablePhysics):
 #
 #     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
 #     plt.show()
-
-if __name__ == '__main__':
-    import doctest
-    import collections
-    collections.Callable = collections.abc.Callable
-    doctest.testmod(verbose=True)
