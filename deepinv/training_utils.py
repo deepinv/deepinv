@@ -132,8 +132,8 @@ def train(
     epoch_start = 0
     if ckpt_pretrained is not None:
         checkpoint = torch.load(ckpt_pretrained)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
         epoch_start = checkpoint['epoch']
 
     for epoch in range(epoch_start, epochs):
@@ -317,21 +317,6 @@ def train(
             str(save_path),
             eval_psnr=eval_psnr if perform_eval else None,
         )
-
-        # Saving rough checkpoint for crash recovery
-        if epoch % 2 == 0 and backup_ckpt_pth is not None:
-            save_model(
-                epoch,
-                model,
-                optimizer,
-                ckp_interval,
-                epochs,
-                loss_history,
-                str(save_path),
-                eval_psnr=eval_psnr if perform_eval else None,
-                file_pth=backup_ckpt_pth,
-                force_save=True
-            )
 
     if wandb_vis:
         wandb.save("model.h5")

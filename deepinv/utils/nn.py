@@ -179,9 +179,9 @@ def get_freer_gpu():
 
 
 def save_model(
-    epoch, model, optimizer, ckp_interval, epochs, loss, save_path, eval_psnr=None, file_pth=None, force_save=False
+    epoch, model, optimizer, ckp_interval, epochs, loss, save_path, eval_psnr=None
 ):
-    if (epoch > 0 and epoch % ckp_interval == 0) or epoch + 1 == epochs or force_save:
+    if (epoch > 0 and epoch % ckp_interval == 0) or epoch + 1 == epochs:
         os.makedirs(save_path, exist_ok=True)
 
         state = {
@@ -192,10 +192,7 @@ def save_model(
         }
         if eval_psnr is not None:
             state["eval_psnr"] = eval_psnr
-        if file_pth is not None:
-            torch.save(state, file_pth)
-        else:
-            torch.save(state, os.path.join(save_path, "ckp_{}.pth.tar".format(epoch)))
+        torch.save(state, os.path.join(save_path, "ckp_{}.pth.tar".format(epoch)))
     pass
 
 
