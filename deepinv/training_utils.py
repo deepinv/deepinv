@@ -12,7 +12,6 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
-from torchvision import transforms as T
 
 
 def train(
@@ -38,6 +37,8 @@ def train(
     online_measurements=False,
     plot_measurements=True,
     check_grad=False,
+    backup_ckpt_pth=None,
+    ckpt_pretrained=None,
 ):
     r"""
     Trains a reconstruction network.
@@ -78,6 +79,9 @@ def train(
          parameters of the forward operator or noise realizations, can change between each sample; these are updated
          with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :param bool plot_measurements: Plot the measurements y. default=True.
+    :param bool check_grad: Check the gradient norm at each iteration.
+    :param str backup_ckpt_pth: path of the checkpoint for recovery. If None, no backup checkpoint is saved.
+    :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
     :returns: Trained model.
     """
     save_path = Path(save_path)
@@ -125,7 +129,14 @@ def train(
 
     log_dict = {}
 
-    for epoch in range(epochs):
+    epoch_start = 0
+    if ckpt_pretrained is not None:
+        checkpoint = torch.load(ckpt_pretrained)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch_start = checkpoint['epoch']
+
+    for epoch in range(epoch_start, epochs):
         ### Evaluation
 
         if wandb_vis:
@@ -295,6 +306,7 @@ def train(
         if scheduler:
             scheduler.step()
 
+        # Saving the model
         save_model(
             epoch,
             model,
@@ -305,6 +317,21 @@ def train(
             str(save_path),
             eval_psnr=eval_psnr if perform_eval else None,
         )
+
+        # Saving rough checkpoint for crash recovery
+        if epoch % 2 == 0 and backup_ckpt_pth is not None:
+            save_model(
+                epoch,
+                model,
+                optimizer,
+                ckp_interval,
+                epochs,
+                loss_history,
+                str(save_path),
+                eval_psnr=eval_psnr if perform_eval else None,
+                file_pth=backup_ckpt_pth,
+                force_save=True
+            )
 
     if wandb_vis:
         wandb.save("model.h5")
