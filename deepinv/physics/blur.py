@@ -108,8 +108,7 @@ class Downsampling(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.factor = factor
-        assert isinstance(
-            factor, int), "downsampling factor should be an integer"
+        assert isinstance(factor, int), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.Tensor):
@@ -118,21 +117,17 @@ class Downsampling(LinearPhysics):
             self.filter = filter
         elif filter == "gaussian":
             self.filter = (
-                gaussian_blur(sigma=(factor, factor)
-                              ).requires_grad_(False).to(device)
+                gaussian_blur(sigma=(factor, factor)).requires_grad_(False).to(device)
             )
         elif filter == "bilinear":
-            self.filter = bilinear_filter(
-                self.factor).requires_grad_(False).to(device)
+            self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
         elif filter == "bicubic":
-            self.filter = bicubic_filter(
-                self.factor).requires_grad_(False).to(device)
+            self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft(self.filter, img_size,
-                                 real_fft=False).to(device)
+            self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
@@ -177,10 +172,8 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = torch.mean(
-                splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
-            rc = self.Fhc * (top / below).repeat(1, 1,
-                                                 self.factor, self.factor)
+            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
+            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
@@ -208,7 +201,7 @@ def extend_filter(filter):
         h_new += 1
 
     out = torch.zeros((b, c, h_new, w_new), device=filter.device)
-    out[:, :, offset_h: h + offset_h, offset_w: w + offset_w] = filter
+    out[:, :, offset_h : h + offset_h, offset_w : w + offset_w] = filter
     return out
 
 
@@ -317,18 +310,15 @@ def conv_transpose(y, filter, padding):
     elif padding == "reflect":
         out = x[:, :, ph:-ph, pw:-pw]
         # sides
-        out[:, :, 1: 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
-        out[:, :, -ph - 1: -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
-        out[:, :, :, 1: 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
-        out[:, :, :, -pw - 1: -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
+        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
+        out[:, :, -ph - 1 : -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
+        out[:, :, :, 1 : 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
+        out[:, :, :, -pw - 1 : -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
         # corners
-        out[:, :, 1: 1 + ph, 1: 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
-        out[:, :, -ph - 1: -1, -pw - 1: -1] += x[:,
-                                                 :, -ph:, -pw:].flip(dims=(2, 3))
-        out[:, :, -ph - 1: -1, 1: 1 + pw] += x[:,
-                                               :, -ph:, :pw].flip(dims=(2, 3))
-        out[:, :, 1: 1 + ph, -pw - 1: -1] += x[:,
-                                               :, :ph, -pw:].flip(dims=(2, 3))
+        out[:, :, 1 : 1 + ph, 1 : 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
+        out[:, :, -ph - 1 : -1, -pw - 1 : -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
+        out[:, :, -ph - 1 : -1, 1 : 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
+        out[:, :, 1 : 1 + ph, -pw - 1 : -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
 
     elif padding == "replicate":
         out = x[:, :, ph:-ph, pw:-pw]
@@ -400,8 +390,7 @@ class BlindBlur(Physics):
         x = y.clone()
         mid_h = int(self.kernel_size[0] / 2)
         mid_w = int(self.kernel_size[1] / 2)
-        w = torch.zeros(
-            (y.shape[0], 1, self.kernel_size[0], self.kernel_size[1]))
+        w = torch.zeros((y.shape[0], 1, self.kernel_size[0], self.kernel_size[1]))
         w[:, :, mid_h, mid_w] = 1.0
 
         return TensorList([x, w])
@@ -425,7 +414,7 @@ class Blur(LinearPhysics):
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
 
-    :: 
+    ::
 
         >>> physics = BlindBlur(kernel_size=2)
         >>> x = torch.zeros((1, 1, 3, 3)) # Defining black image of size 3x3
@@ -441,8 +430,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
-        self.filter = torch.nn.Parameter(
-            filter, requires_grad=False).to(device)
+        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
 
     def A(self, x):
         return conv(x, self.filter, self.padding)
@@ -485,8 +473,7 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.abs(self.mask).unsqueeze(-1)
         self.mask = torch.cat([self.mask, self.mask], dim=-1)
 
-        self.mask = torch.nn.Parameter(
-            self.mask, requires_grad=False).to(device)
+        self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
         return torch.view_as_real(

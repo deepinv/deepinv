@@ -69,5 +69,4 @@ class Inpainting(DecomposablePhysics):
             else:
                 self.mask[:, aux[0, :, :] > mask_rate] = 0
 
-        self.mask = torch.nn.Parameter(
-            self.mask.unsqueeze(0), requires_grad=False)
+        self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
