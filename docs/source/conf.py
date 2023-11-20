@@ -112,3 +112,10 @@ html_theme_options = {
     "includehidden": True,
     "titles_only": False,
 }
+
+# Separator substition
+rst_prolog = """
+.. |sep| raw:: html
+
+   <hr />
+"""
