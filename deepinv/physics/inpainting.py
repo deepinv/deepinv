@@ -28,28 +28,29 @@ class Inpainting(DecomposablePhysics):
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
 
-    Examples
-    =======================================
+    |sep|
 
-    Inpanting operator using defined mask, removing the second column of a 3x3 image.
+    :Examples:
 
-    >>> x = torch.tensor([[[[1, 2, 3], [4, 5, 6], [7, 8, 9]]]])
-    >>> m = torch.tensor([0, 0, 1])
-    >>> physics = Inpainting((1, 1, 3, 3), mask=m)
-    >>> physics(x)
-    tensor([[[[0, 0, 3],
-              [0, 0, 6],
-              [0, 0, 9]]]])
+        Inpanting operator using defined mask, removing the second column of a 3x3 image:
 
-    Inpainting operator using random mask, keeping half of the entries of a 3x3 image.
+        >>> x = torch.tensor([[[[1, 2, 3], [4, 5, 6], [7, 8, 9]]]])
+        >>> m = torch.tensor([0, 0, 1])
+        >>> physics = Inpainting((1, 1, 3, 3), mask=m)
+        >>> physics(x)
+        tensor([[[[0, 0, 3],
+                  [0, 0, 6],
+                  [0, 0, 9]]]])
 
-    >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-    >>> x = torch.tensor([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
-    >>> physics = Inpainting((1, 3, 3), mask=0.7)
-    >>> physics(x)
-    tensor([[[[1., 0., 3.],
-              [4., 5., 6.],
-              [7., 0., 9.]]]])
+        Inpainting operator using random mask, keeping half of the entries of a 3x3 image:
+
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.tensor([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
+        >>> physics = Inpainting((1, 3, 3), mask=0.7)
+        >>> physics(x)
+        tensor([[[[1., 0., 3.],
+                  [4., 5., 6.],
+                  [7., 0., 9.]]]])
 
     """
 
