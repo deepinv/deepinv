@@ -42,7 +42,7 @@ class Inpainting(DecomposablePhysics):
                   [0, 0, 6],
                   [0, 0, 9]]]])
 
-        Inpainting operator using random mask, keeping half of the entries of a 3x3 image:
+        Inpainting operator using random mask, keeping 70% of the entries of a 3x3 image:
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.tensor([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])

@@ -95,6 +95,17 @@ class Downsampling(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
 
+    |sep|
+
+    :Examples:
+
+        Downsampling operator with a gaussian filter:
+
+        >>> x = torch.zeros((1, 1, 3, 3)) # Defining black image of size 3x3
+        >>> x[:, :, 1, 1] = 1 # Defining one white pixel in the middle
+        >>> physics = Downsampling(img_size=(1, 1, 3, 3), filter="gaussian")
+        >>> physics(x)
+
     """
 
     def __init__(
