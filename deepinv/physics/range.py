@@ -15,26 +15,17 @@ class Decolorize(DecomposablePhysics):
 
     :Examples:
 
-        Create a 3x3 RGB image tensor:
+        Decolorize a 3x3 image:
         
-        >>> x = torch.tensor([[[[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-        ...                    [[10, 11, 12], [13, 14, 15], [16, 17, 18]],
-        ...                    [[19, 20, 21], [22, 23, 24], [25, 26, 27]]]])
-        
-        Initialize the Decolorize operator:
-        
-        >>> physics = Decolorize()
-        
-        Apply the Decolorize operator to the RGB image:
-        
-        >>> result = physics(x)
-        
-        Display the result:
-        
+        >>> x = torch.tensor([[[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
+        ...                    [[0.10, 0.11, 0.12], [0.13, 0.14, 0.15], [0.16, 0.17, 0.18]],
+        ...                    [[0.19, 0.20, 0.21], [0.22, 0.23, 0.24], [0.25, 0.26, 0.27]]]])
+        >>> physics = Decolorize()        
+        >>> result = physics(x)        
         >>> result  # doctest: +NORMALIZE_WHITESPACE
-        tensor([[[[ 8.3349,  9.3348, 10.3347],
-                  [11.3346, 12.3345, 13.3344],
-                  [14.3343, 15.3342, 16.3341]]]])
+        tensor([[[[0.1103, 0.1472, 0.1840],
+              [0.2210, 0.2578, 0.2948],
+              [0.3316, 0.3686, 0.4055]]]])
 
     """
 
