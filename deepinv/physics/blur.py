@@ -425,15 +425,18 @@ class Blur(LinearPhysics):
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
 
-    ::
+    |sep|
+
+    :Examples:
 
         >>> physics = BlindBlur(kernel_size=2)
         >>> x = torch.zeros((1, 1, 3, 3)) # Defining black image of size 3x3
         >>> x[:, :, 1, 1] = 1 # Defining one white pixel in the middle
-        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Blur kernel
-        >>> y = physics([x, w]) # Blurred image
-        >>> y[0, 0, 1, 1].item() == 0.25
-        True
+        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic averaging filter
+        >>> physics([x, w])
+        tensor([[[[0.0000, 0.0000, 0.0000],
+                  [0.0000, 0.2500, 0.2500],
+                  [0.0000, 0.2500, 0.2500]]]])
 
     """
 
