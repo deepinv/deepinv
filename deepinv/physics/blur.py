@@ -99,12 +99,17 @@ class Downsampling(LinearPhysics):
 
     :Examples:
 
-        Downsampling operator with a gaussian filter:
+        Downsampling operator applied to a 128x128 black image with a single white
+        pixel in the center, with a factor of 4 and a gaussian filter:
 
-        >>> x = torch.zeros((1, 1, 3, 3)) # Defining black image of size 3x3
-        >>> x[:, :, 1, 1] = 1 # Defining one white pixel in the middle
-        >>> physics = Downsampling(img_size=(1, 1, 3, 3), filter="gaussian")
-        >>> physics(x)
+        >>> x = torch.zeros((1, 1, 128, 128)) # Defining black image of size 3x3
+        >>> x[:, :, 64, 64] = 1 # Defining one white pixel in the middle
+        >>> physics = Downsampling(img_size=((1, 1, 128, 128)), factor = 4)
+        >>> y = physics(x)
+        >>> y[:, :, 15:18, 15:18] # Display the center of the downsampled image
+        tensor([[[[0.0037, 0.0060, 0.0037],
+                  [0.0060, 0.0100, 0.0060],
+                  [0.0037, 0.0060, 0.0037]]]])
 
     """
 
