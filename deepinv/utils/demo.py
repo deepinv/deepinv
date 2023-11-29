@@ -55,7 +55,6 @@ def online_dataset_path():
     return "https://mycore.core-cloud.net/index.php/s/pT5krDvE4jSTDc9/download?path=%2Fdatasets&files="
 
 
-
 def load_dataset(
     dataset_name, data_dir, transform, download=True, url=None, train=True
 ):
