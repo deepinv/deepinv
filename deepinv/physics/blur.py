@@ -21,13 +21,13 @@ def filter_fft(filter, img_size, real_fft=True):
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
-    r'''
+    r"""
     Gaussian blur filter.
 
     :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
         if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
     :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
-    '''
+    """
     if isinstance(sigma, (int, float)):
         sigma = (sigma, sigma)
 
