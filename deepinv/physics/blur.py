@@ -21,6 +21,13 @@ def filter_fft(filter, img_size, real_fft=True):
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
+    r'''
+    Gaussian blur filter.
+
+    :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
+        if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
+    :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
+    '''
     if isinstance(sigma, (int, float)):
         sigma = (sigma, sigma)
 
@@ -407,9 +414,17 @@ class Blur(LinearPhysics):
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
-    This class uses ``torch.conv2d`` for performing the convolutions.
+    This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
 
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., ``deepinv.physics.blur.gaussian_blur()``.
+    .. autosummary::
+       :toctree: stubs
+       :template: myfunc_template.rst
+       :nosignatures:
+
+       deepinv.physics.blur.gaussian_blur
+
+
+    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
@@ -443,9 +458,11 @@ class BlurFFT(DecomposablePhysics):
     Blur operator based on ``torch.fft`` operations, which assumes a circular padding of the input, and allows for
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
+
+
     :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
-        ``deepinv.physics.blur.gaussian_blur()``.
+        :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str device: cpu or cuda
 
     """
