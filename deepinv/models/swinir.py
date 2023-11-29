@@ -10,7 +10,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+
+# Compatibility with optional dependency on timm
+try:
+    import timm
+    from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+except ImportError as e:
+    timm = e
 
 
 class Mlp(nn.Module):
@@ -815,6 +821,7 @@ class SwinIR(nn.Module):
         the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
         default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         Default: 'download'.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
     """
@@ -846,6 +853,11 @@ class SwinIR(nn.Module):
         pretrained_noise_level=15,
         **kwargs,
     ):
+        if isinstance(timm, ImportError):
+            raise ImportError(
+                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
+            ) from timm
+
         super(SwinIR, self).__init__()
         num_in_ch = in_chans
         num_out_ch = in_chans

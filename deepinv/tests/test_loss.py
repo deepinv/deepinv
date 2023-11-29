@@ -1,6 +1,5 @@
 import pytest
 
-import numpy as np
 import math
 import torch
 
@@ -10,20 +9,8 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
-list_losses = ["sup", "mcei"]
-list_sure = ["Gaussian", "Poisson", "PoissonGaussian"]
-
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def toymatrix():
-    w = 50
-    A = torch.diag(torch.Tensor(range(1, w + 1)))
-    return A
+LOSSES = ["sup", "mcei"]
+LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian", "UniformGaussian"]
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -74,6 +61,11 @@ def choose_sure(noise_type):
     elif noise_type == "Gaussian":
         loss = dinv.loss.SureGaussianLoss(sigma=sigma)
         noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "UniformGaussian":
+        loss = dinv.loss.SureGaussianLoss(sigma=sigma)
+        noise_model = dinv.physics.UniformGaussianNoise(
+            sigma=sigma
+        )  # This is equivalent to GaussianNoise when sigma is fixed
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
         noise_model = dinv.physics.PoissonNoise(gain)
@@ -86,7 +78,7 @@ def choose_sure(noise_type):
     return loss, noise_model
 
 
-@pytest.mark.parametrize("noise_type", list_sure)
+@pytest.mark.parametrize("noise_type", LIST_SURE)
 def test_sure(noise_type, device):
     imsize = (3, 256, 256)  # a bigger image reduces the error
     # choose backbone denoiser
@@ -99,6 +91,7 @@ def test_sure(noise_type, device):
     loss, noise = choose_sure(noise_type)
 
     # choose noise
+    torch.manual_seed(0)  # for reproducibility
     physics = dinv.physics.Denoising(noise=noise)
 
     batch_size = 1
@@ -142,7 +135,7 @@ def dataset(physics, tmp_path, imsize, device):
     )
 
 
-@pytest.mark.parametrize("loss_name", list_losses)
+@pytest.mark.parametrize("loss_name", LOSSES)
 def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     # choose training losses
     loss = choose_loss(loss_name)

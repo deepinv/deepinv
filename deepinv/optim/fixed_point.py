@@ -65,14 +65,18 @@ class FixedPoint(nn.Module):
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
                                         well as parameters of the optimization problem (prior, measurements, etc.)
-    :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: None.
-    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: None.
-    :param function init_iterate_fn: function that returns the initial iterate. Default: None.
-    :param function init_metrics_fn: function that returns the initial metrics. Default: None.
-    :param function check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: None.
-    :param function check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: None.
-    :param int max_iter: maximum number of iterations. Default: 50.
-    :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: True.
+    :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: ``None``.
+    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: ``None``.
+    :param function init_iterate_fn: function that returns the initial iterate. Default: ``None``.
+    :param function init_metrics_fn: function that returns the initial metrics. Default: ``None``.
+    :param function check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
+    :param function check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: ``None``.
+    :param int max_iter: maximum number of iterations. Default: ``50``.
+    :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: ``True``.
+    :param bool anderson_acceleration: if True, the Anderson acceleration is used. Default: ``False``.
+    :param int history_size: size of the history used for the Anderson acceleration. Default: ``5``.
+    :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
+    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
     """
 
     def __init__(
@@ -88,6 +92,10 @@ class FixedPoint(nn.Module):
         check_conv_fn=None,
         max_iter=50,
         early_stop=True,
+        anderson_acceleration=False,
+        history_size=5,
+        beta_anderson_acc=1.0,
+        eps_anderson_acc=1e-4,
     ):
         super().__init__()
         self.iterator = iterator
@@ -101,12 +109,106 @@ class FixedPoint(nn.Module):
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
         self.check_iteration_fn = check_iteration_fn
+        self.anderson_acceleration = anderson_acceleration
+        self.history_size = history_size
+        self.beta_anderson_acc = beta_anderson_acc
+        self.eps_anderson_acc = eps_anderson_acc
 
         if self.check_conv_fn is None and self.early_stop:
             warnings.warn(
                 "early_stop is set to True but no check_conv_fn has been defined."
             )
             self.early_stop = False
+
+    def init_anderson_acceleration(self, X):
+        r"""
+        Initialize the Anderson acceleration algorithm.
+
+        :param dict X: initial iterate.
+        """
+        x = X["est"][0]
+        b, d, h, w = x.shape
+        x_hist = torch.zeros(
+            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+        )  # history of iterates.
+        T_hist = torch.zeros(
+            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+        )  # history of T(x_k) with T the fixed point operator.
+        H = torch.zeros(
+            b,
+            self.history_size + 1,
+            self.history_size + 1,
+            dtype=x.dtype,
+            device=x.device,
+        )  # H in the Anderson acceleration linear system Hp = q .
+        H[:, 0, 1:] = H[:, 1:, 0] = 1.0
+        q = torch.zeros(
+            b, self.history_size + 1, 1, dtype=x.dtype, device=x.device
+        )  # q in the Anderson acceleration linear system Hp = q .
+        q[:, 0] = 1
+        return x_hist, T_hist, H, q
+
+    def anderson_acceleration_step(
+        self,
+        it,
+        X_prev,
+        TX_prev,
+        x_hist,
+        T_hist,
+        H,
+        q,
+        cur_data_fidelity,
+        cur_prior,
+        cur_params,
+        *args,
+    ):
+        r"""
+        Anderson acceleration step.
+
+        :param int it: current iteration.
+        :param dict X_prev: previous iterate.
+        :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
+        :param torch.Tensor x_hist: history of last ``history-size`` iterates.
+        :param torch.Tensor T_hist: history of T evlauaton at the last ``history-size``, where T is the fixed-point operator.
+        :param torch.Tensor H: H in the Anderson acceleration linear system Hp = q .
+        :param torch.Tensor q: q in the Anderson acceleration linear system Hp = q .
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :param args: arguments for the iterator.
+        """
+        x_prev = X_prev["est"][0]  # current iterate Tx
+        Tx_prev = TX_prev["est"][0]  # current iterate x
+        b = x_prev.shape[0]  # batchsize
+        x_hist[:, it % self.history_size] = x_prev.reshape(
+            b, -1
+        )  # prepare history of x
+        T_hist[:, it % self.history_size] = Tx_prev.reshape(
+            b, -1
+        )  # prepare history of Tx
+        m = min(it + 1, self.history_size)
+        G = T_hist[:, :m] - x_hist[:, :m]
+        H[:, 1 : m + 1, 1 : m + 1] = (
+            torch.bmm(G, G.transpose(1, 2))
+            + self.eps_anderson_acc
+            * torch.eye(m, dtype=Tx_prev.dtype, device=Tx_prev.device)[None]
+        )
+        p = torch.linalg.solve(H[:, : m + 1, : m + 1], q[:, : m + 1])[
+            :, 1 : m + 1, 0
+        ]  # solve the linear system H p = q.
+        x = (
+            self.beta_anderson_acc * (p[:, None] @ T_hist[:, :m])[:, 0]
+            + (1 - self.beta_anderson_acc) * (p[:, None] @ x_hist[:, :m])[:, 0]
+        )  # Anderson acceleration step.
+        x = x.view(x_prev.shape)
+        F = (
+            self.iterator.F_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
+            if self.iterator.has_cost
+            else None
+        )
+        est = list(TX_prev["est"])
+        est[0] = x
+        return {"est": est, "cost": F}
 
     def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
         r"""
@@ -138,6 +240,8 @@ class FixedPoint(nn.Module):
             if self.init_metrics_fn and compute_metrics
             else None
         )
+        if self.anderson_acceleration:
+            x_hist, T_hist, H, q = self.init_anderson_acceleration(X)
         it = 0
         while it < self.max_iter:
             cur_params = self.update_params_fn(it) if self.update_params_fn else None
@@ -149,6 +253,20 @@ class FixedPoint(nn.Module):
             cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
             X_prev = X
             X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+            if self.anderson_acceleration:
+                X = self.anderson_acceleration_step(
+                    it,
+                    X_prev,
+                    X,
+                    x_hist,
+                    T_hist,
+                    H,
+                    q,
+                    cur_data_fidelity,
+                    cur_prior,
+                    cur_params,
+                    *args,
+                )
             check_iteration = (
                 self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
             )

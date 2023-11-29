@@ -8,6 +8,11 @@ Current (v0.0.2)
 
 New Features
 ^^^^^^^^^^^^
+- Added L1 prior, change distance in DataFidelity (:gh:`108` by `Samuel Hurault`_) - 03/11/2023
+- Added Kaiming init (:gh:`102` by `Matthieu Terris`_) - 29/10/2023
+- Added Anderson Acceleration (:gh:`86` by `Samuel Hurault`_) - 23/10/2023
+- Added `DPS` diffusion method (:gh:`92` by `Julian Tachella`_ and `Hyungjin Chung`_) - 20/10/2023
+- Added on-the-fly physics computations in training (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Added `no_grad` parameter (:gh:`80` by `Jérémy Scanvic`_) - 20/08/2023
 - Added prox of TV (:gh:`79` by `Matthieu Terris`_) - 16/08/2023
 - Added diffpir demo + model (:gh:`77` by `Matthieu Terris`_) - 08/08/2023
@@ -18,6 +23,9 @@ New Features
 
 Fixed
 ^^^^^
+- Add doc weights (:gh:`97` by `Matthieu Terris`_) - 24/10/2023
+- Fix BlurFFT adjoint (:gh:`89` by `Matthieu Terris`_) - 15/10/2023
+- Doc typos (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
 - Minor fixes DiffPIR + other typos (:gh:`81` by `Matthieu Terris`_) - 10/09/2023
 - Call `wandb.init` only when needed (:gh:`78` by `Jérémy Scanvic`_) - 09/08/2023
 - Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
@@ -30,6 +38,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Update CI (:gh:`95` :gh:`99` by `Thomas Moreau`_) - 24/10/2023
 - Changed normalization CS and SPC to 1/m (:gh:`72` by `Julian Tachella`_) - 21/07/2023
 - Update docstring (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 
@@ -42,4 +51,6 @@ Authors
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
 .. _Alexander Mehta: https://github.com/alexmehta
-.. _Andrea Sebastiani: https://github.com/sedaboni 
+.. _Andrea Sebastiani: https://github.com/sedaboni
+.. _Thomas Moreau: https://github.com/tomMoral
+.. _Hyungjin Chung: https://www.hj-chung.com/

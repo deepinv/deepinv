@@ -5,7 +5,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class CPIteration(OptimIterator):
     r"""
-    Single iteration of the Chambolle-Pock algorithm.
+    Iterator for Chambolle-Pock.
 
     Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
     algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
@@ -59,7 +59,7 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, z_prev, u_prev = X["est"]
+        x_prev, z_prev, u_prev = X["est"]  # x : primal, z : relaxed primal, u : dual
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)
@@ -107,12 +107,12 @@ class fStepCP(fStep):
         if self.g_first:
             p = x - cur_params["stepsize"] * w
             return cur_data_fidelity.prox(
-                p, y, physics, cur_params["stepsize"] * cur_params["lambda"]
+                p, y, physics, gamma=cur_params["stepsize"] * cur_params["lambda"]
             )
         else:
             p = x + cur_params["stepsize_dual"] * w
             return cur_data_fidelity.prox_d_conjugate(
-                p, y, cur_params["stepsize_dual"], lamb=cur_params["lambda"]
+                p, y, gamma=cur_params["stepsize_dual"], lamb=cur_params["lambda"]
             )
 
 
@@ -136,8 +136,10 @@ class gStepCP(gStep):
         if self.g_first:
             p = x + cur_params["stepsize_dual"] * w
             return cur_prior.prox_conjugate(
-                p, cur_params["stepsize_dual"], cur_params["g_param"]
+                p, cur_params["g_param"], gamma=cur_params["stepsize_dual"]
             )
         else:
             p = x - cur_params["stepsize"] * w
-            return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
+            return cur_prior.prox(
+                p, cur_params["g_param"], gamma=cur_params["stepsize"]
+            )

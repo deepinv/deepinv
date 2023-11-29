@@ -1,4 +1,3 @@
-import math
 import pytest
 from pathlib import Path
 
@@ -6,28 +5,12 @@ import torch
 from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.optim import DataFidelity
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import Prior, PnP
+from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot, torch2cpu
 from deepinv.unfolded import unfolded_builder
-from deepinv.utils import investigate_model
 from deepinv.training_utils import train
 from deepinv.training_utils import test as feature_test
-
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def imsize():
-    h = 28
-    w = 32
-    c = 3
-    return c, h, w
 
 
 def test_generate_dataset(tmp_path, imsize, device):
@@ -56,11 +39,6 @@ def test_generate_dataset(tmp_path, imsize, device):
     assert x.shape == imsize
 
 
-@pytest.fixture
-def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
-
-
 # optim_algos = [
 #     "PGD",
 #     "HQS",
@@ -73,13 +51,13 @@ optim_algos = ["PGD"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
-def test_optim_algo(name_algo, imsize, dummy_dataset, device):
+def test_optim_algo(name_algo, imsize, device):
+    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # TODO: we could use a dummy trainable denoiser with a linear layer instead
+    pytest.importorskip("pytorch_wavelets")
+
     # pths
     BASE_DIR = Path(".")
-    ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-    # DATA_DIR = BASE_DIR / "measurements"
-    # RESULTS_DIR = BASE_DIR / "results"
-    # DEG_DIR = BASE_DIR / "degradations"
     CKPT_DIR = BASE_DIR / "ckpts"
 
     # Select the data fidelity term
@@ -112,10 +90,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         "lambda": lamb,
     }
 
-    trainable_params = [
-        "g_param",
-        "stepsize",
-    ]  # define which parameters from 'params_algo' are trainable
+    # define which parameters from 'params_algo' are trainable
+    trainable_params = ["g_param", "stepsize"]
 
     # Define the unfolded trainable model.
 
@@ -162,7 +138,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
     optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
 
-    train(
+    trained_unfolded_model = train(
         model=model_unfolded,
         train_dataloader=train_dataloader,
         eval_dataloader=test_dataloader,
@@ -177,11 +153,27 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     )
 
     results = feature_test(
-        model=model_unfolded,
+        model=trained_unfolded_model,
         test_dataloader=test_dataloader,
         physics=physics,
         device=device,
         plot_images=False,
         verbose=True,
         wandb_vis=False,
+    )
+
+    # Now check that training with online measurements works as well
+    train(
+        model=model_unfolded,
+        train_dataloader=train_dataloader,
+        eval_dataloader=test_dataloader,
+        epochs=epochs,
+        losses=losses,
+        physics=physics,
+        optimizer=optimizer,
+        device=device,
+        save_path=str(CKPT_DIR),
+        verbose=True,
+        wandb_vis=False,
+        online_measurements=True,
     )

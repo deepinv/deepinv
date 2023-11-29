@@ -4,7 +4,7 @@ from .utils import gradient_descent_step
 
 class GDIteration(OptimIterator):
     r"""
-    Single iteration of Gradient Descent.
+    Iterator for Gradient Descent.
 
     Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`\lambda f(x) + g(x)`.
 

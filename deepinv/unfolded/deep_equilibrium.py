@@ -10,7 +10,7 @@ class BaseDEQ(BaseUnfold):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
 
-    Enables to turn any iterative optimization algorithm into a DEQ algorithm, i.e. an algorithm
+    Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
     that can be virtually unrolled infinitely leveraging the implicit function theorem.
     The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
 
@@ -25,12 +25,31 @@ class BaseDEQ(BaseUnfold):
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    :param int max_iter_backward: Maximum number of backward iterations. Default: 50.
+    For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+
+    :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
+    :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
+    :param int history_size_backward: size of the history used for the Anderson acceleration for the backward pass. Default: ``5``.
+    :param float beta_anderson_acc_backward: momentum of the Anderson acceleration step for the backward pass. Default: ``1.0``.
+    :param float eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step for the backward pass. Default: ``1e-4``.
     """
 
-    def __init__(self, *args, max_iter_backward=50, **kwargs):
+    def __init__(
+        self,
+        *args,
+        max_iter_backward=50,
+        anderson_acceleration_backward=False,
+        history_size_backward=5,
+        beta_anderson_acc_backward=1.0,
+        eps_anderson_acc_backward=1e-4,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.max_iter_backward = max_iter_backward
+        self.anderson_acceleration = anderson_acceleration_backward
+        self.history_size = history_size_backward
+        self.beta_anderson_acc = beta_anderson_acc_backward
+        self.eps_anderson_acc = eps_anderson_acc_backward
 
     def forward(self, y, physics, x_gt=None, compute_metrics=False):
         r"""
@@ -44,7 +63,7 @@ class BaseDEQ(BaseUnfold):
                 Else, returns (:class:`torch.Tensor`, dict) the output of the algorithm and the metrics.
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
-            x, metrics = self.fixed_point(
+            X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics
             )
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
@@ -52,7 +71,7 @@ class BaseDEQ(BaseUnfold):
         cur_prior = self.update_prior_fn(self.max_iter - 1)
         cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(
-            x, cur_data_fidelity, cur_prior, cur_params, y, physics
+            X, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
@@ -85,6 +104,10 @@ class BaseDEQ(BaseUnfold):
                 init_iterate_fn=init_iterate_fn,
                 max_iter=self.max_iter_backward,
                 check_conv_fn=self.check_conv_fn,
+                anderson_acceleration=self.anderson_acceleration,
+                history_size=self.history_size,
+                beta_anderson_acc=self.beta_anderson_acc,
+                eps_anderson_acc=self.eps_anderson_acc,
             )
             g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
             return g
@@ -105,7 +128,7 @@ def DEQ_builder(
     prior=None,
     F_fn=None,
     g_first=False,
-    **kwargs
+    **kwargs,
 ):
     r"""
     Helper function for building an instance of the :meth:`BaseDEQ` class.
@@ -136,5 +159,5 @@ def DEQ_builder(
         data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
-        **kwargs
+        **kwargs,
     )

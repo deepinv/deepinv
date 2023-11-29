@@ -3,7 +3,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class HQSIteration(OptimIterator):
     r"""
-    Single iteration of HQS.
+    Single iteration of half-quadratic splitting.
 
     Class for a single iteration of the Half-Quadratic Splitting (HQS) algorithm for minimising :math:`\lambda f(x) + g(x)`.
     The iteration is given by
@@ -51,7 +51,7 @@ class fStepHQS(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         return cur_data_fidelity.prox(
-            x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
+            x, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
@@ -71,4 +71,4 @@ class gStepHQS(gStep):
         :param dict cur_prior: Class containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
-        return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])
+        return cur_prior.prox(x, cur_params["g_param"], gamma=cur_params["stepsize"])

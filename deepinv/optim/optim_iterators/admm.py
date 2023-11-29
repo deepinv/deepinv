@@ -4,7 +4,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class ADMMIteration(OptimIterator):
     r"""
-    Single iteration of ADMM.
+    Iterator for alternating direction method of multipliers.
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for
     minimising :math:`\lambda f(x) + g(x)`.
@@ -89,7 +89,7 @@ class fStepADMM(fStep):
         else:
             p = x - z
         return cur_data_fidelity.prox(
-            p, y, physics, cur_params["lambda"] * cur_params["stepsize"]
+            p, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
         )
 
 
@@ -114,4 +114,4 @@ class gStepADMM(gStep):
             p = x - z
         else:
             p = x + z
-        return cur_prior.prox(p, cur_params["stepsize"], cur_params["g_param"])
+        return cur_prior.prox(p, cur_params["g_param"], gamma=cur_params["stepsize"])

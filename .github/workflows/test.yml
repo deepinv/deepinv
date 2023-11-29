@@ -1,4 +1,4 @@
-name: test
+name: Test
 
 on:
   push:
@@ -9,14 +9,22 @@ on:
     - main
 
 jobs:
-  test_no_conda:
-    name: Test without conda
+  test:
+    name: Test DeepInv ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
+          # Test with all dependencies
           - os: ubuntu-latest
             version_python: 3.9
+            extra: denoisers,test
+            name: "all dependencies"
+          # Test with no optional dependencies
+          - os: ubuntu-latest
+            version_python: 3.9
+            extra: test
+            name: "no optional dependencies"
 
     env:
       VERSION_PYTHON: ${{ matrix.version_python }}
@@ -29,14 +37,10 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install git+https://github.com/fbcotter/pytorch_wavelets.git#egg=pytorch_wavelets
-          pip install -e .
-          pip install pytest
-          pip install pytest-cov
+          pip install -e .[${{ matrix.extra }}]
 
       - name: Test with pytest and generate coverage report
         run: |
-          conda install pytest
           python -m pytest deepinv/tests
           pytest --cov=./ --cov-report=xml
 

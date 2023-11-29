@@ -1,33 +1,13 @@
-import math
 import pytest
+
+import torch
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
 from deepinv.optim.prior import Prior, PnP, RED
-from deepinv.optim.optimizers import *
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils.plotting import plot, torch2cpu
-
-from torch.utils.data import DataLoader
-
-
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def imsize():
-    h = 28
-    w = 32
-    c = 3
-    return c, h, w
-
-
-@pytest.fixture
-def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
+from deepinv.optim.optimizers import optim_builder
 
 
 def custom_init_CP(y, physics):
@@ -86,7 +66,7 @@ def test_data_fidelity_l2(device):
     )
 
     # Compute the deepinv proximity operator
-    deepinv_prox = data_fidelity.prox(x, y, physics, gamma)
+    deepinv_prox = data_fidelity.prox(x, y, physics, gamma=gamma)
 
     assert torch.allclose(deepinv_prox, manual_prox)
 
@@ -97,8 +77,8 @@ def test_data_fidelity_l2(device):
     assert torch.allclose(grad_deepinv, grad_manual)
 
     # 5. Testing the torch autograd implementation of the gradient
-    def dummy_torch_l2(x):
-        return 0.5 * torch.norm((B @ x).flatten(), p=2, dim=-1) ** 2
+    def dummy_torch_l2(x, y):
+        return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_grad = torch_loss.grad_d(x, y)
@@ -106,12 +86,10 @@ def test_data_fidelity_l2(device):
     assert torch.allclose(torch_loss_grad, grad_manual)
 
     # 6. Testing the torch autograd implementation of the prox
-    def dummy_torch_l2(x):
-        return 0.5 * torch.norm((B @ x).flatten(), p=2) ** 2
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_prox = torch_loss.prox_d(
-        x, y, gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
+        x, y, gamma=gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
     )
 
     manual_prox = (Id + gamma * B.transpose(0, 1) @ B).inverse() @ (
@@ -146,7 +124,7 @@ def test_data_fidelity_indicator(device):
 
     # 2. Testing trivial operations on f (and not f \circ A)
     x_proj = torch.Tensor([[[1.0], [1 + radius]]]).to(device)
-    assert torch.allclose(data_fidelity.prox_d(x, y, gamma=None), x_proj)
+    assert torch.allclose(data_fidelity.prox_d(x, y), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
@@ -193,11 +171,8 @@ def test_data_fidelity_l1(device):
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
 
-optim_algos = ["PGD", "ADMM", "DRS", "HQS"]
-
-
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
-@pytest.mark.parametrize("name_algo", optim_algos)
+@pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
@@ -261,7 +236,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             if not g_first:
                 subdiff = prior.grad(x)
                 moreau_grad = (
-                    x - data_fidelity.prox(x, y, physics, lamb * stepsize)
+                    x - data_fidelity.prox(x, y, physics, gamma=lamb * stepsize)
                 ) / (
                     lamb * stepsize
                 )  # Gradient of the moreau envelope
@@ -271,7 +246,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             else:
                 subdiff = lamb * data_fidelity.grad(x, y, physics)
                 moreau_grad = (
-                    x - prior.prox(x, stepsize)
+                    x - prior.prox(x, gamma=stepsize)
                 ) / stepsize  # Gradient of the moreau envelope
                 assert torch.allclose(
                     moreau_grad, -subdiff, atol=1e-8
@@ -317,40 +292,30 @@ def test_denoiser(imsize, dummy_dataset, device):
     assert model.has_converged
 
 
-optim_algos = ["PGD", "HQS", "DRS", "ADMM", "CP"]  # GD not implemented for this one
-
-
-@pytest.mark.parametrize("pnp_algo", optim_algos)
+# GD not implemented for this one
+@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
-    try:
-        import pytorch_wavelets
-    except ImportError:
-        pytest.xfail(
-            "This test requires pytorch_wavelets. "
-            "It should be installed with `pip install"
-            "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-        )
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )  # 1. Generate a dummy dataset
+    pytest.importorskip("pytorch_wavelets")
+
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
+    # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
-    )  # 2. Set a physical experiment (here, deblurring)
+    )
     y = physics(test_sample)
     max_iter = 1000
-    sigma_denoiser = torch.tensor(
-        [[0.1]]
-    )  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    sigma_denoiser = torch.tensor([[0.1]])
     stepsize = 1.0
     lamb = 1.0
 
     data_fidelity = L2()
 
-    prior = PnP(
-        denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device)
-    )  # here the prior model is common for all iterations
+    # here the prior model is common for all iterations
+    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -393,19 +358,20 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     assert pnp.has_converged
 
 
-optim_algos = ["PGD", "GD"]  # GD not implemented for this one
-
-
-@pytest.mark.parametrize("red_algo", optim_algos)
+@pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )  # 1. Generate a dummy dataset
+    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # TODO: we could use a dummy trainable denoiser with a linear layer instead
+    pytest.importorskip("pytorch_wavelets")
+
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
+    # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
-    )  # 2. Set a physical experiment (here, deblurring)
+    )
     y = physics(test_sample)
     max_iter = 1000
     sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
@@ -430,7 +396,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         g_first=True,
     )
 
-    x = red(y, physics)
+    red(y, physics)
 
     assert red.has_converged
 

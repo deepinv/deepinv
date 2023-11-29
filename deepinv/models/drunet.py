@@ -20,6 +20,9 @@ class DRUNet(nn.Module):
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
+    A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
+    can be downloaded via setting ``pretrained='download'``.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param list nc: number of convolutional layers.
@@ -32,8 +35,9 @@ class DRUNet(nn.Module):
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (only available for the default architecture).
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 
@@ -73,21 +77,21 @@ class DRUNet(nn.Module):
                 ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
                 for _ in range(nb)
             ],
-            downsample_block(nc[0], nc[1], bias=False, mode="2")
+            downsample_block(nc[0], nc[1], bias=False, mode="2"),
         )
         self.m_down2 = sequential(
             *[
                 ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
                 for _ in range(nb)
             ],
-            downsample_block(nc[1], nc[2], bias=False, mode="2")
+            downsample_block(nc[1], nc[2], bias=False, mode="2"),
         )
         self.m_down3 = sequential(
             *[
                 ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
                 for _ in range(nb)
             ],
-            downsample_block(nc[2], nc[3], bias=False, mode="2")
+            downsample_block(nc[2], nc[3], bias=False, mode="2"),
         )
 
         self.m_body = sequential(
@@ -114,21 +118,21 @@ class DRUNet(nn.Module):
             *[
                 ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
                 for _ in range(nb)
-            ]
+            ],
         )
         self.m_up2 = sequential(
             upsample_block(nc[2], nc[1], bias=False, mode="2"),
             *[
                 ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
                 for _ in range(nb)
-            ]
+            ],
         )
         self.m_up1 = sequential(
             upsample_block(nc[1], nc[0], bias=False, mode="2"),
             *[
                 ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
                 for _ in range(nb)
-            ]
+            ],
         )
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C")
@@ -136,9 +140,9 @@ class DRUNet(nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 4:
-                    name = "drunet_color.pth"
+                    name = "drunet_deepinv_color.pth"
                 elif in_channels == 2:
-                    name = "drunet_gray.pth"
+                    name = "drunet_deepinv_gray.pth"
                 url = online_weights_path() + name
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -175,17 +179,32 @@ class DRUNet(nn.Module):
         Run the denoiser on image with noise level :math:`\sigma`.
 
         :param torch.Tensor x: noisy image
-        :param float sigma: noise level (not used)
+        :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
+            If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
-        noise_level_map = (
-            torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
-            .fill_(sigma)
-            .to(x.device)
-        )
+        if isinstance(sigma, torch.Tensor):
+            if len(sigma.size()) > 0:
+                noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
+                noise_level_map = noise_level_map.expand(
+                    x.size(0), 1, x.size(2), x.size(3)
+                )
+            else:
+                sigma = sigma.item()
+                noise_level_map = (
+                    torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
+                    .fill_(sigma)
+                    .to(x.device)
+                )
+        else:
+            noise_level_map = (
+                torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
+                .fill_(sigma)
+                .to(x.device)
+            )
         x = torch.cat((x, noise_level_map), 1)
-        if (
-            x.size(2) // 8 == 0
-            and x.size(3) // 8 == 0
+        if self.training or (
+            x.size(2) % 8 == 0
+            and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
         ):

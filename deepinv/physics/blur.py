@@ -111,7 +111,7 @@ class Downsampling(LinearPhysics):
         filter="gaussian",
         device="cpu",
         padding="circular",
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.factor = factor
@@ -499,7 +499,7 @@ class BlurFFT(DecomposablePhysics):
         # Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(torch.view_as_complex(x), norm="ortho")
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
 
 
 # # test code

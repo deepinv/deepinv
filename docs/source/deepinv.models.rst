@@ -53,30 +53,64 @@ Learnable Denoisers
    deepinv.models.AutoEncoder
    deepinv.models.ConvDecoder
    deepinv.models.UNet
-
-The following denoisers have **pretrained weights** available:
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
    deepinv.models.DnCNN
    deepinv.models.DRUNet
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
-   deepinv.models.diffpir.UNetModel
+   deepinv.models.DiffUNet
 
-
-Diffusion models
-^^^^^^^^^^^^^^^^
-
-The following time-conditional diffusion models with pretrained weigths are available:
+Unfolded architectures
+----------------------
+Some more specific unfolded architectures are also available.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.models.diffpir.UNetModel
+   deepinv.models.PDNet_PrimalBlock
+   deepinv.models.PDNet_DualBlock
+
+
+.. _pretrained-weights:
+Pretrained weights
+------------------
+The following denoisers have **pretrained weights** available; we next briefly summarize the origin of the weights,
+associated reference and relevant details.
+
+
+.. list-table:: Summary of pretrained weights
+   :widths: 25 25
+   :header-rows: 1
+
+   * - Model
+     - Weight
+   * - :meth:`deepinv.models.DnCNN`
+     - from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_
+       trained on noise level 2.0/255. `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_gray.pth>`_ `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_color.pth>`_.
+   * -
+     - from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_ with Lipschitz
+       constraint to ensure approximate firm nonexpansiveness, trained on noise level 2.0/255. `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_lipschitz_gray.pth>`_ `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=dncnn_sigma2_lipschitz_color.pth>`_.
+   * - :meth:`deepinv.models.DRUNet`
+     - Default: trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
+       and on the same dataset as DPIR `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_deepinv_gray.pth>`_, `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_deepinv_color.pth>`_.
+   * -
+     - from `DPIR <https://github.com/cszn/DPIR>`_,
+       trained on noise levels in [0, 20]/255. `[grayscale weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_gray.pth>`_, `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=drunet_color.pth>`_.
+   * - :meth:`deepinv.models.GSDRUNet`
+     - weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 20]/255.
+       `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt>`_.
+   * - :meth:`deepinv.models.SCUNet`
+     - from `SCUNet <https://github.com/cszn/SCUNet>`_,
+       trained on images degraded with synthetic realistic noise and camera artefacts. `[color weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=scunet_color_real_psnr.pth>`_.
+   * - :meth:`deepinv.models.SwinIR`
+     - from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.
+       The weights are automatically downloaded from the authors' `project page <https://github.com/JingyunLiang/SwinIR/releases>`_.
+   * - :meth:`deepinv.models.DiffUNet`
+     - Default: from `Ho et al. <https://arxiv.org/abs/2108.02938>`_ trained on FFHQ (128 hidden channels per layer).
+       `[weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=diffusion_ffhq_10m.pt>`_.
+   * -
+     - from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
+       `[weights] <https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=diffusion_openai.pt>`_.
+

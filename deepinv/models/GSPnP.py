@@ -95,6 +95,7 @@ def GSDRUNet(
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for the default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 

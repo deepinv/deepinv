@@ -4,7 +4,7 @@ from .utils import gradient_descent_step
 
 class PGDIteration(OptimIterator):
     r"""
-    Single iteration of PGD.
+    Iterator for proximal gradient descent.
 
     Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimising :math:`\lambda f(x) + g(x)`.
 
@@ -62,7 +62,7 @@ class fStepPGD(fStep):
             return gradient_descent_step(x, grad)
         else:
             return cur_data_fidelity.prox(
-                x, y, physics, cur_params["lambda"] * cur_params["stepsize"]
+                x, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
             )
 
 
@@ -83,7 +83,9 @@ class gStepPGD(gStep):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
         if not self.g_first:
-            return cur_prior.prox(x, cur_params["stepsize"], cur_params["g_param"])
+            return cur_prior.prox(
+                x, cur_params["g_param"], gamma=cur_params["stepsize"]
+            )
         else:
             grad = cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
             return gradient_descent_step(x, grad)

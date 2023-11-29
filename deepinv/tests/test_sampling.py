@@ -1,23 +1,13 @@
 import pytest
 import torch.nn
+import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR
-import numpy as np
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
 
 
-@pytest.fixture
-def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-@pytest.fixture
-def imsize():
-    h = 2
-    w = 2
-    c = 1
-    return c, h, w
+SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
 
 def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
@@ -27,28 +17,27 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
             likelihood,
             max_iter=500,
             thinning=1,
-            verbose=True,
             step_size=0.01 / (1 / sigma**2 + 1 / sigma_prior**2),
             clip=(-100, 100),
             thresh_conv=thresh_conv,
             sigma=1,
+            verbose=True,
         )
     elif algo == "SKRock":
         out = SKRock(
             GaussianScore(sigma_prior),
             likelihood,
             max_iter=500,
-            verbose=True,
-            thresh_conv=thresh_conv,
             inner_iter=5,
             step_size=1 / (1 / sigma**2 + 1 / sigma_prior**2),
             clip=(-100, 100),
+            thresh_conv=thresh_conv,
             sigma=1,
+            verbose=True,
         )
     elif algo == "DDRM":
         diff = dinv.sampling.DDRM(
             denoiser=GaussianDenoiser(sigma_prior),
-            sigma_noise=sigma,
             eta=1,
             sigmas=np.linspace(1, 0, 100),
         )
@@ -57,9 +46,6 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
         raise Exception("The sampling algorithm doesnt exist")
 
     return out
-
-
-sampling_algo = ["DDRM", "ULA", "SKRock"]
 
 
 class GaussianScore(torch.nn.Module):
@@ -80,9 +66,9 @@ class GaussianDenoiser(torch.nn.Module):
         return x / (1 + sigma**2 / self.sigma_prior2)
 
 
-@pytest.mark.parametrize("algo", sampling_algo)
+@pytest.mark.parametrize("algo", SAMPLING_ALGOS)
 def test_sampling_algo(algo, imsize, device):
-    test_sample = torch.ones((1, 1, 2, 2))
+    test_sample = torch.ones((1, *imsize))
 
     sigma = 1
     sigma_prior = 1
@@ -122,10 +108,10 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
 
-def test_DiffPIR(device):
-    from deepinv.models import get_diffpir_model_defaults
+def test_diffpir(device):
+    from deepinv.models import DiffUNet
 
-    x = torch.ones((1, 3, 128, 128)).to(device)
+    x = torch.ones((1, 3, 32, 32)).to(device)
 
     sigma = 12.75 / 255.0  # noise level
 
@@ -138,10 +124,35 @@ def test_DiffPIR(device):
 
     y = physics(x)
 
-    model = get_diffpir_model_defaults(device=device)
+    model = DiffUNet().to(device)
     likelihood = L2()
 
-    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device="cpu")
+    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device=device)
 
-    out = algorithm(y, physics, sigma=0.05)
+    out = algorithm(y, physics)
+    assert out.shape == x.shape
+
+
+def test_dps(device):
+    from deepinv.models import DiffUNet
+
+    x = torch.ones((1, 3, 32, 32)).to(device)
+
+    sigma = 12.75 / 255.0  # noise level
+
+    physics = dinv.physics.BlurFFT(
+        img_size=(3, x.shape[-2], x.shape[-1]),
+        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    )
+
+    y = physics(x)
+
+    model = DiffUNet().to(device)
+    likelihood = L2()
+
+    algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
+
+    out = algorithm(y, physics)
     assert out.shape == x.shape
