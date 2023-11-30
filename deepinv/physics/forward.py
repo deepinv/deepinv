@@ -1,6 +1,6 @@
 import torch
 from deepinv.optim.utils import conjugate_gradient
-from .noise import GaussianNoise
+from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 
 
@@ -538,6 +538,24 @@ class Denoising(DecomposablePhysics):
     The linear operator is just the identity mapping :math:`A(x)=x`
 
     :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+
+    |sep|
+
+    :Examples:
+
+        Denoising operator with Gaussian noise with standard deviation 0.1:
+
+        >>> from deepinv.physics import Denoising, GaussianNoise
+
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
+        >>> physics = Denoising()
+        >>> physics.noise_model = GaussianNoise(sigma=0.1)
+        >>> physics(x)
+        tensor([[[ 1.5007, -0.3531, -2.1606],
+                 [ 0.4828, -0.9745, -1.5057],
+                 [ 0.4156,  0.7814, -0.6819]]])
+
     """
 
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):

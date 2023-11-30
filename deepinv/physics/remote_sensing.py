@@ -6,7 +6,7 @@ from deepinv.utils import TensorList
 
 
 class Pansharpen(LinearPhysics):
-    """
+    r"""
     Pansharpening forward operator.
 
     The measurements consist of a high resolution grayscale image and a low resolution RGB image, and
@@ -18,7 +18,20 @@ class Pansharpen(LinearPhysics):
 
     It is possible to assign a different noise model to the RGB and grayscale images.
 
-    Example usage:
+    :param tuple[int] img_size: size of the input image.
+    :param int factor: downsampling factor.
+    :param torch.nn.Module noise_color: noise model for the RGB image.
+    :param torch.nn.Module noise_gray: noise model for the grayscale image.
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image.
+
+    |sep|
+
+    :Examples:
+
 
     ::
 
@@ -36,15 +49,7 @@ class Pansharpen(LinearPhysics):
         deepinv.utils.plot([y[0], y[1], x_adj, x_pinv, x], titles=['low res color', 'high res gray',
                                                                   'A_adjoint', 'A_dagger', 'x'])
 
-    :param tuple[int] img_size: size of the input image.
-    :param int factor: downsampling factor.
-    :param torch.nn.Module noise_color: noise model for the RGB image.
-    :param torch.nn.Module noise_gray: noise model for the grayscale image.
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
-    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
-        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image.
+
     """
 
     def __init__(

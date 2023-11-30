@@ -62,7 +62,7 @@ class DiffusionSampler(MonteCarlo):
 
 
 class DDRM(nn.Module):
-    r"""
+    r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
     Denoising Diffusion Restoration Models (DDRM).
 
     This class implements the denoising diffusion restoration model (DDRM) described in https://arxiv.org/abs/2201.11793.
@@ -78,6 +78,11 @@ class DDRM(nn.Module):
     :param float eta: hyperparameter
     :param float etab: hyperparameter
     :param bool verbose: if True, print progress
+
+    |sep|
+
+    :Examples:
+
     """
 
     def __init__(
