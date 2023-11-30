@@ -1,8 +1,7 @@
 import torch
-import numpy as np
 from deepinv.optim.utils import conjugate_gradient
 from .noise import GaussianNoise
-from deepinv.utils import zeros_like, randn_like, TensorList
+from deepinv.utils import randn_like, TensorList
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
