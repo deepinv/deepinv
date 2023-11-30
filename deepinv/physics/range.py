@@ -17,15 +17,14 @@ class Decolorize(DecomposablePhysics):
 
         Decolorize a 3x3 image:
 
-        >>> x = torch.tensor([[[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
-        ...                    [[0.10, 0.11, 0.12], [0.13, 0.14, 0.15], [0.16, 0.17, 0.18]],
-        ...                    [[0.19, 0.20, 0.21], [0.22, 0.23, 0.24], [0.25, 0.26, 0.27]]]])
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 3, 3, 3) # 3x3 image with 3 channels
         >>> physics = Decolorize()
         >>> result = physics(x)
         >>> result  # doctest: +NORMALIZE_WHITESPACE
-        tensor([[[[0.1103, 0.1472, 0.1840],
-              [0.2210, 0.2578, 0.2948],
-              [0.3316, 0.3686, 0.4055]]]])
+        tensor([[[[-1.1343, -0.1329,  0.1517],
+              [-0.0790,  0.6711, -0.1414],
+              [-0.1716, -0.9021,  0.0819]]]])
 
     """
 

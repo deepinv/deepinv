@@ -25,6 +25,7 @@ class MRI(DecomposablePhysics):
     :param torch.tensor mask: the mask values should be binary.
         The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
+
     """
 
     def __init__(

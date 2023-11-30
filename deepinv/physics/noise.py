@@ -9,17 +9,24 @@ class GaussianNoise(torch.nn.Module):
     It can be added to a physics operator in its construction or by setting the ``noise_model``
     attribute of the physics operator.
 
+    :param float sigma: Standard deviation of the noise.
 
-    ::
+    |sep|
+
+    :Examples:
 
         >>> from deepinv.physics import Denoising, GaussianNoise
         >>> import torch
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise()
-        >>> x = torch.rand(1, 1, 2, 2)
-        >>> y = physics(x)
+        >>> x = 0.5*torch.ones(1, 1, 3, 3)
+        >>> physics(x) # doctest: +NORMALIZE_WHITESPACE
+            tensor([[[[0.6541, 0.4707, 0.2821],
+              [0.5568, 0.3915, 0.3601],
+              [0.5403, 0.5838, 0.4281]]]])
 
-    :param float sigma: Standard deviation of the noise.
+
 
     """
 
