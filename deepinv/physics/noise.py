@@ -55,7 +55,7 @@ class UniformGaussianNoise(torch.nn.Module):
         in :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`) during the forward pass. Default: None.
     """
 
-    def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None, x=None):
+    def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None):
         super().__init__()
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
