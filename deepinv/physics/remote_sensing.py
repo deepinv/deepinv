@@ -1,3 +1,5 @@
+import torch
+import numpy as np
 from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.blur import Downsampling
@@ -32,23 +34,17 @@ class Pansharpen(LinearPhysics):
 
     :Examples:
 
+        Pansharpen operator applied to a random 32x32 image:
 
-    ::
-
-        import deepinv
-        import torch
-
-        x = torch.randn(1, 3, 256, 256)
-        physics = deepinv.physics.Pansharpen(img_size=x.shape[1:], device=x.device)
-
-        y = physics(x) # returns a TensorList with the RGB and grayscale images
-
-        x_adj = physics.A_adjoint(y)
-        x_pinv = physics.A_dagger(y)
-
-        deepinv.utils.plot([y[0], y[1], x_adj, x_pinv, x], titles=['low res color', 'high res gray',
-                                                                  'A_adjoint', 'A_dagger', 'x'])
-
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 image
+        >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
+        >>> physics(x)[0][:, :, 0, :3] # Display first pixels of RGB image
+        tensor([[[-0.0009, -0.0251, -0.0411],
+                 [-0.1576, -0.1098, -0.0340],
+                 [ 0.0086, -0.0257, -0.0856]]])
+        >>> physics(x)[1][:, :, 0, :3] # Display first pixels of grayscale image
+        tensor([[[-0.9084, -0.2966, -0.4015]]])
 
     """
 
