@@ -52,6 +52,10 @@ def get_git_root():
     return git_root
 
 
+def online_dataset_path():
+    return "https://mycore.core-cloud.net/index.php/s/pT5krDvE4jSTDc9/download?path=%2Fdatasets&files="
+
+
 def load_dataset(
     dataset_name, data_dir, transform, download=True, url=None, train=True
 ):
@@ -68,10 +72,7 @@ def load_dataset(
     if download and not dataset_dir.exists():
         dataset_dir.mkdir(parents=True, exist_ok=True)
         if url is None:
-            url = (
-                f"https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
-                f"download?path=%2Fdatasets&files={dataset_name}.{filetype}"
-            )
+            url = online_dataset_path() + f"{dataset_name}.{filetype}"
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get("content-length", 0))
         block_size = 1024  # 1 Kibibyte
@@ -111,7 +112,7 @@ def load_degradation(name, data_dir, kernel_index=0, download=True):
     kernel_path = data_dir / name
     if download and not kernel_path.exists():
         data_dir.mkdir(parents=True, exist_ok=True)
-        url = f"https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fdatasets&files={name}"
+        url = online_dataset_path() + f"{name}"
 
         with requests.get(url, stream=True) as r:
             with open(str(data_dir / name), "wb") as f:

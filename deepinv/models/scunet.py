@@ -180,9 +180,9 @@ class Block(nn.Module):
         if input_resolution <= window_size:
             self.type = "W"
 
-        print(
-            "Block Initial Type: {}, drop_path_rate:{:.6f}".format(self.type, drop_path)
-        )
+        # print(
+        #    "Block Initial Type: {}, drop_path_rate:{:.6f}".format(self.type, drop_path)
+        # )
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()

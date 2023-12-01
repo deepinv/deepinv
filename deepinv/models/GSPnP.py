@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from .denoiser import online_weights_path
 
 
 class StudentGrad(nn.Module):
@@ -114,7 +115,7 @@ def GSDRUNet(
     GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
-            url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=GSDRUNet.ckpt"
+            url = online_weights_path() + "GSDRUNet.ckpt"
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
@@ -163,7 +164,7 @@ def ProxDRUNet(
     GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
-            url = "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/download?path=%2Fweights&files=Prox-DRUNet.ckpt"
+            url = online_weights_path() + "Prox-DRUNet.ckpt"
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,

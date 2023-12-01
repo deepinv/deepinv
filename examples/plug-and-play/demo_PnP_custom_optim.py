@@ -13,7 +13,7 @@ from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_url_image
+from deepinv.utils.demo import load_url_image, online_dataset_path
 from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
@@ -201,10 +201,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 method = "PnP"
 dataset_name = "set3c"
 img_size = 64
-url = (
-    "https://mycore.core-cloud.net/index.php/s/"
-    "9EzDqcJxQUJKYul/download?path=%2Fdatasets&files=barbara.jpeg"
-)
+url = online_dataset_path() + "barbara.jpeg"
 
 x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
