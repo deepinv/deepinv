@@ -136,8 +136,8 @@ class DRUNet(nn.Module):
         )
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C")
-
         if pretrained is not None:
+            #online_weights_path = "https://huggingface.co/deepinv/DRUNet/blob/main/"
             if pretrained == "download":
                 if in_channels == 4:
                     name = "drunet_deepinv_color.pth"
