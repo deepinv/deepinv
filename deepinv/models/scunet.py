@@ -428,7 +428,7 @@ class SCUNet(nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 name = "scunet_color_real_psnr.pth"
-                url = get_weights_url(model_name="scnunet", file_name=name)
+                url = get_weights_url(model_name="scunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
