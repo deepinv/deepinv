@@ -136,15 +136,15 @@ def train(
     epoch_start = 0
     if ckpt_pretrained is not None:
         checkpoint = torch.load(ckpt_pretrained)
-        model.load_state_dict(checkpoint['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        epoch_start = checkpoint['epoch']
+        model.load_state_dict(checkpoint["state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        epoch_start = checkpoint["epoch"]
 
     for epoch in range(epoch_start, epochs):
         ### Evaluation
 
         if wandb_vis:
-            wandb_log_dict_epoch = {'epoch': epoch}
+            wandb_log_dict_epoch = {"epoch": epoch}
 
         # perform evaluation every eval_interval epoch
         perform_eval = (
@@ -169,7 +169,8 @@ def train(
             )
             eval_psnr.update(test_psnr)
             log_dict["eval_psnr"] = test_psnr
-            wandb_log_dict_epoch["eval_psnr"] = test_psnr
+            if wandb_vis:
+                wandb_log_dict_epoch["eval_psnr"] = test_psnr
 
         # wandb logging
         if wandb_vis:
@@ -206,7 +207,6 @@ def train(
                     physics_cur = physics[g]
 
                     if isinstance(physics_cur, torch.nn.DataParallel):
-                        # physics_cur.module.reset()
                         physics_cur.module.noise_model.__init__(sigma_max=0.2, x=x)
                     else:
                         physics_cur.reset()
@@ -237,7 +237,7 @@ def train(
                 loss_total = 0
                 for k, l in enumerate(losses):
                     loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
-                    loss_total += fact_losses[k]*loss
+                    loss_total += fact_losses[k] * loss
                     losses_verbose[k].update(loss.item())
                     if len(losses) > 1:
                         log_dict["loss_" + l.name] = losses_verbose[k].avg
@@ -257,7 +257,11 @@ def train(
 
                 if check_grad:
                     # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
-                    grads = [param.grad.detach().flatten() for param in model.parameters() if param.grad is not None]
+                    grads = [
+                        param.grad.detach().flatten()
+                        for param in model.parameters()
+                        if param.grad is not None
+                    ]
                     norm_grads = torch.cat(grads).norm()
                     wandb_log_dict_iter["gradient norm"] = norm_grads.item()
                     check_grad_val.update(norm_grads.item())
@@ -270,18 +274,15 @@ def train(
                     with torch.no_grad():
                         psnr = cal_psnr(x_net, x)
                         train_psnr.update(psnr)
-                        wandb_log_dict_iter["train_psnr"] = psnr
                         if wandb_vis:
+                            wandb_log_dict_iter["train_psnr"] = psnr
                             wandb.log(wandb_log_dict_iter)
                         log_dict["train_psnr"] = train_psnr.avg
 
                 progress_bar.set_postfix(log_dict)
 
         # wandb plotting of training images
-        if (
-            wandb_vis
-        ):
-
+        if wandb_vis:
             # log average training metrics
             log_dict_post_epoch = {}
             log_dict_post_epoch["mean training loss"] = total_loss.avg
@@ -314,7 +315,8 @@ def train(
                     )
                     log_dict_post_epoch["Training samples"] = images
 
-        wandb.log(log_dict_post_epoch)
+        if wandb_vis:
+            wandb.log(log_dict_post_epoch)
 
         loss_history.append(total_loss.avg)
 
@@ -420,7 +422,6 @@ def test(
                     x = x.to(device)
                     physics_cur = physics[g]
                     if isinstance(physics_cur, torch.nn.DataParallel):
-                        # physics_cur.module.reset()
                         physics_cur.module.noise_model.__init__(sigma_max=0.2, x=x)
                     else:
                         physics_cur.reset()

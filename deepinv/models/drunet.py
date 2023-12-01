@@ -186,10 +186,16 @@ class DRUNet(nn.Module):
         """
         if isinstance(sigma, torch.Tensor):
             if len(sigma.size()) > 0:
-                noise_level_map = sigma[int(x.get_device()*x.shape[0]):int((x.get_device()+1)*x.shape[0])].to(x.device)
-                noise_level_map = noise_level_map.expand(
-                    -1, 1, x.size(2), x.size(3)
-                )
+                if x.get_device() > -1:
+                    sigma = sigma[
+                        int(x.get_device() * x.shape[0]) : int(
+                            (x.get_device() + 1) * x.shape[0]
+                        )
+                    ]
+                    noise_level_map = sigma.to(x.device)
+                else:
+                    noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
+                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
                 sigma = sigma.item()
                 noise_level_map = (
