@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .denoiser import online_weights_path
+from .utils import get_weights_url
 
 
 class StudentGrad(nn.Module):
@@ -115,7 +115,7 @@ def GSDRUNet(
     GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
-            url = online_weights_path() + "GSDRUNet.ckpt"
+            url = get_weights_url(model_name='gradientstep', file_name='GSDRUNet.ckpt')
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,

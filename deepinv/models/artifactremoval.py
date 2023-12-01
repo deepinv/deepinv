@@ -2,9 +2,6 @@
 import torch
 import torch.nn as nn
 
-# from deepinv import models as models
-
-
 class ArtifactRemoval(nn.Module):
     r"""
     Artifact removal architecture :math:`\phi(A^{\top}y)`.

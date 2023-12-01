@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from einops import rearrange
 from einops.layers.torch import Rearrange
-from .denoiser import online_weights_path
+from .utils import get_weights_url
 
 # Compatibility with optional dependency on timm
 try:
@@ -428,7 +428,7 @@ class SCUNet(nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 name = "scunet_color_real_psnr.pth"
-                url = online_weights_path() + name
+                url = get_weights_url(model_name="scnunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )

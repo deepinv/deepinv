@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from .denoiser import online_weights_path
+from .utils import get_weights_url
 import math
 
 
@@ -83,7 +83,7 @@ class DnCNN(nn.Module):
                     raise Exception(
                         "No pretrained weights were found online that match the chosen architecture"
                     )
-                url = online_weights_path() + name
+                url = get_weights_url(model_name='dncnn', file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )

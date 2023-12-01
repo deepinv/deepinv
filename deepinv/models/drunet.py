@@ -3,8 +3,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-
-from .denoiser import online_weights_path
+from .utils import get_weights_url
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -137,13 +136,12 @@ class DRUNet(nn.Module):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C")
         if pretrained is not None:
-            #online_weights_path = "https://huggingface.co/deepinv/DRUNet/blob/main/"
             if pretrained == "download":
                 if in_channels == 4:
                     name = "drunet_deepinv_color.pth"
                 elif in_channels == 2:
                     name = "drunet_deepinv_gray.pth"
-                url = online_weights_path() + name
+                url = get_weights_url(model_name='drunet', file_name=name) 
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
