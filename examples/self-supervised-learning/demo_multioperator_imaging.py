@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
 from torchvision import transforms
-from deepinv.models.denoiser import online_weights_path
+from deepinv.models.utils import get_weights_url
 from deepinv.training_utils import train, test
 from torchvision import datasets
 
@@ -150,9 +150,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-url = online_weights_path() + "demo_moi_ckp_10.pth"
+file_name = "demo_moi_ckp_10.pth"
+url = get_weights_url(name='demo',file_name=file_name)
 ckpt = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="demo_moi_ckp_10.pth"
+    url, map_location=lambda storage, loc: storage, file_name=file_name
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])
