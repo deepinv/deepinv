@@ -2,9 +2,8 @@
 # This code is taken (with minor modifications) from https://github.com/yuanzhi-zhu/DiffPIR/tree/main
 
 import torch
-from .denoiser import online_weights_path
+from .utils import get_weights_url
 from abc import abstractmethod
-
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -257,8 +256,7 @@ class DiffUNet(nn.Module):
                     raise ValueError(
                         "no existing pretrained model matches the requested configuration"
                     )
-
-                url = online_weights_path() + name
+                url = get_weights_url(model_name="diffunet", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
