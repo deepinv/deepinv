@@ -175,8 +175,8 @@ print(
 
 
 # load a state_dict checkpoint
-file_name="demo_unfolded_CP.pth"
-url = get_weights_url(model_name='demo', file_name=file_name)
+file_name = "demo_unfolded_CP.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
 ckpt_state_dict = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
 )
