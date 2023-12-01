@@ -207,6 +207,7 @@ class Tikhonov(Prior):
     """
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
     def g(self, x):
@@ -244,6 +245,7 @@ class L1(Prior):
     """
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
     def g(self, x):

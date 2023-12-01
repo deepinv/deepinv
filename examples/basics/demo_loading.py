@@ -15,7 +15,7 @@ import deepinv as dinv
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
-from deepinv.models.denoiser import online_weights_path
+from deepinv.models.utils import get_weights_url
 
 
 # %%
@@ -175,9 +175,10 @@ print(
 
 
 # load a state_dict checkpoint
-url = online_weights_path() + "demo_unfolded_CP_2.pth"
+file_name = "demo_unfolded_CP.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
 ckpt_state_dict = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name="demo_unfolded_CP_2.pth"
+    url, map_location=lambda storage, loc: storage, file_name=file_name
 )
 # load a state_dict checkpoint
 model_new.load_state_dict(ckpt_state_dict)

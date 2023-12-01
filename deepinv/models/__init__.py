@@ -7,7 +7,7 @@ from .artifactremoval import ArtifactRemoval
 from .tgv import TGV as TGV
 from .tv import TV as TV
 from .wavdict import WaveletPrior, WaveletDict
-from .GSPnP import GSDRUNet, ProxDRUNet
+from .GSPnP import GSDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
 from .diffunet import DiffUNet

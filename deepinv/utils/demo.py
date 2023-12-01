@@ -52,8 +52,30 @@ def get_git_root():
     return git_root
 
 
-def online_dataset_path():
-    return "https://mycore.core-cloud.net/index.php/s/pT5krDvE4jSTDc9/download?path=%2Fdatasets&files="
+def get_image_dataset_url(dataset_name, file_type="zip"):
+    return (
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
+        + dataset_name
+        + "."
+        + file_type
+        + "?download=true"
+    )
+
+
+def get_degradation_url(file_name):
+    return (
+        "https://huggingface.co/datasets/deepinv/degradations/resolve/main/"
+        + file_name
+        + "?download=true"
+    )
+
+
+def get_image_url(file_name):
+    return (
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
+        + file_name
+        + "?download=true"
+    )
 
 
 def load_dataset(
@@ -62,41 +84,35 @@ def load_dataset(
     dataset_dir = Path(data_dir) / dataset_name
 
     if dataset_name == "fastmri_knee_singlecoil":
-        filetype = "pt"
+        file_type = "pt"
     else:
-        filetype = "zip"
-
-    if dataset_name == "drunet":
-        url = "https://plmbox.math.cnrs.fr/f/4f56db2f0f7d49a88663/?dl=1"
-
+        file_type = "zip"
     if download and not dataset_dir.exists():
         dataset_dir.mkdir(parents=True, exist_ok=True)
         if url is None:
-            url = online_dataset_path() + f"{dataset_name}.{filetype}"
+            url = get_image_dataset_url(dataset_name, file_type)
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get("content-length", 0))
         block_size = 1024  # 1 Kibibyte
-        print("Downloading " + str(dataset_dir) + f".{filetype}")
+        print("Downloading " + str(dataset_dir) + f".{file_type}")
         progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-        with open(str(dataset_dir) + f".{filetype}", "wb") as file:
+        with open(str(dataset_dir) + f".{file_type}", "wb") as file:
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
                 file.write(data)
         progress_bar.close()
 
-        if filetype == "zip":
+        if file_type == "zip":
             with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
                 zip_ref.extractall(str(data_dir))
-
             # remove temp file
-            os.remove(str(dataset_dir) + f".{filetype}")
+            os.remove(str(dataset_dir) + f".{file_type}")
             print(f"{dataset_name} dataset downloaded in {data_dir}")
         else:
             shutil.move(
-                str(dataset_dir) + f".{filetype}",
-                str(dataset_dir / dataset_name) + f".{filetype}",
+                str(dataset_dir) + f".{file_type}",
+                str(dataset_dir / dataset_name) + f".{file_type}",
             )
-
     if dataset_name == "fastmri_knee_singlecoil":
         dataset = MRIData(
             train=train, root_dir=dataset_dir / dataset_name, transform=transform
@@ -108,20 +124,18 @@ def load_dataset(
     return dataset
 
 
-def load_degradation(name, data_dir, kernel_index=0, download=True):
-    kernel_path = data_dir / name
-    if download and not kernel_path.exists():
+def load_degradation(name, data_dir, index=0, download=True):
+    path = data_dir / name
+    if download and not path.exists():
         data_dir.mkdir(parents=True, exist_ok=True)
-        url = online_dataset_path() + f"{name}"
-
+        url = get_degradation_url(name)
         with requests.get(url, stream=True) as r:
             with open(str(data_dir / name), "wb") as f:
                 shutil.copyfileobj(r.raw, f)
         print(f"{name} degradation downloaded in {data_dir}")
-
-    kernels = np.load(kernel_path, allow_pickle=True)
-    kernel_torch = torch.from_numpy(kernels[kernel_index])  # .unsqueeze(0).unsqueeze(0)
-    return kernel_torch
+    deg = np.load(path, allow_pickle=True)
+    deg_torch = torch.from_numpy(deg[index])  # .unsqueeze(0).unsqueeze(0)
+    return deg_torch
 
 
 def load_url_image(

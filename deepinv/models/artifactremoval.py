@@ -2,8 +2,6 @@
 import torch
 import torch.nn as nn
 
-# from deepinv import models as models
-
 
 class ArtifactRemoval(nn.Module):
     r"""

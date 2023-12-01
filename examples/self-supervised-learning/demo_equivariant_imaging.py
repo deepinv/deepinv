@@ -17,7 +17,7 @@ from torchvision import transforms
 from deepinv.optim.prior import PnP
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.training_utils import train, test
-from deepinv.models.denoiser import online_weights_path
+from deepinv.models.utils import get_weights_url
 
 # %%
 # Setup paths for data loading and results.
@@ -174,11 +174,12 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # start with a pretrained model to reduce training time
-url = online_weights_path() + "new_demo_ei_ckp_150_v3.pth"
+file_name = "new_demo_ei_ckp_150_v3.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
 ckpt = torch.hub.load_state_dict_from_url(
     url,
     map_location=lambda storage, loc: storage,
-    file_name="new_demo_ei_ckp_150_v3.pth",
+    file_name=file_name,
 )
 # load a checkpoint to reduce training time
 model.load_state_dict(ckpt["state_dict"])

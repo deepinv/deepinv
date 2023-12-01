@@ -56,7 +56,7 @@ dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 # Generate the degradation operator.
 kernel_index = 1
 kernel_torch = load_degradation(
-    "kernels_12.npy", DEG_DIR / "kernels", kernel_index=kernel_index
+    "kernels_12.npy", DEG_DIR / "kernels", index=kernel_index
 )
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
