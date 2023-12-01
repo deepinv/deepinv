@@ -37,7 +37,6 @@ def train(
     online_measurements=False,
     plot_measurements=True,
     check_grad=False,
-    backup_ckpt_pth=None,
     ckpt_pretrained=None,
     fact_losses=None,
     freq_plot=1,
@@ -82,7 +81,6 @@ def train(
          with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool check_grad: Check the gradient norm at each iteration.
-    :param str backup_ckpt_pth: path of the checkpoint for recovery. If None, no backup checkpoint is saved.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
     :returns: Trained model.
     """
