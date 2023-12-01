@@ -1,6 +1,5 @@
 import torch
 from .optim_iterator import OptimIterator, fStep, gStep
-from deepinv.optim.utils import create_block_image
 
 class ADMMIteration(OptimIterator):
     r"""
@@ -42,8 +41,7 @@ class ADMMIteration(OptimIterator):
         :param torch.Tensor x: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        _,_,H,W = self.x_shape
-        return iterate[:,:,:H,:W]
+        return iterate[0]
 
     def init_algo(self, y, physics):
         """
@@ -59,7 +57,7 @@ class ADMMIteration(OptimIterator):
         x = physics.A_adjoint(y)
         z = torch.zeros_like(x)
         self.x_shape = x.shape
-        iterate = create_block_image([x,z])
+        iterate = (x,z)
         return {"iterate": iterate, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
@@ -87,7 +85,7 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        iterate = create_block_image([x,z])
+        iterate = (x,z)
         estimate = x
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)

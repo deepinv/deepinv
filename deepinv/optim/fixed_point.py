@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import warnings
+from deepinv.optim.utils import create_block_image
 
 
 class FixedPoint(nn.Module):
@@ -127,12 +128,14 @@ class FixedPoint(nn.Module):
         :param dict X: initial iterate.
         """
         x = X["iterate"]
-        B, C, H, W = x.shape
+        if isinstance(x, tuple):
+            x = create_block_image(x)
+        B, N = x.view(x.shape[0],-1).shape
         x_hist = torch.zeros(
-            B, self.history_size, C*H*W, dtype=x.dtype, device=x.device
+            B, self.history_size, N, dtype=x.dtype, device=x.device
         )  # history of iterates.
         T_hist = torch.zeros(
-            B, self.history_size, C*H*W, dtype=x.dtype, device=x.device
+            B, self.history_size, N, dtype=x.dtype, device=x.device
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
             B,

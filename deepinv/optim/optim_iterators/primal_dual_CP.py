@@ -1,6 +1,5 @@
 import torch
 from .optim_iterator import OptimIterator, fStep, gStep
-from deepinv.optim.utils import create_block_image
 
 
 class CPIteration(OptimIterator):
@@ -59,7 +58,7 @@ class CPIteration(OptimIterator):
         :return: Minimizer of F.
         """
         _,_,H,W = self.x_shape
-        return iterate[:,:,:H,:W]
+        return iterate[0]
     
     def init_algo(self, y, physics):
         """
@@ -76,7 +75,7 @@ class CPIteration(OptimIterator):
         u = y
         z = torch.zeros_like(x)
         self.x_shape, self.u_shape  = x.shape, y.shape 
-        iterate = create_block_image([x,u,z])
+        iterate = (x,u,z)
         return {"iterate": iterate, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
@@ -113,7 +112,7 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
-        iterate = create_block_image([x,u,z])
+        iterate = (x,u,z)
         estimate = x
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
