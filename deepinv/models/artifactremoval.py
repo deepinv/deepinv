@@ -38,6 +38,9 @@ class ArtifactRemoval(nn.Module):
         :param torch.tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         """
+        if isinstance(physics, nn.DataParallel):
+            physics = physics.module
+
         y_in = physics.A_adjoint(y) if not self.pinv else physics.A_dagger(y)
         if type(self.backbone_net).__name__ == "UNetRes":
             noise_level_map = (

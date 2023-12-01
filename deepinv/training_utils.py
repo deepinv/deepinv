@@ -39,6 +39,8 @@ def train(
     check_grad=False,
     backup_ckpt_pth=None,
     ckpt_pretrained=None,
+    fact_losses=None,
+    freq_plot=1,
 ):
     r"""
     Trains a reconstruction network.
@@ -97,6 +99,8 @@ def train(
     meters.append(total_loss)
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
+    if fact_losses is None:
+        fact_losses = [1] * len(losses)
     losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
     for loss in losses_verbose:
         meters.append(loss)
@@ -200,7 +204,13 @@ def train(
                     )  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
-                    physics_cur.reset()
+
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        # physics_cur.module.reset()
+                        physics_cur.module.noise_model.__init__(sigma_max=0.2, x=x)
+                    else:
+                        physics_cur.reset()
+
                     y = physics_cur(x)
 
                 else:  # the measurements y were pre-computed
@@ -227,7 +237,7 @@ def train(
                 loss_total = 0
                 for k, l in enumerate(losses):
                     loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
-                    loss_total += loss
+                    loss_total += fact_losses[k]*loss
                     losses_verbose[k].update(loss.item())
                     if len(losses) > 1:
                         log_dict["loss_" + l.name] = losses_verbose[k].avg
@@ -287,17 +297,22 @@ def train(
                         "From top to bottom : Input, Backprojection, Output, Target"
                     )
                 else:
-                    imgs = [physics_cur.A_adjoint(y), x_net, x]
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        back = physics_cur.module.A_adjoint(y)
+                    else:
+                        back = physics_cur.A_adjoint(y)
+                    imgs = [back, x_net, x]
                     caption = "From top to bottom : Backprojection, Output, Target"
                 vis_array = torch.cat(imgs, dim=0)
                 for i in range(len(vis_array)):
                     vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
                 grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-                images = wandb.Image(
-                    grid_image,
-                    caption=caption,
-                )
-                log_dict_post_epoch["Training samples"] = images
+                if epoch % freq_plot == 0:
+                    images = wandb.Image(
+                        grid_image,
+                        caption=caption,
+                    )
+                    log_dict_post_epoch["Training samples"] = images
 
         wandb.log(log_dict_post_epoch)
 
@@ -404,7 +419,11 @@ def test(
                     ) = batch  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
-                    physics_cur.reset()
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        # physics_cur.module.reset()
+                        physics_cur.module.noise_model.__init__(sigma_max=0.2, x=x)
+                    else:
+                        physics_cur.reset()
                     y = physics_cur(x)
                 else:
                     x, y = batch
@@ -421,7 +440,10 @@ def test(
                 else:
                     x1 = model(y, physics[g])
 
-                x_init = physics_cur.A_adjoint(y)
+                if isinstance(physics_cur, torch.nn.DataParallel):
+                    x_init = physics_cur.module.A_adjoint(y)
+                else:
+                    x_init = physics_cur.A_adjoint(y)
                 cur_psnr_init = cal_psnr(x_init, x)
                 cur_psnr = cal_psnr(x1, x)
                 psnr_init.append(cur_psnr_init)

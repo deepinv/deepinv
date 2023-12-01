@@ -55,11 +55,20 @@ class UniformGaussianNoise(torch.nn.Module):
         in :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`) during the forward pass. Default: None.
     """
 
-    def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None):
+    def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None, x=None):
         super().__init__()
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
         self.sigma = sigma
+        # self.sigma = torch.nn.Parameter(sigma)
+
+    def set_sigma(self, x):
+        sigma = (
+                torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2))
+                * (self.sigma_max - self.sigma_min)
+                + self.sigma_min
+        )
+        self.sigma = sigma.to(x.device)
 
     def forward(self, x):
         r"""
@@ -68,7 +77,8 @@ class UniformGaussianNoise(torch.nn.Module):
         :param torch.Tensor x: measurements;
         :return noisy measurements.
         """
-        if self.sigma is None:
+        # Broken for some reason ?
+        if self.sigma is None or self.sigma.size() == 0:
             sigma = (
                 torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2))
                 * (self.sigma_max - self.sigma_min)
