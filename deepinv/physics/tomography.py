@@ -286,6 +286,35 @@ class Tomography(LinearPhysics):
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param str device: gpu or cpu.
+
+    |sep|
+
+    :Examples:
+
+        Tomography operator with defined angles for 3x3 image:
+
+        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+        >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
+        >>> angles = torch.linspace(0, 45, steps=3)
+        >>> physics = Tomography(4, angles, circle=True)
+        >>> physics(x)
+        tensor([[[[ 0.1650,  1.2640,  1.6995],
+                  [-0.4860,  0.2674,  0.9971],
+                  [ 0.9002, -0.3856, -0.9360],
+                  [-2.4882, -2.1068, -2.5720]]]])
+
+        Tomography operator with 3 uniformly sampled angles in [0, 360] for 3x3 image:
+
+        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+        >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
+        >>> physics = Tomography(4, 3, circle=True)
+        >>> physics(x)
+        tensor([[[[ 0.1650,  1.9493,  1.9897],
+                  [-0.4860,  0.7137, -1.6536],
+                  [ 0.9002, -0.8457, -0.1666],
+                  [-2.4882, -2.7340, -0.9793]]]])
+
+
     """
 
     def __init__(
