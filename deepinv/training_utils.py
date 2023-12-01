@@ -12,7 +12,6 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
-from torchvision import transforms as T
 
 
 def train(
@@ -37,6 +36,10 @@ def train(
     wandb_setup={},
     online_measurements=False,
     plot_measurements=True,
+    check_grad=False,
+    ckpt_pretrained=None,
+    fact_losses=None,
+    freq_plot=1,
 ):
     r"""
     Trains a reconstruction network.
@@ -77,6 +80,10 @@ def train(
          parameters of the forward operator or noise realizations, can change between each sample; these are updated
          with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :param bool plot_measurements: Plot the measurements y. default=True.
+    :param bool check_grad: Check the gradient norm at each iteration.
+    :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
+    :param list fact_losses: List of factors to multiply the losses. If None, all losses are multiplied by 1.
+    :param int freq_plot: Frequency of plotting images to wandb. If 1, plots at each epoch.
     :returns: Trained model.
     """
     save_path = Path(save_path)
@@ -92,6 +99,8 @@ def train(
     meters.append(total_loss)
     if not isinstance(losses, list) or isinstance(losses, tuple):
         losses = [losses]
+    if fact_losses is None:
+        fact_losses = [1] * len(losses)
     losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
     for loss in losses_verbose:
         meters.append(loss)
@@ -100,6 +109,9 @@ def train(
     if eval_dataloader:
         eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
         meters.append(eval_psnr)
+    if check_grad:
+        check_grad_val = AverageMeter("Gradient norm", ":.2e")
+        meters.append(check_grad_val)
 
     save_path = f"{save_path}/{get_timestamp()}"
 
@@ -121,8 +133,18 @@ def train(
 
     log_dict = {}
 
-    for epoch in range(epochs):
+    epoch_start = 0
+    if ckpt_pretrained is not None:
+        checkpoint = torch.load(ckpt_pretrained)
+        model.load_state_dict(checkpoint["state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        epoch_start = checkpoint["epoch"]
+
+    for epoch in range(epoch_start, epochs):
         ### Evaluation
+
+        if wandb_vis:
+            wandb_log_dict_epoch = {"epoch": epoch}
 
         # perform evaluation every eval_interval epoch
         perform_eval = (
@@ -147,18 +169,15 @@ def train(
             )
             eval_psnr.update(test_psnr)
             log_dict["eval_psnr"] = test_psnr
+            if wandb_vis:
+                wandb_log_dict_epoch["eval_psnr"] = test_psnr
 
         # wandb logging
         if wandb_vis:
             last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
-            wandb.log(
-                {
-                    "epoch": epoch,
-                    "learning rate": last_lr,
-                }
-            )
-            if perform_eval:
-                wandb.log({"eval psnr": test_psnr})
+            wandb_log_dict_epoch["learning rate"] = last_lr
+
+            wandb.log(wandb_log_dict_epoch)
 
         ### Training
 
@@ -173,6 +192,9 @@ def train(
         for i in (progress_bar := tqdm(range(batches), disable=not verbose)):
             progress_bar.set_description(f"Epoch {epoch + 1}")
 
+            if wandb_vis:
+                wandb_log_dict_iter = {}
+
             # random permulation of the dataloaders
             G_perm = np.random.permutation(G)
 
@@ -183,7 +205,12 @@ def train(
                     )  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
-                    physics_cur.reset()
+
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        physics_cur.module.noise_model.__init__()
+                    else:
+                        physics_cur.reset()
+
                     y = physics_cur(x)
 
                 else:  # the measurements y were pre-computed
@@ -210,14 +237,14 @@ def train(
                 loss_total = 0
                 for k, l in enumerate(losses):
                     loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
-                    loss_total += loss
+                    loss_total += fact_losses[k] * loss
                     losses_verbose[k].update(loss.item())
                     if len(losses) > 1:
                         log_dict["loss_" + l.name] = losses_verbose[k].avg
                         if wandb_vis:
-                            wandb.log({"loss_" + l.name: loss.item()})
+                            wandb_log_dict_iter["loss_" + l.name] = loss.item()
                 if wandb_vis:
-                    wandb.log({"training loss": loss_total.item()})
+                    wandb_log_dict_iter["training loss"] = loss_total.item()
                 total_loss.update(loss_total.item())
                 log_dict["total_loss"] = total_loss.avg
 
@@ -228,6 +255,17 @@ def train(
                 if grad_clip is not None:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
 
+                if check_grad:
+                    # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
+                    grads = [
+                        param.grad.detach().flatten()
+                        for param in model.parameters()
+                        if param.grad is not None
+                    ]
+                    norm_grads = torch.cat(grads).norm()
+                    wandb_log_dict_iter["gradient norm"] = norm_grads.item()
+                    check_grad_val.update(norm_grads.item())
+
                 # optimize step
                 optimizer.step()
 
@@ -237,15 +275,21 @@ def train(
                         psnr = cal_psnr(x_net, x)
                         train_psnr.update(psnr)
                         if wandb_vis:
-                            wandb.log({"training psnr": psnr})
+                            wandb_log_dict_iter["train_psnr"] = psnr
+                            wandb.log(wandb_log_dict_iter)
                         log_dict["train_psnr"] = train_psnr.avg
 
                 progress_bar.set_postfix(log_dict)
 
         # wandb plotting of training images
-        if (
-            wandb_vis
-        ):  # Note that this may not be 16 images because the last batch may be smaller
+        if wandb_vis:
+            # log average training metrics
+            log_dict_post_epoch = {}
+            log_dict_post_epoch["mean training loss"] = total_loss.avg
+            log_dict_post_epoch["mean training psnr"] = train_psnr.avg
+            if check_grad:
+                log_dict_post_epoch["mean gradient norm"] = check_grad_val.avg
+
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
                     y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
@@ -254,23 +298,32 @@ def train(
                         "From top to bottom : Input, Backprojection, Output, Target"
                     )
                 else:
-                    imgs = [physics_cur.A_adjoint(y), x_net, x]
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        back = physics_cur.module.A_adjoint(y)
+                    else:
+                        back = physics_cur.A_adjoint(y)
+                    imgs = [back, x_net, x]
                     caption = "From top to bottom : Backprojection, Output, Target"
                 vis_array = torch.cat(imgs, dim=0)
                 for i in range(len(vis_array)):
                     vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
                 grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-                images = wandb.Image(
-                    grid_image,
-                    caption=caption,
-                )
-                wandb.log({"Training samples": images})
+                if epoch % freq_plot == 0:
+                    images = wandb.Image(
+                        grid_image,
+                        caption=caption,
+                    )
+                    log_dict_post_epoch["Training samples"] = images
+
+        if wandb_vis:
+            wandb.log(log_dict_post_epoch)
 
         loss_history.append(total_loss.avg)
 
         if scheduler:
             scheduler.step()
 
+        # Saving the model
         save_model(
             epoch,
             model,
@@ -368,7 +421,10 @@ def test(
                     ) = batch  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
-                    physics_cur.reset()
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        physics_cur.module.noise_model.__init__()
+                    else:
+                        physics_cur.reset()
                     y = physics_cur(x)
                 else:
                     x, y = batch
@@ -385,7 +441,10 @@ def test(
                 else:
                     x1 = model(y, physics[g])
 
-                x_init = physics_cur.A_adjoint(y)
+                if isinstance(physics_cur, torch.nn.DataParallel):
+                    x_init = physics_cur.module.A_adjoint(y)
+                else:
+                    x_init = physics_cur.A_adjoint(y)
                 cur_psnr_init = cal_psnr(x_init, x)
                 cur_psnr = cal_psnr(x1, x)
                 psnr_init.append(cur_psnr_init)
