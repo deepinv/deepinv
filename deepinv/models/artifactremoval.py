@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 
+
 class ArtifactRemoval(nn.Module):
     r"""
     Artifact removal architecture :math:`\phi(A^{\top}y)`.

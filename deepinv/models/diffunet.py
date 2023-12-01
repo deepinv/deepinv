@@ -256,7 +256,7 @@ class DiffUNet(nn.Module):
                     raise ValueError(
                         "no existing pretrained model matches the requested configuration"
                     )
-                url = get_weights_url(model_name='diffunet', file_name=name) 
+                url = get_weights_url(model_name="diffunet", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )

@@ -50,17 +50,36 @@ def get_git_root():
     git_root = git_repo.git.rev_parse("--show-toplevel")
     return git_root
 
+
 def get_image_dataset_url(dataset_name, file_type="zip"):
-    return "https://huggingface.co/datasets/deepinv/images/resolve/main/" + dataset_name + "." + file_type + "?download=true"
+    return (
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
+        + dataset_name
+        + "."
+        + file_type
+        + "?download=true"
+    )
+
 
 def get_degradation_url(file_name):
-    return "https://huggingface.co/datasets/deepinv/degradations/resolve/main/" + file_name + "?download=true"
+    return (
+        "https://huggingface.co/datasets/deepinv/degradations/resolve/main/"
+        + file_name
+        + "?download=true"
+    )
+
 
 def get_image_url(file_name):
-    return "https://huggingface.co/datasets/deepinv/images/resolve/main/" + file_name + "?download=true"
+    return (
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
+        + file_name
+        + "?download=true"
+    )
 
 
-def load_dataset(dataset_name, data_dir, transform, download=True, url=None, train=True):
+def load_dataset(
+    dataset_name, data_dir, transform, download=True, url=None, train=True
+):
     dataset_dir = data_dir / dataset_name
     if dataset_name == "fastmri_knee_singlecoil":
         file_type = "pt"
@@ -117,7 +136,9 @@ def load_degradation(name, data_dir, index=0, download=True):
     return deg_torch
 
 
-def load_url_image(url=None, img_size=None, grayscale=False, resize_mode="crop", device="cpu"):
+def load_url_image(
+    url=None, img_size=None, grayscale=False, resize_mode="crop", device="cpu"
+):
     r"""
 
     Load an image from a URL and return a torch.Tensor.
