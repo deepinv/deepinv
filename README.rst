@@ -57,8 +57,7 @@ Try out the following plug-and-play image inpainting example:
     import deepinv as dinv
     from deepinv.utils import load_url_image
 
-    url = ("https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
-            "download?path=%2Fdatasets&files=cameraman.png")
+    url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
     x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
 
     physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
