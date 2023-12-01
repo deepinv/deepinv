@@ -82,6 +82,8 @@ def train(
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool check_grad: Check the gradient norm at each iteration.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
+    :param list fact_losses: List of factors to multiply the losses. If None, all losses are multiplied by 1.
+    :param int freq_plot: Frequency of plotting images to wandb. If 1, plots at each epoch.
     :returns: Trained model.
     """
     save_path = Path(save_path)
