@@ -219,7 +219,7 @@ class Tikhonov(Prior):
         :param float ths: regularization parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return 0.5 * ths * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)**2
+        return 0.5 * ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1)**2
 
     def grad(self, x):
         r"""
@@ -242,9 +242,9 @@ class Tikhonov(Prior):
         return (1 / (ths*gamma + 1)) * x
 
 
-class L1(Prior):
+class L1Prior(Prior):
     r"""
-    L1 regularizer :math:`g(x) = \| x \|_1`.
+    L1 prior :math:`g(x) = \| x \|_1`.
     """
 
     def __init__(self, *args, **kwargs):
@@ -259,7 +259,7 @@ class L1(Prior):
         :param float ths: threshold parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        return ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
     def prox(self, x, ths=1.0, gamma=1.0):
         r"""
