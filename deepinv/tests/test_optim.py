@@ -361,10 +361,11 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     # for prior_name in ['L1Prior', 'Tikhonov']:
-    for prior_name in ['L1Prior', 'Tikhonov']:
-
+    for prior_name in ["L1Prior", "Tikhonov"]:
         # 1. Generate a dummy dataset
-        dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+        dataloader = DataLoader(
+            dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+        )
         test_sample = next(iter(dataloader)).to(device)
 
         # 2. Set a physical experiment (here, deblurring)
@@ -382,9 +383,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         data_fidelity = L2()
 
         # here the prior model is common for all iterations
-        if prior_name == 'L1Prior':
+        if prior_name == "L1Prior":
             prior = dinv.optim.prior.L1Prior()
-        elif prior_name == 'Tikhonov':
+        elif prior_name == "Tikhonov":
             prior = dinv.optim.prior.Tikhonov()
 
         stepsize_dual = 1.0 if pnp_algo == "CP" else None
@@ -426,7 +427,6 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         #     )
 
         assert opt_algo.has_converged
-
 
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])

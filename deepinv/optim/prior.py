@@ -219,7 +219,11 @@ class Tikhonov(Prior):
         :param float ths: regularization parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return 0.5 * ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1)**2
+        return (
+            0.5
+            * ths
+            * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
+        )
 
     def grad(self, x):
         r"""
@@ -239,7 +243,7 @@ class Tikhonov(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return (1 / (ths*gamma + 1)) * x
+        return (1 / (ths * gamma + 1)) * x
 
 
 class L1Prior(Prior):
@@ -277,4 +281,6 @@ class L1Prior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return torch.sign(x) * torch.max(torch.abs(x) - ths*gamma, torch.zeros_like(x))
+        return torch.sign(x) * torch.max(
+            torch.abs(x) - ths * gamma, torch.zeros_like(x)
+        )
