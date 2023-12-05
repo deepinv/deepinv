@@ -211,14 +211,19 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x):
+    def g(self, x, ths=1.0):
         r"""
-        Computes the Tikhonov regularizer :math:`g(x) = \frac{1}{2}\| x \|_2^2`.
+        Computes the Tikhonov regularizer :math:`g(x) = \frac{\tau}{2}\| x \|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param float ths: regularization parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+        return (
+            0.5
+            * ths
+            * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
+        )
 
     def grad(self, x):
         r"""
@@ -229,41 +234,53 @@ class Tikhonov(Prior):
         """
         return x
 
-    def prox(self, x, gamma=1.0):
+    def prox(self, x, ths=1.0, gamma=1.0):
         r"""
-        Calculates the proximity operator of the Tikhonov regularization term :math:`g` at :math:`x`.
+        Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma \tau g` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: regularization parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return (1 / (gamma + 1)) * x
+        return (1 / (ths * gamma + 1)) * x
 
 
-class L1(Prior):
+class L1Prior(Prior):
     r"""
-    L1 regularizer :math:`g(x) = \| T x \|_1`.
+    L1 prior :math:`g(x) = \| x \|_1`.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x):
+    def g(self, x, ths=1.0):
         r"""
-        Computes the regularizer :math:`g(x) = \frac{1}{2}\| x \|_1.
+        Computes the regularizer :math:`g(x) = \tau*\| x \|_1.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param float ths: threshold parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+        return ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
-    def prox(self, x, gamma=1.0):
+    def prox(self, x, ths=1.0, gamma=1.0):
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`g` at :math:`x`.
+        More precisely, it computes
+
+        .. math::
+            \operatorname{prox}_{\gamma \tau g}(x) = \operatorname{sign}(x) \max(|x| - \gamma \tau, 0)
+
+
+        where :math:`\tau` is the threshold parameter and :math:`\gamma` is a stepsize.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return torch.sign(x) * torch.max(torch.abs(x) - gamma, torch.zeros_like(x))
+        return torch.sign(x) * torch.max(
+            torch.abs(x) - ths * gamma, torch.zeros_like(x)
+        )
