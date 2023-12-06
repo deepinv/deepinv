@@ -4,7 +4,7 @@ import torch
 try:
     import odl
 except:
-    odl = ImportError
+    odl = ImportError("The odl package is not installed.")
 
 
 def random_shapes(interior=False):

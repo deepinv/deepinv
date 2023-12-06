@@ -4,7 +4,7 @@ import torch.nn as nn
 try:
     import pytorch_wavelets
 except:
-    pytorch_wavelets = ImportError
+    pytorch_wavelets = ImportError("The pytorch_wavelets package is not installed.")
 
 
 class WaveletPrior(nn.Module):

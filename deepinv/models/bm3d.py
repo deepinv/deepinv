@@ -6,7 +6,7 @@ import torch.nn as nn
 try:
     import bm3d
 except:
-    bm3d = ImportError
+    bm3d = ImportError("The bm3d package is not installed.")
 
 
 class BM3D(nn.Module):
