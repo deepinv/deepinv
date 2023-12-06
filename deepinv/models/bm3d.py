@@ -5,8 +5,8 @@ import torch.nn as nn
 # Compat for optional dependency on BM3D
 try:
     import bm3d
-except ImportError as e:
-    bm3d = e
+except:
+    bm3d = ImportError
 
 
 class BM3D(nn.Module):

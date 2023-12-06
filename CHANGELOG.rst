@@ -3,7 +3,23 @@ Change Log
 =================
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
-Current (v0.0.2)
+Current (v0.2.0)
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+
+Fixed
+^^^^^
+
+
+Changed
+^^^^^^^
+
+
+
+v0.1.0
 ----------------
 
 New Features

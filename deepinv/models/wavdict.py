@@ -3,8 +3,8 @@ import torch.nn as nn
 
 try:
     import pytorch_wavelets
-except ImportError as e:
-    pytorch_wavelets = e
+except:
+    pytorch_wavelets = ImportError
 
 
 class WaveletPrior(nn.Module):

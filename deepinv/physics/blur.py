@@ -111,7 +111,7 @@ class Downsampling(LinearPhysics):
         filter="gaussian",
         device="cpu",
         padding="circular",
-        **kwargs,
+        **kwargs
     ):
         super().__init__(**kwargs)
         self.factor = factor
@@ -416,14 +416,6 @@ class Blur(LinearPhysics):
 
     This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
 
-    .. autosummary::
-       :toctree: stubs
-       :template: myfunc_template.rst
-       :nosignatures:
-
-       deepinv.physics.blur.gaussian_blur
-
-
     :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -499,7 +491,7 @@ class BlurFFT(DecomposablePhysics):
         # Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho")
 
 
 # # test code

@@ -2,11 +2,10 @@ import torchvision.utils
 from deepinv.utils import (
     save_model,
     AverageMeter,
-    ProgressMeter,
     get_timestamp,
     cal_psnr,
 )
-from deepinv.utils import plot, plot_curves, wandb_imgs, wandb_plot_curves, rescale_img
+from deepinv.utils import plot, plot_curves, wandb_plot_curves, rescale_img, zeros_like
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -76,7 +75,7 @@ def train(
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
-        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
+         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
          parameters of the forward operator or noise realizations, can change between each sample; these are updated
          with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :param bool plot_measurements: Plot the measurements y. default=True.
@@ -293,17 +292,26 @@ def train(
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
                     y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
-                    imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
-                    caption = (
-                        "From top to bottom : Input, Backprojection, Output, Target"
-                    )
-                else:
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        back = physics_cur.module.A_adjoint(y)
+                    if hasattr(physics_cur, "A_adjoint"):
+                        imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
+                        caption = (
+                            "From top to bottom: input, backprojection, output, target"
+                        )
                     else:
-                        back = physics_cur.A_adjoint(y)
-                    imgs = [back, x_net, x]
-                    caption = "From top to bottom : Backprojection, Output, Target"
+                        imgs = [y_reshaped, x_net, x]
+                        caption = "From top to bottom: input, output, target"
+                else:
+                    if hasattr(physics_cur, "A_adjoint"):
+                        if isinstance(physics_cur, torch.nn.DataParallel):
+                            back = physics_cur.module.A_adjoint(y)
+                        else:
+                            back = physics_cur.A_adjoint(y)
+                        imgs = [back, x_net, x]
+                        caption = "From top to bottom: backprojection, output, target"
+                    else:
+                        imgs = [x_net, x]
+                        caption = "From top to bottom: output, target"
+
                 vis_array = torch.cat(imgs, dim=0)
                 for i in range(len(vis_array)):
                     vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
@@ -441,10 +449,19 @@ def test(
                 else:
                     x1 = model(y, physics[g])
 
-                if isinstance(physics_cur, torch.nn.DataParallel):
-                    x_init = physics_cur.module.A_adjoint(y)
+                if hasattr(physics_cur, "A_adjoint"):
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        x_init = physics_cur.module.A_adjoint(y)
+                    else:
+                        x_init = physics_cur.A_adjoint(y)
+                elif hasattr(physics_cur, "A_dagger"):
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        x_init = physics_cur.module.A_dagger(y)
+                    else:
+                        x_init = physics_cur.A_dagger(y)
                 else:
-                    x_init = physics_cur.A_adjoint(y)
+                    x_init = zeros_like(x)
+
                 cur_psnr_init = cal_psnr(x_init, x)
                 cur_psnr = cal_psnr(x1, x)
                 psnr_init.append(cur_psnr_init)
@@ -473,10 +490,10 @@ def test(
                         ):
                             if plot_measurements and len(y.shape) == 4:
                                 imgs = [y, x_init, x1, x]
-                                name_imgs = ["Input", "Linear", "Recons.", "GT"]
+                                name_imgs = ["Input", "No learning", "Recons.", "GT"]
                             else:
                                 imgs = [x_init, x1, x]
-                                name_imgs = ["Linear", "Recons.", "GT"]
+                                name_imgs = ["No learning", "Recons.", "GT"]
                             fig = plot(
                                 imgs,
                                 titles=name_imgs,
@@ -504,7 +521,7 @@ def test(
     linear_std_psnr = np.std(psnr_init)
     if verbose:
         print(
-            f"Test PSNR: Linear rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
+            f"Test PSNR: No learning rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
         )
     if wandb_vis:
         wandb.log({"Test PSNR": test_psnr}, step=step)
