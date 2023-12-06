@@ -40,6 +40,7 @@ New Features
 
 Fixed
 ^^^^^
+- doc fixes + training fixes (:gh:`124` by `Julian Tachella`_) - 06/12/2023
 - Add doc weights (:gh:`97` by `Matthieu Terris`_) - 24/10/2023
 - Fix BlurFFT adjoint (:gh:`89` by `Matthieu Terris`_) - 15/10/2023
 - Doc typos (:gh:`88` by `Matthieu Terris`_) - 10/10/2023
