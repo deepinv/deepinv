@@ -258,7 +258,7 @@ class L1Prior(Prior):
 
     def g(self, x, ths=1.0):
         r"""
-        Computes the regularizer :math:`g(x) = \tau \| x \|_1`.
+        Computes the regularizer :math:`g(x) = \tau\| x \|_1`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param float ths: threshold parameter :math:`\tau`.
