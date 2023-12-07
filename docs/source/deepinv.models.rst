@@ -77,7 +77,8 @@ Some more specific unfolded architectures are also available.
 Pretrained weights
 ------------------
 The following denoisers have **pretrained weights** available; we next briefly summarize the origin of the weights,
-associated reference and relevant details.
+associated reference and relevant details. All pretrained weights are hosted on
+`HuggingFace <https://huggingface.co/deepinv>`_.
 
 
 .. list-table:: Summary of pretrained weights

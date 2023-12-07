@@ -376,7 +376,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         max_iter = 1000
         # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
         # sigma_denoiser = torch.tensor([[0.1]])
-        sigma_denoiser = torch.tensor([[1.0]])
+        sigma_denoiser = torch.tensor([[1.0]], device=device)
         stepsize = 1.0
         lamb = 1.0
 

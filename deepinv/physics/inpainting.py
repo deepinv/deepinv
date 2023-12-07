@@ -27,6 +27,7 @@ class Inpainting(DecomposablePhysics):
         the mask will be set to this tensor.
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
+
     """
 
     def __init__(self, tensor_size, mask=0.3, pixelwise=True, device="cpu", **kwargs):

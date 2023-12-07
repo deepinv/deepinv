@@ -248,7 +248,8 @@ class Tikhonov(Prior):
 
 class L1Prior(Prior):
     r"""
-    L1 prior :math:`g(x) = \| x \|_1`.
+    :math:`\ell_1` prior :math:`g(x) = \| x \|_1`.
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -257,7 +258,7 @@ class L1Prior(Prior):
 
     def g(self, x, ths=1.0):
         r"""
-        Computes the regularizer :math:`g(x) = \tau*\| x \|_1.
+        Computes the regularizer :math:`g(x) = \tau\| x \|_1`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param float ths: threshold parameter :math:`\tau`.
@@ -268,6 +269,7 @@ class L1Prior(Prior):
     def prox(self, x, ths=1.0, gamma=1.0):
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`g` at :math:`x`.
+
         More precisely, it computes
 
         .. math::
