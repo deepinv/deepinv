@@ -98,12 +98,13 @@ def test_denoiser(imsize, device, denoiser):
 
 
 def test_equivariant(imsize, device):
-
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
     rand_rot, rand_translations, mean_rot = True, False, False
-    model = dinv.models.EquivariantDenoiser(model, rand_rot=rand_rot, rand_translations=rand_translations, mean_rot=mean_rot).to(device)
+    model = dinv.models.EquivariantDenoiser(
+        model, rand_rot=rand_rot, rand_translations=rand_translations, mean_rot=mean_rot
+    ).to(device)
 
     torch.manual_seed(0)
     sigma = 0.2
@@ -113,7 +114,6 @@ def test_equivariant(imsize, device):
     x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
-
 
     # 2. Check that the equivariance module yields the identity when the denoiser is the identity
     class DummyIdentity(torch.nn.Module):
@@ -125,9 +125,20 @@ def test_equivariant(imsize, device):
 
     model_id = DummyIdentity()
 
-    list_rot, list_trans, list_mean_rot = [True, False, False], [False, True, False], [False, False, True]
-    for rand_rot, rand_translations, mean_rot in zip(list_rot, list_trans, list_mean_rot):
-        model = dinv.models.EquivariantDenoiser(model_id, rand_rot=rand_rot, rand_translations=rand_translations, mean_rot=mean_rot).to(device)
+    list_rot, list_trans, list_mean_rot = (
+        [True, False, False],
+        [False, True, False],
+        [False, False, True],
+    )
+    for rand_rot, rand_translations, mean_rot in zip(
+        list_rot, list_trans, list_mean_rot
+    ):
+        model = dinv.models.EquivariantDenoiser(
+            model_id,
+            rand_rot=rand_rot,
+            rand_translations=rand_translations,
+            mean_rot=mean_rot,
+        ).to(device)
 
         x = torch.ones(imsize, device=device).unsqueeze(0)
         y = physics(x)
