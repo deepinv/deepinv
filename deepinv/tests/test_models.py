@@ -101,9 +101,8 @@ def test_equivariant(imsize, device):
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
-    rand_rot, rand_translations, mean_rot = True, False, False
     model = dinv.models.EquivariantDenoiser(
-        model, rand_rot=rand_rot, rand_translations=rand_translations, mean_rot=mean_rot
+        model, transform="rotoflips", random=True
     ).to(device)
 
     torch.manual_seed(0)
@@ -125,26 +124,19 @@ def test_equivariant(imsize, device):
 
     model_id = DummyIdentity()
 
-    list_rot, list_trans, list_mean_rot = (
-        [True, False, False],
-        [False, True, False],
-        [False, False, True],
-    )
-    for rand_rot, rand_translations, mean_rot in zip(
-        list_rot, list_trans, list_mean_rot
-    ):
-        model = dinv.models.EquivariantDenoiser(
-            model_id,
-            rand_rot=rand_rot,
-            rand_translations=rand_translations,
-            mean_rot=mean_rot,
-        ).to(device)
+    list_transforms = ["rotations", "flips", "rotoflips"]
 
-        x = torch.ones(imsize, device=device).unsqueeze(0)
-        y = physics(x)
-        y_hat = model(y, sigma)
+    for transform in list_transforms:
+        for random in [True, False]:
+            model = dinv.models.EquivariantDenoiser(
+                model_id, transform=transform, random=random
+            ).to(device)
 
-        assert torch.allclose(y, y_hat)
+            x = torch.ones(imsize, device=device).unsqueeze(0)
+            y = physics(x)
+            y_hat = model(y, sigma)
+
+            assert torch.allclose(y, y_hat)
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)

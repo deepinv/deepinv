@@ -63,7 +63,14 @@ Learnable Denoisers
 
 Equivariant denoisers
 ---------------------
-The denoisers can be turned into equivariant denoisers by wrapping them with the :class:`deepinv.models.EquivariantDenoiser` class.
+The denoisers can be turned into equivariant denoisers by wrapping them with the
+:class:`deepinv.models.EquivariantDenoiser` class.
+The group of transformations available at the moment are vertical/horizontal flips, 90 degree rotations, or a
+combination of both, consisting in groups with 3, 4 or 8 elements.
+
+The denoising can either be averaged the group of transformation (making the denoiser equivariant) or performed on a
+single transformation sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
+equivariant denoiser.
 
 .. autosummary::
    :toctree: stubs
