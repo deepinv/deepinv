@@ -60,6 +60,19 @@ Learnable Denoisers
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
 
+
+Equivariant denoisers
+---------------------
+The denoisers can be turned into equivariant denoisers by wrapping them with the :class:`deepinv.models.EquivariantDenoiser` class.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.EquivariantDenoiser
+
+
 Unfolded architectures
 ----------------------
 Some more specific unfolded architectures are also available.
