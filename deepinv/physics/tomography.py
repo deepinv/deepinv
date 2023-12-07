@@ -296,7 +296,7 @@ class Tomography(LinearPhysics):
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
         >>> angles = torch.linspace(0, 45, steps=3)
-        >>> physics = Tomography(4, angles, circle=True)
+        >>> physics = Tomography(img_width=4, angles=angles, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.2640,  1.6995],
                   [-0.4860,  0.2674,  0.9971],
@@ -307,7 +307,7 @@ class Tomography(LinearPhysics):
 
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
-        >>> physics = Tomography(4, 3, circle=True)
+        >>> physics = Tomography(img_width=4, angles=3, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.9493,  1.9897],
                   [-0.4860,  0.7137, -1.6536],

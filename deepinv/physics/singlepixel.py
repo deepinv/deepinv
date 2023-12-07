@@ -68,7 +68,7 @@ class SinglePixelCamera(DecomposablePhysics):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
-        >>> physics = SinglePixelCamera(16, (1, 32, 32), fast=True)
+        >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
         >>> torch.sum(physics.mask).item() # Number of measurements
         48.0
         >>> physics(x)[:, :, :3, :3] # Compute measurements

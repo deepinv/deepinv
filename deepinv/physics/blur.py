@@ -454,7 +454,7 @@ class Blur(LinearPhysics):
         >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
         >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-        >>> physics = Blur(filter = w)
+        >>> physics = Blur(filter=w)
         >>> y = physics(x)
         >>> y[:, :, 63:66, 63:66] # Display the center of the blurred image
         tensor([[[[0.0000, 0.0000, 0.0000],

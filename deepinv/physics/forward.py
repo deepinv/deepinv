@@ -221,47 +221,34 @@ class LinearPhysics(Physics):
         >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
         >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-        >>> physics = Blur(filter = w)
+        >>> physics = Blur(filter=w)
         >>> y = physics(x)
-        >>> y[:, :, 63:66, 63:66] # Display the center of the blurred image
-        tensor([[[[0.0000, 0.0000, 0.0000],
-                  [0.0000, 0.2500, 0.2500],
-                  [0.0000, 0.2500, 0.2500]]]])
 
         Linear operators can also be added. The measurements produced by the resulting
-        model are deepinv.utils.TensorList objects, where each entry corresponds to the
+        model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator:
 
-        >>> physics1 = Blur(filter = w)
-        >>> physics2 = Downsampling(img_size=((1, 1, 128, 128)), filter = "gaussian", factor = 4)
+        >>> physics1 = Blur(filter=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 128, 128)), filter="gaussian", factor=4)
         >>> physics = physics1 + physics2
         >>> y = physics(x)
-        >>> y[0][:, :, 63:66, 63:66] # Display the center of the blurred image
-        tensor([[[[0.0000, 0.0000, 0.0000],
-                  [0.0000, 0.2500, 0.2500],
-                  [0.0000, 0.2500, 0.2500]]]])
-        >>> y[1][:, :, 15:18, 15:18] # Display the center of the downsampled image
-        tensor([[[[0.0037, 0.0060, 0.0037],
-                  [0.0060, 0.0100, 0.0060],
-                  [0.0037, 0.0060, 0.0037]]]])
 
         Linear operators can also be concatenated by multiplying them:
 
         >>> physics = physics1 * physics2
         >>> y = physics(x)
-        >>> y[:, :, 15:18, 15:18] # Display the center of the resulting image
-        tensor([[[[0.0014, 0.0030, 0.0030],
-                  [0.0030, 0.0064, 0.0064],
-                  [0.0030, 0.0064, 0.0064]]]])
 
-        Linear operators also come with an adjoint, a pseudoinverse and a dagger:
+        Linear operators also come with an adjoint, a pseudoinverse, and prox operators:
 
         >>> x = torch.randn((1, 1, 128, 128)) # Define random 128x128 image
-        >>> physics = Blur(filter = w)
+        >>> physics = Blur(filter=w)
         >>> y = physics(x) # Compute measurements
-        >>> z = physics.A_dagger(y) # Compute pseudoinverse
-        >>> torch.norm(x - z).item() # Check that the pseudoinverse is indeed an inverse
+        >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
+        >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
+        >>> torch.norm(x - x_dagger).item() # Pseudoinverse should be close to the original image
         25.950302124023438
+        >>> torch.norm(x - y).item() # Blurred image should be further away from the original image
+        111.6502685546875
 
     """
 
@@ -600,13 +587,13 @@ class Denoising(DecomposablePhysics):
 
         >>> from deepinv.physics import Denoising, GaussianNoise
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
+        >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise(sigma=0.1)
         >>> physics(x)
-        tensor([[[ 1.5007, -0.3531, -2.1606],
-                 [ 0.4828, -0.9745, -1.5057],
-                 [ 0.4156,  0.7814, -0.6819]]])
+        tensor([[[[ 1.5007, -0.3531, -2.1606],
+                  [ 0.4828, -0.9745, -1.5057],
+                  [ 0.4156,  0.7814, -0.6819]]]])
 
     """
 

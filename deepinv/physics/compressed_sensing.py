@@ -74,7 +74,7 @@ class CompressedSensing(LinearPhysics):
         Compressed sensing operator with 100 measurements for a 3x3 image:
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
+        >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = CompressedSensing(img_shape=(1, 3, 3), m=10)
         >>> physics(x)
         tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
