@@ -97,6 +97,48 @@ def test_denoiser(imsize, device, denoiser):
     assert x_hat.shape == x.shape
 
 
+def test_equivariant(imsize, device):
+    # 1. Check that the equivariance module is compatible with a denoiser
+    model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
+
+    model = dinv.models.EquivariantDenoiser(
+        model, transform="rotoflips", random=True
+    ).to(device)
+
+    torch.manual_seed(0)
+    sigma = 0.2
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+    x_hat = model(y, sigma)
+
+    assert x_hat.shape == x.shape
+
+    # 2. Check that the equivariance module yields the identity when the denoiser is the identity
+    class DummyIdentity(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+
+        def forward(self, x, sigma):
+            return x
+
+    model_id = DummyIdentity()
+
+    list_transforms = ["rotations", "flips", "rotoflips"]
+
+    for transform in list_transforms:
+        for random in [True, False]:
+            model = dinv.models.EquivariantDenoiser(
+                model_id, transform=transform, random=random
+            ).to(device)
+
+            x = torch.ones(imsize, device=device).unsqueeze(0)
+            y = physics(x)
+            y_hat = model(y, sigma)
+
+            assert torch.allclose(y, y_hat)
+
+
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
