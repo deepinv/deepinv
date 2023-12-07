@@ -91,7 +91,7 @@ class CVIteration(OptimIterator):
         x = self.g_step(v, cur_prior, cur_params)
         u = z_prev + cur_params["stepsize"] * physics.A(2 * x - x_prev)
         z = self.f_step(u, cur_data_fidelity, cur_params, y, physics)
-        iterate = torch.stack((x, z))
+        iterate = (x, z)
         estimate = self.get_estimate_from_iterate(
             iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
         )

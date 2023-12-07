@@ -57,7 +57,6 @@ class CPIteration(OptimIterator):
         :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
         :return: Minimizer of F.
         """
-        _,_,H,W = self.x_shape
         return iterate[0]
     
     def init_algo(self, y, physics):
@@ -74,7 +73,6 @@ class CPIteration(OptimIterator):
         x = physics.A_adjoint(y)
         u = y
         z = torch.zeros_like(x)
-        self.x_shape, self.u_shape  = x.shape, y.shape 
         iterate = (x,u,z)
         return {"iterate": iterate, "estimate": x}
 
@@ -97,10 +95,7 @@ class CPIteration(OptimIterator):
             if "K_adjoint" in cur_params.keys()
             else x
         )
-        if not (hasattr(self,'x_shape') and hasattr(self,'u_shape')):
-            self.x_shape, self.u_shape = K_adjoint(y).shape, y.shape
-        (_,_,Hx,Wx),  (_,_,Hu,Wu)  = self.x_shape, self.u_shape
-        x_prev, u_prev, z_prev = iterate[:,:,:Hx,:Wx], iterate[:,:,Hx:(Hx+Hu),Wx:(Wx+Wu)], iterate[:,:,(Hx+Hu):,(Wx+Wu):]
+        x_prev, u_prev, z_prev = iterate
         if self.g_first:
             u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
             x = self.f_step(
