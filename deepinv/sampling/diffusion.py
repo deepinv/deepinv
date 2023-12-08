@@ -23,6 +23,7 @@ class DiffusionSampler(MonteCarlo):
     :param bool save_chain: whether to save the chain
     :param int thinning: the thinning factor
     :param float burnin_ratio: the burnin ratio
+
     """
 
     def __init__(
@@ -83,6 +84,24 @@ class DDRM(nn.Module):
 
     :Examples:
 
+        Denoising diffusion restoration model using a pretrained DRUNet denoiser:
+
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> import numpy as np
+
+        >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
+        >>> x = 0.5*torch.ones(1, 3, 128, 128) # Define random 128x128 image
+        >>> sigma = 0.1  # noise level
+        >>> physics = dinv.physics.Inpainting(
+        ...   mask=0.5, tensor_size=(3, 128, 128), device=device,
+        ...   noise_model=dinv.physics.GaussianNoise(sigma)
+        ... )
+        >>> y = physics(x) # measurements
+
+        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+        >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
+        >>> xhat = model(y, physics) # sample from the posterior distribution
     """
 
     def __init__(
@@ -225,6 +244,29 @@ class DiffPIR(nn.Module):
          between 3.0 and 25.0 depending on the problem). Default: 7.0.
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
+    
+    |sep|
+    
+    :Examples:
+    
+        Diffusion PnP image restoration using a pretrained DRUNet denoiser:
+        
+        >>> import deepinv as dinv
+        >>> import torch
+        
+        >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
+        >>> x = 0.5*torch.ones(1, 3, 128, 128) # Define random 128x128 image
+        >>> sigma = 0.1  # noise level
+        >>> physics = dinv.physics.Inpainting(
+        ...   mask=0.5, tensor_size=(3, 128, 128), device=device,
+        ...   noise_model=dinv.physics.GaussianNoise(sigma)
+        ... )
+        >>> y = physics(x) # measurements
+        
+        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+        >>> model = dinv.sampling.DiffPIR(denoiser=denoiser, sigma=sigma, verbose=True) # define the DiffPIR model
+        >>> xhat = model(y, physics) # sample from the posterior distribution
+        
     """
 
     def __init__(
