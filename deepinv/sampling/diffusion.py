@@ -87,21 +87,22 @@ class DDRM(nn.Module):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> import torch
-        >>> import numpy as np
-
         >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
-        >>> x = 0.5*torch.ones(1, 3, 128, 128) # Define random 128x128 image
-        >>> sigma = 0.1  # noise level
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, tensor_size=(3, 128, 128), device=device,
-        ...   noise_model=dinv.physics.GaussianNoise(sigma)
+        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   noise_model=dinv.physics.GaussianNoise(0.1)
         ... )
         >>> y = physics(x) # measurements
-
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
+        >>> torch.norm(xhat - x).item() # Should be close to the original
+        1.475656270980835
+        >>> torch.norm(y - x).item() # Should be further away from the original
+        20.350261688232422
+
     """
 
     def __init__(
@@ -246,26 +247,30 @@ class DiffPIR(nn.Module):
     :param str device: the device to use for the computations
     
     |sep|
-    
+
     :Examples:
-    
-        Diffusion PnP image restoration using a pretrained DRUNet denoiser:
-        
+
+        Denoising diffusion restoration model using a pretrained DRUNet denoiser:
+
         >>> import deepinv as dinv
-        >>> import torch
-        
         >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
-        >>> x = 0.5*torch.ones(1, 3, 128, 128) # Define random 128x128 image
-        >>> sigma = 0.1  # noise level
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, tensor_size=(3, 128, 128), device=device,
-        ...   noise_model=dinv.physics.GaussianNoise(sigma)
+        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   noise_model=dinv.physics.GaussianNoise(0.1)
         ... )
-        >>> y = physics(x) # measurements
-        
+        >>> y = physics(x) # Measurements
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        >>> model = dinv.sampling.DiffPIR(denoiser=denoiser, sigma=sigma, verbose=True) # define the DiffPIR model
-        >>> xhat = model(y, physics) # sample from the posterior distribution
+        >>> model = DiffPIR(
+        ...   model=denoiser,
+        ...   data_fidelity=dinv.optim.L2(),
+        ... ) # Define the DiffPIR model
+        >>> xhat = model(y, physics) # Run the DiffPIR algorithm
+        >>> torch.norm(xhat - x).item() # Should be close to the original
+        0.5000526309013367
+        >>> torch.norm(y - x).item() # Should be further away from the original
+        20.350261688232422
         
     """
 
