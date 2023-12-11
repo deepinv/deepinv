@@ -17,7 +17,7 @@ class MonteCarlo(nn.Module):
 
     ::
 
-        # define custom sampling kernel (possibly a Markov kernel which depends on the previous sanple).
+        # define custom sampling kernel (possibly a Markov kernel which depends on the previous sample).
         class MyKernel(torch.torch.nn.Module):
             def __init__(self, iterator_params):
                 super().__init__()
