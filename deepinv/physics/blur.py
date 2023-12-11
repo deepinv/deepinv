@@ -257,7 +257,7 @@ def conv(x, filter, padding):
 
 def conv_transpose(y, filter, padding):
     r"""
-    Tranposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
+    Transposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
 
     :param torch.tensor x: Image of size (B,C,W,H).
     :param torch.tensor filter: Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
