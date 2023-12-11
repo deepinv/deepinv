@@ -255,7 +255,7 @@ class LinearPhysics(Physics):
         The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
 
         :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.LinearPhysics) concantenated operator
+        :return: (deepinv.physics.LinearPhysics) concatenated operator
 
         """
         A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
