@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepinv"
-authors = ["Julian Tachella <tachellajulian@gmail.com>", "Samuel Hurault", "Dongdong Chen", "Matthieu Terris"]
+authors = [{name="Julian Tachella", email="tachellajulian@gmail.com"}]
 license = {text = "BSD 3-Clause"}
 description = "Pytorch library for solving inverse problems with deep learning"
 classifiers = [
