@@ -9,7 +9,7 @@ def hutch_div(y, physics, f, mc_iter=1):
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param torch.nn.Module f: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
     :return: (float) hutch divergence.
     """
@@ -32,7 +32,7 @@ def exact_div(y, physics, model):
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-    :param torch.nn.Module, deepinv.models.Denoiser model: Reconstruction network.
+    :param torch.nn.Module model: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
     :return: (float) exact divergence.
     """
@@ -59,7 +59,7 @@ def mc_div(y1, y, f, physics, tau):
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-    :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network.
+    :param torch.nn.Module f: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
     :return: (float) hutch divergence.
     """
@@ -121,7 +121,7 @@ class SureGaussianLoss(nn.Module):
         :param torch.Tensor y: Measurements.
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module, deepinv.models.Denoiser model: Reconstruction network.
+        :param torch.nn.Module model: Reconstruction network.
         :return: (float) SURE loss.
         """
 
@@ -180,7 +180,7 @@ class SurePoissonLoss(nn.Module):
         :param torch.Tensor y: measurements.
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param torch.nn.Module, deepinv.models.Denoiser model: Reconstruction network
+        :param torch.nn.Module model: Reconstruction network
         :return: (float) SURE loss.
         """
 
@@ -260,7 +260,7 @@ class SurePGLoss(nn.Module):
         :param torch.Tensor y: measurements.
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param torch.nn.Module, deepinv.models.Denoiser f: Reconstruction network
+        :param torch.nn.Module f: Reconstruction network
         :return: (float) SURE loss.
         """
 

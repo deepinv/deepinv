@@ -47,7 +47,7 @@ class BaseOptim(nn.Module):
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
-    Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consits in chosing
+    Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
     the following update rule is applied at each iteration :math:`k`:
@@ -125,8 +125,13 @@ class BaseOptim(nn.Module):
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
     :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
+<<<<<<< HEAD
         If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
     :param function custom_output: function to get a custom output from the iterated dictionary X. Default: ``None``.
+=======
+    :param function get_output: get the image output given the current dictionary update containing primal and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
+        If ``None`` (default value) algorithm is initialized with :math:`A^Ty`. Default: ``None``.
+>>>>>>> main
     :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.

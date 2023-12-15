@@ -416,6 +416,77 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     assert pnp.has_converged
 
 
+@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
+def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
+    # for prior_name in ['L1Prior', 'Tikhonov']:
+    for prior_name in ["L1Prior", "Tikhonov"]:
+        # 1. Generate a dummy dataset
+        dataloader = DataLoader(
+            dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+        )
+        test_sample = next(iter(dataloader)).to(device)
+
+        # 2. Set a physical experiment (here, deblurring)
+        physics = dinv.physics.Blur(
+            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        )
+        y = physics(test_sample)
+        max_iter = 1000
+        # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+        # sigma_denoiser = torch.tensor([[0.1]])
+        sigma_denoiser = torch.tensor([[1.0]], device=device)
+        stepsize = 1.0
+        lamb = 1.0
+
+        data_fidelity = L2()
+
+        # here the prior model is common for all iterations
+        if prior_name == "L1Prior":
+            prior = dinv.optim.prior.L1Prior()
+        elif prior_name == "Tikhonov":
+            prior = dinv.optim.prior.Tikhonov()
+
+        stepsize_dual = 1.0 if pnp_algo == "CP" else None
+        params_algo = {
+            "stepsize": stepsize,
+            "g_param": sigma_denoiser,
+            "lambda": lamb,
+            "stepsize_dual": stepsize_dual,
+        }
+
+        custom_init = custom_init_CP if pnp_algo == "CP" else None
+
+        opt_algo = optim_builder(
+            pnp_algo,
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            thres_conv=1e-4,
+            verbose=True,
+            params_algo=params_algo,
+            early_stop=True,
+            custom_init=custom_init,
+        )
+
+        x = opt_algo(y, physics)
+
+        # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
+        # plot = True
+        # if plot:
+        #     imgs = []
+        #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+        #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+        #     imgs.append(torch2cpu(test_sample[0, :, :, :].unsqueeze(0)))
+        #
+        #     titles = ["Input", "Output", "Groundtruth"]
+        #     num_im = 3
+        #     plot_debug(
+        #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+        #     )
+
+        assert opt_algo.has_converged
+
+
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # This test uses WaveletPrior, which requires pytorch_wavelets

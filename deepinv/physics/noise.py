@@ -4,7 +4,7 @@ import torch
 class GaussianNoise(torch.nn.Module):
     r"""
 
-    Additive Gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
+    Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
     It can be added to a physics operator in its construction or by setting the ``noise_model``
     attribute of the physics operator.
@@ -39,20 +39,23 @@ class GaussianNoise(torch.nn.Module):
 
 class UniformGaussianNoise(torch.nn.Module):
     r"""
-
-    Additive Gaussian noise with standard deviation :math:`\sigma`, i.e., :math:`y=z+\epsilon` where
-    :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)` and where :math:`\sigma` sampled uniformly at random in
-    :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`
+    Gaussian noise :math:`y=z+\epsilon` where
+    :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)` and
+    :math:`\sigma \sim\mathcal{U}(\sigma_{\text{min}}, \sigma_{\text{max}})`
 
     It can be added to a physics operator in its construction or by setting:
+
     ::
 
-        physics.noise_model = UniformGaussianNoise()
+        >>> physics.noise_model = UniformGaussianNoise()
+
 
     :param float sigma_min: minimum standard deviation of the noise.
     :param float sigma_max: maximum standard deviation of the noise.
-    :param float, torch.Tensor sigma: standard deviation of the noise. If None, the noise is sampled uniformly at random
-        in :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`) during the forward pass. Default: None.
+    :param float, torch.Tensor sigma: standard deviation of the noise.
+        If ``None``, the noise is sampled uniformly at random
+        in :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`) during the forward pass. Default: ``None``.
+
     """
 
     def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None):
@@ -65,8 +68,8 @@ class UniformGaussianNoise(torch.nn.Module):
         r"""
         Adds the noise to measurements x.
 
-        :param torch.Tensor x: measurements;
-        :return noisy measurements.
+        :param torch.Tensor x: measurements
+        :returns: noisy measurements.
         """
         if self.sigma is None:
             sigma = (
@@ -82,16 +85,15 @@ class UniformGaussianNoise(torch.nn.Module):
 class PoissonNoise(torch.nn.Module):
     r"""
 
-    Poisson noise is defined as
-    :math:`y = \mathcal{P}(\frac{x}{\gamma})`
-    where :math:`\gamma` is the gain.
+    Poisson noise :math:`y = \mathcal{P}(\frac{x}{\gamma})`
+    with gain :math:`\gamma>0`.
 
     If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`.
 
     It can be added to a physics operator in its construction or by setting:
     ::
 
-        physics.noise_model = PoissonNoise()
+        >>> physics.noise_model = PoissonNoise()
 
     :param float gain: gain of the noise.
     :param bool normalize: normalize the output.
@@ -120,15 +122,14 @@ class PoissonNoise(torch.nn.Module):
 
 class PoissonGaussianNoise(torch.nn.Module):
     r"""
-    Poisson-Gaussian noise is defined as
-    :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
+    Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
     and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
     It can be added to a physics operator by setting
 
     ::
 
-        physics.noise_model = PoissonGaussianNoise()
+        >>> physics.noise_model = PoissonGaussianNoise()
 
     :param float gain: gain of the noise.
     :param float sigma: Standard deviation of the noise.
@@ -155,13 +156,12 @@ class PoissonGaussianNoise(torch.nn.Module):
 
 class UniformNoise(torch.nn.Module):
     r"""
-    Uniform noise is defined as
-    :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
+    Uniform noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
 
     It can be added to a physics operator by setting
     ::
 
-        physics.noise_model = UniformNoise()
+        >>> physics.noise_model = UniformNoise()
 
     :param float a: amplitude of the noise.
     """

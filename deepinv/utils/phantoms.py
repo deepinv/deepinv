@@ -3,8 +3,13 @@ import torch
 
 try:
     import odl
+<<<<<<< HEAD
 except ImportError as e:
     print("Install the odl package by running `pip install https://github.com/odlgroup/odl/archive/master.zip`")
+=======
+except:
+    odl = ImportError("The odl package is not installed.")
+>>>>>>> main
 
 
 def random_shapes(interior=False):
@@ -35,6 +40,12 @@ def random_phantom(spc, n_ellipse=50, interior=False):
     Taken from https://github.com/adler-j/adler/blob/master/adler/odl/phantom.py.
     Requires the ODL library `pip install https://github.com/odlgroup/odl/archive/master.zip`.
     """
+    if isinstance(odl, ImportError):
+        raise ImportError(
+            "odl is needed to use generate random phantoms. "
+            "It should be installed with `python3 -m pip install"
+            " https://github.com/odlgroup/odl/archive/master.zip`"
+        ) from odl
     n = np.random.poisson(n_ellipse)
     shapes = [random_shapes(interior=interior) for _ in range(n)]
     return odl.phantom.ellipsoid_phantom(spc, shapes)
@@ -81,6 +92,12 @@ class SheppLoganDataset(torch.utils.data.Dataset):
     """
 
     def __init__(self, size=128, n_data=1, transform=None):
+        if isinstance(odl, ImportError):
+            raise ImportError(
+                "odl is needed to use generate the Shepp Logan phantom. "
+                "It should be installed with `python3 -m pip install"
+                " https://github.com/odlgroup/odl/archive/master.zip`"
+            ) from odl
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
         )
@@ -91,6 +108,12 @@ class SheppLoganDataset(torch.utils.data.Dataset):
         return 1
 
     def __getitem__(self, index):
+        if isinstance(odl, ImportError):
+            raise ImportError(
+                "odl is needed to use generate the Shepp Logan phantom. "
+                "It should be installed with `python3 -m pip install"
+                " https://github.com/odlgroup/odl/archive/master.zip`"
+            ) from odl
         phantom_np = np.array(
             [odl.phantom.shepp_logan(self.space, True) for i in range(self.n_data)]
         )

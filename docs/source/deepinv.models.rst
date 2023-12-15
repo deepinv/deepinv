@@ -60,6 +60,26 @@ Learnable Denoisers
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
 
+
+Equivariant denoisers
+---------------------
+The denoisers can be turned into equivariant denoisers by wrapping them with the
+:class:`deepinv.models.EquivariantDenoiser` class.
+The group of transformations available at the moment are vertical/horizontal flips, 90 degree rotations, or a
+combination of both, consisting in groups with 3, 4 or 8 elements.
+
+The denoising can either be averaged the group of transformation (making the denoiser equivariant) or performed on a
+single transformation sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
+equivariant denoiser.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.EquivariantDenoiser
+
+
 Unfolded architectures
 ----------------------
 Some more specific unfolded architectures are also available.
@@ -77,7 +97,8 @@ Some more specific unfolded architectures are also available.
 Pretrained weights
 ------------------
 The following denoisers have **pretrained weights** available; we next briefly summarize the origin of the weights,
-associated reference and relevant details.
+associated reference and relevant details. All pretrained weights are hosted on
+`HuggingFace <https://huggingface.co/deepinv>`_.
 
 
 .. list-table:: Summary of pretrained weights

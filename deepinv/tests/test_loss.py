@@ -135,6 +135,23 @@ def dataset(physics, tmp_path, imsize, device):
     )
 
 
+def test_notraining(physics, tmp_path, imsize, device):
+    # load dummy dataset
+    save_dir = tmp_path / "dataset"
+
+    dinv.datasets.generate_dataset(
+        train_dataset=None,
+        test_dataset=DummyCircles(samples=10, imsize=imsize),
+        physics=physics,
+        save_dir=save_dir,
+        device=device,
+    )
+
+    dataset = dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False)
+
+    assert dataset[0][0].shape == imsize
+
+
 @pytest.mark.parametrize("loss_name", LOSSES)
 def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     # choose training losses

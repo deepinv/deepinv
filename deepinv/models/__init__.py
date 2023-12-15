@@ -13,8 +13,5 @@ from .dip import DeepImagePrior, ConvDecoder
 from .diffunet import DiffUNet
 from .swinir import SwinIR
 from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
-
-try:
-    from .bm3d import BM3D
-except:
-    print("Could not import bm3d. ")
+from .bm3d import BM3D
+from .equivariant import EquivariantDenoiser
