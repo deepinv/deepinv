@@ -129,10 +129,9 @@ max_iter = 20 if torch.cuda.is_available() else 10
 lamb = 1.0  # Initial value for the regularization parameter.
 stepsize = 1.0  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
-anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = (
-    True  # use Anderson acceleration for the backward pass.
-)
+anderson_acceleration_forward = False  # use Anderson acceleration for the forward pass.
+anderson_acceleration_backward = False  # use Anderson acceleration for the backward pass.
+
 anderson_history_size = (
     5 if torch.cuda.is_available() else 3
 )  # history size for Anderson acceleration.
@@ -150,7 +149,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iteration="HQS",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    iteration="ADMM", 
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
@@ -172,7 +171,7 @@ model = DEQ_builder(
 epochs = 10
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 3
+test_batch_size = 5
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

@@ -434,12 +434,12 @@ class BaseOptim(nn.Module):
         """
         if self.crit_conv == "residual":
             if not isinstance(X["iterate"], tuple):
-                X["iterate"] = (X["iterate"],)
+                iterate = (X["iterate"],)
             if not isinstance(X_prev["iterate"], tuple):
-                X_prev["iterate"] = (X_prev["iterate"],)
+                iterate_prev = (X_prev["iterate"],)
             batch_size = X["iterate"][0].shape[0]
-            iterate = torch.cat(tuple(el.view((batch_size, -1)) for el in X["iterate"]), dim=1)
-            iterate_prev = torch.cat(tuple(el.view((batch_size, -1)) for el in X_prev["iterate"]), dim=1)
+            iterate = torch.cat(tuple(el.view((batch_size, -1)) for el in iterate), dim=1)
+            iterate_prev = torch.cat(tuple(el.view((batch_size, -1)) for el in iterate_prev), dim=1)
             crit_cur = (
                 (iterate_prev - iterate).norm(p=2, dim=-1) / (iterate.norm(p=2, dim=-1) + 1e-06)
             ).mean()

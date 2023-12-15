@@ -103,7 +103,7 @@ def tuple_from_block_image(x, shapes):
     return tuple([x[:,:,shapes[i][2]:shapes[i+1][2],shapes[i][2]] for i in range(len(shapes)-1)])
 
 
-def init_anderson_acceleration(x, history_size, dtype='float32', device='cpu'):
+def init_anderson_acceleration(x, history_size):
     r"""
     Initialize the Anderson acceleration algorithm.
 
@@ -125,12 +125,12 @@ def init_anderson_acceleration(x, history_size, dtype='float32', device='cpu'):
         B,
         history_size + 1,
         history_size + 1,
-        dtype=dtype,
-        device=device,
+        dtype=x.dtype,
+        device=x.device,
     )  # H in the Anderson acceleration linear system Hp = q .
     H[:, 0, 1:] = H[:, 1:, 0] = 1.0
     q = torch.zeros(
-        B, history_size + 1, 1, dtype=dtype, device=device
+        B, history_size + 1, 1, dtype=x.dtype, device=x.device
     )  # q in the Anderson acceleration linear system Hp = q .
     q[:, 0] = 1
     return x_hist, T_hist, H, q
@@ -194,8 +194,10 @@ def anderson_acceleration_step(
     x = (
         beta_anderson_acc * (p[:, None] @ T_hist[:, :m])[:, 0]
         + (1 - beta_anderson_acc) * (p[:, None] @ x_hist[:, :m])[:, 0]
-    )  # Anderson acceleration step.
-    x = tuple_from_block_image(x.view(x_prev.shape),x_shapes)
+    )
+    x = x.view(x_prev.shape)
+    if isinstance(x_prev, tuple):
+        x = tuple_from_block_image(x.view(x_prev.shape),x_shapes)
     estimate = iterator.get_estimate_from_iterate(
         x, cur_data_fidelity, cur_prior, cur_params, *args
     )

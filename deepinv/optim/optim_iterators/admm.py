@@ -56,7 +56,6 @@ class ADMMIteration(OptimIterator):
         """
         x = physics.A_adjoint(y)
         z = torch.zeros_like(x)
-        self.x_shape = x.shape
         iterate = (x,z)
         return {"iterate": iterate, "estimate": x}
 
@@ -72,9 +71,7 @@ class ADMMIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"iterate": (x, z), "estimate" : x, "cost": F}` containing the updated current iterate, estimate and cost.
         """
-        iterate = X['iterate']
-        _,_,H,W = self.x_shape
-        x, z = iterate[:,:,:H,:W], iterate[:,:,H:,W:]
+        x, z = X['iterate']
         if z.shape != x.shape:
             # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
