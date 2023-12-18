@@ -212,12 +212,23 @@ def test_get_GSPnP_params_deblur():
 def test_get_GSPnP_params_super_resolution():
     problem = "super-resolution"
     noise_level_img = 0.05
-    # ... Similar assertions for super-resolution
+    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img)
+
+    assert max_iter == 500
+    assert sigma_denoiser == pytest.approx(2.0 * noise_level_img)
+    assert lamb == pytest.approx(1 / 0.065)
+    assert stepsize == 1.0
 
 def test_get_GSPnP_params_inpaint():
     problem = "inpaint"
     noise_level_img = 0.05
-    # ... Similar assertions for inpaint
+    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img)
+
+    assert max_iter == 100
+    assert sigma_denoiser == pytest.approx(10.0 / 255)
+    assert lamb == pytest.approx(1 / 0.1)
+    assert stepsize == 1.0
+
 
 def test_get_GSPnP_params_invalid():
     with pytest.raises(ValueError):
