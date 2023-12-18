@@ -108,7 +108,7 @@ def test_neural_iteration_forward():
 
 
 
-#METRICS
+#METRIC
     
 from deepinv.utils.metric import cal_angle, cal_mse, cal_psnr, cal_psnr_complex, norm
 def test_norm():
