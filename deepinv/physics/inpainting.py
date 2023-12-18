@@ -32,25 +32,27 @@ class Inpainting(DecomposablePhysics):
 
     :Examples:
 
-        Inpanting operator using defined mask, removing the second column of a 3x3 image:
+        Inpainting operator using defined mask, removing the second column of a 3x3 image:
 
-        >>> x = torch.tensor([[[[1, 2, 3], [4, 5, 6], [7, 8, 9]]]])
-        >>> m = torch.tensor([0, 0, 1])
-        >>> physics = Inpainting((1, 1, 3, 3), mask=m)
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
+        >>> m = torch.zeros(1, 3, 3) # Define empty mask
+        >>> m[:, 2, :] = 1 # Keeping last line only
+        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), mask=m)
         >>> physics(x)
-        tensor([[[[0, 0, 3],
-                  [0, 0, 6],
-                  [0, 0, 9]]]])
+        tensor([[[[ 0.0000, -0.0000, -0.0000],
+                  [ 0.0000, -0.0000, -0.0000],
+                  [ 0.4033,  0.8380, -0.7193]]]])
 
         Inpainting operator using random mask, keeping 70% of the entries of a 3x3 image:
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.tensor([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
-        >>> physics = Inpainting((1, 3, 3), mask=0.7)
+        >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
+        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), mask=0.7)
         >>> physics(x)
-        tensor([[[[1., 0., 3.],
-                  [4., 5., 6.],
-                  [7., 0., 9.]]]])
+        tensor([[[[[ 1.5410, -0.0000, -2.1788],
+                   [ 0.0000, -1.0845, -1.3986],
+                   [ 0.0000,  0.8380, -0.7193]]]]])
 
     """
 

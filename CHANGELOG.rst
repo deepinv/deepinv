@@ -54,3 +54,6 @@ Authors
 .. _Andrea Sebastiani: https://github.com/sedaboni
 .. _Thomas Moreau: https://github.com/tomMoral
 .. _Hyungjin Chung: https://www.hj-chung.com/
+.. _Eliott Bourrigan: https://github.com/eliottbourrigan
+.. _Riyad Chamekh: https://github.com/riyadchk
+.. _Jules Dumouchel: https://github.com/Ruli0

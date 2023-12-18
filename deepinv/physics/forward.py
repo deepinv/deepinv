@@ -1,8 +1,7 @@
 import torch
-import numpy as np
 from deepinv.optim.utils import conjugate_gradient
-from .noise import GaussianNoise
-from deepinv.utils import zeros_like, randn_like, TensorList
+from deepinv.physics.noise import GaussianNoise
+from deepinv.utils import randn_like, TensorList
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -210,6 +209,46 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
+
+    |sep|
+
+    :Examples:
+
+        Blur operator with a basic averaging filter applied to a 128x128 black image with
+        a single white pixel in the center:
+
+        >>> from deepinv.physics.blur import Blur, Downsampling
+        >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
+        >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
+        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x)
+
+        Linear operators can also be added. The measurements produced by the resulting
+        model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
+        measurements of the corresponding operator:
+
+        >>> physics1 = Blur(filter=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 128, 128)), filter="gaussian", factor=4)
+        >>> physics = physics1 + physics2
+        >>> y = physics(x)
+
+        Linear operators can also be concatenated by multiplying them:
+
+        >>> physics = physics1 * physics2
+        >>> y = physics(x)
+
+        Linear operators also come with an adjoint, a pseudoinverse, and prox operators:
+
+        >>> x = torch.randn((1, 1, 128, 128)) # Define random 128x128 image
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x) # Compute measurements
+        >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
+        >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
+        >>> torch.norm(x - x_dagger).item() # Pseudoinverse should be close to the original image
+        25.950302124023438
+        >>> torch.norm(x - y).item() # Blurred image should be further away from the original image
+        111.6502685546875
 
     """
 
@@ -539,6 +578,23 @@ class Denoising(DecomposablePhysics):
     The linear operator is just the identity mapping :math:`A(x)=x`
 
     :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+
+    |sep|
+
+    :Examples:
+
+        Denoising operator with Gaussian noise with standard deviation 0.1:
+
+        >>> from deepinv.physics import Denoising, GaussianNoise
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
+        >>> physics = Denoising()
+        >>> physics.noise_model = GaussianNoise(sigma=0.1)
+        >>> physics(x)
+        tensor([[[[ 1.5007, -0.3531, -2.1606],
+                  [ 0.4828, -0.9745, -1.5057],
+                  [ 0.4156,  0.7814, -0.6819]]]])
+
     """
 
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):

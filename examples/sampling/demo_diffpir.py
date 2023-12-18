@@ -13,12 +13,14 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
+from deepinv.utils.demo import load_url_image, online_dataset_path
 
 # %%
 # Generate an inverse problem
 # ---------------------------
 #
-# We first generate a deblurring problem with the Butterfly image. We use a square blur kernel of size 5x5 and
+
+# We first generate a deblurring problem with the butterfly image. We use a square blur kernel of size 5x5 and
 # Gaussian noise with standard deviation 12.75/255.0.
 #
 # .. note::
@@ -26,15 +28,13 @@ from deepinv.optim.data_fidelity import L2
 #           The algorithm works best with images of size 256x256.
 #
 
-from deepinv.utils.demo import load_url_image
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = (
-    "https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
-    "download?path=%2Fdatasets&files=butterfly.png"
-)
+url = online_dataset_path() + "butterfly.png"
+
 x_true = load_url_image(url=url, img_size=64, device=device)
+
 x = x_true.clone()
 
 sigma_noise = 12.75 / 255.0  # noise level
