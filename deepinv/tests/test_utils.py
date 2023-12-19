@@ -3,9 +3,6 @@ import torch
 import pytest
 
 
-
-
-
 @pytest.fixture
 def tensorlist():
     x = torch.ones((1, 1, 2, 2))
@@ -20,7 +17,7 @@ def test_tensordict_sum(tensorlist):
     z = torch.ones((1, 1, 2, 2)) * 2
     z1 = deepinv.utils.TensorList([z, z])
     z = x + y
-    assert (z1[0] == z[0]).all() and (z1[1] == z[1]).all() 
+    assert (z1[0] == z[0]).all() and (z1[1] == z[1]).all()
 
 
 def test_tensordict_mul(tensorlist):
@@ -71,22 +68,26 @@ def test_plot():
     deepinv.utils.plot(imgs)
 
 
-
-#
+"""
 
 import torch.nn as nn
 import torch
 
 
-#OPTIMIZATION
+# OPTIMIZATION
 
-from deepinv.utils.optimization import NeuralIteration, GradientDescent, ProximalGradientDescent
+from deepinv.utils.optimization import (
+    NeuralIteration,
+    GradientDescent,
+    ProximalGradientDescent,
+)
 
 
 class MockPhysics:
     def A_adjoint(self, x):
         return x  # Mock implementation
-    
+
+
 def test_neural_iteration_initialization():
     model = NeuralIteration()
     # Pass multiple identical blocks to avoid the single block issue
@@ -96,6 +97,7 @@ def test_neural_iteration_initialization():
     assert model.step_size.size() == torch.Size([2])
     assert isinstance(model.blocks, nn.ModuleList)
     assert len(model.blocks) == 2  # Assurez-vous qu'il y a 2 blocs
+
 
 def test_neural_iteration_forward():
     model = NeuralIteration()
@@ -107,20 +109,20 @@ def test_neural_iteration_forward():
     assert torch.equal(output, y)  # On suppose que forward renvoie physics.A_adjoint(y)
 
 
+# METRIC
 
-#METRIC
-    
 from deepinv.utils.metric import cal_angle, cal_mse, cal_psnr, cal_psnr_complex, norm
+
+
 def test_norm():
-    a = torch.tensor([[[[1., 2.], [3., 4.]]]])
+    a = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]])
     expected_norm = torch.tensor([[[[5.4772]]]])
     assert torch.allclose(norm(a), expected_norm, atol=1e-4)
 
 
-
 def test_cal_angle():
-    a = torch.tensor([1., 0., 0.])
-    b = torch.tensor([0., 1., 0.])
+    a = torch.tensor([1.0, 0.0, 0.0])
+    b = torch.tensor([0.0, 1.0, 0.0])
     expected_normalized_angle = 0.5  # 90 degrés normalisés (pi/2 radians / pi)
     assert cal_angle(a, b) == pytest.approx(expected_normalized_angle, rel=1e-3)
 
@@ -134,8 +136,8 @@ def test_cal_psnr():
 
 
 def test_cal_mse():
-    a = torch.tensor([1., 2., 3.])
-    b = torch.tensor([1., 2., 3.])
+    a = torch.tensor([1.0, 2.0, 3.0])
+    b = torch.tensor([1.0, 2.0, 3.0])
     expected_mse = 0.0
     assert cal_mse(a, b) == expected_mse
 
@@ -149,10 +151,10 @@ def test_cal_psnr_complex():
     assert psnr_complex > 0
 
 
-
-#PHANTOMS
+# PHANTOMS
 from deepinv.utils.phantoms import random_shapes, random_phantom, RandomPhantomDataset
-    
+
+
 def test_random_phantom_dataset_initialization():
     size = 128
     n_data = 10
@@ -170,7 +172,6 @@ def test_random_phantom_dataset_length():
     assert len(dataset) == length
 
 
-
 def test_random_phantom_dataset_getitem():
     dataset = RandomPhantomDataset()
     phantom, _ = dataset[0]
@@ -179,11 +180,12 @@ def test_random_phantom_dataset_getitem():
     # Vérifiez d'autres propriétés, comme les dimensions, si nécessaire
 
 
-#PARAMETERS
-    
+# PARAMETERS
+
 import numpy as np
 import pytest
 from deepinv.utils.parameters import get_DPIR_params, get_GSPnP_params
+
 
 def test_get_DPIR_params():
     noise_level_img = 0.05
@@ -197,32 +199,38 @@ def test_get_DPIR_params():
     assert all(s >= 0 for s in stepsize)
 
 
-
-
 def test_get_GSPnP_params_deblur():
     problem = "deblur"
     noise_level_img = 0.05
-    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img)
+    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+        problem, noise_level_img
+    )
 
     assert max_iter == 500
     assert sigma_denoiser == pytest.approx(1.8 * noise_level_img)
     assert lamb == pytest.approx(1 / 0.1)
     assert stepsize == 1.0
 
+
 def test_get_GSPnP_params_super_resolution():
     problem = "super-resolution"
     noise_level_img = 0.05
-    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img)
+    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+        problem, noise_level_img
+    )
 
     assert max_iter == 500
     assert sigma_denoiser == pytest.approx(2.0 * noise_level_img)
     assert lamb == pytest.approx(1 / 0.065)
     assert stepsize == 1.0
 
+
 def test_get_GSPnP_params_inpaint():
     problem = "inpaint"
     noise_level_img = 0.05
-    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(problem, noise_level_img)
+    lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+        problem, noise_level_img
+    )
 
     assert max_iter == 100
     assert sigma_denoiser == pytest.approx(10.0 / 255)
@@ -233,3 +241,5 @@ def test_get_GSPnP_params_inpaint():
 def test_get_GSPnP_params_invalid():
     with pytest.raises(ValueError):
         get_GSPnP_params("invalid_problem", 0.05)
+
+"""

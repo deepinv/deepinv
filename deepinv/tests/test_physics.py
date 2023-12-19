@@ -314,15 +314,18 @@ def test_tomography(device):
         y = physics.A(r)
         error = (physics.A_dagger(y) - r).flatten().mean().abs()
         assert error < 0.2
-#Test Jules
+
+
+# Test Jules
 
 from deepinv.physics.blur import gaussian_blur
+
 
 def test_gaussian_blur_sigma_conversion():
     # Test when sigma is a single value (int or float)
     sigma = 2.0
     result = gaussian_blur(sigma)
-    expected_size = (1, 1, 15, 15)  
+    expected_size = (1, 1, 15, 15)
     assert result.size() == expected_size
 
     # Test when sigma is a tuple
@@ -331,13 +334,13 @@ def test_gaussian_blur_sigma_conversion():
     expected_size = (1, 1, 15, 15)
     assert result.size() == expected_size
 
+    # Test forward  :
 
-
-    #Test forward  : 
 
 import pytest
 import torch
 from deepinv.physics import LinearPhysics, GaussianNoise
+
 
 # Test case 1: Multiplying LinearPhysics instances
 def test_linear_physics_mul():
@@ -350,8 +353,6 @@ def test_linear_physics_mul():
 
     assert isinstance(result_physics, LinearPhysics)
     assert result_physics.A(torch.tensor(3.0)) == 6.0  # A1(A2(x)) = x * 2 * 2 = 4x
-    assert result_physics.noise_model.sigma == 0.1  # Check that noise model is from physics1
-
-
-
-
+    assert (
+        result_physics.noise_model.sigma == 0.1
+    )  # Check that noise model is from physics1

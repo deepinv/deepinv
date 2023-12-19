@@ -502,8 +502,8 @@ class BlurFFT(DecomposablePhysics):
         >>> x_new[0,:, 64, 64] = torch.Tensor([1.0, 1.0, 1.0])
 
         # Initialize a BlurFFT filter
-        >>> img_size = (1, 3, 128, 128)  
-        >>> filter = torch.ones((1, 3, 5, 5)) / 25 
+        >>> img_size = (1, 3, 128, 128)
+        >>> filter = torch.ones((1, 3, 5, 5)) / 25
         >>> physics = BlurFFT(img_size, filter)
 
         # Apply the filter to x_new
@@ -533,7 +533,6 @@ class BlurFFT(DecomposablePhysics):
 
     """
 
-
     def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.img_size = img_size
@@ -550,13 +549,12 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
+        """
+        Test the V_adjoint method of BlurFFT.
+
 
         """
-    Test the V_adjoint method of BlurFFT.
 
-    
-    """
-        
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho")
         )  # make it a true SVD (see J. Romberg notes)

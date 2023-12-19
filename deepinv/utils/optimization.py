@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 
+
 class NeuralIteration(nn.Module):
     def __init__(self):
         super(NeuralIteration, self).__init__()
