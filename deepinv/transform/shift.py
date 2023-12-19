@@ -27,6 +27,7 @@ class Shift(torch.nn.Module):
         y_shift = torch.arange(-W, W)[torch.randperm(2 * W)][: self.n_trans]
 
         out = torch.cat(
-            [torch.roll(x, [sx, sy], [-2, -1]) for sx, sy in zip(x_shift, y_shift)], dim=0
+            [torch.roll(x, [sx, sy], [-2, -1]) for sx, sy in zip(x_shift, y_shift)],
+            dim=0,
         )
         return out
