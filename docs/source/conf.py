@@ -26,7 +26,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    # "sphinx.ext.sphinx_exec_code",
+    "sphinx_exec_code",
 ]
 
 exec_code_working_dir = "../.."
