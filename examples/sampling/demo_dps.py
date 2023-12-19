@@ -23,12 +23,12 @@ import torch
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_url_image, online_dataset_path
+from deepinv.utils.demo import load_url_image, get_image_url
 from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = online_dataset_path() + "butterfly.png"
+url = get_image_url("butterfly.png")
 
 x_true = load_url_image(url=url, img_size=64).to(device)
 x = x_true.clone()

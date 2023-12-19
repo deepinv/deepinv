@@ -9,7 +9,7 @@
 
 Introduction
 ------------
-Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standarizing forward imaging models and simplifying the creation of imaging datasets.
+Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standardizing forward imaging models and simplifying the creation of imaging datasets.
 
 With ``deepinv`` you can:
 
@@ -57,8 +57,7 @@ Try out the following plug-and-play image inpainting example:
     import deepinv as dinv
     from deepinv.utils import load_url_image
 
-    url = ("https://mycore.core-cloud.net/index.php/s/9EzDqcJxQUJKYul/"
-            "download?path=%2Fdatasets&files=cameraman.png")
+    url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
     x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
 
     physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \

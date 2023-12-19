@@ -129,7 +129,7 @@ class MRI(DecomposablePhysics):
             image_size[0] // 2 - num_lines_center // 2,
             image_size[0] // 2 + num_lines_center // 2 + 1,
             steps=50,
-            dtype=torch.int,
+            dtype=torch.long,
         )
         mask[:, center_line_indices] = 1
         random_line_indices = np.random.choice(

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepinv"
-authors = [{name = "Julian Tachella", email = "tachellajulian@gmail.com"}]
+authors = [{name="Julian Tachella", email="tachellajulian@gmail.com"}]
 license = {text = "BSD 3-Clause"}
 description = "Pytorch library for solving inverse problems with deep learning"
 classifiers = [
@@ -14,17 +14,12 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.8"
-version = "0.1.0dev0"
+version = "0.1.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -65,9 +60,7 @@ doc = [
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
-    "timm",
-    "pytorch_wavelets @ git+https://github.com/fbcotter/pytorch_wavelets.git",
-    "odl @ git+https://github.com/odlgroup/odl.git"
+    "timm"
 ]
 
 

@@ -3,8 +3,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-
-from .denoiser import online_weights_path
+from .utils import get_weights_url
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -136,14 +135,13 @@ class DRUNet(nn.Module):
         )
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C")
-
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 4:
                     name = "drunet_deepinv_color.pth"
                 elif in_channels == 2:
                     name = "drunet_deepinv_gray.pth"
-                url = online_weights_path() + name
+                url = get_weights_url(model_name="drunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
@@ -158,6 +156,8 @@ class DRUNet(nn.Module):
             self.eval()
             for _, v in self.named_parameters():
                 v.requires_grad = False
+        else:
+            self.apply(weights_init_drunet)
 
         if device is not None:
             self.to(device)
@@ -184,10 +184,16 @@ class DRUNet(nn.Module):
         """
         if isinstance(sigma, torch.Tensor):
             if len(sigma.size()) > 0:
-                noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
-                noise_level_map = noise_level_map.expand(
-                    x.size(0), 1, x.size(2), x.size(3)
-                )
+                if x.get_device() > -1:
+                    sigma = sigma[
+                        int(x.get_device() * x.shape[0]) : int(
+                            (x.get_device() + 1) * x.shape[0]
+                        )
+                    ]
+                    noise_level_map = sigma.to(x.device)
+                else:
+                    noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
+                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
                 sigma = sigma.item()
                 noise_level_map = (
@@ -675,3 +681,9 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[..., :h, :w]
     return E
+
+
+def weights_init_drunet(m):
+    classname = m.__class__.__name__
+    if classname.find("Conv") != -1:
+        nn.init.orthogonal_(m.weight.data, gain=0.2)

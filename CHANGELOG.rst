@@ -3,11 +3,29 @@ Change Log
 =================
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
-Current (v0.0.2)
+Current
 ----------------
 
 New Features
 ^^^^^^^^^^^^
+
+
+Fixed
+^^^^^
+
+
+Changed
+^^^^^^^
+
+
+
+v0.1.0
+----------------
+
+New Features
+^^^^^^^^^^^^
+- Added equivariant transforms (:gh:`125` by `Matthieu Terris`_) - 07/12/2023
+- Moved datasets and weights to HuggingFace (:gh:`121` by `Samuel Hurault`_) - 01/12/2023
 - Added L1 prior, change distance in DataFidelity (:gh:`108` by `Samuel Hurault`_) - 03/11/2023
 - Added Kaiming init (:gh:`102` by `Matthieu Terris`_) - 29/10/2023
 - Added Anderson Acceleration (:gh:`86` by `Samuel Hurault`_) - 23/10/2023
@@ -23,6 +41,7 @@ New Features
 
 Fixed
 ^^^^^
+- doc fixes + training fixes (:gh:`124` by `Julian Tachella`_) - 06/12/2023
 - Add doc weights (:gh:`97` by `Matthieu Terris`_) - 24/10/2023
 - Fix BlurFFT adjoint (:gh:`89` by `Matthieu Terris`_) - 15/10/2023
 - Doc typos (:gh:`88` by `Matthieu Terris`_) - 10/10/2023

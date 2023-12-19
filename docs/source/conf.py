@@ -26,7 +26,10 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
+    "sphinx_exec_code",
 ]
+
+exec_code_working_dir = "../.."
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),

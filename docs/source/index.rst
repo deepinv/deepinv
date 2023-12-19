@@ -16,7 +16,7 @@ Featuring
 * |:boomerang:| Many :ref:`pretrained deep denoisers <models>` which can be used for :ref:`plug-and-play restoration <pnp>`.
 * |:book:| Framework for :ref:`building datasets <datasets>` for inverse problems.
 * |:building_construction:| Easy-to-build :ref:`unfolded architectures <unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
-* |:microscope:| :ref:`Sampling algorithms <sampling>` for uncertainty quantification (Langevin, diffusion, etc.).
+* |:microscope:| :ref:`Diffusion algorithms <sampling>` for image restoration and uncertainty quantification (Langevin, diffusion, etc.).
 * |:books:| A large number of well-explained :ref:`examples <examples>`, from basics to state-of-the-art methods.
 
 
@@ -62,6 +62,7 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.unfolded
    deepinv.sampling
    auto_examples/index
+   deepinv.multigpu
    deepinv.notation
    deepinv.contributing
 

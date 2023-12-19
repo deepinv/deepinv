@@ -9,7 +9,7 @@ from deepinv.sampling.langevin import MonteCarlo
 
 class DiffusionSampler(MonteCarlo):
     r"""
-    Convert a diffusion method into a full Monte Carlo sampler
+    Turns a diffusion method into a Monte Carlo sampler
 
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
@@ -242,8 +242,8 @@ class DiffPIR(nn.Module):
     :param float zeta: hyperparameter :math:`\zeta` for the sampling step (must be between 0 and 1). Default: 1.0.
     :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step
         (:math:`\rho_t = \lambda \frac{\sigma_n^2}{\bar{\sigma}_t^2}` in the paper where the optimal value range
-         between 3.0 and 25.0 depending on the problem). Default: 7.0.
-    :param bool verbose: if True, print progress
+        between 3.0 and 25.0 depending on the problem). Default: ``7.0``.
+    :param bool verbose: if ``True``, print progress
     :param str device: the device to use for the computations
     
     |sep|

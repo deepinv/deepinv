@@ -118,4 +118,15 @@ or simply as
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
+   deepinv.physics.UniformGaussianNoise
 
+Utils
+-------------
+This module also contains some utilities for physics operators.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.physics.blur.gaussian_blur

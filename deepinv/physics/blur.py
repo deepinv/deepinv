@@ -272,7 +272,7 @@ def conv(x, filter, padding):
 
 def conv_transpose(y, filter, padding):
     r"""
-    Tranposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
+    Transposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
 
     :param torch.tensor x: Image of size (B,C,W,H).
     :param torch.tensor filter: Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
@@ -430,14 +430,6 @@ class Blur(LinearPhysics):
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
     This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
-
-    .. autosummary::
-       :toctree: stubs
-       :template: myfunc_template.rst
-       :nosignatures:
-
-       deepinv.physics.blur.gaussian_blur
-
 
     :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
