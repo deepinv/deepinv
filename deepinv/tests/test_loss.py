@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
-LOSSES = ["sup", "mcei"]
+LOSSES = ["sup", "mcei", "mcei-scale"]
 LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian", "UniformGaussian"]
 
 
@@ -39,6 +39,9 @@ def choose_loss(loss_name):
     if loss_name == "mcei":
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Shift()))
+    elif loss_name == "mcei-scale":
+        loss.append(dinv.loss.MCLoss())
+        loss.append(dinv.loss.EILoss(dinv.transform.Scale()))
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(regular_mask=True, split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())

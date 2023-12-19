@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added scale transform (:gh:`135` by `Jérémy Scanvic`_) - 19/12/2023
 
 
 Fixed
