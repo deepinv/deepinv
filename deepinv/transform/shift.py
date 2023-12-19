@@ -23,10 +23,10 @@ class Shift(torch.nn.Module):
         """
         H, W = x.shape[-2:]
         assert self.n_trans <= H - 1 and self.n_trans <= W - 1
-        x = torch.arange(-H, H)[torch.randperm(2 * H)][: self.n_trans]
-        y = torch.arange(-W, W)[torch.randperm(2 * W)][: self.n_trans]
+        x_shift = torch.arange(-H, H)[torch.randperm(2 * H)][: self.n_trans]
+        y_shift = torch.arange(-W, W)[torch.randperm(2 * W)][: self.n_trans]
 
         out = torch.cat(
-            [torch.roll(x, [sx, sy], [-2, -1]) for sx, sy in zip(x, y)], dim=0
+            [torch.roll(x, [sx, sy], [-2, -1]) for sx, sy in zip(x_shift, y_shift)], dim=0
         )
         return out
