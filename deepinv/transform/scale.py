@@ -1,3 +1,4 @@
+# code from https://github.com/jscanvic/Scale-Equivariant-Imaging
 import torch
 import torch.nn.functional as F
 from torch.nn import Module
@@ -14,8 +15,9 @@ def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu"):
 
 
 class Scale(Module):
-    """
+    r"""
     2D Scaling.
+
     Resample the input image on a grid obtained using
     an isotropic dilation, with random scale factor
     and origin. By default, the input image is viewed
@@ -23,8 +25,8 @@ class Scale(Module):
     by reflections. Additionally, resampling is performed
     using bicubic interpolation.
 
-    See https://arxiv.org/abs/2312.11232
-    Code from https://github.com/jscanvic/Scale-Equivariant-Imaging
+    See the paper `Self-Supervised Learning for Image Super-Resolution and Deblurring <https://arxiv.org/abs/2312.11232>`_
+    for more details.
 
     :param list factors: list of scale factors (default: [.75, .5])
     :param str padding_mode: padding mode for grid sampling
@@ -39,6 +41,12 @@ class Scale(Module):
         self.mode = mode
 
     def forward(self, x):
+        r"""
+        Applies a random scaling to the input image.
+
+        :param torch.Tensor x: input image
+        :return: scaled image
+        """
         b, _, h, w = x.shape
 
         # Sample a random scale factor for each batch element

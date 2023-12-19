@@ -17,14 +17,20 @@ class Rotate(torch.nn.Module):
         super(Rotate, self).__init__()
         self.n_trans, self.group_size = n_trans, degrees
 
-    def forward(self, data):
+    def forward(self, x):
+        r"""
+        Applies a random rotation to the input image.
+
+        :param torch.Tensor x: input image
+        :return: torch.Tensor containing the rotated images concatenated along the first dimension
+        """
         if self.group_size == 360:
             theta = np.arange(0, 360)[1:][torch.randperm(359)]
             theta = theta[: self.n_trans]
         else:
             theta = np.arange(0, 360, int(360 / (self.group_size + 1)))[1:]
             theta = theta[torch.randperm(self.group_size)][: self.n_trans]
-        return torch.cat([rotate(data, float(_theta)) for _theta in theta])
+        return torch.cat([rotate(x, float(_theta)) for _theta in theta])
 
 
 # if __name__ == "__main__":
