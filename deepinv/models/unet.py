@@ -66,7 +66,7 @@ class UNet(nn.Module):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param bool|str batch_norm: if False, no batchnorm applied, if True, use `BFBatchNorm2d`, if `noiseless`, use 
+    :param bool|str batch_norm: if False, no batchnorm applied, if True, use `BFBatchNorm2d`, if `noiseless`, use
         `nn.BatchNorm2d`.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
@@ -93,9 +93,9 @@ class UNet(nn.Module):
         self.cat = cat
         self.compact = scales
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
-        
+
         noiseless = batch_norm != "noiseless"
-        
+
         def conv_block(ch_in, ch_out):
             if batch_norm:
                 return nn.Sequential(
@@ -108,12 +108,16 @@ class UNet(nn.Module):
                         bias=bias,
                         padding_mode="circular" if circular_padding else "zeros",
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias) if noiseless else nn.BatchNorm2d(ch_out),
+                    BFBatchNorm2d(ch_out, use_bias=bias)
+                    if noiseless
+                    else nn.BatchNorm2d(ch_out),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias) if noiseless else nn.BatchNorm2d(ch_out),
+                    BFBatchNorm2d(ch_out, use_bias=bias)
+                    if noiseless
+                    else nn.BatchNorm2d(ch_out),
                     nn.ReLU(inplace=True),
                 )
             else:
@@ -141,7 +145,9 @@ class UNet(nn.Module):
                     nn.Conv2d(
                         ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias) if noiseless else nn.BatchNorm2d(ch_out),
+                    BFBatchNorm2d(ch_out, use_bias=bias)
+                    if noiseless
+                    else nn.BatchNorm2d(ch_out),
                     nn.ReLU(inplace=True),
                 )
             else:
