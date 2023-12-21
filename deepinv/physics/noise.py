@@ -114,7 +114,7 @@ class PoissonNoise(torch.nn.Module):
         :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
-        y = torch.poisson(x / self.gain)
+        y = torch.poisson(torch.clip(x / self.gain, min=0.))
         if self.normalize:
             y *= self.gain
         return y
