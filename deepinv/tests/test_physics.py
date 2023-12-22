@@ -148,7 +148,6 @@ def test_operators_adjointness(name, device):
     physics, imsize, _ = find_operator(name, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
-    print(physics.__module__)
     assert error < 1e-3
 
 
