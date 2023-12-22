@@ -13,6 +13,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed noise additive model for DecomposablePhysics (:gh:`138` by `Matthieu Terris`_) - 22/12/2023
 
 
 Changed
