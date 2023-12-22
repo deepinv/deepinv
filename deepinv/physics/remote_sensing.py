@@ -73,7 +73,7 @@ class Pansharpen(LinearPhysics):
         self.colorize = Decolorize()
 
     def A(self, x):
-        return TensorList([self.downsampling(x), self.colorize(x)])
+        return TensorList([self.downsampling.A(x), self.colorize.A(x)])
 
     def A_adjoint(self, y):
         return self.downsampling.A_adjoint(y[0]) + self.colorize.A_adjoint(y[1])

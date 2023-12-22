@@ -148,6 +148,7 @@ def test_operators_adjointness(name, device):
     physics, imsize, _ = find_operator(name, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
+    print(physics.__module__)
     assert error < 1e-3
 
 
@@ -273,6 +274,30 @@ def test_noise(device, noise_type):
         y2 = physics(x)
         error = (y1 - y2).flatten().abs().sum()
         assert error > 0.0
+
+
+def test_noise_domain(device):
+    r"""
+    Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
+    n=0 where Ax=0.
+    """
+    x = torch.ones((3, 12, 7), device=device).unsqueeze(0)
+    mask = torch.ones_like(x[0])
+    # mask[:, x.shape[-2]//2-3:x.shape[-2]//2+3, x.shape[-1]//2-3:x.shape[-1]//2+3] = 0
+    mask[0, 0, 0] = 0
+    mask[1, 1, 1] = 0
+    mask[2, 2, 2] = 0
+
+    physics = dinv.physics.Inpainting(tensor_size=x.shape, mask=mask, device=device)
+    physics.noise_model = choose_noise("Gaussian")
+    y1 = physics(
+        x
+    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    assert y1.shape == x.shape
+
+    assert y1[0, 0, 0, 0] == 0
+    assert y1[0, 1, 1, 1] == 0
+    assert y1[0, 2, 2, 2] == 0
 
 
 def test_reset_noise(device):
