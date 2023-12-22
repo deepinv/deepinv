@@ -8,7 +8,7 @@ class Shift(torch.nn.Module):
     Generates n_transf randomly shifted versions of 2D images with circular padding.
 
     :param n_trans: number of shifted versions generated per input image.
-    :param shift_max: maximum shift as fraction of total height/width
+    :param float shift_max: maximum shift as fraction of total height/width.
     """
 
     def __init__(self, n_trans=1, shift_max=1):
