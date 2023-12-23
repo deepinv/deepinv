@@ -237,9 +237,9 @@ class LinearPhysics(Physics):
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
         If :math:`A` is linear, it should be the exact transpose of the forward matrix.
 
-        .. note:
+        .. note::
 
-            If problem is non-linear, there is not a well-defined transpose operation,
+            If the problem is non-linear, there is not a well-defined transpose operation,
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
         :param torch.Tensor y: measurements.
