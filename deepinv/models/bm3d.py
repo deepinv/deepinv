@@ -13,13 +13,16 @@ class BM3D(nn.Module):
     """
     BM3D denoiser.
 
-
     This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
-    The denoiser is applied sequentially to each noisy image in the batch.
 
     The BM3D denoiser was introduced in "Image denoising by sparse 3D transform-domain collaborative filtering", by
     Davob et al., IEEE Transactions on Image Processing (2007).
 
+
+    .. note::
+
+        Unlike other denoisers from the library, this denoiser is applied sequentially to each noisy image in the batch
+        (no parallelization). Furthermore, it does not support backpropagation.
 
     """
 
@@ -49,9 +52,16 @@ class BM3D(nn.Module):
 
 def tensor2array(img):
     img = img.cpu().detach().numpy()
-    img = np.transpose(img, (1, 2, 0))
+    if img.shape[0] == 3:  # Color case: cast to BM3D format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
+    else:  # Grayscale case: cast to BM3D format (W,H)
+        img = img[0]
     return img
 
 
 def array2tensor(img):
-    return torch.from_numpy(img).permute(2, 0, 1)
+    if len(img.shape) == 3:  # Color case: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
+    else:  # Grayscale case: back to (1,W,H)
+        out = torch.from_numpy(img).unsqueeze(0)
+    return out
