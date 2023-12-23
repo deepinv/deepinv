@@ -99,9 +99,7 @@ def test_denoiser_color(imsize, device, denoiser):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
-
     if denoiser != "scunet":  # scunet does not support 1 channel
-
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
