@@ -1,3 +1,4 @@
+import torch
 from deepinv.utils import zeros_like
 
 
@@ -27,7 +28,8 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     """
     Standard conjugate gradient algorithm to solve Ax=b
-        see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
+        see: https://en.wikipedia.org/wiki/Conjugate_gradient_method
+
     :param A: Linear operator as a callable function, has to be square!
     :param b: input tensor
     :param max_iter: maximum number of CG iterations
@@ -37,8 +39,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     """
 
     def dot(s1, s2):
-        dot = (s1 * s2).flatten().sum()
-        return dot
+        return torch.vdot(s1.flatten(), s2.flatten())
 
     x = zeros_like(b)
 
@@ -51,8 +52,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
         alpha = rsold / dot(p, Ap)
         x = x + p * alpha
         r = r + Ap * (-alpha)
-        rsnew = dot(r, r)
-        # print(rsnew.sqrt())
+        rsnew = r.flatten().norm() ** 2
         if rsnew.sqrt() < tol:
             break
         p = r + p * (rsnew / rsold)
