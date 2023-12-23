@@ -84,7 +84,7 @@ def choose_denoiser(name, imsize):
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
-def test_denoiser(imsize, device, denoiser):
+def test_denoiser_color(imsize, device, denoiser):
     model = choose_denoiser(denoiser, imsize).to(device)
 
     torch.manual_seed(0)
@@ -95,6 +95,23 @@ def test_denoiser(imsize, device, denoiser):
     x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize("denoiser", MODEL_LIST)
+def test_denoiser_gray(imsize_1_channel, device, denoiser):
+
+    if denoiser != "scunet":  # scunet does not support 1 channel
+
+        model = choose_denoiser(denoiser, imsize_1_channel).to(device)
+
+        torch.manual_seed(0)
+        sigma = 0.2
+        physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+        x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+        y = physics(x)
+        x_hat = model(y, sigma)
+
+        assert x_hat.shape == x.shape
 
 
 def test_equivariant(imsize, device):
