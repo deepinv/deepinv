@@ -68,8 +68,6 @@ def test_plot():
     deepinv.utils.plot(imgs)
 
 
-"""
-
 import torch.nn as nn
 import torch
 
@@ -151,35 +149,6 @@ def test_cal_psnr_complex():
     assert psnr_complex > 0
 
 
-# PHANTOMS
-from deepinv.utils.phantoms import random_shapes, random_phantom, RandomPhantomDataset
-
-
-def test_random_phantom_dataset_initialization():
-    size = 128
-    n_data = 10
-    length = 100
-    dataset = RandomPhantomDataset(size=size, n_data=n_data, length=length)
-
-    assert dataset.space.shape == (size, size)
-    assert dataset.n_data == n_data
-    assert len(dataset) == length
-
-
-def test_random_phantom_dataset_length():
-    length = 100
-    dataset = RandomPhantomDataset(length=length)
-    assert len(dataset) == length
-
-
-def test_random_phantom_dataset_getitem():
-    dataset = RandomPhantomDataset()
-    phantom, _ = dataset[0]
-
-    assert isinstance(phantom, torch.Tensor)
-    # Vérifiez d'autres propriétés, comme les dimensions, si nécessaire
-
-
 # PARAMETERS
 
 import numpy as np
@@ -241,5 +210,3 @@ def test_get_GSPnP_params_inpaint():
 def test_get_GSPnP_params_invalid():
     with pytest.raises(ValueError):
         get_GSPnP_params("invalid_problem", 0.05)
-
-"""
