@@ -487,8 +487,7 @@ class BlurFFT(DecomposablePhysics):
     def U_adjoint(self, x):
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho") * torch.conj(self.angle)
-        )  # make it a true SVD (see J.
-        # Romberg notes)
+        )  # make it a true SVD (see J. Romberg notes)
 
     def V(self, x):
         return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
