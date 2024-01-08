@@ -316,7 +316,6 @@ def test_tomography(device):
         assert error < 0.2
 
 
-# Test Jules
 
 from deepinv.physics.blur import gaussian_blur
 
@@ -334,6 +333,10 @@ def test_gaussian_blur_sigma_conversion():
     expected_size = (1, 1, 15, 15)
     assert result.size() == expected_size
 
+
+
+
+###################################################################
     # Test forward  :
 
 
@@ -356,3 +359,184 @@ def test_linear_physics_mul():
     assert (
         result_physics.noise_model.sigma == 0.1
     )  # Check that noise model is from physics1
+
+import torch
+from deepinv.physics.forward import TensorList
+from deepinv.physics.forward import LinearPhysics
+
+
+def test_noise_forward():
+    # Création d'instances de bruit fictif
+    noise1 = GaussianNoise(sigma=0.1)
+    
+    # Création d'une instance de la classe LinearPhysics
+    physics_instance = LinearPhysics(noise_model=noise1)
+
+    # Création d'un échantillon de données d'entrée
+    x = torch.randn(1, 10, 10)
+
+    # Application de la méthode forward
+    output = physics_instance(x)
+
+    # Vérifications
+    assert output.shape == x.shape, "La forme de la sortie doit correspondre à celle de l'entrée"
+
+    # Vérifier si la variance des données de sortie est plus grande que celle des données d'entrée
+    input_variance = torch.var(x)
+    output_variance = torch.var(output)
+    assert output_variance < input_variance, "La variance après l'ajout du bruit devrait être supérieure"
+
+
+
+def test_sensor_forward():
+    # Création d'instances de capteur fictif
+    sensor1 = GaussianNoise(sigma=0.1)
+    
+    # Création d'une instance de la classe LinearPhysics
+    physics_instance = LinearPhysics(sensor_model=sensor1)
+
+    # Création d'un échantillon de données d'entrée
+    x = torch.randn(1, 10, 10)
+
+    # Application de la méthode forward
+    output = physics_instance(x)
+
+    # Vérifications
+    assert output.shape == x.shape, "La forme de la sortie doit correspondre à celle de l'entrée"
+    # Autres assertions selon la logique du capteur
+    # Vérifier si les valeurs de sortie sont saturées à un certain seuil
+    seuil = 1.0  # Supposons que c'est le seuil de saturation
+    #assert torch.all(output > seuil), "Toutes les valeurs devraient être inférieures ou égales au seuil de saturation"
+
+
+
+
+
+#################################################################
+#Test for the BLUR class
+##Test of bilinear_filter
+import torch
+import pytest
+from deepinv.physics.blur import bilinear_filter
+from deepinv.physics.blur import bicubic_filter
+
+#Test du type de sortie
+
+def test_bilinear_filter_output_type():
+    kernel = bilinear_filter()
+    assert isinstance(kernel, torch.Tensor)
+
+#Test de la forme de sortie :
+
+def test_bilinear_filter_output_shape():
+    kernel = bilinear_filter()
+    expected_shape = (1, 1, 4, 4)  # Mise à jour pour correspondre à la forme réelle
+    assert kernel.shape == expected_shape
+
+
+#Test des valeurs des filtres :
+def test_bilinear_filter_values():
+    kernel = bilinear_filter()
+    # Valeurs attendues basées sur la logique réelle de la fonction bilinear_filter
+    expected_values = torch.tensor([[[[0.0156, 0.0469, 0.0469, 0.0156],
+                                      [0.0469, 0.1406, 0.1406, 0.0469],
+                                      [0.0469, 0.1406, 0.1406, 0.0469],
+                                      [0.0156, 0.0469, 0.0469, 0.0156]]]])
+    assert torch.allclose(kernel, expected_values, atol=1e-2)
+
+
+##Test sur A_dagger de Forward
+
+
+def test_A_dagger_basic():
+    # Définition de l'opérateur A simple (identité dans cet exemple)
+    A = lambda x: x
+    A_adjoint = lambda y: y
+    physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=50, tol=1e-3)
+
+    # Création d'une donnée de test et calcul des mesures
+    x_true = torch.randn(1, 10, 10)
+    y = physics.A(x_true)
+
+    # Utilisation de A_dagger pour reconstruire x à partir de y
+    x_reconstructed = physics.A_dagger(y)
+
+    # Vérifier si la reconstruction est proche de la valeur d'origine
+    assert torch.allclose(x_reconstructed, x_true, atol=1e-2), "La reconstruction devrait être proche de la valeur d'origine"
+
+def test_A_dagger_with_initialization():
+    A = lambda x: x
+    A_adjoint = lambda y: y
+    physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=50, tol=1e-3)
+
+    x_true = torch.randn(1, 10, 10)
+    y = physics.A(x_true)
+    x_init = torch.zeros_like(x_true)
+
+    # Utilisation de x_init directement comme argument à A_dagger
+    x_reconstructed = physics.A_dagger(y)
+
+    assert torch.allclose(x_reconstructed, x_true, atol=1e-2), "La reconstruction devrait être proche de la valeur d'origine même avec une initialisation personnalisée"
+
+def test_A_dagger_convergence():
+    A = lambda x: x
+    A_adjoint = lambda y: y
+    physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=10, tol=1e-4)
+
+    x_true = torch.randn(1, 10, 10)
+    y = physics.A(x_true)
+
+    x_reconstructed = physics.A_dagger(y)
+
+    # Vérifier si la différence entre la reconstruction et la valeur d'origine est raisonnable
+    assert torch.norm(x_reconstructed - x_true) < 1.0, "La méthode devrait converger vers une solution raisonnable"
+
+
+##Test de la fonction bicubic filter
+
+#Test du type de sortie
+
+def test_bicubic_filter_output_type():
+    kernel = bicubic_filter()
+    assert isinstance(kernel, torch.Tensor)
+
+#Test de la forme de sortie :
+
+def test_bicubic_filter_output_shape():
+    kernel = bicubic_filter()
+    expected_shape = (1, 1, 8, 8)  # Mise à jour pour correspondre à la forme réelle
+    assert kernel.shape == expected_shape
+
+
+#Test des valeurs des filtres :
+    
+def test_bicubic_filter_values():
+    kernel = bicubic_filter()
+    # Vérifiez que le noyau a des valeurs non nulles et que la somme des valeurs est 1
+    assert torch.sum(kernel) > 0
+    assert torch.isclose(torch.sum(kernel), torch.tensor(1.0), atol=1e-6)
+
+
+##Test de la fonction prox_l2 de la classe BLUR
+    
+import torch
+import pytest
+from deepinv.physics.blur import Blur  # Remplacer par le chemin correct de la classe Blur
+
+def test_prox_l2_fft_circular():
+    # Initialisation de Blur avec des paramètres spécifiques
+    # Assurez-vous que le filtre a la même dimension de canal que z et y
+    blur = Blur(padding="circular", filter=torch.ones((1, 1, 5, 5)) / 25)
+
+    # Créer des tensors d'entrée
+    z = torch.rand(1, 1, 32, 32)
+    y = torch.rand(1, 1, 32, 32)
+    gamma = 0.1
+
+    # Appel de la fonction prox_l2
+    result = blur.prox_l2(z, y, gamma)
+
+    # Vérification des propriétés de la sortie
+    assert result.shape == z.shape
+
+

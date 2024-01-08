@@ -81,10 +81,21 @@ from deepinv.utils.optimization import (
 )
 
 
+# Mock Physics Class for Testing
 class MockPhysics:
-    def A_adjoint(self, x):
-        return x  # Mock implementation
+    def __init__(self, device='cpu'):
+        self.device = device
 
+    def A(self, x):
+        # Implémentation fictive de A
+        return x
+
+    def A_adjoint(self, y):
+        # Implémentation fictive de A_adjoint
+        return y
+
+
+##Neural iteration
 
 def test_neural_iteration_initialization():
     model = NeuralIteration()
@@ -105,6 +116,22 @@ def test_neural_iteration_forward():
     y = torch.randn(10, 10)
     output = model.forward(y, physics)
     assert torch.equal(output, y)  # On suppose que forward renvoie physics.A_adjoint(y)
+
+##Gradient Descent  
+
+
+
+##Proximal Gradient Descent
+    
+# Dans la fixture de test
+@pytest.fixture
+def setup_proximal_gradient_descent():
+    physics = MockPhysics()
+    backbone_blocks = [torch.nn.Linear(10, 10) for _ in range(1)]  # Liste de modules nn.Module
+    step_size = 1.0
+    iterations = 1
+    return ProximalGradientDescent(backbone_blocks, step_size, iterations), physics
+
 
 
 # METRIC
