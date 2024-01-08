@@ -384,7 +384,7 @@ def test_noise_forward():
     # Vérifier si la variance des données de sortie est plus grande que celle des données d'entrée
     input_variance = torch.var(x)
     output_variance = torch.var(output)
-    assert output_variance < input_variance, "La variance après l'ajout du bruit devrait être supérieure"
+    assert output_variance > input_variance, "La variance après l'ajout du bruit devrait être supérieure"
 
 
 
@@ -445,51 +445,51 @@ def test_bilinear_filter_values():
     assert torch.allclose(kernel, expected_values, atol=1e-2)
 
 
-##Test sur A_dagger de Forward
+    ##Test sur A_dagger de Forward
 
 
-def test_A_dagger_basic():
-    # Définition de l'opérateur A simple (identité dans cet exemple)
-    A = lambda x: x
-    A_adjoint = lambda y: y
-    physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=50, tol=1e-3)
+    def test_A_dagger_basic():
+        # Définition de l'opérateur A simple (identité dans cet exemple)
+        A = lambda x: x
+        A_adjoint = lambda y: y
+        physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=50, tol=1e-3)
 
-    # Création d'une donnée de test et calcul des mesures
-    x_true = torch.randn(1, 10, 10)
-    y = physics.A(x_true)
+        # Création d'une donnée de test et calcul des mesures
+        x_true = torch.randn(1, 10, 10)
+        y = physics.A(x_true)
 
-    # Utilisation de A_dagger pour reconstruire x à partir de y
-    x_reconstructed = physics.A_dagger(y)
+        # Utilisation de A_dagger pour reconstruire x à partir de y
+        x_reconstructed = physics.A_dagger(y)
 
-    # Vérifier si la reconstruction est proche de la valeur d'origine
-    assert torch.allclose(x_reconstructed, x_true, atol=1e-2), "La reconstruction devrait être proche de la valeur d'origine"
+        # Vérifier si la reconstruction est proche de la valeur d'origine
+        assert torch.allclose(x_reconstructed, x_true, atol=1e-2), "La reconstruction devrait être proche de la valeur d'origine"
 
-def test_A_dagger_with_initialization():
-    A = lambda x: x
-    A_adjoint = lambda y: y
-    physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=50, tol=1e-3)
+    def test_A_dagger_with_initialization():
+        A = lambda x: x
+        A_adjoint = lambda y: y
+        physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=50, tol=1e-3)
 
-    x_true = torch.randn(1, 10, 10)
-    y = physics.A(x_true)
-    x_init = torch.zeros_like(x_true)
+        x_true = torch.randn(1, 10, 10)
+        y = physics.A(x_true)
+        x_init = torch.zeros_like(x_true)
 
-    # Utilisation de x_init directement comme argument à A_dagger
-    x_reconstructed = physics.A_dagger(y)
+        # Utilisation de x_init directement comme argument à A_dagger
+        x_reconstructed = physics.A_dagger(y)
 
-    assert torch.allclose(x_reconstructed, x_true, atol=1e-2), "La reconstruction devrait être proche de la valeur d'origine même avec une initialisation personnalisée"
+        assert torch.allclose(x_reconstructed, x_true, atol=1e-2), "La reconstruction devrait être proche de la valeur d'origine même avec une initialisation personnalisée"
 
-def test_A_dagger_convergence():
-    A = lambda x: x
-    A_adjoint = lambda y: y
-    physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=10, tol=1e-4)
+    def test_A_dagger_convergence():
+        A = lambda x: x
+        A_adjoint = lambda y: y
+        physics = LinearPhysics(A=A, A_adjoint=A_adjoint, max_iter=10, tol=1e-4)
 
-    x_true = torch.randn(1, 10, 10)
-    y = physics.A(x_true)
+        x_true = torch.randn(1, 10, 10)
+        y = physics.A(x_true)
 
-    x_reconstructed = physics.A_dagger(y)
+        x_reconstructed = physics.A_dagger(y)
 
-    # Vérifier si la différence entre la reconstruction et la valeur d'origine est raisonnable
-    assert torch.norm(x_reconstructed - x_true) < 1.0, "La méthode devrait converger vers une solution raisonnable"
+        # Vérifier si la différence entre la reconstruction et la valeur d'origine est raisonnable
+        assert torch.norm(x_reconstructed - x_true) < 1.0, "La méthode devrait converger vers une solution raisonnable"
 
 
 ##Test de la fonction bicubic filter
