@@ -19,7 +19,7 @@ Fixed
 
 Changed
 ^^^^^^^
-
+- Rephrased the README (:gh:`142` by `Jérémy Scanvic`_) - 09/01/2024
 
 
 v0.1.0
