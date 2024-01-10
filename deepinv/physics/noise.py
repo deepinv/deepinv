@@ -97,10 +97,11 @@ class PoissonNoise(torch.nn.Module):
 
     :param float gain: gain of the noise.
     :param bool normalize: normalize the output.
+    :param bool clip_positive: clip the input to be positive before adding noise. This may be needed when a NN outputs negative values e.g. when using LeakyReLU.
 
     """
 
-    def __init__(self, gain=1.0, normalize=True):
+    def __init__(self, gain=1.0, normalize=True, clip_positive=False):
         super().__init__()
         self.normalize = torch.nn.Parameter(
             torch.tensor(normalize), requires_grad=False
@@ -114,7 +115,7 @@ class PoissonNoise(torch.nn.Module):
         :param torch.Tensor x: measurements
         :returns: noisy measurements
         """
-        y = torch.poisson(torch.clip(x / self.gain, min=0.0))
+        y = torch.poisson(torch.clip(x / self.gain, min=0.0) if clip_positive else x / self.gain)
         if self.normalize:
             y *= self.gain
         return y
