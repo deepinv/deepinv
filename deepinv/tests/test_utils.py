@@ -83,19 +83,20 @@ from deepinv.utils.optimization import (
 
 # Mock Physics Class for Testing
 class MockPhysics:
-    def __init__(self, device='cpu'):
+    def __init__(self, device="cpu"):
         self.device = device
 
     def A(self, x):
-        # Implémentation fictive de A
+        # Mock implementation of A
         return x
 
     def A_adjoint(self, y):
-        # Implémentation fictive de A_adjoint
+        # Mock implementation of A_adjoint
         return y
 
 
-##Neural iteration
+## Neural Iteration
+
 
 def test_neural_iteration_initialization():
     model = NeuralIteration()
@@ -105,7 +106,7 @@ def test_neural_iteration_initialization():
     assert model.iterations == 2
     assert model.step_size.size() == torch.Size([2])
     assert isinstance(model.blocks, nn.ModuleList)
-    assert len(model.blocks) == 2  # Assurez-vous qu'il y a 2 blocs
+    assert len(model.blocks) == 2  # Ensure there are 2 blocks
 
 
 def test_neural_iteration_forward():
@@ -115,23 +116,24 @@ def test_neural_iteration_forward():
     physics = MockPhysics()
     y = torch.randn(10, 10)
     output = model.forward(y, physics)
-    assert torch.equal(output, y)  # On suppose que forward renvoie physics.A_adjoint(y)
-
-##Gradient Descent  
+    assert torch.equal(output, y)  # Assuming forward returns physics.A_adjoint(y)
 
 
+## Gradient Descent
 
-##Proximal Gradient Descent
-    
-# Dans la fixture de test
+## Proximal Gradient Descent
+
+
+# In the test fixture
 @pytest.fixture
 def setup_proximal_gradient_descent():
     physics = MockPhysics()
-    backbone_blocks = [torch.nn.Linear(10, 10) for _ in range(1)]  # Liste de modules nn.Module
+    backbone_blocks = [
+        torch.nn.Linear(10, 10) for _ in range(1)
+    ]  # List of nn.Module modules
     step_size = 1.0
     iterations = 1
     return ProximalGradientDescent(backbone_blocks, step_size, iterations), physics
-
 
 
 # METRIC
@@ -148,7 +150,7 @@ def test_norm():
 def test_cal_angle():
     a = torch.tensor([1.0, 0.0, 0.0])
     b = torch.tensor([0.0, 1.0, 0.0])
-    expected_normalized_angle = 0.5  # 90 degrés normalisés (pi/2 radians / pi)
+    expected_normalized_angle = 0.5  # 90 degrees normalized (pi/2 radians / pi)
     assert cal_angle(a, b) == pytest.approx(expected_normalized_angle, rel=1e-3)
 
 
@@ -170,8 +172,8 @@ def test_cal_mse():
 def test_cal_psnr_complex():
     a = torch.randn((1, 2, 10, 10))  # Simulated complex data
     b = torch.randn((1, 2, 10, 10))
-    # Le test vérifiera si la fonction s'exécute sans erreurs
-    # et retourne un résultat raisonnable, mais ne peut pas prédire la valeur exacte
+    # The test will check if the function executes without errors
+    # and returns a reasonable result, but cannot predict the exact value
     psnr_complex = cal_psnr_complex(a, b)
     assert psnr_complex > 0
 
