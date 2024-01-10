@@ -277,9 +277,9 @@ class LinearPhysics(Physics):
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
         If :math:`A` is linear, it should be the exact transpose of the forward matrix.
 
-        .. note:
+        .. note::
 
-            If problem is non-linear, there is not a well-defined transpose operation,
+            If the problem is non-linear, there is not a well-defined transpose operation,
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
         :param torch.Tensor y: measurements.
@@ -530,6 +530,21 @@ class DecomposablePhysics(LinearPhysics):
             mask = torch.conj(self.mask)
 
         return self.V(mask * self.U_adjoint(y))
+
+    def noise(self, x):
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
+
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
+        """
+        if not isinstance(self.mask, float):
+            noise = self.U(
+                self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
+            )
+        else:
+            noise = self.noise_model(x)
+        return noise
 
     def prox_l2(self, z, y, gamma):
         r"""

@@ -53,6 +53,7 @@ This submodule contains different transforms which can be used for data augmenta
 
     deepinv.transform.Rotate
     deepinv.transform.Shift
+    deepinv.transform.Scale
 
 Network Regularization
 ----------------------
