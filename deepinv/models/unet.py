@@ -62,7 +62,7 @@ class UNet(nn.Module):
 
     .. warning::
         When using the bias-free batch norm `BFBatchNorm2d` via `batch_norm=biasfree`, NaNs may be encountered
-        during training, causing the whole training procedure to fail.  
+        during training, causing the whole training procedure to fail.
 
     :param int in_channels: input image channels
     :param int out_channels: output image channels

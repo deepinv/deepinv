@@ -11,7 +11,7 @@ class Shift(torch.nn.Module):
     :param float shift_max: maximum shift as fraction of total height/width.
     """
 
-    def __init__(self, n_trans=1, shift_max=1.):
+    def __init__(self, n_trans=1, shift_max=1.0):
         super(Shift, self).__init__()
         self.n_trans = n_trans
         self.shift_max = shift_max
