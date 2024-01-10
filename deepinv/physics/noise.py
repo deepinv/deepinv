@@ -107,6 +107,7 @@ class PoissonNoise(torch.nn.Module):
             torch.tensor(normalize), requires_grad=False
         )
         self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
+        self.clip_positive = clip_positive
 
     def forward(self, x):
         r"""
@@ -116,7 +117,7 @@ class PoissonNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         y = torch.poisson(
-            torch.clip(x / self.gain, min=0.0) if clip_positive else x / self.gain
+            torch.clip(x / self.gain, min=0.0) if self.clip_positive else x / self.gain
         )
         if self.normalize:
             y *= self.gain
