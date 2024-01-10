@@ -60,12 +60,18 @@ class UNet(nn.Module):
     can be controlled with the `scales` parameter. The number of trainable parameters increases with the number of
     scales.
 
+    .. warning::
+        When using the bias-free batch norm `BFBatchNorm2d` via `batch_norm=biasfree`, NaNs may be encountered
+        during training, causing the whole training procedure to fail.
+
     :param int in_channels: input image channels
     :param int out_channels: output image channels
     :param bool residual: use a skip-connection between output and output.
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
+    :param bool|str batch_norm: if False, no batchnorm applied, if True, use `nn.BatchNorm2d`, if `biasfree`, use
+        `BFBatchNorm2d` from `"Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks" by Mohan et al. <https://arxiv.org/abs/1906.05478>`_.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
     """
@@ -92,6 +98,8 @@ class UNet(nn.Module):
         self.compact = scales
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
+        biasfree = batch_norm == "biasfree"
+
         def conv_block(ch_in, ch_out):
             if batch_norm:
                 return nn.Sequential(
@@ -104,12 +112,16 @@ class UNet(nn.Module):
                         bias=bias,
                         padding_mode="circular" if circular_padding else "zeros",
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias),
+                    BFBatchNorm2d(ch_out, use_bias=bias)
+                    if biasfree
+                    else nn.BatchNorm2d(ch_out),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias),
+                    BFBatchNorm2d(ch_out, use_bias=bias)
+                    if biasfree
+                    else nn.BatchNorm2d(ch_out),
                     nn.ReLU(inplace=True),
                 )
             else:
@@ -137,7 +149,9 @@ class UNet(nn.Module):
                     nn.Conv2d(
                         ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias),
+                    BFBatchNorm2d(ch_out, use_bias=bias)
+                    if biasfree
+                    else nn.BatchNorm2d(ch_out),
                     nn.ReLU(inplace=True),
                 )
             else:
