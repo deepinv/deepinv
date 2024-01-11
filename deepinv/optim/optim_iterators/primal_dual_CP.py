@@ -58,7 +58,7 @@ class CPIteration(OptimIterator):
         :return: Minimizer of F.
         """
         return iterate[0]
-    
+
     def init_algo(self, y, physics):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
@@ -73,7 +73,7 @@ class CPIteration(OptimIterator):
         x = physics.A_adjoint(y)
         u = y
         z = torch.zeros_like(x)
-        iterate = (x,u,z)
+        iterate = (x, u, z)
         return {"iterate": iterate, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
@@ -88,7 +88,7 @@ class CPIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        iterate = X['iterate']
+        iterate = X["iterate"]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = (
             lambda x: cur_params["K_adjoint"](x)
@@ -107,7 +107,7 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
-        iterate = (x,u,z)
+        iterate = (x, u, z)
         estimate = x
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)

@@ -153,7 +153,9 @@ class FixedPoint(nn.Module):
             else None
         )
         if self.anderson_acceleration:
-            x_hist, T_hist, H, q = init_anderson_acceleration(X['iterate'], self.history_size)
+            x_hist, T_hist, H, q = init_anderson_acceleration(
+                X["iterate"], self.history_size
+            )
         it = 0
         while it < self.max_iter:
             cur_params = self.update_params_fn(it) if self.update_params_fn else None

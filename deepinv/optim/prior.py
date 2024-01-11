@@ -63,7 +63,9 @@ class Prior(nn.Module):
         with torch.enable_grad():
             x = x.requires_grad_()
             g = self.g(x, *args, **kwargs)
-            grad = torch.autograd.grad(g , x, torch.ones_like(g), create_graph=True, only_inputs=True)[0]
+            grad = torch.autograd.grad(
+                g, x, torch.ones_like(g), create_graph=True, only_inputs=True
+            )[0]
         return grad
 
     def prox(

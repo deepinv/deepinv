@@ -7,7 +7,6 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.utils import create_block_image
 
 
-
 class BaseDEQ(BaseUnfold):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
@@ -76,17 +75,26 @@ class BaseDEQ(BaseUnfold):
             X, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["iterate"]
         # Another iteration for jacobian computation via automatic differentiation.
-        assert torch.is_tensor(x),  "Our Deep Equilibrium is only implemented with tensor iterates."
+        assert torch.is_tensor(
+            x
+        ), "Our Deep Equilibrium is only implemented with tensor iterates."
         x0 = x.clone().detach().requires_grad_()
-        f0 = self.fixed_point.iterator({"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics)["iterate"]
-        
+        f0 = self.fixed_point.iterator(
+            {"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )["iterate"]
+
         def backward_hook(grad):
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
 
                 def forward(self, X, *args, **kwargs):
-                    return {"iterate": torch.autograd.grad(f0, x0, X["iterate"], retain_graph=True)[0] + grad}
+                    return {
+                        "iterate": torch.autograd.grad(
+                            f0, x0, X["iterate"], retain_graph=True
+                        )[0]
+                        + grad
+                    }
 
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
             def init_iterate_fn(y, physics, cost_fn=None):
@@ -105,8 +113,9 @@ class BaseDEQ(BaseUnfold):
             g = backward_FP({"iterate": grad}, None)[0]["iterate"]
             return g
 
-        x.register_hook(backward_hook)
-        
+        if x.requires_grad:
+            x.register_hook(backward_hook)
+
         # Get estimation from the fixed-point iteration
         est = self.fixed_point.iterator.get_estimate_from_iterate(
             x, cur_data_fidelity, cur_prior, cur_params, y, physics

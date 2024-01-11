@@ -100,10 +100,14 @@ def find_operator(name, device):
     elif name == "random_diag":
         img_size = (2, 1, 32, 32)
         B, C, W, H = img_size
-        diag = torch.rand((C*W*H), device=device)
+        diag = torch.rand((C * W * H), device=device)
         A = torch.diag(diag)
-        A_forward = lambda v: (torch.matmul(A, v.reshape(B,-1).T).T).reshape(B, C, W, H)
-        A_adjoint = lambda v: (torch.matmul(A.transpose(0,1), v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
+            B, C, W, H
+        )
+        A_adjoint = lambda v: (
+            torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
+        ).reshape(B, C, W, H)
         p = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
         norm = torch.max(diag).item()
     else:

@@ -195,7 +195,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    g_first=False
+    g_first=False,
 )
 
 # %%
@@ -316,7 +316,7 @@ model_new = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior_new,
-    g_first=False
+    g_first=False,
 )
 model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()

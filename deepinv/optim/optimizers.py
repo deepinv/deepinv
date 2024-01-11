@@ -438,10 +438,15 @@ class BaseOptim(nn.Module):
             if not isinstance(X_prev["iterate"], tuple):
                 iterate_prev = (X_prev["iterate"],)
             batch_size = X["iterate"][0].shape[0]
-            iterate = torch.cat(tuple(el.view((batch_size, -1)) for el in iterate), dim=1)
-            iterate_prev = torch.cat(tuple(el.view((batch_size, -1)) for el in iterate_prev), dim=1)
+            iterate = torch.cat(
+                tuple(el.view((batch_size, -1)) for el in iterate), dim=1
+            )
+            iterate_prev = torch.cat(
+                tuple(el.view((batch_size, -1)) for el in iterate_prev), dim=1
+            )
             crit_cur = (
-                (iterate_prev - iterate).norm(p=2, dim=-1) / (iterate.norm(p=2, dim=-1) + 1e-06)
+                (iterate_prev - iterate).norm(p=2, dim=-1)
+                / (iterate.norm(p=2, dim=-1) + 1e-06)
             ).mean()
         elif self.crit_conv == "cost":
             F_prev = X_prev["cost"]

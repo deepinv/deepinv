@@ -1,6 +1,7 @@
 import torch
 from .optim_iterator import OptimIterator, fStep, gStep
 
+
 class ADMMIteration(OptimIterator):
     r"""
     Iterator for alternating direction method of multipliers.
@@ -34,7 +35,9 @@ class ADMMIteration(OptimIterator):
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
 
-    def get_estimate_from_iterate(self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
+    ):
         """
         Get the minimizer of F from the fixed point iterate x.
 
@@ -56,7 +59,7 @@ class ADMMIteration(OptimIterator):
         """
         x = physics.A_adjoint(y)
         z = torch.zeros_like(x)
-        iterate = (x,z)
+        iterate = (x, z)
         return {"iterate": iterate, "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
@@ -71,7 +74,7 @@ class ADMMIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"iterate": (x, z), "estimate" : x, "cost": F}` containing the updated current iterate, estimate and cost.
         """
-        x, z = X['iterate']
+        x, z = X["iterate"]
         if z.shape != x.shape:
             # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
@@ -82,7 +85,7 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        iterate = (x,z)
+        iterate = (x, z)
         estimate = x
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)

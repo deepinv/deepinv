@@ -148,9 +148,7 @@ use_bicubic_init = False  # Use bicubic interpolation to initialize the algorith
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
-    operation, noise_level_img
-)
+lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
 
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
@@ -161,14 +159,14 @@ method = "GSPnP"
 denoiser_name = "gsdrunet"
 denoiser = dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=denoiser
-)
+prior = GSPnP(denoiser=denoiser)
+
 
 # we want to output the intermediate PGD update to finish with a denoising step.
 def custom_output(X):
     estimate = X["estimate"]
     return denoiser(estimate, sigma_denoiser)
+
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

@@ -1,6 +1,7 @@
 from deepinv.utils import zeros_like
 import torch
 
+
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
     if crit_conv == "residual":
         if isinstance(X_prev, dict):
@@ -79,24 +80,38 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
             break
     return x
 
+
 def create_block_image(x):
-    '''
+    """
     Concatenates a list of images :math:`x_i` of different shapes :math:`(B,C,H_i,W_i)` into a single image of shape :math:`(B,C, \prod_i H_i, \prod_i W_i)` with diagonal blocks.
-    
+
     :param list x: List of images :math:`x_i` of different shapes :math:`(B,C,H_i,W_i)`.
-    '''
+    """
     B, C = x[0].shape[0], x[0].shape[1]
-    return torch.stack([torch.stack([torch.block_diag(*[el[j,i,:,:] for el in x]) for i in range(C)]) for j in range(B)])
+    return torch.stack(
+        [
+            torch.stack(
+                [torch.block_diag(*[el[j, i, :, :] for el in x]) for i in range(C)]
+            )
+            for j in range(B)
+        ]
+    )
+
 
 def tuple_from_block_image(x, shapes):
-    '''
+    """
     From a single image of shape :math:`(B,C, \prod_i H_i, \prod_i W_i)` with diagonal blocks, creates a tuple of images :math:`x_i` of shapes `shapes[i]` .
-    
+
     :param list x: image of shape :math:`(B,C, \prod_i H_i, \prod_i W_i)` with diagonal blocks
-    '''
+    """
     B, C = x[0].shape[0], x[0].shape[1]
-    shapes = [[B,C,0,0]] + shapes
-    return tuple([x[:,:,shapes[i][2]:shapes[i+1][2],shapes[i][2]] for i in range(len(shapes)-1)])
+    shapes = [[B, C, 0, 0]] + shapes
+    return tuple(
+        [
+            x[:, :, shapes[i][2] : shapes[i + 1][2], shapes[i][2]]
+            for i in range(len(shapes) - 1)
+        ]
+    )
 
 
 def init_anderson_acceleration(x, history_size):
@@ -110,7 +125,7 @@ def init_anderson_acceleration(x, history_size):
     """
     if isinstance(x, tuple):
         x = create_block_image(x)
-    B, N = x.view(x.shape[0],-1).shape
+    B, N = x.view(x.shape[0], -1).shape
     x_hist = torch.zeros(
         B, history_size, N, dtype=x.dtype, device=x.device
     )  # history of iterates.
@@ -151,12 +166,12 @@ def anderson_acceleration_step(
 ):
     r"""
     Anderson acceleration step.
-    
+
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator.
     :param int it: current iteration.
     :param int history_size: size of the histoiry for the Anderson acceleration algorithm.
-    :param float beta_anderson_acc: momentum of the Anderson acceleration step. 
-    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. 
+    :param float beta_anderson_acc: momentum of the Anderson acceleration step.
+    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step.
     :param dict X_prev: previous iterate.
     :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
     :param torch.Tensor x_hist: history of last ``history-size`` iterates.
@@ -193,7 +208,7 @@ def anderson_acceleration_step(
     )
     x = x.view(x_prev.shape)
     if isinstance(x_prev, tuple):
-        x = tuple_from_block_image(x.view(x_prev.shape),x_shapes)
+        x = tuple_from_block_image(x.view(x_prev.shape), x_shapes)
     estimate = iterator.get_estimate_from_iterate(
         x, cur_data_fidelity, cur_prior, cur_params, *args
     )

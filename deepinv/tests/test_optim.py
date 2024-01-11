@@ -175,10 +175,8 @@ def test_data_fidelity_l1(device):
 @pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
-
-        if name_algo == 'PGD' and g_first == False:
+        if name_algo == "PGD" and g_first == False:
             continue
-
 
         # First with batch size > 1
 
@@ -187,12 +185,16 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         C = 1
         W = 8
         H = 8
-        x = torch.rand((B,C,W,H), device=device)
+        x = torch.rand((B, C, W, H), device=device)
 
         # Create a measurement operator
-        A = torch.diag(torch.rand((C*W*H), device=device))
-        A_forward = lambda v: (torch.matmul(A, v.reshape(B,-1).T).T).reshape(B, C, W, H)
-        A_adjoint = lambda v: (torch.matmul(A.transpose(0,1), v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        A = torch.diag(torch.rand((C * W * H), device=device))
+        A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
+            B, C, W, H
+        )
+        A_adjoint = lambda v: (
+            torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
+        ).reshape(B, C, W, H)
 
         # Define the physics model associated to this operator
         physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
@@ -203,7 +205,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         def prior_g(x, *args):
             ths = 0.1
             return ths * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
-        
+
         prior = Prior(g=prior_g)  # The prior term
 
         if (
@@ -229,7 +231,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             g_first=g_first,
         )
 
-         # Run the optimization algorithm with 
+        # Run the optimization algorithm with
         out = optimalgo(y, physics)
 
         assert x.shape == out.shape
@@ -241,12 +243,16 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         C = 1
         W = 2
         H = 2
-        x = torch.rand((B,C,W,H), device=device)
+        x = torch.rand((B, C, W, H), device=device)
 
         # Create a measurement operator
-        A = torch.diag(torch.ones((C*W*H), device=device))
-        A_forward = lambda v: (torch.matmul(A, v.reshape(B,-1).T).T).reshape(B, C, W, H)
-        A_adjoint = lambda v: (torch.matmul(A.transpose(0,1), v.reshape(B,-1).T).T).reshape(B, C, W, H)
+        A = torch.diag(torch.ones((C * W * H), device=device))
+        A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
+            B, C, W, H
+        )
+        A_adjoint = lambda v: (
+            torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
+        ).reshape(B, C, W, H)
 
         # Define the physics model associated to this operator
         physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
