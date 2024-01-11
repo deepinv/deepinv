@@ -1,5 +1,5 @@
 from deepinv.utils import zeros_like
-
+import torch
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
     if crit_conv == "residual":

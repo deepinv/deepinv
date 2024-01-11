@@ -283,10 +283,6 @@ def train(
                 progress_bar.set_postfix(log_dict)
 
         # wandb plotting of training images
-<<<<<<< HEAD
-        if wandb_vis and epoch + 1 % log_image_interval == 0:
-            # Note that this may not be 16 images because the last batch may be smaller
-=======
         if wandb_vis:
             # log average training metrics
             log_dict_post_epoch = {}
@@ -295,7 +291,6 @@ def train(
             if check_grad:
                 log_dict_post_epoch["mean gradient norm"] = check_grad_val.avg
 
->>>>>>> main
             with torch.no_grad():
                 if plot_measurements and y.shape != x.shape:
                     y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
@@ -456,25 +451,8 @@ def test(
                 else:
                     x1 = model(y, physics[g])
 
-<<<<<<< HEAD
                 x_lin = physics_cur.A_adjoint(y)
                 cur_psnr_lin = cal_psnr(x_lin, x)
-=======
-                if hasattr(physics_cur, "A_adjoint"):
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        x_init = physics_cur.module.A_adjoint(y)
-                    else:
-                        x_init = physics_cur.A_adjoint(y)
-                elif hasattr(physics_cur, "A_dagger"):
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        x_init = physics_cur.module.A_dagger(y)
-                    else:
-                        x_init = physics_cur.A_dagger(y)
-                else:
-                    x_init = zeros_like(x)
-
-                cur_psnr_init = cal_psnr(x_init, x)
->>>>>>> main
                 cur_psnr = cal_psnr(x1, x)
                 psnr_lin.append(cur_psnr_lin)
                 psnr_net.append(cur_psnr)
@@ -498,19 +476,11 @@ def test(
                             plot_only_first_batch and i == 0
                         ):
                             if plot_measurements and len(y.shape) == 4:
-<<<<<<< HEAD
                                 imgs = [y, x_lin, x1, x]
-                                name_imgs = ["Input", "Linear", "Recons.", "GT"]
-                            else:
-                                imgs = [x_lin, x1, x]
-                                name_imgs = ["Linear", "Recons.", "GT"]
-=======
-                                imgs = [y, x_init, x1, x]
                                 name_imgs = ["Input", "No learning", "Recons.", "GT"]
                             else:
-                                imgs = [x_init, x1, x]
+                                imgs = [x_lin, x1, x]
                                 name_imgs = ["No learning", "Recons.", "GT"]
->>>>>>> main
                             fig = plot(
                                 imgs,
                                 titles=name_imgs,
@@ -538,11 +508,7 @@ def test(
     linear_std_psnr = np.std(psnr_lin)
     if verbose:
         print(
-<<<<<<< HEAD
-            f"Average test PSNR: Linear rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
-=======
             f"Test PSNR: No learning rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
->>>>>>> main
         )
     if wandb_vis:
         wandb.log({"Test PSNR": test_psnr}, step=step)

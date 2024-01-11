@@ -76,14 +76,14 @@ class BaseDEQ(BaseUnfold):
 
         # Another iteration for jacobian computation via automatic differentiation.
         if isinstance(x, tuple):
-            x0 = tuple(el.clone().detach().requires_grad_() for el in x)
-            f0 = self.fixed_point.iterator({"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics)["iterate"]
-        else:
-            x0 = x.clone().detach().requires_grad_()
-            f0 = self.fixed_point.iterator({"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics)["iterate"]
+            x_shapes = [el.shape for el in x]
+            x = create_block_image(x)
+            
+        x0 = x.clone().detach().requires_grad_()
+        f0 = self.fixed_point.iterator({"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics)["iterate"]
 
         def backward_hook(grad):
-            print(grad)
+            print(grad.shape)
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
@@ -109,9 +109,7 @@ class BaseDEQ(BaseUnfold):
             return g
 
         if isinstance(x, tuple):
-            for el in x:
-                if el.requires_grad:
-                    el.register_hook(backward_hook) 
+            x.register_hook(backward_hook)
         else:
             if x.requires_grad:
                 x.register_hook(backward_hook) 

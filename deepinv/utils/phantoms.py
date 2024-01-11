@@ -3,13 +3,8 @@ import torch
 
 try:
     import odl
-<<<<<<< HEAD
-except ImportError as e:
-    print("Install the odl package by running `pip install https://github.com/odlgroup/odl/archive/master.zip`")
-=======
 except:
     odl = ImportError("The odl package is not installed.")
->>>>>>> main
 
 
 def random_shapes(interior=False):
