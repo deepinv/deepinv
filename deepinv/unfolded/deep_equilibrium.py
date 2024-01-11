@@ -4,6 +4,8 @@ from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.utils import create_block_image
+
 
 
 class BaseDEQ(BaseUnfold):
@@ -73,17 +75,12 @@ class BaseDEQ(BaseUnfold):
         x = self.fixed_point.iterator(
             X, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["iterate"]
-
         # Another iteration for jacobian computation via automatic differentiation.
-        if isinstance(x, tuple):
-            x_shapes = [el.shape for el in x]
-            x = create_block_image(x)
-            
+        assert torch.is_tensor(x),  "Our Deep Equilibrium is only implemented with tensor iterates."
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator({"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics)["iterate"]
-
+        
         def backward_hook(grad):
-            print(grad.shape)
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
@@ -108,12 +105,8 @@ class BaseDEQ(BaseUnfold):
             g = backward_FP({"iterate": grad}, None)[0]["iterate"]
             return g
 
-        if isinstance(x, tuple):
-            x.register_hook(backward_hook)
-        else:
-            if x.requires_grad:
-                x.register_hook(backward_hook) 
- 
+        x.register_hook(backward_hook)
+        
         # Get estimation from the fixed-point iteration
         est = self.fixed_point.iterator.get_estimate_from_iterate(
             x, cur_data_fidelity, cur_prior, cur_params, y, physics
