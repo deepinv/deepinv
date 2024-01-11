@@ -118,21 +118,19 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 denoiser = DnCNN(
-    in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
+    in_channels=3, out_channels=3, depth=7, device=device, pretrained=False, train=True
 )
 
 # Here the prior model is common for all iterations
 prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
-max_iter = 20 if torch.cuda.is_available() else 10
+max_iter = 5 if torch.cuda.is_available() else 3
 lamb = 1.0  # Initial value for the regularization parameter.
 stepsize = 1.0  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
 anderson_acceleration_forward = False  # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = (
-    False  # use Anderson acceleration for the backward pass.
-)
+anderson_acceleration_backward = False  # use Anderson acceleration for the backward pass.
 
 anderson_history_size = (
     5 if torch.cuda.is_available() else 3
@@ -151,7 +149,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iteration="HQS",
+    iteration="HQS", 
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
@@ -171,9 +169,9 @@ model = DEQ_builder(
 
 # training parameters
 epochs = 10
-learning_rate = 5e-4
+learning_rate = 1e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
-test_batch_size = 5
+test_batch_size = 3
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

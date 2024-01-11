@@ -204,7 +204,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         def prior_g(x, *args):
             ths = 0.1
-            return ths * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1)
+            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+
 
         prior = Prior(g=prior_g)  # The prior term
 
@@ -258,19 +259,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
         y = physics(x)
 
-        data_fidelity = L2()  # The data fidelity term
-
-        if (
-            name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
-            sigma = 1.0
-        else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
-            sigma = None
-
-        lamb = 1.1
-        params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
+        data_fidelity = L2()
+        prior = Prior(g=prior_g)  # The prior term
 
         optimalgo = optim_builder(
             name_algo,
@@ -278,7 +268,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             data_fidelity=data_fidelity,
             max_iter=1000,
             crit_conv="residual",
-            thres_conv=1e-6,
+            thres_conv=1e-11,
             verbose=True,
             params_algo=params_algo,
             early_stop=True,
@@ -320,6 +310,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
             # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
+            print('norm', torch.norm(grad_deepinv))
             assert torch.allclose(
                 lamb * grad_deepinv, -subdiff, atol=1e-4
             )  # Optimality condition
