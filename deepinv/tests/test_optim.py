@@ -170,34 +170,20 @@ def test_data_fidelity_l1(device):
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
-
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
-        if name_algo == "PGD" and g_first == False:
-            continue
-
-        # First with batch size > 1
-
-        # Define two images
-        B = 2
-        C = 1
-        W = 8
-        H = 8
-        x = torch.rand((B, C, W, H), device=device)
+        # Define two points
+        x = torch.tensor([[[10], [10]]], dtype=torch.float64)
 
         # Create a measurement operator
-        A = torch.diag(torch.rand((C * W * H), device=device))
-        A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
-            B, C, W, H
-        )
-        A_adjoint = lambda v: (
-            torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
-        ).reshape(B, C, W, H)
+        B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
+        B_forward = lambda v: B @ v
+        B_adjoint = lambda v: B.transpose(0, 1) @ v
 
         # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
         y = physics(x)
 
         data_fidelity = L2()  # The data fidelity term
@@ -205,7 +191,6 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         def prior_g(x, *args):
             ths = 0.1
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
-
 
         prior = Prior(g=prior_g)  # The prior term
 
@@ -219,54 +204,14 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             sigma = None
 
         lamb = 1.1
+        max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
         optimalgo = optim_builder(
             name_algo,
             prior=prior,
             data_fidelity=data_fidelity,
-            max_iter=100,
-            verbose=True,
-            params_algo=params_algo,
-            early_stop=False,
-            g_first=g_first,
-        )
-
-        # Run the optimization algorithm with
-        out = optimalgo(y, physics)
-
-        assert x.shape == out.shape
-
-        # Second with batch size = 1 (necessary for early stopping) and with verification of convergence.
-
-        # Define two images
-        B = 1
-        C = 1
-        W = 2
-        H = 2
-        x = torch.rand((B, C, W, H), device=device)
-
-        # Create a measurement operator
-        A = torch.diag(torch.ones((C * W * H), device=device))
-        A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
-            B, C, W, H
-        )
-        A_adjoint = lambda v: (
-            torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
-        ).reshape(B, C, W, H)
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-        y = physics(x)
-
-        data_fidelity = L2()
-        prior = Prior(g=prior_g)  # The prior term
-
-        optimalgo = optim_builder(
-            name_algo,
-            prior=prior,
-            data_fidelity=data_fidelity,
-            max_iter=1000,
+            max_iter=max_iter,
             crit_conv="residual",
             thres_conv=1e-11,
             verbose=True,
@@ -276,7 +221,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         )
 
         # Run the optimization algorithm
-        out = optimalgo(y, physics)
+        x = optimalgo(y, physics)
 
         assert optimalgo.has_converged
 
@@ -295,7 +240,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                     lamb * stepsize
                 )  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    lamb * moreau_grad, -subdiff, atol=1e-4
+                    lamb * moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
             else:
                 subdiff = lamb * data_fidelity.grad(x, y, physics)
@@ -303,17 +248,161 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                     x - prior.prox(x, gamma=stepsize)
                 ) / stepsize  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    moreau_grad, -subdiff, atol=1e-4
+                    moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
         else:
             subdiff = prior.grad(x)
             # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
             # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
-            print('norm', torch.norm(grad_deepinv))
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-4
+                lamb * grad_deepinv, -subdiff, atol=1e-8
             )  # Optimality condition
+
+
+# # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
+# @pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
+# def test_optim_algo(name_algo, imsize, dummy_dataset, device):
+#     for g_first in [True, False]:
+#         if name_algo == "PGD" and g_first == False:
+#             continue
+
+#         # First with batch size > 1
+
+#         # Define two images
+#         B = 2
+#         C = 1
+#         W = 8
+#         H = 8
+#         x = torch.rand((B, C, W, H), device=device)
+
+#         # Create a measurement operator
+#         A = torch.diag(torch.rand((C * W * H), device=device))
+#         A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
+#             B, C, W, H
+#         )
+#         A_adjoint = lambda v: (
+#             torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
+#         ).reshape(B, C, W, H)
+
+#         # Define the physics model associated to this operator
+#         physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+#         y = physics(x)
+
+#         data_fidelity = L2()  # The data fidelity term
+
+#         def prior_g(x, *args):
+#             ths = 0.1
+#             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+
+
+#         prior = Prior(g=prior_g)  # The prior term
+
+#         if (
+#             name_algo == "CP"
+#         ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+#             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+#             sigma = 1.0
+#         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
+#             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+#             sigma = None
+
+#         lamb = 1.1
+#         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
+
+#         optimalgo = optim_builder(
+#             name_algo,
+#             prior=prior,
+#             data_fidelity=data_fidelity,
+#             max_iter=100,
+#             verbose=True,
+#             params_algo=params_algo,
+#             early_stop=False,
+#             g_first=g_first,
+#         )
+
+#         # Run the optimization algorithm with
+#         out = optimalgo(y, physics)
+
+#         assert x.shape == out.shape
+
+#         # Second with batch size = 1 (necessary for early stopping) and with verification of convergence.
+
+#         # Define two images
+#         B = 1
+#         C = 1
+#         W = 2
+#         H = 2
+#         x = torch.rand((B, C, W, H), device=device)
+
+#         # Create a measurement operator
+#         A = torch.diag(torch.ones((C * W * H), device=device))
+#         A_forward = lambda v: (torch.matmul(A, v.reshape(B, -1).T).T).reshape(
+#             B, C, W, H
+#         )
+#         A_adjoint = lambda v: (
+#             torch.matmul(A.transpose(0, 1), v.reshape(B, -1).T).T
+#         ).reshape(B, C, W, H)
+
+#         # Define the physics model associated to this operator
+#         physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+#         y = physics(x)
+
+#         data_fidelity = L2()
+#         prior = Prior(g=prior_g)  # The prior term
+
+#         optimalgo = optim_builder(
+#             name_algo,
+#             prior=prior,
+#             data_fidelity=data_fidelity,
+#             max_iter=1000,
+#             crit_conv="residual",
+#             thres_conv=1e-11,
+#             verbose=True,
+#             params_algo=params_algo,
+#             early_stop=True,
+#             g_first=g_first,
+#         )
+
+#         # Run the optimization algorithm
+#         out = optimalgo(y, physics)
+
+#         assert optimalgo.has_converged
+
+#         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
+
+#         if name_algo == "HQS":
+#             # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
+#             # :math:`\lambda M_{\lambda \tau f}+g` where :math:` M_{\lambda \tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\lambda \tau`.
+#             # Beware, these are not fetch automatically here but handwritten in the test.
+#             # The optimality condition is then :math:`0 \in \lambda M_{\lambda \tau f}(x)+\partial g(x)`
+#             if not g_first:
+#                 subdiff = prior.grad(x)
+#                 moreau_grad = (
+#                     x - data_fidelity.prox(x, y, physics, gamma=lamb * stepsize)
+#                 ) / (
+#                     lamb * stepsize
+#                 )  # Gradient of the moreau envelope
+#                 assert torch.allclose(
+#                     lamb * moreau_grad, -subdiff, atol=1e-4
+#                 )  # Optimality condition
+#             else:
+#                 subdiff = lamb * data_fidelity.grad(x, y, physics)
+#                 moreau_grad = (
+#                     x - prior.prox(x, gamma=stepsize)
+#                 ) / stepsize  # Gradient of the moreau envelope
+#                 assert torch.allclose(
+#                     moreau_grad, -subdiff, atol=1e-4
+#                 )  # Optimality condition
+#         else:
+#             subdiff = prior.grad(x)
+#             # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
+#             # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
+#             grad_deepinv = data_fidelity.grad(x, y, physics)
+#             print('norm', torch.norm(grad_deepinv))
+#             assert torch.allclose(
+#                 lamb * grad_deepinv, -subdiff, atol=1e-4
+#             )  # Optimality condition
 
 
 def test_denoiser(imsize, dummy_dataset, device):
