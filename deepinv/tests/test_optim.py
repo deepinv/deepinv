@@ -170,6 +170,7 @@ def test_data_fidelity_l1(device):
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
 
+
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["PGD", "ADMM", "DRS", "HQS"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):

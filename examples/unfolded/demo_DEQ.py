@@ -130,7 +130,9 @@ lamb = 1.0  # Initial value for the regularization parameter.
 stepsize = 1.0  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
 anderson_acceleration_forward = False  # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = False  # use Anderson acceleration for the backward pass.
+anderson_acceleration_backward = (
+    False  # use Anderson acceleration for the backward pass.
+)
 
 anderson_history_size = (
     5 if torch.cuda.is_available() else 3
@@ -149,7 +151,7 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iteration="HQS", 
+    iteration="HQS",
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
