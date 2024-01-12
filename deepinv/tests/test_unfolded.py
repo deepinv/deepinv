@@ -67,8 +67,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
-    if unfolded_algo != 'ADMM':
-
+    if unfolded_algo != "ADMM":
         pytest.importorskip("pytorch_wavelets")
         torch.set_grad_enabled(
             True
@@ -81,7 +80,9 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
         # If the prior is initialized with a list of length max_iter,
         # then a distinct weight is trained for each PGD iteration.
         # For fixed trained model prior across iterations, initialize with a single model.
-        max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
+        max_iter = (
+            30 if torch.cuda.is_available() else 20
+        )  # Number of unrolled iterations
         level = 3
         prior = [
             PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
@@ -99,11 +100,13 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
         sigma_denoiser_init = 0.01
         sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
         # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-        params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-            "stepsize": stepsize,
-            "g_param": sigma_denoiser,
-            "lambda": lamb,
-        }
+        params_algo = (
+            {  # wrap all the restoration parameters in a 'params_algo' dictionary
+                "stepsize": stepsize,
+                "g_param": sigma_denoiser,
+                "lambda": lamb,
+            }
+        )
 
         trainable_params = [
             "g_param",
@@ -135,9 +138,9 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
             noise_level = 0.01
 
             torch.manual_seed(0)
-            test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
-                device
-            )
+            test_sample = torch.randn(
+                batch_size, n_channels, img_size_w, img_size_h
+            ).to(device)
             groundtruth_sample = torch.randn(
                 batch_size, n_channels, img_size_w, img_size_h
             ).to(device)
