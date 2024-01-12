@@ -332,7 +332,7 @@ def test_PDNet(imsize_1_channel, device):
         x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
         u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
         z0 = torch.zeros_like(x0)
-        iterate = create_block_image([x0, u0, z0])
+        iterate = (x0, u0, z0)
         return {"iterate": iterate, "estimate": x0}
 
     def custom_output(X):
