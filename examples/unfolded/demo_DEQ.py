@@ -118,7 +118,7 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 denoiser = DnCNN(
-    in_channels=3, out_channels=3, depth=7, device=device, pretrained=False, train=True
+    in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
 )
 
 # Here the prior model is common for all iterations
