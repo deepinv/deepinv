@@ -50,7 +50,6 @@ class ADMMIteration(OptimIterator):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For ADMM, the first iterate is chosen as :math:`(A^{\top}y,0)`.
-        The fixed-point iterate should be a tensor of shape BxCxH'xW'.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.

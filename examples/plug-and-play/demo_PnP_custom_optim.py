@@ -62,7 +62,6 @@ class CVIteration(OptimIterator):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For CV, the first iterate is chosen as :math:`(A^{\top}y,y)`.
-        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
@@ -70,7 +69,7 @@ class CVIteration(OptimIterator):
         :return: Dictionary containing the initial iterate and initial estimate.
         """
         x = physics.A_adjoint(y)
-        return {"iterate": torch.stacl((x, y)), "estimate": x}
+        return {"iterate": (x, y), "estimate": x}
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -169,16 +168,6 @@ class gStepCV(gStep):
 
 
 # %%
-# Define the custom initialization of the fixed-point variable
-# ----------------------------------------------------------------------------------------
-# Because the CV algorithm uses both x and z in the fixed-point variable, we need to define a custom initialization.
-def custom_init_CV(y, physics):
-    x_init = physics.A_adjoint(y)
-    z_init = y
-    return {"iterate": torch.stack((x_init, z_init)), "estimate": x_init}
-
-
-# %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
 #
@@ -268,7 +257,6 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=True,
     params_algo=params_algo,
-    custom_init=custom_init_CV,
 )
 
 # %%

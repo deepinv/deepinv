@@ -63,7 +63,6 @@ class CPIteration(OptimIterator):
         """
         Initialize the fixed-point algorithm by computing the initial iterate and estimate.
         For primal-dual, the first iterate is chosen as :math:`(A^{\top}y,y,0)`.
-        The fixed-point iterate should be a tensor of shape NxBxCxHxW, where N is the number of images in the fixed-point variable.
 
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
@@ -86,7 +85,7 @@ class CPIteration(OptimIterator):
         :param dict cur_params: dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
+        :return: Dictionary `{"est": (x, u, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         iterate = X["iterate"]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x

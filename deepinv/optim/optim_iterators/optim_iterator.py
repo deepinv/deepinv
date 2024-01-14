@@ -89,8 +89,7 @@ class OptimIterator(nn.Module):
         between a step on :math:`f` and a step on :math:`g`.
         The fixed-point iterate, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
         $X$ of the form `{'iterate' : x,  'estimate': z , 'cost': F}`.
-        The variable 'iterate' has shape BxCxH'xW', where N is the number of images in the fixed-point iterate (N=1 by default here).
-        The estimate 'estimate' is in shape BxCxHxW.
+        The variable `iterate` can be either a :class:`torch.Tensor` or a tuple of :class:`torch.Tensor` elements.
 
         :param dict X: Dictionary containing the current iterate, current estimate and cost at the current estimate.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.

@@ -13,7 +13,7 @@ class BaseDEQ(BaseUnfold):
 
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
     that can be virtually unrolled infinitely leveraging the implicit function theorem.
-    The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
+    The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation.
 
     .. math::
 
@@ -26,7 +26,7 @@ class BaseDEQ(BaseUnfold):
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    Our DEQ implementation requires the variable `iterate` from the iterated dictionary to be :class:`torch.Tensor`(and not a tuple).
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
