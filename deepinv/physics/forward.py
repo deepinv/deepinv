@@ -318,6 +318,11 @@ class LinearPhysics(Physics):
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
 
+        .. note::
+
+            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            noise, instead of stacking both noises together.
+
         :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
