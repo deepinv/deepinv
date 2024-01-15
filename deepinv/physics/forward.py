@@ -490,6 +490,29 @@ class DecomposablePhysics(LinearPhysics):
     :param callable V_adjoint: transpose of V
     :param torch.Tensor, float mask: Singular values of the transform
 
+    |sep|
+
+    :Examples:
+
+        Recreation of the Inpainting operator using the DecomposablePhysics class:
+
+        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+        >>> tensor_size = (1, 1, 3, 3)  # Input size
+        >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
+        >>> # Manually create the Inpainting operator
+        >>> U = lambda x: x  # U is the identity operation
+        >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
+        >>> V = lambda x: x  # V is the identity operation
+        >>> V_adjoint = lambda x: x  # V_adjoint is the identity operation
+        >>> mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
+        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)
+        >>> # Apply the operator to a random image
+        >>> x = torch.randn(tensor_size)
+        >>> physics.A(x)  # Apply the masking
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.7193]]]])
+
     """
 
     def __init__(
