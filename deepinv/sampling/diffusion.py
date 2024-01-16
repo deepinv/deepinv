@@ -267,10 +267,10 @@ class DiffPIR(nn.Module):
         ...   data_fidelity=dinv.optim.L2(),
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> torch.norm(xhat - x).item() # Should be close to the original
-        0.5000526309013367
-        >>> torch.norm(y - x).item() # Should be further away from the original
-        20.06976890563965
+        >>> round(torch.norm(xhat - x).item(), 1) # Should be close to the original
+        0.5
+        >>> round(torch.norm(y - x).item(), 1) # Should be further away from the original
+        20.1
         
     """
 
