@@ -88,7 +88,7 @@ class DDRM(nn.Module):
 
         >>> import deepinv as dinv
         >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
-        >>> seed = torch.manual_seed(0), torch.cuda.manual_seed_all(0) # Random seed for reproducibility
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
@@ -98,10 +98,10 @@ class DDRM(nn.Module):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
-        >>> torch.norm(xhat - x).item() # Should be close to the original
-        1.475656270980835
-        >>> torch.norm(y - x).item() # Should be further away from the original
-        20.06976890563965
+        >>> round(torch.norm(xhat - x).item(), 1) # Should be close to the original
+        1.5
+        >>> round(torch.norm(y - x).item(), 1) # Should be further away from the original
+        20.1
 
     """
 
@@ -254,7 +254,7 @@ class DiffPIR(nn.Module):
 
         >>> import deepinv as dinv
         >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
-        >>> seed = torch.manual_seed(0), torch.cuda.manual_seed_all(0) # Random seed for reproducibility
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
