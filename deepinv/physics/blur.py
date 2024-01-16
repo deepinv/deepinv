@@ -491,31 +491,6 @@ class BlurFFT(DecomposablePhysics):
 
     |sep|
 
-    Examples :
-
-        Test the BlurFFT class using doctests.
-        # Create an all-black image x
-        >>> x = torch.zeros((1, 3, 128, 128))
-
-        # Create a new image x_new with a white point in the middle
-        >>> x_new = torch.zeros((1, 3, 128, 128))
-        >>> x_new[0,:, 64, 64] = torch.Tensor([1.0, 1.0, 1.0])
-
-        # Initialize a BlurFFT filter
-        >>> img_size = (1, 3, 128, 128)
-        >>> filter = torch.ones((1, 3, 5, 5)) / 25
-        >>> physics = BlurFFT(img_size, filter)
-
-        # Apply the filter to x_new
-        >>> x_filtered = physics.A(x_new)
-
-        # Test if x and x_filtered are equal with a margin of error
-        >>> torch.allclose(x, x_filtered, atol=0.1)
-        True
-
-
-    |sep|
-
     :Examples:
 
         BlurFFT operator with a basic averaging filter applied to a 128x128 black image with
