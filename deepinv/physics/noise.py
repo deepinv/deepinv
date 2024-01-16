@@ -10,7 +10,8 @@ class GaussianNoise(torch.nn.Module):
 
     :Examples:
 
-        Adding gaussian noise to a physics operator:
+        Adding gaussian noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
 
         >>> from deepinv.physics import Denoising, GaussianNoise
         >>> import torch
@@ -47,7 +48,8 @@ class UniformGaussianNoise(torch.nn.Module):
 
     :Examples:
 
-        Adding uniform gaussian noise to a physics operator:
+        Adding uniform gaussian noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
 
         >>> from deepinv.physics import Denoising, UniformGaussianNoise
         >>> import torch
@@ -101,7 +103,8 @@ class PoissonNoise(torch.nn.Module):
 
     :Examples:
 
-        Adding Poisson noise to a physics operator:
+        Adding Poisson noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
 
         >>> from deepinv.physics import Denoising, PoissonNoise
         >>> import torch
@@ -148,7 +151,8 @@ class PoissonGaussianNoise(torch.nn.Module):
 
     :Examples:
 
-        Adding Poisson gaussian noise to a physics operator:
+        Adding Poisson gaussian noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
 
         >>> from deepinv.physics import Denoising, PoissonGaussianNoise
         >>> import torch
@@ -188,7 +192,8 @@ class UniformNoise(torch.nn.Module):
 
     :Examples:
 
-        Adding uniform noise to a physics operator:
+        Adding uniform noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
 
         >>> from deepinv.physics import Denoising, UniformNoise
         >>> import torch

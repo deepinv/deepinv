@@ -524,12 +524,6 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
-        """
-        Test the V_adjoint method of BlurFFT.
-
-
-        """
-
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho")
         )  # make it a true SVD (see J. Romberg notes)

@@ -39,6 +39,7 @@ class MRI(DecomposablePhysics):
         >>> physics = MRI(mask=mask)
         >>> physics(x)
         tensor([[-0.5305,  0.0351,  0.3326,  2.1730,  1.7072,  0.0418]])
+
     """
 
     def __init__(
