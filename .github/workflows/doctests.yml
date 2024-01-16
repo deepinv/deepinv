@@ -1,0 +1,29 @@
+name: Python Doctests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  doctest:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install deepinv and its dependencies
+      run: |
+        pip install -e .[denoisers,doc]
+    - name: Install git repository optional dependencies
+      run: |
+        pip install git+https://github.com/fbcotter/pytorch_wavelets.git
+        python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
+    - name: Run doctests
+      run: python -m doctest deepinv/physics
