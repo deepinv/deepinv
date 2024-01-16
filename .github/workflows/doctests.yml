@@ -1,4 +1,4 @@
-name: Python Doctests
+name: Doctests
 
 on:
   push:
@@ -26,4 +26,7 @@ jobs:
         pip install git+https://github.com/fbcotter/pytorch_wavelets.git
         python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
     - name: Run doctests
-      run: python -m doctest deepinv/physics
+      run: |
+        for file in $(find . -name '*.py'); do
+          python -m doctest -v $file
+        done
