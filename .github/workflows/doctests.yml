@@ -9,7 +9,7 @@ on:
 jobs:
   doctest:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '#doctests') }}
+    if: ${{ !contains(github.event.head_commit.message, '#skip-doctests') }}
     steps:
     - uses: actions/checkout@v2
 
@@ -20,15 +20,7 @@ jobs:
 
     - name: Set PYTHONPATH
       run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
-      
-
-    - name: Install deepinv and its dependencies
-      run: |
-        pip install -e .[denoisers,doc]
-    - name: Install git repository optional dependencies
-      run: |
-        pip install git+https://github.com/fbcotter/pytorch_wavelets.git
-        python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
+        
     - name: Run doctests
       run: |
         for file in $(find . -name '*.py'); do
