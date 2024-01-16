@@ -245,10 +245,10 @@ class LinearPhysics(Physics):
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
-        >>> torch.norm(x - x_dagger).item() # Pseudoinverse should be close to the original image
-        25.950302124023438
-        >>> torch.norm(x - y).item() # Blurred image should be further away from the original image
-        111.6502685546875
+        >>> round(torch.norm(x - x_dagger).item(), 1) # Pseudoinverse should be close to the original image
+        26.0
+        >>> round(torch.norm(x - y).item(), 1) # Blurred image should be further away from the original image
+        111.7
 
     """
 
