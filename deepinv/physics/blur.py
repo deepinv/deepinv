@@ -527,9 +527,9 @@ class BlurFFT(DecomposablePhysics):
         >>> physics = BlurFFT(img_size=(1, 3, 128, 128), filter=filter, sigma=(1.5, 1.5))
         >>> y = physics(x)
         >>> y[:, :, 63:66, 63:66] # Display the center of the blurred image
-        tensor([[[[ 2.5000e-01,  2.5000e-01, -8.2318e-10],
-                  [ 2.5000e-01,  2.5000e-01,  4.9391e-10],
-                  [ 3.0448e-11,  1.7390e-10, -4.2213e-10]]]])
+        tensor([[[[0.1801, 0.1801, 0.0360],
+                  [0.1801, 0.1801, 0.0360],
+                  [0.0360, 0.0360, 0.0072]]]])
 
     """
 
