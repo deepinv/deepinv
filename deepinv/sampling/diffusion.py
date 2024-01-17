@@ -98,10 +98,10 @@ class DDRM(nn.Module):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
-        >>> round(torch.norm(xhat - x).item(), 1) # Should be close to the original
-        1.5
-        >>> round(torch.norm(y - x).item(), 1) # Should be further away from the original
-        20.1
+        >>> round(dinv.utils.cal_psnr(xhat, x), 1) # Should be close to the original
+        31.5
+        >>> round(dinv.utils.cal_psnr(y, x), 1) # Should be further away from the original
+        8.8
 
     """
 
@@ -267,10 +267,10 @@ class DiffPIR(nn.Module):
         ...   data_fidelity=dinv.optim.L2(),
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> round(torch.norm(xhat - x).item(), 1) # Should be close to the original
-        0.5
-        >>> round(torch.norm(y - x).item(), 1) # Should be further away from the original
-        20.1
+        >>> round(dinv.utils.cal_psnr(xhat, x), 1) # Should be close to the original
+        40.9
+        >>> round(dinv.utils.cal_psnr(y, x), 1) # Should be further away from the original
+        8.8
         
     """
 
