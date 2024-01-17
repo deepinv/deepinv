@@ -66,6 +66,7 @@ def test_plot():
     deepinv.utils.plot(imgs, titles=["a", "b"])
     deepinv.utils.plot(x, titles="a")
     deepinv.utils.plot(imgs)
+<<<<<<< HEAD
 
 
 import torch.nn as nn
@@ -196,3 +197,5 @@ def test_cal_mse():
     b = torch.tensor([1.0, 2.0, 3.0])
     expected_mse = 0.0
     assert cal_mse(a, b) == expected_mse
+=======
+>>>>>>> 144d205aff3f6ab72d683b2c5585007ab55e04df

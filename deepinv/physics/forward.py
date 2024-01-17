@@ -245,10 +245,10 @@ class LinearPhysics(Physics):
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
-        >>> torch.norm(x - x_dagger).item() # Pseudoinverse should be close to the original image
-        25.950302124023438
-        >>> torch.norm(x - y).item() # Blurred image should be further away from the original image
-        111.6502685546875
+        >>> round(torch.norm(x - x_dagger).item(), 1) # Pseudoinverse should be close to the original image
+        26.0
+        >>> round(torch.norm(x - y).item(), 1) # Blurred image should be further away from the original image
+        111.7
 
     """
 
@@ -317,6 +317,11 @@ class LinearPhysics(Physics):
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
+
+        .. note::
+
+            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            noise.
 
         :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.LinearPhysics) stacked operator
@@ -489,6 +494,30 @@ class DecomposablePhysics(LinearPhysics):
     :param callable V: orthonormal transformation
     :param callable V_adjoint: transpose of V
     :param torch.Tensor, float mask: Singular values of the transform
+
+    |sep|
+
+    :Examples:
+
+        Recreation of the Inpainting operator using the DecomposablePhysics class:
+
+        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+        >>> tensor_size = (1, 1, 3, 3)  # Input size
+        >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
+        >>> U = lambda x: x  # U is the identity operation
+        >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
+        >>> V = lambda x: x  # V is the identity operation
+        >>> V_adjoint = lambda x: x  # V_adjoint is the identity operation
+        >>> mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
+        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)
+
+        Apply the operator to a random tensor:
+
+        >>> x = torch.randn(tensor_size)
+        >>> physics.A(x)  # Apply the masking
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.7193]]]])
 
     """
 

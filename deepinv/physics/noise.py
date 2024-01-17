@@ -6,11 +6,12 @@ class GaussianNoise(torch.nn.Module):
 
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
-    It can be added to a physics operator in its construction or by setting the ``noise_model``
-    attribute of the physics operator.
+    |sep|
 
+    :Examples:
 
-    ::
+        Adding gaussian noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
 
         >>> from deepinv.physics import Denoising, GaussianNoise
         >>> import torch
@@ -43,11 +44,19 @@ class UniformGaussianNoise(torch.nn.Module):
     :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)` and
     :math:`\sigma \sim\mathcal{U}(\sigma_{\text{min}}, \sigma_{\text{max}})`
 
-    It can be added to a physics operator in its construction or by setting:
+    |sep|
 
-    ::
+    :Examples:
 
+        Adding uniform gaussian noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, UniformGaussianNoise
+        >>> import torch
+        >>> physics = Denoising()
         >>> physics.noise_model = UniformGaussianNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
 
 
     :param float sigma_min: minimum standard deviation of the noise.
@@ -90,10 +99,19 @@ class PoissonNoise(torch.nn.Module):
 
     If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`.
 
-    It can be added to a physics operator in its construction or by setting:
-    ::
+    |sep|
 
+    :Examples:
+
+        Adding Poisson noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, PoissonNoise
+        >>> import torch
+        >>> physics = Denoising()
         >>> physics.noise_model = PoissonNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
 
     :param float gain: gain of the noise.
     :param bool normalize: normalize the output.
@@ -129,11 +147,19 @@ class PoissonGaussianNoise(torch.nn.Module):
     Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
     and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
-    It can be added to a physics operator by setting
+    |sep|
 
-    ::
+    :Examples:
 
+        Adding Poisson gaussian noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, PoissonGaussianNoise
+        >>> import torch
+        >>> physics = Denoising()
         >>> physics.noise_model = PoissonGaussianNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
 
     :param float gain: gain of the noise.
     :param float sigma: Standard deviation of the noise.
@@ -162,10 +188,19 @@ class UniformNoise(torch.nn.Module):
     r"""
     Uniform noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
 
-    It can be added to a physics operator by setting
-    ::
+    |sep|
 
+    :Examples:
+
+        Adding uniform noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, UniformNoise
+        >>> import torch
+        >>> physics = Denoising()
         >>> physics.noise_model = UniformNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
 
     :param float a: amplitude of the noise.
     """

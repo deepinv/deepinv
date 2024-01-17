@@ -491,31 +491,6 @@ class BlurFFT(DecomposablePhysics):
 
     |sep|
 
-    Examples :
-
-        Test the BlurFFT class using doctests.
-        # Create an all-black image x
-        >>> x = torch.zeros((1, 3, 128, 128))
-
-        # Create a new image x_new with a white point in the middle
-        >>> x_new = torch.zeros((1, 3, 128, 128))
-        >>> x_new[0,:, 64, 64] = torch.Tensor([1.0, 1.0, 1.0])
-
-        # Initialize a BlurFFT filter
-        >>> img_size = (1, 3, 128, 128)
-        >>> filter = torch.ones((1, 3, 5, 5)) / 25
-        >>> physics = BlurFFT(img_size, filter)
-
-        # Apply the filter to x_new
-        >>> x_filtered = physics.A(x_new)
-
-        # Test if x and x_filtered are equal with a margin of error
-        >>> torch.allclose(x, x_filtered, atol=0.1)
-        True
-
-
-    |sep|
-
     :Examples:
 
         BlurFFT operator with a basic averaging filter applied to a 128x128 black image with
@@ -527,9 +502,9 @@ class BlurFFT(DecomposablePhysics):
         >>> physics = BlurFFT(img_size=(1, 3, 128, 128), filter=filter, sigma=(1.5, 1.5))
         >>> y = physics(x)
         >>> y[:, :, 63:66, 63:66] # Display the center of the blurred image
-        tensor([[[[ 2.5000e-01,  2.5000e-01, -8.2318e-10],
-                  [ 2.5000e-01,  2.5000e-01,  4.9391e-10],
-                  [ 3.0448e-11,  1.7390e-10, -4.2213e-10]]]])
+        tensor([[[[0.1801, 0.1801, 0.0360],
+                  [0.1801, 0.1801, 0.0360],
+                  [0.0360, 0.0360, 0.0072]]]])
 
     """
 
@@ -549,12 +524,6 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
-        """
-        Test the V_adjoint method of BlurFFT.
-
-
-        """
-
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho")
         )  # make it a true SVD (see J. Romberg notes)

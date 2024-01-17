@@ -344,7 +344,6 @@ from deepinv.physics.blur import gaussian_blur
 
 
 def test_gaussian_blur_sigma_conversion():
-    # Test when sigma is a single value (int or float)
     sigma = 2.0
     result = gaussian_blur(sigma)
     expected_size = (1, 1, 15, 15)
@@ -357,14 +356,10 @@ def test_gaussian_blur_sigma_conversion():
     assert result.size() == expected_size
 
 
-###################################################################
-# Test forward  :
-
 
 from deepinv.physics import LinearPhysics, GaussianNoise
 
 
-# Test case 1: Multiplying LinearPhysics instances
 def test_linear_physics_mul():
     r"""
     Test the multiplication of two LinearPhysics instances.

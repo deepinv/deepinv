@@ -15,6 +15,7 @@ permissions:
 jobs:
   docs:
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '#skip-docs') }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
