@@ -443,12 +443,12 @@ class Blur(LinearPhysics):
         Blur operator with a basic averaging filter applied to a 128x128 black image with
         a single white pixel in the center:
 
-        >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
-        >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
+        >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
-        >>> y[:, :, 63:66, 63:66] # Display the center of the blurred image
+        >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
         tensor([[[[0.0000, 0.0000, 0.0000],
                   [0.0000, 0.2500, 0.2500],
                   [0.0000, 0.2500, 0.2500]]]])
@@ -496,12 +496,12 @@ class BlurFFT(DecomposablePhysics):
         BlurFFT operator with a basic averaging filter applied to a 128x128 black image with
         a single white pixel in the center:
 
-        >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
-        >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
+        >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
-        >>> physics = BlurFFT(img_size=(1, 3, 128, 128), filter=filter, sigma=(1.5, 1.5))
+        >>> physics = BlurFFT(img_size=(1, 1, 16, 16), filter=filter)
         >>> y = physics(x)
-        >>> y[:, :, 63:66, 63:66] # Display the center of the blurred image
+        >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
         tensor([[[[0.1801, 0.1801, 0.0360],
                   [0.1801, 0.1801, 0.0360],
                   [0.0360, 0.0360, 0.0072]]]])
