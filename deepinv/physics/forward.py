@@ -233,7 +233,7 @@ class LinearPhysics(Physics):
         >>> physics = physics1 + physics2
         >>> y = physics(x)
 
-        Linear operators can also be concatenated by multiplying them:
+        Linear operators can also be composed by multiplying them:
 
         >>> physics = physics1 * physics2
         >>> y = physics(x)
