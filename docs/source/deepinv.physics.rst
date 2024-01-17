@@ -30,8 +30,8 @@ Operators can be called with the ``forward`` method, for example
 
 .. exec_code::
 
-    import deepinv as dinv
     import torch
+    import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
     physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
@@ -68,8 +68,8 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
 
 .. exec_code::
 
-    import deepinv as dinv
     import torch
+    import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
     physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
@@ -104,8 +104,8 @@ or simply as
 
 .. exec_code::
 
-    import deepinv as dinv
     import torch
+    import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
     physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
