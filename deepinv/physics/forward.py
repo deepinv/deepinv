@@ -238,7 +238,7 @@ class LinearPhysics(Physics):
         >>> physics = physics1 * physics2
         >>> y = physics(x)
 
-        Linear operators also come with an adjoint, a pseudoinverse, and prox operators:
+        Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
         >>> x = torch.randn((1, 1, 128, 128)) # Define random 128x128 image
         >>> physics = Blur(filter=w)
