@@ -29,6 +29,12 @@ jobs:
         run: |
           pip install git+https://github.com/fbcotter/pytorch_wavelets.git
           python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
+      - name: Run doctests
+        run: |
+          find . -name '*.py' | xargs grep -l '>>>' | while read file; do
+            echo "Running doctests in $file"
+            python -m doctest -v "$file"
+          done
       - name: Sphinx build
         run: |
           sphinx-build docs/source _build
