@@ -214,12 +214,12 @@ class LinearPhysics(Physics):
 
     :Examples:
 
-        Blur operator with a basic averaging filter applied to a 128x128 black image with
+        Blur operator with a basic averaging filter applied to a 32x32 black image with
         a single white pixel in the center:
 
         >>> from deepinv.physics.blur import Blur, Downsampling
-        >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
-        >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
+        >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
@@ -229,7 +229,7 @@ class LinearPhysics(Physics):
         measurements of the corresponding operator:
 
         >>> physics1 = Blur(filter=w)
-        >>> physics2 = Downsampling(img_size=((1, 1, 128, 128)), filter="gaussian", factor=4)
+        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
         >>> physics = physics1 + physics2
         >>> y = physics(x)
 
@@ -240,15 +240,14 @@ class LinearPhysics(Physics):
 
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
-        >>> x = torch.randn((1, 1, 128, 128)) # Define random 128x128 image
+        >>> from deepinv.utils import cal_psnr
+        >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
         >>> physics = Blur(filter=w)
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
-        >>> round(torch.norm(x - x_dagger).item(), 1) # Pseudoinverse should be close to the original image
-        26.0
-        >>> round(torch.norm(x - y).item(), 1) # Blurred image should be further away from the original image
-        111.7
+        >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
+        True
 
     """
 

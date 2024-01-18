@@ -108,14 +108,14 @@ class Downsampling(LinearPhysics):
 
         Downsampling operator with a gaussian filter:
 
-        >>> x = torch.zeros((1, 1, 128, 128)) # Define black image of size 128x128
-        >>> x[:, :, 64, 64] = 1 # Define one white pixel in the middle
-        >>> physics = Downsampling(img_size=((1, 1, 128, 128)), filter = "gaussian", factor = 4)
+        >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
+        >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
+        >>> physics = Downsampling(img_size=((1, 1, 32, 32)), filter = "gaussian", factor = 2)
         >>> y = physics(x)
-        >>> y[:, :, 15:18, 15:18] # Display the center of the downsampled image
-        tensor([[[[0.0037, 0.0060, 0.0037],
-                  [0.0060, 0.0100, 0.0060],
-                  [0.0037, 0.0060, 0.0037]]]])
+        >>> y[:, :, 7:10, 7:10] # Display the center of the downsampled image
+        tensor([[[[0.0146, 0.0241, 0.0146],
+                  [0.0241, 0.0398, 0.0241],
+                  [0.0146, 0.0241, 0.0146]]]])
 
     """
 
@@ -440,7 +440,7 @@ class Blur(LinearPhysics):
 
     :Examples:
 
-        Blur operator with a basic averaging filter applied to a 128x128 black image with
+        Blur operator with a basic averaging filter applied to a 16x16 black image with
         a single white pixel in the center:
 
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
@@ -493,7 +493,7 @@ class BlurFFT(DecomposablePhysics):
 
     :Examples:
 
-        BlurFFT operator with a basic averaging filter applied to a 128x128 black image with
+        BlurFFT operator with a basic averaging filter applied to a 16x16 black image with
         a single white pixel in the center:
 
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
