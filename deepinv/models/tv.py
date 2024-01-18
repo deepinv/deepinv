@@ -59,7 +59,7 @@ class TV(nn.Module):
     def prox_sigma_g_conj(self, u, lambda2):
         return u / (
             torch.maximum(
-                torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
+                torch.sqrt(torch.sum(u ** 2, axis=-1)) / lambda2,
                 torch.tensor([1], device=u.device).type(u.dtype),
             ).unsqueeze(-1)
         )
@@ -106,7 +106,7 @@ class TV(nn.Module):
                 ) ** 2 + lambd * torch.sum(
                     torch.sqrt(torch.sum(nabla(self.x2) ** 2, axis=-1))
                 )
-                dualcost = (y**2).sum() / 2 - torch.sum(
+                dualcost = (y ** 2).sum() / 2 - torch.sum(
                     (y - nablaT(self.u2)) ** 2
                 ) / 2.0
                 primalcostlowerbound = max(primalcost, dualcost)

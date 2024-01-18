@@ -17,7 +17,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
             likelihood,
             max_iter=500,
             thinning=1,
-            step_size=0.01 / (1 / sigma**2 + 1 / sigma_prior**2),
+            step_size=0.01 / (1 / sigma ** 2 + 1 / sigma_prior ** 2),
             clip=(-100, 100),
             thresh_conv=thresh_conv,
             sigma=1,
@@ -29,7 +29,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
             likelihood,
             max_iter=500,
             inner_iter=5,
-            step_size=1 / (1 / sigma**2 + 1 / sigma_prior**2),
+            step_size=1 / (1 / sigma ** 2 + 1 / sigma_prior ** 2),
             clip=(-100, 100),
             thresh_conv=thresh_conv,
             sigma=1,
@@ -51,7 +51,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
 class GaussianScore(torch.nn.Module):
     def __init__(self, sigma_prior):
         super().__init__()
-        self.sigma_prior2 = sigma_prior**2
+        self.sigma_prior2 = sigma_prior ** 2
 
     def forward(self, x, sigma):
         return x / self.sigma_prior2
@@ -60,10 +60,10 @@ class GaussianScore(torch.nn.Module):
 class GaussianDenoiser(torch.nn.Module):
     def __init__(self, sigma_prior):
         super().__init__()
-        self.sigma_prior2 = sigma_prior**2
+        self.sigma_prior2 = sigma_prior ** 2
 
     def forward(self, x, sigma):
-        return x / (1 + sigma**2 / self.sigma_prior2)
+        return x / (1 + sigma ** 2 / self.sigma_prior2)
 
 
 @pytest.mark.parametrize("algo", SAMPLING_ALGOS)
@@ -89,8 +89,8 @@ def test_sampling_algo(algo, imsize, device):
     xmean, xvar = f(y, physics, seed=0)
 
     tol = 5  # can be lowered?
-    sigma2 = sigma**2
-    sigma_prior2 = sigma_prior**2
+    sigma2 = sigma ** 2
+    sigma_prior2 = sigma_prior ** 2
 
     # the posterior of a gaussian likelihood with a gaussian prior is gaussian
     post_var = (sigma2 * sigma_prior2) / (sigma2 + sigma_prior2)
