@@ -28,8 +28,9 @@ All forward operators inherit the structure of the ``Physics`` class.
 
 Operators can be called with the ``forward`` method, for example
 
-::
+.. exec_code::
 
+    import torch
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
@@ -65,8 +66,9 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
-::
+.. exec_code::
 
+    import torch
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
@@ -100,8 +102,9 @@ Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.
 The noise of a forward operator can be set in its construction
 or simply as
 
-::
+.. exec_code::
 
+    import torch
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.

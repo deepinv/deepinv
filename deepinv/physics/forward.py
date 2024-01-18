@@ -1,6 +1,6 @@
 import torch
 from deepinv.optim.utils import conjugate_gradient
-from .noise import GaussianNoise
+from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 
 
@@ -210,6 +210,45 @@ class LinearPhysics(Physics):
     :param float tol: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
 
+    |sep|
+
+    :Examples:
+
+        Blur operator with a basic averaging filter applied to a 32x32 black image with
+        a single white pixel in the center:
+
+        >>> from deepinv.physics.blur import Blur, Downsampling
+        >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x)
+
+        Linear operators can also be added. The measurements produced by the resulting
+        model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
+        measurements of the corresponding operator:
+
+        >>> physics1 = Blur(filter=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
+        >>> physics = physics1 + physics2
+        >>> y = physics(x)
+
+        Linear operators can also be composed by multiplying them:
+
+        >>> physics = physics1 * physics2
+        >>> y = physics(x)
+
+        Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
+
+        >>> from deepinv.utils import cal_psnr
+        >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x) # Compute measurements
+        >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
+        >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
+        >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
+        True
+
     """
 
     def __init__(
@@ -277,6 +316,11 @@ class LinearPhysics(Physics):
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
+
+        .. note::
+
+            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            noise.
 
         :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.LinearPhysics) stacked operator
@@ -450,6 +494,30 @@ class DecomposablePhysics(LinearPhysics):
     :param callable V_adjoint: transpose of V
     :param torch.Tensor, float mask: Singular values of the transform
 
+    |sep|
+
+    :Examples:
+
+        Recreation of the Inpainting operator using the DecomposablePhysics class:
+
+        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+        >>> tensor_size = (1, 1, 3, 3)  # Input size
+        >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
+        >>> U = lambda x: x  # U is the identity operation
+        >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
+        >>> V = lambda x: x  # V is the identity operation
+        >>> V_adjoint = lambda x: x  # V_adjoint is the identity operation
+        >>> mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
+        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)
+
+        Apply the operator to a random tensor:
+
+        >>> x = torch.randn(tensor_size)
+        >>> physics.A(x)  # Apply the masking
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.7193]]]])
+
     """
 
     def __init__(
@@ -553,6 +621,23 @@ class Denoising(DecomposablePhysics):
     The linear operator is just the identity mapping :math:`A(x)=x`
 
     :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+
+    |sep|
+
+    :Examples:
+
+        Denoising operator with Gaussian noise with standard deviation 0.1:
+
+        >>> from deepinv.physics import Denoising, GaussianNoise
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image
+        >>> physics = Denoising()
+        >>> physics.noise_model = GaussianNoise(sigma=0.1)
+        >>> physics(x)
+        tensor([[[[ 0.7302, -0.2064, -1.0712],
+                  [ 0.1985, -0.4322, -0.8064],
+                  [ 0.2139,  0.3624, -0.3223]]]])
+
     """
 
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):

@@ -26,7 +26,10 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
+    "sphinx_exec_code",
 ]
+
+exec_code_working_dir = "../.."
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
@@ -112,3 +115,10 @@ html_theme_options = {
     "includehidden": True,
     "titles_only": False,
 }
+
+# Separator substition : Writing |sep| in the rst file will display a horizontal line.
+rst_prolog = """
+.. |sep| raw:: html
+
+   <hr />
+"""

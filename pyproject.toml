@@ -54,7 +54,8 @@ doc = [
     "sphinx",
     "sphinx_gallery",
     "sphinx_rtd_theme",
-    "sphinxemoji"
+    "sphinxemoji",
+    "sphinx_exec_code"
 ]
 
 # optional dependencies for specific denoisers

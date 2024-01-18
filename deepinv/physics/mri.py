@@ -25,6 +25,21 @@ class MRI(DecomposablePhysics):
     :param torch.tensor mask: the mask values should be binary.
         The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
+
+    |sep|
+
+    :Examples:
+
+        Single-coil MRI operator with 4x acceleration:
+
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 2, 3, 3) # Define random 3x3 image
+        >>> mask = torch.ones((3, 3))
+        >>> mask[:, ::2] = 0
+        >>> physics = MRI(mask=mask)
+        >>> physics(x)
+        tensor([[-0.5305,  0.0351,  0.3326,  2.1730,  1.7072,  0.0418]])
+
     """
 
     def __init__(
