@@ -59,7 +59,7 @@ class TGV(nn.Module):
         return (x + self.tau * y) / (1 + self.tau)
 
     def prox_tau_fr(self, r, lambda1):
-        left = torch.sqrt(torch.sum(r ** 2, axis=-1)) / (self.tau * lambda1)
+        left = torch.sqrt(torch.sum(r**2, axis=-1)) / (self.tau * lambda1)
         tmp = r - r / (
             torch.maximum(
                 left, torch.tensor([1], device=left.device).type(left.dtype)
@@ -70,7 +70,7 @@ class TGV(nn.Module):
     def prox_sigma_g_conj(self, u, lambda2):
         return u / (
             torch.maximum(
-                torch.sqrt(torch.sum(u ** 2, axis=-1)) / lambda2,
+                torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
                 torch.tensor([1], device=u.device).type(u.dtype),
             ).unsqueeze(-1)
         )
@@ -96,7 +96,7 @@ class TGV(nn.Module):
             lambda1 = ths * 0.1
             lambda2 = ths * 0.15
 
-        cy = (y ** 2).sum() / 2
+        cy = (y**2).sum() / 2
         primalcostlowerbound = 0
 
         for _ in range(self.n_it_max):
@@ -126,7 +126,7 @@ class TGV(nn.Module):
             if self.verbose and _ % 100 == 0:
                 primalcost = (
                     torch.linalg.norm(x.flatten() - y.flatten()) ** 2
-                    + lambda1 * torch.sum(torch.sqrt(torch.sum(r ** 2, axis=-1)))
+                    + lambda1 * torch.sum(torch.sqrt(torch.sum(r**2, axis=-1)))
                     + lambda2
                     * torch.sum(
                         torch.sqrt(torch.sum(epsilon(nabla(x) - r) ** 2, axis=-1))

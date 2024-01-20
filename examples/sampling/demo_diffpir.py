@@ -239,10 +239,10 @@ diffusion_steps = 30  # Maximum number of iterations of the DiffPIR algorithm
 
 lambda_ = 7.0  # Regularization parameter
 
-rhos = lambda_ * (sigma_noise ** 2) / (sigmas ** 2)
+rhos = lambda_ * (sigma_noise**2) / (sigmas**2)
 
 # get timestep sequence
-seq = np.sqrt(np.linspace(0, T ** 2, diffusion_steps))
+seq = np.sqrt(np.linspace(0, T**2, diffusion_steps))
 seq = [int(s) for s in list(seq)]
 seq[-1] = seq[-1] - 1
 

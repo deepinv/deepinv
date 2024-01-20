@@ -146,7 +146,7 @@ class DDRM(nn.Module):
             else:
                 mask = torch.cat([physics.mask.abs()] * y.shape[0], dim=0)
 
-            c = np.sqrt(1 - self.eta ** 2)
+            c = np.sqrt(1 - self.eta**2)
             y_bar = physics.U_adjoint(y)
             case = mask > sigma_noise
             y_bar[case] = y_bar[case] / mask[case]
@@ -345,12 +345,12 @@ class DiffPIR(nn.Module):
             sigma_ks.append(
                 (self.sqrt_1m_alphas_cumprod[i] / self.sqrt_alphas_cumprod[i])
             )
-            rhos.append(lambda_ * (sigma ** 2) / (sigma_ks[i] ** 2))
+            rhos.append(lambda_ * (sigma**2) / (sigma_ks[i] ** 2))
         rhos, sigmas = torch.tensor(rhos).to(self.device), torch.tensor(sigmas).to(
             self.device
         )
 
-        seq = np.sqrt(np.linspace(0, self.num_train_timesteps ** 2, self.max_iter))
+        seq = np.sqrt(np.linspace(0, self.num_train_timesteps**2, self.max_iter))
         seq = [int(s) for s in list(seq)]
         seq[-1] = seq[-1] - 1
 
@@ -625,7 +625,7 @@ class DPS(nn.Module):
             norm_grad = norm_grad.detach()
 
             c1 = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * self.eta
-            c2 = ((1 - at_next) - c1 ** 2).sqrt()
+            c2 = ((1 - at_next) - c1**2).sqrt()
 
             # 3. noise step
             epsilon = torch.randn_like(xt)

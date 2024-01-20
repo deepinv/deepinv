@@ -587,7 +587,7 @@ class DecomposablePhysics(LinearPhysics):
         """
         b = self.A_adjoint(y) + 1 / gamma * z
         if isinstance(self.mask, float):
-            scaling = self.mask ** 2 + 1 / gamma
+            scaling = self.mask**2 + 1 / gamma
         else:
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)

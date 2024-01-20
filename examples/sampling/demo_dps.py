@@ -323,7 +323,7 @@ for i, j in tqdm(time_pairs):
     norm_grad = norm_grad.detach()
 
     sigma_tilde = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
-    c2 = ((1 - at_next) - sigma_tilde ** 2).sqrt()
+    c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
 
     # 3. noise step
     epsilon = torch.randn_like(xt)
