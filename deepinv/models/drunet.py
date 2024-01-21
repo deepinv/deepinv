@@ -190,7 +190,7 @@ class DRUNet(nn.Module):
                             (x.get_device() + 1) * x.shape[0]
                         )
                     ]
-                    noise_level_map = sigma.to(x.device)
+                    noise_level_map = sigma.to(x.device).view(x.size(0), 1, 1, 1)
                 else:
                     noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
                 noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))

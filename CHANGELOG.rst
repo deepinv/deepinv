@@ -13,6 +13,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed test for sigma as torch tensor with gpu enable (:gh:`145` by `Brayan Monroy`_) - 23/12/2023
 - Fixed :gh:`139` BM3D tensor format grayscale (:gh:`140` by `Matthieu Terris`_) - 23/12/2023
 - Fixed :gh:`136` noise additive model for DecomposablePhysics (:gh:`138` by `Matthieu Terris`_) - 22/12/2023
 
@@ -79,3 +80,4 @@ Authors
 .. _Eliott Bourrigan: https://github.com/eliottbourrigan
 .. _Riyad Chamekh: https://github.com/riyadchk
 .. _Jules Dumouchel: https://github.com/Ruli0
+.. _Brayan Monroy: https://github.com/bemc22
