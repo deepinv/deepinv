@@ -6,40 +6,17 @@ from deepinv.utils import (
     cal_psnr,
 )
 from deepinv.utils import plot, plot_curves, wandb_plot_curves, rescale_img, zeros_like
+from deepinv.physics import Physics
 import numpy as np
 from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
+from dataclasses import dataclass, field
 
 
-def train(
-    model,
-    train_dataloader,
-    epochs,
-    losses,
-    eval_dataloader=None,
-    physics=None,
-    optimizer=None,
-    grad_clip=None,
-    scheduler=None,
-    device="cpu",
-    ckp_interval=1,
-    eval_interval=1,
-    save_path=".",
-    verbose=False,
-    unsupervised=False,
-    plot_images=False,
-    plot_metrics=False,
-    wandb_vis=False,
-    wandb_setup={},
-    online_measurements=False,
-    plot_measurements=True,
-    check_grad=False,
-    ckpt_pretrained=None,
-    fact_losses=None,
-    freq_plot=1,
-):
+@dataclass
+class Trainer:
     r"""
     Trains a reconstruction network.
 
@@ -68,6 +45,7 @@ def train(
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
+    :param int img_interval: Frequency of plotting images to wandb during test evaluation (at the start of each epoch) 
     :param str save_path: Directory in which to save the trained model.
     :param bool verbose: Output training progress information in the console.
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
@@ -75,222 +53,150 @@ def train(
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
-         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
-         parameters of the forward operator or noise realizations, can change between each sample; these are updated
-         with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
+        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
+        parameters of the forward operator or noise realizations, can change between each sample; these are updated
+        with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool check_grad: Check the gradient norm at each iteration.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
     :param list fact_losses: List of factors to multiply the losses. If None, all losses are multiplied by 1.
-    :param int freq_plot: Frequency of plotting images to wandb. If 1, plots at each epoch.
+    :param int freq_plot: Frequency of plotting images to wandb during train evaluation (at the end of each epoch). If 1, plots at each epoch.
     :returns: Trained model.
     """
-    save_path = Path(save_path)
+    model: torch.nn.Module
+    train_dataloader: torch.utils.data.DataLoader
+    epochs: int
+    losses: list
+    eval_dataloader: torch.utils.data.DataLoader = None
+    physics: Physics=None
+    optimizer: torch.optim.Optimizer=None
+    grad_clip: float = None
+    scheduler: torch.optim.lr_scheduler.LRScheduler = None
+    device: str | torch.device = "cpu"
+    ckp_interval: int = 1
+    eval_interval: int = 1
+    img_interval: int = 1
+    save_path: str | Path = "."
+    verbose: bool = False
+    unsupervised: bool = False
+    plot_images: bool = False
+    plot_metrics: bool = False
+    wandb_vis: bool = False
+    wandb_setup: dict = field(default_factory=dict)
+    online_measurements: bool = False
+    plot_measurements: bool = True
+    check_grad: bool = False
+    ckpt_pretrained: str | None = None
+    fact_losses: list = None
+    freq_plot: int = 1
 
-    # wandb initialiation
-    if wandb_vis:
-        if wandb.run is None:
-            wandb.init(**wandb_setup)
+    def setup_train(self):
+        self.save_path = Path(self.save_path)
 
-    # set the different metrics
-    meters = []
-    total_loss = AverageMeter("loss", ":.2e")
-    meters.append(total_loss)
-    if not isinstance(losses, list) or isinstance(losses, tuple):
-        losses = [losses]
-    if fact_losses is None:
-        fact_losses = [1] * len(losses)
-    losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in losses]
-    for loss in losses_verbose:
-        meters.append(loss)
-    train_psnr = AverageMeter("Train_psnr_model", ":.2f")
-    meters.append(train_psnr)
-    if eval_dataloader:
-        eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
-        meters.append(eval_psnr)
-    if check_grad:
-        check_grad_val = AverageMeter("Gradient norm", ":.2e")
-        meters.append(check_grad_val)
+        # wandb initialiation
+        if self.wandb_vis:
+            if wandb.run is None:
+                wandb.init(**self.wandb_setup)
 
-    save_path = f"{save_path}/{get_timestamp()}"
+        # set the different metrics
+        self.meters = []
+        self.total_loss = AverageMeter("loss", ":.2e")
+        self.meters.append(self.total_loss)
+        if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
+            self.losses = [self.losses]
+        if self.fact_losses is None:
+            self.fact_losses = [1] * len(self.losses)
+        self.losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in self.losses]
+        for loss in self.losses_verbose:
+            self.meters.append(loss)
+        self.train_psnr = AverageMeter("Train_psnr_model", ":.2f")
+        self.meters.append(self.train_psnr)
+        if self.eval_dataloader:
+            self.eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
+            self.meters.append(self.eval_psnr)
+        if self.check_grad:
+            self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
+            self.meters.append(self.check_grad_val)
 
-    # count the overall training parameters
-    params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"The model has {params} trainable parameters")
+        self.save_path = f"{self.save_path}/{get_timestamp()}"
 
-    # make physics and data_loaders of list type
-    if type(physics) is not list:
-        physics = [physics]
-    if type(train_dataloader) is not list:
-        train_dataloader = [train_dataloader]
-    if eval_dataloader and type(eval_dataloader) is not list:
-        eval_dataloader = [eval_dataloader]
+        # count the overall training parameters
+        params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"The model has {params} trainable parameters")
 
-    G = len(train_dataloader)
+        # make physics and data_loaders of list type
+        if type(self.physics) is not list:
+            self.physics = [self.physics]
+        if type(self.train_dataloader) is not list:
+            self.train_dataloader = [self.train_dataloader]
+        if self.eval_dataloader and type(self.eval_dataloader) is not list:
+            self.eval_dataloader = [self.eval_dataloader]
 
-    loss_history = []
+        self.G = len(self.train_dataloader)
 
-    log_dict = {}
+        self.loss_history = []
 
-    epoch_start = 0
-    if ckpt_pretrained is not None:
-        checkpoint = torch.load(ckpt_pretrained)
-        model.load_state_dict(checkpoint["state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer"])
-        epoch_start = checkpoint["epoch"]
+        self.log_dict = {}
 
-    for epoch in range(epoch_start, epochs):
+        self.epoch_start = 0
+        if self.ckpt_pretrained is not None:
+            checkpoint = torch.load(self.ckpt_pretrained)
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+            self.epoch_start = checkpoint["epoch"]
+
+    def epoch_eval(self, epoch):
         ### Evaluation
 
-        if wandb_vis:
+        if self.wandb_vis:
             wandb_log_dict_epoch = {"epoch": epoch}
 
         # perform evaluation every eval_interval epoch
-        perform_eval = (
-            (not unsupervised)
-            and eval_dataloader
-            and ((epoch + 1) % eval_interval == 0 or epoch + 1 == epochs)
+        self.perform_eval = (
+            (not self.unsupervised)
+            and self.eval_dataloader
+            and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
         )
 
-        if perform_eval:
+        if self.perform_eval:
             test_psnr, _, _, _ = test(
-                model,
-                eval_dataloader,
-                physics,
-                device,
+                self.model,
+                self.eval_dataloader,
+                self.physics,
+                self.device,
                 verbose=False,
-                plot_images=plot_images,
-                plot_metrics=plot_metrics,
-                wandb_vis=wandb_vis,
-                wandb_setup=wandb_setup,
+                plot_images=self.plot_images,
+                plot_metrics=self.plot_metrics,
+                wandb_vis=self.wandb_vis,
+                wandb_setup=self.wandb_setup,
                 step=epoch,
-                online_measurements=online_measurements,
+                online_measurements=self.online_measurements,
+                img_interval=self.img_interval
             )
-            eval_psnr.update(test_psnr)
-            log_dict["eval_psnr"] = test_psnr
-            if wandb_vis:
+            self.eval_psnr.update(test_psnr)
+            self.log_dict["eval_psnr"] = test_psnr
+            if self.wandb_vis:
                 wandb_log_dict_epoch["eval_psnr"] = test_psnr
 
         # wandb logging
-        if wandb_vis:
-            last_lr = None if scheduler is None else scheduler.get_last_lr()[0]
+        if self.wandb_vis:
+            last_lr = None if self.scheduler is None else self.scheduler.get_last_lr()[0]
             wandb_log_dict_epoch["learning rate"] = last_lr
 
             wandb.log(wandb_log_dict_epoch)
 
-        ### Training
-
-        model.train()
-
-        for meter in meters:
-            meter.reset()  # reset the metric at each epoch
-
-        iterators = [iter(loader) for loader in train_dataloader]
-        batches = len(train_dataloader[G - 1])
-
-        for i in (progress_bar := tqdm(range(batches), disable=not verbose)):
-            progress_bar.set_description(f"Epoch {epoch + 1}")
-
-            if wandb_vis:
-                wandb_log_dict_iter = {}
-
-            # random permulation of the dataloaders
-            G_perm = np.random.permutation(G)
-
-            for g in G_perm:  # for each dataloader
-                if online_measurements:  # the measurements y are created on-the-fly
-                    x, _ = next(
-                        iterators[g]
-                    )  # In this case the dataloader outputs also a class label
-                    x = x.to(device)
-                    physics_cur = physics[g]
-
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        physics_cur.module.noise_model.__init__()
-                    else:
-                        physics_cur.reset()
-
-                    y = physics_cur(x)
-
-                else:  # the measurements y were pre-computed
-                    if unsupervised:
-                        y = next(iterators[g])
-                        x = None
-                    else:
-                        x, y = next(iterators[g])
-                        if type(x) is list or type(x) is tuple:
-                            x = [s.to(device) for s in x]
-                        else:
-                            x = x.to(device)
-
-                    physics_cur = physics[g]
-
-                y = y.to(device)
-
-                optimizer.zero_grad()
-
-                # run the forward model
-                x_net = model(y, physics_cur)
-
-                # compute the losses
-                loss_total = 0
-                for k, l in enumerate(losses):
-                    loss = l(x=x, x_net=x_net, y=y, physics=physics[g], model=model)
-                    loss_total += fact_losses[k] * loss
-                    losses_verbose[k].update(loss.item())
-                    if len(losses) > 1:
-                        log_dict["loss_" + l.name] = losses_verbose[k].avg
-                        if wandb_vis:
-                            wandb_log_dict_iter["loss_" + l.name] = loss.item()
-                if wandb_vis:
-                    wandb_log_dict_iter["training loss"] = loss_total.item()
-                total_loss.update(loss_total.item())
-                log_dict["total_loss"] = total_loss.avg
-
-                # backward the total loss
-                loss_total.backward()
-
-                # gradient clipping
-                if grad_clip is not None:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-
-                if check_grad:
-                    # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
-                    grads = [
-                        param.grad.detach().flatten()
-                        for param in model.parameters()
-                        if param.grad is not None
-                    ]
-                    norm_grads = torch.cat(grads).norm()
-                    wandb_log_dict_iter["gradient norm"] = norm_grads.item()
-                    check_grad_val.update(norm_grads.item())
-
-                # optimize step
-                optimizer.step()
-
-                # training psnr and logging
-                if not unsupervised:
-                    with torch.no_grad():
-                        psnr = cal_psnr(x_net, x)
-                        train_psnr.update(psnr)
-                        if wandb_vis:
-                            wandb_log_dict_iter["train_psnr"] = psnr
-                            wandb.log(wandb_log_dict_iter)
-                        log_dict["train_psnr"] = train_psnr.avg
-
-                progress_bar.set_postfix(log_dict)
-
+    def epoch_wandb_vis(self, epoch, physics_cur, x, y, x_net):
         # wandb plotting of training images
-        if wandb_vis:
+        if self.wandb_vis:
             # log average training metrics
             log_dict_post_epoch = {}
-            log_dict_post_epoch["mean training loss"] = total_loss.avg
-            log_dict_post_epoch["mean training psnr"] = train_psnr.avg
-            if check_grad:
-                log_dict_post_epoch["mean gradient norm"] = check_grad_val.avg
+            log_dict_post_epoch["mean training loss"] = self.total_loss.avg
+            log_dict_post_epoch["mean training psnr"] = self.train_psnr.avg
+            if self.check_grad:
+                log_dict_post_epoch["mean gradient norm"] = self.check_grad_val.avg
 
             with torch.no_grad():
-                if plot_measurements and y.shape != x.shape:
+                if self.plot_measurements and y.shape != x.shape:
                     y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                     if hasattr(physics_cur, "A_adjoint"):
                         imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
@@ -316,37 +222,159 @@ def train(
                 for i in range(len(vis_array)):
                     vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
                 grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-                if epoch % freq_plot == 0:
+                if (epoch+1) % self.freq_plot == 0:
                     images = wandb.Image(
                         grid_image,
                         caption=caption,
                     )
                     log_dict_post_epoch["Training samples"] = images
 
-        if wandb_vis:
+        if self.wandb_vis:
             wandb.log(log_dict_post_epoch)
 
-        loss_history.append(total_loss.avg)
+    def batch_eval(self, x, x_net):
+        # training psnr and logging
+        if not self.unsupervised:
+            with torch.no_grad():
+                psnr = cal_psnr(x_net, x)
+                self.train_psnr.update(psnr)
+                if self.wandb_vis:
+                    self.wandb_log_dict_iter["train_psnr"] = psnr
+                    wandb.log(self.wandb_log_dict_iter)
+                self.log_dict["train_psnr"] = self.train_psnr.avg
 
-        if scheduler:
-            scheduler.step()
+    def check_clip_grad(self):
+        # gradient clipping
+        if self.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
-        # Saving the model
-        save_model(
-            epoch,
-            model,
-            optimizer,
-            ckp_interval,
-            epochs,
-            loss_history,
-            str(save_path),
-            eval_psnr=eval_psnr if perform_eval else None,
-        )
+        if self.check_grad:
+            # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
+            grads = [
+                param.grad.detach().flatten()
+                for param in self.model.parameters()
+                if param.grad is not None
+            ]
+            norm_grads = torch.cat(grads).norm()
+            self.wandb_log_dict_iter["gradient norm"] = norm_grads.item()
+            self.check_grad_val.update(norm_grads.item())
 
-    if wandb_vis:
-        wandb.save("model.h5")
+    def backward_pass(self, g, x, y, x_net):
+        # compute the losses
+        loss_total = 0
+        for k, l in enumerate(self.losses):
+            loss = l(x=x, x_net=x_net, y=y, physics=self.physics[g], model=self.model)
+            loss_total += self.fact_losses[k] * loss
+            self.losses_verbose[k].update(loss.item())
+            if len(self.losses) > 1:
+                self.log_dict["loss_" + l.name] = self.losses_verbose[k].avg
+                if self.wandb_vis:
+                    self.wandb_log_dict_iter["loss_" + l.name] = loss.item()
+        if self.wandb_vis:
+            self.wandb_log_dict_iter["training loss"] = loss_total.item()
+        self.total_loss.update(loss_total.item())
+        self.log_dict["total_loss"] = self.total_loss.avg
 
-    return model
+        # backward the total loss
+        loss_total.backward()
+
+        self.check_clip_grad()
+
+        # optimize step
+        self.optimizer.step()
+
+    def train_batch(self, epoch, progress_bar):
+        progress_bar.set_description(f"Epoch {epoch + 1}")
+
+        if self.wandb_vis:
+            self.wandb_log_dict_iter = {}
+
+        # random permulation of the dataloaders
+        G_perm = np.random.permutation(self.G)
+
+        for g in G_perm:  # for each dataloader
+            if self.online_measurements:  # the measurements y are created on-the-fly
+                x, _ = next(
+                    self.iterators[g]
+                )  # In this case the dataloader outputs also a class label
+                x = x.to(self.device)
+                physics_cur = self.physics[g]
+
+                if isinstance(physics_cur, torch.nn.DataParallel):
+                    physics_cur.module.noise_model.__init__()
+                else:
+                    physics_cur.reset()
+
+                y = physics_cur(x)
+
+            else:  # the measurements y were pre-computed
+                if self.unsupervised:
+                    y = next(self.iterators[g])
+                    x = None
+                else:
+                    x, y = next(self.iterators[g])
+                    if type(x) is list or type(x) is tuple:
+                        x = [s.to(self.device) for s in x]
+                    else:
+                        x = x.to(self.device)
+
+                physics_cur = self.physics[g]
+
+            y = y.to(self.device)
+
+            self.optimizer.zero_grad()
+
+            # run the forward model
+            x_net = self.model(y, physics_cur)
+
+            self.backward_pass(g=g, x=x, y=y, x_net=x_net)
+
+            self.batch_eval(x=x, x_net=x_net)
+
+            progress_bar.set_postfix(self.log_dict)
+        
+        return physics_cur, x, y, x_net
+
+    def train(self):
+        self.setup_train()
+        for epoch in range(self.epoch_start, self.epochs):
+            self.epoch_eval(epoch)
+
+            self.model.train()
+
+            for meter in self.meters:
+                meter.reset()  # reset the metric at each epoch
+
+            self.iterators = [iter(loader) for loader in self.train_dataloader]
+            batches = len(self.train_dataloader[self.G - 1])
+
+            for i in (progress_bar := tqdm(range(batches), disable=not self.verbose)):
+                physics_cur, x, y, x_net = self.train_batch(epoch, progress_bar)
+
+            self.epoch_wandb_vis(epoch, physics_cur, x=x, y=y, x_net=x_net)
+
+            self.loss_history.append(self.total_loss.avg)
+
+            if self.scheduler:
+                self.scheduler.step()
+
+            # Saving the model
+            save_model(
+                epoch,
+                self.model,
+                self.optimizer,
+                self.ckp_interval,
+                self.epochs,
+                self.loss_history,
+                str(self.save_path),
+                eval_psnr=self.eval_psnr if self.perform_eval else None,
+            )
+
+        if self.wandb_vis:
+            wandb.save("model.h5")
+
+        return self.model
+    
 
 
 def test(
@@ -364,6 +392,7 @@ def test(
     step=0,
     online_measurements=False,
     plot_measurements=True,
+    img_interval=1,
     **kwargs,
 ):
     r"""
@@ -391,6 +420,7 @@ def test(
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``.
     :param bool plot_measurements: Plot the measurements y. default=True.
+    :param int img_interval: how many steps between plotting images
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
@@ -483,7 +513,7 @@ def test(
                     ) / "curves"
                     save_folder_curve.mkdir(parents=True, exist_ok=True)
 
-                if plot_images or wandb_vis:
+                if (plot_images or wandb_vis) and (step+1) % img_interval == 0:
                     if g < show_operators:
                         if not plot_only_first_batch or (
                             plot_only_first_batch and i == 0
