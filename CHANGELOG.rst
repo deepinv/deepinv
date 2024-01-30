@@ -28,6 +28,7 @@ v0.1.0
 
 New Features
 ^^^^^^^^^^^^
+- Added automatic adjoint (:gh:`149` by `Julian Tachella`_) - 30/01/2024
 - Added equivariant transforms (:gh:`125` by `Matthieu Terris`_) - 07/12/2023
 - Moved datasets and weights to HuggingFace (:gh:`121` by `Samuel Hurault`_) - 01/12/2023
 - Added L1 prior, change distance in DataFidelity (:gh:`108` by `Samuel Hurault`_) - 03/11/2023
