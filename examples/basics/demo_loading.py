@@ -8,6 +8,7 @@ The architecture of the model and its training are described
 in the `constrained unfolded demo <https://deepinv.github.io/deepinv/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html>`_.
 
 """
+
 from pathlib import Path
 import torch
 

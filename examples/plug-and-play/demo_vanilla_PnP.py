@@ -5,6 +5,7 @@ Vanilla PnP for computed tomography (CT).
 This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography.
 
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch
