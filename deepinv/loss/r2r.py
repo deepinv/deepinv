@@ -49,7 +49,7 @@ class R2RLoss(nn.Module):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :return: (float) R2R loss.
+        :return: (torch.Tensor) R2R loss.
         """
 
         eta_rnd = torch.rand(1, device=y.device) * self.eta
