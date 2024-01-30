@@ -33,7 +33,7 @@ class R2RLoss(nn.Module):
 
     .. note::
 
-        $\eta$ should be chosen equal or close to $\sigma$ to obtain the best performance.
+        :math:`\eta` should be chosen equal or close to :math:`\sigma` to obtain the best performance.
 
     :param float eta: standard deviation of the Gaussian noise used for the perturbation.
     :param float alpha: scaling factor of the perturbation.
