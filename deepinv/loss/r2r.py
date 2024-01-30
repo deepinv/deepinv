@@ -32,7 +32,7 @@ class R2RLoss(nn.Module):
     according to authors in https://ieeexplore.ieee.org/document/9577798
 
     .. note::
-    
+
         $\eta$ should be chosen equal or close to $\sigma$ to obtain the best performance.
 
     :param float eta: standard deviation of the Gaussian noise used for the perturbation.
@@ -43,7 +43,7 @@ class R2RLoss(nn.Module):
         super(R2RLoss, self).__init__()
         self.name = "r2r"
         self.metric = metric
-        self.eta = eta 
+        self.eta = eta
         self.alpha = alpha
 
     def forward(self, y, physics, model, **kwargs):
