@@ -35,11 +35,11 @@ class R2RLoss(nn.Module):
     :param float alpha: scaling factor of the perturbation.
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), eta=35, alpha=0.5):
+    def __init__(self, metric=torch.nn.MSELoss(), eta=0.1, alpha=0.5):
         super(R2RLoss, self).__init__()
         self.name = "r2r"
         self.metric = metric
-        self.eta = eta / 255.0
+        self.eta = eta 
         self.alpha = alpha
 
     def forward(self, y, physics, model, **kwargs):
