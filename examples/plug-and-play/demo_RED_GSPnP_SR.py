@@ -55,7 +55,7 @@ dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 # Generate the degradation operator.
 kernel_index = 1
 kernel_torch = load_degradation(
-    "kernels_12.npy", DEG_DIR / "kernels", index=kernel_index
+    "kernels_12.npy", DEG_DIR / "kernels", kernel_index=kernel_index
 )
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
@@ -103,7 +103,9 @@ use_bicubic_init = False  # Use bicubic interpolation to initialize the algorith
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
+lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+    operation, noise_level_img, kernel_index
+)
 
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
@@ -139,12 +141,6 @@ prior = GSPnP(
     denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 )
 
-
-# we want to output the intermediate PGD update to finish with a denoising step.
-def custom_output(X):
-    return X["est"][1]
-
-
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
     iteration="PGD",
@@ -157,7 +153,7 @@ model = optim_builder(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    get_output=custom_output,
+    return_aux=True,
     verbose=True,
 )
 

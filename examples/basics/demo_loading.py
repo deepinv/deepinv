@@ -8,6 +8,7 @@ The architecture of the model and its training are described
 in the `constrained unfolded demo <https://deepinv.github.io/deepinv/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html>`_.
 
 """
+
 from pathlib import Path
 import torch
 
@@ -15,7 +16,7 @@ import deepinv as dinv
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
-from deepinv.models.utils import get_weights_url
+from deepinv.models.denoiser import online_weights_path
 
 
 # %%
@@ -175,10 +176,9 @@ print(
 
 
 # load a state_dict checkpoint
-file_name = "demo_unfolded_CP.pth"
-url = get_weights_url(model_name="demo", file_name=file_name)
+url = online_weights_path() + "demo_unfolded_CP_2.pth"
 ckpt_state_dict = torch.hub.load_state_dict_from_url(
-    url, map_location=lambda storage, loc: storage, file_name=file_name
+    url, map_location=lambda storage, loc: storage, file_name="demo_unfolded_CP_2.pth"
 )
 # load a state_dict checkpoint
 model_new.load_state_dict(ckpt_state_dict)

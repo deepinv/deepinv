@@ -6,8 +6,6 @@ This a toy example to show you how to use DEQ to solve a deblurring problem.
 Note that this is a small dataset for training. For optimal results, use a larger dataset.
 For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 
-For now DEQ is only possible with PGD, HQS and GD optimization algorithms. 
-
 """
 
 import deepinv as dinv
@@ -125,18 +123,10 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
-max_iter = 20 if torch.cuda.is_available() else 10
-lamb = 1.0  # Initial value for the regularization parameter.
-stepsize = 1.0  # Initial value for the stepsize. A single stepsize is common for each iterations.
-sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
-anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = (
-    True  # use Anderson acceleration for the backward pass.
-)
-anderson_history_size = (
-    5 if torch.cuda.is_available() else 3
-)  # history size for Anderson acceleration.
-
+max_iter = 5  # number of unfolded layers
+lamb = 0.1  # Initial value for the regularization parameter.
+stepsize = 0.5  # Initial value for the stepsize. A single stepsize is common for each iterations.
+sigma_denoiser = 0.01  # Initial value for the denoiser parameter. A single value is common for each iterations.
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -150,16 +140,12 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iteration="HQS",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    iteration="HQS",
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    anderson_acceleration=anderson_acceleration_forward,
-    anderson_acceleration_backward=anderson_acceleration_backward,
-    history_size_backward=anderson_history_size,
-    history_size=anderson_history_size,
 )
 
 # %%
@@ -169,7 +155,7 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 10
+epochs = 5
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3

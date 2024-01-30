@@ -8,6 +8,7 @@ Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017).
 Learning deep CNN denoiser prior for image restoration. 
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -55,7 +56,9 @@ val_transform = transforms.Compose(
 
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
+kernel_torch = load_degradation(
+    "Levin09.npy", DEG_DIR / "kernels", kernel_index=kernel_index
+)
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions

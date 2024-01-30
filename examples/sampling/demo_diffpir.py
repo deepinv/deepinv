@@ -6,6 +6,7 @@ In this tutorial, we revisit the implementation of the DiffPIR diffusion algorit
 `Zhou et al. <https://arxiv.org/abs/2305.08995>`_. The full algorithm is implemented in
 :class:`deepinv.sampling.DiffPIR`.
 """
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_url_image, online_dataset_path
 
 # %%
 # Generate an inverse problem
@@ -31,7 +32,7 @@ from deepinv.utils.demo import load_url_image, get_image_url
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = get_image_url("butterfly.png")
+url = online_dataset_path() + "butterfly.png"
 
 x_true = load_url_image(url=url, img_size=64, device=device)
 
