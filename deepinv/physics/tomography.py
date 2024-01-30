@@ -333,6 +333,8 @@ class Tomography(LinearPhysics):
         else:
             theta = angles.to(device)
 
+        self.correction = 0.6370 * theta.shape[0]
+
         self.radon = Radon(
             img_width, theta, circle=circle, device=device, dtype=dtype
         ).to(device)
@@ -347,4 +349,4 @@ class Tomography(LinearPhysics):
         return self.iradon(y)
 
     def A_adjoint(self, y):
-        return self.iradon(y, filtering=False)
+        return self.iradon(y, filtering=False) * self.correction
