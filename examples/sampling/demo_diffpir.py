@@ -17,6 +17,7 @@ from deepinv.utils.demo import load_url_image, get_image_url
 
 # Use matplotlib config from deepinv to get nice plots
 from deepinv.utils.plotting import config_matplotlib
+
 config_matplotlib()
 
 # %%

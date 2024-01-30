@@ -19,9 +19,7 @@ def config_matplotlib():
     plt.rcParams.update({"font.size": 17})
     plt.rcParams["lines.linewidth"] = 2
 
-    plt.rcParams["text.usetex"] = (
-        True if shutil.which("latex") else False
-    )
+    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
 def resize_pad_square_tensor(tensor, size):
