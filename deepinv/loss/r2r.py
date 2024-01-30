@@ -31,6 +31,10 @@ class R2RLoss(nn.Module):
     This loss is statistically equivalent to the supervised loss function defined on noisy/clean image pairs
     according to authors in https://ieeexplore.ieee.org/document/9577798
 
+    .. note::
+    
+        $\eta$ should be chosen equal or close to $\sigma$ to obtain the best performance.
+
     :param float eta: standard deviation of the Gaussian noise used for the perturbation.
     :param float alpha: scaling factor of the perturbation.
     """
