@@ -306,6 +306,7 @@ class LinearPhysics(Physics):
         >>> x = torch.randn((4, 1, 5, 5))
         >>> y = physics(x)
         >>> torch.allclose(physics.A_adjoint(y), x) # We have A^T(A(x)) = x
+        True
 
     """
 
