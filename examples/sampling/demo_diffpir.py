@@ -15,6 +15,10 @@ from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image, get_image_url
 
+# Use matplotlib config from deepinv to get nice plots
+from deepinv.utils.plotting import config_matplotlib
+config_matplotlib()
+
 # %%
 # Generate an inverse problem
 # ---------------------------
