@@ -13,6 +13,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed new black version 24.1.1 style changes (:gh:`150` by `Julian Tachella`_) - 31/01/2024
 - Fixed test for sigma as torch tensor with gpu enable (:gh:`145` by `Brayan Monroy`_) - 23/12/2023
 - Fixed :gh:`139` BM3D tensor format grayscale (:gh:`140` by `Matthieu Terris`_) - 23/12/2023
 - Fixed :gh:`136` noise additive model for DecomposablePhysics (:gh:`138` by `Matthieu Terris`_) - 22/12/2023
@@ -28,6 +29,7 @@ v0.1.0
 
 New Features
 ^^^^^^^^^^^^
+- Added autoadjoint capabilities (:gh:`150` by `Julian Tachella`_) - 31/01/2024
 - Added equivariant transforms (:gh:`125` by `Matthieu Terris`_) - 07/12/2023
 - Moved datasets and weights to HuggingFace (:gh:`121` by `Samuel Hurault`_) - 01/12/2023
 - Added L1 prior, change distance in DataFidelity (:gh:`108` by `Samuel Hurault`_) - 03/11/2023
