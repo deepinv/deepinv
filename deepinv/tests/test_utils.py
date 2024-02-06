@@ -117,11 +117,33 @@ def test_neural_iteration_forward():
 
     model = NeuralIteration()
     backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
-    model.init(backbone_blocks, iterations=2)
+    model.init(backbone_blocks, step_size=0.5, iterations=2)
     physics = MockPhysics()
     y = torch.randn(10, 10)
     output = model.forward(y, physics)
     assert torch.equal(output, y)
+
+    class TestNeuralIteration:
+        model = NeuralIteration()
+        backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
+        model.init(backbone_blocks, step_size=0.5, iterations=2)
+
+    def test_forward_with_x_init(self):
+        y = torch.randn(32, 64)  # Exemple de données factices
+        physics = MockPhysics()
+        x_init = torch.randn(32, 64)  # Exemple de données x_init
+
+        result = self.model.forward(y, physics, x_init)
+
+        assert torch.equal(result, torch.Tensor)
+
+    def test_forward_without_x_init(self):
+        y = torch.randn(32, 64)  # Exemple de données factices
+        physics = MockPhysics()
+
+        result = self.model.forward(y, physics)
+
+        assert torch.equal(result, torch.Tensor)
 
 
 from deepinv.utils.metric import cal_angle, cal_mse, cal_psnr, cal_psnr_complex, norm
@@ -184,26 +206,35 @@ def test_cal_psnr():
 
 
 def test_cal_psnr_complex():
-    # Créer des tenseurs de test
+    # Créer des tenseurs complexes de test
     a_real = torch.ones((1, 16, 16))
     a_imag = torch.zeros((1, 16, 16))
     b_real = torch.zeros((1, 16, 16))
     b_imag = torch.zeros((1, 16, 16))
 
-    # Empiler les parties réelles et imaginaires
-    a = torch.stack((a_real, a_imag), dim=1)
-    b = torch.stack((b_real, b_imag), dim=1)
+    # Empiler les parties réelles et imaginaires pour créer des tenseurs complexes
+    a = torch.stack((a_real, a_imag), dim=1)  # Shape devrait être [1, 2, 16, 16]
+    b = torch.stack((b_real, b_imag), dim=1)  # Shape devrait être [1, 2, 16, 16]
 
-    # Calculer le PSNR attendu (à définir en fonction de votre implémentation)
-    max_pixel = 1.0
-    mse_substitute = 1e-10
+    # Vérifier la forme des tenseurs
+    assert a.shape == (1, 2, 16, 16)
+    assert b.shape == (1, 2, 16, 16)
 
-    expected_psnr = 20 * torch.log10(
-        max_pixel / torch.sqrt(torch.tensor(mse_substitute))
-    )
-    # Test de la fonction
+    # Calculer la magnitude absolue
+    a_abs = complex_abs(
+        a.permute(0, 2, 3, 1)
+    )  # Permutation pour mettre les parties réelle et imaginaire à la fin
+    b_abs = complex_abs(b.permute(0, 2, 3, 1))
+
+    # Calculer le PSNR attendu
+    # Remarque : Ce calcul doit correspondre à la manière dont cal_psnr calcule le PSNR
+    mse = torch.mean((a_abs - b_abs) ** 2)
+    max_pixel = 1.0  # Assurez-vous que cette valeur correspond à ce que vous utilisez dans cal_psnr_complex
+    expected_psnr = 20 * torch.log10(max_pixel / torch.sqrt(mse))
+
+    # Tester la fonction cal_psnr_complex
     calculated_psnr = cal_psnr_complex(a, b)
-    assert calculated_psnr == pytest.approx(expected_psnr, rel=100)
+    assert calculated_psnr == pytest.approx(expected_psnr.item(), rel=100)
 
 
 def test_cal_mse():

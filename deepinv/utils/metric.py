@@ -80,8 +80,7 @@ def complex_abs(data):
 
 
 def norm_psnr(a, b, complex=False):
-    return cal_psnr(
+    return cal_psnr_complex(
         (a - a.min()) / (a.max() - a.min()),
         (b - b.min()) / (b.max() - b.min()),
-        complex=complex,
     )
