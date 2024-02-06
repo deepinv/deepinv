@@ -269,8 +269,10 @@ class Trainer:
 
         """
 
-        assert not self.unsupervised, "batch_eval_metric should not be called when self.unsupervised is True."
-        
+        assert (
+            not self.unsupervised
+        ), "batch_eval_metric should not be called when self.unsupervised is True."
+
         with torch.no_grad():
             psnr = cal_psnr(x_net, x)
             self.train_psnr.update(psnr)
@@ -284,7 +286,7 @@ class Trainer:
         Check the gradient norm and perform gradient clipping if necessary.
 
         """
-        
+
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
