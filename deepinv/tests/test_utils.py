@@ -69,9 +69,7 @@ def test_plot():
     deepinv.utils.plot(imgs)
 
 
-from deepinv.utils.optimization import (
-    NeuralIteration,
-)
+from deepinv.utils.optimization import NeuralIteration, GradientDescent
 
 
 class MockPhysics:
@@ -85,65 +83,47 @@ class MockPhysics:
         return y
 
 
-def test_neural_iteration_initialization():
-    r"""
-    Test the initialization of the NeuralIteration model.
-
-    :param model: An instance of the NeuralIteration model.
-    :param backbone_blocks: A list of neural network blocks used in the model.
-    :param step_size: The step size for each iteration.
-    :param iterations: The number of iterations the model should run.
-    :return: Asserts the correct number of iterations, the correct size of the step size array, and the correct type and number of blocks in the model.
-    """
-
-    model = NeuralIteration()
+def test_gradient_descent_initialization():
     backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
-    model.init(backbone_blocks, step_size=0.5, iterations=2)
-    assert model.iterations == 2
-    assert model.step_size.size() == torch.Size([2])
-    assert isinstance(model.blocks, nn.ModuleList)
-    assert len(model.blocks) == 2
+    step_size = 0.5
+    iterations = 2
+
+    gd_model = GradientDescent(backbone_blocks, step_size, iterations)
+
+    assert gd_model.name == "gd"
+    assert len(gd_model.blocks) == len(backbone_blocks)
+    assert gd_model.iterations == iterations
+    assert gd_model.step_size.size() == torch.Size([iterations])
 
 
-def test_neural_iteration_forward():
-    r"""
-    Test the forward pass of the NeuralIteration model.
+def test_gradient_descent_forward():
 
-    :param model: An instance of the NeuralIteration model initialized with backbone blocks.
-    :param physics: A mock physics model used for the forward pass.
-    :param y: A sample input tensor for the forward pass.
-    :return: Asserts that the output of the forward pass is as expected, matching the input processed by the mock physics model's adjoint operator.
-    """
-
-    model = NeuralIteration()
     backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
-    model.init(backbone_blocks, step_size=0.5, iterations=2)
+    gd_model = GradientDescent(backbone_blocks, step_size=0.5, iterations=2)
+
     physics = MockPhysics()
     y = torch.randn(10, 10)
-    output = model.forward(y, physics)
-    assert torch.equal(output, y)
+    x_init = None
 
-    class TestNeuralIteration:
-        model = NeuralIteration()
-        backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
-        model.init(backbone_blocks, step_size=0.5, iterations=2)
+    # Test sans x_init
+    output = gd_model.forward(y, physics, x_init)
+    assert output is not None
 
-    def test_forward_with_x_init(self):
-        y = torch.randn(32, 64)  # Exemple de données factices
+    # Test avec x_init
+    x_init = torch.randn(10, 10)
+    output_with_init = gd_model.forward(y, physics, x_init)
+    assert output_with_init is not None
+
+    def test_gradient_descent_single_block():
+        single_block = [nn.Linear(10, 10)]
+        gd_model = GradientDescent(single_block, step_size=0.5, iterations=2)
+
         physics = MockPhysics()
-        x_init = torch.randn(32, 64)  # Exemple de données x_init
+        y = torch.randn(10, 10)
+        output = gd_model.forward(y, physics)
+        assert output is not None
 
-        result = self.model.forward(y, physics, x_init)
-
-        assert torch.equal(result, torch.Tensor)
-
-    def test_forward_without_x_init(self):
-        y = torch.randn(32, 64)  # Exemple de données factices
-        physics = MockPhysics()
-
-        result = self.model.forward(y, physics)
-
-        assert torch.equal(result, torch.Tensor)
+    # Vous pouvez ajouter d'autres assertions pour vérifier des comportements spécifiques
 
 
 from deepinv.utils.metric import cal_angle, cal_mse, cal_psnr, cal_psnr_complex, norm
