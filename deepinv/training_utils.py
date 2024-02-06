@@ -95,8 +95,6 @@ class Trainer:
         """
         Setup the training process.
         """
-        
-        print(f"\n\n-----{type(self.save_path)}, {self.save_path}-----\n\n")
         self.save_path = Path(self.save_path)
 
         # wandb initialiation
@@ -567,6 +565,7 @@ def test(
 
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
 
+
 def train(
     model,
     train_dataloader,
@@ -625,7 +624,6 @@ def train(
     )
 
     # Appeler la méthode train sur l'instance de Trainer
-    print(f"\n\n-----{type(trainer.save_path)}-----\n\n")
     trained_model = trainer.train()
 
     return trained_model

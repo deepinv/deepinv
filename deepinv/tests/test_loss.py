@@ -187,7 +187,6 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     )
 
     # train the network
-    print (f'\n---\n {save_dir / "dinv_test"} \n---\n')
     model = dinv.train(
         model=model,
         train_dataloader=dataloader,
