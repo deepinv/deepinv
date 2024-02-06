@@ -219,3 +219,26 @@ def test_cal_mse():
     b = torch.tensor([1.0, 2.0, 3.0])
     expected_mse = 0.0
     assert cal_mse(a, b) == expected_mse
+
+
+from deepinv.utils.metric import (
+    complex_abs,
+)  # Remplacez 'your_module' par le nom réel de votre module
+
+
+def test_complex_abs():
+    # Créer un tenseur complexe de test
+    real_part = torch.tensor([[1.0, 3.0], [2.0, 4.0]])
+    imag_part = torch.tensor([[2.0, 0.0], [0.0, 1.0]])
+    complex_tensor = torch.stack((real_part, imag_part), dim=-1)
+
+    # Calculer le module attendu manuellement
+    expected_abs = torch.sqrt(real_part**2 + imag_part**2)
+
+    # Calculer le module en utilisant la fonction
+    calculated_abs = complex_abs(complex_tensor)
+
+    # Vérifier si les résultats sont les mêmes
+    assert torch.allclose(
+        calculated_abs, expected_abs
+    ), "The calculated absolute values are not as expected."
