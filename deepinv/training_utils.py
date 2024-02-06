@@ -95,6 +95,8 @@ class Trainer:
         """
         Setup the training process.
         """
+        
+        print(f"\n\n-----{type(self.save_path)}, {self.save_path}-----\n\n")
         self.save_path = Path(self.save_path)
 
         # wandb initialiation
@@ -565,7 +567,6 @@ def test(
 
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
 
-
 def train(
     model,
     train_dataloader,
@@ -593,32 +594,38 @@ def train(
     fact_losses=None,
     freq_plot=1,
 ):
-    # Alias for Trainer.train()
+    test_save_path = str(save_path)
+    # Créer une instance de Trainer avec les paramètres donnés
     trainer = Trainer(
-        model,
-        train_dataloader,
-        epochs,
-        losses,
-        eval_dataloader,
-        physics,
-        optimizer,
-        grad_clip,
-        scheduler,
-        device,
-        ckp_interval,
-        eval_interval,
-        save_path,
-        verbose,
-        unsupervised,
-        plot_images,
-        plot_metrics,
-        wandb_vis,
-        wandb_setup,
-        online_measurements,
-        plot_measurements,
-        check_grad,
-        ckpt_pretrained,
-        fact_losses,
-        freq_plot,
+        model=model,
+        train_dataloader=train_dataloader,
+        epochs=epochs,
+        losses=losses,
+        eval_dataloader=eval_dataloader,
+        physics=physics,
+        optimizer=optimizer,
+        grad_clip=grad_clip,
+        scheduler=scheduler,
+        device=device,
+        ckp_interval=ckp_interval,
+        eval_interval=eval_interval,
+        save_path=test_save_path,
+        verbose=verbose,
+        unsupervised=unsupervised,
+        plot_images=plot_images,
+        plot_metrics=plot_metrics,
+        wandb_vis=wandb_vis,
+        wandb_setup=wandb_setup,
+        online_measurements=online_measurements,
+        plot_measurements=plot_measurements,
+        check_grad=check_grad,
+        ckpt_pretrained=ckpt_pretrained,
+        fact_losses=fact_losses,
+        freq_plot=freq_plot,
     )
-    return trainer.train()
+
+    # Appeler la méthode train sur l'instance de Trainer
+    print(f"\n\n-----{type(trainer.save_path)}-----\n\n")
+    trained_model = trainer.train()
+
+    return trained_model
