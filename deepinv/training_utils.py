@@ -12,8 +12,8 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
+from typing import Union
 from dataclasses import dataclass, field
-
 
 @dataclass
 class Trainer:
@@ -68,15 +68,15 @@ class Trainer:
     epochs: int
     losses: list
     eval_dataloader: torch.utils.data.DataLoader = None
-    physics: Physics=None
-    optimizer: torch.optim.Optimizer=None
+    physics: Physics = None
+    optimizer: torch.optim.Optimizer = None
     grad_clip: float = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
-    device: str | torch.device = "cpu"
+    device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
     eval_interval: int = 1
     img_interval: int = 1
-    save_path: str | Path = "."
+    save_path: Union[str, Path] = "."
     verbose: bool = False
     unsupervised: bool = False
     plot_images: bool = False
@@ -86,11 +86,14 @@ class Trainer:
     online_measurements: bool = False
     plot_measurements: bool = True
     check_grad: bool = False
-    ckpt_pretrained: str | None = None
+    ckpt_pretrained: Union[str, None] = None
     fact_losses: list = None
     freq_plot: int = 1
 
     def setup_train(self):
+        """
+        Setup the training process.
+        """
         self.save_path = Path(self.save_path)
 
         # wandb initialiation
@@ -557,3 +560,60 @@ def test(
         wandb.log({"Test PSNR": test_psnr}, step=step)
 
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
+
+def train(
+    model,
+    train_dataloader,
+    epochs,
+    losses,
+    eval_dataloader=None,
+    physics=None,
+    optimizer=None,
+    grad_clip=None,
+    scheduler=None,
+    device="cpu",
+    ckp_interval=1,
+    eval_interval=1,
+    save_path=".",
+    verbose=False,
+    unsupervised=False,
+    plot_images=False,
+    plot_metrics=False,
+    wandb_vis=False,
+    wandb_setup={},
+    online_measurements=False,
+    plot_measurements=True,
+    check_grad=False,
+    ckpt_pretrained=None,
+    fact_losses=None,
+    freq_plot=1,
+):
+    # Alias for Trainer.train()
+    trainer = Trainer(
+        model,
+        train_dataloader,
+        epochs,
+        losses,
+        eval_dataloader,
+        physics,
+        optimizer,
+        grad_clip,
+        scheduler,
+        device,
+        ckp_interval,
+        eval_interval,
+        save_path,
+        verbose,
+        unsupervised,
+        plot_images,
+        plot_metrics,
+        wandb_vis,
+        wandb_setup,
+        online_measurements,
+        plot_measurements,
+        check_grad,
+        ckpt_pretrained,
+        fact_losses,
+        freq_plot,
+    )
+    return trainer.train()
