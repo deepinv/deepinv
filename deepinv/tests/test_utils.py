@@ -181,8 +181,6 @@ def test_cal_mse():
     Test the `cal_mse` function from the utility metrics.
 
 
-    :param a: The first tensor for MSE calculation.
-    :param b: The second tensor for MSE calculation, identical to the first in this test.
     :param expected_mse: The expected MSE value, which is zero in this case.
     :return: Asserts that the calculated MSE is equal to the expected value, validating the function's correctness.
     """
