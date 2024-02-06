@@ -6,13 +6,25 @@ Utils
 
 Training and Testing
 --------------------
-Functions to train and test the model, and save the model and the results.
+
+Trainer class to train the model. It can be overriden to implement custom training loops.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+         deepinv.Trainer
+
+
+Functions to train and test the model, and save the model and the results. The train function is
+an alias for the train function of the Trainer class.
 
 .. autosummary::
    :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
-
+        
         deepinv.train
         deepinv.test
 

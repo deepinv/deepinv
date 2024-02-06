@@ -61,7 +61,6 @@ class Trainer:
     :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
     :param list fact_losses: List of factors to multiply the losses. If None, all losses are multiplied by 1.
     :param int freq_plot: Frequency of plotting images to wandb during train evaluation (at the end of each epoch). If 1, plots at each epoch.
-    :returns: Trained model.
     """
     model: torch.nn.Module
     train_dataloader: torch.utils.data.DataLoader
@@ -343,6 +342,7 @@ class Trainer:
 
         :param int epoch: Current epoch.
         :param tqdm progress_bar: Progress bar.
+        :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
 
         progress_bar.set_description(f"Epoch {epoch + 1}")
@@ -402,6 +402,8 @@ class Trainer:
 
         It performs the training process, including the setup, the evaluation, the forward and backward passes,
         and the visualization.
+
+        :returns: The trained model.
         """
 
         self.setup_train()
