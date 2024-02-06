@@ -1,6 +1,7 @@
 import deepinv
 import torch
 import pytest
+import torch.nn as nn
 
 
 @pytest.fixture
