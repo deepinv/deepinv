@@ -183,6 +183,29 @@ def test_cal_psnr():
     assert calculated_psnr_a1_b1 == pytest.approx(expected_psnr.item(), rel=100)
 
 
+def test_cal_psnr_complex():
+    # Créer des tenseurs de test
+    a_real = torch.ones((1, 16, 16))
+    a_imag = torch.zeros((1, 16, 16))
+    b_real = torch.zeros((1, 16, 16))
+    b_imag = torch.zeros((1, 16, 16))
+
+    # Empiler les parties réelles et imaginaires
+    a = torch.stack((a_real, a_imag), dim=1)
+    b = torch.stack((b_real, b_imag), dim=1)
+
+    # Calculer le PSNR attendu (à définir en fonction de votre implémentation)
+    max_pixel = 1.0
+    mse_substitute = 1e-10
+
+    expected_psnr = 20 * torch.log10(
+        max_pixel / torch.sqrt(torch.tensor(mse_substitute))
+    )
+    # Test de la fonction
+    calculated_psnr = cal_psnr_complex(a, b)
+    assert calculated_psnr == pytest.approx(expected_psnr, rel=100)
+
+
 def test_cal_mse():
     r"""
     Test the `cal_mse` function from the utility metrics.
