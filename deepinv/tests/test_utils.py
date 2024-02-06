@@ -72,6 +72,7 @@ from deepinv.utils.optimization import (
     NeuralIteration,
 )
 
+
 class MockPhysics:
     def __init__(self, device="cpu"):
         self.device = device
@@ -189,6 +190,3 @@ def test_cal_mse():
     b = torch.tensor([1.0, 2.0, 3.0])
     expected_mse = 0.0
     assert cal_mse(a, b) == expected_mse
-    
-    
-    
