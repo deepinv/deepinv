@@ -158,24 +158,25 @@ def test_cal_angle():
 
 
 def test_cal_psnr():
+
     a1 = torch.ones((1, 1, 16, 16))
     b1 = torch.zeros((1, 1, 16, 16))
-    a2 = [a1] # a2 is a list in which the first element is a tensor
-    b2 = [b1] # b2 is a list in which the first element is a tensor
+    a2 = [a1]  # a2 is a list in which the first element is a tensor
+    b2 = [b1]  # b2 is a list in which the first element is a tensor
     max_pixel = 1.0
 
-    # MSE remplacé par 1e-10 dans la fonction si le vrai mse est 0
+    # MSE is remplaced by 1e-10 in the function if the real mse is 0
     mse_substitute = 1e-10
-    expected_psnr = 20 * torch.log10(max_pixel / torch.sqrt(torch.tensor(mse_substitute)))
+    expected_psnr = 20 * torch.log10(
+        max_pixel / torch.sqrt(torch.tensor(mse_substitute))
+    )
 
-    # Tester avec des tenseurs
+    # Test with tensors
     calculated_psnr_a1_b1 = cal_psnr(a1, b1, max_pixel)
     assert calculated_psnr_a1_b1 == pytest.approx(expected_psnr.item(), rel=100)
- # Tester avec des listes
+    # Test with list
     calculated_psnr_a2_b2 = cal_psnr(a2, b2, max_pixel)
     assert calculated_psnr_a2_b2 == pytest.approx(expected_psnr.item(), rel=100)
-   
-
 
 
 def test_cal_mse():
