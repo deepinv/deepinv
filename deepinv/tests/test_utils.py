@@ -178,7 +178,7 @@ def test_cal_psnr():
     calculated_psnr_a2_b2 = cal_psnr(a2, b2, max_pixel)
     assert calculated_psnr_a2_b2 == pytest.approx(expected_psnr.item(), rel=100)
 
-    #Test if normalize is True
+    # Test if normalize is True
     calculated_psnr_a1_b1 = cal_psnr(a1, b1, max_pixel, True)
     assert calculated_psnr_a1_b1 == pytest.approx(expected_psnr.item(), rel=100)
 
