@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field
 
+
 @dataclass
 class Trainer:
     r"""
@@ -45,7 +46,7 @@ class Trainer:
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
-    :param int img_interval: Frequency of plotting images to wandb during test evaluation (at the start of each epoch) 
+    :param int img_interval: Frequency of plotting images to wandb during test evaluation (at the start of each epoch)
     :param str save_path: Directory in which to save the trained model.
     :param bool verbose: Output training progress information in the console.
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
@@ -76,7 +77,7 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     img_interval: int = 1
-    save_path: Union[str, bool, Path] = "."
+    save_path: Union[str, Path] = "."
     verbose: bool = False
     unsupervised: bool = False
     plot_images: bool = False
@@ -109,7 +110,9 @@ class Trainer:
             self.losses = [self.losses]
         if self.fact_losses is None:
             self.fact_losses = [1] * len(self.losses)
-        self.losses_verbose = [AverageMeter("Loss_" + l.name, ":.2e") for l in self.losses]
+        self.losses_verbose = [
+            AverageMeter("Loss_" + l.name, ":.2e") for l in self.losses
+        ]
         for loss in self.losses_verbose:
             self.meters.append(loss)
         self.train_psnr = AverageMeter("Train_psnr_model", ":.2f")
@@ -174,7 +177,7 @@ class Trainer:
                 wandb_setup=self.wandb_setup,
                 step=epoch,
                 online_measurements=self.online_measurements,
-                img_interval=self.img_interval
+                img_interval=self.img_interval,
             )
             self.eval_psnr.update(test_psnr)
             self.log_dict["eval_psnr"] = test_psnr
@@ -183,7 +186,9 @@ class Trainer:
 
         # wandb logging
         if self.wandb_vis:
-            last_lr = None if self.scheduler is None else self.scheduler.get_last_lr()[0]
+            last_lr = (
+                None if self.scheduler is None else self.scheduler.get_last_lr()[0]
+            )
             wandb_log_dict_epoch["learning rate"] = last_lr
 
             wandb.log(wandb_log_dict_epoch)
@@ -225,7 +230,7 @@ class Trainer:
                 for i in range(len(vis_array)):
                     vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
                 grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-                if (epoch+1) % self.freq_plot == 0:
+                if (epoch + 1) % self.freq_plot == 0:
                     images = wandb.Image(
                         grid_image,
                         caption=caption,
@@ -335,7 +340,7 @@ class Trainer:
             self.batch_eval(x=x, x_net=x_net)
 
             progress_bar.set_postfix(self.log_dict)
-        
+
         return physics_cur, x, y, x_net
 
     def train(self):
@@ -377,7 +382,6 @@ class Trainer:
             wandb.save("model.h5")
 
         return self.model
-    
 
 
 def test(
@@ -516,7 +520,7 @@ def test(
                     ) / "curves"
                     save_folder_curve.mkdir(parents=True, exist_ok=True)
 
-                if (plot_images or wandb_vis) and (step+1) % img_interval == 0:
+                if (plot_images or wandb_vis) and (step + 1) % img_interval == 0:
                     if g < show_operators:
                         if not plot_only_first_batch or (
                             plot_only_first_batch and i == 0
@@ -560,6 +564,7 @@ def test(
         wandb.log({"Test PSNR": test_psnr}, step=step)
 
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
+
 
 def train(
     model,
