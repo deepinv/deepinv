@@ -76,7 +76,7 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     img_interval: int = 1
-    save_path: Union[str, Path] = "."
+    save_path: Union[str, bool, Path] = "."
     verbose: bool = False
     unsupervised: bool = False
     plot_images: bool = False
