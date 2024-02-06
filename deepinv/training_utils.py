@@ -19,8 +19,7 @@ from dataclasses import dataclass, field
 @dataclass
 class Trainer:
     r"""
-    Trains a reconstruction network.
-
+    Trainer class for training a reconstruction network.
 
     .. note::
 
@@ -92,9 +91,14 @@ class Trainer:
     freq_plot: int = 1
 
     def setup_train(self):
-        """
+        r"""
         Setup the training process.
+
+        It initializes the wandb logging, the different metrics, the save path, the physics and dataloaders,
+        and the pretrained checkpoint if given.
+
         """
+
         self.save_path = Path(self.save_path)
 
         # wandb initialiation
@@ -152,7 +156,12 @@ class Trainer:
             self.epoch_start = checkpoint["epoch"]
 
     def epoch_eval(self, epoch):
-        ### Evaluation
+        r"""
+        Perform evaluation at the end of each epoch.
+
+        :param int epoch: Current epoch.
+
+        """
 
         if self.wandb_vis:
             wandb_log_dict_epoch = {"epoch": epoch}
@@ -194,7 +203,17 @@ class Trainer:
             wandb.log(wandb_log_dict_epoch)
 
     def epoch_wandb_vis(self, epoch, physics_cur, x, y, x_net):
-        # wandb plotting of training images
+        r"""
+        Perform visualization at the end of each epoch.
+
+        :param int epoch: Current epoch.
+        :param deepinv.physics.Physics physics_cur: Current physics operator.
+        :param torch.Tensor x: Ground truth.
+        :param torch.Tensor y: Measurement.
+        :param torch.Tensor x_net: Network reconstruction.
+
+        """
+
         if self.wandb_vis:
             # log average training metrics
             log_dict_post_epoch = {}
@@ -240,19 +259,33 @@ class Trainer:
         if self.wandb_vis:
             wandb.log(log_dict_post_epoch)
 
-    def batch_eval(self, x, x_net):
-        # training psnr and logging
-        if not self.unsupervised:
-            with torch.no_grad():
-                psnr = cal_psnr(x_net, x)
-                self.train_psnr.update(psnr)
-                if self.wandb_vis:
-                    self.wandb_log_dict_iter["train_psnr"] = psnr
-                    wandb.log(self.wandb_log_dict_iter)
-                self.log_dict["train_psnr"] = self.train_psnr.avg
+    def batch_eval_metric(self, x, x_net):
+        r"""
+        Perform evaluation at each iteration.
+
+        It computes the PSNR of the network reconstruction and logs the training metrics.
+
+        :param torch.Tensor x: Ground truth.
+        :param torch.Tensor x_net: Network reconstruction.
+
+        """
+
+        assert not self.unsupervised, "batch_eval_metric should not be called when self.unsupervised is True."
+        
+        with torch.no_grad():
+            psnr = cal_psnr(x_net, x)
+            self.train_psnr.update(psnr)
+            if self.wandb_vis:
+                self.wandb_log_dict_iter["train_psnr"] = psnr
+                wandb.log(self.wandb_log_dict_iter)
+            self.log_dict["train_psnr"] = self.train_psnr.avg
 
     def check_clip_grad(self):
-        # gradient clipping
+        r"""
+        Check the gradient norm and perform gradient clipping if necessary.
+
+        """
+        
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
@@ -268,7 +301,19 @@ class Trainer:
             self.check_grad_val.update(norm_grads.item())
 
     def backward_pass(self, g, x, y, x_net):
-        # compute the losses
+        r"""
+        Perform the backward pass.
+
+        It computes the losses and the total loss, and performs the backward pass.
+
+        :param int g: Current dataloader index.
+        :param torch.Tensor x: Ground truth.
+        :param torch.Tensor y: Measurement.
+        :param torch.Tensor x_net: Network reconstruction.
+
+        """
+
+        # Compute the losses
         loss_total = 0
         for k, l in enumerate(self.losses):
             loss = l(x=x, x_net=x_net, y=y, physics=self.physics[g], model=self.model)
@@ -283,15 +328,23 @@ class Trainer:
         self.total_loss.update(loss_total.item())
         self.log_dict["total_loss"] = self.total_loss.avg
 
-        # backward the total loss
+        # Backward the total loss
         loss_total.backward()
-
         self.check_clip_grad()
 
-        # optimize step
+        # Optimizer step
         self.optimizer.step()
 
     def train_batch(self, epoch, progress_bar):
+        r"""
+        Train a batch.
+
+        It performs the forward pass, the backward pass, and the evaluation at each iteration.
+
+        :param int epoch: Current epoch.
+        :param tqdm progress_bar: Progress bar.
+        """
+
         progress_bar.set_description(f"Epoch {epoch + 1}")
 
         if self.wandb_vis:
@@ -332,18 +385,25 @@ class Trainer:
 
             self.optimizer.zero_grad()
 
-            # run the forward model
+            # Run the forward model
             x_net = self.model(y, physics_cur)
 
             self.backward_pass(g=g, x=x, y=y, x_net=x_net)
 
-            self.batch_eval(x=x, x_net=x_net)
+            self.batch_eval_metric(x=x, x_net=x_net)
 
             progress_bar.set_postfix(self.log_dict)
 
         return physics_cur, x, y, x_net
 
     def train(self):
+        r"""
+        Train the model.
+
+        It performs the training process, including the setup, the evaluation, the forward and backward passes,
+        and the visualization.
+        """
+
         self.setup_train()
         for epoch in range(self.epoch_start, self.epochs):
             self.epoch_eval(epoch)
@@ -566,64 +626,16 @@ def test(
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
 
 
-def train(
-    model,
-    train_dataloader,
-    epochs,
-    losses,
-    eval_dataloader=None,
-    physics=None,
-    optimizer=None,
-    grad_clip=None,
-    scheduler=None,
-    device="cpu",
-    ckp_interval=1,
-    eval_interval=1,
-    save_path=".",
-    verbose=False,
-    unsupervised=False,
-    plot_images=False,
-    plot_metrics=False,
-    wandb_vis=False,
-    wandb_setup={},
-    online_measurements=False,
-    plot_measurements=True,
-    check_grad=False,
-    ckpt_pretrained=None,
-    fact_losses=None,
-    freq_plot=1,
-):
-    test_save_path = str(save_path)
-    # Créer une instance de Trainer avec les paramètres donnés
-    trainer = Trainer(
-        model=model,
-        train_dataloader=train_dataloader,
-        epochs=epochs,
-        losses=losses,
-        eval_dataloader=eval_dataloader,
-        physics=physics,
-        optimizer=optimizer,
-        grad_clip=grad_clip,
-        scheduler=scheduler,
-        device=device,
-        ckp_interval=ckp_interval,
-        eval_interval=eval_interval,
-        save_path=test_save_path,
-        verbose=verbose,
-        unsupervised=unsupervised,
-        plot_images=plot_images,
-        plot_metrics=plot_metrics,
-        wandb_vis=wandb_vis,
-        wandb_setup=wandb_setup,
-        online_measurements=online_measurements,
-        plot_measurements=plot_measurements,
-        check_grad=check_grad,
-        ckpt_pretrained=ckpt_pretrained,
-        fact_losses=fact_losses,
-        freq_plot=freq_plot,
-    )
+def train(*args, **kwargs):
+    """
+    Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
 
-    # Appeler la méthode train sur l'instance de Trainer
+    This function creates a Trainer instance and returns the trained model.
+
+    :param args: Positional arguments to pass to Trainer constructor.
+    :param kwargs: Keyword arguments to pass to Trainer constructor.
+    :return: Trained model.
+    """
+    trainer = Trainer(*args, **kwargs)
     trained_model = trainer.train()
-
     return trained_model
