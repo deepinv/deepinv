@@ -69,7 +69,11 @@ def test_plot():
     deepinv.utils.plot(imgs)
 
 
-from deepinv.utils.optimization import NeuralIteration, GradientDescent
+from deepinv.utils.optimization import (
+    NeuralIteration,
+    GradientDescent,
+    ProximalGradientDescent,
+)
 
 
 class MockPhysics:
@@ -251,3 +255,16 @@ def test_complex_abs():
     assert torch.allclose(
         calculated_abs, expected_abs
     ), "The calculated absolute values are not as expected."
+
+
+def test_proximal_gradient_descent_initialization():
+    backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
+    step_size = 0.5
+    iterations = 2
+
+    pgd_model = ProximalGradientDescent(backbone_blocks, step_size, iterations)
+
+    assert pgd_model.name == "pgd"
+    assert len(pgd_model.blocks) == len(backbone_blocks)
+    assert pgd_model.iterations == iterations
+    assert pgd_model.step_size.size() == torch.Size([iterations])
