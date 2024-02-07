@@ -432,3 +432,42 @@ def test_prox_l2_fft_circular():
 
     result = blur.prox_l2(z, y, gamma)
     assert result.shape == z.shape
+
+
+from deepinv.utils import TensorList
+
+
+class MockNoiseModel(torch.nn.Module):
+    def forward(self, x):
+        return x
+
+
+class MockPhysics(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.noise_model = MockNoiseModel()
+
+    def __add__(self, other):
+        return self.noise_model(other.noise_model)
+
+
+def test_noise_initialization():
+    physics1 = MockPhysics()
+    physics2 = MockPhysics()
+    noise_instance = physics1 + physics2
+
+    # Vérifier que noise_instance est une instance de MockNoiseModel
+    assert isinstance(noise_instance, MockNoiseModel)
+
+
+def test_noise_forward():
+    physics1 = MockPhysics()
+    physics2 = MockPhysics()
+    noise_instance = physics1 + physics2
+
+    x = TensorList([torch.tensor([1, 2]), torch.tensor([3, 4])])
+    output = noise_instance(x)
+
+    # Vérifier que le forward fonctionne comme attendu
+    expected_output = x
+    assert all(torch.equal(o, e) for o, e in zip(output, expected_output))
