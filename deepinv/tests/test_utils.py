@@ -124,7 +124,6 @@ def test_gradient_descent_forward():
         assert output is not None
 
 
-
 from deepinv.utils.metric import cal_angle, cal_mse, cal_psnr, cal_psnr_complex, norm
 
 
