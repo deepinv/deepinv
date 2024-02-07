@@ -18,6 +18,7 @@ OPERATORS = [
     "super_resolution",
     "MRI",
     "pansharpen",
+    "random_phase_retrieval",
 ]
 NONLINEAR_OPERATORS = ["haze", "blind_deblur", "lidar"]
 
@@ -96,6 +97,9 @@ def find_operator(name, device):
         factor = 2
         norm = 1 / factor**2
         p = dinv.physics.Downsampling(img_size=img_size, factor=factor, device=device)
+    elif name == "random_phase_retrieval":
+        img_size = (1, 32, 32)
+        p = dinv.physics.RandomPhaseRetrieval(m=10, img_shape=img_size, device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm

@@ -63,6 +63,7 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
    deepinv.physics.SinglePixelCamera
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
+   deepinv.physics.RandomPhaseRetrieval
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
