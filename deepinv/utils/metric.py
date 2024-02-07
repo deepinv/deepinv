@@ -77,10 +77,3 @@ def complex_abs(data):
     """
     assert data.size(-1) == 2
     return (data**2).sum(dim=-1).sqrt()
-
-
-def norm_psnr(a, b, complex=False):
-    return cal_psnr_complex(
-        (a - a.min()) / (a.max() - a.min()),
-        (b - b.min()) / (b.max() - b.min()),
-    )

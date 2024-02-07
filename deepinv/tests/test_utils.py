@@ -270,7 +270,6 @@ def test_proximal_gradient_descent_initialization():
     assert pgd_model.step_size.size() == torch.Size([iterations])
 
 
-
 def test_proximal_gradient_descent_forward():
     backbone_blocks = [nn.Linear(10, 10), nn.Linear(10, 10)]
     pgd_model = ProximalGradientDescent(backbone_blocks, step_size=0.5, iterations=2)

@@ -432,3 +432,5 @@ def test_prox_l2_fft_circular():
 
     result = blur.prox_l2(z, y, gamma)
     assert result.shape == z.shape
+
+
