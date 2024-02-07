@@ -123,7 +123,6 @@ def test_gradient_descent_forward():
         output = gd_model.forward(y, physics)
         assert output is not None
 
-    # Vous pouvez ajouter d'autres assertions pour vérifier des comportements spécifiques
 
 
 from deepinv.utils.metric import cal_angle, cal_mse, cal_psnr, cal_psnr_complex, norm
