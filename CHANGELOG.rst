@@ -13,6 +13,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed issue in noise forward of Decomposable class (:gh:`154` by `Matthieu Terris`_) - 08/02/2024
 - Fixed new black version 24.1.1 style changes (:gh:`151` by `Julian Tachella`_) - 31/01/2024
 - Fixed test for sigma as torch tensor with gpu enable (:gh:`145` by `Brayan Monroy`_) - 23/12/2023
 - Fixed :gh:`139` BM3D tensor format grayscale (:gh:`140` by `Matthieu Terris`_) - 23/12/2023
