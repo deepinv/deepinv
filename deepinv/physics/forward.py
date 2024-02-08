@@ -4,6 +4,48 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 
 
+def adjoint_function(A, input_size, device="cpu"):
+    r"""
+    Provides adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
+
+
+    The function can be simply called as ``A_adjoint(y)``, e.g.
+
+    >>> import torch
+    >>> from deepinv.physics.forward import adjoint_function
+    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
+    >>> x = torch.randn((4, 1, 5, 5))
+    >>> y = A(x)
+    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
+    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
+    True
+
+
+    :param callable A: linear operator :math:`A`.
+    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
+        The first dimension, i.e. batch size, should be equal or lower than the batch size B
+        of the input tensor to the adjoint operator.
+    :param str device: device where the adjoint operator is computed.
+    :return: (callable) function that computes the adjoint of :math:`A`.
+
+    """
+    x = torch.ones(input_size, device=device)
+    (_, vjpfunc) = torch.func.vjp(A, x)
+    batches = x.size()[0]
+
+    def adjoint(y):
+        if y.size()[0] < batches:
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device)
+            y2[: y.size()[0], ...] = y
+            return vjpfunc(y2)[0][: y.size()[0], ...]
+        elif y.size()[0] > batches:
+            raise ValueError("Batch size of A_adjoint input is larger than expected")
+        else:
+            return vjpfunc(y)[0]
+
+    return adjoint
+
+
 class Physics(torch.nn.Module):  # parent class for forward models
     r"""
     Parent class for forward operators
@@ -200,6 +242,12 @@ class LinearPhysics(Physics):
     :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
         It is recommended to normalize it to have unit norm.
     :param callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+
+        .. note::
+
+            A_adjoint can be generated automatically using the :meth:`deepinv.physics.LinearPhysics.compute_adjoint`
+            method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
+
     :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
     :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
@@ -241,12 +289,23 @@ class LinearPhysics(Physics):
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
         >>> from deepinv.utils import cal_psnr
-        >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
+        >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
         >>> physics = Blur(filter=w)
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
         >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
+        True
+
+        The adjoint can be generated automatically using the :meth:`deepinv.physics.LinearPhysics.compute_adjoint` method
+        which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
+
+        >>> from deepinv.utils import cal_psnr
+        >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
+        >>> physics = LinearPhysics(A=A, A_adjoint=adjoint_function(A, (4, 1, 5, 5)))
+        >>> x = torch.randn((4, 1, 5, 5))
+        >>> y = physics(x)
+        >>> torch.allclose(physics.A_adjoint(y), x) # We have A^T(A(x)) = x
         True
 
     """
@@ -268,8 +327,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             tol=tol,
         )
-
-        self.adjoint = A_adjoint
+        self.A_adj = A_adjoint
 
     def A_adjoint(self, y):
         r"""
@@ -285,7 +343,8 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-        return self.adjoint(y)
+
+        return self.A_adj(y)
 
     def __mul__(self, other):
         r"""

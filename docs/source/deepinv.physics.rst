@@ -133,3 +133,4 @@ This module also contains some utilities for physics operators.
    :nosignatures:
 
    deepinv.physics.blur.gaussian_blur
+   deepinv.physics.forward.adjoint_function
