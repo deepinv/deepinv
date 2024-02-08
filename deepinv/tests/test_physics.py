@@ -309,6 +309,43 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
+def test_blur(device):
+    r"""
+    Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
+    n=0 where Ax=0.
+    """
+    torch.manual_seed(0)
+    x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
+    h = torch.ones((1, 1, 5, 5)) / 25.0
+
+    physics_blur = dinv.physics.Blur(
+        img_size=(1, x.shape[-2], x.shape[-1]),
+        filter=h,
+        device=device,
+    )
+
+    physics_blurfft = dinv.physics.BlurFFT(
+        img_size=(1, x.shape[-2], x.shape[-1]),
+        filter=h,
+        device=device,
+    )
+
+    y1 = physics_blur(x)
+    y2 = physics_blurfft(x)
+
+    back1 = physics_blur.A_adjoint(y1)
+    back2 = physics_blurfft.A_adjoint(y2)
+
+    assert y1.shape == y2.shape
+    assert back1.shape == back2.shape
+
+    error_A = (y1 - y2).flatten().abs().max()
+    error_At = (back1 - back2).flatten().abs().max()
+
+    assert error_A < 1e-6
+    assert error_At < 1e-6
+
+
 def test_reset_noise(device):
     r"""
     Tests that the reset function works.
