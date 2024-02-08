@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added r2r loss (:gh:`148` by `Brayan Monroy`_) - 30/01/2024
 - Added scale transform (:gh:`135` by `Jérémy Scanvic`_) - 19/12/2023
 
 
