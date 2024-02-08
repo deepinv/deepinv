@@ -559,21 +559,6 @@ class DecomposablePhysics(LinearPhysics):
 
         return self.V(mask * self.U_adjoint(y))
 
-    def noise(self, x):
-        r"""
-        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
-
-        :param torch.Tensor x:  clean measurements
-        :return torch.Tensor: noisy measurements
-        """
-        if not isinstance(self.mask, float):
-            noise = self.U(
-                self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
-            )
-        else:
-            noise = self.noise_model(x)
-        return noise
-
     def prox_l2(self, z, y, gamma):
         r"""
         Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`
