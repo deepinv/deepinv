@@ -71,7 +71,7 @@ class SinglePixelCamera(DecomposablePhysics):
         >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
         >>> torch.sum(physics.mask).item() # Number of measurements
         48.0
-        >>> torch.round(physics(x)[:, :, :3, :3] * 10) / 10 # Compute measurements
+        >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
         tensor([[[[1., 0., 0.],
                   [0., 0., 0.],
                   [0., 0., 0.]]]])

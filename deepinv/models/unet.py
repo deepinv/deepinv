@@ -112,16 +112,20 @@ class UNet(nn.Module):
                         bias=bias,
                         padding_mode="circular" if circular_padding else "zeros",
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias)
-                    if biasfree
-                    else nn.BatchNorm2d(ch_out),
+                    (
+                        BFBatchNorm2d(ch_out, use_bias=bias)
+                        if biasfree
+                        else nn.BatchNorm2d(ch_out)
+                    ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias)
-                    if biasfree
-                    else nn.BatchNorm2d(ch_out),
+                    (
+                        BFBatchNorm2d(ch_out, use_bias=bias)
+                        if biasfree
+                        else nn.BatchNorm2d(ch_out)
+                    ),
                     nn.ReLU(inplace=True),
                 )
             else:
@@ -149,9 +153,11 @@ class UNet(nn.Module):
                     nn.Conv2d(
                         ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
                     ),
-                    BFBatchNorm2d(ch_out, use_bias=bias)
-                    if biasfree
-                    else nn.BatchNorm2d(ch_out),
+                    (
+                        BFBatchNorm2d(ch_out, use_bias=bias)
+                        if biasfree
+                        else nn.BatchNorm2d(ch_out)
+                    ),
                     nn.ReLU(inplace=True),
                 )
             else:
