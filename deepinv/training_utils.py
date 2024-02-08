@@ -364,7 +364,7 @@ class Trainer:
                 physics_cur = self.physics[g]
 
                 if isinstance(physics_cur, torch.nn.DataParallel):
-                    physics_cur.module.noise_model.__init__()
+                    physics_cur.module.noise_model.__init__(x_shape=x.shape, x_device=x.device)
                 else:
                     physics_cur.reset()
 
