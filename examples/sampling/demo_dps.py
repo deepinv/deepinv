@@ -7,7 +7,6 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 :meth:`deepinv.sampling.DPS`.
 """
 
-
 # %% Installing dependencies
 # -----------------------------
 # Let us ``import`` the relevant packages, and load a sample

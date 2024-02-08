@@ -1,7 +1,7 @@
 import pytest
 import torch
 import numpy as np
-
+from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 
 
@@ -149,6 +149,16 @@ def test_operators_adjointness(name, device):
     x = torch.randn(imsize, device=device).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
+
+    if (
+        name == "pansharpen"
+    ):  # automatic adjoint does not work for inputs that are not torch.tensors
+        return
+    f = adjoint_function(physics.A, x.shape, x.device)
+    y = physics.A(x)
+    error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
+
+    assert error2 < 1e-3
 
 
 @pytest.mark.parametrize("name", OPERATORS)
