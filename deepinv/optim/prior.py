@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
+from deepinv.models.tv import nabla, nablaT
+from deepinv.models.tv import TV
 
 
 class Prior(nn.Module):
@@ -286,3 +288,122 @@ class L1Prior(Prior):
         return torch.sign(x) * torch.max(
             torch.abs(x) - ths * gamma, torch.zeros_like(x)
         )
+
+
+class L21Prior(Prior):
+    r"""
+    :math:`\ell_{2,1}` mixed norm prior :math:`g(x) = \| x \|_{2,1}`.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+
+    def g(self, x, l2_axis=-1, **kwargs):
+        r"""
+        Computes the regularizer
+
+        .. math:
+                f(x) = \sum_{j = 1}^M \|x_j\|_2
+               where x_j is the jth element in the specified axis
+
+        :param l2_axis: axis along which to compute the l2 norm
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
+        """
+        x_l2 = torch.norm(x, p=2, dim=l2_axis)
+        return torch.sum(x_l2)
+
+    def prox(self, x, ths=1.0, gamma=1.0, l2_axis=-1, **kwargs):
+        r"""Compute the proximity operator of the mixed l21 norm
+
+        Consider the proximity operator of the l2 norm
+
+        .. math:
+                \operatorname{prox}_{\|.\|_2}(x) = (1 - \frac{\gamma}{\max(\|x\|_2, \gamma)}) x
+
+        The prox of l21 is the concatenation of the l2 norms in the axis l2_axis.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: threshold parameter :math:`\tau`.
+        :param float gamma: stepsize of the proximity operator.
+        :param l2_axis: axis on which l2 norm is computed.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+
+        tau_gamma = torch.tensor(ths * gamma)
+
+        z = torch.norm(x, p=2, dim=l2_axis, keepdim=True)
+        # Creating a mask to avoid diving by zero
+        # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
+        mask_z = z > 0
+        z[mask_z] = torch.max(z[mask_z], tau_gamma)
+        z[mask_z] = torch.tensor(1.0) - tau_gamma / z[mask_z]
+
+        return torch.multiply(z, x)
+
+
+class TVPrior(Prior):
+    r"""
+    Total variation (TV) prior :math:`g(x) = \| D x \|_{2,1}`.
+    """
+
+    def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        self.TVModel = TV(crit=def_crit, n_it_max=n_it_max)
+
+    def g(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer
+
+        .. math:
+                f(x) = \|Dx\|_{2,1}
+
+               where D is the finite differences linear operator,
+               and the 2-norm is taken on the dimension of the differences.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
+        """
+        x_op = self.linear_op(x)
+        x_pow = torch.pow(x_op, exponent=2)
+        u_norm2 = torch.sqrt(torch.sum(x_pow, dim=-1))
+        gx = torch.norm(u_norm2, p=1)
+        return gx
+
+    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+        r"""Compute the proximity operator of TV with the denoiser :meth:`deepinv.models.tv.TV`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: threshold parameter :math:`\tau`.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return self.TVModel.forward(x, ths=ths*gamma)
+
+    def linear_op(self, x):
+        r"""
+        Returns finite differences operator associated with tensors of the same shape as x.
+        """
+        return nabla(x)
+
+    def adjoint_op(self, x):
+        r"""
+        Returns adjoint operator with respect to linear_op(x).
+        """
+        return nablaT(x)
+
+    def moreau_grad(self, x, gamma=1.0):
+        r"""Compute the gradient of the Moreau envelope of TV.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param float gamma: parameter associated with the Moreau envelope.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        dx = self.linear_op(x)
+        l21_prior = L21Prior()
+        prox_dx = l21_prior.prox(dx, ths=1.0, gamma=gamma)
+        m_grad = 1.0 / gamma * self.adjoint_op(dx - prox_dx)
+
+        return m_grad

@@ -361,7 +361,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     # for prior_name in ['L1Prior', 'Tikhonov']:
-    for prior_name in ["L1Prior", "Tikhonov"]:
+    for prior_name in ["L1Prior", "Tikhonov", "TVPrior"]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
@@ -387,6 +387,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             prior = dinv.optim.prior.L1Prior()
         elif prior_name == "Tikhonov":
             prior = dinv.optim.prior.Tikhonov()
+        elif prior_name == "TVPrior":
+            prior = dinv.optim.prior.TVPrior()
 
         stepsize_dual = 1.0 if pnp_algo == "CP" else None
         params_algo = {
