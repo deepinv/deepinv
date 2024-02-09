@@ -72,3 +72,15 @@ class Inpainting(DecomposablePhysics):
                 self.mask[:, aux[0, :, :] > mask_rate] = 0
 
         self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
+
+    def noise(self, x):
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
+
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
+        """
+        noise = self.U(
+            self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
+        )
+        return noise
