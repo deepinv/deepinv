@@ -62,6 +62,7 @@ class Trainer:
     :param list fact_losses: List of factors to multiply the losses. If None, all losses are multiplied by 1.
     :param int freq_plot: Frequency of plotting images to wandb during train evaluation (at the end of each epoch). If 1, plots at each epoch.
     """
+
     model: torch.nn.Module
     train_dataloader: torch.utils.data.DataLoader
     epochs: int
@@ -364,7 +365,9 @@ class Trainer:
                 physics_cur = self.physics[g]
 
                 if isinstance(physics_cur, torch.nn.DataParallel):
-                    physics_cur.module.noise_model.__init__(x_shape=x.shape, x_device=x.device)
+                    physics_cur.module.noise_model.__init__(
+                        x_shape=x.shape, x_device=x.device
+                    )
                 else:
                     physics_cur.reset()
 
