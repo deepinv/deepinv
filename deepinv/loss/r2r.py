@@ -35,6 +35,12 @@ class R2RLoss(nn.Module):
 
         :math:`\eta` should be chosen equal or close to :math:`\sigma` to obtain the best performance.
 
+    .. note::
+
+        To obtain the best test performance, the trained model should be averagedv at test time
+        over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)`
+        where :math:`N>1`.
+
     :param float eta: standard deviation of the Gaussian noise used for the perturbation.
     :param float alpha: scaling factor of the perturbation.
     """
@@ -56,8 +62,7 @@ class R2RLoss(nn.Module):
         :return: (torch.Tensor) R2R loss.
         """
 
-        eta_rnd = torch.rand(1, device=y.device) * self.eta
-        pert = torch.randn_like(y) * eta_rnd
+        pert = torch.randn_like(y) * self.eta
 
         y_plus = y + pert * self.alpha
         y_minus = y - pert / self.alpha
