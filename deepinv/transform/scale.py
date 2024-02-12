@@ -9,7 +9,7 @@ def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu"):
     values = torch.tensor(values, device=device, dtype=dtype)
     N = torch.tensor(len(values), device=device, dtype=dtype)
     indices = torch.floor(N * torch.rand(shape, device=device, dtype=dtype)).to(
-        torch.int
+        torch.long
     )
     return values[indices]
 
