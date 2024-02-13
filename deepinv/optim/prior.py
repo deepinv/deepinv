@@ -361,7 +361,7 @@ class TVPrior(Prior):
 
          .. math:
 
-                 g(x) = \tau \|Dx\|_{2,1}
+                 g(x) = \tau \|Dx\|_{1,2}
 
 
         where D is the finite differences linear operator,

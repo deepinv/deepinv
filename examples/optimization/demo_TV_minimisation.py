@@ -88,7 +88,7 @@ y = physics(x)
 # .. math::
 #
 #     \begin{equation*}
-#     \underset{x}{\operatorname{min}} \,\, \frac{\lambda}{2} \|Ax-y\|_2^2 + \tau \|Dx\|_{2,1}(x),
+#     \underset{x}{\operatorname{min}} \,\, \frac{\lambda}{2} \|Ax-y\|_2^2 + \tau \|Dx\|_{1,2}(x),
 #     \end{equation*}
 #
 #
