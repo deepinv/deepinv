@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 
-class TGV(nn.Module):
+class proxTGV(nn.Module):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.
 
@@ -37,7 +37,7 @@ class TGV(nn.Module):
     def __init__(
         self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
     ):
-        super(TGV, self).__init__()
+        super(proxTGV, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
-from deepinv.models.tv import TV
+from deepinv.models.tv import proxTV
 
 
 class Prior(nn.Module):
@@ -350,7 +350,7 @@ class TVPrior(Prior):
     def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
-        self.TVModel = TV(crit=def_crit, n_it_max=n_it_max)
+        self.TVModel = proxTV(crit=def_crit, n_it_max=n_it_max)
 
     def g(self, x, *args, **kwargs):
         r"""
@@ -377,7 +377,7 @@ class TVPrior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.TVModel.forward(x, ths=ths * gamma)
+        return self.TVModel(x, ths=ths * gamma)
 
     def nabla(self, x):
         r"""

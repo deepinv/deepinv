@@ -272,7 +272,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     ths = 2.0
 
-    model = dinv.models.TGV(n_it_max=5000, verbose=True, crit=1e-4)
+    model = dinv.models.proxTGV(n_it_max=5000, verbose=True, crit=1e-4)
 
     x = model(y, ths)  # 3. Apply the model we want to test
 

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class TV(nn.Module):
+class proxTV(nn.Module):
     r"""
     Proximal operator of the isotropic Total Variation operator.
 
@@ -36,7 +36,7 @@ class TV(nn.Module):
         x2=None,
         u2=None,
     ):
-        super(TV, self).__init__()
+        super(proxTV, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
