@@ -83,6 +83,39 @@ def choose_denoiser(name, imsize):
     return out
 
 
+def test_TVs_adjoint():
+    r"""
+    This tests the adjointness of the finite difference operator used in TV and TGV regularisation.
+    """
+    model = dinv.models.TV(n_it_max=10)
+
+    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    Au = model.nabla(u)
+    v = torch.randn(*Au.shape).type(Au.dtype)
+    Atv = model.nabla_adjoint(v)
+    e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
+
+    assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+    model = dinv.models.TGV(n_it_max=10)
+
+    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    Au = model.nabla(u)
+    v = torch.randn(*Au.shape).type(Au.dtype)
+    Atv = model.nabla_adjoint(v)
+    e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
+
+    assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+    u = torch.randn((2, 3, 20, 20, 2)).type(torch.DoubleTensor)
+    Au = model.epsilon(u)
+    v = torch.randn(*Au.shape).type(Au.dtype)
+    Atv = model.epsilon_adjoint(v)
+    e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
+
+    assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     model = choose_denoiser(denoiser, imsize).to(device)

@@ -84,7 +84,7 @@ class TV(nn.Module):
         for _ in range(self.n_it_max):
             x_prev = self.x2.clone()
 
-            x = self.prox_tau_fx(self.x2 - self.tau * self.nablaT(self.u2), y)
+            x = self.prox_tau_fx(self.x2 - self.tau * self.nabla_adjoint(self.u2), y)
             u = self.prox_sigma_g_conj(
                 self.u2 + self.sigma * self.nabla(2 * x - self.x2), lambd
             )
@@ -114,7 +114,7 @@ class TV(nn.Module):
         u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] + x[..., 1:]
         return u
 
-    def nablaT(self, x):
+    def nabla_adjoint(self, x):
         r"""
         Applies the adjoint of the finite difference operator.
         """
@@ -127,13 +127,3 @@ class TV(nn.Module):
         u[..., :-1] = u[..., :-1] - x[..., :-1, 1]
         u[..., 1:] = u[..., 1:] + x[..., :-1, 1]
         return u
-
-
-# # ADJOINTNESS TEST
-# u = torch.randn((4, 3, 100,100)).type(torch.DoubleTensor)
-# Au = nabla(u)
-# v = torch.randn(*Au.shape).type(Au.dtype)
-# Atv = nablaT(v)
-# e = v.flatten()@Au.flatten()-Atv.flatten()@u.flatten()
-# print('Adjointness test (should be small): ', e)
-

@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
-from deepinv.models.tv import nabla, nablaT
 from deepinv.models.tv import TV
 
 
@@ -355,22 +354,20 @@ class TVPrior(Prior):
 
     def g(self, x, *args, **kwargs):
         r"""
-        Computes the regularizer
+         Computes the regularizer
 
-        .. math:
-                f(x) = \|Dx\|_{2,1}
 
-               where D is the finite differences linear operator,
-               and the 2-norm is taken on the dimension of the differences.
+         .. math:
+                 f(x) = \|Dx\|_{2,1}
 
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`g(x)`.
+
+        where D is the finite differences linear operator,
+        and the 2-norm is taken on the dimension of the differences.
+
+         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        x_op = self.linear_op(x)
-        x_pow = torch.pow(x_op, exponent=2)
-        u_norm2 = torch.sqrt(torch.sum(x_pow, dim=-1))
-        gx = torch.norm(u_norm2, p=1)
-        return gx
+        return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""Compute the proximity operator of TV with the denoiser :meth:`deepinv.models.tv.TV`.
@@ -380,30 +377,16 @@ class TVPrior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.TVModel.forward(x, ths=ths*gamma)
+        return self.TVModel.forward(x, ths=ths * gamma)
 
-    def linear_op(self, x):
+    def nabla(self, x):
         r"""
-        Returns finite differences operator associated with tensors of the same shape as x.
+        Applies the finite differences operator associated with tensors of the same shape as x.
         """
-        return nabla(x)
+        return self.TVModel.nabla(x)
 
-    def adjoint_op(self, x):
+    def nabla_adjoint(self, x):
         r"""
-        Returns adjoint operator with respect to linear_op(x).
+        Applies the adjoint of the finite difference operator.
         """
-        return nablaT(x)
-
-    def moreau_grad(self, x, gamma=1.0):
-        r"""Compute the gradient of the Moreau envelope of TV.
-
-        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :param float gamma: parameter associated with the Moreau envelope.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
-        """
-        dx = self.linear_op(x)
-        l21_prior = L21Prior()
-        prox_dx = l21_prior.prox(dx, ths=1.0, gamma=gamma)
-        m_grad = 1.0 / gamma * self.adjoint_op(dx - prox_dx)
-
-        return m_grad
+        return self.TVModel.nabla_adjoint(x)
