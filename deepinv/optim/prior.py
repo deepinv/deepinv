@@ -303,8 +303,11 @@ class L21Prior(Prior):
         Computes the regularizer
 
         .. math:
-                f(x) = \sum_{j = 1}^M \|x_j\|_2
-               where x_j is the jth element in the specified axis
+
+                g(x) = \sum_{j = 1}^M \|x_j\|_2
+
+
+        where x_j is the jth element in the specified axis
 
         :param l2_axis: axis along which to compute the l2 norm
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
@@ -352,13 +355,13 @@ class TVPrior(Prior):
         self.explicit_prior = True
         self.TVModel = proxTV(crit=def_crit, n_it_max=n_it_max)
 
-    def g(self, x, *args, **kwargs):
+    def g(self, x, ths=1.0, **kwargs):
         r"""
          Computes the regularizer
 
-
          .. math:
-                 f(x) = \|Dx\|_{2,1}
+
+                 g(x) = \tau \|Dx\|_{2,1}
 
 
         where D is the finite differences linear operator,
@@ -367,7 +370,7 @@ class TVPrior(Prior):
          :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
          :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
+        return ths * torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""Compute the proximity operator of TV with the denoiser :meth:`deepinv.models.tv.TV`.

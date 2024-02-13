@@ -25,7 +25,6 @@ config_matplotlib()
 # Generate an inverse problem
 # ---------------------------
 #
-
 # We first generate a deblurring problem with the butterfly image. We use a square blur kernel of size 5x5 and
 # Gaussian noise with standard deviation 12.75/255.0.
 #
