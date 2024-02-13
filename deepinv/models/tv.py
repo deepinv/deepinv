@@ -84,9 +84,9 @@ class TV(nn.Module):
         for _ in range(self.n_it_max):
             x_prev = self.x2.clone()
 
-            x = self.prox_tau_fx(self.x2 - self.tau * nablaT(self.u2), y)
+            x = self.prox_tau_fx(self.x2 - self.tau * self.nablaT(self.u2), y)
             u = self.prox_sigma_g_conj(
-                self.u2 + self.sigma * nabla(2 * x - self.x2), lambd
+                self.u2 + self.sigma * self.nabla(2 * x - self.x2), lambd
             )
             self.x2 = self.x2 + self.rho * (x - self.x2)
             self.u2 = self.u2 + self.rho * (u - self.u2)
@@ -100,41 +100,33 @@ class TV(nn.Module):
                     print("TV prox reached convergence")
                 break
 
-            if _ % 100 == 0 and self.verbose:
-                primalcost = 0.5 * torch.linalg.norm(
-                    self.x2.flatten() - y.flatten()
-                ) ** 2 + lambd * torch.sum(
-                    torch.sqrt(torch.sum(nabla(self.x2) ** 2, axis=-1))
-                )
-                dualcost = (y**2).sum() / 2 - torch.sum(
-                    (y - nablaT(self.u2)) ** 2
-                ) / 2.0
-                primalcostlowerbound = max(primalcost, dualcost)
-                print("Iter ", _, "primal cost :", primalcost.item())
-
         return self.x2
 
+    def nabla(self, x):
+        r"""
+        Applies the finite differences operator associated with tensors of the same shape as x.
+        """
+        b, c, h, w = x.shape
+        u = torch.zeros((b, c, h, w, 2), device=x.device).type(x.dtype)
+        u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] - x[:, :, :-1]
+        u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] + x[:, :, 1:]
+        u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] - x[..., :-1]
+        u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] + x[..., 1:]
+        return u
 
-def nabla(I):
-    b, c, h, w = I.shape
-    G = torch.zeros((b, c, h, w, 2), device=I.device).type(I.dtype)
-    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
-    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
-    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
-    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
-    return G
-
-
-def nablaT(G):
-    b, c, h, w = G.shape[:-1]
-    I = torch.zeros((b, c, h, w), device=G.device).type(
-        G.dtype
-    )  # note that we just reversed left and right sides of each line to obtain the transposed operator
-    I[:, :, :-1] = I[:, :, :-1] - G[:, :, :-1, :, 0]
-    I[:, :, 1:] = I[:, :, 1:] + G[:, :, :-1, :, 0]
-    I[..., :-1] = I[..., :-1] - G[..., :-1, 1]
-    I[..., 1:] = I[..., 1:] + G[..., :-1, 1]
-    return I
+    def nablaT(self, x):
+        r"""
+        Applies the adjoint of the finite difference operator.
+        """
+        b, c, h, w = x.shape[:-1]
+        u = torch.zeros((b, c, h, w), device=x.device).type(
+            x.dtype
+        )  # note that we just reversed left and right sides of each line to obtain the transposed operator
+        u[:, :, :-1] = u[:, :, :-1] - x[:, :, :-1, :, 0]
+        u[:, :, 1:] = u[:, :, 1:] + x[:, :, :-1, :, 0]
+        u[..., :-1] = u[..., :-1] - x[..., :-1, 1]
+        u[..., 1:] = u[..., 1:] + x[..., :-1, 1]
+        return u
 
 
 # # ADJOINTNESS TEST
@@ -144,3 +136,4 @@ def nablaT(G):
 # Atv = nablaT(v)
 # e = v.flatten()@Au.flatten()-Atv.flatten()@u.flatten()
 # print('Adjointness test (should be small): ', e)
+
