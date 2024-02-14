@@ -257,7 +257,7 @@ class L2(DataFidelity):
         """
         x = u - y
         d = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
-        return d
+        return self.norm*d
 
     def grad_d(self, u, y):
         r"""
