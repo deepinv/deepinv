@@ -170,11 +170,11 @@ x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator
 # run the model on the problem.
 x_model, metrics = model(
     y, physics, x_gt=x, compute_metrics=True
-)  # reconstruction with PnP algorithm
+)  # reconstruction with PGD algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"PGD reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
