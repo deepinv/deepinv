@@ -2,10 +2,10 @@
 Image deblurring with Total-Variation (TV) prior
 ====================================================================================================
 
-This example shows how to use a standart TV prior for image deblurring. The problem writes as :math:`y = Ax + \epsilon`
-where :math:`A` is a convolutional operator and :math:`\epsilon` is a Gaussian noise. The goal is to recover the
-original image :math:`x` from the blurred and noisy image :math:`y`. The TV prior is used to regularize the problem.
-
+This example shows how to use a standard TV prior for image deblurring. The problem writes as :math:`y = Ax + \epsilon`
+where :math:`A` is a convolutional operator and :math:`\epsilon` is the realization of some Gaussian noise. The goal is
+to recover the original image :math:`x` from the blurred and noisy image :math:`y`. The TV prior is used to regularize
+the problem.
 """
 
 import deepinv as dinv
@@ -79,6 +79,38 @@ x = dataset[0][0].unsqueeze(0).to(device)
 # Apply the degradation to the image
 y = physics(x)
 
+# %%
+# Exploring the total variation prior.
+# ------------------------------------
+#
+# In this example, we will use the total variation prior, which can be done with the :meth:`deepinv.optim.prior.Prior`
+# class. The prior object represents the cost function of the prior (TV in this case), as well as convenient methods,
+# such as its proximal operator :math:`\text{prox}_{\tau g}`.
+
+# Set up the total variation prior
+prior = dinv.optim.prior.TVPrior(n_it_max=2000)
+
+# Compute the total variation prior cost
+cost_tv = prior(y)
+print(f"Cost TV: g(y) = {cost_tv:.2f}")
+
+# Apply the proximal operator of the TV prior
+x_tv = prior.prox(y, ths=0.1)
+cost_tv_prox = prior(x_tv)
+
+# %%
+# .. note::
+#           The output of the proximity operator of TV is not the solution to our problem. It is only a step towards
+#           the solution and is used in the proximal gradient descent algorithm to solve the inverse problem.
+#
+
+# Plot the input and the output of the TV proximal operator
+imgs = [y, x_tv]
+plot(
+    imgs,
+    titles=[f"Input, TV cost: {cost_tv:.2f}", f"Output, TV cost: {cost_tv_prox:.2f}"],
+)
+
 
 # %%
 # Set up the optimization algorithm to solve the inverse problem.
@@ -100,7 +132,7 @@ y = physics(x)
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Specify the prior
+# Specify the prior (we redefine it with a smaller number of iteration for faster computation)
 prior = dinv.optim.prior.TVPrior(n_it_max=20)
 
 # Logging parameters
@@ -130,7 +162,7 @@ model = optim_builder(
 # --------------------------------------------------------------------
 #
 # The model returns the output and the metrics computed along the iterations.
-# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
+# For computing PSNR, the ground truth image ``x_gt`` must be provided.
 
 
 x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator
@@ -149,10 +181,8 @@ imgs = [y, x, x_lin, x_model]
 plot(
     imgs,
     titles=["Input", "GT", "Linear", "Recons."],
-    save_dir=RESULTS_DIR / "images",
-    show=True,
 )
 
 # plot convergence curves. Metrics are saved in RESULTS_DIR.
 if plot_metrics:
-    plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
+    plot_curves(metrics)

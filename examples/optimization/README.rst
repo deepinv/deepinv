@@ -1,2 +1,2 @@
-Variational
------------
+Optimization
+------------
