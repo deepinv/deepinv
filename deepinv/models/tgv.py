@@ -2,8 +2,10 @@ import warnings
 import torch
 import torch.nn as nn
 
+from tv import TVDenoiser
 
-class proxTGV(nn.Module):
+
+class TGVDenoiser(nn.Module):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.
 
@@ -37,7 +39,7 @@ class proxTGV(nn.Module):
     def __init__(
         self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
     ):
-        super(proxTGV, self).__init__()
+        super(TGVDenoiser, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
@@ -168,33 +170,22 @@ class proxTGV(nn.Module):
 
         return self.x2
 
-    def nabla(self, x):
+    @staticmethod
+    def nabla(x):
         r"""
         Applies the finite differences operator associated with tensors of the same shape as x.
         """
-        b, c, h, w = x.shape
-        u = torch.zeros((b, c, h, w, 2), device=x.device).type(x.dtype)
-        u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] - x[:, :, :-1]
-        u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] + x[:, :, 1:]
-        u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] - x[..., :-1]
-        u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] + x[..., 1:]
-        return u
+        return TVDenoiser.nabla(x)
 
-    def nabla_adjoint(self, x):
+    @staticmethod
+    def nabla_adjoint(x):
         r"""
         Applies the adjoint of the finite difference operator.
         """
-        b, c, h, w = x.shape[:-1]
-        u = torch.zeros((b, c, h, w), device=x.device).type(
-            x.dtype
-        )  # note that we just reversed left and right sides of each line to obtain the transposed operator
-        u[:, :, :-1] = u[:, :, :-1] - x[:, :, :-1, :, 0]
-        u[:, :, 1:] = u[:, :, 1:] + x[:, :, :-1, :, 0]
-        u[..., :-1] = u[..., :-1] - x[..., :-1, 1]
-        u[..., 1:] = u[..., 1:] + x[..., :-1, 1]
-        return u
+        return TVDenoiser.nabla_adjoint(x)
 
-    def epsilon(self, I):  # Simplified
+    @staticmethod
+    def epsilon(I):  # Simplified
         r"""
         Applies the jacobian of a vector field.
         """
@@ -210,7 +201,8 @@ class proxTGV(nn.Module):
         G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
         return G
 
-    def epsilon_adjoint(self, G):
+    @staticmethod
+    def epsilon_adjoint(G):
         r"""
         Applies the adjoint of the jacobian of a vector field.
         """

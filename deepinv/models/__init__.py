@@ -4,8 +4,8 @@ from .ae import AutoEncoder
 from .unet import UNet
 from .dncnn import DnCNN
 from .artifactremoval import ArtifactRemoval
-from .tgv import proxTGV as proxTGV
-from .tv import proxTV as proxTV
+from .tgv import TGVDenoiser
+from .tv import TVDenoiser
 from .wavdict import WaveletPrior, WaveletDict
 from .GSPnP import GSDRUNet
 from .median import MedianFilter

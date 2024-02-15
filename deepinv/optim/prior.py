@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
-from deepinv.models.tv import proxTV
+from deepinv.models.tv import TVDenoiser
 
 
 class Prior(nn.Module):
@@ -289,9 +289,9 @@ class L1Prior(Prior):
         )
 
 
-class L21Prior(Prior):
+class L12Prior(Prior):
     r"""
-    :math:`\ell_{2,1}` mixed norm prior :math:`g(x) = \| x \|_{2,1}`.
+    :math:`\ell_{1,2}` mixed norm prior :math:`g(x) = \| x \|_{1,2}`.
     """
 
     def __init__(self, *args, **kwargs):
@@ -317,14 +317,14 @@ class L21Prior(Prior):
         return torch.sum(x_l2)
 
     def prox(self, x, ths=1.0, gamma=1.0, l2_axis=-1, **kwargs):
-        r"""Compute the proximity operator of the mixed l21 norm
+        r"""Compute the proximity operator of the mixed l12 norm
 
         Consider the proximity operator of the l2 norm
 
         .. math:
                 \operatorname{prox}_{\|.\|_2}(x) = (1 - \frac{\gamma}{\max(\|x\|_2, \gamma)}) x
 
-        The prox of l21 is the concatenation of the l2 norms in the axis l2_axis.
+        The prox of l12 is the concatenation of the l2 norms in the axis l2_axis.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float ths: threshold parameter :math:`\tau`.
@@ -347,13 +347,13 @@ class L21Prior(Prior):
 
 class TVPrior(Prior):
     r"""
-    Total variation (TV) prior :math:`g(x) = \| D x \|_{2,1}`.
+    Total variation (TV) prior :math:`g(x) = \| D x \|_{1,2}`.
     """
 
     def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
-        self.TVModel = proxTV(crit=def_crit, n_it_max=n_it_max)
+        self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
 
     def g(self, x, ths=1.0, **kwargs):
         r"""

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class proxTV(nn.Module):
+class TVDenoiser(nn.Module):
     r"""
     Proximal operator of the isotropic Total Variation operator.
 
@@ -26,6 +26,10 @@ class proxTV(nn.Module):
     :param float crit: Convergence criterion. Default: 1e-5.
     :param torch.tensor, None x2: Primary variable. Default: None.
     :param torch.tensor, None u2: Dual variable. Default: None.
+
+    .. warning::
+        For using TV as a prior for Plug and Play algorithms, it is recommended to use the class
+        :class:`~deepinv.optim.prior.TVPrior` instead. In particular, it allows to evaluate TV.
     """
 
     def __init__(
@@ -36,7 +40,7 @@ class proxTV(nn.Module):
         x2=None,
         u2=None,
     ):
-        super(proxTV, self).__init__()
+        super(TVDenoiser, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
@@ -102,7 +106,8 @@ class proxTV(nn.Module):
 
         return self.x2
 
-    def nabla(self, x):
+    @staticmethod
+    def nabla(x):
         r"""
         Applies the finite differences operator associated with tensors of the same shape as x.
         """
@@ -114,7 +119,8 @@ class proxTV(nn.Module):
         u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] + x[..., 1:]
         return u
 
-    def nabla_adjoint(self, x):
+    @staticmethod
+    def nabla_adjoint(x):
         r"""
         Applies the adjoint of the finite difference operator.
         """
