@@ -2,7 +2,7 @@ import warnings
 import torch
 import torch.nn as nn
 
-from tv import TVDenoiser
+from deepinv.models import TVDenoiser
 
 
 class TGVDenoiser(nn.Module):
