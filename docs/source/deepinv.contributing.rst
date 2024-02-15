@@ -19,8 +19,12 @@ check the following points:
   making the desired changes.
 - The automatic tests pass on your local machine. This can be done by running ``python -m pytest deepinv/tests``
   in the root directory of the repository after making the desired changes.
-- The documentation is updated if necessary. This can be done by running ``make html`` in the ``docs`` directory
-  after making the desired changes.
+- The documentation is updated if necessary. After making the desired changes, this can be done in the directory
+  ``docs`` by running either:
+  - ``make html`` to generate all the documentation;
+  - ``make html-noplot`` which is a faster alternative than previous option at the cost not generating plots;
+  - ``make html-pattern`` which only generates documentation for which the files match the environment variable
+    ``$(PATTERN)``.
 
 If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_ and also ask any question in our discord server
