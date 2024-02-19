@@ -27,9 +27,9 @@ class DataFidelity(nn.Module):
         >>> A_forward = lambda v: A @ v
         >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
         >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-       
-        Define two points:
-       
+
+        Define two points :math:`x` and :math:`y`:
+
         >>> x = torch.Tensor([[1], [4]]).unsqueeze(0)
         >>> y = torch.Tensor([[1], [1]]).unsqueeze(0)
 
@@ -231,9 +231,9 @@ class L2(DataFidelity):
         >>> A_forward = lambda v: A @ v
         >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
         >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-       
-        Define two points:
-       
+
+        Define two points :math:`x` and :math:`y`:
+
         >>> x = torch.Tensor([[1], [4]]).unsqueeze(0)
         >>> y = torch.Tensor([[1], [1]]).unsqueeze(0)
 
@@ -589,32 +589,3 @@ class L1(DataFidelity):
             if rel_crit < crit_conv and it > 2:
                 break
         return t
-
-
-if __name__ == "__main__":
-    import deepinv as dinv
-
-    # define a loss function
-    data_fidelity = L2()
-
-    # create a measurement operator dxd
-    A = torch.Tensor([[2, 0], [0, 0.5]])
-    A_forward = lambda v: torch.matmul(A, v)
-    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
-
-    # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-    # Define two points of size Bxd
-    x = torch.Tensor([1, 4]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
-    y = torch.Tensor([1, 1]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
-
-    # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
-    f = data_fidelity(x, y, physics)  # print f gives 1.0
-    # Compute the gradient of :math:`f`
-    grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
-
-    # Compute the proximity operator of :math:`f`
-    prox = data_fidelity.prox(
-        x, y, physics, gamma=1.0
-    )  # print prox_fA gives [0.6000, 3.6000]
