@@ -12,31 +12,37 @@ class DataFidelity(nn.Module):
     linear or nonlinear operator, :math:`x\in\xset` is a variable , :math:`y\in\yset` is the observation and
     :math:`\distancename` is a distance function.
 
-    ::
+    |sep|
 
-        # define a loss function
-        data_fidelity = L2()
+    :Examples:
 
-        # Create a measurement operator
-        A = torch.Tensor([[2, 0], [0, 0.5]])
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
+        Defining a data fidelity term :math:`\datafid{x}{y} = \distance{A(x)}{y}` with :math:`\distancename` the :math:`\ell_2` norm.
 
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>> import deepinv as dinv
+        >>> data_fidelity = L2()
 
-        # Define two points
-        x = torch.Tensor([[1], [4]]).unsqueeze(0)
-        y = torch.Tensor([[1], [1]]).unsqueeze(0)
+        Creating the measurement operator :math:`A` and its adjoint :math:`A^*`:
 
-        # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
-        f_x = data_fidelity(x, y, physics)  # print(f_x) gives tensor([1.0000])
+        >>> A = torch.Tensor([[2, 0], [0, 0.5]])
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+       
+        Define two points:
+       
+        >>> x = torch.Tensor([[1], [4]]).unsqueeze(0)
+        >>> y = torch.Tensor([[1], [1]]).unsqueeze(0)
 
-        # Compute the gradient of :math:`f`
-        grad = data_fidelity.grad(x, y, physics)  # print(grad) gives tensor([[[2.0000], [0.5000]]])
+        Compute the loss :math:`f(x) = \datafid{A(x)}{y}`, its gradient and its proximity operator:
 
-        # Compute the proximity operator of :math:`f`
-        prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print(prox) gives tensor([[[0.6000], [3.6000]]])
+        >>> print(data_fidelity(x, y, physics))
+        tensor([1.0000])
+        >>> print(data_fidelity.grad(x, y, physics))
+        tensor([[[2.0000],
+                 [0.5000]]])
+        >>> print(data_fidelity.prox(x, y, physics, gamma=1.0))
+        tensor([[[0.6000],
+                 [3.6000]]])
 
 
     .. warning::
@@ -210,31 +216,38 @@ class L2(DataFidelity):
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
 
 
-    ::
+    |sep|
 
-        # define a loss function
-        loss = L2()
+    :Examples:
 
-        # create a measurement operator
-        A = torch.Tensor([[2, 0], [0, 0.5]])
-        A_forward = lambda v:A@v
-        A_adjoint = lambda v: A.transpose(0,1)@v
+        Defining a data fidelity term :math:`\datafid{x}{y} = \distance{A(x)}{y}` with :math:`\distancename` the :math:`\ell_2` norm.
 
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>> import deepinv as dinv
+        >>> data_fidelity = L2()
 
-        # Define two points
-        x = torch.Tensor([1, 4])
-        y = torch.Tensor([1, 1])
+        Creating the measurement operator :math:`A` and its adjoint :math:`A^*`:
 
-        # Compute the loss f(Ax, y)
-        f = loss(x, y, physics)  # print f gives 1.0
+        >>> A = torch.Tensor([[2, 0], [0, 0.5]])
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+       
+        Define two points:
+       
+        >>> x = torch.Tensor([[1], [4]]).unsqueeze(0)
+        >>> y = torch.Tensor([[1], [1]]).unsqueeze(0)
 
-        # Compute the gradient of f
-        grad_dA = data_fidelity.grad(x, y, physics)  # print grad_d gives [2.0000, 0.5000]
+        Compute the loss :math:`f(x) = \datafid{A(x)}{y}`, its gradient and its proximity operator:
 
-        # Compute the proximity operator of f
-        prox_dA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_dA gives [0.6000, 3.6000]
+        >>> print(data_fidelity(x, y, physics))
+        tensor([1.0000])
+        >>> print(data_fidelity.grad(x, y, physics))
+        tensor([[[2.0000],
+                 [0.5000]]])
+        >>> print(data_fidelity.prox(x, y, physics, gamma=1.0))
+        tensor([[[0.6000],
+                 [3.6000]]])
+
     """
 
     def __init__(self, sigma=1.0):
