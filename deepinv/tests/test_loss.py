@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
-LOSSES = ["sup", "mcei", "mcei-scale"]
+LOSSES = ["sup", "mcei", "mcei-scale", "r2r"]
 LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian", "UniformGaussian"]
 
 
@@ -49,6 +49,8 @@ def choose_loss(loss_name):
         loss.append(dinv.loss.ScoreLoss(1.0))
     elif loss_name == "sup":
         loss.append(dinv.loss.SupLoss())
+    elif loss_name == "r2r":
+        loss.append(dinv.loss.R2RLoss())
     else:
         raise Exception("The loss doesnt exist")
 
