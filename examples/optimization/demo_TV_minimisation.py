@@ -100,8 +100,9 @@ cost_tv_prox = prior(x_tv)
 
 # %%
 # .. note::
-#           The output of the proximity operator of TV is not the solution to our problem. It is only a step towards
-#           the solution and is used in the proximal gradient descent algorithm to solve the inverse problem.
+#           The output of the proximity operator of TV is **not** the solution to our deblurring problem. It is only a
+#           step towards the solution and is used in the proximal gradient descent algorithm to solve the inverse
+#           problem.
 #
 
 # Plot the input and the output of the TV proximal operator
