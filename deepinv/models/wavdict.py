@@ -40,6 +40,11 @@ class WaveletPrior(nn.Module):
     """
 
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft", wvdim=2):
+        if isinstance(ptwt, ImportError):
+            raise ImportError(
+                "pytorch_wavelets is needed to use the WaveletPrior class. "
+                "It should be installed with `pip install ptwt`."
+            ) from ptwt
         super().__init__()
         self.level = level
         self.wv = wv
