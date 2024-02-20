@@ -289,62 +289,6 @@ class L1Prior(Prior):
         )
 
 
-class L12Prior(Prior):
-    r"""
-    :math:`\ell_{1,2}` mixed norm prior :math:`g(x) = \| x \|_{1,2}`.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.explicit_prior = True
-
-    def g(self, x, l2_axis=-1, **kwargs):
-        r"""
-        Computes the regularizer
-
-        .. math:
-
-                g(x) = \sum_{j = 1}^M \|x_j\|_2
-
-
-        where x_j is the jth element in the specified axis
-
-        :param l2_axis: axis along which to compute the l2 norm
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`g(x)`.
-        """
-        x_l2 = torch.norm(x, p=2, dim=l2_axis)
-        return torch.sum(x_l2)
-
-    def prox(self, x, ths=1.0, gamma=1.0, l2_axis=-1, **kwargs):
-        r"""Compute the proximity operator of the mixed l12 norm
-
-        Consider the proximity operator of the l2 norm
-
-        .. math:
-                \operatorname{prox}_{\|.\|_2}(x) = (1 - \frac{\gamma}{\max(\|x\|_2, \gamma)}) x
-
-        The prox of l12 is the concatenation of the l2 norms in the axis l2_axis.
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: threshold parameter :math:`\tau`.
-        :param float gamma: stepsize of the proximity operator.
-        :param l2_axis: axis on which l2 norm is computed.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
-        """
-
-        tau_gamma = torch.tensor(ths * gamma)
-
-        z = torch.norm(x, p=2, dim=l2_axis, keepdim=True)
-        # Creating a mask to avoid diving by zero
-        # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
-        mask_z = z > 0
-        z[mask_z] = torch.max(z[mask_z], tau_gamma)
-        z[mask_z] = torch.tensor(1.0) - tau_gamma / z[mask_z]
-
-        return torch.multiply(z, x)
-
-
 class TVPrior(Prior):
     r"""
     Total variation (TV) prior :math:`g(x) = \| D x \|_{1,2}`.
