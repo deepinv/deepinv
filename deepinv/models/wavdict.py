@@ -2,9 +2,14 @@ import torch
 import torch.nn as nn
 
 try:
-    import pytorch_wavelets
+    import pywt
 except:
-    pytorch_wavelets = ImportError("The pytorch_wavelets package is not installed.")
+    pywt = ImportError("The pywt package is not installed.")
+
+try:
+    import ptwt
+except:
+    pytorch_wavelets = ImportError("The ptwt package is not installed.")
 
 
 class WaveletPrior(nn.Module):
@@ -34,19 +39,13 @@ class WaveletPrior(nn.Module):
         If ``"topk"``, only the top-k wavelet coefficients are kept.
     """
 
-    def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft"):
-        if isinstance(pytorch_wavelets, ImportError):
-            raise ImportError(
-                "pytorch_wavelets is needed to use the WaveletPrior class. "
-                "It should be installed with `pip install "
-                "git+https://github.com/fbcotter/pytorch_wavelets.git`"
-            ) from pytorch_wavelets
+    def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft", wvdim=2):
         super().__init__()
         self.level = level
-        self.dwt = pytorch_wavelets.DWTForward(J=self.level, wave=wv).to(device)
-        self.iwt = pytorch_wavelets.DWTInverse(wave=wv).to(device)
+        self.wv = wv
         self.device = device
         self.non_linearity = non_linearity
+        self.dimension = wvdim
 
     def get_ths_map(self, ths):
         if isinstance(ths, float) or isinstance(ths, int):
@@ -62,6 +61,28 @@ class WaveletPrior(nn.Module):
                 .to(self.device)
             )
         return ths_map
+
+    def dwt(self, x):
+        r"""
+        Applies the wavelet decomposition.
+        """
+        if self.dimension == 2:
+            dec = ptwt.wavedec2(x, pywt.Wavelet(self.wv), mode='zero', level=self.level)
+        elif self.dimension == 3:
+            dec = ptwt.wavedec3(x, pywt.Wavelet(self.wv), mode='zero', level=self.level)
+        dec = [list(t) if isinstance(t, tuple) else t for t in dec]
+        return dec
+
+    def iwt(self, coeffs):
+        r"""
+        Applies the wavelet recomposition.
+        """
+        coeffs = [tuple(t) if isinstance(t, list) else t for t in coeffs]
+        if self.dimension == 2:
+            rec = ptwt.waverec2(coeffs, pywt.Wavelet(self.wv))
+        elif self.dimension == 3:
+            rec = ptwt.waverec3(coeffs, pywt.Wavelet(self.wv))
+        return rec
 
     def prox_l1(self, x, ths=0.1):
         r"""
@@ -108,7 +129,7 @@ class WaveletPrior(nn.Module):
             k = int(ths)
 
         # Reshape arrays to 2D and initialize output to 0
-        x_flat = x.view(x.shape[0], -1)
+        x_flat = x.reshape(x.shape[0], -1)
         out = torch.zeros_like(x_flat)
 
         topk_indices_flat = torch.topk(abs(x_flat), k, dim=-1)[1]
@@ -125,6 +146,93 @@ class WaveletPrior(nn.Module):
         ]
         return torch.reshape(out, x.shape)
 
+    def thresold_func(self, x, ths):
+        r""""
+        Apply thresholding to the wavelet coefficients.
+        """
+        if self.non_linearity == "soft":
+            y = self.prox_l1(x, ths)
+        elif self.non_linearity == "hard":
+            y = self.prox_l0(x, ths)
+        elif self.non_linearity == "topk":
+            y = self.hard_threshold_topk(x, ths)
+        return y
+
+    def thresold_2D(self, coeffs, ths):
+        r"""
+        Thresholds coefficients of the 2D wavelet transform.
+        """
+        for level in range(1, self.level + 1):
+            ths_cur = self.reshape_ths(ths, level)
+            for c in range(3):
+                coeffs[level][c] = self.thresold_func(coeffs[level][c], ths_cur[c])
+        return coeffs
+
+    def threshold_3D(self, coeffs, ths):
+        r"""
+        Thresholds coefficients of the 3D wavelet transform.
+        """
+        for level in range(1, self.level + 1):
+            ths_cur = self.reshape_ths(ths, level)
+            for c, key in enumerate(['aad', 'ada', 'daa', 'add', 'dad', 'dda', 'ddd']):
+                coeffs[level][key] = self.prox_l1(coeffs[level][key], ths_cur[c])
+        return coeffs
+
+    def threshold_ND(self, coeffs, ths):
+        r"""
+        Apply thresholding to the wavelet coefficients of arbitrary dimension.
+        """
+        if self.dimension == 2:
+            coeffs = self.thresold_2D(coeffs, ths)
+        elif self.dimension == 3:
+            coeffs = self.threshold_3D(coeffs, ths)
+        else:
+            raise ValueError("Only 2D and 3D wavelet transforms are supported")
+
+        return coeffs
+
+    def pad_input(self, x):
+        r"""
+        Pad the input to make it compatible with the wavelet transform.
+        """
+        h, w = x.size()[-2:]
+        padding_bottom = h % 2
+        padding_right = w % 2
+        x = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(x)
+        return x, (padding_bottom, padding_right)
+
+    def crop_output(self, x, padding):
+        r"""
+        Crop the output to make it compatible with the wavelet transform.
+        """
+        padding_bottom, padding_right = padding
+        h, w = x.size()[-2:]
+        return x[..., :h-padding_bottom, :w-padding_right]
+
+    def reshape_ths(self, ths, level):
+        r"""
+        Reshape the thresholding parameter in the appropriate format, i.e. a list of 3 elements.
+        """
+        if not torch.is_tensor(ths):
+            if (
+                    isinstance(ths, int)
+                    or isinstance(ths, float)
+            ):
+                ths_cur = [ths] * 3
+            elif len(ths) == 1:
+                ths_cur = [ths[0]] * 3
+            else:
+                ths_cur = ths[level]
+                if (ths_cur) == 1:
+                    ths_cur = [ths_cur[0]] * 3
+        else:
+            if len(ths.shape) == 1:  # Needs to reshape to shape (n_levels, 3)
+                ths_cur = ths.unsqueeze(0).repeat(self.level, 3)
+            else:
+                ths_cur = ths
+
+        return ths_cur
+
     def forward(self, x, ths=0.1):
         r"""
         Run the model on a noisy image.
@@ -137,32 +245,26 @@ class WaveletPrior(nn.Module):
             that are kept (if ``int``) or the proportion of coefficients that are kept (if ``float``).
 
         """
-        h, w = x.size()[-2:]
-        padding_bottom = h % 2
-        padding_right = w % 2
-        x = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(x)
+        # Pad data
+        x, padding = self.pad_input(x)
 
+        # Apply wavelet transform
         coeffs = self.dwt(x)
-        for l in range(self.level):
-            ths_cur = (
-                ths
-                if (
-                    isinstance(ths, int)
-                    or isinstance(ths, float)
-                    or len(ths.shape) == 0
-                    or ths.shape[0] == 1
-                )
-                else ths[l]
-            )
-            if self.non_linearity == "soft":
-                coeffs[1][l] = self.prox_l1(coeffs[1][l], ths_cur)
-            elif self.non_linearity == "hard":
-                coeffs[1][l] = self.prox_l0(coeffs[1][l], ths_cur)
-            elif self.non_linearity == "topk":
-                coeffs[1][l] = self.hard_threshold_topk(coeffs[1][l], ths_cur)
+
+        # Threshold coefficients (we do not threshold the approximation coefficients)
+        # for level in range(1, self.level + 1):
+        #     ths_cur = self.reshape_ths(ths, level)
+        #
+        #     for c in range(3):
+        #         coeffs[level][c] = self.thresold_func(coeffs[level][c], ths_cur[c])
+        coeffs = self.threshold_ND(coeffs, ths)
+
+        # Inverse wavelet transform
         y = self.iwt(coeffs)
 
-        y = y[..., :h, :w]
+        # Crop data
+        # y = y[..., :h, :w]
+        y = self.crop_output(y, padding)
         return y
 
 
