@@ -61,7 +61,7 @@ doc = [
 denoisers = [
     "bm3d",
     "timm",
-    "pywt",
+    "PyWavelets",
     "ptwt"
 ]
 
