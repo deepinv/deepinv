@@ -24,59 +24,36 @@ class BasePhaseRetrieval(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.name = f"PR_m{m}"
+        self.m = m
+        self.name = f"PR_m{self.m}"
         self.img_shape = img_shape
         self.channelwise = channelwise
+        self.device = device
         self.dtype = dtype
 
-        if channelwise:
-            n = int(np.prod(img_shape[1:]))
+        if self.channelwise:
+            self.n = int(np.prod(self.img_shape[1:]))
         else:
-            n = int(np.prod(img_shape))
-
-        self._A = torch.zeros((m, n), device=device, dtype=self.dtype)
-        self._A_adjoint = torch.zeros((n, m), device=device, dtype=self.dtype)
-        self._A_dagger = torch.zeros((n, m), device=device, dtype=self.dtype)
+            self.n = int(np.prod(self.img_shape))
 
     def A(self, x: torch.Tensor) -> torch.Tensor:
         N, C = x.shape[:2]
         if self.channelwise:
-            x = x.reshape(N * C, -1)
+            return torch.zeros(N, C, self.m)
         else:
-            x = x.reshape(N, -1)
-
-        y = torch.einsum("in, mn->im", x, self._A)
-
-        if self.channelwise:
-            y = y.view(N, C, -1)
-
-        return y
+            return torch.zeros(N, self.m)
 
     def A_adjoint(self, y):
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
 
-        if self.channelwise:
-            N2 = N * C
-            y = y.view(N2, -1)
-        else:
-            N2 = N
-
-        x = torch.einsum("im, nm->in", y, self._A_adjoint)  # x:(N, n, 1)
-
-        x = x.view(N, C, H, W)
-        return x
+        return torch.zeros(N, C, H, W)
 
     def A_dagger(self, y):
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
 
-        if self.channelwise:
-            y = y.reshape(N * C, -1)
-
-        x = torch.einsum("im, nm->in", y, self._A_dagger)
-        x = x.reshape(N, C, H, W)
-        return x
+        return torch.zeros(N, C, H, W)
 
     def forward(self, x):
         return self.sensor(self.noise(self.A(x).abs().square()))
@@ -118,36 +95,56 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
 
     def __init__(
         self,
-        m,
-        img_shape,
-        channelwise=False,
-        dtype=torch.cfloat,
-        device="cpu",
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.name = f"RPR_m{m}"
-        self.img_shape = img_shape
-        self.channelwise = channelwise
-        self.dtype = dtype
+        self.name = f"RPR_m{self.m}"
 
-        # elementwise modulus then square
-        self.sensor_model = lambda x: torch.square(x.abs())
-
-        if channelwise:
-            n = int(np.prod(img_shape[1:]))
-        else:
-            n = int(np.prod(img_shape))
-
-        A_real = torch.randn((m, n), device=device) / np.sqrt(2 * m)
-        A_imag = torch.randn((m, n), device=device) / np.sqrt(2 * m)
+        A_real = torch.randn((self.m, self.n), device=self.device) / np.sqrt(2 * self.m)
+        A_imag = torch.randn((self.m, self.n), device=self.device) / np.sqrt(2 * self.m)
         self._A = torch.view_as_complex(torch.stack((A_real, A_imag), dim=-1))
-        # dagger is inverse, adjoint is conjugate transpose
-        self._A_dagger = torch.linalg.pinv(self._A)
         self._A = torch.nn.Parameter(self._A, requires_grad=False)
-        self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-        self._A_adjoint = (
-            torch.nn.Parameter(self._A.t().conj(), requires_grad=False)
-            .type(dtype)
-            .to(device)
-        )
+        # creates names
+        self._A_adjoint = None
+        self._A_dagger = None
+    
+    def A(self, x: torch.Tensor) -> torch.Tensor:
+        N, C = x.shape[:2]
+        if self.channelwise:
+            x = x.reshape(N * C, -1)
+        else:
+            x = x.reshape(N, -1)
+
+        y = torch.einsum("in, mn->im", x, self._A)
+
+        if self.channelwise:
+            y = y.view(N, C, -1)
+        return y
+    
+    def A_adjoint(self, y):
+        N = y.shape[0]
+        C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+
+        if self.channelwise:
+            y = y.view(N * C, -1)
+
+        x = torch.einsum("im, nm->in", y, self._A.T.conj())  # x:(N, n, 1)
+
+        x = x.view(N, C, H, W)
+        return x
+    
+    def A_dagger(self, y):
+        if self._A_dagger is None:
+            self._A_dagger = torch.linalg.pinv(self._A)
+            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
+        
+        N = y.shape[0]
+        C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+
+        if self.channelwise:
+            y = y.reshape(N * C, -1)
+
+        x = torch.einsum("im, nm->in", y, self._A_dagger)
+
+        x = x.view(N, C, H, W)
+        return x
