@@ -9,7 +9,7 @@ except:
 try:
     import ptwt
 except:
-    pytorch_wavelets = ImportError("The ptwt package is not installed.")
+    ptwt = ImportError("The ptwt package is not installed.")
 
 
 class WaveletPrior(nn.Module):
@@ -47,21 +47,6 @@ class WaveletPrior(nn.Module):
         self.non_linearity = non_linearity
         self.dimension = wvdim
 
-    def get_ths_map(self, ths):
-        if isinstance(ths, float) or isinstance(ths, int):
-            ths_map = ths
-        elif len(ths.shape) == 0 or ths.shape[0] == 1:
-            ths_map = ths.to(self.device)
-        else:
-            ths_map = (
-                ths.unsqueeze(0)
-                .unsqueeze(0)
-                .unsqueeze(-1)
-                .unsqueeze(-1)
-                .to(self.device)
-            )
-        return ths_map
-
     def dwt(self, x):
         r"""
         Applies the wavelet decomposition.
@@ -91,7 +76,7 @@ class WaveletPrior(nn.Module):
         :param torch.Tensor x: wavelet coefficients.
         :param float, torch.Tensor ths: threshold.
         """
-        ths_map = self.get_ths_map(ths)
+        ths_map = ths
         return torch.maximum(
             torch.tensor([0], device=x.device).type(x.dtype), x - ths_map
         ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
@@ -106,8 +91,7 @@ class WaveletPrior(nn.Module):
         if isinstance(ths, float):
             ths_map = ths
         else:
-            ths_map = self.get_ths_map(ths)
-            ths_map = ths_map.repeat(
+            ths_map = ths.repeat(
                 1, 1, 1, x.shape[-2], x.shape[-1]
             )  # Reshaping to image wavelet shape
         out = x.clone()
@@ -211,7 +195,11 @@ class WaveletPrior(nn.Module):
 
     def reshape_ths(self, ths, level):
         r"""
-        Reshape the thresholding parameter in the appropriate format, i.e. a list of 3 elements.
+        Reshape the thresholding parameter in the appropriate format, i.e. either:
+         - a list of 3 elements, or
+         - a tensor of 3 elements.
+         Since the approximation coefficients are not thresholded, we do not need to provide a thresholding parameter,
+         ths has shape (n_levels-1, 3).
         """
         if not torch.is_tensor(ths):
             if isinstance(ths, int) or isinstance(ths, float):
@@ -220,13 +208,13 @@ class WaveletPrior(nn.Module):
                 ths_cur = [ths[0]] * 3
             else:
                 ths_cur = ths[level]
-                if (ths_cur) == 1:
+                if len(ths_cur) == 1:
                     ths_cur = [ths_cur[0]] * 3
         else:
-            if len(ths.shape) == 1:  # Needs to reshape to shape (n_levels, 3)
-                ths_cur = ths.unsqueeze(0).repeat(self.level, 3)
+            if len(ths.shape) == 1:  # Needs to reshape to shape (n_levels-1, 3)
+                ths_cur = ths.squeeze().repeat(3)
             else:
-                ths_cur = ths
+                ths_cur = ths[level - 2]
 
         return ths_cur
 
@@ -235,7 +223,9 @@ class WaveletPrior(nn.Module):
         Run the model on a noisy image.
 
         :param torch.Tensor x: noisy image.
-        :param int, float, torch.Tensor ths: thresholding parameter.
+        :param int, float, torch.Tensor ths: thresholding parameter. If `ths` is a tensor, it should be of shape
+            ``(1, )`` (same coefficent for all levels), ``(n_levels-1, )`` (one coefficient per level),
+            or ``(n_levels-1, 3)`` (one coefficient per subband and per level).
             If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
             thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
             ``ths`` can indicate the number of wavelet coefficients
@@ -249,18 +239,12 @@ class WaveletPrior(nn.Module):
         coeffs = self.dwt(x)
 
         # Threshold coefficients (we do not threshold the approximation coefficients)
-        # for level in range(1, self.level + 1):
-        #     ths_cur = self.reshape_ths(ths, level)
-        #
-        #     for c in range(3):
-        #         coeffs[level][c] = self.thresold_func(coeffs[level][c], ths_cur[c])
         coeffs = self.threshold_ND(coeffs, ths)
 
         # Inverse wavelet transform
         y = self.iwt(coeffs)
 
         # Crop data
-        # y = y[..., :h, :w]
         y = self.crop_output(y, padding)
         return y
 

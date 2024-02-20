@@ -54,7 +54,7 @@ optim_algos = ["PGD"]
 def test_optim_algo(name_algo, imsize, device):
     # This test uses WaveletPrior, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # pths
     BASE_DIR = Path(".")
@@ -82,8 +82,12 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [0.01 * torch.ones(level, 1)] * max_iter
-    # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
+    sigma_denoiser = [
+        0.01
+        * torch.ones(
+            level,
+        )
+    ] * max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,

@@ -12,7 +12,7 @@ OPTIM_ALGO = ["PGD", "HQS"]
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # Select the data fidelity term
     data_fidelity = L2()
@@ -67,7 +67,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
     torch.set_grad_enabled(
         True
     )  # Disabled somewhere in previous test files, necessary for this test to pass

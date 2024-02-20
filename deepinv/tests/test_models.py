@@ -29,7 +29,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
 def choose_denoiser(name, imsize):
     if name.startswith("waveletdict") or name == "waveletprior":
         pytest.importorskip(
-            "pytorch_wavelets",
+            "ptwt",
             reason="This test requires pytorch_wavelets. It should be "
             "installed with `pip install "
             "git+https://github.com/fbcotter/pytorch_wavelets.git`",
@@ -358,8 +358,8 @@ def test_PDNet(imsize_1_channel, device):
         ("BM3D", "bm3d"),
         ("SCUNet", "timm"),
         ("SwinIR", "timm"),
-        ("WaveletPrior", "pytorch_wavelets"),
-        ("WaveletDict", "pytorch_wavelets"),
+        ("WaveletPrior", "ptwt"),
+        ("WaveletDict", "ptwt"),
     ],
 )
 def test_optional_dependencies(denoiser, dep):
