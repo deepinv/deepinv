@@ -28,7 +28,6 @@ dependencies = [
     "torchvision",
     "einops",
     "wandb",
-    "fastmri",
 ]
 
 [tool.setuptools]
@@ -61,7 +60,9 @@ doc = [
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
-    "timm"
+    "timm",
+    "pywt",
+    "ptwt"
 ]
 
 

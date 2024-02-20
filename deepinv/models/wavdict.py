@@ -67,9 +67,9 @@ class WaveletPrior(nn.Module):
         Applies the wavelet decomposition.
         """
         if self.dimension == 2:
-            dec = ptwt.wavedec2(x, pywt.Wavelet(self.wv), mode='zero', level=self.level)
+            dec = ptwt.wavedec2(x, pywt.Wavelet(self.wv), mode="zero", level=self.level)
         elif self.dimension == 3:
-            dec = ptwt.wavedec3(x, pywt.Wavelet(self.wv), mode='zero', level=self.level)
+            dec = ptwt.wavedec3(x, pywt.Wavelet(self.wv), mode="zero", level=self.level)
         dec = [list(t) if isinstance(t, tuple) else t for t in dec]
         return dec
 
@@ -147,7 +147,7 @@ class WaveletPrior(nn.Module):
         return torch.reshape(out, x.shape)
 
     def thresold_func(self, x, ths):
-        r""""
+        r""" "
         Apply thresholding to the wavelet coefficients.
         """
         if self.non_linearity == "soft":
@@ -174,7 +174,7 @@ class WaveletPrior(nn.Module):
         """
         for level in range(1, self.level + 1):
             ths_cur = self.reshape_ths(ths, level)
-            for c, key in enumerate(['aad', 'ada', 'daa', 'add', 'dad', 'dda', 'ddd']):
+            for c, key in enumerate(["aad", "ada", "daa", "add", "dad", "dda", "ddd"]):
                 coeffs[level][key] = self.prox_l1(coeffs[level][key], ths_cur[c])
         return coeffs
 
@@ -207,17 +207,14 @@ class WaveletPrior(nn.Module):
         """
         padding_bottom, padding_right = padding
         h, w = x.size()[-2:]
-        return x[..., :h-padding_bottom, :w-padding_right]
+        return x[..., : h - padding_bottom, : w - padding_right]
 
     def reshape_ths(self, ths, level):
         r"""
         Reshape the thresholding parameter in the appropriate format, i.e. a list of 3 elements.
         """
         if not torch.is_tensor(ths):
-            if (
-                    isinstance(ths, int)
-                    or isinstance(ths, float)
-            ):
+            if isinstance(ths, int) or isinstance(ths, float):
                 ths_cur = [ths] * 3
             elif len(ths) == 1:
                 ths_cur = [ths[0]] * 3
