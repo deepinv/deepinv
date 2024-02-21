@@ -8,11 +8,12 @@ We restrict ourselves to operators where the signal is a 2D image. The full list
 
 """
 
+import numpy as np
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
 import requests
-from imageio.v2 import imread
+from PIL import Image
 from io import BytesIO
 
 # %%
@@ -25,7 +26,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 url = "https://www-iuem.univ-brest.fr/intranet/communication/logos/tutelles-iuem/cnrs/cnrs-poster.png"
 res = requests.get(url)
-x = imread(BytesIO(res.content)) / 255.0
+x = np.array(Image.open(BytesIO(res.content))) / 255.0
 
 x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
 x = torch.nn.functional.interpolate(x, size=(64, 64))
