@@ -5,7 +5,7 @@ import numpy as np
 
 class BasePhaseRetrieval(LinearPhysics):
     r"""
-    Base Phase Retrieval forward operator. The matrices A, A_adjoint, and A_dagger are all initialized as zeros of proper dimensions.
+    Base Phase Retrieval forward operator. The matrices A, A_adjoint, and A_dagger are not explicitly defined. Calls to computations with these matrices will return zero tensors of proper dimensions.
 
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
@@ -61,8 +61,7 @@ class BasePhaseRetrieval(LinearPhysics):
 
 class RandomPhaseRetrieval(BasePhaseRetrieval):
     r"""
-    Random Phase Retrieval forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
-    number of elements of the signal, i.e., ``np.prod(img_shape)`` and ``m`` is the number of measurements.
+    Random Phase Retrieval forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the number of elements of the signal and :math:`m` is the number of measurements.
 
     This class generates a random i.i.d. Gaussian matrix
 
@@ -70,13 +69,14 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
 
         (\text{Re}(A_{i,j}), \text{Im}(A_{i,j})) \sim \mathcal{N} \left( (0,0),\begin{pmatrix} \frac{1}{2m} & 0\\ 0 &  \frac{1}{2m} \end{pmatrix} \right).
 
-    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
-    in a similar fashion to :class:`torch.nn.Module`.
+    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
+
+    The matrix A_adjoint is not explicitly defined. Computations with this matrix will directly use matrix A with a transpose and conjugate operation.
 
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param torch.type dtype: Forward matrix is stored as a dtype.
+    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
 
     |sep|
@@ -95,19 +95,24 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
 
     def __init__(
         self,
+        m,
+        img_shape,
+        channelwise=False,
+        dtype=torch.cfloat,
+        device="cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(m, img_shape, channelwise, dtype, device, **kwargs)
         self.name = f"RPR_m{self.m}"
 
         A_real = torch.randn((self.m, self.n), device=self.device) / np.sqrt(2 * self.m)
         A_imag = torch.randn((self.m, self.n), device=self.device) / np.sqrt(2 * self.m)
         self._A = torch.view_as_complex(torch.stack((A_real, A_imag), dim=-1))
         self._A = torch.nn.Parameter(self._A, requires_grad=False)
-        # creates names
+        # creates attributes for A_adjoint and A_dagger
         self._A_adjoint = None
         self._A_dagger = None
-    
+
     def A(self, x: torch.Tensor) -> torch.Tensor:
         N, C = x.shape[:2]
         if self.channelwise:
@@ -120,7 +125,7 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
         if self.channelwise:
             y = y.view(N, C, -1)
         return y
-    
+
     def A_adjoint(self, y):
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
@@ -128,21 +133,27 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
         if self.channelwise:
             y = y.view(N * C, -1)
 
+        # ensure same dtype for einsum
+        y = y.type(torch.complex64)
+
         x = torch.einsum("im, nm->in", y, self._A.T.conj())  # x:(N, n, 1)
 
         x = x.view(N, C, H, W)
         return x
-    
+
     def A_dagger(self, y):
         if self._A_dagger is None:
             self._A_dagger = torch.linalg.pinv(self._A)
             self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-        
+
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
 
         if self.channelwise:
             y = y.reshape(N * C, -1)
+
+        # ensure same dtype for einsum
+        y = y.type(torch.complex64)
 
         x = torch.einsum("im, nm->in", y, self._A_dagger)
 

@@ -578,6 +578,33 @@ class L1(DataFidelity):
         return t
 
 
+class IntensityLoss(DataFidelity):
+    r"""
+    Intensity loss as the data fidelity term for phase retrieval reconstrunction.
+
+    In this case, the data fidelity term is defined as
+
+    .. math::
+
+        f(x) = \sum_{i=1}^{m}{||a_i x|^2-y_i|^2},
+
+    where :math:`a_i` is the i-th row of the measurement matrix :math:`A` and :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
+
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x, y, physics, *args, **kwargs):
+        return torch.sum(torch.pow(physics(x) - y, 2))
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        y_est = physics(x)
+        second = physics.A(x)
+        third = y - y_est
+        return -2 * physics.A_adjoint(second * third)
+
+
 if __name__ == "__main__":
     import deepinv as dinv
 

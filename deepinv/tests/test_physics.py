@@ -18,7 +18,6 @@ OPERATORS = [
     "super_resolution",
     "MRI",
     "pansharpen",
-    "random_phase_retrieval",
 ]
 NONLINEAR_OPERATORS = ["haze", "blind_deblur", "lidar"]
 

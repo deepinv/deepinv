@@ -106,6 +106,33 @@ class Prior(nn.Module):
         return x - gamma * self.prox(x / gamma, lamb / gamma, *args, **kwargs)
 
 
+class Zero(Prior):
+    r"""
+    Zero prior :math:`g(x) = 0`.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self._g = lambda x: 0.0
+        self.explicit_prior = True
+
+    def grad(self, x, *args):
+        r"""
+        Computes the gradient of the zero prior :math:`g(x) = 0` at :math:`x`.
+
+        It returns a tensor of zeros of the same shape as :math:`x`.
+        """
+        return torch.zeros_like(x)
+
+    def prox(self, x, ths=1.0, gamma=1.0):
+        r"""
+        Computes the proximal operator of the zero prior :math:`g(x) = 0` at :math:`x`.
+
+        It returns the identity :math:`x`.
+        """
+        return x
+
+
 class PnP(Prior):
     r"""
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`.
