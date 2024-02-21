@@ -36,8 +36,8 @@ Classical Denoisers
 
    deepinv.models.BM3D
    deepinv.models.MedianFilter
-   deepinv.models.TV
-   deepinv.models.TGV
+   deepinv.models.TVDenoiser
+   deepinv.models.TGVDenoiser
    deepinv.models.WaveletPrior
    deepinv.models.WaveletDict
 

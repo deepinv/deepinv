@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
+from deepinv.models.tv import TVDenoiser
 
 
 class Prior(nn.Module):
@@ -286,3 +287,53 @@ class L1Prior(Prior):
         return torch.sign(x) * torch.max(
             torch.abs(x) - ths * gamma, torch.zeros_like(x)
         )
+
+
+class TVPrior(Prior):
+    r"""
+    Total variation (TV) prior :math:`g(x) = \| D x \|_{1,2}`.
+    """
+
+    def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
+
+    def g(self, x, ths=1.0, **kwargs):
+        r"""
+         Computes the regularizer
+
+         .. math:
+
+                 g(x) = \tau \|Dx\|_{1,2}
+
+
+        where D is the finite differences linear operator,
+        and the 2-norm is taken on the dimension of the differences.
+
+         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+         :return: (torch.Tensor) prior :math:`g(x)`.
+        """
+        return ths * torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
+
+    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+        r"""Compute the proximity operator of TV with the denoiser :meth:`deepinv.models.tv.TV`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: threshold parameter :math:`\tau`.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return self.TVModel(x, ths=ths * gamma)
+
+    def nabla(self, x):
+        r"""
+        Applies the finite differences operator associated with tensors of the same shape as x.
+        """
+        return self.TVModel.nabla(x)
+
+    def nabla_adjoint(self, x):
+        r"""
+        Applies the adjoint of the finite difference operator.
+        """
+        return self.TVModel.nabla_adjoint(x)

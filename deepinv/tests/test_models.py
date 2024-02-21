@@ -68,9 +68,9 @@ def choose_denoiser(name, imsize):
     elif name == "waveletdict_topk":
         out = dinv.models.WaveletDict(non_linearity="topk")
     elif name == "tgv":
-        out = dinv.models.TGV(n_it_max=10)
+        out = dinv.models.TGVDenoiser(n_it_max=10)
     elif name == "tv":
-        out = dinv.models.TV(n_it_max=10)
+        out = dinv.models.TVDenoiser(n_it_max=10)
     elif name == "median":
         out = dinv.models.MedianFilter()
     elif name == "autoencoder":
@@ -81,6 +81,39 @@ def choose_denoiser(name, imsize):
         raise Exception("Unknown denoiser")
 
     return out
+
+
+def test_TVs_adjoint():
+    r"""
+    This tests the adjointness of the finite difference operator used in TV and TGV regularisation.
+    """
+    model = dinv.models.TVDenoiser(n_it_max=10)
+
+    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    Au = model.nabla(u)
+    v = torch.randn(*Au.shape).type(Au.dtype)
+    Atv = model.nabla_adjoint(v)
+    e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
+
+    assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+    model = dinv.models.TGVDenoiser(n_it_max=10)
+
+    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    Au = model.nabla(u)
+    v = torch.randn(*Au.shape).type(Au.dtype)
+    Atv = model.nabla_adjoint(v)
+    e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
+
+    assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+    u = torch.randn((2, 3, 20, 20, 2)).type(torch.DoubleTensor)
+    Au = model.epsilon(u)
+    v = torch.randn(*Au.shape).type(Au.dtype)
+    Atv = model.epsilon_adjoint(v)
+    e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
+
+    assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
