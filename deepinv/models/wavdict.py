@@ -184,19 +184,31 @@ class WaveletPrior(nn.Module):
         r"""
         Pad the input to make it compatible with the wavelet transform.
         """
-        h, w = x.size()[-2:]
-        padding_bottom = h % 2
-        padding_right = w % 2
-        x = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(x)
-        return x, (padding_bottom, padding_right)
+        if self.dimension == 2:
+            h, w = x.size()[-2:]
+            padding_bottom = h % 2
+            padding_right = w % 2
+            p = (padding_bottom, padding_right)
+            x = torch.nn.ReplicationPad2d((0, p[0], 0, p[1]))(x)
+        elif self.dimension == 3:
+            d, h, w = x.size()[-3:]
+            padding_depth = d % 2
+            padding_bottom = h % 2
+            padding_right = w % 2
+            p = (padding_depth, padding_bottom, padding_right)
+            x = torch.nn.ReplicationPad3d((0, p[0], 0, p[1], 0, p[2]))(x)
+        return x, p
 
     def crop_output(self, x, padding):
         r"""
         Crop the output to make it compatible with the wavelet transform.
         """
-        padding_bottom, padding_right = padding
-        h, w = x.size()[-2:]
-        return x[..., : h - padding_bottom, : w - padding_right]
+        d, h, w = x.size()[-3:]
+        if len(padding) == 2:
+            x[..., : h - padding[0], : w - padding[1]]
+        elif len(padding) == 3:
+            x[..., : d - padding[0], : h - padding[1], : w - padding[2]]
+        return x
 
     def reshape_ths(self, ths, level):
         r"""
@@ -206,18 +218,19 @@ class WaveletPrior(nn.Module):
          Since the approximation coefficients are not thresholded, we do not need to provide a thresholding parameter,
          ths has shape (n_levels-1, 3).
         """
+        numel = 3 if self.dimension == 2 else 7
         if not torch.is_tensor(ths):
             if isinstance(ths, int) or isinstance(ths, float):
-                ths_cur = [ths] * 3
+                ths_cur = [ths] * numel
             elif len(ths) == 1:
-                ths_cur = [ths[0]] * 3
+                ths_cur = [ths[0]] * numel
             else:
                 ths_cur = ths[level]
                 if len(ths_cur) == 1:
-                    ths_cur = [ths_cur[0]] * 3
+                    ths_cur = [ths_cur[0]] * numel
         else:
             if len(ths.shape) == 1:  # Needs to reshape to shape (n_levels-1, 3)
-                ths_cur = ths.squeeze().repeat(3)
+                ths_cur = ths.squeeze().repeat(numel)
             else:
                 ths_cur = ths[level - 2]
 
