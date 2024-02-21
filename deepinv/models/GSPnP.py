@@ -119,7 +119,7 @@ def GSDRUNet(
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
-                file_name="GSDRUNet.ckpt"
+                file_name="GSDRUNet.ckpt",
             )["state_dict"]
         else:
             ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)[
