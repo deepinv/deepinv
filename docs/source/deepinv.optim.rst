@@ -75,7 +75,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.L2
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
-
+   deepinv.optim.IntensityLoss
 
 Priors
 ------

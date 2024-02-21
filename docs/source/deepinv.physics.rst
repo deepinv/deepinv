@@ -63,7 +63,6 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
    deepinv.physics.SinglePixelCamera
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
-   deepinv.physics.RandomPhaseRetrieval
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
@@ -96,6 +95,18 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
    deepinv.physics.BlindBlur
    deepinv.physics.Haze
    deepinv.physics.SinglePhotonLidar
+
+Phase retrieval operators
+-------------------------
+Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Ax|^2` with :math:`A` a matrix.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.BasePhaseRetrieval
+   deepinv.physics.RandomPhaseRetrieval
 
 Noise distributions
 -------------------
