@@ -27,6 +27,11 @@ class TVDenoiser(nn.Module):
     :param torch.tensor, None x2: Primary variable. Default: None.
     :param torch.tensor, None u2: Dual variable. Default: None.
 
+    .. note::
+        The regularization term :math:\|Dx\|_{1,2} is implicitly normalized by its Lipschitz constant, i.e.
+        :math:`\sqrt{8}`, see e.g. A. Beck and M. Teboulle, "Fast gradient-based algorithms for constrained total
+        variation image denoising and deblurring problems", IEEE T. on Image Processing. 18(11), 2419-2434, 2009.
+
     .. warning::
         For using TV as a prior for Plug and Play algorithms, it is recommended to use the class
         :class:`~deepinv.optim.prior.TVPrior` instead. In particular, it allows to evaluate TV.
@@ -50,7 +55,7 @@ class TVDenoiser(nn.Module):
         self.tau = 0.01  # > 0
 
         self.rho = 1.99  # in 1,2
-        self.sigma = 1 / self.tau / 72
+        self.sigma = 1 / self.tau / 8
 
         self.x2 = x2
         self.u2 = u2
@@ -69,6 +74,13 @@ class TVDenoiser(nn.Module):
         )
 
     def forward(self, y, ths=None):
+        r"""
+        Computes the proximity operator of the TV norm.
+
+        :param torch.Tensor y: Noisy image.
+        :param float, torch.Tensor ths: Regularization parameter.
+        :return: Denoised image.
+        """
         restart = (
             True
             if (self.restart or self.x2 is None or self.x2.shape != y.shape)

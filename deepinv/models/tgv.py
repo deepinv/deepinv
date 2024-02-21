@@ -28,6 +28,12 @@ class TGVDenoiser(nn.Module):
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
 
+
+    .. note::
+        The regularization term :math:`\|r\|_{1,2} + \|J(Dx-r)\|_{1,F}` is implicitly normalized by its Lipschitz
+        constant, i.e. :math:`\sqrt{72}`, see e.g. K. Bredies et al., "Total generalized variation," SIAM J. Imaging
+        Sci., 3(3), 492-526, 2010.
+
     :param bool verbose: Whether to print computation details or not. Default: False.
     :param int n_it_max: Maximum number of iterations. Default: 1000.
     :param float crit: Convergence criterion. Default: 1e-5.
@@ -78,6 +84,13 @@ class TGVDenoiser(nn.Module):
         )
 
     def forward(self, y, ths=None):
+        r"""
+        Computes the proximity operator of the TGV norm.
+
+        :param torch.Tensor y: Noisy image.
+        :param float, torch.Tensor ths: Regularization parameter.
+        :return: Denoised image.
+        """
         restart = (
             True
             if (self.restart or self.x2 is None or self.x2.shape != y.shape)
