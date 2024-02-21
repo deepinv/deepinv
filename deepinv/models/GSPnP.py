@@ -115,15 +115,19 @@ def GSDRUNet(
     GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
-            url = get_weights_url(model_name="gradientstep", file_name="GSDRUNet.ckpt")
+            url = get_weights_url(
+                model_name="gradientstep", file_name="GSDRUNet_torch.ckpt"
+            )
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
-                file_name="GSDRUNet.ckpt",
-            )["state_dict"]
+                file_name="GSDRUNet_torch.ckpt",
+            )
         else:
-            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)[
-                "state_dict"
-            ]
+            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+
+        if "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+
         GSmodel.load_state_dict(ckpt, strict=False)
     return GSmodel
