@@ -602,7 +602,7 @@ class IntensityLoss(DataFidelity):
         y_est = physics(x)
         y_est_bis = physics.A(x)
         diff = y - y_est
-        return -2 * physics.A_adjoint(y_est_bis * diff)
+        return physics.A_adjoint(y_est_bis * diff)
 
 
 if __name__ == "__main__":
