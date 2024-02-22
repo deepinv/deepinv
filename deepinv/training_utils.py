@@ -26,6 +26,7 @@ def train(
     device="cpu",
     ckp_interval=1,
     eval_interval=1,
+    log_image_interval=1,
     save_path=".",
     verbose=False,
     unsupervised=False,
@@ -68,6 +69,7 @@ def train(
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
+    :param int log_image_interval: Number of epochs between image logging in wandb.
     :param str save_path: Directory in which to save the trained model.
     :param bool verbose: Output training progress information in the console.
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
@@ -396,8 +398,8 @@ def test(
     """
     save_folder = Path(save_folder)
 
-    psnr_init = []
-    psnr_net = []
+    psnr_lin = []  # psnr with linear reconstruction A^Ty (for comparison)
+    psnr_net = []  # psnr with model
 
     model.eval()
 
@@ -407,18 +409,17 @@ def test(
     if type(test_dataloader) is not list:
         test_dataloader = [test_dataloader]
 
-    G = len(test_dataloader)
+    G = len(test_dataloader)  # we can handle multiple operators.
 
-    show_operators = 5
+    show_operators = 5  # maximum numbers of operators (test_dataloaders) to visualize.
 
-    if wandb_vis:
+    if wandb_vis:  # initialize wandb visualization.
         if wandb.run is None:
             wandb.init(**wandb_setup)
-        psnr_data = []
 
-    for g in range(G):
+    for g in range(G):  # for each operator
         dataloader = test_dataloader[g]
-        if verbose:
+        if verbose and G > 1:
             print(f"Processing data of operator {g+1} out of {G}")
         for i, batch in enumerate(tqdm(dataloader, disable=not verbose)):
             with torch.no_grad():
@@ -444,31 +445,17 @@ def test(
 
                     y = y.to(device)
 
+            with torch.no_grad():  # run the model
                 if plot_metrics:
                     x1, metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
                 else:
                     x1 = model(y, physics[g])
 
-                if hasattr(physics_cur, "A_adjoint"):
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        x_init = physics_cur.module.A_adjoint(y)
-                    else:
-                        x_init = physics_cur.A_adjoint(y)
-                elif hasattr(physics_cur, "A_dagger"):
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        x_init = physics_cur.module.A_dagger(y)
-                    else:
-                        x_init = physics_cur.A_dagger(y)
-                else:
-                    x_init = zeros_like(x)
-
-                cur_psnr_init = cal_psnr(x_init, x)
+                x_lin = physics_cur.A_adjoint(y)
+                cur_psnr_lin = cal_psnr(x_lin, x)
                 cur_psnr = cal_psnr(x1, x)
-                psnr_init.append(cur_psnr_init)
+                psnr_lin.append(cur_psnr_lin)
                 psnr_net.append(cur_psnr)
-
-                if wandb_vis:
-                    psnr_data.append([g, i, cur_psnr_init, cur_psnr])
 
                 if plot_images:
                     save_folder_im = (
@@ -489,10 +476,10 @@ def test(
                             plot_only_first_batch and i == 0
                         ):
                             if plot_measurements and len(y.shape) == 4:
-                                imgs = [y, x_init, x1, x]
+                                imgs = [y, x_lin, x1, x]
                                 name_imgs = ["Input", "No learning", "Recons.", "GT"]
                             else:
-                                imgs = [x_init, x1, x]
+                                imgs = [x_lin, x1, x]
                                 name_imgs = ["No learning", "Recons.", "GT"]
                             fig = plot(
                                 imgs,
@@ -517,8 +504,8 @@ def test(
 
     test_psnr = np.mean(psnr_net)
     test_std_psnr = np.std(psnr_net)
-    linear_psnr = np.mean(psnr_init)
-    linear_std_psnr = np.std(psnr_init)
+    linear_psnr = np.mean(psnr_lin)
+    linear_std_psnr = np.std(psnr_lin)
     if verbose:
         print(
             f"Test PSNR: No learning rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "

@@ -20,6 +20,7 @@ from deepinv.training_utils import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.optim.optim_iterators import PGDIteration
 
 # %%
 # Setup paths for data loading and results.
@@ -88,8 +89,9 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
 )
 dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
+
 # %%
-# Setup the PnP algorithm. This involves in particular the definition of a custom prior class.
+# Setup the PnP prior.
 # ------------------------------------------------------------------------------------------------------
 # We use the proximal gradient algorithm to solve the super-resolution problem with GSPnP.
 
@@ -132,17 +134,38 @@ class GSPnP(RED):
         return self.denoiser.potential(x, *args, **kwargs)
 
 
+# %%
+# Setup the PnP parameters.
+# ------------------------------------------------------------------------------------------------------
+
+# Parameters of the algorithm to solve the inverse problem
+early_stop = True  # Stop algorithm when convergence criteria is reached
+crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
+# smaller than thres_conv
+thres_conv = 1e-5
+backtracking = True  # use backtracking to automatically adjust the stepsize
+use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
+batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
+
+# load specific parameters for GSPnP
+lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
+
+params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+
+# Select the data fidelity term
+data_fidelity = L2()
+
 method = "GSPnP"
 denoiser_name = "gsdrunet"
+denoiser = dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
-)
+prior = GSPnP(denoiser=denoiser)
 
 
 # we want to output the intermediate PGD update to finish with a denoising step.
 def custom_output(X):
-    return X["est"][1]
+    estimate = X["estimate"]
+    return denoiser(estimate, sigma_denoiser)
 
 
 # instantiate the algorithm class to solve the IP problem.
@@ -157,7 +180,7 @@ model = optim_builder(
     crit_conv=crit_conv,
     thres_conv=thres_conv,
     backtracking=backtracking,
-    get_output=custom_output,
+    custom_output=custom_output,
     verbose=True,
 )
 

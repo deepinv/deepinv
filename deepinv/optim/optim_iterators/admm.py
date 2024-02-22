@@ -22,6 +22,7 @@ class ADMMIteration(OptimIterator):
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
+    Here, the concatenation :math:`(x_k,z_k)` is the iterate i.e. the fixed point variable iterated by the algorithm and :math:`x_k` is the estimate i.e. the estimation of the solution of the minimization problem.
 
     If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`g` are
     inverted in the previous iteration.
@@ -34,6 +35,32 @@ class ADMMIteration(OptimIterator):
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
 
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
+    ):
+        """
+        Get the minimizer of F from the fixed point iterate x.
+
+        :param torch.Tensor x: Fixed point variable iterated by the algorithm.
+        :return: Minimizer of F.
+        """
+        return iterate[0]
+
+    def init_algo(self, y, physics):
+        """
+        Initialize the fixed-point algorithm by computing the initial iterate and estimate.
+        For ADMM, the first iterate is chosen as :math:`(A^{\top}y,0)`.
+
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
+
+        :return: Dictionary containing the initial iterate and initial estimate.
+        """
+        x = physics.A_adjoint(y)
+        z = torch.zeros_like(x)
+        iterate = (x, z)
+        return {"iterate": iterate, "estimate": x}
+
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         Single iteration of the ADMM algorithm.
@@ -44,9 +71,9 @@ class ADMMIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
+        :return: Dictionary `{"iterate": (x, z), "estimate" : x, "cost": F}` containing the updated current iterate, estimate and cost.
         """
-        x, z = X["est"]
+        x, z = X["iterate"]
         if z.shape != x.shape:
             # In ADMM, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
             z = torch.zeros_like(x)
@@ -57,12 +84,14 @@ class ADMMIteration(OptimIterator):
             u = self.f_step(x, z, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
-        F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        iterate = (x, z)
+        estimate = x
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"est": (x, z), "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
 
 class fStepADMM(fStep):
