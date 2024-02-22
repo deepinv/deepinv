@@ -1,22 +1,25 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from torchvision.utils import make_grid
-import wandb
 import math
-import torch
-import matplotlib.pyplot as plt
+import shutil
 from pathlib import Path
 from collections.abc import Iterable
-import matplotlib
-import shutil
+
+import wandb
+import torch
+import numpy as np
+from torchvision.utils import make_grid
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-matplotlib.rcParams.update({"font.size": 17})
-matplotlib.rcParams["lines.linewidth"] = 2
+import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+
+def config_matplotlib():
+    """Config matplotlib for nice plots in the examples."""
+    plt.rcParams.update({"font.size": 17})
+    plt.rcParams["lines.linewidth"] = 2
+
+    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -114,6 +117,9 @@ def plot(
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     """
+    # Use the matplotlib config from deepinv
+    config_matplotlib()
+
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -181,6 +187,9 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param str save_dir: path to save the plot.
     :param bool show: show the image plot.
     """
+    # Use the matplotlib config from deepinv
+    config_matplotlib()
+
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)

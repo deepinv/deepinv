@@ -10,6 +10,12 @@ import deepinv as dinv
 import torch
 import matplotlib.pyplot as plt
 
+# Use matplotlib config from deepinv to get nice plots
+from deepinv.utils.plotting import config_matplotlib
+
+config_matplotlib()
+
+
 # %%
 # Create forward model
 # -----------------------------------------------

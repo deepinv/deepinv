@@ -1,7 +1,7 @@
 import pytest
 import torch
 import numpy as np
-
+from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 
 
@@ -153,6 +153,16 @@ def test_operators_adjointness(name, device):
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
+    if (
+        name == "pansharpen"
+    ):  # automatic adjoint does not work for inputs that are not torch.tensors
+        return
+    f = adjoint_function(physics.A, x.shape, x.device)
+    y = physics.A(x)
+    error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
+
+    assert error2 < 1e-3
+
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_norm(name, device):
@@ -300,6 +310,43 @@ def test_noise_domain(device):
     assert y1[0, 0, 0, 0] == 0
     assert y1[0, 1, 1, 1] == 0
     assert y1[0, 2, 2, 2] == 0
+
+
+def test_blur(device):
+    r"""
+    Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
+    n=0 where Ax=0.
+    """
+    torch.manual_seed(0)
+    x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
+    h = torch.ones((1, 1, 5, 5)) / 25.0
+
+    physics_blur = dinv.physics.Blur(
+        img_size=(1, x.shape[-2], x.shape[-1]),
+        filter=h,
+        device=device,
+    )
+
+    physics_blurfft = dinv.physics.BlurFFT(
+        img_size=(1, x.shape[-2], x.shape[-1]),
+        filter=h,
+        device=device,
+    )
+
+    y1 = physics_blur(x)
+    y2 = physics_blurfft(x)
+
+    back1 = physics_blur.A_adjoint(y1)
+    back2 = physics_blurfft.A_adjoint(y2)
+
+    assert y1.shape == y2.shape
+    assert back1.shape == back2.shape
+
+    error_A = (y1 - y2).flatten().abs().max()
+    error_At = (back1 - back2).flatten().abs().max()
+
+    assert error_A < 1e-6
+    assert error_At < 1e-6
 
 
 def test_reset_noise(device):
