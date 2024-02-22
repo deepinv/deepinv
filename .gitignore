@@ -41,3 +41,4 @@ degradations/
 datasets/
 results/
 tmp/
+sg_execution_times.rst
