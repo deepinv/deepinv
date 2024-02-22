@@ -63,6 +63,22 @@ class WaveletPrior(nn.Module):
         dec = [list(t) if isinstance(t, tuple) else t for t in dec]
         return dec
 
+    def flatten_coeffs(self, dec):
+        r"""
+        Flattens the wavelet coefficients and returns them in a single torch vector of shape (n_coeffs,).
+        """
+        if self.dimension == 2:
+            flat = torch.hstack(
+                [dec[0].flatten()]
+                + [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
+            )
+        elif self.dimension == 3:
+            flat = torch.hstack(
+                [dec[0].flatten()]
+                + [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
+            )
+        return flat
+
     def iwt(self, coeffs):
         r"""
         Applies the wavelet recomposition.
@@ -113,7 +129,7 @@ class WaveletPrior(nn.Module):
             number of coefficients. If ``int``, it is interpreted as the number of coefficients to keep.
         """
         if isinstance(ths, float):
-            k = int(ths * x.shape[-2] * x.shape[-1])
+            k = int(ths * x.shape[-3] * x.shape[-2] * x.shape[-1])
         else:
             k = int(ths)
 
@@ -295,13 +311,20 @@ class WaveletDict(nn.Module):
     """
 
     def __init__(
-        self, level=3, list_wv=["db8", "db4"], max_iter=10, non_linearity="soft"
+        self,
+        level=3,
+        list_wv=["db8", "db4"],
+        max_iter=10,
+        non_linearity="soft",
+        wvdim=2,
     ):
         super().__init__()
         self.level = level
         self.list_prox = nn.ModuleList(
             [
-                WaveletPrior(level=level, wv=wv, non_linearity=non_linearity)
+                WaveletPrior(
+                    level=level, wv=wv, non_linearity=non_linearity, wvdim=wvdim
+                )
                 for wv in list_wv
             ]
         )
@@ -314,7 +337,7 @@ class WaveletDict(nn.Module):
         :param torch.Tensor y: noisy image.
         :param float, torch.Tensor ths: noise level.
         """
-        z_p = y.repeat(len(self.list_prox), 1, 1, 1, 1)
+        z_p = y.repeat(len(self.list_prox), *([1] * (len(y.shape))))
         p_p = torch.zeros_like(z_p)
         x = p_p.clone()
         for it in range(self.max_iter):
