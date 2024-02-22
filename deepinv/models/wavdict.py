@@ -205,10 +205,10 @@ class WaveletPrior(nn.Module):
         """
         d, h, w = x.size()[-3:]
         if len(padding) == 2:
-            x[..., : h - padding[0], : w - padding[1]]
+            out = x[..., : h - padding[0], : w - padding[1]]
         elif len(padding) == 3:
-            x[..., : d - padding[0], : h - padding[1], : w - padding[2]]
-        return x
+            out = x[..., : d - padding[0], : h - padding[1], : w - padding[2]]
+        return out
 
     def reshape_ths(self, ths, level):
         r"""
