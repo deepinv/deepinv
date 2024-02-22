@@ -118,6 +118,13 @@ def test_TVs_adjoint():
 
 def test_wavelet_adjoints():
 
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+
     torch.manual_seed(0)
 
     def gen_function(Au, wvdim=2):
@@ -165,8 +172,15 @@ def test_wavelet_adjoints():
         assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
 
-def test_variational_models_identity():
+def test_wavelet_models_identity():
     # We check that variational models yield identity when regularization parameter is set to 0.
+
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
 
     # 1. Wavelet Prior & dictionary
     for dimension in ["2d", "3d"]:
@@ -193,6 +207,9 @@ def test_variational_models_identity():
         x_hat = model(x, 0.0)
         assert x_hat.shape == x.shape
         assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
+
+
+def test_TV_models_identity():
 
     # Next priors are checked for 2D only
     x = torch.randn((4, 3, 31, 27))
