@@ -586,7 +586,7 @@ class IntensityLoss(DataFidelity):
 
     .. math::
 
-        f(x) = \sum_{i=1}^{m}{||a_i x|^2-y_i|^2},
+        f(x) = \frac{1}{2}\sum_{i=1}^{m}{||a_i x|^2-y_i|^2},
 
     where :math:`a_i` is the i-th row of the measurement matrix :math:`A` and :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
 
