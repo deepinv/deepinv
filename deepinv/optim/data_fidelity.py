@@ -596,7 +596,7 @@ class IntensityLoss(DataFidelity):
         super().__init__()
 
     def forward(self, x, y, physics, *args, **kwargs):
-        return torch.sum(torch.pow(physics(x) - y, 2))
+        return 0.5*torch.sum(torch.pow(physics(x) - y, 2))
 
     def grad(self, x, y, physics, *args, **kwargs):
         y_est = physics(x)
