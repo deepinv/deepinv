@@ -600,9 +600,9 @@ class IntensityLoss(DataFidelity):
 
     def grad(self, x, y, physics, *args, **kwargs):
         y_est = physics(x)
-        second = physics.A(x)
-        third = y - y_est
-        return -2 * physics.A_adjoint(second * third)
+        y_est_bis = physics.A(x)
+        diff = y - y_est
+        return -2 * physics.A_adjoint(y_est_bis * diff)
 
 
 if __name__ == "__main__":
