@@ -56,6 +56,12 @@ class BasePhaseRetrieval(LinearPhysics):
         return torch.zeros(N, C, H, W)
 
     def forward(self, x):
+    r"""
+    Applies the phase retrieval measurement operator, i.e. :math:`y = N(|A(x)|^2)` (with noise and/or sensor non-linearities).
+    
+        :param torch.Tensor,list[torch.Tensor] x: signal/image
+        :return: (torch.Tensor) noisy measurements
+    """
         return self.sensor(self.noise(self.A(x).abs().square()))
 
 
