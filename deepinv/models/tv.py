@@ -21,14 +21,17 @@ class TVDenoiser(nn.Module):
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
 
+    This algorithm is implemented with warm restart, i.e. the primary and dual variables are kept in memory
+    between calls to the forward method. This speeds up the computation when using this class in an iterative algorithm.
+
     :param bool verbose: Whether to print computation details or not. Default: False.
     :param int n_it_max: Maximum number of iterations. Default: 1000.
     :param float crit: Convergence criterion. Default: 1e-5.
-    :param torch.tensor, None x2: Primary variable. Default: None.
-    :param torch.tensor, None u2: Dual variable. Default: None.
+    :param torch.Tensor, None x2: Primary variable for warm restart. Default: None.
+    :param torch.Tensor, None u2: Dual variable for warm restart. Default: None.
 
     .. note::
-        The regularization term :math:\|Dx\|_{1,2} is implicitly normalized by its Lipschitz constant, i.e.
+        The regularization term :math:`\|Dx\|_{1,2}` is implicitly normalized by its Lipschitz constant, i.e.
         :math:`\sqrt{8}`, see e.g. A. Beck and M. Teboulle, "Fast gradient-based algorithms for constrained total
         variation image denoising and deblurring problems", IEEE T. on Image Processing. 18(11), 2419-2434, 2009.
 

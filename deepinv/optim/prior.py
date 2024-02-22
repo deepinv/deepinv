@@ -39,7 +39,7 @@ class Prior(nn.Module):
         r"""
         Computes the prior :math:`g(x)`.
 
-        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.tensor) prior :math:`g(x)`.
         """
         return self._g(x, *args, **kwargs)
@@ -48,7 +48,7 @@ class Prior(nn.Module):
         r"""
         Computes the prior :math:`g(x)`.
 
-        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.tensor) prior :math:`g(x)`.
         """
         return self.g(x, *args, **kwargs)
@@ -58,7 +58,7 @@ class Prior(nn.Module):
         Calculates the gradient of the prior term :math:`g` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
-        :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
         with torch.enable_grad():
@@ -81,7 +81,7 @@ class Prior(nn.Module):
         r"""
         Calculates the proximity operator of :math:`g` at :math:`x`. By default, the proximity operator is computed using internal gradient descent.
 
-        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
@@ -282,7 +282,7 @@ class L1Prior(Prior):
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
+        :return torch.Tensor: proximity operator at :math:`x`.
         """
         return torch.sign(x) * torch.max(
             torch.abs(x) - ths * gamma, torch.zeros_like(x)
@@ -301,23 +301,23 @@ class TVPrior(Prior):
 
     def g(self, x, ths=1.0, **kwargs):
         r"""
-         Computes the regularizer
+        Computes the regularizer
 
-         .. math:
-
-                 g(x) = \tau \|Dx\|_{1,2}
+        .. math::
+             \tau g(x) = \tau \|Dx\|_{1,2}
 
 
         where D is the finite differences linear operator,
         and the 2-norm is taken on the dimension of the differences.
 
-         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-         :return: (torch.Tensor) prior :math:`g(x)`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
+        :return: (torch.Tensor) prior :math:`\tau g(x)`.
         """
         return ths * torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
-        r"""Compute the proximity operator of TV with the denoiser :meth:`deepinv.models.tv.TV`.
+        r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float ths: threshold parameter :math:`\tau`.

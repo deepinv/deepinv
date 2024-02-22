@@ -26,7 +26,6 @@ jobs:
           pip install -e .[denoisers,doc]
       - name: Install git repository optional dependencies
         run: |
-          pip install git+https://github.com/fbcotter/pytorch_wavelets.git
           python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
       - name: Run doctests
         run: |

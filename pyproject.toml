@@ -24,11 +24,11 @@ dependencies = [
     "numpy",
     "matplotlib",
     "hdf5storage",
+    "tqdm",
     "torch",
     "torchvision",
     "einops",
     "wandb",
-    "fastmri",
 ]
 
 [tool.setuptools]
@@ -61,7 +61,9 @@ doc = [
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
-    "timm"
+    "timm",
+    "PyWavelets",
+    "ptwt"
 ]
 
 

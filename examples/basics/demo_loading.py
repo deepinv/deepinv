@@ -9,6 +9,7 @@ in the `constrained unfolded demo <https://deepinv.github.io/deepinv/auto_exampl
 
 """
 
+import importlib.util
 from pathlib import Path
 import torch
 
@@ -176,11 +177,16 @@ print(
 
 
 # load a state_dict checkpoint
-file_name = "demo_unfolded_CP.pth"
+file_name = (
+    "demo_unfolded_CP_ptwt.pth"
+    if importlib.util.find_spec("ptwt")
+    else "demo_unfolded_CP.pth"
+)
 url = get_weights_url(model_name="demo", file_name=file_name)
 ckpt_state_dict = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
 )
+
 # load a state_dict checkpoint
 model_new.load_state_dict(ckpt_state_dict)
 
