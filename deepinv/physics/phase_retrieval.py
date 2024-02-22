@@ -56,12 +56,12 @@ class BasePhaseRetrieval(LinearPhysics):
         return torch.zeros(N, C, H, W)
 
     def forward(self, x):
-    r"""
-    Applies the phase retrieval measurement operator, i.e. :math:`y = N(|A(x)|^2)` (with noise and/or sensor non-linearities).
-    
+        r"""
+        Applies the phase retrieval measurement operator, i.e. :math:`y = N(|A(x)|^2)` (with noise and/or sensor non-linearities).
+        
         :param torch.Tensor,list[torch.Tensor] x: signal/image
         :return: (torch.Tensor) noisy measurements
-    """
+        """
         return self.sensor(self.noise(self.A(x).abs().square()))
 
 
@@ -95,8 +95,8 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
         >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3))
         >>> physics(x)
-        tensor([[0.9987, 2.1279, 0.7651, 3.1675, 0.5760, 0.2864, 0.0099, 0.4901, 0.6011, 1.4841]])
-
+        tensor([[ 0.9987,  2.1279,  0.7651, 3.1675,  0.5760, 0.2864,  0.0099,  0.4901,
+                  0.6011, 1.4841]])
     """
 
     def __init__(
