@@ -6,6 +6,21 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+
+New Features
+^^^^^^^^^^^^
+
+Fixed
+^^^^^
+
+
+Changed
+^^^^^^^
+
+
+v0.1.1
+----------------
+
 New Features
 ^^^^^^^^^^^^
 - Added r2r loss (:gh:`148` by `Brayan Monroy`_) - 30/01/2024
