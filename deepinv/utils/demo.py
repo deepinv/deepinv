@@ -169,3 +169,21 @@ def load_url_image(
     transform = transforms.Compose(transform_list)
     x = transform(img).unsqueeze(0).to(device)
     return x
+
+
+def load_url_data(
+    url=None,
+):
+    r"""
+
+    Load an array from url and returns it as a numpy array.
+
+    :param str url: URL of the image file.
+    :param str device: Device on which to load the image (gpu or cpu).
+    :return: :class:`np.array` containing the data.
+    """
+
+    response = requests.get(url)
+    response.raise_for_status()
+    img = np.load(BytesIO(response.content))
+    return img
