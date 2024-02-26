@@ -16,3 +16,4 @@ from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
 from .bm3d import BM3D
 from .equivariant import EquivariantDenoiser
 from .gmm import GaussianMixtureModel
+from .epll import EPLL
