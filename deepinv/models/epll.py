@@ -10,9 +10,9 @@ class EPLL(nn.Module):
     The reconstruction function implements the approximated half-quadratic splitting method as in the original
     paper of Zoran and Weiss.
 
-    :param deepinv.models.GaussianMixtureModel or None GMM: Gaussian mixture defining the distribution on the patch space.
+    :param deepinv.models.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         None creates a GMM with 200 components of dimension accordingly to the arguments patch_size and channels.
-    :param str pretrained_weights or None: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights.
+    :param str pretrained_weights: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
     :param str device: defines device (cpu or cuda)

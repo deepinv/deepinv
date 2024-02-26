@@ -4,12 +4,16 @@ import torch
 def patch_extractor(
     imgs, n_patches, patch_size, duplicates=False, position_inds_linear=None
 ):
-    """
+    r"""
     This function takes a B x C x N x M tensor as input and extracts n_patches random patches
     of size C x patch_size x patch_size from each C x N x M image (C=1 for gray value, C=3 for RGB).
     Hence, the output is of shape B x n_patches x C x patch_size x patch_size.
-    The parameter duplicates determines if a patch can appear twice.
-    The argument position_inds_linear allows it (required for the EPLL reconstruction).
+
+    :param torch.Tensor imgs: Images for cutting out patches. Shape batch size x channels x height x width
+    :param int patch_size: size of the patches
+    :param bool duplicates: determines if a patch can appear twice.
+    :param torch.Tensor position_inds_linear: allows it to cut patches with specific indices (required for the EPLL reconstruction).
+        dtype of the tensor should be torch.long.
     """
 
     B, C, N, M = imgs.shape

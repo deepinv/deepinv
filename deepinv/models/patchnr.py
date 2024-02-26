@@ -5,7 +5,7 @@ import FrEIA.modules as Fm
 
 
 class PatchNR(nn.Module):
-    """
+    r"""
     Implements a prior on the space of patches via normalizing flows. The forward method evaluates its negative
     log likelihood.
 
