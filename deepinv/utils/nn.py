@@ -82,6 +82,17 @@ class TensorList:
         else:
             return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
 
+    def __rmul__(self, other):
+        r"""
+
+        Multiply two TensorLists. The sizes of the tensor lists must match.
+
+        """
+        if not isinstance(other, list) and not isinstance(other, TensorList):
+            return TensorList([xi * other for xi in self.x])
+        else:
+            return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
+
     def __truediv__(self, other):
         r"""
 

@@ -18,9 +18,22 @@ def test_tensordict_sum(tensorlist):
     z1 = deepinv.utils.TensorList([z, z])
     z = x + y
     assert (z1[0] == z[0]).all() and (z1[1] == z[1]).all()
+    z = y + x
+    assert (z1[0] == z[0]).all() and (z1[1] == z[1]).all()
 
 
 def test_tensordict_mul(tensorlist):
+    x, y = tensorlist
+    alpha = 1.0
+    z = torch.ones((1, 1, 2, 2))
+    z1 = deepinv.utils.TensorList([z, z])
+    z = x * alpha
+    assert (z1[0] == z[0]).all() and (z1[1] == z[1]).all()
+    z = alpha * x
+    assert (z1[0] == z[0]).all() and (z1[1] == z[1]).all()
+
+
+def test_tensordict_scalar_mul(tensorlist):
     x, y = tensorlist
     z = torch.ones((1, 1, 2, 2))
     z1 = deepinv.utils.TensorList([z, z])
