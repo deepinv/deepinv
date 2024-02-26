@@ -37,9 +37,7 @@ class PatchNR(nn.Module):
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
-            num_layers = 5
-            sub_net_size = 256
-
+            dimension = patch_size**2 * channels
             def subnet_fc(c_in, c_out):
                 return nn.Sequential(
                     nn.Linear(c_in, sub_net_size),
