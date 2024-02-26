@@ -15,6 +15,7 @@ Functions to train and test the model, and save the model and the results.
 
         deepinv.train
         deepinv.test
+        deepinv.train_normalizing_flow
 
 
 Plotting

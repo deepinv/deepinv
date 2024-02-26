@@ -92,6 +92,27 @@ Some more specific unfolded architectures are also available.
    deepinv.models.PDNet_PrimalBlock
    deepinv.models.PDNet_DualBlock
 
+Patch Priors
+------------
+Explicit priors using statistical models on the space of patches.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.models.EPLL
+    deepinv.models.PatchNR
+
+EPLL relys on Gaussian mixture models (GMMs). The following class contains an expectation maximization algorithm for
+parameter estimation in GMMs.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures: 
+    
+    deepinv.models.GaussianMixtureModel
 
 .. _pretrained-weights:
 Pretrained weights

@@ -118,6 +118,7 @@ or simply as
    :nosignatures:
 
    deepinv.physics.GaussianNoise
+   deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
