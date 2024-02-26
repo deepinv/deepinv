@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 
