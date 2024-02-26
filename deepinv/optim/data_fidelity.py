@@ -577,6 +577,7 @@ class L1(DataFidelity):
                 break
         return t
 
+
 class LogPoissonLikelihood(DataFidelity):
     """
     Likelihood function for LogPoissonNoise with the same arguments N0 and mu.
@@ -585,15 +586,17 @@ class LogPoissonLikelihood(DataFidelity):
     :param float N0: average number of photons
     :param float mu: normalization constant
     """
-    def __init__(self,N0=1024.,mu=1/50.):
-        super().__init__()
-        self.mu=mu
-        self.N0=N0
 
-    def d(self,x,y):
-        out1=torch.exp(-x*self.mu)*self.N0
-        out2=torch.exp(-y*self.mu)*self.N0*(x*self.mu)
-        return (out1+out2).sum()
+    def __init__(self, N0=1024.0, mu=1 / 50.0):
+        super().__init__()
+        self.mu = mu
+        self.N0 = N0
+
+    def d(self, x, y):
+        out1 = torch.exp(-x * self.mu) * self.N0
+        out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
+        return (out1 + out2).sum()
+
 
 if __name__ == "__main__":
     import deepinv as dinv

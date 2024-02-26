@@ -528,10 +528,19 @@ def test(
 
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
 
-def train_normalizing_flow(model,dataloader,epochs=10,learning_rate=1e-3,device='cpu',jittering=1/255.,verbose=False):
+
+def train_normalizing_flow(
+    model,
+    dataloader,
+    epochs=10,
+    learning_rate=1e-3,
+    device="cpu",
+    jittering=1 / 255.0,
+    verbose=False,
+):
     """
     Train a normalizing flow with the forward KL (maximum likelihood) loss function and the Adam optimizer.
-    
+
     :param torch.nn.Module model: Normalizing flow in the same format as in the FrEIA framework (i.e., the forward
         method takes the data and the flag rev (default False) where rev=True indicates calling the inverse; the
         forward method returns the output of the network and the log-determinant of the Jacobian of the flow.
@@ -541,18 +550,27 @@ def train_normalizing_flow(model,dataloader,epochs=10,learning_rate=1e-3,device=
     :param str device: used device
     :param float jittering: adds uniform noise of range [-jittering,jittering] to the training data.
         This is a common trick for stabilizing the training of normalizing flows and to avoid overfitting
-    :param verbose: Whether printing progress.    
+    :param verbose: Whether printing progress.
     """
-    optimizer=torch.optim.Adam(model.parameters(),lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     for epoch in range(epochs):
-        mean_loss=0.
-        for i,(x,_) in enumerate(progress_bar := tqdm(dataloader, disable=not verbose)):
-            x=x.to(device)
-            x=x+jittering*(2*torch.rand_like(x)-1)
+        mean_loss = 0.0
+        for i, (x, _) in enumerate(
+            progress_bar := tqdm(dataloader, disable=not verbose)
+        ):
+            x = x.to(device)
+            x = x + jittering * (2 * torch.rand_like(x) - 1)
             optimizer.zero_grad()
             invs, jac_inv = model(x)
-            loss=torch.mean(.5*torch.sum(invs.view(invs.shape[0],-1)**2,-1)-jac_inv.view(invs.shape[0]))
+            loss = torch.mean(
+                0.5 * torch.sum(invs.view(invs.shape[0], -1) ** 2, -1)
+                - jac_inv.view(invs.shape[0])
+            )
             loss.backward()
             optimizer.step()
-            mean_loss=mean_loss / (i+1) * i+loss.item()/(i+1)
-            progress_bar.set_description("Epoch {}, Mean Loss: {:.2f}, Loss {:.2f}".format(epoch+1,mean_loss,loss.item()))
+            mean_loss = mean_loss / (i + 1) * i + loss.item() / (i + 1)
+            progress_bar.set_description(
+                "Epoch {}, Mean Loss: {:.2f}, Loss {:.2f}".format(
+                    epoch + 1, mean_loss, loss.item()
+                )
+            )

@@ -342,30 +342,52 @@ class TVPrior(Prior):
 
 class PatchPrior(Prior):
     """
-    Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing 
+    Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing
     the NLLs of all (overlapping) patches in the image.
-    
+
     :param callable negative_patch_log_likelihood: NLL function on the patch space
     :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
     :param int patch_size: size of the patches
     :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
     """
-    def __init__(self, negative_patch_log_likelihood,n_patches=-1,patch_size=6,pad=False, *args, **kwargs):
+
+    def __init__(
+        self,
+        negative_patch_log_likelihood,
+        n_patches=-1,
+        patch_size=6,
+        pad=False,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
-        self.negative_patch_log_likelihood=negative_patch_log_likelihood
+        self.negative_patch_log_likelihood = negative_patch_log_likelihood
         self.explicit_prior = True
-        self.n_patches=n_patches
-        self.patch_size=patch_size
-        self.pad=pad
+        self.n_patches = n_patches
+        self.patch_size = patch_size
+        self.pad = pad
 
-    def g(self,x,ths=1.0):
+    def g(self, x, ths=1.0):
         if self.pad:
-            x=torch.cat((torch.flip(x[:,:,-patch_size:-1,:],(2,)),x,torch.flip(x[:,:,1:patch_size,:],(2,))),2)
-            x=torch.cat((torch.flip(x[:,:,:,-patch_size:-1],(3,)),x,torch.flip(x[:,:,:,1:patch_size],(3,))),3)
-            
-        B=x.shape[0]
-        patches,_=patch_extractor(x,self.n_patches,self.patch_size)
-        reg=self.negative_patch_log_likelihood(patches)
-        reg=torch.mean(reg,-1)
-        return ths*reg
+            x = torch.cat(
+                (
+                    torch.flip(x[:, :, -patch_size:-1, :], (2,)),
+                    x,
+                    torch.flip(x[:, :, 1:patch_size, :], (2,)),
+                ),
+                2,
+            )
+            x = torch.cat(
+                (
+                    torch.flip(x[:, :, :, -patch_size:-1], (3,)),
+                    x,
+                    torch.flip(x[:, :, :, 1:patch_size], (3,)),
+                ),
+                3,
+            )
 
+        B = x.shape[0]
+        patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
+        reg = self.negative_patch_log_likelihood(patches)
+        reg = torch.mean(reg, -1)
+        return ths * reg
