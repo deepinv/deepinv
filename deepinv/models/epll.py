@@ -6,7 +6,9 @@ from deepinv.utils import patch_extractor
 
 class EPLL(nn.Module):
     r"""
-    Defines a prior on the space of patches via Gaussian mixture models. The forward method evaluates the negative log likelihood of the GMM.
+    Patch prior via Gaussian mixture models. 
+
+    The forward method evaluates the negative log likelihood of the GMM.
     The reconstruction function implements the approximated half-quadratic splitting method as in the original
     paper of Zoran and Weiss.
 

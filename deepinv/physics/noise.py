@@ -220,9 +220,8 @@ class UniformNoise(torch.nn.Module):
 
 
 class LogPoissonNoise(torch.nn.Module):
-    """
-    Implements independet log-Poisson noise.
-    y = 1/mu log( Poisson(exp(-x*mu)*N0) / N0)
+    r"""
+    Log-Poisson noise :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.
 
     This noise model is mostly used for modelling the noise for (low dose) computed tomography measurements.
     Here, N0 describes the average number of measured photons. It acts as a noise-level parameter, where a
@@ -242,6 +241,12 @@ class LogPoissonNoise(torch.nn.Module):
         self.N0 = N0
 
     def forward(self, x):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :returns: noisy measurements
+        """
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu))
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y

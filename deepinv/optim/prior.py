@@ -342,6 +342,8 @@ class TVPrior(Prior):
 
 class PatchPrior(Prior):
     """
+    Patch prior :math:`g(x) = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches.
+
     Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing
     the NLLs of all (overlapping) patches in the image.
 

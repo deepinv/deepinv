@@ -579,8 +579,14 @@ class L1(DataFidelity):
 
 
 class LogPoissonLikelihood(DataFidelity):
-    """
-    Likelihood function for LogPoissonNoise with the same arguments N0 and mu.
+    r"""
+    Log-Poisson negative log-likelihood.
+
+    .. math::
+
+        \datafid{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
+
+    Corresponds to LogPoissonNoise with the same arguments N0 and mu.
     There is no closed-form of prox_d known.
 
     :param float N0: average number of photons

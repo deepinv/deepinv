@@ -4,6 +4,8 @@ from tqdm import tqdm
 
 class GaussianMixtureModel:
     r"""
+    Gaussian mixture model including parameter estimation.
+
     Implements a Gaussian Mixture Model, its negative log likelihood function and an EM algorithm
     for parameter estimation.
 
@@ -167,9 +169,9 @@ class GaussianMixtureModel:
         Batched Expectation Maximization algorithm for parameter estimation.
 
 
-        :param torch.data.Dataloader dataloader: containing the data
+        :param torch.utils.data.DataLoader dataloader: containing the data
         :param int max_iters: maximum number of iterations
-        :param float stopping_criterion, None: stop when objective decrease is smaller than this number.
+        :param float stopping_criterion: stop when objective decrease is smaller than this number.
             None for performing exactly max_iters iterations
         :param bool data_init: True for initialize mu by the first data points, False for using current values as initialization
         :param bool verbose: Output progress information in the console

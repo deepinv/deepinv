@@ -6,10 +6,10 @@ import FrEIA.modules as Fm
 
 class PatchNR(nn.Module):
     r"""
-    Implements a prior on the space of patches via normalizing flows. The forward method evaluates its negative
-    log likelihood.
+    Patch prior via normalizing flows.
 
-    Arguments:
+    The forward method evaluates its negative log likelihood.
+
     :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any torch.nn.Module
         supporting backprobagation. It takes a (batched) tensor of flattened patches and the boolean rev (default False)
         as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
@@ -38,6 +38,7 @@ class PatchNR(nn.Module):
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels
+
             def subnet_fc(c_in, c_out):
                 return nn.Sequential(
                     nn.Linear(c_in, sub_net_size),
@@ -72,6 +73,9 @@ class PatchNR(nn.Module):
                 raise NotImplementedError
 
     def forward(self, x):
+        r"""
+        Evaluates the negative log likelihood function of th PatchNR.
+        """
         B, n_patches = x.shape[0:2]
         latent_x, logdet = self.normalizing_flow(x.view(B * n_patches, -1))
         logpz = 0.5 * torch.sum(latent_x.view(B, n_patches, -1) ** 2, -1)

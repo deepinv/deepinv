@@ -539,18 +539,20 @@ def train_normalizing_flow(
     verbose=False,
 ):
     """
-    Train a normalizing flow with the forward KL (maximum likelihood) loss function and the Adam optimizer.
+    Trains a normalizing flow.
+
+    Uses the forward KL (maximum likelihood) loss function and the Adam optimizer.
 
     :param torch.nn.Module model: Normalizing flow in the same format as in the FrEIA framework (i.e., the forward
         method takes the data and the flag rev (default False) where rev=True indicates calling the inverse; the
         forward method returns the output of the network and the log-determinant of the Jacobian of the flow.
-    :param torch.data.Dataloader dataloader: contains training data.
+    :param torch.utils.data.DataLoader dataloader: contains training data.
     :param int epochs: number of epochs
-    :param float learning rate: learning rate
+    :param float learning_rate: learning rate
     :param str device: used device
     :param float jittering: adds uniform noise of range [-jittering,jittering] to the training data.
         This is a common trick for stabilizing the training of normalizing flows and to avoid overfitting
-    :param verbose: Whether printing progress.
+    :param bool verbose: Whether printing progress.
     """
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     for epoch in range(epochs):
