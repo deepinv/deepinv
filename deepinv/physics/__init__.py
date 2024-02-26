@@ -10,6 +10,7 @@ from .noise import (
     PoissonGaussianNoise,
     UniformNoise,
     UniformGaussianNoise,
+    LogPoissonNoise,
 )
 from .mri import MRI
 from .tomography import Tomography
