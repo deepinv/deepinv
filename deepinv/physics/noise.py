@@ -226,10 +226,10 @@ class LogPoissonNoise(torch.nn.Module):
     This noise model is mostly used for modelling the noise for (low dose) computed tomography measurements.
     Here, N0 describes the average number of measured photons. It acts as a noise-level parameter, where a
     larger value of N0 corresponds to a lower strength of the noise.
-    The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size
+    The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.
 
-    For more details on the interpretation of the parameters for CT measurements, we refer to
-    Leuschner et al. "LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction", Scientific Data 8:109
+    For more details on the interpretation of the parameters for CT measurements, we refer to the paper
+    `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://www.nature.com/articles/s41597-021-00893-z>`_.
 
     :param float N0: number of photons
     :param float mu: normalization constant

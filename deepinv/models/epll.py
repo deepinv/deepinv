@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 from .gmm import GaussianMixtureModel
 from deepinv.utils import patch_extractor
+from deepinv.optim.utils import conjugate_gradient
 
 
 class EPLL(nn.Module):
@@ -13,7 +14,8 @@ class EPLL(nn.Module):
     paper of Zoran and Weiss.
 
     :param deepinv.models.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
-        None creates a GMM with 200 components of dimension accordingly to the arguments patch_size and channels.
+        None creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.
+    :param int n_components: number of components of the generated GMM if GMM is None.
     :param str pretrained_weights: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
@@ -21,12 +23,12 @@ class EPLL(nn.Module):
     """
 
     def __init__(
-        self, GMM=None, pretrained_weights=None, patch_size=6, channels=1, device="cpu"
+        self, GMM=None, n_components=200, pretrained_weights=None, patch_size=6, channels=1, device="cpu"
     ):
         super(EPLL, self).__init__()
         if GMM is None:
             self.GMM = GaussianMixtureModel(
-                200, patch_size**2 * channels, device=device
+                n_components, patch_size**2 * channels, device=device
             )
         else:
             self.GMM = GMM
@@ -129,5 +131,5 @@ class EPLL(nn.Module):
         # Image estimation by CG method
         rhs = Aty + beta * sigma_sq * x_tilde_flattened.view(x.shape)
         op = lambda im: physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
-        hat_x = deepinv.optim.utils.conjugate_gradient(op, rhs, max_iter=1e2, tol=1e-5)
+        hat_x = conjugate_gradient(op, rhs, max_iter=1e2, tol=1e-5)
         return hat_x
