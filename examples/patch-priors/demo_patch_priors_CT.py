@@ -36,9 +36,6 @@ We consider the following two choices of :math:`h`:
   It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function 
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
   normal distribution under a normalizing flow (invertible neural network) :math:`\mathcal{T}_\theta`.
-
-In this script, we implement a small test example. Below, we state also a parameter set for a more realistic
-example close to the one from the PatchNR paper.
 """
 
 import torch
@@ -56,8 +53,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # %%
 # Load training and test images
 # -----------------------------------------
-# Here, we use a downsampled images from the LoDoPaB dataset
-# `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://zenodo.org/records/3384092>`_.
+# Here, we use downsampled images from the `"LoDoPaB-CT dataset" <https://zenodo.org/records/3384092>`_.
 # Moreover, we define the size of the used patches and generate the dataset of patches in the training images.
 
 dataset = torch.load("dataset_small.pt")
