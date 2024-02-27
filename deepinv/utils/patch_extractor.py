@@ -27,7 +27,7 @@ def patch_extractor(
         (C, patch_size, patch_size), dtype=torch.long, device=imgs.device
     )
     patch = patch + torch.arange(patch_size, device=imgs.device)[None, None, :]
-    patch = patch + N * torch.arange(patch_size, device=imgs.device)[None, :, None]
+    patch = patch + M * torch.arange(patch_size, device=imgs.device)[None, :, None]
     patch = patch + (N * M) * torch.arange(C, device=imgs.device)[:, None, None]
     patch = patch.reshape(-1)
 
@@ -41,8 +41,8 @@ def patch_extractor(
             position_inds_linear = torch.randperm(
                 total_patch_number, device=imgs.device
             )[:n_patches]
-    position_inds_height = position_inds_linear % (M - patch_size + 1)
-    position_inds_width = position_inds_linear // (M - patch_size + 1)
+    position_inds_height = position_inds_linear // (M - patch_size + 1)
+    position_inds_width = position_inds_linear % (M - patch_size + 1)
 
     # linear indices of the patches in the image
     linear_inds = patch[None, :].tile(n_patches, 1)

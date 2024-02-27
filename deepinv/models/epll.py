@@ -122,8 +122,12 @@ class EPLL(nn.Module):
             ).reshape(patches.shape[0], patches.shape[1])
 
             # update on-the-fly parameters
-            patch_multiplicities[linear_inds] += 1.0
-            x_tilde_flattened[linear_inds] += patch_estimates
+            # the following two lines are the same like
+            # patch_multiplicities[linear_inds] += 1.0
+            # x_tilde_flattened[linear_inds] += patch_estimates
+            # where values of multiple indices are accumulated.
+            patch_multiplicities.index_put_((linear_inds,),torch.ones_like(patch_estimates),accumulate=True)
+            x_tilde_flattened.index_put_((linear_inds,),patch_estimates,accumulate=True)
             ind = ind + n_patches
         # compute x_tilde
         x_tilde_flattened /= patch_multiplicities
