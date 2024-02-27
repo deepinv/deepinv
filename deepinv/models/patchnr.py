@@ -68,9 +68,18 @@ class PatchNR(nn.Module):
         if pretrained_weights:
             if pretrained_weights[-3:] == ".pt":
                 weights = torch.load(pretrained_weights, map_location=device)
-                self.normalizing_flow.load_state_dict(weights)
             else:
-                raise NotImplementedError
+                if pretrained_weights == "PatchNR_lodopab_small":
+                    assert patch_size == 3
+                    assert channels == 1
+                    file_name = "PatchNR_lodopab_small.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i"
+                else:
+                    raise ValueError("Pretrained weights not found!")
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+            self.normalizing_flow.load_state_dict(weights)
 
     def forward(self, x):
         r"""

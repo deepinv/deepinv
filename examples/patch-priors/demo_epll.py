@@ -13,7 +13,7 @@ from deepinv.physics import GaussianNoise, Denoising, Inpainting
 from deepinv.utils import cal_psnr, plot
 import torch
 import numpy as np
-from PIL import Image
+from deepinv.utils.demo import load_url_image
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -24,12 +24,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # on 50 mio patches extracted from the BSDS500 dataset. An example how to estimate the parameters of GMM
 # is included in the demo for limited-angle CT with patch priors.
 
-im = Image.open("102061.png").convert("L")
-im = np.array(im)
-test_img = torch.tensor(im[None, None, :, :], dtype=torch.float, device=device) / 255.0
+url = "https://drive.google.com/uc?export=download&id=1qfRqryZdtVv86B0405Tv51wHkTmhuJhq"
+test_img = load_url_image(url, grayscale=True)
 patch_size = 6
 model_EPLL = EPLL(
-    pretrained_weights="GMM_BSDS_gray.pt", patch_size=patch_size, device=device
+    pretrained_weights="GMM_BSDS_gray", patch_size=patch_size, device=device
 )
 
 # %%

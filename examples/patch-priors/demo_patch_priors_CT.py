@@ -46,6 +46,7 @@ from deepinv import train_normalizing_flow
 from deepinv.physics import LogPoissonNoise, Tomography
 from deepinv.optim import LogPoissonLikelihood, PatchPrior
 from deepinv.utils import cal_psnr, plot
+from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -56,7 +57,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Here, we use downsampled images from the `"LoDoPaB-CT dataset" <https://zenodo.org/records/3384092>`_.
 # Moreover, we define the size of the used patches and generate the dataset of patches in the training images.
 
-dataset = torch.load("dataset_small.pt")
+url = "https://drive.google.com/uc?export=download&id=1y5nA4IrVUwjDD-v6kg_oO7cNaCZ9lmSK"
+dataset = load_torch_url(url)
 train_imgs = dataset["train_imgs"]
 test_imgs = dataset["test_imgs"]
 img_size = train_imgs.shape[-1]
@@ -119,13 +121,13 @@ if retrain:
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
-        pretrained_weights="PatchNR_lodopab_small.pt",
+        pretrained_weights="PatchNR_lodopab_small",
         sub_net_size=patchnr_subnetsize,
         device=device,
         patch_size=patch_size,
     )
     model_epll = EPLL(
-        pretrained_weights="GMM_lodopab_small.pt",
+        pretrained_weights="GMM_lodopab_small",
         n_components=epll_num_components,
         patch_size=patch_size,
         device=device,

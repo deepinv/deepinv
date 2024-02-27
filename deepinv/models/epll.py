@@ -3,6 +3,7 @@ import torch
 from .gmm import GaussianMixtureModel
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
+from deepinv.utils.demo import load_torch_url
 
 
 class EPLL(nn.Module):
@@ -43,7 +44,19 @@ class EPLL(nn.Module):
             if pretrained_weights[-3:] == ".pt":
                 weights = torch.load(pretrained_weights)
             else:
-                raise NotImplementedError
+                if pretrained_weights == "GMM_lodopab_small":
+                    assert patch_size == 3
+                    assert channels == 1
+                    url = "https://drive.google.com/uc?export=download&id=1SBe1tVqGscDa-JqaaKxenbO6WmGBkctH"
+                elif pretrained_weights == "GMM_BSDS_gray":
+                    assert patch_size == 6
+                    assert channels == 1
+                    url = "https://drive.google.com/uc?export=download&id=17d40IPycCf8Cb5RmOcrlPTq_AniBlYcK"
+                else:
+                    raise ValueError("Pretrained weights not found!")
+                weights = load_torch_url(url)
+            self.GMM.load_parameter_dict(weights)
+
             self.GMM.load_parameter_dict(weights)
 
     def forward(self, x):
