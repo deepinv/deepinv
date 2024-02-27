@@ -373,17 +373,17 @@ class PatchPrior(Prior):
         if self.pad:
             x = torch.cat(
                 (
-                    torch.flip(x[:, :, -self.patch_size:-1, :], (2,)),
+                    torch.flip(x[:, :, -self.patch_size : -1, :], (2,)),
                     x,
-                    torch.flip(x[:, :, 1:self.patch_size, :], (2,)),
+                    torch.flip(x[:, :, 1 : self.patch_size, :], (2,)),
                 ),
                 2,
             )
             x = torch.cat(
                 (
-                    torch.flip(x[:, :, :, -self.patch_size:-1], (3,)),
+                    torch.flip(x[:, :, :, -self.patch_size : -1], (3,)),
                     x,
-                    torch.flip(x[:, :, :, 1:self.patch_size], (3,)),
+                    torch.flip(x[:, :, :, 1 : self.patch_size], (3,)),
                 ),
                 3,
             )

@@ -7,7 +7,7 @@ from deepinv.optim.utils import conjugate_gradient
 
 class EPLL(nn.Module):
     r"""
-    Patch prior via Gaussian mixture models. 
+    Patch prior via Gaussian mixture models.
 
     The forward method evaluates the negative log likelihood of the GMM.
     The reconstruction function implements the approximated half-quadratic splitting method as in the original
@@ -23,7 +23,13 @@ class EPLL(nn.Module):
     """
 
     def __init__(
-        self, GMM=None, n_components=200, pretrained_weights=None, patch_size=6, channels=1, device="cpu"
+        self,
+        GMM=None,
+        n_components=200,
+        pretrained_weights=None,
+        patch_size=6,
+        channels=1,
+        device="cpu",
     ):
         super(EPLL, self).__init__()
         if GMM is None:
@@ -126,8 +132,12 @@ class EPLL(nn.Module):
             # patch_multiplicities[linear_inds] += 1.0
             # x_tilde_flattened[linear_inds] += patch_estimates
             # where values of multiple indices are accumulated.
-            patch_multiplicities.index_put_((linear_inds,),torch.ones_like(patch_estimates),accumulate=True)
-            x_tilde_flattened.index_put_((linear_inds,),patch_estimates,accumulate=True)
+            patch_multiplicities.index_put_(
+                (linear_inds,), torch.ones_like(patch_estimates), accumulate=True
+            )
+            x_tilde_flattened.index_put_(
+                (linear_inds,), patch_estimates, accumulate=True
+            )
             ind = ind + n_patches
         # compute x_tilde
         x_tilde_flattened /= patch_multiplicities
