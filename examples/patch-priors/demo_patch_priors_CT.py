@@ -42,7 +42,7 @@ import torch
 from deepinv.datasets import PatchDataset
 from deepinv.models import EPLL, PatchNR
 from torch.utils.data import DataLoader
-from deepinv import train_normalizing_flow
+from deepinv.training_utils import train_normalizing_flow
 from deepinv.physics import LogPoissonNoise, Tomography
 from deepinv.optim import LogPoissonLikelihood, PatchPrior
 from deepinv.utils import cal_psnr, plot
@@ -134,7 +134,7 @@ else:
     )
 
 patchnr_prior = PatchPrior(model_patchnr, patch_size=patch_size)
-epll_prior = PatchPrior(model_epll, patch_size=patch_size)
+epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_size)
 
 # %%
 # Definition of forward operator and noise model

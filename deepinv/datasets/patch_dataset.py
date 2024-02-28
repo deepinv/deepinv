@@ -7,17 +7,12 @@ class PatchDataset(data.Dataset):
 
     :param torch.Tensor imgs: Tensor of images, size: batch size x channels x height x width
     :param int patch_size: size of patches
-    :param callable or str transforms: data augmentation. None for no augmentation, 'flip and rotate' for including random flips and rotations or callable object.
+    :param callable: data augmentation. callable object, None for no augmentation.
     """
-    def __init__(self,imgs,patch_size=6,transforms='flip and rotate'):
+    def __init__(self,imgs,patch_size=6,transforms=None):
         self.imgs=imgs
         self.patch_size=patch_size
-        self.patches_per_image=(self.imgs.shape[2]-patch_size+1)*(self.imgs.shape[3]-patch_size+1)
-        if isinstance(transforms,str):
-            assert transforms in ('flip and rotate')
-            transforms=[torchvision.transforms.v2.RandomHorizontalFlip(),torchvision.transforms.v2.RandomVerticalFlip(),torchvision.transforms.v2.Lambda(lambda x:torch.rot90(x,dims=[-2,-1]))]
-            transforms=torchvision.transforms.v2.Compose(transforms)
-            
+        self.patches_per_image=(self.imgs.shape[2]-patch_size+1)*(self.imgs.shape[3]-patch_size+1)            
         self.transforms=transforms
 
     def __len__(self):

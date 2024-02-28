@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
+
 try:
-  import FrEIA.framework as Ff
-  import FrEIA.modules as Fm
+    import FrEIA.framework as Ff
+    import FrEIA.modules as Fm
 except:
-  Ff = ImportError("The FrEIA package is not installed.")
-  Fm = ImportError("The FrEIA package is not installed.")
+    Ff = ImportError("The FrEIA package is not installed.")
+    Fm = ImportError("The FrEIA package is not installed.")
 
 
 class PatchNR(nn.Module):
