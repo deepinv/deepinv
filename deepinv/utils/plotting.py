@@ -137,7 +137,6 @@ def plot(
         if len(img.shape) == 3:
             img_list[i] = img.unsqueeze(0)
 
-
     if isinstance(titles, str):
         titles = [titles]
 
