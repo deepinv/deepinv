@@ -74,8 +74,9 @@ def test_tensordict_append(tensorlist):
 
 
 def test_plot():
-    x = torch.ones((1, 1, 2, 2))
-    imgs = [x, x]
-    deepinv.utils.plot(imgs, titles=["a", "b"])
-    deepinv.utils.plot(x, titles="a")
-    deepinv.utils.plot(imgs)
+    for c in range(1, 5):
+        x = torch.ones((1, c, 2, 2))
+        imgs = [x, x]
+        deepinv.utils.plot(imgs, titles=["a", "b"])
+        deepinv.utils.plot(x, titles="a")
+        deepinv.utils.plot(imgs)
