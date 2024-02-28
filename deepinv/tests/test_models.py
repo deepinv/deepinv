@@ -11,7 +11,7 @@ MODEL_LIST_1_CHANNEL = [
     "dncnn",
     "median",
     "tgv",
-    "waveletprior",
+    "waveletdenoiser",
     "waveletdict",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
@@ -27,7 +27,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
 
 
 def choose_denoiser(name, imsize):
-    if name.startswith("waveletdict") or name == "waveletprior":
+    if name.startswith("waveletdict") or name == "waveletdenoiser":
         pytest.importorskip(
             "ptwt",
             reason="This test requires pytorch_wavelets. It should be "
@@ -59,8 +59,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.BM3D()
     elif name == "dncnn":
         out = dinv.models.DnCNN(in_channels=imsize[0], out_channels=imsize[0])
-    elif name == "waveletprior":
-        out = dinv.models.WaveletPrior()
+    elif name == "waveletdenoiser":
+        out = dinv.models.WaveletDenoiser()
     elif name == "waveletdict":
         out = dinv.models.WaveletDict()
     elif name == "waveletdict_hard":
@@ -145,7 +145,7 @@ def test_wavelet_adjoints():
     for dimension in ["2d", "3d"]:
         wvdim = 2 if dimension == "2d" else 3
 
-        model = dinv.models.WaveletPrior(wvdim=wvdim)
+        model = dinv.models.WaveletDenoiser(wvdim=wvdim)
 
         def A_f(x):
             dx = model.dwt(x)
@@ -191,7 +191,9 @@ def test_wavelet_models_identity():
             else torch.randn((4, 3, 31, 27, 29))
         )
         for non_linearity in ["soft", "hard"]:
-            model = dinv.models.WaveletPrior(non_linearity=non_linearity, wvdim=wvdim)
+            model = dinv.models.WaveletDenoiser(
+                non_linearity=non_linearity, wvdim=wvdim
+            )
             ths = (
                 0.0 if non_linearity in ["soft", "hard"] else 1.0
             )  # topk counts the number of coefficients to keep
@@ -504,7 +506,7 @@ def test_PDNet(imsize_1_channel, device):
         ("BM3D", "bm3d"),
         ("SCUNet", "timm"),
         ("SwinIR", "timm"),
-        ("WaveletPrior", "ptwt"),
+        ("WaveletDenoiser", "ptwt"),
         ("WaveletDict", "ptwt"),
     ],
 )
