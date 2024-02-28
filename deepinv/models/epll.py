@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch
-from deepinv.models.gmm import GaussianMixtureModel
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.utils.demo import load_torch_url

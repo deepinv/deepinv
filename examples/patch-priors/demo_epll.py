@@ -47,9 +47,7 @@ We use the default choice of the betas in the half quadratic splitting given by
 :math:`\beta \in \sigma^{-2} \{1,4,8,16,32\}`.
 Generally, the betas are hyperparameters, which have to be chosen for each inverse problem seperately.
 """
-x_out = model_EPLL(
-    observation, sigma, batch_size=5000
-)
+x_out = model_EPLL(observation, sigma, batch_size=5000)
 
 psnr_obs = cal_psnr(observation, test_img)
 psnr_recon = cal_psnr(x_out, test_img)
