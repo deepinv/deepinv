@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from .gmm import GaussianMixtureModel
+from deepinv.models.gmm import GaussianMixtureModel
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.utils.demo import load_torch_url
@@ -11,8 +11,7 @@ class EPLL(nn.Module):
     Patch prior via Gaussian mixture models.
 
     The forward method evaluates the negative log likelihood of the GMM.
-    The reconstruction function implements the approximated half-quadratic splitting method as in the original
-    paper of Zoran and Weiss.
+    The reconstruction function implements the approximated half-quadratic splitting method as in Zoran, D., and Weiss, Y.  "From learning models of natural image patches to whole image restoration." (ICCV 2011).
 
     :param deepinv.models.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         None creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.

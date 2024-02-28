@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
-import FrEIA.framework as Ff
-import FrEIA.modules as Fm
+try:
+  import FrEIA.framework as Ff
+  import FrEIA.modules as Fm
+except:
+  Ff = ImportError("The FrEIA package is not installed.")
+  Fm = ImportError("The FrEIA package is not installed.")
 
 
 class PatchNR(nn.Module):
@@ -35,6 +39,11 @@ class PatchNR(nn.Module):
         device="cpu",
     ):
         super(PatchNR, self).__init__()
+        if isinstance(Ff, ImportError):
+            raise ImportError(
+                "FrEIA is needed to use the PatchNR class. "
+                "It should be installed with `pip install FrEIA`."
+            ) from Ff
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels

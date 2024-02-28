@@ -232,6 +232,22 @@ class LogPoissonNoise(torch.nn.Module):
     `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://www.nature.com/articles/s41597-021-00893-z>`_.
 
     :param float N0: number of photons
+    
+        |sep|
+
+    :Examples:
+
+        Adding LogPoisson noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, LogPoissonNoise
+        >>> import torch
+        >>> physics = Denoising()
+        >>> physics.noise_model = LogPoissonNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
+        
+        
     :param float mu: normalization constant
     """
 
