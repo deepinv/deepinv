@@ -315,7 +315,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     # here the prior model is common for all iterations
-    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -433,7 +433,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
-    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
     pytest.importorskip("ptwt")
 
@@ -453,7 +453,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    prior = RED(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
