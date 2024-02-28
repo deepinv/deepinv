@@ -112,7 +112,7 @@ class DataFidelity(nn.Module):
         :param deepinv.physics.Physics physics: physics model.
         :return: (torch.tensor) data fidelity :math:`\datafid{x}{y}`.
         """
-        return self.d(physics.A(x), y, *args, **kwargs)
+        return self.d(physics(x), y, *args, **kwargs)
 
     def grad(self, x, y, physics, *args, **kwargs):
         r"""
@@ -123,7 +123,7 @@ class DataFidelity(nn.Module):
         :param deepinv.physics.Physics physics: physics model.
         :return: (torch.tensor) gradient :math:`\nabla_x\datafid{x}{y}`, computed in :math:`x`.
         """
-        return physics.A_adjoint(self.grad_d(physics.A(x), y, *args, **kwargs))
+        return physics.A_grad(self.grad_d(physics.A(x), y, *args, **kwargs), x)
 
     def prox(
         self,

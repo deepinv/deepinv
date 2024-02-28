@@ -60,6 +60,14 @@ class TensorList:
             )
         return self
 
+    def conj(self):
+        r"""
+        Returns the complex conjugate of the list of tensors.
+
+        If the tensors are real, it returns the same list.
+        """
+        return TensorList([xi.conj() for xi in self.x])
+
     def __add__(self, other):
         r"""
 

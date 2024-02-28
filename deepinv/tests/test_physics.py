@@ -18,6 +18,7 @@ OPERATORS = [
     "super_resolution",
     "MRI",
     "pansharpen",
+    "random_phase_retrieval",
 ]
 NONLINEAR_OPERATORS = ["haze", "blind_deblur", "lidar"]
 
@@ -41,6 +42,7 @@ def find_operator(name, device):
     """
     img_size = (3, 16, 8)
     norm = 1
+    dtype = torch.float
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
@@ -99,9 +101,10 @@ def find_operator(name, device):
     elif name == "random_phase_retrieval":
         img_size = (1, 32, 32)
         p = dinv.physics.RandomPhaseRetrieval(m=10, img_shape=img_size, device=device)
+        dtype = p.dtype
     else:
         raise Exception("The inverse problem chosen doesn't exist")
-    return p, img_size, norm
+    return p, img_size, norm, dtype
 
 
 def find_nonlinear_operator(name, device):
@@ -148,8 +151,8 @@ def test_operators_adjointness(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts adjointness
     """
-    physics, imsize, _ = find_operator(name, device)
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    physics, imsize, _, dtype = find_operator(name, device)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
@@ -157,7 +160,7 @@ def test_operators_adjointness(name, device):
         name == "pansharpen"
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         return
-    f = adjoint_function(physics.A, x.shape, x.device)
+    f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
     y = physics.A(x)
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
 
@@ -178,8 +181,12 @@ def test_operators_norm(name, device):
     if name == "singlepixel" or name == "CS":
         device = torch.device("cpu")
 
+    # unit norm is not necessary to be tested for phase retrieval
+    if name == "random_phase_retrieval":
+        return
+
     torch.manual_seed(0)
-    physics, imsize, norm_ref = find_operator(name, device)
+    physics, imsize, norm_ref, _ = find_operator(name, device)
     x = torch.randn(imsize, device=device).unsqueeze(0)
     norm = physics.compute_norm(x)
     assert torch.abs(norm - norm_ref) < 0.2
@@ -212,8 +219,8 @@ def test_pseudo_inverse(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    physics, imsize, _ = find_operator(name, device)
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    physics, imsize, _, dtype = find_operator(name, device)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
 
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)

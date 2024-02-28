@@ -4,7 +4,7 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 
 
-def adjoint_function(A, input_size, device="cpu"):
+def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     r"""
     Provides adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
 
@@ -29,13 +29,13 @@ def adjoint_function(A, input_size, device="cpu"):
     :return: (callable) function that computes the adjoint of :math:`A`.
 
     """
-    x = torch.ones(input_size, device=device)
+    x = torch.ones(input_size, device=device, dtype=dtype)
     (_, vjpfunc) = torch.func.vjp(A, x)
     batches = x.size()[0]
 
     def adjoint(y):
         if y.size()[0] < batches:
-            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device)
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
             y2[: y.size()[0], ...] = y
             return vjpfunc(y2)[0][: y.size()[0], ...]
         elif y.size()[0] > batches:
@@ -346,6 +346,16 @@ class LinearPhysics(Physics):
 
         return self.A_adj(y)
 
+    def A_grad(self, diff, x_est):
+        r"""
+        Computes the gradient of the forward operator :math:`\nabla_x f(A(x))`. It can make the representation of the gradient of the L2 loss more general and compact.
+
+        :param torch.Tensor diff: the difference between estimated measurements and true measurements.
+        :return: (torch.Tensor) the gradient times the difference.
+
+        """
+        return self.A_adjoint(diff)
+
     def __mul__(self, other):
         r"""
         Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
@@ -469,17 +479,17 @@ class LinearPhysics(Physics):
             Atv = self.A_adjoint(V)
             s1 = 0
             for au, v in zip(Au, V):
-                s1 += (v * au).flatten().sum()
+                s1 += (v.conj() * au).flatten().sum()
 
         else:
             v = randn_like(Au)
             Atv = self.A_adjoint(v)
 
-            s1 = (v * Au).flatten().sum()
+            s1 = (v.conj() * Au).flatten().sum()
 
-        s2 = (Atv * u_in).flatten().sum()
+        s2 = (Atv * u_in.conj()).flatten().sum()
 
-        return s1 - s2
+        return s1.conj() - s2
 
     def prox_l2(self, z, y, gamma):
         r"""

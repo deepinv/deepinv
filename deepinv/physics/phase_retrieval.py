@@ -165,3 +165,7 @@ class RandomPhaseRetrieval(BasePhaseRetrieval):
 
         x = x.view(N, C, H, W)
         return x
+
+    def A_grad(self, diff, x_est):
+        middle = self.A(x_est)
+        return self.A_adjoint(middle * diff)
