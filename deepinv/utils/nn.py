@@ -93,7 +93,7 @@ class TensorList:
         else:
             return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
 
-    def __conj__(self):
+    def conj(self):
         r"""
 
         Computes the conjugate of the elements of the TensorList.

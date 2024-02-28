@@ -42,7 +42,7 @@ class WaveletDenoiser(nn.Module):
     def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft", wvdim=2):
         if isinstance(ptwt, ImportError):
             raise ImportError(
-                "pytorch_wavelets is needed to use the WaveletPrior class. "
+                "pytorch_wavelets is needed to use the WaveletDenoiser class. "
                 "It should be installed with `pip install ptwt`."
             ) from ptwt
         super().__init__()
@@ -299,7 +299,7 @@ class WaveletDict(nn.Module):
     :math:`\Psi=[\Psi_1,\Psi_2,\dots,\Psi_L]`, :math:`\lambda>0` is a hyperparameter, and where
     :math:`\|\cdot\|_n` is either the :math:`\ell_1` norm (``non_linearity="soft"``),
     the :math:`\ell_0` norm (``non_linearity="hard"``) or a variant of the :math:`\ell_0` norm
-    (``non_linearity="topk"``) where only the top-k coefficients are kept; see :meth:`deepinv.models.WaveletPrior` for
+    (``non_linearity="topk"``) where only the top-k coefficients are kept; see :meth:`deepinv.models.WaveletDenoiser` for
     more details.
 
     The solution is not available in closed-form, thus the denoiser runs an optimization algorithm for each test image.
@@ -324,7 +324,7 @@ class WaveletDict(nn.Module):
         self.level = level
         self.list_prox = nn.ModuleList(
             [
-                WaveletPrior(
+                WaveletDenoiser(
                     level=level, wv=wv, non_linearity=non_linearity, wvdim=wvdim
                 )
                 for wv in list_wv
