@@ -136,7 +136,7 @@ torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 # For fixed trained model prior across iterations, initialize with a single model.
 
 prior_new = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 

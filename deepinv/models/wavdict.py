@@ -12,16 +12,16 @@ except:
     ptwt = ImportError("The ptwt package is not installed.")
 
 
-class WaveletPrior(nn.Module):
+class WaveletDenoiser(nn.Module):
     r"""
-    Wavelet denoising with the :math:`\ell_1` norm.
+    Orthogonal Wavelet denoising with the :math:`\ell_1` norm.
 
 
     This denoiser is defined as the solution to the optimization problem:
 
     .. math::
 
-        \underset{x}{\arg\min} \;  \|x-y\|^2 + \lambda \|\Psi x\|_n
+        \underset{x}{\arg\min} \;  \|x-y\|^2 + \gamma \|\Psi x\|_n
 
     where :math:`\Psi` is an orthonormal wavelet transform, :math:`\lambda>0` is a hyperparameter, and where
     :math:`\|\cdot\|_n` is either the :math:`\ell_1` norm (``non_linearity="soft"``) or
@@ -231,8 +231,9 @@ class WaveletPrior(nn.Module):
         Reshape the thresholding parameter in the appropriate format, i.e. either:
          - a list of 3 elements, or
          - a tensor of 3 elements.
-         Since the approximation coefficients are not thresholded, we do not need to provide a thresholding parameter,
-         ths has shape (n_levels-1, 3).
+
+        Since the approximation coefficients are not thresholded, we do not need to provide a thresholding parameter,
+        ths has shape (n_levels-1, 3).
         """
         numel = 3 if self.dimension == 2 else 7
         if not torch.is_tensor(ths):
@@ -257,7 +258,8 @@ class WaveletPrior(nn.Module):
         Run the model on a noisy image.
 
         :param torch.Tensor x: noisy image.
-        :param int, float, torch.Tensor ths: thresholding parameter. If `ths` is a tensor, it should be of shape
+        :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
+            If `ths` is a tensor, it should be of shape
             ``(1, )`` (same coefficent for all levels), ``(n_levels-1, )`` (one coefficient per level),
             or ``(n_levels-1, 3)`` (one coefficient per subband and per level).
             If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)

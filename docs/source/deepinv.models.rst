@@ -38,7 +38,7 @@ Classical Denoisers
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser
-   deepinv.models.WaveletPrior
+   deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDict
 
 
@@ -109,29 +109,29 @@ associated reference and relevant details. All pretrained weights are hosted on
      - Weight
    * - :meth:`deepinv.models.DnCNN`
      - from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_
-       trained on noise level 2.0/255. `[grayscale weights] <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_gray.pth?download=true>`_ `[color weights] <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_color.pth?download=true>`_.
+       trained on noise level 2.0/255. `grayscale weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_gray.pth?download=true>`_, `color weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_color.pth?download=true>`_.
    * -
      - from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_ with Lipschitz
-       constraint to ensure approximate firm nonexpansiveness, trained on noise level 2.0/255. `[grayscale weights] <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_gray.pth?download=true>`_ `[color weights] <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true>`_.
+       constraint to ensure approximate firm nonexpansiveness, trained on noise level 2.0/255. `grayscale weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_gray.pth?download=true>`_, `color weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true>`_.
    * - :meth:`deepinv.models.DRUNet`
      - Default: trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
-       and on the same dataset as DPIR `[grayscale weights] <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_gray.pth?download=true>`_, `[color weights] <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_color.pth?download=true>`_.
+       and on the same dataset as DPIR `grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_gray.pth?download=true>`_, `color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_color.pth?download=true>`_.
    * -
      - from `DPIR <https://github.com/cszn/DPIR>`_,
-       trained on noise levels in [0, 50]/255. `[grayscale weights] <https://huggingface.co/deepinv/drunet/resolve/main/drunet_gray.pth?download=true>`_, `[color weights] <https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true>`_.
+       trained on noise levels in [0, 50]/255. `grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_gray.pth?download=true>`_, `color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true>`_.
    * - :meth:`deepinv.models.GSDRUNet`
      - weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 50]/255.
-       `[color weights] <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt>`_.
+       `color weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt>`_.
    * - :meth:`deepinv.models.SCUNet`
      - from `SCUNet <https://github.com/cszn/SCUNet>`_,
-       trained on images degraded with synthetic realistic noise and camera artefacts. `[color weights] <https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth?download=true>`_.
+       trained on images degraded with synthetic realistic noise and camera artefacts. `color weights <https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth?download=true>`_.
    * - :meth:`deepinv.models.SwinIR`
      - from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.
        The weights are automatically downloaded from the authors' `project page <https://github.com/JingyunLiang/SwinIR/releases>`_.
    * - :meth:`deepinv.models.DiffUNet`
      - Default: from `Ho et al. <https://arxiv.org/abs/2108.02938>`_ trained on FFHQ (128 hidden channels per layer).
-       `[weights] <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_ffhq_10m.pt?download=true>`_.
+       `weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_ffhq_10m.pt?download=true>`_.
    * -
      - from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
-       `[weights] <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
+       `weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
 
