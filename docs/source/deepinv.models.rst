@@ -39,7 +39,7 @@ Classical Denoisers
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser
    deepinv.models.WaveletDenoiser
-   deepinv.models.WaveletDict
+   deepinv.models.WaveletDictDenoiser
 
 
 Learnable Denoisers
