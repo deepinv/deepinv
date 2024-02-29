@@ -71,7 +71,7 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
     Standard gradient descent algorithm`.
 
     :param callable grad_f: gradient of function to bz minimized as a callable function.
-    :param torch.Tensor x: input tensor
+    :param torch.Tensor x: input tensor.
     :param torch.Tensor, float step_size: (constant) step size of the gradient descent algorithm.
     :param int max_iter: maximum number of iterations
     :param float tol: absolute tolerance for stopping the algorithm.
