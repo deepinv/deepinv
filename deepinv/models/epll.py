@@ -284,6 +284,9 @@ class GaussianMixtureModel(nn.Module):
 
         :param dict parameter_dict: dictionary containing parameters
         """
+        assert self.mu.shape == parameter_dict["mu"].shape
+        assert self._weights.shape == parameter_dict["weights"].shape
+        assert self._cov.shape == parameter_dict["cov"].shape
         self.mu = parameter_dict["mu"].to(self.mu)
         self.set_weights(parameter_dict["weights"])
         self.set_cov(parameter_dict["cov"])
@@ -360,7 +363,17 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-            self.mu = next(iter(dataloader))[0][: self.n_components].to(self.mu)
+            first_data = next(iter(dataloader))[0][: self.n_components].to(self.mu)
+            if first_data.shape[0] == self.n_components:
+                self.mu = first_data
+            else:
+                # if the first batch does not contain enough data points, fill up the others randomly...
+                self.mu[: first_data.shape[0]] = first_data
+                self.mu[first_data.shape[0] :] = torch.randn_like(
+                    self.mu[first_data.shape[0] :]
+                ) * torch.std(first_data, 0, keepdim=True) + torch.mean(
+                    first_data, 0, keepdim=True
+                )
 
         objective = 1e100
         for step in (progress_bar := tqdm(range(max_iters), disable=not verbose)):
@@ -411,6 +424,10 @@ class GaussianMixtureModel(nn.Module):
                 beta_times_x.transpose(1, 2),
                 x[None, :, :].tile(self.n_components, 1, 1),
             )
+
+        # prevents division by zero if weights_new is zero
+        weights_new = torch.maximum(weights_new, torch.tensor(1e-5).to(weights_new))
+
         mu_new = mu_new / weights_new[:, None]
         cov_new = C_new / weights_new[:, None, None] - torch.matmul(
             mu_new[:, :, None], mu_new[:, None, :]
