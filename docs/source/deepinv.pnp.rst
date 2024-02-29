@@ -43,7 +43,7 @@ minimization problems of the form
 .. math::
     \begin{equation*}
     \label{eq:min_prob}
-    \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + g_{\theta}(x),
+    \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
     \end{equation*}
 
 
@@ -77,6 +77,8 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.RED
    deepinv.optim.ScorePrior
    deepinv.optim.Tikhonov
+   deepinv.optim.L1Prior
+   deepinv.optim.TVPrior
 
 
 We refer the reader to the Denoiser section of the :ref:`Models <models>` documentation for more details on how to implement a

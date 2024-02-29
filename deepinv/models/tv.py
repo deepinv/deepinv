@@ -10,7 +10,7 @@ class TVDenoiser(nn.Module):
 
     .. math::
 
-        \underset{x}{\arg\min} \;  \frac{1}{2}\|x-y\|_2^2 + \lambda \|Dx\|_{1,2},
+        \underset{x}{\arg\min} \;  \frac{1}{2}\|x-y\|_2^2 + \gamma \|Dx\|_{1,2},
 
     where :math:`D` maps an image to its gradient field.
 
@@ -81,7 +81,7 @@ class TVDenoiser(nn.Module):
         Computes the proximity operator of the TV norm.
 
         :param torch.Tensor y: Noisy image.
-        :param float, torch.Tensor ths: Regularization parameter.
+        :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`.
         :return: Denoised image.
         """
         restart = (
