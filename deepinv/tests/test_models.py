@@ -12,7 +12,7 @@ MODEL_LIST_1_CHANNEL = [
     "median",
     "tgv",
     "waveletdenoiser",
-    "waveletdict",
+    "waveletdictdenoiser",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -62,11 +62,11 @@ def choose_denoiser(name, imsize):
     elif name == "waveletdenoiser":
         out = dinv.models.WaveletDenoiser()
     elif name == "waveletdict":
-        out = dinv.models.WaveletDict()
+        out = dinv.models.WaveletDictDenoiser()
     elif name == "waveletdict_hard":
-        out = dinv.models.WaveletDict(non_linearity="hard")
+        out = dinv.models.WaveletDictDenoiser(non_linearity="hard")
     elif name == "waveletdict_topk":
-        out = dinv.models.WaveletDict(non_linearity="topk")
+        out = dinv.models.WaveletDictDenoiser(non_linearity="topk")
     elif name == "tgv":
         out = dinv.models.TGVDenoiser(n_it_max=10)
     elif name == "tv":
@@ -203,7 +203,7 @@ def test_wavelet_models_identity():
                 x, x_hat, atol=1e-5
             )  # The model should be the identity
 
-        model = dinv.models.WaveletDict(
+        model = dinv.models.WaveletDictDenoiser(
             list_wv=["haar", "db3", "db8"], non_linearity="soft", wvdim=wvdim
         )
         x_hat = model(x, 0.0)
@@ -507,7 +507,7 @@ def test_PDNet(imsize_1_channel, device):
         ("SCUNet", "timm"),
         ("SwinIR", "timm"),
         ("WaveletDenoiser", "ptwt"),
-        ("WaveletDict", "ptwt"),
+        ("WaveletDictDenoiser", "ptwt"),
     ],
 )
 def test_optional_dependencies(denoiser, dep):

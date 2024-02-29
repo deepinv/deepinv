@@ -285,7 +285,7 @@ class WaveletDenoiser(nn.Module):
         return y
 
 
-class WaveletDict(nn.Module):
+class WaveletDictDenoiser(nn.Module):
     r"""
     Overcomplete Wavelet denoising with the :math:`\ell_1` norm.
 
