@@ -13,6 +13,7 @@ MODEL_LIST_1_CHANNEL = [
     "tgv",
     "waveletprior",
     "waveletdict",
+    "epll",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -77,6 +78,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
+    elif name == "epll":
+        out = dinv.models.EPLL(channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 

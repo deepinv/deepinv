@@ -20,16 +20,14 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # %%
 # Load test image and model
 # ----------------------------------------
-# We load pretrained weights for the Gaussian mixture model which where estimted based
+# As default EPLL loads pretrained weights for the Gaussian mixture model which where estimted based
 # on 50 mio patches extracted from the BSDS500 dataset. An example how to estimate the parameters of GMM
 # is included in the demo for limited-angle CT with patch priors.
 
 url = "https://drive.google.com/uc?export=download&id=1qfRqryZdtVv86B0405Tv51wHkTmhuJhq"
 test_img = load_url_image(url, grayscale=True)
 patch_size = 6
-model_EPLL = EPLL(
-    pretrained_weights="GMM_BSDS_gray", patch_size=patch_size, device=device
-)
+model_EPLL = EPLL(patch_size=patch_size, device=device)
 
 # %%
 # Denoising

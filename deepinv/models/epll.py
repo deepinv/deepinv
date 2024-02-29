@@ -17,7 +17,7 @@ class EPLL(nn.Module):
     :param deepinv.models.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         None creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.
     :param int n_components: number of components of the generated GMM if GMM is None.
-    :param str pretrained_weights: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights.
+    :param str pretrained: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights, "download" for pretrained weights on the BSDS500 dataset, "GMM_lodopab_small" for the weights from the limited-angle CT example.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
     :param str device: defines device (cpu or cuda)
@@ -27,7 +27,7 @@ class EPLL(nn.Module):
         self,
         GMM=None,
         n_components=200,
-        pretrained_weights=None,
+        pretrained="download",
         patch_size=6,
         channels=1,
         device="cpu",
@@ -40,18 +40,27 @@ class EPLL(nn.Module):
         else:
             self.GMM = GMM
         self.patch_size = patch_size
-        if pretrained_weights:
-            if pretrained_weights[-3:] == ".pt":
-                weights = torch.load(pretrained_weights)
+        if pretrained:
+            if pretrained == "download":
+                if patch_size == 6 and (channels == 1 or channels == 3):
+                    pretrained = "GMM_BSDS_gray" if channels == 1 else "GMM_BSDS_color"
+                else:
+                    raise ValueError("Pretrained weights not found!")
+            if pretrained[-3:] == ".pt":
+                weights = torch.load(pretrained)
             else:
-                if pretrained_weights == "GMM_lodopab_small":
+                if pretrained == "GMM_lodopab_small":
                     assert patch_size == 3
                     assert channels == 1
                     url = "https://drive.google.com/uc?export=download&id=1SBe1tVqGscDa-JqaaKxenbO6WmGBkctH"
-                elif pretrained_weights == "GMM_BSDS_gray":
+                elif pretrained == "GMM_BSDS_gray":
                     assert patch_size == 6
                     assert channels == 1
                     url = "https://drive.google.com/uc?export=download&id=17d40IPycCf8Cb5RmOcrlPTq_AniBlYcK"
+                elif pretrained == "GMM_BSDS_color":
+                    assert patch_size == 6
+                    assert channels == 3
+                    url = "https://drive.google.com/uc?export=download&id=1SndTEXBDyPAOFepWSPTC1fxh-d812F75"
                 else:
                     raise ValueError("Pretrained weights not found!")
                 weights = load_torch_url(url)

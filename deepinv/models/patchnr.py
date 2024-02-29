@@ -21,7 +21,7 @@ class PatchNR(nn.Module):
         If rev=True, it considers the inverse of the normalizing flow.
         When set to None it is set to a dense invertible neural network built with the FrEIA library, where the number of
         invertible blocks and the size of the subnetworks is determined by the parameters num_lyers and sub_net_size.
-    :param str pretrained_weights: Define pretrained weights by its path to a ".pt" file
+    :param str pretrained: Define pretrained weights by its path to a ".pt" file, None for random initialization, "PatchNR_lodopab_small" for the weights from the limited-angle CT example.
     :param int patch_size: size of patches
     :param int channels: number of channels for the underlying images/patches.
     :param int num_layers: defines the number of blocks of the generated normalizing flow if normalizing_flow is None.
@@ -32,7 +32,7 @@ class PatchNR(nn.Module):
     def __init__(
         self,
         normalizing_flow=None,
-        pretrained_weights=None,
+        pretrained=None,
         patch_size=6,
         channels=1,
         num_layers=5,
@@ -75,11 +75,11 @@ class PatchNR(nn.Module):
             )
         else:
             self.normalizing_flow = normalizing_flow
-        if pretrained_weights:
-            if pretrained_weights[-3:] == ".pt":
-                weights = torch.load(pretrained_weights, map_location=device)
+        if pretrained:
+            if pretrained[-3:] == ".pt":
+                weights = torch.load(pretrained, map_location=device)
             else:
-                if pretrained_weights == "PatchNR_lodopab_small":
+                if pretrained == "PatchNR_lodopab_small":
                     assert patch_size == 3
                     assert channels == 1
                     file_name = "PatchNR_lodopab_small.pt"

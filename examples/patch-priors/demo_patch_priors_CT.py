@@ -92,7 +92,7 @@ epll_batch_size = 10000
 retrain = False
 if retrain:
     model_patchnr = PatchNR(
-        pretrained_weights=None,
+        pretrained=None,
         sub_net_size=patchnr_subnetsize,
         device=device,
         patch_size=patch_size,
@@ -110,7 +110,7 @@ if retrain:
     )
 
     model_epll = EPLL(
-        pretrained_weights=None,
+        pretrained=None,
         n_components=epll_num_components,
         patch_size=patch_size,
         device=device,
@@ -121,13 +121,13 @@ if retrain:
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
-        pretrained_weights="PatchNR_lodopab_small",
+        pretrained="PatchNR_lodopab_small",
         sub_net_size=patchnr_subnetsize,
         device=device,
         patch_size=patch_size,
     )
     model_epll = EPLL(
-        pretrained_weights="GMM_lodopab_small",
+        pretrained="GMM_lodopab_small",
         n_components=epll_num_components,
         patch_size=patch_size,
         device=device,
