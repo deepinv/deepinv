@@ -12,7 +12,7 @@ MODEL_LIST_1_CHANNEL = [
     "median",
     "tgv",
     "waveletdenoiser",
-    "waveletdictdenoiser",
+    "waveletdict",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
