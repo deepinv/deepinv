@@ -112,7 +112,7 @@ parameter estimation in GMMs.
    :template: myclass_template.rst
    :nosignatures: 
     
-    deepinv.models.GaussianMixtureModel
+    deepinv.models.epll.GaussianMixtureModel
 
 .. _pretrained-weights:
 Pretrained weights
@@ -155,4 +155,5 @@ associated reference and relevant details. All pretrained weights are hosted on
    * -
      - from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
        `[weights] <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
-
+   * - :meth:`deepinv.models.EPLL`
+     - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
