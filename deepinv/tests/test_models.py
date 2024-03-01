@@ -117,7 +117,6 @@ def test_TVs_adjoint():
 
 
 def test_wavelet_adjoints():
-
     pytest.importorskip(
         "ptwt",
         reason="This test requires pytorch_wavelets. It should be "
@@ -212,7 +211,6 @@ def test_wavelet_models_identity():
 
 
 def test_TV_models_identity():
-
     # Next priors are checked for 2D only
     x = torch.randn((4, 3, 31, 27))
 

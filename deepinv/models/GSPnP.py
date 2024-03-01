@@ -43,7 +43,7 @@ class GSPnP(nn.Module):
         :param torch.tensor x: Input image
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
-        #torch.set_grad_enabled(True)
+        # torch.set_grad_enabled(True)
         with torch.enable_grad():
             x = x.float()
             x = x.requires_grad_()
