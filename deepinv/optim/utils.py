@@ -1,4 +1,5 @@
 from deepinv.utils import zeros_like
+import torch
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -26,18 +27,22 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
 
 def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     """
-    Standard conjugate gradient algorithm to solve Ax=b
-        see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
-    :param A: Linear operator as a callable function, has to be square!
-    :param b: input tensor
-    :param max_iter: maximum number of CG iterations
-    :param tol: absolute tolerance for stopping the CG algorithm.
-    :return: torch tensor x verifying Ax=b
+    Standard conjugate gradient algorithm.
+
+    It solves the linear system :math:`Ax=b`, where :math:`A` is a (square) linear operator and :math:`b` is a tensor.
+
+    For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
+
+    :param (callable) A: Linear operator as a callable function, has to be square!
+    :param torch.Tensor b: input tensor
+    :param int max_iter: maximum number of CG iterations
+    :param float tol: absolute tolerance for stopping the CG algorithm.
+    :return: torch.Tensor :math:`x` verifying :math:`Ax=b`.
 
     """
 
     def dot(s1, s2):
-        dot = (s1 * s2).flatten().sum()
+        dot = (s1.conj() * s2).flatten().sum()
         return dot
 
     x = zeros_like(b)
@@ -51,7 +56,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
         alpha = rsold / dot(p, Ap)
         x = x + p * alpha
         r = r + Ap * (-alpha)
-        rsnew = dot(r, r)
+        rsnew = torch.real(dot(r, r))
         # print(rsnew.sqrt())
         if rsnew.sqrt() < tol:
             break
@@ -63,13 +68,14 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
 
 def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
     """
-    Standard gradient descent algorithm to solve min_x f(x)
-    :param grad_f: gradient of function to bz minimized as a callable function.
-    :param x: input tensor
-    :param step_size: (constant) step size of the gradient descent algorithm.
-    :param max_iter: maximum number of iterations
-    :param tol: absolute tolerance for stopping the algorithm.
-    :return: torch tensor x verifying min_x f(x)
+    Standard gradient descent algorithm`.
+
+    :param callable grad_f: gradient of function to bz minimized as a callable function.
+    :param torch.Tensor x: input tensor.
+    :param torch.Tensor, float step_size: (constant) step size of the gradient descent algorithm.
+    :param int max_iter: maximum number of iterations.
+    :param float tol: absolute tolerance for stopping the algorithm.
+    :return: torch.Tensor :math:`x` minimizing :math:`f(x)`.
 
     """
     for i in range(int(max_iter)):

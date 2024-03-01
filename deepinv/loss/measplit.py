@@ -13,7 +13,7 @@ class SplittingLoss(torch.nn.Module):
 
     .. math::
 
-        \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1,A_1}\|^2
+        \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2
 
     where :math:`R` is the trainable network. See https://pubmed.ncbi.nlm.nih.gov/32614100/.
 

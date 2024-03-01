@@ -22,7 +22,7 @@ class MRI(DecomposablePhysics):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    :param torch.tensor mask: the mask values should be binary.
+    :param torch.Tensor mask: the mask values should be binary.
         The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
 
