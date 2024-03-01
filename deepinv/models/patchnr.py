@@ -70,9 +70,7 @@ class PatchNR(nn.Module):
                 )
             nodes.append(Ff.OutputNode(nodes[-1], name="output"))
 
-            self.normalizing_flow = Ff.ReversibleGraphNet(nodes, verbose=False).to(
-                device
-            )
+            self.normalizing_flow = Ff.GraphINN(nodes, verbose=False).to(device)
         else:
             self.normalizing_flow = normalizing_flow
         if pretrained:

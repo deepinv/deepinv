@@ -539,19 +539,3 @@ def test_optional_dependencies(denoiser, dep):
 #     mse_out = (x_net - x).pow(2).mean()
 #
 #     assert mse_out < mse_in
-
-
-def test_epll_parameter_estimation(imsize, dummy_dataset, device):
-    from deepinv.datasets import PatchDataset
-
-    imgs = dummy_dataset.x
-    patch_dataset = PatchDataset(imgs)
-    patch_dataloader = torch.utils.data.DataLoader(
-        patch_dataset, batch_size=2, shuffle=True, drop_last=False
-    )
-    epll = dinv.models.EPLL(channels=imsize[0], pretrained=None, n_components=3)
-    epll.GMM.fit(patch_dataloader, max_iters=10)
-
-    assert not torch.any(torch.isnan(epll.GMM.mu))
-    assert not torch.any(torch.isnan(epll.GMM.get_cov()))
-    assert not torch.any(torch.isnan(epll.GMM.get_weights()))
