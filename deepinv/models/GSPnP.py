@@ -43,7 +43,6 @@ class GSPnP(nn.Module):
         :param torch.tensor x: Input image
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
-        # torch.set_grad_enabled(True)
         with torch.enable_grad():
             x = x.float()
             x = x.requires_grad_()
@@ -51,8 +50,6 @@ class GSPnP(nn.Module):
             JN = torch.autograd.grad(
                 N, x, grad_outputs=x - N, create_graph=True, only_inputs=True
             )[0]
-        # if not self.train:
-        #     torch.set_grad_enabled(False)
         Dg = x - N - JN
         return self.alpha * Dg
 
