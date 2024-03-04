@@ -23,10 +23,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # on 50 mio patches extracted from the BSDS500 dataset. An example how to estimate the parameters of GMM
 # is included in the demo for limited-angle CT with patch priors.
 
-url = get_image_url("butterfly.png")
-test_img = load_url_image(url, grayscale=True).to(device)
+url = get_image_url("CBSD_0010.png")
+test_img = load_url_image(url, grayscale=False).to(device)
 patch_size = 6
-model_EPLL = EPLL(patch_size=patch_size, device=device, pretrained='../../tmp/GMM_BSDS_gray_bis.pt')
+model_EPLL = EPLL(channels=test_img.shape[1], patch_size=patch_size, device=device)
 
 # %%
 # Denoising
