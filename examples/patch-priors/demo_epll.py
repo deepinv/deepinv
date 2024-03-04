@@ -25,7 +25,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # is included in the demo for limited-angle CT with patch priors.
 
 url = "https://drive.google.com/uc?export=download&id=1qfRqryZdtVv86B0405Tv51wHkTmhuJhq"
-test_img = load_url_image(url, grayscale=True)
+test_img = load_url_image(url, grayscale=True).to(device)
 patch_size = 6
 model_EPLL = EPLL(patch_size=patch_size, device=device)
 

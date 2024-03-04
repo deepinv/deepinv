@@ -59,8 +59,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 url = "https://drive.google.com/uc?export=download&id=1y5nA4IrVUwjDD-v6kg_oO7cNaCZ9lmSK"
 dataset = load_torch_url(url)
-train_imgs = dataset["train_imgs"]
-test_imgs = dataset["test_imgs"]
+train_imgs = dataset["train_imgs"].to(device)
+test_imgs = dataset["test_imgs"].to(device)
 img_size = train_imgs.shape[-1]
 
 patch_size = 3
