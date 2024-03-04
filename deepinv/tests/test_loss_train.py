@@ -200,12 +200,15 @@ def test_train_patchnr(imsize, dummy_dataset, device):
     # gray-valued
     test_sample = next(iter(dataloader)).mean(1, keepdim=True)
     patch_size = 3
-    patch_dataset = PatchDataset(test_sample, patch_size=patch_size)
+    patch_dataset = PatchDataset(test_sample.to(device), patch_size=patch_size)
     patchnr_dataloader = DataLoader(
         patch_dataset, batch_size=32, shuffle=True, drop_last=True
     )
     patchnr = dinv.models.PatchNR(
-        channels=test_sample.shape[1], patch_size=patch_size, sub_net_size=64
+        channels=test_sample.shape[1],
+        patch_size=patch_size,
+        sub_net_size=64,
+        device=device,
     )
     train_normalizing_flow(
         patchnr.normalizing_flow,
