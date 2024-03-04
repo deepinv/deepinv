@@ -40,6 +40,7 @@ class EPLL(nn.Module):
         else:
             self.GMM = GMM
         self.patch_size = patch_size
+        self.denoising_operator = Denoising(GaussianNoise())
         if pretrained:
             if pretrained == "download":
                 if patch_size == 6 and (channels == 1 or channels == 3):
@@ -63,9 +64,11 @@ class EPLL(nn.Module):
                     url = "https://drive.google.com/uc?export=download&id=1SndTEXBDyPAOFepWSPTC1fxh-d812F75"
                 else:
                     raise ValueError("Pretrained weights not found!")
-                weights = load_torch_url(url)
-            self.GMM.load_parameter_dict(weights)
-        self.denoising_operator = Denoising(GaussianNoise())
+                file_name = pretrained + ".pt"
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+            self.load_state_dict(weights)
 
     def forward(self, x, sigma, betas=None, batch_size=-1):
         r"""
@@ -201,12 +204,35 @@ class GaussianMixtureModel(nn.Module):
         self._covariance_regularization = None
         self.n_components = n_components
         self.dimension = dimension
-        self._weights = torch.ones((n_components,), device=device)
-        self.set_weights(self._weights)
-        self.mu = torch.zeros((n_components, dimension), device=device)
-        self._cov = 0.1 * torch.eye(dimension, device=device)[None, :, :].tile(
-            n_components, 1, 1
+        self._weights = nn.Parameter(
+            torch.ones((n_components,), device=device), requires_grad=False
         )
+        self.set_weights(self._weights)
+        self.mu = nn.Parameter(
+            torch.zeros((n_components, dimension), device=device), requires_grad=False
+        )
+        self._cov = nn.Parameter(
+            0.1
+            * torch.eye(dimension, device=device)[None, :, :].tile(n_components, 1, 1),
+            requires_grad=False,
+        )
+        self._cov_inv = nn.Parameter(
+            0.1
+            * torch.eye(dimension, device=device)[None, :, :].tile(n_components, 1, 1),
+            requires_grad=False,
+        )
+        self._cov_inv_reg = nn.Parameter(
+            0.1
+            * torch.eye(dimension, device=device)[None, :, :].tile(n_components, 1, 1),
+            requires_grad=False,
+        )
+        self._cov_reg = nn.Parameter(
+            0.1
+            * torch.eye(dimension, device=device)[None, :, :].tile(n_components, 1, 1),
+            requires_grad=False,
+        )
+        self._logdet_cov = nn.Parameter(self._weights.clone(), requires_grad=False)
+        self._logdet_cov_reg = nn.Parameter(self._weights.clone(), requires_grad=False)
         self.set_cov(self._cov)
 
     def set_cov(self, cov):
@@ -215,15 +241,19 @@ class GaussianMixtureModel(nn.Module):
 
         :param torch.Tensor cov: new covariance matrices in a n_components x dimension x dimension tensor
         """
-        self._cov = cov.to(self._cov)
-        self._logdet_cov = torch.logdet(self._cov)
-        self._cov_inv = torch.linalg.inv(self._cov)
+        self._cov.data = cov.detach().to(self._cov)
+        self._logdet_cov.data = torch.logdet(self._cov).detach().clone()
+        self._cov_inv.data = torch.linalg.inv(self._cov).detach().clone()
         if self._covariance_regularization:
-            self._cov_reg = self._cov + self._covariance_regularization * torch.eye(
-                self.dimension, device=self._cov.device
-            )[None, :, :].tile(self.n_components, 1, 1)
-            self._logdet_cov_reg = torch.logdet(self._cov_reg)
-            self._cov_inv_reg = torch.linalg.inv(self._cov_reg)
+            self._cov_reg.data = (
+                self._cov.detach().clone()
+                + self._covariance_regularization
+                * torch.eye(self.dimension, device=self._cov.device)[None, :, :].tile(
+                    self.n_components, 1, 1
+                )
+            )
+            self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
+            self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
 
     def set_cov_reg(self, reg):
         r"""
@@ -233,11 +263,15 @@ class GaussianMixtureModel(nn.Module):
         :param float reg: covariance regularization parameter
         """
         self._covariance_regularization = reg
-        self._cov_reg = self._cov + self._covariance_regularization * torch.eye(
-            self.dimension, device=self._cov.device
-        )[None, :, :].tile(self.n_components, 1, 1)
-        self._logdet_cov_reg = torch.logdet(self._cov_reg)
-        self._cov_inv_reg = torch.linalg.inv(self._cov_reg)
+        self._cov_reg.data = (
+            self._cov.detach().clone()
+            + self._covariance_regularization
+            * torch.eye(self.dimension, device=self._cov.device)[None, :, :].tile(
+                self.n_components, 1, 1
+            )
+        )
+        self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
+        self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
 
     def get_cov(self):
         r"""
@@ -259,7 +293,7 @@ class GaussianMixtureModel(nn.Module):
         """
         assert torch.min(weights) >= 0.0
         assert torch.sum(weights) > 0.0
-        self._weights = (weights / torch.sum(weights)).to(self._weights)
+        self._weights.data = (weights / torch.sum(weights)).detach().to(self._weights)
 
     def get_weights(self):
         r"""
@@ -267,29 +301,13 @@ class GaussianMixtureModel(nn.Module):
         """
         return self._weights.clone()
 
-    def get_parameter_dict(self):
+    def load_state_dict(self, *args, **kwargs):
         r"""
-        Creates dict with parameters
+        Override load_state_dict to maintain internal parameters.
         """
-        parameters = {
-            "weights": self._weights.clone().cpu(),
-            "mu": self.mu.cpu(),
-            "cov": self._cov.clone().cpu(),
-        }
-        return parameters
-
-    def load_parameter_dict(self, parameter_dict):
-        r"""
-        Loads dict with parameters
-
-        :param dict parameter_dict: dictionary containing parameters
-        """
-        assert self.mu.shape == parameter_dict["mu"].shape
-        assert self._weights.shape == parameter_dict["weights"].shape
-        assert self._cov.shape == parameter_dict["cov"].shape
-        self.mu = parameter_dict["mu"].to(self.mu)
-        self.set_weights(parameter_dict["weights"])
-        self.set_cov(parameter_dict["cov"])
+        super().load_state_dict(*args, **kwargs)
+        self.set_cov(self._cov)
+        self.set_weights(self._weights)
 
     def component_log_likelihoods(self, x, cov_regularization=False):
         r"""
