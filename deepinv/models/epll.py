@@ -61,7 +61,7 @@ class EPLL(nn.Module):
                 elif pretrained == "GMM_BSDS_color":
                     assert patch_size == 6
                     assert channels == 3
-                    url = "https://drive.google.com/uc?export=download&id=1SndTEXBDyPAOFepWSPTC1fxh-d812F75"
+                    url = "https://www.googleapis.com/drive/v3/files/1SndTEXBDyPAOFepWSPTC1fxh-d812F75?alt=media&key=AIzaSyDVCNpmfKmJ0gPeyZ8YWMca9ZOKz0CWdgs"
                 else:
                     raise ValueError("Pretrained weights not found!")
                 file_name = pretrained + ".pt"
@@ -400,7 +400,7 @@ class GaussianMixtureModel(nn.Module):
             )
             # stopping criterion
             self.set_weights = weights_new
-            self.mu = mu_new
+            self.mu.data = mu_new
             cov_new_reg = cov_new + cov_regularization * torch.eye(self.dimension)[
                 None, :, :
             ].tile(self.n_components, 1, 1).to(cov_new)
