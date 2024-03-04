@@ -289,7 +289,7 @@ class SCUNet(nn.Module):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
-    ....
+
     """
 
     def __init__(

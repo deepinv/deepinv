@@ -228,7 +228,7 @@ plot(
 
 # %%
 # Putting it all together: the DiffPIR algorithm
-# ---------------------------------------------
+# ------------------------------------------------
 #
 # We can now put all the steps together and implement the DiffPIR algorithm. The only remaining step is to set the
 # noise schedule (i.e. the sequence of noise powers and regularization parameters) appropriately. This is done with the
@@ -322,7 +322,7 @@ plot(
 
 # %%
 # Using the DiffPIR algorithm in your inverse problem
-# ---------------------------------------------
+# ------------------------------------------------------
 # You can readily use this algorithm via the :meth:`deepinv.sampling.DiffPIR` class.
 #
 # ::
