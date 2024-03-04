@@ -1,4 +1,5 @@
 from deepinv.utils import zeros_like
+import torch
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -37,7 +38,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     """
 
     def dot(s1, s2):
-        dot = (s1 * s2).flatten().sum()
+        dot = (s1.conj() * s2).flatten().sum()
         return dot
 
     x = zeros_like(b)
@@ -51,7 +52,7 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
         alpha = rsold / dot(p, Ap)
         x = x + p * alpha
         r = r + Ap * (-alpha)
-        rsnew = dot(r, r)
+        rsnew = torch.real(dot(r, r))
         # print(rsnew.sqrt())
         if rsnew.sqrt() < tol:
             break
