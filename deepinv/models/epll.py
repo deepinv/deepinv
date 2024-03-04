@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
-from deepinv.utils.demo import load_torch_url
+from .utils import get_weights_url
 from deepinv.physics import Denoising, GaussianNoise
 from tqdm import tqdm
 
@@ -47,24 +47,25 @@ class EPLL(nn.Module):
                 else:
                     raise ValueError("Pretrained weights not found!")
             if pretrained[-3:] == ".pt":
-                weights = torch.load(pretrained)
+                ckpt = torch.load(pretrained)
             else:
                 if pretrained == "GMM_lodopab_small":
                     assert patch_size == 3
                     assert channels == 1
-                    url = "https://drive.google.com/uc?export=download&id=1SBe1tVqGscDa-JqaaKxenbO6WmGBkctH"
                 elif pretrained == "GMM_BSDS_gray":
                     assert patch_size == 6
                     assert channels == 1
-                    url = "https://drive.google.com/uc?export=download&id=17d40IPycCf8Cb5RmOcrlPTq_AniBlYcK"
                 elif pretrained == "GMM_BSDS_color":
                     assert patch_size == 6
                     assert channels == 3
-                    url = "https://drive.google.com/uc?export=download&id=1SndTEXBDyPAOFepWSPTC1fxh-d812F75"
                 else:
-                    raise ValueError("Pretrained weights not found!")
-                weights = load_torch_url(url)
-            self.GMM.load_parameter_dict(weights)
+                    raise ValueError("Pretrained weights do not correspond to the chosen patch size and channels.")
+                file_name = pretrained+'.pt'
+                url = get_weights_url(model_name="EPLL", file_name=file_name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+            self.GMM.load_parameter_dict(ckpt)
         self.denoising_operator = Denoising(GaussianNoise())
 
     def forward(self, x, sigma, betas=None, batch_size=-1):
