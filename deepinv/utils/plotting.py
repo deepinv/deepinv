@@ -156,7 +156,10 @@ def plot(
             elif im.shape[1] > 3:
                 pimg = im[i, 0:3, :, :].type(torch.float32)
             else:
-                pimg = im[i, :, :, :].type(torch.float32)
+                if torch.is_complex(im):
+                    pimg = im[i, :, :, :].abs().type(torch.float32)
+                else:
+                    pimg = im[i, :, :, :].type(torch.float32)
             pimg = rescale_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
