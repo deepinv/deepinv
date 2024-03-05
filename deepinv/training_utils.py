@@ -543,9 +543,7 @@ def train_normalizing_flow(
 
     Uses the forward KL (maximum likelihood) loss function and the Adam optimizer.
 
-    :param torch.nn.Module model: Normalizing flow in the same format as in the FrEIA framework (i.e., the forward
-        method takes the data and the flag rev (default False) where rev=True indicates calling the inverse; the
-        forward method returns the output of the network and the log-determinant of the Jacobian of the flow.
+    :param torch.nn.Module model: Normalizing flow in the same format as in the `FrEIA <https://vislearn.github.io/FrEIA/_build/html/index.html>`_ framework (i.e., the forward method takes the data and the flag rev (default False) where rev=True indicates calling the inverse; the forward method returns the output of the network and the log-determinant of the Jacobian of the flow.
     :param torch.utils.data.DataLoader dataloader: contains training data.
     :param int epochs: number of epochs
     :param float learning_rate: learning rate
