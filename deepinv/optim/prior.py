@@ -1,8 +1,11 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
+from deepinv.models.wavdict import WaveletDenoiser
 
 
 class Prior(nn.Module):
@@ -289,9 +292,81 @@ class L1Prior(Prior):
         )
 
 
+class WaveletPrior(Prior):
+    r"""
+    Wavelet prior :math:`g(x) = \|\Psi x\|_{p}`.
+
+    :param int level: level of the wavelet transform. Default is 3.
+    :param str wv: wavelet name. Default is "db8".
+    :param float p: :math:`p`-norm of the prior. Default is 1.
+    :param str device: device on which the wavelet transform is computed. Default is "cpu".
+    :param int wvdim: dimension of the wavelet transform. Default is 2.
+    """
+
+    def __init__(self, level=3, wv="db8", p=1, device="cpu", wvdim=2, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        self.p = p
+        self.wv = wv
+        self.wvdim = wvdim
+        self.level = level
+        self.device = device
+        if p == 0:
+            self.non_linearity = "hard"
+        elif p == 1:
+            self.non_linearity = "soft"
+        elif p == np.inf or p == "inf":
+            self.non_linearity = "topk"
+        else:
+            raise ValueError("p should be 0, 1 or inf")
+        self.WaveletDenoiser = WaveletDenoiser(
+            level=self.level,
+            wv=self.wv,
+            device=self.device,
+            non_linearity=self.non_linearity,
+            wvdim=self.wvdim,
+        )
+
+    def g(self, x, ths=1.0, **kwargs):
+        r"""
+        Computes the regularizer
+
+        .. math::
+             \tau g(x) = \tau \|\Psi x\|_{p}
+
+
+        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{k}` is the :math:`k`-norm, with
+        :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
+        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        """
+        return ths * torch.norm(self.psi(x), p=self.p)
+
+    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+        r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: threshold parameter :math:`\tau`.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return self.WaveletDenoiser(x, ths=ths * gamma)
+
+    def psi(self, x):
+        r"""
+        Applies the (flattening) wavelet decomposition of x.
+        """
+        return self.WaveletDenoiser.psi(x, self.wv, self.level, self.wvdim)
+
+
 class TVPrior(Prior):
     r"""
     Total variation (TV) prior :math:`g(x) = \| D x \|_{1,2}`.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
     """
 
     def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):

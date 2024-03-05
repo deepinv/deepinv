@@ -6,7 +6,7 @@ from .dncnn import DnCNN
 from .artifactremoval import ArtifactRemoval
 from .tv import TVDenoiser
 from .tgv import TGVDenoiser
-from .wavdict import WaveletPrior, WaveletDict
+from .wavdict import WaveletDenoiser, WaveletDictDenoiser
 from .GSPnP import GSDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
