@@ -157,3 +157,5 @@ associated reference and relevant details. All pretrained weights are hosted on
        `weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
    * - :meth:`deepinv.models.EPLL`
      - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
+   * - 
+     - Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo

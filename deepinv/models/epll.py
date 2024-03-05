@@ -17,7 +17,7 @@ class EPLL(nn.Module):
     :param deepinv.models.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         None creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.
     :param int n_components: number of components of the generated GMM if GMM is None.
-    :param str pretrained: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights, "download" for pretrained weights on the BSDS500 dataset, "GMM_lodopab_small" for the weights from the limited-angle CT example.
+    :param str pretrained: Path to pretrained weights of the GMM with file ending .pt. None for no pretrained weights, "download" for pretrained weights on the BSDS500 dataset, "GMM_lodopab_small" for the weights from the limited-angle CT example. See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
     :param str device: defines device (cpu or cuda)
@@ -388,8 +388,8 @@ class GaussianMixtureModel(nn.Module):
                 self.mu.copy_(first_data)
             else:
                 # if the first batch does not contain enough data points, fill up the others randomly...
-                self.mu[: first_data.shape[0]] = first_data
-                self.mu[first_data.shape[0] :] = torch.randn_like(
+                self.mu.data[: first_data.shape[0]] = first_data
+                self.mu.data[first_data.shape[0] :] = torch.randn_like(
                     self.mu[first_data.shape[0] :]
                 ) * torch.std(first_data, 0, keepdim=True) + torch.mean(
                     first_data, 0, keepdim=True
