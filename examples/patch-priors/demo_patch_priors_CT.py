@@ -1,4 +1,6 @@
 r"""
+.. _patch-prior-demo:
+
 Patch priors for limited-angle computed tomography
 ====================================================================================================
 

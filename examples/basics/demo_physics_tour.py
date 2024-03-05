@@ -26,7 +26,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url, grayscale=False).to(device)
 
-x = torch.tensor(x, device=device, dtype=torch.float).permute(2, 0, 1).unsqueeze(0)
+x = torch.tensor(x, device=device, dtype=torch.float)
 x = torch.nn.functional.interpolate(x, size=(64, 64))
 img_size = x.shape[1:]
 # Set the global random seed from pytorch to ensure reproducibility of the example.
