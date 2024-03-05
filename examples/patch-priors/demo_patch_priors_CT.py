@@ -57,7 +57,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Here, we use downsampled images from the `"LoDoPaB-CT dataset" <https://zenodo.org/records/3384092>`_.
 # Moreover, we define the size of the used patches and generate the dataset of patches in the training images.
 
-url = "https://drive.google.com/uc?export=download&id=1y5nA4IrVUwjDD-v6kg_oO7cNaCZ9lmSK"
+url = "https://huggingface.co/datasets/deepinv/LoDoPaB-CT_toy/resolve/main/LoDoPaB-CT_small.pt"
 dataset = load_torch_url(url)
 train_imgs = dataset["train_imgs"].to(device)
 test_imgs = dataset["test_imgs"].to(device)
@@ -89,7 +89,7 @@ epll_batch_size = 10000
 # On the cpu, this takes up to a couple of minutes.
 # After training, we define the corresponding patch priors
 
-retrain = False
+retrain = True
 if retrain:
     model_patchnr = PatchNR(
         pretrained=None,
