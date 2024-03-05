@@ -19,7 +19,7 @@ from deepinv.utils.demo import load_url_image, get_image_url
 # Load image from the internet
 # ----------------------------
 #
-# This example uses the logo of the CNRS.
+# This example uses an image of the CBSD68 dataset.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
