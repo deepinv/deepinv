@@ -3,7 +3,7 @@ Patch priors for limited-angle computed tomography
 ====================================================================================================
 
 In this example we use patch priors for limited angle computed tomography. More precisely, we consider the 
-inverse problem :math:`y = \mathrm{noisy}(Ax)`, where :math`A` is the discretized Radon transform 
+inverse problem :math:`y = \mathrm{noisy}(Ax)`, where :math:`A` is the discretized Radon transform
 with :math:`100` equispace angles between 20 and 160 degrees.
 For the reconstruction, we minimize the variational problem
 
