@@ -544,8 +544,8 @@ def train_normalizing_flow(
     Uses the Adam optimizer and the forward Kullback-Leibler (maximum likelihood) loss function given by
 
     .. math::
-        \mathcal{L}(\theta)=\mathrm{KL}(P_X,{\mathcal{T}_\theta}_\#P_Z)=\mathbb{E}_{x\sim P_X}[p_{{\mathcal{T}_\theta}_\#P_Z}(x)]+\mathrm{const},   
-  
+        \mathcal{L}(\theta)=\mathrm{KL}(P_X,{\mathcal{T}_\theta}_\#P_Z)=\mathbb{E}_{x\sim P_X}[p_{{\mathcal{T}_\theta}_\#P_Z}(x)]+\mathrm{const},
+
     where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
 
     :param torch.nn.Module model: Normalizing flow in the same format as in the `FrEIA <https://vislearn.github.io/FrEIA/_build/html/index.html>`_ framework (i.e., the forward method takes the data and the flag rev (default False) where rev=True indicates calling the inverse; the forward method returns the output of the network and the log-determinant of the Jacobian of the flow.
