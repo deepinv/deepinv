@@ -6,10 +6,10 @@ from deepinv.utils import randn_like, TensorList
 
 def adjoint_function(A, input_size, device="cpu"):
     r"""
-    Provides adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
+    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
 
 
-    The function can be simply called as ``A_adjoint(y)``, e.g.
+    The generated function can be simply called as ``A_adjoint(y)``, for example:
 
     >>> import torch
     >>> from deepinv.physics.forward import adjoint_function
@@ -245,7 +245,7 @@ class LinearPhysics(Physics):
 
         .. note::
 
-            A_adjoint can be generated automatically using the :meth:`deepinv.physics.LinearPhysics.compute_adjoint`
+            A_adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function`
             method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
 
     :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
@@ -297,7 +297,7 @@ class LinearPhysics(Physics):
         >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
         True
 
-        The adjoint can be generated automatically using the :meth:`deepinv.physics.LinearPhysics.compute_adjoint` method
+        The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
 
         >>> from deepinv.utils import cal_psnr
@@ -503,7 +503,8 @@ class LinearPhysics(Physics):
     def A_dagger(self, y):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
-        ` conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
+        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
+        see :meth:`deepinv.optim.utils.conjugate_gradient`.
 
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
         otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.

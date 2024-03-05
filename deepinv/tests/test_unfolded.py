@@ -24,7 +24,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
     prior = [
-        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
         for i in range(max_iter)
     ]
 
@@ -82,7 +82,7 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
     prior = [
-        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
         for i in range(max_iter)
     ]
 
