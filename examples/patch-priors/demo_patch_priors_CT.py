@@ -89,7 +89,7 @@ epll_batch_size = 10000
 # On the cpu, this takes up to a couple of minutes.
 # After training, we define the corresponding patch priors
 
-retrain = True
+retrain = False
 if retrain:
     model_patchnr = PatchNR(
         pretrained=None,

@@ -384,7 +384,8 @@ class GaussianMixtureModel(nn.Module):
         if data_init:
             first_data = next(iter(dataloader))[0][: self.n_components].to(self.mu)
             if first_data.shape[0] == self.n_components:
-                self.mu = first_data
+                # self.mu = first_data
+                self.mu.copy_(first_data)
             else:
                 # if the first batch does not contain enough data points, fill up the others randomly...
                 self.mu[: first_data.shape[0]] = first_data
