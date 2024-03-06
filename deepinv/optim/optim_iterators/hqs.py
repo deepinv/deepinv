@@ -5,22 +5,22 @@ class HQSIteration(OptimIterator):
     r"""
     Single iteration of half-quadratic splitting.
 
-    Class for a single iteration of the Half-Quadratic Splitting (HQS) algorithm for minimising :math:`\lambda f(x) + g(x)`.
+    Class for a single iteration of the Half-Quadratic Splitting (HQS) algorithm for minimising :math:` f(x) + \lambda g(x)`.
     The iteration is given by
 
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= \operatorname{prox}_{\gamma \lambda f}(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\sigma g}(u_k).
+        u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
+        x_{k+1} &= \operatorname{prox}_{\sigma \lambda g}(u_k).
         \end{aligned}
         \end{equation*}
 
 
     where :math:`\gamma` and :math:`\sigma` are step-sizes. Note that this algorithm does not converge to
-    a minimizer of :math:`\lambda f(x) + g(x)`, but instead to a minimizer of
-    :math:`\lambda \gamma\, ^1f+\sigma g`, where :math:`^1f` denotes
+    a minimizer of :math:`f(x) + \lambda  g(x)`, but instead to a minimizer of
+    :math:` \gamma\, ^1f+\sigma \lambda g`, where :math:`^1f` denotes
     the Moreau envelope of :math:`f`
 
     """
@@ -51,7 +51,7 @@ class fStepHQS(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         return cur_data_fidelity.prox(
-            x, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
+            x, y, physics, gamma=cur_params["stepsize"]
         )
 
 
@@ -71,4 +71,4 @@ class gStepHQS(gStep):
         :param dict cur_prior: Class containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
-        return cur_prior.prox(x, cur_params["g_param"], gamma=cur_params["stepsize"])
+        return cur_prior.prox(x, cur_params["g_param"], gamma=cur_params["lambda"] * cur_params["stepsize"])
