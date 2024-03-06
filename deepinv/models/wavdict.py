@@ -82,6 +82,7 @@ class WaveletDenoiser(nn.Module):
     @staticmethod
     def psi(x, wavelet="db2", level=2, dimension=2):
         r"""
+        TODO: take only into account the detail coefficients for the loss computation
         Returns a flattened vector containing the wavelet coefficients.
         """
         if dimension == 2:

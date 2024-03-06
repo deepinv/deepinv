@@ -91,7 +91,7 @@ plt.show()
 
 # Create the wavelet denoiser
 wv = "db4"
-denoiser = dinv.models.wavdict.WaveletPrior(
+denoiser = dinv.models.wavdict.WaveletDenoiser(
     wv=wv,
     wvdim=3,
     level=3,
@@ -150,7 +150,7 @@ list_wv = ["haar", "db2", "db3", "db4"]
 non_linearity = "soft"
 list_prox = nn.ModuleList(
     [
-        dinv.models.wavdict.WaveletPrior(
+        dinv.models.wavdict.WaveletDenoiser(
             level=3, wv=wv, non_linearity=non_linearity, wvdim=3
         )
         for wv in list_wv
@@ -240,6 +240,6 @@ plt.show()
 # ::
 #
 #       y = physics(x)
-#       model = dinv.models.Wavdict(list_wv=["db8", "db4"], max_iter=10, non_linearity="soft", wvdim=3)
+#       model = dinv.models.WaveletDictDenoiser(list_wv=["db8", "db4"], max_iter=10, non_linearity="soft", wvdim=3)
 #       xhat = model(y, ths)
 #
