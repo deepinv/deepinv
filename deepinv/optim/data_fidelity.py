@@ -589,3 +589,58 @@ class L1(DataFidelity):
             if rel_crit < crit_conv and it > 2:
                 break
         return t
+
+
+class LogPoissonLikelihood(DataFidelity):
+    r"""
+    Log-Poisson negative log-likelihood.
+
+    .. math::
+
+        \datafid{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
+
+    Corresponds to LogPoissonNoise with the same arguments N0 and mu.
+    There is no closed-form of prox_d known.
+
+    :param float N0: average number of photons
+    :param float mu: normalization constant
+    """
+
+    def __init__(self, N0=1024.0, mu=1 / 50.0):
+        super().__init__()
+        self.mu = mu
+        self.N0 = N0
+
+    def d(self, x, y):
+        out1 = torch.exp(-x * self.mu) * self.N0
+        out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
+        return (out1 + out2).sum()
+
+
+if __name__ == "__main__":
+    import deepinv as dinv
+
+    # define a loss function
+    data_fidelity = L2()
+
+    # create a measurement operator dxd
+    A = torch.Tensor([[2, 0], [0, 0.5]])
+    A_forward = lambda v: torch.matmul(A, v)
+    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+
+    # Define two points of size Bxd
+    x = torch.Tensor([1, 4]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
+    y = torch.Tensor([1, 1]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
+
+    # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
+    f = data_fidelity(x, y, physics)  # print f gives 1.0
+    # Compute the gradient of :math:`f`
+    grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
+
+    # Compute the proximity operator of :math:`f`
+    prox = data_fidelity.prox(
+        x, y, physics, gamma=1.0
+    )  # print prox_fA gives [0.6000, 3.6000]

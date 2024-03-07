@@ -63,7 +63,8 @@ denoisers = [
     "bm3d",
     "timm",
     "PyWavelets",
-    "ptwt"
+    "ptwt",
+    "FrEIA"
 ]
 
 

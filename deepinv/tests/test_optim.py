@@ -315,7 +315,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     # here the prior model is common for all iterations
-    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -433,7 +433,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
-    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
     pytest.importorskip("ptwt")
 
@@ -453,7 +453,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    prior = RED(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
@@ -647,3 +647,42 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     assert torch.allclose(
         lamb * grad_deepinv, -subdiff, atol=1e-12
     )  # Optimality condition
+
+
+def test_patch_prior(imsize, dummy_dataset, device):
+    pytest.importorskip(
+        "FrEIA",
+        reason="This test requires FrEIA. It should be "
+        "installed with `pip install FrEIA",
+    )
+    torch.set_grad_enabled(True)
+    torch.manual_seed(0)
+    dataloader = DataLoader(
+        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    )  # 1. Generate a dummy dataset
+    # gray-valued
+    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+
+    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    epll = dinv.models.EPLL(channels=test_sample.shape[1], device=device)
+    patchnr = dinv.models.PatchNR(channels=test_sample.shape[1], device=device)
+    prior1 = dinv.optim.prior.PatchPrior(epll.negative_log_likelihood)
+    prior2 = dinv.optim.prior.PatchPrior(patchnr)
+    data_fidelity = L2()
+
+    lam = 1.0
+    x_out = []
+    for prior in [prior1, prior2]:
+        x = y.clone()
+        x.requires_grad_(True)
+        optimizer = torch.optim.Adam([x], lr=0.01)
+        for i in range(10):
+            optimizer.zero_grad()
+            loss = data_fidelity(x, y, physics) + prior(x, lam)
+            loss.backward()
+            optimizer.step()
+        x_out.append(x)
+
+    assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)

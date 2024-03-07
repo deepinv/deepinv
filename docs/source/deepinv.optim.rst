@@ -24,6 +24,12 @@ between the data :math:`y` and the forward operator :math:`A` applied to the var
 where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
 operator (see :meth:`deepinv.physics.Physics`)
 
+.. note::
+
+    The regularization term often (but not always) depends on a hyperparameter :math:`\sigma` that can be either fixed
+    or estimated. For example, if the regularization is implicitly defined by a denoiser,
+    the hyperparameter is the noise level.
+
 Optimization algorithms for minimizing the problem above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
 
@@ -75,6 +81,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.L2
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
+   deepinv.optim.LogPoissonLikelihood
 
 
 Priors
@@ -99,7 +106,9 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.ScorePrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
+   deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
+   deepinv.optim.PatchPrior
 
 
 .. _optim-params:
@@ -128,7 +137,7 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | multiplying the data fidelity term.
      - Should be positive.
    * - ``"g_param"``
-     - | Optional parameter to pass to the prior.
+     - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
        | For priors based on denoisers,
        | corresponds to the noise level.
      - Should be positive.
@@ -195,3 +204,15 @@ The following files contain the base classes for implementing generic optimizers
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
 
+
+Utils
+-------------
+We provide some useful utilities for optimization algorithms.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.optim.utils.conjugate_gradient
+    deepinv.optim.utils.gradient_descent

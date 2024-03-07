@@ -1,18 +1,22 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
+from deepinv.models.wavdict import WaveletDenoiser
+from deepinv.utils import patch_extractor
 
 
 class Prior(nn.Module):
     r"""
-    Prior term :math:`g(x)`.
+    Prior term :math:`\reg{x}`.
 
-    This is the base class for the prior term :math:`g(x)`. Similarly to the :meth:`deepinv.optim.DataFidelity` class,
+    This is the base class for the prior term :math:`\reg{x}`. Similarly to the :meth:`deepinv.optim.DataFidelity` class,
     this class comes with methods for computing
-    :math:`\operatorname{prox}_{g}` and :math:`\nabla g`.
-    To implement a custom prior, for an explicit prior, overwrite :math:`g` (do not forget to specify
+    :math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.
+    To implement a custom prior, for an explicit prior, overwrite :math:`\regname` (do not forget to specify
     `self.explicit_prior = True`)
 
     This base class is also used to implement implicit priors. For instance, in PnP methods, the method computing the
@@ -55,7 +59,7 @@ class Prior(nn.Module):
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Calculates the gradient of the prior term :math:`g` at :math:`x`.
+        Calculates the gradient of the prior term :math:`\regname` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
@@ -79,7 +83,7 @@ class Prior(nn.Module):
         **kwargs,
     ):
         r"""
-        Calculates the proximity operator of :math:`g` at :math:`x`. By default, the proximity operator is computed using internal gradient descent.
+        Calculates the proximity operator of :math:`\regname` at :math:`x`. By default, the proximity operator is computed using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
@@ -97,7 +101,7 @@ class Prior(nn.Module):
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula.
 
-        ::Warning:: Only valid for convex :math:`g`
+        ::Warning:: Only valid for convex :math:`\regname`
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
@@ -109,7 +113,7 @@ class Prior(nn.Module):
 
 class PnP(Prior):
     r"""
-    Plug-and-play prior :math:`\operatorname{prox}_{\gamma g}(x) = \operatorname{D}_{\sigma}(x)`.
+    Plug-and-play prior :math:`\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)`.
 
 
     :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
@@ -122,7 +126,7 @@ class PnP(Prior):
 
     def prox(self, x, sigma_denoiser, *args, **kwargs):
         r"""
-        Uses denoising as the proximity operator of the PnP prior :math:`g` at :math:`x`.
+        Uses denoising as the proximity operator of the PnP prior :math:`\regname` at :math:`x`.
 
         :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float sigma_denoiser: noise level parameter of the denoiser.
@@ -133,7 +137,7 @@ class PnP(Prior):
 
 class RED(Prior):
     r"""
-    Regularization-by-Denoising (RED) prior :math:`\nabla g(x) = \operatorname{Id} - \operatorname{D}_{\sigma}(x)`.
+    Regularization-by-Denoising (RED) prior :math:`\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)`.
 
 
     :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
@@ -146,7 +150,7 @@ class RED(Prior):
 
     def grad(self, x, sigma_denoiser, *args, **kwargs):
         r"""
-        Calculates the gradient of the prior term :math:`g` at :math:`x`.
+        Calculates the gradient of the prior term :math:`\regname` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
@@ -157,7 +161,7 @@ class RED(Prior):
 
 class ScorePrior(Prior):
     r"""
-    Score via MMSE denoiser :math:`\nabla g(x)=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`.
+    Score via MMSE denoiser :math:`\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`.
 
     This approximates the score of a distribution using Tweedie's formula, i.e.,
 
@@ -205,7 +209,7 @@ class ScorePrior(Prior):
 
 class Tikhonov(Prior):
     r"""
-    Tikhonov regularizer :math:`g(x) = \frac{1}{2}\| x \|_2^2`.
+    Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
     """
 
     def __init__(self, *args, **kwargs):
@@ -214,11 +218,11 @@ class Tikhonov(Prior):
 
     def g(self, x, ths=1.0):
         r"""
-        Computes the Tikhonov regularizer :math:`g(x) = \frac{\tau}{2}\| x \|_2^2`.
+        Computes the Tikhonov regularizer :math:`\reg{x} = \frac{\tau}{2}\| x \|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param float ths: regularization parameter :math:`\tau`.
-        :return: (torch.Tensor) prior :math:`g(x)`.
+        :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
         return (
             0.5
@@ -228,7 +232,7 @@ class Tikhonov(Prior):
 
     def grad(self, x):
         r"""
-        Calculates the gradient of the Tikhonov regularization term :math:`g` at :math:`x`.
+        Calculates the gradient of the Tikhonov regularization term :math:`\regname` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.Tensor) gradient at :math:`x`.
@@ -249,7 +253,7 @@ class Tikhonov(Prior):
 
 class L1Prior(Prior):
     r"""
-    :math:`\ell_1` prior :math:`g(x) = \| x \|_1`.
+    :math:`\ell_1` prior :math:`\reg{x} = \| x \|_1`.
 
     """
 
@@ -259,17 +263,17 @@ class L1Prior(Prior):
 
     def g(self, x, ths=1.0):
         r"""
-        Computes the regularizer :math:`g(x) = \tau\| x \|_1`.
+        Computes the regularizer :math:`\reg{x} = \tau\| x \|_1`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param float ths: threshold parameter :math:`\tau`.
-        :return: (torch.Tensor) prior :math:`g(x)`.
+        :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
         return ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
     def prox(self, x, ths=1.0, gamma=1.0):
         r"""
-        Calculates the proximity operator of the l1 regularization term :math:`g` at :math:`x`.
+        Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.
 
         More precisely, it computes
 
@@ -289,9 +293,95 @@ class L1Prior(Prior):
         )
 
 
+class WaveletPrior(Prior):
+    r"""
+    Wavelet prior :math:`\reg{x} = \|\Psi x\|_{p}`.
+
+    :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+    :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
+
+    .. note::
+        Following common practice in signal processing, only detail coefficients are regularized, and the approximation
+        coefficients are left untouched.
+
+    .. warning::
+        For 3D data, the computational complexity of the wavelet transform cubically with the size of the support. For
+        large 3D data, it is recommended to use wavelets with small support (e.g. db1 to db4).
+
+
+    :param int level: level of the wavelet transform. Default is 3.
+    :param str wv: wavelet name to choose among those available in `pywt <https://pywavelets.readthedocs.io/en/latest/>`_. Default is "db8".
+    :param float p: :math:`p`-norm of the prior. Default is 1.
+    :param str device: device on which the wavelet transform is computed. Default is "cpu".
+    :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    """
+
+    def __init__(self, level=3, wv="db8", p=1, device="cpu", wvdim=2, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        self.p = p
+        self.wv = wv
+        self.wvdim = wvdim
+        self.level = level
+        self.device = device
+        if p == 0:
+            self.non_linearity = "hard"
+        elif p == 1:
+            self.non_linearity = "soft"
+        elif p == np.inf or p == "inf":
+            self.non_linearity = "topk"
+        else:
+            raise ValueError("p should be 0, 1 or inf")
+        self.WaveletDenoiser = WaveletDenoiser(
+            level=self.level,
+            wv=self.wv,
+            device=self.device,
+            non_linearity=self.non_linearity,
+            wvdim=self.wvdim,
+        )
+
+    def g(self, x, ths=1.0, **kwargs):
+        r"""
+        Computes the regularizer
+
+        .. math::
+             \tau \reg{x} = \tau \|\Psi x\|_{p}
+
+
+        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+        :math:`p=0`, :math:`p=1`, or :math:`p=\infty`. As mentioned in the class description, only detail coefficients
+        are regularized, and the approximation coefficients are left untouched.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
+        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        """
+        return ths * torch.norm(self.psi(x), p=self.p)
+
+    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+        r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
+        Only detail coefficients are thresholded.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: threshold parameter :math:`\tau`.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return self.WaveletDenoiser(x, ths=ths * gamma)
+
+    def psi(self, x):
+        r"""
+        Applies the (flattening) wavelet decomposition of x.
+        """
+        return self.WaveletDenoiser.psi(x, self.wv, self.level, self.wvdim)
+
+
 class TVPrior(Prior):
     r"""
-    Total variation (TV) prior :math:`g(x) = \| D x \|_{1,2}`.
+    Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1,2}`.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
     """
 
     def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
@@ -337,3 +427,58 @@ class TVPrior(Prior):
         Applies the adjoint of the finite difference operator.
         """
         return self.TVModel.nabla_adjoint(x)
+
+
+class PatchPrior(Prior):
+    r"""
+    Patch prior :math:`g(x) = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches.
+
+    Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing
+    the NLLs of all (overlapping) patches in the image.
+
+    :param callable negative_patch_log_likelihood: NLL function on the patch space
+    :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
+    :param int patch_size: size of the patches
+    :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
+    """
+
+    def __init__(
+        self,
+        negative_patch_log_likelihood,
+        n_patches=-1,
+        patch_size=6,
+        pad=False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.negative_patch_log_likelihood = negative_patch_log_likelihood
+        self.explicit_prior = True
+        self.n_patches = n_patches
+        self.patch_size = patch_size
+        self.pad = pad
+
+    def g(self, x, ths=1.0):
+        if self.pad:
+            x = torch.cat(
+                (
+                    torch.flip(x[:, :, -self.patch_size : -1, :], (2,)),
+                    x,
+                    torch.flip(x[:, :, 1 : self.patch_size, :], (2,)),
+                ),
+                2,
+            )
+            x = torch.cat(
+                (
+                    torch.flip(x[:, :, :, -self.patch_size : -1], (3,)),
+                    x,
+                    torch.flip(x[:, :, :, 1 : self.patch_size], (3,)),
+                ),
+                3,
+            )
+
+        B = x.shape[0]
+        patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
+        reg = self.negative_patch_log_likelihood(patches)
+        reg = torch.mean(reg, -1)
+        return ths * reg

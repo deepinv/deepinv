@@ -11,8 +11,9 @@ MODEL_LIST_1_CHANNEL = [
     "dncnn",
     "median",
     "tgv",
-    "waveletprior",
+    "waveletdenoiser",
     "waveletdict",
+    "epll",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -27,7 +28,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
 
 
 def choose_denoiser(name, imsize):
-    if name.startswith("waveletdict") or name == "waveletprior":
+    if name.startswith("waveletdict") or name == "waveletdenoiser":
         pytest.importorskip(
             "ptwt",
             reason="This test requires pytorch_wavelets. It should be "
@@ -59,14 +60,14 @@ def choose_denoiser(name, imsize):
         out = dinv.models.BM3D()
     elif name == "dncnn":
         out = dinv.models.DnCNN(in_channels=imsize[0], out_channels=imsize[0])
-    elif name == "waveletprior":
-        out = dinv.models.WaveletPrior()
+    elif name == "waveletdenoiser":
+        out = dinv.models.WaveletDenoiser()
     elif name == "waveletdict":
-        out = dinv.models.WaveletDict()
+        out = dinv.models.WaveletDictDenoiser()
     elif name == "waveletdict_hard":
-        out = dinv.models.WaveletDict(non_linearity="hard")
+        out = dinv.models.WaveletDictDenoiser(non_linearity="hard")
     elif name == "waveletdict_topk":
-        out = dinv.models.WaveletDict(non_linearity="topk")
+        out = dinv.models.WaveletDictDenoiser(non_linearity="topk")
     elif name == "tgv":
         out = dinv.models.TGVDenoiser(n_it_max=10)
     elif name == "tv":
@@ -77,6 +78,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
+    elif name == "epll":
+        out = dinv.models.EPLL(channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 
@@ -117,7 +120,6 @@ def test_TVs_adjoint():
 
 
 def test_wavelet_adjoints():
-
     pytest.importorskip(
         "ptwt",
         reason="This test requires pytorch_wavelets. It should be "
@@ -145,7 +147,7 @@ def test_wavelet_adjoints():
     for dimension in ["2d", "3d"]:
         wvdim = 2 if dimension == "2d" else 3
 
-        model = dinv.models.WaveletPrior(wvdim=wvdim)
+        model = dinv.models.WaveletDenoiser(wvdim=wvdim)
 
         def A_f(x):
             dx = model.dwt(x)
@@ -191,7 +193,9 @@ def test_wavelet_models_identity():
             else torch.randn((4, 3, 31, 27, 29))
         )
         for non_linearity in ["soft", "hard"]:
-            model = dinv.models.WaveletPrior(non_linearity=non_linearity, wvdim=wvdim)
+            model = dinv.models.WaveletDenoiser(
+                non_linearity=non_linearity, wvdim=wvdim
+            )
             ths = (
                 0.0 if non_linearity in ["soft", "hard"] else 1.0
             )  # topk counts the number of coefficients to keep
@@ -201,7 +205,7 @@ def test_wavelet_models_identity():
                 x, x_hat, atol=1e-5
             )  # The model should be the identity
 
-        model = dinv.models.WaveletDict(
+        model = dinv.models.WaveletDictDenoiser(
             list_wv=["haar", "db3", "db8"], non_linearity="soft", wvdim=wvdim
         )
         x_hat = model(x, 0.0)
@@ -210,7 +214,6 @@ def test_wavelet_models_identity():
 
 
 def test_TV_models_identity():
-
     # Next priors are checked for 2D only
     x = torch.randn((4, 3, 31, 27))
 
@@ -504,8 +507,8 @@ def test_PDNet(imsize_1_channel, device):
         ("BM3D", "bm3d"),
         ("SCUNet", "timm"),
         ("SwinIR", "timm"),
-        ("WaveletPrior", "ptwt"),
-        ("WaveletDict", "ptwt"),
+        ("WaveletDenoiser", "ptwt"),
+        ("WaveletDictDenoiser", "ptwt"),
     ],
 )
 def test_optional_dependencies(denoiser, dep):
