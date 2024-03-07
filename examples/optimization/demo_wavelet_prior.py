@@ -59,9 +59,9 @@ dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 
 
 # %%
-# Generate a dataset of blurred images and load it.
+# Generate an inpainting problem
 # --------------------------------------------------------------------------------
-# We use the BlurFFT class from the physics module to generate a dataset of blurred images.
+# We use the Inpainting class from the physics module to generate an images with missing pixels.
 
 
 noise_level_img = 0.05  # Gaussian Noise standard deviation for the degradation
@@ -92,29 +92,29 @@ y = physics(x)
 # Exploring the wavelet prior.
 # ------------------------------------
 #
-# In this example, we will use the total variation prior, which can be done with the :meth:`deepinv.optim.prior.Prior`
-# class. The prior object represents the cost function of the prior (TV in this case), as well as convenient methods,
-# such as its proximal operator :math:`\text{prox}_{\tau g}`.
+# In this example, we will use the wavelet prior, which can be done with the :meth:`deepinv.optim.prior.WaveletPrior`
+# class. The prior object represents the cost function of the prior, as well as convenient methods,
+# such as its proximal operator :math:`\text{prox}_{\tau \regname}`.
 
-# Set up the total variation prior
+# Set up the wavelet prior
 prior = dinv.optim.prior.WaveletPrior(level=4, wv="db8", p=1, device=device)
 
-# Compute the total variation prior cost
+# Compute the wavelet prior cost
 cost_wv = prior(y)
-print(f"Cost TV: g(y) = {cost_wv:.2f}")
+print(f"Cost wavelet: g(y) = {cost_wv:.2f}")
 
-# Apply the proximal operator of the TV prior
+# Apply the proximal operator of the wavelet prior
 x_wv = prior.prox(y, ths=0.1)
 cost_wv_prox = prior(x_wv)
 
 # %%
 # .. note::
-#           The output of the proximity operator of TV is **not** the solution to our deblurring problem. It is only a
+#           The output of the proximity operator of the wavelet prior is **not** the solution to our inpainting problem. It is only a
 #           step towards the solution and is used in the proximal gradient descent algorithm to solve the inverse
 #           problem.
 #
 
-# Plot the input and the output of the TV proximal operator
+# Plot the input and the output of the wavelet proximal operator
 imgs = [y, x_wv]
 plot(
     imgs,
@@ -133,12 +133,12 @@ plot(
 # .. math::
 #
 #     \begin{equation*}
-#     \underset{x}{\operatorname{min}} \,\, \frac{\lambda}{2} \|Ax-y\|_2^2 + \tau \|\Psi x\|_{1,2}(x),
+#     \underset{x}{\operatorname{min}} \,\, \frac{\lambda}{2} \|Ax-y\|_2^2 + \tau \|\Psi x\|_{1}(x),
 #     \end{equation*}
 #
 #
-# where :math:`\lambda/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\|Dx\|_{2,1}(x)` is the total variation (TV)
-# norm of the image :math:`x`, and :math:`\lambda>0` and :math:`\tau>0` are regularisation parameters.
+# where :math:`\lambda/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\|\Psi x\|_{1}(x)` is a sparsity inducing
+# prior for the image :math:`x`, and :math:`\lambda>0` and :math:`\tau>0` are regularisation parameters.
 #
 # We use a Proximal Gradient Descent (PGD) algorithm to solve the inverse problem.
 
@@ -154,7 +154,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 stepsize = 1.0
-tau = 1e-1  # wavelet regularisation parameter
+tau = 2e-1  # wavelet regularisation parameter
 params_algo = {"stepsize": stepsize, "g_param": tau, "lambda": 1.0}
 max_iter = 300
 early_stop = True
