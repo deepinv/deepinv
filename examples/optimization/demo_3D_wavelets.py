@@ -53,7 +53,6 @@ physics = dinv.physics.GaussianNoise(sigma=noise_level_img)
 # Apply the degradation to the image
 y = physics(x)
 
-
 # Plot the input and the output of the degradation
 plt.figure(figsize=(6, 4))
 plt.subplot(231)
@@ -102,16 +101,16 @@ ths = noise_level_img * 2  # thresholding parameter
 x_hat = denoiser(y, ths)  # denoised volume
 psnr = dinv.utils.cal_psnr(x, x_hat)  # compute PSNR
 
-# Plot the denoised volume
-plt.figure(figsize=(6, 2))
-plt.subplot(131)
-plt.imshow(x_hat[0].squeeze()[90])
-plt.subplot(132)
-plt.imshow(x_hat[0].squeeze()[:, 108])
-plt.subplot(133)
-plt.imshow(x_hat[0].squeeze()[..., 90])
-plt.suptitle("Denoised brain volume. PSNR = {:.2f}dB".format(psnr))
-plt.show()
+# Plot
+list_images = [x_hat[0, :, 90, :, :], x_hat[0, :, :, 108, :], x_hat[0, :, :, :, 90]]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle="Denoised brain volume. PSNR = {:.2f}dB".format(psnr),
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
 
 
 # %%
@@ -172,16 +171,17 @@ x_cur = torch.mean(p_p.clone(), axis=0)
 for p in range(len(list_prox)):
     z_p[p, ...] = x_cur + z_p[p, ...].clone() - p_p[p, ...]
 
-# Plot the output
-plt.figure(figsize=(6, 2))
-plt.subplot(131)
-plt.imshow(x_cur[0].squeeze()[90])
-plt.subplot(132)
-plt.imshow(x_cur[0].squeeze()[:, 108])
-plt.subplot(133)
-plt.imshow(x_cur[0].squeeze()[..., 90])
-plt.suptitle("Denoised brain volume after one step")
-plt.show()
+
+# Plot after one step
+list_images = [x_cur[0, :, 90, :, :], x_cur[0, :, :, 108, :], x_cur[0, :, :, :, 90]]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle="Denoised brain volume after one step",
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
 
 
 # %%
@@ -221,21 +221,21 @@ for it in range(max_iter):
 psnr = dinv.utils.cal_psnr(x, x_cur)
 
 # Plot the output
-plt.figure(figsize=(6, 2))
-plt.subplot(131)
-plt.imshow(x_cur[0].squeeze()[90])
-plt.subplot(132)
-plt.imshow(x_cur[0].squeeze()[:, 108])
-plt.subplot(133)
-plt.imshow(x_cur[0].squeeze()[..., 90])
-plt.suptitle("Denoised brain volume after 10 steps. PSNR = {:.2f}dB".format(psnr))
-plt.show()
+list_images = [x_cur[0, :, 90, :, :], x_cur[0, :, :, 108, :], x_cur[0, :, :, :, 90]]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle="Denoised brain volume after 10 steps. PSNR = {:.2f}dB".format(psnr),
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
 
 
 # %%
 # Using the Dykstra-like algorithm for wavelet denoising.
 # -------------------------------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.models.WaveletDict` class.
+# You can readily use this algorithm via the :meth:`deepinv.models.WaveletDictDenoiser` class.
 #
 # ::
 #

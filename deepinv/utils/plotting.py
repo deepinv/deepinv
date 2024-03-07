@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 
-def config_matplotlib():
+def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
-    plt.rcParams.update({"font.size": 17})
+    plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
 
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
@@ -92,6 +92,10 @@ def plot(
     rescale_mode="min_max",
     show=True,
     return_fig=False,
+    figsize=None,
+    suptitle=None,
+    cmap="gray",
+    fontsize=17,
 ):
     r"""
     Plots a list of images.
@@ -122,9 +126,12 @@ def plot(
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
+    :param tuple[int] figsize: size of the figure.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
     """
     # Use the matplotlib config from deepinv
-    config_matplotlib()
+    config_matplotlib(fontsize=fontsize)
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -164,17 +171,22 @@ def plot(
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
+    if figsize is None:
+        figsize = (len(imgs) * 2, len(imgs[0]) * 2)
+
     fig, axs = plt.subplots(
         len(imgs[0]),
         len(imgs),
-        figsize=(len(imgs) * 2, len(imgs[0]) * 2),
+        figsize=figsize,
         squeeze=False,
     )
 
-    # plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
+    if suptitle:
+        plt.suptitle(suptitle)
+
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r, i].imshow(img, cmap="gray")
+            axs[r, i].imshow(img, cmap=cmap)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
@@ -185,7 +197,7 @@ def plot(
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
                 plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap="gray"
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
                 )
     if show:
         plt.show()

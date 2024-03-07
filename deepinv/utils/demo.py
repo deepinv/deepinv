@@ -140,7 +140,6 @@ def load_url_image(
     url=None, img_size=None, grayscale=False, resize_mode="crop", device="cpu"
 ):
     r"""
-
     Load an image from a URL and return a torch.Tensor.
 
     :param str url: URL of the image file.
@@ -171,19 +170,14 @@ def load_url_image(
     return x
 
 
-def load_url_data(
-    url=None,
-):
+def load_url_data(url=None):
     r"""
-
-    Load an array from url and returns it as a numpy array.
+    Load a numpy array from url.
 
     :param str url: URL of the image file.
-    :param str device: Device on which to load the image (gpu or cpu).
     :return: :class:`np.array` containing the data.
     """
-
     response = requests.get(url)
     response.raise_for_status()
-    img = np.load(BytesIO(response.content))
-    return img
+    array = np.load(BytesIO(response.content))
+    return array

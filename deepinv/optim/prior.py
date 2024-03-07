@@ -294,13 +294,20 @@ class L1Prior(Prior):
 
 class WaveletPrior(Prior):
     r"""
-    Wavelet prior :math:`g(x) = \|\Psi x\|_{p}`.
+    Wavelet prior :math:`\reg{x} = \|\Psi x\|_{p}`.
+
+    :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+    :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
+
+    .. note::
+        Following common practice in signal processing, only detail coefficients are regularized, and the approximation coefficients are left untouched.
+
 
     :param int level: level of the wavelet transform. Default is 3.
-    :param str wv: wavelet name. Default is "db8".
+    :param str wv: wavelet name to choose among those available in `pywt <https://pywavelets.readthedocs.io/en/latest/>`_. Default is "db8".
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
-    :param int wvdim: dimension of the wavelet transform. Default is 2.
+    :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
     """
 
     def __init__(self, level=3, wv="db8", p=1, device="cpu", wvdim=2, *args, **kwargs):
@@ -332,11 +339,12 @@ class WaveletPrior(Prior):
         Computes the regularizer
 
         .. math::
-             \tau g(x) = \tau \|\Psi x\|_{p}
+             \tau \reg{x} = \tau \|\Psi x\|_{p}
 
 
-        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{k}` is the :math:`k`-norm, with
-        :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
+        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+        :math:`p=0`, :math:`p=1`, or :math:`p=\infty`. As mentioned in the class description, only detail coefficients
+        are regularized, and the approximation coefficients are left untouched.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
@@ -345,7 +353,8 @@ class WaveletPrior(Prior):
         return ths * torch.norm(self.psi(x), p=self.p)
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
-        r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
+        r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
+        Only detail coefficients are thresholded.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float ths: threshold parameter :math:`\tau`.
