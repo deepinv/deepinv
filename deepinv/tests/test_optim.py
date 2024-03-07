@@ -241,7 +241,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                     stepsize
                 )  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    moreau_grad, - lamb * subdiff, atol=1e-8
+                    moreau_grad, -lamb * subdiff, atol=1e-8
                 )  # Optimality condition
             else:
                 subdiff = data_fidelity.grad(x, y, physics)
@@ -249,7 +249,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                     x - prior.prox(x, gamma=stepsize)
                 ) / stepsize  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    moreau_grad, - lamb * subdiff, atol=1e-8
+                    moreau_grad, -lamb * subdiff, atol=1e-8
                 )  # Optimality condition
         else:
             subdiff = prior.grad(x)
@@ -257,7 +257,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             # The optimality condition is then :math:`0 \in  \nabla f(x)+ \lambda \partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                grad_deepinv, - lamb * subdiff, atol=1e-8
+                grad_deepinv, -lamb * subdiff, atol=1e-8
             )  # Optimality condition
 
 
@@ -557,7 +557,7 @@ def test_CP_K(imsize, dummy_dataset, device):
                 data_fidelity.grad(K_forward(x), y, physics)
             )  # This test is only valid for differentiable data fidelity terms.
             assert torch.allclose(
-                grad_deepinv, - lamb * subdiff, atol=1e-12
+                grad_deepinv, -lamb * subdiff, atol=1e-12
             )  # Optimality condition
 
         else:
@@ -565,7 +565,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                grad_deepinv, - lamb * subdiff, atol=1e-12
+                grad_deepinv, -lamb * subdiff, atol=1e-12
             )  # Optimality condition
 
 
@@ -645,5 +645,5 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         data_fidelity.grad_d(A_forward(x), y)
     )  # This test is only valid for differentiable data fidelity terms.
     assert torch.allclose(
-        grad_deepinv, - lamb * subdiff, atol=1e-12
+        grad_deepinv, -lamb * subdiff, atol=1e-12
     )  # Optimality condition
