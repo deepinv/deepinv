@@ -173,6 +173,7 @@ def load_url_image(
 def load_torch_url(url):
     r"""
     Load an array from url and read it by torch.load.
+
     :param str url: URL of the image file.
     :return: whatever is pickled in the file.
     """
@@ -182,7 +183,7 @@ def load_torch_url(url):
     return out
 
 
-def load_url_data(url=None):
+def load_np_url(url=None):
     r"""
     Load a numpy array from url.
 

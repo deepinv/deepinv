@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-from deepinv.utils.demo import load_url_data
+from deepinv.utils.demo import load_np_url
 
 # %%
 # Setup paths for data loading and results.
@@ -40,7 +40,7 @@ torch.manual_seed(0)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-volume_data = load_url_data(
+volume_data = load_np_url(
     "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
 )
 volume_data = np.copy(volume_data[::-1, ...])
