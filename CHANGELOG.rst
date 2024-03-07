@@ -9,6 +9,8 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
+- Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
 
 
 Fixed
@@ -18,6 +20,7 @@ Fixed
 Changed
 ^^^^^^^
 - Changed WaveletPrior to WaveletDenoiser (:gh:`165` by `Julian Tachella`_) - 28/02/2024
+- Move from torchwavelets to ptwt (:gh:`162` by `Matthieu Terris`_) - 22/02/2024
 
 v0.1.1
 ----------------
@@ -104,3 +107,4 @@ Authors
 .. _Jules Dumouchel: https://github.com/Ruli0
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
+.. _Johannes Hertrich: https://johertrich.github.io/
