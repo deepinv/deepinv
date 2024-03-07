@@ -301,7 +301,12 @@ class WaveletPrior(Prior):
     :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
 
     .. note::
-        Following common practice in signal processing, only detail coefficients are regularized, and the approximation coefficients are left untouched.
+        Following common practice in signal processing, only detail coefficients are regularized, and the approximation
+        coefficients are left untouched.
+
+    .. warning::
+        For 3D data, the computational complexity of the wavelet transform cubically with the size of the support. For
+        large 3D data, it is recommended to use wavelets with small support (e.g. db1 to db4).
 
 
     :param int level: level of the wavelet transform. Default is 3.

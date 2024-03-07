@@ -8,5 +8,15 @@ from .data_fidelity import (
 )
 from .optimizers import BaseOptim, optim_builder
 from .fixed_point import FixedPoint
-from .prior import Prior, ScorePrior, Tikhonov, PnP, RED, L1Prior, TVPrior, PatchPrior
+from .prior import (
+    Prior,
+    ScorePrior,
+    Tikhonov,
+    PnP,
+    RED,
+    L1Prior,
+    TVPrior,
+    PatchPrior,
+    WaveletPrior,
+)
 from .optim_iterators.optim_iterator import OptimIterator
