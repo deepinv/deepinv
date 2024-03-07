@@ -33,7 +33,9 @@ DEG_DIR = BASE_DIR / "degradations"
 # Load base volume image and denoising operators.
 # ----------------------------------------------------------------------------------------
 # In this example, we use a T1-weighted brain MRI volume from the BrainWeb dataset (subject id 4) and we add
-# Gaussian random noise to it.
+# Gaussian random noise to it. Following the torch convention, the volume is of shape (C, D, H, W), where C is the
+# number of channels, D is the depth, H is the height, and W is the width. We use a single channel volume in this
+# example.
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
