@@ -92,6 +92,27 @@ Some more specific unfolded architectures are also available.
    deepinv.models.PDNet_PrimalBlock
    deepinv.models.PDNet_DualBlock
 
+Patch Priors
+------------
+Explicit priors using statistical models on the space of patches.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.models.EPLL
+    deepinv.models.PatchNR
+
+EPLL relys on Gaussian mixture models (GMMs). The following class contains an expectation maximization algorithm for
+parameter estimation in GMMs.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures: 
+    
+    deepinv.models.epll.GaussianMixtureModel
 
 .. _pretrained-weights:
 Pretrained weights
@@ -134,4 +155,7 @@ associated reference and relevant details. All pretrained weights are hosted on
    * -
      - from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
        `weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
-
+   * - :meth:`deepinv.models.EPLL`
+     - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
+   * - 
+     - Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo
