@@ -22,7 +22,7 @@ class FixedPoint(nn.Module):
     ::
 
         # This example shows how to use the FixedPoint class to solve the problem
-        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
+        #                min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1
         # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
         # Create the measurement operator A

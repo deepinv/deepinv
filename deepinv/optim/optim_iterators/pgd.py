@@ -52,15 +52,10 @@ class fStepPGD(fStep):
          :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
-            grad = (
-                cur_params["stepsize"]
-                * cur_data_fidelity.grad(x, y, physics)
-            )
+            grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
             return gradient_descent_step(x, grad)
         else:
-            return cur_data_fidelity.prox(
-                x, y, physics, gamma=cur_params["stepsize"]
-            )
+            return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
 
 
 class gStepPGD(gStep):
@@ -81,8 +76,14 @@ class gStepPGD(gStep):
         """
         if not self.g_first:
             return cur_prior.prox(
-                x, cur_params["g_param"], gamma=cur_params["lambda"] * cur_params["stepsize"]
+                x,
+                cur_params["g_param"],
+                gamma=cur_params["lambda"] * cur_params["stepsize"],
             )
         else:
-            grad = cur_params["lambda"] * cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
+            grad = (
+                cur_params["lambda"]
+                * cur_params["stepsize"]
+                * cur_prior.grad(x, cur_params["g_param"])
+            )
             return gradient_descent_step(x, grad)

@@ -88,9 +88,7 @@ class fStepADMM(fStep):
             p = x + z
         else:
             p = x - z
-        return cur_data_fidelity.prox(
-            p, y, physics, gamma=cur_params["stepsize"]
-        )
+        return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
 
 
 class gStepADMM(gStep):
@@ -114,4 +112,8 @@ class gStepADMM(gStep):
             p = x - z
         else:
             p = x + z
-        return cur_prior.prox(p, cur_params["g_param"], gamma= cur_params["lambda"] * cur_params["stepsize"])
+        return cur_prior.prox(
+            p,
+            cur_params["g_param"],
+            gamma=cur_params["lambda"] * cur_params["stepsize"],
+        )

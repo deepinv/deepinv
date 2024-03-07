@@ -87,4 +87,4 @@ class gStepGD(gStep):
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
-        return cur_params["lambda"] *  cur_prior.grad(x, cur_params["g_param"])
+        return cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])
