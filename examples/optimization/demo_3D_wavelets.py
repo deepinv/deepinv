@@ -53,22 +53,28 @@ physics = dinv.physics.GaussianNoise(sigma=noise_level_img)
 # Apply the degradation to the image
 y = physics(x)
 
+# Compute the PSNR
+psnr = dinv.utils.cal_psnr(x, y)
+
 # Plot the input and the output of the degradation
-plt.figure(figsize=(6, 4))
-plt.subplot(231)
-plt.imshow(x[0].squeeze()[90])
-plt.subplot(232)
-plt.imshow(x[0].squeeze()[:, 108])
-plt.subplot(233)
-plt.imshow(x[0].squeeze()[..., 90])
-plt.subplot(234)
-plt.imshow(y[0].squeeze()[90])
-plt.subplot(235)
-plt.imshow(y[0].squeeze()[:, 108])
-plt.subplot(236)
-plt.imshow(y[0].squeeze()[..., 90])
-plt.suptitle("Top: groundtruth brain volume; bottom: noisy brain volume")
-plt.show()
+list_images = [x[0, :, 90, :, :], x[0, :, :, 108, :], x[0, :, :, :, 90]]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle="groundtruth brain volume",
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
+list_images = [y[0, :, 90, :, :], y[0, :, :, 108, :], y[0, :, :, :, 90]]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle="noisy brain volume, PSNR = {:.2f}dB".format(psnr),
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
 
 
 # %%
