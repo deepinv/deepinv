@@ -169,3 +169,16 @@ def load_url_image(
     transform = transforms.Compose(transform_list)
     x = transform(img).unsqueeze(0).to(device)
     return x
+
+
+def load_torch_url(url):
+    r"""
+    Load an array from url and read it by torch.load.
+    :param str url: URL of the image file.
+    :return: whatever is pickled in the file.
+    """
+
+    response = requests.get(url)
+    response.raise_for_status()
+    out = torch.load(BytesIO(response.content))
+    return out
