@@ -70,8 +70,8 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # The algorithm alternates between a denoising step and a gradient descent step.
 # The denoising step is performed by a DNCNN pretrained denoiser :class:`deepinv.models.DnCNN`.
 #
-# Set up the PnP algorithm parameters : the ``stepsize``, ``g_param`` the noise level of the denoiser
-# and ``lambda`` the regularization parameter. The following parameters have been chosen manually.
+# Set up the PnP algorithm parameters : the ``stepsize``, ``g_param`` the noise level of the denoiser.
+# The following parameters have been chosen manually.
 
 # Logging parameters
 verbose = True

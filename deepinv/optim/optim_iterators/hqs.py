@@ -63,7 +63,7 @@ class gStepHQS(gStep):
 
     def forward(self, x, cur_prior, cur_params):
         r"""
-        Single proximal step on the prior term :math:`g`.
+        Single proximal step on the prior term :math:` \lambda g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Class containing the current prior.

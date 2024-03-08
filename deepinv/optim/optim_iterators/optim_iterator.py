@@ -8,7 +8,7 @@ class OptimIterator(nn.Module):
     Base class for all :meth:`Optim` iterators.
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-    :math:`F = f + \lambda*g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    :math:`F = f + \lambda g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
     and g is a regularizer. The fixed point iteration takes the form
 
     .. math::
@@ -120,7 +120,7 @@ class fStep(nn.Module):
 
 class gStep(nn.Module):
     r"""
-    Module for the single iteration steps on the prior term :math:`g`.
+    Module for the single iteration steps on the prior term :math:` \lambda g`.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
     :param kwargs: Additional keyword arguments.

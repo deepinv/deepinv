@@ -230,7 +230,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         if name_algo == "HQS":
             # In this case, the algorithm does not converge to the minimum of :math:`f+\lambda g` but to that of
-            # :math:` M_{\tau f}+\lambda g` where :math:` M_{\tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\tau`.
+            # :math:` M_{\tau f}+ \lambda g` where :math:` M_{\tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\tau`.
             # Beware, these are not fetch automatically here but handwritten in the test.
             # The optimality condition is then :math:`0 \in M_{\tau f}(x)+ \lambda \partial g(x)`
             if not g_first:
@@ -246,10 +246,10 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             else:
                 subdiff = data_fidelity.grad(x, y, physics)
                 moreau_grad = (
-                    x - prior.prox(x, gamma=stepsize)
-                ) / stepsize  # Gradient of the moreau envelope
+                    x - prior.prox(x, gamma = lamb * stepsize)
+                ) / (lamb * stepsize)  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    moreau_grad, -lamb * subdiff, atol=1e-8
+                    lamb * moreau_grad, - subdiff, atol=1e-8
                 )  # Optimality condition
         else:
             subdiff = prior.grad(x)
@@ -562,7 +562,6 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         else:
             subdiff = K_adjoint(prior.grad(K_forward(x), 0))
-
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
                 grad_deepinv, -lamb * subdiff, atol=1e-12

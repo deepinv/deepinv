@@ -99,7 +99,7 @@ class gStepDRS(gStep):
 
     def forward(self, x, z, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`\lambda * g`.
+        Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x:  Current first variable.
         :param torch.Tensor z: Current second variable.
