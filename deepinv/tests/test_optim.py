@@ -245,11 +245,11 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 )  # Optimality condition
             else:
                 subdiff = data_fidelity.grad(x, y, physics)
-                moreau_grad = (
-                    x - prior.prox(x, gamma = lamb * stepsize)
-                ) / (lamb * stepsize)  # Gradient of the moreau envelope
+                moreau_grad = (x - prior.prox(x, gamma=lamb * stepsize)) / (
+                    lamb * stepsize
+                )  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    lamb * moreau_grad, - subdiff, atol=1e-8
+                    lamb * moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
         else:
             subdiff = prior.grad(x)
@@ -552,7 +552,6 @@ def test_CP_K(imsize, dummy_dataset, device):
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
         if not g_first:
             subdiff = prior.grad(x, 0)
-
             grad_deepinv = K_adjoint(
                 data_fidelity.grad(K_forward(x), y, physics)
             )  # This test is only valid for differentiable data fidelity terms.
