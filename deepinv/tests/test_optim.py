@@ -512,7 +512,6 @@ def test_CP_K(imsize, dummy_dataset, device):
         K_forward = lambda v: K @ v
         K_adjoint = lambda v: K.transpose(0, 1) @ v
 
-        # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
         stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
         reg_param = 1.0
         stepsize_dual = 1.0
@@ -551,7 +550,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
         if not g_first:
-            subdiff = prior.grad(x, 0)
+            subdiff = prior.grad(x)
             grad_deepinv = K_adjoint(
                 data_fidelity.grad(K_forward(x), y, physics)
             )  # This test is only valid for differentiable data fidelity terms.
@@ -560,7 +559,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             )  # Optimality condition
 
         else:
-            subdiff = K_adjoint(prior.grad(K_forward(x), 0))
+            subdiff = K_adjoint(prior.grad(K_forward(x)))
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
                 grad_deepinv, -lamb * subdiff, atol=1e-12
@@ -637,7 +636,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     assert optimalgo.has_converged
 
     # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-    subdiff = prior.grad(x, 0)
+    subdiff = prior.grad(x)
 
     grad_deepinv = A_adjoint(
         data_fidelity.grad_d(A_forward(x), y)

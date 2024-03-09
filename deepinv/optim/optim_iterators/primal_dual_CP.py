@@ -134,7 +134,7 @@ class gStepCP(gStep):
             return cur_prior.prox_conjugate(
                 p,
                 cur_params["g_param"],
-                gamma=cur_params["stepsize_dual"],
+                gamma=cur_params["lambda"]*cur_params["stepsize_dual"],
                 lamb=cur_params["lambda"],
             )
         else:
