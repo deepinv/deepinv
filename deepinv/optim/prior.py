@@ -299,12 +299,12 @@ class TVPrior(Prior):
         self.explicit_prior = True
         self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
 
-    def g(self, x, ths=1.0, **kwargs):
+    def g(self, x, *args, **kwargs):
         r"""
         Computes the regularizer
 
         .. math::
-             \tau g(x) = \tau \|Dx\|_{1,2}
+            g(x) = \|Dx\|_{1,2}
 
 
         where D is the finite differences linear operator,
@@ -314,17 +314,16 @@ class TVPrior(Prior):
         :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
         :return: (torch.Tensor) prior :math:`\tau g(x)`.
         """
-        return ths * torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
+        return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
-    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+    def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.TVModel(x, ths=ths * gamma)
+        return self.TVModel(x, ths=gamma)
 
     def nabla(self, x):
         r"""
