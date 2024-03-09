@@ -104,7 +104,7 @@ cost_wv = prior(y)
 print(f"Cost wavelet: g(y) = {cost_wv:.2f}")
 
 # Apply the proximal operator of the wavelet prior
-x_wv = prior.prox(y, ths=0.1)
+x_wv = prior.prox(y, gamma=0.1)
 cost_wv_prox = prior(x_wv)
 
 # %%
@@ -133,12 +133,12 @@ plot(
 # .. math::
 #
 #     \begin{equation*}
-#     \underset{x}{\operatorname{min}} \,\, \frac{\lambda}{2} \|Ax-y\|_2^2 + \tau \|\Psi x\|_{1}(x),
+#     \underset{x}{\operatorname{min}} \,\, \frac{1}{2} \|Ax-y\|_2^2 + \lambda \|\Psi x\|_{1}(x),
 #     \end{equation*}
 #
 #
-# where :math:`\lambda/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\|\Psi x\|_{1}(x)` is a sparsity inducing
-# prior for the image :math:`x`, and :math:`\lambda>0` and :math:`\tau>0` are regularisation parameters.
+# where :math:`1/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\|\Psi x\|_{1}(x)` is a sparsity inducing
+# prior for the image :math:`x`, and :math:`\lambda>0` is a regularisation parameters.
 #
 # We use a Proximal Gradient Descent (PGD) algorithm to solve the inverse problem.
 
@@ -154,8 +154,8 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 stepsize = 1.0
-tau = 2e-1  # wavelet regularisation parameter
-params_algo = {"stepsize": stepsize, "g_param": tau, "lambda": 1.0}
+lamb = 2e-1  # wavelet regularisation parameter
+params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
 
