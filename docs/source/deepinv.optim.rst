@@ -81,6 +81,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.L2
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
+   deepinv.optim.LogPoissonLikelihood
 
 
 Priors
@@ -105,7 +106,9 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.ScorePrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
+   deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
+   deepinv.optim.PatchPrior
 
 
 .. _optim-params:

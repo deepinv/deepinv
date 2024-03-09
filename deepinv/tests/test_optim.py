@@ -644,3 +644,42 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     assert torch.allclose(
         grad_deepinv, -lamb * subdiff, atol=1e-12
     )  # Optimality condition
+
+
+def test_patch_prior(imsize, dummy_dataset, device):
+    pytest.importorskip(
+        "FrEIA",
+        reason="This test requires FrEIA. It should be "
+        "installed with `pip install FrEIA",
+    )
+    torch.set_grad_enabled(True)
+    torch.manual_seed(0)
+    dataloader = DataLoader(
+        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    )  # 1. Generate a dummy dataset
+    # gray-valued
+    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+
+    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    epll = dinv.models.EPLL(channels=test_sample.shape[1], device=device)
+    patchnr = dinv.models.PatchNR(channels=test_sample.shape[1], device=device)
+    prior1 = dinv.optim.prior.PatchPrior(epll.negative_log_likelihood)
+    prior2 = dinv.optim.prior.PatchPrior(patchnr)
+    data_fidelity = L2()
+
+    lam = 1.0
+    x_out = []
+    for prior in [prior1, prior2]:
+        x = y.clone()
+        x.requires_grad_(True)
+        optimizer = torch.optim.Adam([x], lr=0.01)
+        for i in range(10):
+            optimizer.zero_grad()
+            loss = data_fidelity(x, y, physics) + prior(x, lam)
+            loss.backward()
+            optimizer.step()
+        x_out.append(x)
+
+    assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)

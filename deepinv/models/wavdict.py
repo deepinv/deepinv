@@ -79,6 +79,25 @@ class WaveletDenoiser(nn.Module):
             )
         return flat
 
+    @staticmethod
+    def psi(x, wavelet="db2", level=2, dimension=2):
+        r"""
+        Returns a flattened vector containing the wavelet coefficients.
+        """
+        if dimension == 2:
+            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode="zero", level=level)
+            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
+            vec = torch.hstack(
+                [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
+            )
+        elif dimension == 3:
+            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode="zero", level=level)
+            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
+            vec = torch.hstack(
+                [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
+            )
+        return vec
+
     def iwt(self, coeffs):
         r"""
         Applies the wavelet recomposition.
