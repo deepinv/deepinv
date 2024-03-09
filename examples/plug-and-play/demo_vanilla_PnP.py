@@ -71,13 +71,10 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # The denoising step is performed by a DNCNN pretrained denoiser :class:`deepinv.models.DnCNN`.
 #
 # Set up the PnP algorithm parameters : the ``stepsize``, ``g_param`` the noise level of the denoiser.
+# Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
+# Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-
-# Logging parameters
-verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
-params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.01}
+params_algo = {"stepsize": 0.01, "g_param": noise_level_img}
 max_iter = 100
 early_stop = True
 
@@ -93,6 +90,10 @@ denoiser = DnCNN(
     device=device,
 )
 prior = PnP(denoiser=denoiser)
+
+# Logging parameters
+verbose = True
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

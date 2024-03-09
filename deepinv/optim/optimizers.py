@@ -179,6 +179,10 @@ class BaseOptim(nn.Module):
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
 
+        # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
+        if "lambda" not in params_algo.keys():
+            params_algo["lambda"] = 1.0
+
         # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
         if "beta" not in params_algo.keys():
             params_algo["beta"] = 1.0
