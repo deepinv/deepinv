@@ -1,8 +1,12 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
+from deepinv.models.wavdict import WaveletDenoiser
+from deepinv.utils import patch_extractor
 
 
 class Prior(nn.Module):
@@ -289,9 +293,93 @@ class L1Prior(Prior):
         )
 
 
+class WaveletPrior(Prior):
+    r"""
+    Wavelet prior :math:`\reg{x} = \|\Psi x\|_{p}`.
+
+    :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+    :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
+
+    .. note::
+        Following common practice in signal processing, only detail coefficients are regularized, and the approximation
+        coefficients are left untouched.
+
+    .. warning::
+        For 3D data, the computational complexity of the wavelet transform cubically with the size of the support. For
+        large 3D data, it is recommended to use wavelets with small support (e.g. db1 to db4).
+
+
+    :param int level: level of the wavelet transform. Default is 3.
+    :param str wv: wavelet name to choose among those available in `pywt <https://pywavelets.readthedocs.io/en/latest/>`_. Default is "db8".
+    :param float p: :math:`p`-norm of the prior. Default is 1.
+    :param str device: device on which the wavelet transform is computed. Default is "cpu".
+    :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    """
+
+    def __init__(self, level=3, wv="db8", p=1, device="cpu", wvdim=2, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        self.p = p
+        self.wv = wv
+        self.wvdim = wvdim
+        self.level = level
+        self.device = device
+        if p == 0:
+            self.non_linearity = "hard"
+        elif p == 1:
+            self.non_linearity = "soft"
+        elif p == np.inf or p == "inf":
+            self.non_linearity = "topk"
+        else:
+            raise ValueError("p should be 0, 1 or inf")
+        self.WaveletDenoiser = WaveletDenoiser(
+            level=self.level,
+            wv=self.wv,
+            device=self.device,
+            non_linearity=self.non_linearity,
+            wvdim=self.wvdim,
+        )
+
+    def g(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer
+
+        .. math::
+             \reg{x} = \|\Psi x\|_{p}
+
+
+        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+        :math:`p=0`, :math:`p=1`, or :math:`p=\infty`. As mentioned in the class description, only detail coefficients
+        are regularized, and the approximation coefficients are left untouched.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        """
+        return torch.norm(self.psi(x), p=self.p)
+
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
+        Only detail coefficients are thresholded.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
+        """
+        return self.WaveletDenoiser(x, ths=gamma)
+
+    def psi(self, x):
+        r"""
+        Applies the (flattening) wavelet decomposition of x.
+        """
+        return self.WaveletDenoiser.psi(x, self.wv, self.level, self.wvdim)
+
+
 class TVPrior(Prior):
     r"""
     Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1,2}`.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
     """
 
     def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
@@ -336,3 +424,57 @@ class TVPrior(Prior):
         Applies the adjoint of the finite difference operator.
         """
         return self.TVModel.nabla_adjoint(x)
+
+
+class PatchPrior(Prior):
+    r"""
+    Patch prior :math:`g(x) = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches.
+
+    Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing
+    the NLLs of all (overlapping) patches in the image.
+
+    :param callable negative_patch_log_likelihood: NLL function on the patch space
+    :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
+    :param int patch_size: size of the patches
+    :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
+    """
+
+    def __init__(
+        self,
+        negative_patch_log_likelihood,
+        n_patches=-1,
+        patch_size=6,
+        pad=False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.negative_patch_log_likelihood = negative_patch_log_likelihood
+        self.explicit_prior = True
+        self.n_patches = n_patches
+        self.patch_size = patch_size
+        self.pad = pad
+
+    def g(self, x, *args, **kwargs):
+        if self.pad:
+            x = torch.cat(
+                (
+                    torch.flip(x[:, :, -self.patch_size : -1, :], (2,)),
+                    x,
+                    torch.flip(x[:, :, 1 : self.patch_size, :], (2,)),
+                ),
+                2,
+            )
+            x = torch.cat(
+                (
+                    torch.flip(x[:, :, :, -self.patch_size : -1], (3,)),
+                    x,
+                    torch.flip(x[:, :, :, 1 : self.patch_size], (3,)),
+                ),
+                3,
+            )
+
+        patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
+        reg = self.negative_patch_log_likelihood(patches)
+        reg = torch.mean(reg, -1)
+        return reg
