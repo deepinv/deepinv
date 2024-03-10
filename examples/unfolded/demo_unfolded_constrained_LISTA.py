@@ -143,7 +143,7 @@ test_dataloader = DataLoader(
 #          \end{aligned}
 #          \end{equation*}
 #
-# where :math:`\operatorname{D_{\sigma}}` is a wavelet denoiser with thresholding parameters :math:`\sigma`.
+# where :math:`\operatorname{D_{\theta}}` is a wavelet denoiser with thresholding parameters :math:`\theta`.
 #
 # The learnable parameters of our network are :math:`\tau` and :math:`\theta`.
 
@@ -162,9 +162,6 @@ prior = [
 ]
 
 # Unrolled optimization algorithm parameters
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
@@ -178,7 +175,6 @@ stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 params_algo = {
     "stepsize": stepsize,  # Stepsize for the primal update.
     "g_param": sigma_denoiser,  # prior parameter.
-    "lambda": lamb,  # Regularization parameter.
     "stepsize_dual": stepsize_dual,  # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
     "K": physics.A,
     "K_adjoint": physics.A_adjoint,
@@ -299,20 +295,15 @@ prior_new = [
 ]
 
 # Unrolled optimization algorithm parameters
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
-
 stepsize_dual = 1.0  # stepsize for Chambolle-Pock
 
 params_algo_new = {
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
-    "lambda": lamb,
     "stepsize_dual": stepsize_dual,
     "K": physics.A,
     "K_adjoint": physics.A_adjoint,
