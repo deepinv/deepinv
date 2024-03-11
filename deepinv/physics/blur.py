@@ -274,8 +274,8 @@ def conv_transpose(y, filter, padding):
     r"""
     Transposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
 
-    :param torch.tensor x: Image of size (B,C,W,H).
-    :param torch.tensor filter: Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
+    :param torch.Tensor x: Image of size (B,C,W,H).
+    :param torch.Tensor filter: Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -406,7 +406,7 @@ class BlindBlur(Physics):
 
             This trivial inverse can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
-        :param torch.tensor y: blurred measurement.
+        :param torch.Tensor y: blurred measurement.
         :return: Tuple containing the trivial inverse.
         """
         x = y.clone()
@@ -485,7 +485,7 @@ class BlurFFT(DecomposablePhysics):
 
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
+    :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
         :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str device: cpu or cuda
 

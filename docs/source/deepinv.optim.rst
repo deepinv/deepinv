@@ -62,7 +62,7 @@ for all optimization algorithms.
 
    deepinv.optim.BaseOptim
 
-
+.. _data-fidelity:
 Data Fidelity
 -------------
 This is the base class for the data fidelity term :math:`\distance{Ax}{y}` where :math:`A` is a linear operator,
@@ -84,6 +84,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.LogPoissonLikelihood
 
 
+.. _priors:
 Priors
 ------
 This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and
@@ -109,6 +110,7 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
    deepinv.optim.PatchPrior
+   deepinv.optim.PatchNR
 
 
 .. _optim-params:
@@ -216,3 +218,4 @@ We provide some useful utilities for optimization algorithms.
 
     deepinv.optim.utils.conjugate_gradient
     deepinv.optim.utils.gradient_descent
+    deepinv.optim.utils.GaussianMixtureModel

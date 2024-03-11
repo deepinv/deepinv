@@ -9,8 +9,7 @@ The paper can be found at https://arxiv.org/pdf/2209.11888.pdf.
 
 The DDRM method requires that
 
-* The operator has a singular value decomposition (i.e., the operator is a
-:class:`deepinv.physics.DecomposablePhysics`).
+* The operator has a singular value decomposition (i.e., the operator is a :class:`deepinv.physics.DecomposablePhysics`).
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
 
 
@@ -57,7 +56,7 @@ physics = dinv.physics.Inpainting(
 # --------------------------------------------------------------
 #
 # The diffusion method requires an MMSE denoiser that can be evaluated a various noise levels.
-# Here we use a pretrained DRUNET denoiser from the :ref:`models <Models>` module.
+# Here we use a pretrained DRUNET denoiser from the :ref:`denoisers <denoisers>` module.
 
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 

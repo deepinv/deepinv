@@ -40,7 +40,7 @@ class GSPnP(nn.Module):
         r"""
         Calculate :math:`\nabla g` the gradient of the regularizer :math:`g` at input :math:`x`.
 
-        :param torch.tensor x: Input image
+        :param torch.Tensor x: Input image
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
         with torch.enable_grad():
@@ -57,7 +57,7 @@ class GSPnP(nn.Module):
         r"""
         Denoising with Gradient Step Denoiser
 
-        :param torch.tensor x: Input image
+        :param torch.Tensor x: Input image
         :param float sigma: Denoiser level (std)
         """
         Dg = self.potential_grad(x, sigma)

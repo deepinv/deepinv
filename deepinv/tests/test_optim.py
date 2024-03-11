@@ -474,6 +474,27 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     assert red.has_converged
 
 
+def test_dpir(imsize, dummy_dataset, device):
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_sample = next(iter(dataloader)).to(device)
+
+    # 2. Set a physical experiment (here, deblurring)
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(0.1),
+    )
+    y = physics(test_sample)
+    model = dinv.optim.DPIR(0.1, device=device)
+    out = model(y, physics)
+
+    in_psnr = dinv.utils.cal_psnr(test_sample, y)
+    out_psnr = dinv.utils.cal_psnr(out, test_sample)
+
+    assert out_psnr > in_psnr
+
+
 def test_CP_K(imsize, dummy_dataset, device):
     r"""
     This test checks that the CP algorithm converges to the solution of the following problem:

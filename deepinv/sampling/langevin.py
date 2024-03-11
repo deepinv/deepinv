@@ -102,7 +102,7 @@ class MonteCarlo(nn.Module):
         r"""
         Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
-        :param torch.tensor y: Measurements
+        :param torch.Tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
