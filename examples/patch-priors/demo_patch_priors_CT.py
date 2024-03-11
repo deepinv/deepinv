@@ -42,7 +42,6 @@ We consider the following two choices of :math:`h`:
 
 import torch
 from deepinv.datasets import PatchDataset
-from deepinv.models import EPLLDenoiser
 from torch.utils.data import DataLoader
 from deepinv.training_utils import train_normalizing_flow
 from deepinv.physics import LogPoissonNoise, Tomography

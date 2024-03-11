@@ -79,7 +79,7 @@ def choose_denoiser(name, imsize):
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
     elif name == "epll":
-        out = dinv.models.EPLL(channels=imsize[0])
+        out = dinv.models.EPLLDenoiser(channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 
