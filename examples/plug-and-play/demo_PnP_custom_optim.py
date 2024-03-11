@@ -28,7 +28,7 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 #
 # .. math::
 #         \begin{align*}
-#         v_k = x_k-\tau A^\top z_k
+#         v_k &= x_k-\tau A^\top z_k \\
 #         x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
 #         u_k &= z_k + \sigma A(2x_{k+1}-x_k) \\
 #         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
@@ -201,10 +201,12 @@ num_workers = 4 if torch.cuda.is_available() else 0
 #
 # The primal dual stepsizes :math:`\tau` as ``stepsize`` and :math:`\sigma` as ``sigma``,
 # ``g_param`` the noise level of the denoiser.
-
+#
+# For the denoiser, we choose the 1-Lipschitz grayscale DnCNN model (see the :ref:`pretrained-weights <pretrained-weights>`).
+#
 
 # Set up the PnP algorithm parameters :
-params_algo = {"stepsize": 0.5, "g_param": 0.01, "sigma": 1.0}
+params_algo = {"stepsize": 0.99, "g_param": 0.01, "sigma": 0.99}
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
@@ -215,7 +217,7 @@ data_fidelity = L2()
 denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
-    pretrained="download",
+    pretrained="download_lipschitz",
     train=False,
     device=device,
 )
