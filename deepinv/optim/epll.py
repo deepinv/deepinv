@@ -25,7 +25,7 @@ class EPLL(nn.Module):
     :param None, deepinv.optim.utils.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         ``None`` creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.
     :param int n_components: number of components of the generated GMM if GMM is ``None``.
-    :param str pretrained: Path to pretrained weights of the GMM with file ending ``.pt``. None for no pretrained weights,
+    :param str, None pretrained: Path to pretrained weights of the GMM with file ending ``.pt``. None for no pretrained weights,
         ``"download"`` for pretrained weights on the BSDS500 dataset, ``"GMM_lodopab_small"`` for the weights from the limited-angle CT example.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int patch_size: patch size.
