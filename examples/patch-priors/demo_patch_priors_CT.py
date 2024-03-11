@@ -42,11 +42,11 @@ We consider the following two choices of :math:`h`:
 
 import torch
 from deepinv.datasets import PatchDataset
-from deepinv.models import EPLL, PatchNR
+from deepinv.models import EPLLDenoiser
 from torch.utils.data import DataLoader
 from deepinv.training_utils import train_normalizing_flow
 from deepinv.physics import LogPoissonNoise, Tomography
-from deepinv.optim import LogPoissonLikelihood, PatchPrior
+from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.utils import cal_psnr, plot
 from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
@@ -123,13 +123,13 @@ if retrain:
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
-        pretrained="PatchNR_lodopab_small",
+        pretrained="PatchNR_lodopab_small2",
         sub_net_size=patchnr_subnetsize,
         device=device,
         patch_size=patch_size,
     )
     model_epll = EPLL(
-        pretrained="GMM_lodopab_small",
+        pretrained="GMM_lodopab_small2",
         n_components=epll_num_components,
         patch_size=patch_size,
         device=device,

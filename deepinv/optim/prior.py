@@ -561,7 +561,7 @@ class PatchNR(nn.Module):
             if pretrained[-3:] == ".pt":
                 weights = torch.load(pretrained, map_location=device)
             else:
-                if pretrained == "PatchNR_lodopab_small":
+                if pretrained.startswith("PatchNR_lodopab_small"):
                     assert patch_size == 3
                     assert channels == 1
                     file_name = "PatchNR_lodopab_small.pt"

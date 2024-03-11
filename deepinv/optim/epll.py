@@ -50,11 +50,12 @@ class EPLL(nn.Module):
         else:
             self.GMM = GMM
         self.patch_size = patch_size
+
         if pretrained:
             if pretrained[-3:] == ".pt":
                 ckpt = torch.load(pretrained)
             else:
-                if pretrained == "GMM_lodopab_small":
+                if pretrained.startswith("GMM_lodopab_small"):
                     assert patch_size == 3
                     assert channels == 1
                     file_name = pretrained + ".pt"
@@ -63,13 +64,13 @@ class EPLL(nn.Module):
                     and patch_size == 6
                     and channels == 1
                 ):
-                    file_name = "GMM_BSDS_gray.pt"
+                    file_name = "GMM_BSDS_gray2.pt"
                 elif (
                     (pretrained == "GMM_BSDS_color" or pretrained == "download")
                     and patch_size == 6
                     and channels == 3
                 ):
-                    file_name = "GMM_BSDS_color.pt"
+                    file_name = "GMM_BSDS_color2.pt"
                 else:
                     raise ValueError(
                         "No pretrained weights found for this configuration!"
@@ -80,20 +81,28 @@ class EPLL(nn.Module):
                 )
             self.load_state_dict(ckpt)
 
-    def forward(self, y, physics, x_init=None, betas=None, batch_size=-1):
+    def forward(self, y, physics, sigma=None, x_init=None, betas=None, batch_size=-1):
         r"""
         Approximated half-quadratic splitting method for image reconstruction as proposed by Zoran and Weiss.
 
         :param torch.Tensor y: tensor of observations. Shape: batch size x ...
-        :param torch.Tensor x_init: tensor of initializations. Shape: batch size x channels x height x width
-        :param deepinv.physics.LinearPhysics physics: Forward operator. Has to be linear. Requires physics.A and physics.A_adjoint.
-        :param list[float] betas: parameters from the half-quadratic splitting. None uses the standard choice 1/sigma_sq [1,4,8,16,32]
+        :param torch.Tensor, None x_init: tensor of initializations. If ``None`` uses initializes with the adjoint of the forward operator.
+            Shape: batch size x channels x height x width
+        :param deepinv.physics.LinearPhysics physics: Forward linear operator.
+        :param list[float] betas: parameters from the half-quadratic splitting. ``None`` uses the standard choice ``[1,4,8,16,32]/sigma_sq``
         :param int batch_size: batching the patch estimations for large images. No effect on the output, but a small value reduces the memory consumption
             but might increase the computation time. -1 for considering all patches at once.
         """
 
-        if hasattr(physics.noise_model, "sigma"):
-            sigma = physics.noise_model.sigma
+        x_init = physics.A_adjoint(y) if x_init is None else x_init
+
+        if sigma is None:
+            if hasattr(physics.noise_model, "sigma"):
+                sigma = physics.noise_model.sigma
+            else:
+                raise ValueError(
+                    "Noise level sigma has to be provided if not present in the physics model."
+                )
 
         if betas is None:
             # default choice as suggested in Parameswaran et al. "Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up"
@@ -117,6 +126,16 @@ class EPLL(nn.Module):
         for beta in betas:
             x = self._reconstruction_step(Aty, x, sigma**2, beta, physics, batch_size)
         return x
+
+    def negative_log_likelihood(self, x):
+        r"""
+        Takes patches and returns the negative log likelihood of the GMM for each patch.
+
+        :param torch.Tensor x: tensor of patches of shape batch_size x number of patches per batch x patch_dimensions
+        """
+        B, n_patches = x.shape[0:2]
+        logpz = self.GMM(x.view(B * n_patches, -1))
+        return logpz.view(B, n_patches)
 
     def _reconstruction_step(self, Aty, x, sigma_sq, beta, physics, batch_size):
         # precomputations for GMM with covariance regularization

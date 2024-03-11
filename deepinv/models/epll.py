@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from deepinv.optim.epll import EPLL
+from deepinv.physics import Denoising, GaussianNoise
 
 
 class EPLLDenoiser(nn.Module):
@@ -40,22 +41,25 @@ class EPLLDenoiser(nn.Module):
         self.PatchGMM = EPLL(
             GMM, n_components, pretrained, patch_size, channels, device
         )
+        self.denoising_operator = Denoising(GaussianNoise(0))
 
     def forward(self, x, sigma, betas=None, batch_size=-1):
         r"""
-        Calls the reconstruction for denoising
+        Denoising method based on the minimization problem.
 
-        :param torch.Tensor x: tensor of noisy images. Shape: batch size x ...
-        :param float sigma: noise level
-        :param list[float] betas: parameters from the half-quadratic splitting. None uses the standard choice 1/sigma_sq [1,4,8,16,32]
-        :param int batch_size: batching the patch estimations for large images. No effect on the output, but a small value reduces the memory consumption
-            but might increase the computation time. -1 for considering all patches at once.
+        :param torch.Tensor y: noisy image. Shape: batch size x ...
+        :param deepinv.physics.LinearPhysics physics: Forward linear operator.
+        :param list[float] betas: parameters from the half-quadratic splitting. ``None`` uses
+            the standard choice ``[1,4,8,16,32]/sigma_sq``
+        :param int batch_size: batching the patch estimations for large images. No effect on the output,
+            but a small value reduces the memory consumption
+            and might increase the computation time. ``-1`` for considering all patches at once.
         """
-        return self.reconstruction(
+        return self.PatchGMM(
             x,
-            x.clone(),
-            sigma,
-            self.denoising_operator,
+            x_init=x.clone(),
+            sigma=sigma,
+            physics=self.denoising_operator,
             batch_size=batch_size,
             betas=betas,
         )
