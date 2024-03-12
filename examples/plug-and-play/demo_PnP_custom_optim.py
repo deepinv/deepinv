@@ -199,8 +199,8 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # We build the PnP model using the :func:`deepinv.optim.optim_builder` function,
 # and setting the iterator to our custom CondatVu algorithm.
 #
-# The primal dual stepsizes :math:`\tau` as ``stepsize`` and :math:`\sigma` as ``sigma``,
-# ``g_param`` the noise level of the denoiser.
+# The primal dual stepsizes :math:`\tau` corresponds to the ``stepsize`` key and :math:`\sigma` to the ``sigma`` key.
+# The ``g_param`` key corresponds to the noise level of the denoiser.
 #
 # For the denoiser, we choose the 1-Lipschitz grayscale DnCNN model (see the :ref:`pretrained-weights <pretrained-weights>`).
 #
