@@ -165,7 +165,9 @@ prior = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter  # thresholding parameters \sigma
+sigma_denoiser = [
+    0.01 * torch.ones(level, 3)
+] * max_iter  # thresholding parameters \sigma
 
 stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 
