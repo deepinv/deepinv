@@ -204,7 +204,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
             sigma = None
 
-        lamb = 1.1
+        lamb = 0.9
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
@@ -229,35 +229,35 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
 
         if name_algo == "HQS":
-            # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
-            # :math:`\lambda M_{\lambda \tau f}+g` where :math:` M_{\lambda \tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\lambda \tau`.
+            # In this case, the algorithm does not converge to the minimum of :math:`f+\lambda g` but to that of
+            # :math:` M_{\tau f}+ \lambda g` where :math:` M_{\tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\tau`.
             # Beware, these are not fetch automatically here but handwritten in the test.
-            # The optimality condition is then :math:`0 \in \lambda M_{\lambda \tau f}(x)+\partial g(x)`
+            # The optimality condition is then :math:`0 \in M_{\tau f}(x)+ \lambda \partial g(x)`
             if not g_first:
                 subdiff = prior.grad(x)
                 moreau_grad = (
-                    x - data_fidelity.prox(x, y, physics, gamma=lamb * stepsize)
+                    x - data_fidelity.prox(x, y, physics, gamma=stepsize)
                 ) / (
+                    stepsize
+                )  # Gradient of the moreau envelope
+                assert torch.allclose(
+                    moreau_grad, -lamb * subdiff, atol=1e-8
+                )  # Optimality condition
+            else:
+                subdiff = data_fidelity.grad(x, y, physics)
+                moreau_grad = (x - prior.prox(x, gamma=lamb * stepsize)) / (
                     lamb * stepsize
                 )  # Gradient of the moreau envelope
                 assert torch.allclose(
                     lamb * moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
-            else:
-                subdiff = lamb * data_fidelity.grad(x, y, physics)
-                moreau_grad = (
-                    x - prior.prox(x, gamma=stepsize)
-                ) / stepsize  # Gradient of the moreau envelope
-                assert torch.allclose(
-                    moreau_grad, -subdiff, atol=1e-8
-                )  # Optimality condition
         else:
             subdiff = prior.grad(x)
-            # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
-            # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
+            # In this case, the algorithm converges to the minimum of :math:`f+\lambda g`.
+            # The optimality condition is then :math:`0 \in  \nabla f(x)+ \lambda \partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-8
+                grad_deepinv, -lamb * subdiff, atol=1e-8
             )  # Optimality condition
 
 
@@ -501,7 +501,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
     .. math::
 
-        \min_x \lambda a(x) + b(Kx)
+        \min_x  a(x) + \lambda b(Kx)
 
 
     where :math:`a` and :math:`b` are functions and :math:`K` is a linear operator. In this setting, we test both for
@@ -533,12 +533,11 @@ def test_CP_K(imsize, dummy_dataset, device):
         K_forward = lambda v: K @ v
         K_adjoint = lambda v: K.transpose(0, 1) @ v
 
-        # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
         stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
         reg_param = 1.0
         stepsize_dual = 1.0
 
-        lamb = 1.5
+        lamb = 0.6
         max_iter = 1000
 
         params_algo = {
@@ -572,21 +571,19 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
         if not g_first:
-            subdiff = prior.grad(x, 0)
-
+            subdiff = prior.grad(x)
             grad_deepinv = K_adjoint(
                 data_fidelity.grad(K_forward(x), y, physics)
             )  # This test is only valid for differentiable data fidelity terms.
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-12
+                grad_deepinv, -lamb * subdiff, atol=1e-12
             )  # Optimality condition
 
         else:
-            subdiff = K_adjoint(prior.grad(K_forward(x), 0))
-
+            subdiff = K_adjoint(prior.grad(K_forward(x)))
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-12
+                grad_deepinv, -lamb * subdiff, atol=1e-12
             )  # Optimality condition
 
 
@@ -596,7 +593,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     .. math::
 
-        \min_x \lambda d(Ax,y) + g(x)
+        \min_x d(Ax,y) + \lambda g(x)
 
 
     where :math:`d` is a distance function and :math:`g` is a prior term.
@@ -628,7 +625,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     reg_param = 1.0
     stepsize_dual = 1.0
 
-    lamb = 1.5
+    lamb = 0.6
     max_iter = 1000
 
     params_algo = {
@@ -660,13 +657,13 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     assert optimalgo.has_converged
 
     # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-    subdiff = prior.grad(x, 0)
+    subdiff = prior.grad(x)
 
     grad_deepinv = A_adjoint(
         data_fidelity.grad_d(A_forward(x), y)
     )  # This test is only valid for differentiable data fidelity terms.
     assert torch.allclose(
-        lamb * grad_deepinv, -subdiff, atol=1e-12
+        grad_deepinv, -lamb * subdiff, atol=1e-12
     )  # Optimality condition
 
 

@@ -7,11 +7,10 @@ uncertainty of a reconstruction from incomplete and noisy measurements.
 
 The paper can be found at https://arxiv.org/pdf/2209.11888.pdf.
 
-The DDRM method requires that
+The DDRM method requires that:
 
 * The operator has a singular value decomposition (i.e., the operator is a :class:`deepinv.physics.DecomposablePhysics`).
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
-
 
 """
 
