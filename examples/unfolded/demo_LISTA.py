@@ -113,13 +113,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 #           x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
-# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDenoiser`).
+# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).
 #
 # We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
-# yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
+# yielding a distinct ``stepsize`` value for each iteration of the algorithm.
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -129,9 +129,9 @@ data_fidelity = L2()
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
-level = 2
+level = 3
 prior = [
-    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
+    dinv.optim.WaveletPrior(wv="db8", level=level, device=device)
     for i in range(max_iter)
 ]
 
@@ -143,20 +143,15 @@ lamb = [1.0] * max_iter  # initialization of the regularization parameter.
 stepsize = [1.0] * max_iter  # initialization of the stepsizes.
 # A distinct stepsize is trained for each iteration.
 
-sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-# A distinct sigma_denoiser is trained for each iteration.
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": sigma_denoiser,
     "lambda": lamb,
 }
 
 trainable_params = [
-    "g_param",
     "stepsize",
-    "lambda",
+    "lambda"
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
