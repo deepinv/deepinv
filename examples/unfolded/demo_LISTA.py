@@ -136,11 +136,11 @@ prior = [
 ]
 
 # Unrolled optimization algorithm parameters
-
-lamb = [1.0] * max_iter  # initialization of the regularization parameter.
+import numpy as np
+lamb = [torch.ones(1, device=device)*.1] * max_iter  # initialization of the regularization parameter.
 # A distinct lamb is trained for each iteration.
 
-stepsize = [1.0] * max_iter  # initialization of the stepsizes.
+stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
 # A distinct stepsize is trained for each iteration.
 
 
@@ -175,11 +175,11 @@ model = unfolded_builder(
 
 
 # Training parameters
-epochs = 20 if torch.cuda.is_available() else 5
-learning_rate = 1e-3
+epochs = 5 if torch.cuda.is_available() else 3
+learning_rate = .01
 
 # Choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
