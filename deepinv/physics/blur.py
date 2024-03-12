@@ -258,7 +258,7 @@ def conv(x, filter, padding):
         x = F.pad(x, (pw, pw, ph, ph), mode=padding, value=0)
 
     if filter.shape[1] == 1:
-        if filter.shape[0] > 1:
+        if filter.shape[0] == 1:
             filter = filter.repeat(c, 1, 1, 1)
         y = F.conv2d(x, filter, padding="valid", groups=c)
     else:
