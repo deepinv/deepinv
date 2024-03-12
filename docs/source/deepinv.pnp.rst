@@ -14,7 +14,7 @@ For instance, a PnP proximal gradient descent (PnP-PGD) algorithm for solving th
 
     \begin{equation*}
     \begin{aligned}
-    u_{k} &=  x_k - \gamma \lambda \nabla \datafid{x_k}{y} \\
+    u_{k} &=  x_k - \gamma \nabla \datafid{x_k}{y} \\
     x_{k+1} &= \denoiser{u_k}{\sigma},
     \end{aligned}
     \end{equation*}
@@ -32,7 +32,7 @@ solving the inverse problem :math:`y = \noise{\forw{x}}` reads
     \begin{equation*}
     \begin{aligned}
     u_{k} &=  x_k - \denoiser{x_k}{\sigma} \\
-    x_{k+1} &= \operatorname{prox}_{\datafidname(\cdot, y)}(u_k).
+    x_{k+1} &= \operatorname{prox}_{\gamma \datafidname(\cdot, y)}(u_k).
     \end{aligned}
     \end{equation*}
 
@@ -43,7 +43,7 @@ minimization problems of the form
 .. math::
     \begin{equation*}
     \label{eq:min_prob}
-    \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
+    \underset{x}{\arg\min} \quad \datafid{x}{y} + \reg{x},
     \end{equation*}
 
 
@@ -89,7 +89,7 @@ denoiser.
 Iterators
 ---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \lambda \datafidname + \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled by
+:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled by
 an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
 .. math::

@@ -9,7 +9,7 @@ This package contains a collection of routines that optimize
     \begin{equation}
     \label{eq:min_prob}
     \tag{1}
-    \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
+    \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda \reg{x},
     \end{equation}
 
 
@@ -131,10 +131,10 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
      - | Should be positive. Depending on the algorithm,
        | needs to be small enough for convergence;
        | e.g. for PGD with ``g_first=False``,
-       | should be smaller than :math:`1/(\lambda \|A\|_2^2)`.
+       | should be smaller than :math:`1/(\|A\|_2^2)`.
    * - ``"lambda"``
      - | Regularization parameter :math:`\lambda`
-       | multiplying the data fidelity term.
+       | multiplying the regularization term.
      - Should be positive.
    * - ``"g_param"``
      - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
@@ -156,7 +156,7 @@ a single float (same value for each iteration).
 Iterators
 ---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \lambda \datafidname + \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
+:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
 by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
 .. math::
