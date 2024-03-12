@@ -258,12 +258,9 @@ def conv(x, filter, padding):
         x = F.pad(x, (pw, pw, ph, ph), mode=padding, value=0)
 
     if filter.shape[1] == 1:
-        y = torch.zeros((b, c, h_out, w_out), device=x.device)
-        for i in range(b):
-            for j in range(c):
-                y[i, j, :, :] = F.conv2d(
-                    x[i, j, :, :].unsqueeze(0).unsqueeze(1), filter, padding="valid"
-                ).unsqueeze(1)
+        if filter.shape[0] > 1:
+            filter = filter.repeat(c, 1, 1, 1)
+        y = F.conv2d(x, filter, padding="valid", groups=c)
     else:
         y = F.conv2d(x, filter, padding="valid")
 

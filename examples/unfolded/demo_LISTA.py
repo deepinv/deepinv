@@ -137,7 +137,10 @@ prior = [
 
 # Unrolled optimization algorithm parameters
 import numpy as np
-lamb = [torch.ones(1, device=device)*.1] * max_iter  # initialization of the regularization parameter.
+
+lamb = [
+    torch.ones(1, device=device) * 0.1
+] * max_iter  # initialization of the regularization parameter.
 # A distinct lamb is trained for each iteration.
 
 stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
@@ -151,7 +154,7 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 
 trainable_params = [
     "stepsize",
-    "lambda"
+    "lambda",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
@@ -176,7 +179,7 @@ model = unfolded_builder(
 
 # Training parameters
 epochs = 5 if torch.cuda.is_available() else 3
-learning_rate = .01
+learning_rate = 0.01
 
 # Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
