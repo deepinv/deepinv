@@ -204,7 +204,7 @@ def test_train_patchnr(imsize, dummy_dataset, device):
     patchnr_dataloader = DataLoader(
         patch_dataset, batch_size=32, shuffle=True, drop_last=True
     )
-    patchnr = dinv.models.PatchNR(
+    patchnr = dinv.optim.PatchNR(
         channels=test_sample.shape[1],
         patch_size=patch_size,
         sub_net_size=64,
