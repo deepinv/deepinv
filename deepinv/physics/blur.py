@@ -232,8 +232,8 @@ def conv(x, filter, padding):
     Convolution of x and filter. The transposed of this operation is conv_transpose(x, filter, padding)
 
     :param x: (torch.Tensor) Image of size (B,C,W,H).
-    :param filter: (torch.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,1,W,H) for filtering each channel with the same filter.
-    :param padding: (string) options = 'valid','circular','replicate','reflect'. If padding='valid' the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
+    :param filter: (torcstring)h.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,1,W,H) for filtering each channel with the same filter.
+    :param padding: ( options = 'valid', 'circular', 'replicate', 'reflect'. If padding='valid' the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
     """
     b, c, h, w = x.shape
@@ -247,12 +247,7 @@ def conv(x, filter, padding):
     ph = (filter.shape[2] - 1) / 2
     pw = (filter.shape[3] - 1) / 2
 
-    if padding == "valid":
-        h_out = int(h - 2 * ph)
-        w_out = int(w - 2 * pw)
-    else:
-        h_out = h
-        w_out = w
+    if padding != "valid":
         pw = int(pw)
         ph = int(ph)
         x = F.pad(x, (pw, pw, ph, ph), mode=padding, value=0)
