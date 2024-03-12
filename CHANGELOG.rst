@@ -19,6 +19,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Refactor model docs (:gh:`172` by `Julian Tachella`_) - 12/03/2024
 - Changed WaveletPrior to WaveletDenoiser (:gh:`165` by `Julian Tachella`_) - 28/02/2024
 - Move from torchwavelets to ptwt (:gh:`162` by `Matthieu Terris`_) - 22/02/2024
 

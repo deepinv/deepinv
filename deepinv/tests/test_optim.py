@@ -687,10 +687,10 @@ def test_patch_prior(imsize, dummy_dataset, device):
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
-    epll = dinv.models.EPLL(channels=test_sample.shape[1], device=device)
-    patchnr = dinv.models.PatchNR(channels=test_sample.shape[1], device=device)
-    prior1 = dinv.optim.prior.PatchPrior(epll.negative_log_likelihood)
-    prior2 = dinv.optim.prior.PatchPrior(patchnr)
+    epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
+    patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
+    prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
+    prior2 = dinv.optim.PatchPrior(patchnr)
     data_fidelity = L2()
 
     lam = 1.0
