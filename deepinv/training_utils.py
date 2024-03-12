@@ -48,7 +48,7 @@ def train(
 
         The losses can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
         as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
-        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y, A}`,
+        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
         and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.

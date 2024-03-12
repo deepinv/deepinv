@@ -340,12 +340,12 @@ class WaveletPrior(Prior):
             wvdim=self.wvdim,
         )
 
-    def g(self, x, ths=1.0, **kwargs):
+    def g(self, x, *args, **kwargs):
         r"""
         Computes the regularizer
 
         .. math::
-             \tau \reg{x} = \tau \|\Psi x\|_{p}
+             \reg{x} = \|\Psi x\|_{p}
 
 
         where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
@@ -353,21 +353,19 @@ class WaveletPrior(Prior):
         are regularized, and the approximation coefficients are left untouched.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
         :return: (torch.Tensor) prior :math:`\tau g(x)`.
         """
-        return ths * torch.norm(self.psi(x), p=self.p)
+        return torch.norm(self.psi(x), p=self.p)
 
-    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+    def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.WaveletDenoiser(x, ths=ths * gamma)
+        return self.WaveletDenoiser(x, ths=gamma)
 
     def psi(self, x):
         r"""
@@ -389,12 +387,12 @@ class TVPrior(Prior):
         self.explicit_prior = True
         self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
 
-    def g(self, x, ths=1.0, **kwargs):
+    def g(self, x, *args, **kwargs):
         r"""
         Computes the regularizer
 
         .. math::
-             \tau g(x) = \tau \|Dx\|_{1,2}
+            g(x) = \|Dx\|_{1,2}
 
 
         where D is the finite differences linear operator,
@@ -404,17 +402,16 @@ class TVPrior(Prior):
         :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
         :return: (torch.Tensor) prior :math:`\tau g(x)`.
         """
-        return ths * torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
+        return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
-    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+    def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.TVModel(x, ths=ths * gamma)
+        return self.TVModel(x, ths=gamma)
 
     def nabla(self, x):
         r"""
@@ -458,7 +455,7 @@ class PatchPrior(Prior):
         self.patch_size = patch_size
         self.pad = pad
 
-    def g(self, x, ths=1.0):
+    def g(self, x, *args, **kwargs):
         if self.pad:
             x = torch.cat(
                 (
@@ -477,8 +474,7 @@ class PatchPrior(Prior):
                 3,
             )
 
-        B = x.shape[0]
         patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
         reg = self.negative_patch_log_likelihood(patches)
         reg = torch.mean(reg, -1)
-        return ths * reg
+        return reg

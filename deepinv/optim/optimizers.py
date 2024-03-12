@@ -18,7 +18,7 @@ class BaseOptim(nn.Module):
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
-        \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
         \end{equation}
 
 
@@ -45,7 +45,7 @@ class BaseOptim(nn.Module):
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
-    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
+    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
     Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
@@ -53,7 +53,7 @@ class BaseOptim(nn.Module):
     the following update rule is applied at each iteration :math:`k`:
 
     .. math::
-        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
+        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau
 
     The variable ``params_algo`` is a dictionary containing all the relevant parameters for running the algorithm.
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
@@ -66,7 +66,7 @@ class BaseOptim(nn.Module):
     ::
 
         # This minimal example shows how to use the BaseOptim class to solve the problem
-        #                min_x 0.5 \lambda ||Ax-y||_2^2 + ||x||_1
+        #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
         # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
         # Create the measurement operator A
@@ -178,6 +178,10 @@ class BaseOptim(nn.Module):
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
+
+        # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
+        if "lambda" not in params_algo.keys():
+            params_algo["lambda"] = 1.0
 
         # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
         if "beta" not in params_algo.keys():
@@ -497,7 +501,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     if F_fn is None and explicit_prior:
 
         def F_fn(x, data_fidelity, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior(
+            return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
                 x, cur_params["g_param"]
             )
 
