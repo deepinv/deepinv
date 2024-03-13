@@ -25,7 +25,7 @@ class Trainer:
 
         The losses can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
         as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
-        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y, A}`,
+        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
         and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
@@ -646,3 +646,55 @@ def train(*args, **kwargs):
     trainer = Trainer(*args, **kwargs)
     trained_model = trainer.train()
     return trained_model
+
+
+def train_normalizing_flow(
+    model,
+    dataloader,
+    epochs=10,
+    learning_rate=1e-3,
+    device="cpu",
+    jittering=1 / 255.0,
+    verbose=False,
+):
+    r"""
+    Trains a normalizing flow.
+
+    Uses the Adam optimizer and the forward Kullback-Leibler (maximum likelihood) loss function given by
+
+    .. math::
+        \mathcal{L}(\theta)=\mathrm{KL}(P_X,{\mathcal{T}_\theta}_\#P_Z)=\mathbb{E}_{x\sim P_X}[p_{{\mathcal{T}_\theta}_\#P_Z}(x)]+\mathrm{const},
+
+    where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
+
+    :param torch.nn.Module model: Normalizing flow in the same format as in the `FrEIA <https://vislearn.github.io/FrEIA/_build/html/index.html>`_ framework (i.e., the forward method takes the data and the flag rev (default False) where rev=True indicates calling the inverse; the forward method returns the output of the network and the log-determinant of the Jacobian of the flow.
+    :param torch.utils.data.DataLoader dataloader: contains training data.
+    :param int epochs: number of epochs
+    :param float learning_rate: learning rate
+    :param str device: used device
+    :param float jittering: adds uniform noise of range [-jittering,jittering] to the training data.
+        This is a common trick for stabilizing the training of normalizing flows and to avoid overfitting
+    :param bool verbose: Whether printing progress.
+    """
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    for epoch in range(epochs):
+        mean_loss = 0.0
+        for i, (x, _) in enumerate(
+            progress_bar := tqdm(dataloader, disable=not verbose)
+        ):
+            x = x.to(device)
+            x = x + jittering * (2 * torch.rand_like(x) - 1)
+            optimizer.zero_grad()
+            invs, jac_inv = model(x)
+            loss = torch.mean(
+                0.5 * torch.sum(invs.view(invs.shape[0], -1) ** 2, -1)
+                - jac_inv.view(invs.shape[0])
+            )
+            loss.backward()
+            optimizer.step()
+            mean_loss = mean_loss / (i + 1) * i + loss.item() / (i + 1)
+            progress_bar.set_description(
+                "Epoch {}, Mean Loss: {:.2f}, Loss {:.2f}".format(
+                    epoch + 1, mean_loss, loss.item()
+                )
+            )

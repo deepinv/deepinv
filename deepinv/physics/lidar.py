@@ -51,7 +51,7 @@ class SinglePhotonLidar(Physics):
 
         Input is of size (B, 3, H, W) and output is of size (B, bins, H, W)
 
-        :param torch.tensor x: tensor containing the depth, intensity and background noise levels.
+        :param torch.Tensor x: tensor containing the depth, intensity and background noise levels.
         """
 
         h = ((self.grid - x[:, 0, :, :]) / self.sigma).pow(2)
@@ -66,7 +66,7 @@ class SinglePhotonLidar(Physics):
 
         Input is of size (B, bins, H, W), output of size (B, 3, H, W).
 
-        :param torch.tensor y: measurements
+        :param torch.Tensor y: measurements
         """
         B, T, H, W = y.shape
 

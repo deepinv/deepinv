@@ -1,22 +1,25 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from torchvision.utils import make_grid
-import wandb
 import math
-import torch
-import matplotlib.pyplot as plt
+import shutil
 from pathlib import Path
 from collections.abc import Iterable
-import matplotlib
-import shutil
+
+import wandb
+import torch
+import numpy as np
+from torchvision.utils import make_grid
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-matplotlib.rcParams.update({"font.size": 17})
-matplotlib.rcParams["lines.linewidth"] = 2
+import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+
+def config_matplotlib(fontsize=17):
+    """Config matplotlib for nice plots in the examples."""
+    plt.rcParams.update({"font.size": fontsize})
+    plt.rcParams["lines.linewidth"] = 2
+
+    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -71,7 +74,8 @@ def numpy2uint(img):
 
 def rescale_img(img, rescale_mode="min_max"):
     if rescale_mode == "min_max":
-        img = (img - img.min()) / (img.max() - img.min())
+        if img.max() != img.min():
+            img = (img - img.min()) / (img.max() - img.min())
     elif rescale_mode == "clip":
         img = img.clamp(min=0.0, max=1.0)
     else:
@@ -88,14 +92,24 @@ def plot(
     rescale_mode="min_max",
     show=True,
     return_fig=False,
+    figsize=None,
+    suptitle=None,
+    cmap="gray",
+    fontsize=17,
+    interpolation="none",
 ):
     r"""
     Plots a list of images.
 
-    The images should be of shape [B,C,H,W], where B is the batch size, C is the number of channels,
+    The images should be of shape [B,C,H,W] or [C, H, W], where B is the batch size, C is the number of channels,
     H is the height and W is the width. The images are plotted in a grid, where the number of rows is B
     and the number of columns is the length of the list. If the B is bigger than max_imgs, only the first
     batches are plotted.
+
+    .. warning::
+
+        If the number of channels is 2, the magnitude of the complex images is plotted.
+        If the number of channels is bigger than 3, only the first 3 channels are plotted.
 
     Example usage:
 
@@ -113,13 +127,24 @@ def plot(
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
+    :param tuple[int] figsize: size of the figure.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
+    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
+    # Use the matplotlib config from deepinv
+    config_matplotlib(fontsize=fontsize)
+
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
 
     if isinstance(img_list, torch.Tensor):
         img_list = [img_list]
+
+    for i, img in enumerate(img_list):
+        if len(img.shape) == 3:
+            img_list[i] = img.unsqueeze(0)
 
     if isinstance(titles, str):
         titles = [titles]
@@ -137,23 +162,33 @@ def plot(
                     .unsqueeze(0)
                     .type(torch.float32)
                 )
+            elif im.shape[1] > 3:
+                pimg = im[i, 0:3, :, :].type(torch.float32)
             else:
-                pimg = im[i, :, :, :].type(torch.float32)
+                if torch.is_complex(im):
+                    pimg = im[i, :, :, :].abs().type(torch.float32)
+                else:
+                    pimg = im[i, :, :, :].type(torch.float32)
             pimg = rescale_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
+    if figsize is None:
+        figsize = (len(imgs) * 2, len(imgs[0]) * 2)
+
     fig, axs = plt.subplots(
         len(imgs[0]),
         len(imgs),
-        figsize=(len(imgs) * 2, len(imgs[0]) * 2),
+        figsize=figsize,
         squeeze=False,
     )
 
-    # plt.figure(figsize=(len(imgs) * 2, len(imgs[0]) * 2))
+    if suptitle:
+        plt.suptitle(suptitle)
+
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r, i].imshow(img, cmap="gray")
+            axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
@@ -164,7 +199,7 @@ def plot(
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
                 plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap="gray"
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
                 )
     if show:
         plt.show()
@@ -181,6 +216,9 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param str save_dir: path to save the plot.
     :param bool show: show the image plot.
     """
+    # Use the matplotlib config from deepinv
+    config_matplotlib()
+
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)

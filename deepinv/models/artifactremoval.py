@@ -33,7 +33,7 @@ class ArtifactRemoval(nn.Module):
         r"""
         Reconstructs a signal estimate from measurements y
 
-        :param torch.tensor y: measurements
+        :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         """
         if isinstance(physics, nn.DataParallel):

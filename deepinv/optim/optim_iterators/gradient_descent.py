@@ -31,7 +31,7 @@ class GDIteration(OptimIterator):
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
-        Single gradient descent iteration on the objective :math:`\lambda f(x) + g(x)`.
+        Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -68,7 +68,7 @@ class fStepGD(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_params["lambda"] * cur_data_fidelity.grad(x, y, physics)
+        return cur_data_fidelity.grad(x, y, physics)
 
 
 class gStepGD(gStep):
@@ -81,10 +81,10 @@ class gStepGD(gStep):
 
     def forward(self, x, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`g`.
+        Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
-        return cur_prior.grad(x, cur_params["g_param"])
+        return cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])

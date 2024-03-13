@@ -40,7 +40,7 @@ def cal_psnr(a, b, max_pixel=1, normalize=False):
         else:
             an = a
 
-        mse = (an - b).pow(2).reshape(an.shape[0], -1).mean(dim=1)
+        mse = (an - b).abs().pow(2).reshape(an.shape[0], -1).mean(dim=1)
         mse[mse == 0] = 1e-10
         psnr = 20 * torch.log10(max_pixel / mse.sqrt())
 

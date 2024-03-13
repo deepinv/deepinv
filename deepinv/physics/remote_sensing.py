@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.blur import Downsampling

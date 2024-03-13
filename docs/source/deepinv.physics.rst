@@ -83,6 +83,17 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
 Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
 have additional methods.
 
+When defining a new linear operator, you can define the adjoint automatically using
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.physics.adjoint_function
+
+
 Non-linear operators
 --------------------
 Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
@@ -118,6 +129,7 @@ or simply as
    :nosignatures:
 
    deepinv.physics.GaussianNoise
+   deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise

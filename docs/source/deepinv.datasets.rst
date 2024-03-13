@@ -51,3 +51,15 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pyt
 
     dataset = dinv.datasets.HDF5Dataset(path=f'{save_dir}/dinv_dataset.h5', train=True)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+PatchDataset
+------------
+
+Generate a dataset of all patches out of a tensor of images.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.datasets.PatchDataset

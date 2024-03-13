@@ -27,6 +27,7 @@ an alias for the train function of the Trainer class.
         
         deepinv.train
         deepinv.test
+        deepinv.training_utils.train_normalizing_flow
 
 
 Plotting

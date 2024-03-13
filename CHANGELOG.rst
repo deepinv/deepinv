@@ -6,10 +6,31 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+
+New Features
+^^^^^^^^^^^^
+- Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
+- Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
+
+
+Fixed
+^^^^^
+- Fixed g dependence on sigma in optim docs (:gh:`165` by `Julian Tachella`_) - 28/02/2024
+
+Changed
+^^^^^^^
+- Refactor model docs (:gh:`172` by `Julian Tachella`_) - 12/03/2024
+- Changed WaveletPrior to WaveletDenoiser (:gh:`165` by `Julian Tachella`_) - 28/02/2024
+- Move from torchwavelets to ptwt (:gh:`162` by `Matthieu Terris`_) - 22/02/2024
+
+v0.1.1
+----------------
+
 New Features
 ^^^^^^^^^^^^
 - Added r2r loss (:gh:`148` by `Brayan Monroy`_) - 30/01/2024
 - Added scale transform (:gh:`135` by `Jérémy Scanvic`_) - 19/12/2023
+- Added priors for total variation and l12 mixed norm (:gh:`156` by `Nils Laurent`_) - 09/02/2023
 
 
 Fixed
@@ -19,6 +40,7 @@ Fixed
 - Fixed test for sigma as torch tensor with gpu enable (:gh:`145` by `Brayan Monroy`_) - 23/12/2023
 - Fixed :gh:`139` BM3D tensor format grayscale (:gh:`140` by `Matthieu Terris`_) - 23/12/2023
 - Fixed :gh:`136` noise additive model for DecomposablePhysics (:gh:`138` by `Matthieu Terris`_) - 22/12/2023
+- Importing `deepinv` does not modify matplotlib config anymore (:gh`1501` by `Thomas Moreau`_) - 30/01/2024
 
 
 Changed
@@ -85,3 +107,5 @@ Authors
 .. _Riyad Chamekh: https://github.com/riyadchk
 .. _Jules Dumouchel: https://github.com/Ruli0
 .. _Brayan Monroy: https://github.com/bemc22
+.. _Nils Laurent: https://nils-laurent.github.io/
+.. _Johannes Hertrich: https://johertrich.github.io/

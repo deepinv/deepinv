@@ -104,7 +104,7 @@ class PULAIterator(torch.nn.Module):
         noise = torch.randn_like(x_bar)
         sigma2_noise = 1 / likelihood.norm
         lhood = -(physics.mask.pow(2) * x_bar - physics.mask * y_bar) / sigma2_noise
-        lprior = -physics.V_adjoint(prior(x, self.sigma)) * self.alpha
+        lprior = -physics.V_adjoint(prior.grad(x, self.sigma)) * self.alpha
 
         return x + physics.V(
             step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise

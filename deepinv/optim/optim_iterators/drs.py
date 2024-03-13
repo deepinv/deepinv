@@ -8,15 +8,15 @@ class DRSIteration(OptimIterator):
     Iterator for Douglas-Rachford Splitting.
 
     Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimising
-    :math:`\lambda f(x) + g(x)`.
+    :math:` f(x) + \lambda g(x)`.
 
     If the attribute ``g_first`` is set to False (by default), the iteration is given by
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k+1} &= \operatorname{prox}_{\gamma \lambda f}(z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma g}(2*u_{k+1}-z_k) \\
+        u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
         \end{aligned}
         \end{equation*}
@@ -86,9 +86,7 @@ class fStepDRS(fStep):
             p = 2 * x - z
         else:
             p = z
-        return cur_data_fidelity.prox(
-            p, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
-        )
+        return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
 
 
 class gStepDRS(gStep):
@@ -101,7 +99,7 @@ class gStepDRS(gStep):
 
     def forward(self, x, z, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`g`.
+        Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x:  Current first variable.
         :param torch.Tensor z: Current second variable.
@@ -112,4 +110,8 @@ class gStepDRS(gStep):
             p = z
         else:
             p = 2 * x - z
-        return cur_prior.prox(p, cur_params["g_param"], gamma=cur_params["stepsize"])
+        return cur_prior.prox(
+            p,
+            cur_params["g_param"],
+            gamma=cur_params["lambda"] * cur_params["stepsize"],
+        )

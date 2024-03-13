@@ -21,8 +21,8 @@ class Inpainting(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to ``torch.nn.Module``.
 
-    :param tuple tensor_size: size of the input images, e.g., (C, H, W).
-    :param torch.tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
+    :param tuple Tensor_size: size of the input images, e.g., (C, H, W).
+    :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
         distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,
         the mask will be set to this tensor.
     :param torch.device device: gpu or cpu

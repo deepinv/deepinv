@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from torch import nn
 import torch.nn.functional as F
 from deepinv.physics.forward import LinearPhysics
@@ -275,6 +274,10 @@ class Tomography(LinearPhysics):
         The pseudo-inverse is computed using the filtered back-projection algorithm with a Ramp filter.
         This is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation which is
         robust to noise.
+
+    .. note::
+
+        The measurements are not normalized by the image size, thus the norm of the operator depends on the image size.
 
     .. warning::
 
