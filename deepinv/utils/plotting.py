@@ -188,9 +188,9 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r, i].imshow(img, cmap=cmap)
+            axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9, interpolation=interpolation)
+                axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
