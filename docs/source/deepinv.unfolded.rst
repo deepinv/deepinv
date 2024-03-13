@@ -1,6 +1,6 @@
 .. _unfolded:
 
-Unfolded algorithms
+Unfolded Algorithms
 ===================
 
 This package contains a collection of routines turning the optimization algorithms defined in :ref:`Optim <optim>`
@@ -59,7 +59,6 @@ the **implicit function theorem**. The backward pass consists in looking for sol
 
 where :math:`u` is the incoming gradient from the backward pass,
 and :math:`x^\star` is the equilibrium point of the forward pass.
-
 See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
 The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building Deep Equilibrium (DEQ) architectures.
@@ -79,3 +78,16 @@ The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.Bas
    :nosignatures:
 
     deepinv.unfolded.BaseDEQ
+
+
+Utils
+----------------
+Some more specific unfolded architectures are also available.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.PDNet_PrimalBlock
+   deepinv.models.PDNet_DualBlock

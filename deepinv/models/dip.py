@@ -96,9 +96,9 @@ class DeepImagePrior(torch.nn.Module):
 
     .. math::
 
-        \min_{\theta}  \|y-Af_{\theta}(z)\|^2
+        \min_{\theta}  \|y-Ad_{\theta}(z)\|^2
 
-    where :math:`z` is a random input and :math:`f_{\theta}` is a convolutional decoder network with parameters
+    where :math:`z` is a random input and :math:`d_{\theta}` is a convolutional decoder network with parameters
     :math:`\theta`. The minimization should be stopped early to avoid overfitting. The method uses the Adam
     optimizer.
 
@@ -114,7 +114,7 @@ class DeepImagePrior(torch.nn.Module):
         values may not be optimal for all problems. We recommend experimenting with different values.
 
     :param torch.nn.Module generator: Convolutional decoder network.
-    :param list, tuple input_size: Size (C,H,W) of the input noise vector :math:`z`.
+    :param list, tuple input_size: Size `(C,H,W)` of the input noise vector :math:`z`.
     :param int iterations: Number of optimization iterations.
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.

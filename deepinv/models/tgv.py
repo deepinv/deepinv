@@ -36,9 +36,9 @@ class TGVDenoiser(nn.Module):
     :param bool verbose: Whether to print computation details or not. Default: False.
     :param int n_it_max: Maximum number of iterations. Default: 1000.
     :param float crit: Convergence criterion. Default: 1e-5.
-    :param torch.tensor, None x2: Primary variable. Default: None.
-    :param torch.tensor, None u2: Dual variable. Default: None.
-    :param torch.tensor, None r2: Auxiliary variable. Default: None.
+    :param torch.Tensor, None x2: Primary variable. Default: None.
+    :param torch.Tensor, None u2: Dual variable. Default: None.
+    :param torch.Tensor, None r2: Auxiliary variable. Default: None.
     """
 
     def __init__(

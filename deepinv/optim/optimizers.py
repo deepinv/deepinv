@@ -501,9 +501,17 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     if F_fn is None and explicit_prior:
 
         def F_fn(x, data_fidelity, prior, cur_params, y, physics):
-            return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
-                x, cur_params["g_param"]
-            )
+            prior_value = prior(x, cur_params["g_param"], reduce=False)
+            if prior_value.dim() == 0:
+                reg_value = cur_params["lambda"] * prior_value
+            else:
+                if isinstance(cur_params["lambda"], float):
+                    reg_value = (cur_params["lambda"] * prior_value).sum()
+                else:
+                    reg_value = (
+                        cur_params["lambda"].flatten() * prior_value.flatten()
+                    ).sum()
+            return data_fidelity(x, y, physics) + reg_value
 
         has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:

@@ -16,11 +16,8 @@ from torchvision import transforms
 import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
-
-import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
@@ -103,8 +100,10 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
 #
 # .. math::
-#
+#          \begin{equation}
+#          \tag{1}
 #          \min_x \frac{1}{2} \|y - Ax\|_2^2 + \lambda \|Wx\|_1
+#          \end{equation}
 #
 # where :math:`\lambda` is the regularization parameter.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
@@ -113,48 +112,58 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 #           x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
-# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDenoiser`).
+# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).
 #
 # We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
-# yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
+# yielding a distinct ``stepsize`` value for each iteration of the algorithm.
 
 # Select the data fidelity term
 data_fidelity = L2()
+max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
+stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
+# A distinct stepsize is trained for each iteration.
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
-max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
-level = 2
+level = 3
 prior = [
-    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
+    dinv.optim.WaveletPrior(wv="db8", level=level, device=device)
     for i in range(max_iter)
 ]
 
+# %%
+#
+# In practice, it is common to apply a different thresholding parameter for each wavelet sub-band. This means that
+# the thresholding parameter is a tensor of shape (n_levels, n_wavelet_subbands) and the associated problem (1) is
+# reformulated as
+#
+# .. math::
+#          \begin{equation}
+#          \min_x \frac{1}{2} \|y - Ax\|_2^2 +  \sum_{i, j} \lambda_{i, j} \|\left(Wx\right)_{i, j}\|_1
+#          \end{equation}
+#
+# where :math:`\lambda_{i, j}` is the thresholding parameter for the wavelet sub-band :math:`j` at level :math:`i`.
+# Note that in this case, the prior is a list of elements containing the terms :math:`\|\left(Wx\right)_{i, j}\|_1=g_{i, j}(x)`,
+# and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
+
 # Unrolled optimization algorithm parameters
+lamb = [
+    torch.ones(3, 3, device=device)
+    * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
+] * max_iter  # A distinct lamb is trained for each iteration.
 
-lamb = [1.0] * max_iter  # initialization of the regularization parameter.
-# A distinct lamb is trained for each iteration.
-
-stepsize = [1.0] * max_iter  # initialization of the stepsizes.
-# A distinct stepsize is trained for each iteration.
-
-sigma_denoiser_init = 0.01
-sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-# A distinct sigma_denoiser is trained for each iteration.
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "g_param": sigma_denoiser,
     "lambda": lamb,
 }
 
 trainable_params = [
-    "g_param",
     "stepsize",
     "lambda",
 ]  # define which parameters from 'params_algo' are trainable
@@ -180,11 +189,11 @@ model = unfolded_builder(
 
 
 # Training parameters
-epochs = 20 if torch.cuda.is_available() else 5
-learning_rate = 1e-3
+epochs = 5 if torch.cuda.is_available() else 3
+learning_rate = 0.01
 
 # Choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]

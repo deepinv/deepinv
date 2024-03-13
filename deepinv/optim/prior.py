@@ -3,6 +3,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+try:
+    import FrEIA.framework as Ff
+    import FrEIA.modules as Fm
+except:
+    Ff = ImportError("The FrEIA package is not installed.")
+    Fm = ImportError("The FrEIA package is not installed.")
+
 from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser
@@ -103,7 +110,7 @@ class Prior(nn.Module):
 
         ::Warning:: Only valid for convex :math:`\regname`
 
-        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
         :param float lamb: math:`\lambda` parameter in front of :math:`f`
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda g)^*}(x)`, computed in :math:`x`.
@@ -128,7 +135,7 @@ class PnP(Prior):
         r"""
         Uses denoising as the proximity operator of the PnP prior :math:`\regname` at :math:`x`.
 
-        :param torch.tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float sigma_denoiser: noise level parameter of the denoiser.
         :return: (torch.tensor) proximity operator at :math:`x`.
         """
@@ -197,14 +204,14 @@ class ScorePrior(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def forward(self, x, sigma):
+    def grad(self, x, sigma_denoiser):
         r"""
         Applies the denoiser to the input signal.
 
         :param torch.Tensor x: the input tensor.
-        :param float sigma: the noise level.
+        :param float sigma_denoiser: the noise level.
         """
-        return (1 / sigma**2) * (x - self.denoiser(x, sigma))
+        return (1 / sigma_denoiser**2) * (x - self.denoiser(x, sigma_denoiser))
 
 
 class Tikhonov(Prior):
@@ -216,21 +223,16 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, ths=1.0):
+    def g(self, x, *args, **kwargs):
         r"""
-        Computes the Tikhonov regularizer :math:`\reg{x} = \frac{\tau}{2}\| x \|_2^2`.
+        Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param float ths: regularization parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
-        return (
-            0.5
-            * ths
-            * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
-        )
+        return 0.5 * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
 
-    def grad(self, x):
+    def grad(self, x, *args, **kwargs):
         r"""
         Calculates the gradient of the Tikhonov regularization term :math:`\regname` at :math:`x`.
 
@@ -239,16 +241,15 @@ class Tikhonov(Prior):
         """
         return x
 
-    def prox(self, x, ths=1.0, gamma=1.0):
+    def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
-        Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma \tau g` at :math:`x`.
+        Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma g` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: regularization parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return (1 / (ths * gamma + 1)) * x
+        return (1 / (gamma + 1)) * x
 
 
 class L1Prior(Prior):
@@ -261,30 +262,28 @@ class L1Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, ths=1.0):
+    def g(self, x, *args, **kwargs):
         r"""
-        Computes the regularizer :math:`\reg{x} = \tau\| x \|_1`.
+        Computes the regularizer :math:`\reg{x} = \| x \|_1`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
-        return ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
+        return torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
-    def prox(self, x, ths=1.0, gamma=1.0):
+    def prox(self, x, *args, ths=1.0, gamma=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.
 
         More precisely, it computes
 
         .. math::
-            \operatorname{prox}_{\gamma \tau g}(x) = \operatorname{sign}(x) \max(|x| - \gamma \tau, 0)
+            \operatorname{prox}_{\gamma g}(x) = \operatorname{sign}(x) \max(|x| - \gamma, 0)
 
 
-        where :math:`\tau` is the threshold parameter and :math:`\gamma` is a stepsize.
+        where :math:`\gamma` is a stepsize.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
@@ -340,22 +339,38 @@ class WaveletPrior(Prior):
             wvdim=self.wvdim,
         )
 
-    def g(self, x, *args, **kwargs):
+    def g(self, x, *args, reduce=True, **kwargs):
         r"""
         Computes the regularizer
 
         .. math::
-             \reg{x} = \|\Psi x\|_{p}
+            \begin{equation}
+             {\regname}_{i,j}(x) = \|(\Psi x)_{i,j}\|_{p}
+             \end{equation}
 
 
-        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+        where :math:`\Psi` is an orthonormal wavelet transform, :math:`i` and :math:`j` are the indices of the
+        wavelet sub-bands,  and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
         :math:`p=0`, :math:`p=1`, or :math:`p=\infty`. As mentioned in the class description, only detail coefficients
         are regularized, and the approximation coefficients are left untouched.
 
+        If `reduce` is set to `True`, the regularizer is summed over all detail coefficients, yielding
+
+        .. math::
+                \regname(x) = \|\Psi x\|_{p}.
+
+        If `reduce` is set to `False`, the regularizer is returned as a list of the norms of the detail coefficients.
+
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        :param bool reduce: if True, the prior is summed over all detail coefficients. Default is True.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return torch.norm(self.psi(x), p=self.p)
+        list_dec = self.psi(x)
+        list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
+        if reduce:
+            return torch.sum(list_norm)
+        else:
+            return list_norm
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
@@ -399,8 +414,7 @@ class TVPrior(Prior):
         and the 2-norm is taken on the dimension of the differences.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
-        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
         return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
@@ -478,3 +492,97 @@ class PatchPrior(Prior):
         reg = self.negative_patch_log_likelihood(patches)
         reg = torch.mean(reg, -1)
         return reg
+
+
+class PatchNR(nn.Module):
+    r"""
+    Patch prior via normalizing flows.
+
+    The forward method evaluates its negative log likelihood.
+
+    :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :meth:`torch.nn.Module`
+        supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)
+        as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
+        If `rev=True`, it considers the inverse of the normalizing flow.
+        When set to `None` it is set to a dense invertible neural network built with the FrEIA library, where the number of
+        invertible blocks and the size of the subnetworks is determined by the parameters `num_layers` and `sub_net_size`.
+    :param str pretrained: Define pretrained weights by its path to a `.pt` file, None for random initialization,
+        `"PatchNR_lodopab_small"` for the weights from the limited-angle CT example.
+    :param int patch_size: size of patches
+    :param int channels: number of channels for the underlying images/patches.
+    :param int num_layers: defines the number of blocks of the generated normalizing flow if `normalizing_flow` is `None`.
+    :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
+        if `normalizing_flow` is `None`.
+    :param str device: used device
+    """
+
+    def __init__(
+        self,
+        normalizing_flow=None,
+        pretrained=None,
+        patch_size=6,
+        channels=1,
+        num_layers=5,
+        sub_net_size=256,
+        device="cpu",
+    ):
+        super(PatchNR, self).__init__()
+        if isinstance(Ff, ImportError):
+            raise ImportError(
+                "FrEIA is needed to use the PatchNR class. "
+                "It should be installed with `pip install FrEIA`."
+            ) from Ff
+        if normalizing_flow is None:
+            # Create Normalizing Flow with FrEIA
+            dimension = patch_size**2 * channels
+
+            def subnet_fc(c_in, c_out):
+                return nn.Sequential(
+                    nn.Linear(c_in, sub_net_size),
+                    nn.ReLU(),
+                    nn.Linear(sub_net_size, sub_net_size),
+                    nn.ReLU(),
+                    nn.Linear(sub_net_size, c_out),
+                )
+
+            nodes = [Ff.InputNode(dimension, name="input")]
+            for k in range(num_layers):
+                nodes.append(
+                    Ff.Node(
+                        nodes[-1],
+                        Fm.GLOWCouplingBlock,
+                        {"subnet_constructor": subnet_fc, "clamp": 1.6},
+                        name=f"coupling_{k}",
+                    )
+                )
+            nodes.append(Ff.OutputNode(nodes[-1], name="output"))
+
+            self.normalizing_flow = Ff.GraphINN(nodes, verbose=False).to(device)
+        else:
+            self.normalizing_flow = normalizing_flow
+        if pretrained:
+            if pretrained[-3:] == ".pt":
+                weights = torch.load(pretrained, map_location=device)
+            else:
+                if pretrained.startswith("PatchNR_lodopab_small"):
+                    assert patch_size == 3
+                    assert channels == 1
+                    file_name = "PatchNR_lodopab_small.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i"
+                else:
+                    raise ValueError("Pretrained weights not found!")
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+            self.normalizing_flow.load_state_dict(weights)
+
+    def forward(self, x):
+        r"""
+        Evaluates the negative log likelihood function of th PatchNR.
+
+        :param torch.Tensor x: image tensor
+        """
+        B, n_patches = x.shape[0:2]
+        latent_x, logdet = self.normalizing_flow(x.view(B * n_patches, -1))
+        logpz = 0.5 * torch.sum(latent_x.view(B, n_patches, -1) ** 2, -1)
+        return logpz - logdet.view(B, n_patches)

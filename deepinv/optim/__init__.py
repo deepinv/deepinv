@@ -18,5 +18,8 @@ from .prior import (
     TVPrior,
     PatchPrior,
     WaveletPrior,
+    PatchNR,
 )
 from .optim_iterators.optim_iterator import OptimIterator
+from .epll import EPLL
+from .dpir import DPIR

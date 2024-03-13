@@ -230,6 +230,7 @@ class FixedPoint(nn.Module):
         :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and
                     ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None``
                      otherwise.
+
         """
         X = (
             self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)

@@ -189,7 +189,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         data_fidelity = L2()  # The data fidelity term
 
-        def prior_g(x, *args):
+        def prior_g(x, *args, **kwargs):
             ths = 0.1
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -474,6 +474,27 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     assert red.has_converged
 
 
+def test_dpir(imsize, dummy_dataset, device):
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_sample = next(iter(dataloader)).to(device)
+
+    # 2. Set a physical experiment (here, deblurring)
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(0.1),
+    )
+    y = physics(test_sample)
+    model = dinv.optim.DPIR(0.1, device=device)
+    out = model(y, physics)
+
+    in_psnr = dinv.utils.cal_psnr(test_sample, y)
+    out_psnr = dinv.utils.cal_psnr(out, test_sample)
+
+    assert out_psnr > in_psnr
+
+
 def test_CP_K(imsize, dummy_dataset, device):
     r"""
     This test checks that the CP algorithm converges to the solution of the following problem:
@@ -501,7 +522,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         data_fidelity = L2()  # The data fidelity term
 
-        def prior_g(x, *args):
+        def prior_g(x, *args, **kwargs):
             ths = 1.0
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -593,7 +614,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     data_fidelity = L2()  # The data fidelity term
 
-    def prior_g(x, *args):
+    def prior_g(x, *args, **kwargs):
         ths = 1.0
         return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -663,10 +684,10 @@ def test_patch_prior(imsize, dummy_dataset, device):
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
-    epll = dinv.models.EPLL(channels=test_sample.shape[1], device=device)
-    patchnr = dinv.models.PatchNR(channels=test_sample.shape[1], device=device)
-    prior1 = dinv.optim.prior.PatchPrior(epll.negative_log_likelihood)
-    prior2 = dinv.optim.prior.PatchPrior(patchnr)
+    epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
+    patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
+    prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
+    prior2 = dinv.optim.PatchPrior(patchnr)
     data_fidelity = L2()
 
     lam = 1.0

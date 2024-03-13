@@ -55,7 +55,7 @@ physics = dinv.physics.Inpainting(
 # --------------------------------------------------------------
 #
 # The diffusion method requires an MMSE denoiser that can be evaluated a various noise levels.
-# Here we use a pretrained DRUNET denoiser from the :ref:`models <Models>` module.
+# Here we use a pretrained DRUNET denoiser from the :ref:`denoisers <denoisers>` module.
 
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 

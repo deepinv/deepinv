@@ -10,7 +10,7 @@ class BaseUnfold(BaseOptim):
 
     Enables to turn any iterative optimization algorithm into an unfolded algorithm, i.e. an algorithm
     that can be trained end-to-end, with learnable parameters. Recall that the algorithms have the
-    following form (see :meth:`deepinv.optim.optim_iterators.BaseIterator`):
+    following form (see :meth:`deepinv.optim.BaseIterator`):
 
     .. math::
         \begin{aligned}
@@ -57,7 +57,7 @@ def unfolded_builder(
     r"""
     Helper function for building an instance of the :meth:`BaseUnfold` class.
 
-    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
+    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).

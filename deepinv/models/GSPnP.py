@@ -28,7 +28,7 @@ class GSPnP(nn.Module):
         self.alpha = alpha
         self.train = train
 
-    def potential(self, x, sigma):
+    def potential(self, x, sigma, *args, **kwargs):
         N = self.student_grad(x, sigma)
         return (
             0.5
@@ -36,11 +36,11 @@ class GSPnP(nn.Module):
             * torch.norm((x - N).view(x.shape[0], -1), p=2, dim=-1) ** 2
         )
 
-    def potential_grad(self, x, sigma):
+    def potential_grad(self, x, sigma, *args, **kwargs):
         r"""
         Calculate :math:`\nabla g` the gradient of the regularizer :math:`g` at input :math:`x`.
 
-        :param torch.tensor x: Input image
+        :param torch.Tensor x: Input image
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
         with torch.enable_grad():
@@ -57,7 +57,7 @@ class GSPnP(nn.Module):
         r"""
         Denoising with Gradient Step Denoiser
 
-        :param torch.tensor x: Input image
+        :param torch.Tensor x: Input image
         :param float sigma: Denoiser level (std)
         """
         Dg = self.potential_grad(x, sigma)

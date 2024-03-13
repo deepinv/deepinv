@@ -145,7 +145,7 @@ class MRI(DecomposablePhysics):
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
     r"""
     Apply centered 2 dimensional Fast Fourier Transform.
-    :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
+    :param torch.Tensor data: Complex valued input data containing at least 3 dimensions:
         dimensions -2 & -1 are spatial dimensions and dimension -3 has size
         2. All other dimensions are assumed to be batch dimensions.
     :param bool norm: Normalization mode. See ``torch.fft.fft``.

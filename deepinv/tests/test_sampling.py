@@ -53,7 +53,7 @@ class GaussianScore(torch.nn.Module):
         super().__init__()
         self.sigma_prior2 = sigma_prior**2
 
-    def forward(self, x, sigma):
+    def grad(self, x, sigma):
         return x / self.sigma_prior2
 
 
