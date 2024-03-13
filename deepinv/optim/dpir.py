@@ -20,7 +20,7 @@ def get_DPIR_params(noise_level_img):
     )
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
     lamb = 1 / 0.23
-    return lamb, list(sigma_denoiser), list(stepsize), max_iter
+    return list(sigma_denoiser), list(lamb * stepsize), max_iter
 
 
 class DPIR(BaseOptim):

@@ -1,23 +1,6 @@
 import numpy as np
 
 
-def get_DPIR_params(noise_level_img):
-    r"""
-    Default parameters for the DPIR Plug-and-Play algorithm.
-
-    :param float noise_level_img: Noise level of the input image.
-    """
-    max_iter = 8
-    s1 = 49.0 / 255.0
-    s2 = noise_level_img
-    sigma_denoiser = np.logspace(np.log10(s1), np.log10(s2), max_iter).astype(
-        np.float32
-    )
-    stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
-    lamb = 1 / 0.23
-    return list(sigma_denoiser), list(lamb * stepsize), max_iter
-
-
 def get_GSPnP_params(problem, noise_level_img):
     r"""
     Default parameters for the GSPnP Plug-and-Play algorithm.
