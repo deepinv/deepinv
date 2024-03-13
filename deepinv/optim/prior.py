@@ -223,7 +223,7 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, ths=1.0):
+    def g(self, x, *args, **kwargs):
         r"""
         Computes the Tikhonov regularizer :math:`\reg{x} = \frac{\tau}{2}\| x \|_2^2`.
 
@@ -231,13 +231,9 @@ class Tikhonov(Prior):
         :param float ths: regularization parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
-        return (
-            0.5
-            * ths
-            * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
-        )
+        return 0.5 * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
 
-    def grad(self, x):
+    def grad(self, x, *args, **kwargs):
         r"""
         Calculates the gradient of the Tikhonov regularization term :math:`\regname` at :math:`x`.
 
@@ -246,16 +242,15 @@ class Tikhonov(Prior):
         """
         return x
 
-    def prox(self, x, ths=1.0, gamma=1.0):
+    def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma \tau g` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: regularization parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return (1 / (ths * gamma + 1)) * x
+        return (1 / (gamma + 1)) * x
 
 
 class L1Prior(Prior):
@@ -268,7 +263,7 @@ class L1Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, ths=1.0):
+    def g(self, x, *args, ths=1.0, **kwargs):
         r"""
         Computes the regularizer :math:`\reg{x} = \tau\| x \|_1`.
 
@@ -278,7 +273,7 @@ class L1Prior(Prior):
         """
         return ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
-    def prox(self, x, ths=1.0, gamma=1.0):
+    def prox(self, x, *args, ths=1.0, gamma=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.
 
@@ -347,7 +342,7 @@ class WaveletPrior(Prior):
             wvdim=self.wvdim,
         )
 
-    def g(self, x, *args, **kwargs):
+    def g(self, x, *args, reduce=True, **kwargs):
         r"""
         Computes the regularizer
 
@@ -360,9 +355,15 @@ class WaveletPrior(Prior):
         are regularized, and the approximation coefficients are left untouched.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param bool reduce: if True, the prior is summed over all detail coefficients. Default is True.
         :return: (torch.Tensor) prior :math:`\tau g(x)`.
         """
-        return torch.norm(self.psi(x), p=self.p)
+        list_dec = self.psi(x)
+        list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
+        if reduce:
+            return torch.sum(list_norm)
+        else:
+            return list_norm
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.

@@ -189,7 +189,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         data_fidelity = L2()  # The data fidelity term
 
-        def prior_g(x, *args):
+        def prior_g(x, *args, **kwargs):
             ths = 0.1
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -522,7 +522,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         data_fidelity = L2()  # The data fidelity term
 
-        def prior_g(x, *args):
+        def prior_g(x, *args, **kwargs):
             ths = 1.0
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -614,7 +614,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     data_fidelity = L2()  # The data fidelity term
 
-    def prior_g(x, *args):
+    def prior_g(x, *args, **kwargs):
         ths = 1.0
         return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 

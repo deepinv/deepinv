@@ -16,11 +16,8 @@ from torchvision import transforms
 import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from deepinv.training_utils import train, test
-
-import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
@@ -136,10 +133,9 @@ prior = [
 ]
 
 # Unrolled optimization algorithm parameters
-import numpy as np
 
 lamb = [
-    torch.ones(1, device=device) * 0.1
+    torch.ones(3, 3, device=device) * 0.01
 ] * max_iter  # initialization of the regularization parameter.
 # A distinct lamb is trained for each iteration.
 
