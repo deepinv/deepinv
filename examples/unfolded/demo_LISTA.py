@@ -100,8 +100,10 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
 #
 # .. math::
-#
+#          \begin{equation}
+#          \tag{1}
 #          \min_x \frac{1}{2} \|y - Ax\|_2^2 + \lambda \|Wx\|_1
+#          \end{equation}
 #
 # where :math:`\lambda` is the regularization parameter.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
@@ -120,27 +122,40 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 # Select the data fidelity term
 data_fidelity = L2()
+max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
+stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
+# A distinct stepsize is trained for each iteration.
 
 # Set up the trainable denoising prior; here, the soft-threshold in a wavelet basis.
 # If the prior is initialized with a list of length max_iter,
 # then a distinct weight is trained for each PGD iteration.
 # For fixed trained model prior across iterations, initialize with a single model.
-max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
 level = 3
 prior = [
     dinv.optim.WaveletPrior(wv="db8", level=level, device=device)
     for i in range(max_iter)
 ]
 
+# %%
+#
+# In practice, it is common to apply a different thresholding parameter for each wavelet sub-band. This means that
+# the thresholding parameter is a tensor of shape (n_levels, n_wavelet_subbands) and the associated problem (1) is
+# reformulated as
+#
+# .. math::
+#          \begin{equation}
+#          \min_x \frac{1}{2} \|y - Ax\|_2^2 +  \sum_{i, j} \lambda_{i, j} \|\left(Wx\right)_{i, j}\|_1
+#          \end{equation}
+#
+# where :math:`\lambda_{i, j}` is the thresholding parameter for the wavelet sub-band :math:`j` at level :math:`i`.
+# Note that in this case, the prior is a list of elements containing the terms :math:`\|\left(Wx\right)_{i, j}\|_1=g_{i, j}(x)`,
+# and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
+
 # Unrolled optimization algorithm parameters
-
 lamb = [
-    torch.ones(3, 3, device=device) * 0.01
-] * max_iter  # initialization of the regularization parameter.
-# A distinct lamb is trained for each iteration.
-
-stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
-# A distinct stepsize is trained for each iteration.
+    torch.ones(3, 3, device=device)
+    * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
+] * max_iter  # A distinct lamb is trained for each iteration.
 
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary

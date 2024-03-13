@@ -127,7 +127,7 @@ def nabla(I):
 
 
 # Define the smooth TV prior as the mse of the image finite difference.
-def g(x, *args):
+def g(x, *args, **kwargs):
     dx = nabla(x)
     tv_smooth = torch.nn.functional.mse_loss(
         dx, torch.zeros_like(dx), reduction="sum"

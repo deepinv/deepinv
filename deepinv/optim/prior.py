@@ -225,10 +225,9 @@ class Tikhonov(Prior):
 
     def g(self, x, *args, **kwargs):
         r"""
-        Computes the Tikhonov regularizer :math:`\reg{x} = \frac{\tau}{2}\| x \|_2^2`.
+        Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param float ths: regularization parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
         return 0.5 * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
@@ -244,7 +243,7 @@ class Tikhonov(Prior):
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
-        Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma \tau g` at :math:`x`.
+        Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma g` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
@@ -263,15 +262,14 @@ class L1Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, *args, ths=1.0, **kwargs):
+    def g(self, x, *args, **kwargs):
         r"""
-        Computes the regularizer :math:`\reg{x} = \tau\| x \|_1`.
+        Computes the regularizer :math:`\reg{x} = \| x \|_1`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :return: (torch.Tensor) prior :math:`\reg{x}`.
         """
-        return ths * torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
+        return torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
     def prox(self, x, *args, ths=1.0, gamma=1.0, **kwargs):
         r"""
@@ -280,13 +278,12 @@ class L1Prior(Prior):
         More precisely, it computes
 
         .. math::
-            \operatorname{prox}_{\gamma \tau g}(x) = \operatorname{sign}(x) \max(|x| - \gamma \tau, 0)
+            \operatorname{prox}_{\gamma g}(x) = \operatorname{sign}(x) \max(|x| - \gamma, 0)
 
 
-        where :math:`\tau` is the threshold parameter and :math:`\gamma` is a stepsize.
+        where :math:`\gamma` is a stepsize.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float ths: threshold parameter :math:`\tau`.
         :param float gamma: stepsize of the proximity operator.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
@@ -347,16 +344,26 @@ class WaveletPrior(Prior):
         Computes the regularizer
 
         .. math::
-             \reg{x} = \|\Psi x\|_{p}
+            \begin{equation}
+             {\regname}_{i,j}(x) = \|(\Psi x)_{i,j}\|_{p}
+             \end{equation}
 
 
-        where :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
+        where :math:`\Psi` is an orthonormal wavelet transform, :math:`i` and :math:`j` are the indices of the
+        wavelet sub-bands,  and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
         :math:`p=0`, :math:`p=1`, or :math:`p=\infty`. As mentioned in the class description, only detail coefficients
         are regularized, and the approximation coefficients are left untouched.
 
+        If `reduce` is set to `True`, the regularizer is summed over all detail coefficients, yielding
+
+        .. math::
+                \regname(x) = \|\Psi x\|_{p}.
+
+        If `reduce` is set to `False`, the regularizer is returned as a list of the norms of the detail coefficients.
+
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param bool reduce: if True, the prior is summed over all detail coefficients. Default is True.
-        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
         list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
@@ -407,8 +414,7 @@ class TVPrior(Prior):
         and the 2-norm is taken on the dimension of the differences.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :param torch.Tensor, float ths: Regularization parameter :math:`\tau` in the proximal operator (default value = 1.0).
-        :return: (torch.Tensor) prior :math:`\tau g(x)`.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
         return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
 
