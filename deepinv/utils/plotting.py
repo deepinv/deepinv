@@ -96,6 +96,7 @@ def plot(
     suptitle=None,
     cmap="gray",
     fontsize=17,
+    interpolation="none",
 ):
     r"""
     Plots a list of images.
@@ -129,6 +130,7 @@ def plot(
     :param tuple[int] figsize: size of the figure.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
+    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
@@ -186,7 +188,7 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r, i].imshow(img, cmap=cmap)
+            axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")

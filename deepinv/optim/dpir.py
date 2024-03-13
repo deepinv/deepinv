@@ -20,7 +20,7 @@ def get_DPIR_params(noise_level_img):
     )
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
     lamb = 1 / 0.23
-    return lamb, list(sigma_denoiser), list(stepsize), max_iter
+    return list(sigma_denoiser), list(lamb * stepsize), max_iter
 
 
 class DPIR(BaseOptim):
@@ -43,8 +43,8 @@ class DPIR(BaseOptim):
 
     def __init__(self, sigma=0.1, device="cuda"):
         prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
-        lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
-        params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
+        params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(
             create_iterator("HQS", prior=prior, F_fn=None, g_first=False),
             max_iter=max_iter,
