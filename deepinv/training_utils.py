@@ -106,10 +106,7 @@ class Trainer:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
-        # set the different metrics
-        self.meters = []
         self.total_loss = AverageMeter("loss", ":.2e")
-        self.meters.append(self.total_loss)
         if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
             self.losses = [self.losses]
         if self.fact_losses is None:
@@ -117,16 +114,11 @@ class Trainer:
         self.losses_verbose = [
             AverageMeter("Loss_" + l.name, ":.2e") for l in self.losses
         ]
-        for loss in self.losses_verbose:
-            self.meters.append(loss)
-        self.train_psnr = AverageMeter("Train_psnr_model", ":.2f")
-        self.meters.append(self.train_psnr)
+        self.train_metric = AverageMeter("Train_psnr_model", ":.2f")
         if self.eval_dataloader:
             self.eval_psnr = AverageMeter("Eval_psnr_model", ":.2f")
-            self.meters.append(self.eval_psnr)
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
-            self.meters.append(self.check_grad_val)
 
         self.save_path = f"{self.save_path}/{get_timestamp()}"
 
@@ -146,8 +138,6 @@ class Trainer:
 
         self.loss_history = []
 
-        self.log_dict = {}
-
         self.epoch_start = 0
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
@@ -155,52 +145,37 @@ class Trainer:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
             self.epoch_start = checkpoint["epoch"]
 
-    def epoch_eval(self, epoch):
-        r"""
-        Perform evaluation at the end of each epoch.
+    def make_grid_image(self, physics_cur, x, y, x_net):
 
-        :param int epoch: Current epoch.
+        with torch.no_grad():
+            if self.plot_measurements and y.shape != x.shape:
+                y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
+                if hasattr(physics_cur, "A_adjoint"):
+                    imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
+                    caption = (
+                        "From top to bottom: input, backprojection, output, target"
+                    )
+                else:
+                    imgs = [y_reshaped, x_net, x]
+                    caption = "From top to bottom: input, output, target"
+            else:
+                if hasattr(physics_cur, "A_adjoint"):
+                    if isinstance(physics_cur, torch.nn.DataParallel):
+                        back = physics_cur.module.A_adjoint(y)
+                    else:
+                        back = physics_cur.A_adjoint(y)
+                    imgs = [back, x_net, x]
+                    caption = "From top to bottom: backprojection, output, target"
+                else:
+                    imgs = [x_net, x]
+                    caption = "From top to bottom: output, target"
 
-        """
+            vis_array = torch.cat(imgs, dim=0)
+            for i in range(len(vis_array)):
+                vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
+            grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
 
-        if self.wandb_vis:
-            wandb_log_dict_epoch = {"epoch": epoch}
-
-        # perform evaluation every eval_interval epoch
-        self.perform_eval = (
-            (not self.unsupervised)
-            and self.eval_dataloader
-            and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
-        )
-
-        if self.perform_eval:
-            test_psnr, _, _, _ = test(
-                self.model,
-                self.eval_dataloader,
-                self.physics,
-                self.device,
-                verbose=False,
-                plot_images=self.plot_images,
-                plot_metrics=self.plot_metrics,
-                wandb_vis=self.wandb_vis,
-                wandb_setup=self.wandb_setup,
-                step=epoch,
-                online_measurements=self.online_measurements,
-                img_interval=self.img_interval,
-            )
-            self.eval_psnr.update(test_psnr)
-            self.log_dict["eval_psnr"] = test_psnr
-            if self.wandb_vis:
-                wandb_log_dict_epoch["eval_psnr"] = test_psnr
-
-        # wandb logging
-        if self.wandb_vis:
-            last_lr = (
-                None if self.scheduler is None else self.scheduler.get_last_lr()[0]
-            )
-            wandb_log_dict_epoch["learning rate"] = last_lr
-
-            wandb.log(wandb_log_dict_epoch)
+        return grid_image, caption
 
     def epoch_wandb_vis(self, epoch, physics_cur, x, y, x_net):
         r"""
@@ -218,56 +193,31 @@ class Trainer:
             # log average training metrics
             log_dict_post_epoch = {}
             log_dict_post_epoch["mean training loss"] = self.total_loss.avg
-            log_dict_post_epoch["mean training psnr"] = self.train_psnr.avg
+            log_dict_post_epoch["mean training psnr"] = self.train_metric.avg
             if self.check_grad:
                 log_dict_post_epoch["mean gradient norm"] = self.check_grad_val.avg
 
-            with torch.no_grad():
-                if self.plot_measurements and y.shape != x.shape:
-                    y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
-                    if hasattr(physics_cur, "A_adjoint"):
-                        imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
-                        caption = (
-                            "From top to bottom: input, backprojection, output, target"
-                        )
-                    else:
-                        imgs = [y_reshaped, x_net, x]
-                        caption = "From top to bottom: input, output, target"
-                else:
-                    if hasattr(physics_cur, "A_adjoint"):
-                        if isinstance(physics_cur, torch.nn.DataParallel):
-                            back = physics_cur.module.A_adjoint(y)
-                        else:
-                            back = physics_cur.A_adjoint(y)
-                        imgs = [back, x_net, x]
-                        caption = "From top to bottom: backprojection, output, target"
-                    else:
-                        imgs = [x_net, x]
-                        caption = "From top to bottom: output, target"
+            grid_image, caption = self.make_grid_image(physics_cur, x, y, x_net)
 
-                vis_array = torch.cat(imgs, dim=0)
-                for i in range(len(vis_array)):
-                    vis_array[i] = rescale_img(vis_array[i], rescale_mode="min_max")
-                grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
-                if (epoch + 1) % self.freq_plot == 0:
-                    images = wandb.Image(
-                        grid_image,
-                        caption=caption,
-                    )
-                    log_dict_post_epoch["Training samples"] = images
+            if (epoch + 1) % self.freq_plot == 0:
+                images = wandb.Image(
+                    grid_image,
+                    caption=caption,
+                )
+                log_dict_post_epoch["Training samples"] = images
 
-        if self.wandb_vis:
             wandb.log(log_dict_post_epoch)
 
-    def batch_compute_metric(self, x, x_net):
+    def batch_metric(self, x, x_net, train=True, log=True):
         r"""
-        Compute metrics over the training batch at each iteration.
+        Compute metrics over the training batch at each iteration and logs them.
 
         It computes the PSNR of the network reconstruction and logs the training metrics.
 
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor x_net: Network reconstruction.
-
+        :param bool train: Whether the model is being trained. (Necessary to attribute to relevant log key)
+        :param bool log: Whether to log the metrics. (Only if train is True)
         """
 
         assert (
@@ -275,12 +225,20 @@ class Trainer:
         ), "batch_eval_metric should not be called when self.unsupervised is True."
 
         with torch.no_grad():
-            psnr = cal_psnr(x_net, x)
-            self.train_psnr.update(psnr)
-            if self.wandb_vis:
-                self.wandb_log_dict_iter["train_psnr"] = psnr
-                wandb.log(self.wandb_log_dict_iter)
-            self.log_dict["train_psnr"] = self.train_psnr.avg
+            metric = cal_psnr(x_net, x)
+
+        if train and log:
+            self.train_metric.update(metric)
+            self.log_dict_iter["train_psnr"] = self.train_metric.val
+
+        return metric
+
+    def log_metrics(self):
+        r"""
+        Log the metrics to wandb.
+        """
+        if self.wandb_vis:
+            wandb.log(self.log_dict_iter)
 
     def check_clip_grad(self):
         r"""
@@ -299,7 +257,7 @@ class Trainer:
                 if param.grad is not None
             ]
             norm_grads = torch.cat(grads).norm()
-            self.wandb_log_dict_iter["gradient norm"] = norm_grads.item()
+            self.log_dict_iter["gradient norm"] = norm_grads.item()
             self.check_grad_val.update(norm_grads.item())
 
     def backward_pass(self, g, x, y, x_net):
@@ -322,13 +280,11 @@ class Trainer:
             loss_total += self.fact_losses[k] * loss
             self.losses_verbose[k].update(loss.item())
             if len(self.losses) > 1:
-                self.log_dict["loss_" + l.name] = self.losses_verbose[k].avg
-                if self.wandb_vis:
-                    self.wandb_log_dict_iter["loss_" + l.name] = loss.item()
-        if self.wandb_vis:
-            self.wandb_log_dict_iter["training loss"] = loss_total.item()
+                self.log_dict_iter["loss_" + l.name] = self.losses_verbose[k].val
+
         self.total_loss.update(loss_total.item())
-        self.log_dict["total_loss"] = self.total_loss.avg
+
+        self.log_dict_iter["training loss"] = self.total_loss.val
 
         # Backward the total loss
         loss_total.backward()
@@ -337,7 +293,7 @@ class Trainer:
         # Optimizer step
         self.optimizer.step()
 
-    def get_samples_online(self, g):
+    def get_samples_online(self, iterators, g):
         r"""
         Get the samples for the online measurements.
 
@@ -345,11 +301,12 @@ class Trainer:
         This function returns a dictionary containing necessary data for the model inference. It needs to contain
         the measurement, the ground truth, and the current physics operator, but can also contain additional data.
 
+        :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         x, _ = next(
-            self.iterators[g]
+            iterators[g]
         )  # In this case the dataloader outputs also a class label
         x = x.to(self.device)
         physics_cur = self.physics[g]
@@ -358,7 +315,7 @@ class Trainer:
 
         return {"x": x, "y": y, "physics_cur": physics_cur}
 
-    def get_samples_offline(self, g):
+    def get_samples_offline(self, iterators, g):
         r"""
         Get the samples for the offline measurements.
 
@@ -366,14 +323,15 @@ class Trainer:
         This function returns a dictionary containing necessary data for the model inference. It needs to contain
         the measurement, the ground truth, and the current physics operator, but can also contain additional data.
 
+        :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         if self.unsupervised:
-            y = next(self.iterators[g])
+            y = next(iterators[g])
             x = None
         else:
-            x, y = next(self.iterators[g])
+            x, y = next(iterators[g])
             if type(x) is list or type(x) is tuple:
                 x = [s.to(self.device) for s in x]
             else:
@@ -382,6 +340,23 @@ class Trainer:
         physics_cur = self.physics[g]
 
         return {"x": x, "y": y, "physics_cur": physics_cur}
+
+    def get_samples(self, iterators, g):
+        r"""
+        Get the samples.
+
+        This function returns a dictionary containing necessary data for the model inference. It needs to contain
+        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+
+        :param list iterators: List of dataloader iterators.
+        :param int g: Current dataloader index.
+        """
+        if self.online_measurements:  # the measurements y are created on-the-fly
+            samples = self.get_samples_online(iterators, g)
+        else:  # the measurements y were pre-computed
+            samples = self.get_samples_offline(iterators, g)
+
+        return samples
 
     def model_inference(self, samples):
         r"""
@@ -399,7 +374,7 @@ class Trainer:
         x_net = self.model(y, physics_cur)
         return x_net
 
-    def train_batch(self, epoch, progress_bar):
+    def train_step(self, epoch, progress_bar):
         r"""
         Train a batch.
 
@@ -412,17 +387,14 @@ class Trainer:
 
         progress_bar.set_description(f"Epoch {epoch + 1}")
 
-        if self.wandb_vis:
-            self.wandb_log_dict_iter = {}
+        self.log_dict_iter = {}
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
 
         for g in G_perm:  # for each dataloader
-            if self.online_measurements:  # the measurements y are created on-the-fly
-                samples = self.get_samples_online(g)
-            else:  # the measurements y were pre-computed
-                samples = self.get_samples_offline(g)
+
+            samples = self.get_samples(self.train_iterators, g)
 
             x, y, physics_cur = samples["x"], samples["y"], samples["physics_cur"]
 
@@ -433,11 +405,16 @@ class Trainer:
             # Run the forward model
             x_net = self.model_inference(samples)
 
+            # Backward step
             self.backward_pass(g=g, x=x, y=y, x_net=x_net)
 
-            self.batch_compute_metric(x=x, x_net=x_net)
+            # Compute the metrics over the batch
+            _ = self.batch_metric(x=x, x_net=x_net)
 
-            progress_bar.set_postfix(self.log_dict)
+            # Log metrics
+            self.log_metrics()
+
+            progress_bar.set_postfix(self.log_dict_iter)
 
         return physics_cur, x, y, x_net
 
@@ -457,14 +434,11 @@ class Trainer:
 
             self.model.train()
 
-            for meter in self.meters:
-                meter.reset()  # reset the metric at each epoch
-
-            self.iterators = [iter(loader) for loader in self.train_dataloader]
+            self.train_iterators = [iter(loader) for loader in self.train_dataloader]
             batches = len(self.train_dataloader[self.G - 1])
 
             for i in (progress_bar := tqdm(range(batches), disable=not self.verbose)):
-                physics_cur, x, y, x_net = self.train_batch(epoch, progress_bar)
+                physics_cur, x, y, x_net = self.train_step(epoch, progress_bar)
 
             self.epoch_wandb_vis(epoch, physics_cur, x=x, y=y, x_net=x_net)
 
@@ -489,6 +463,99 @@ class Trainer:
             wandb.save("model.h5")
 
         return self.model
+
+    def validate(self, epoch):
+        r"""
+        Perform validation on the validation set.
+
+        :param int epoch: Current epoch.
+        """
+        self.model.eval()
+
+        self.val_iterators = [iter(loader) for loader in self.eval_dataloader]
+        G = len(self.eval_dataloader)
+
+        metrics = []
+        images = []
+        losses = []
+
+        for g in range(G):
+            dataloader = self.eval_dataloader[g]
+            for i in (progress_bar := tqdm(dataloader, disable=not self.verbose)):
+
+                progress_bar.set_description(f"Epoch {epoch + 1} (Validation)")
+
+                with torch.no_grad():
+
+                    samples = self.get_samples(self.val_iterators, g)
+
+                    x, y, physics_cur = (
+                        samples["x"],
+                        samples["y"],
+                        samples["physics_cur"],
+                    )
+
+                    x_net = self.model_inference(samples)
+
+                    for k, l in enumerate(self.losses):
+                        loss = l(
+                            x=x, x_net=x_net, y=y, physics=physics_cur, model=self.model
+                        )
+                        losses.append(self.fact_losses[k] * loss)
+
+                    metric = self.batch_metric(x=x, x_net=x_net, train=False, log=False)
+                    metrics.append(metric)
+
+                    progress_bar.set_postfix(
+                        {
+                            "val_loss": np.array(losses).mean(),
+                            "val_psnr": np.array(metrics).mean(),
+                        }
+                    )
+
+            image, _ = self.make_grid_image(physics_cur, x, y, x_net)
+            images.append(image)
+
+        mean_metric = np.mean(np.array(metrics))
+        mean_loss = np.mean(np.array(losses))
+
+        return mean_metric, mean_loss, images
+
+    def epoch_eval(self, epoch):
+        r"""
+        Perform evaluation at the end of each epoch.
+
+        :param int epoch: Current epoch.
+
+        """
+        wandb_log_dict_epoch = {"epoch": epoch}
+
+        # perform evaluation every eval_interval epoch
+        self.perform_eval = (
+            (not self.unsupervised)
+            and self.eval_dataloader
+            and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
+        )
+
+        if self.perform_eval:
+            mean_val_metric, mean_val_loss, images = self.validate(epoch)
+            self.eval_psnr.update(mean_val_metric)
+            wandb_log_dict_epoch["eval_psnr"] = mean_val_metric
+            wandb_log_dict_epoch["eval_loss"] = mean_val_loss
+
+        # wandb logging
+        if self.wandb_vis:
+            last_lr = (
+                None if self.scheduler is None else self.scheduler.get_last_lr()[0]
+            )
+            wandb_log_dict_epoch["learning rate"] = last_lr
+
+            for g in range(self.G):
+                wandb_log_dict_epoch[f"Val images batch (G={g}) "] = wandb.Image(
+                    images[g]
+                )
+
+            wandb.log(wandb_log_dict_epoch)
 
 
 def test(
@@ -675,6 +742,7 @@ def test(
 
 def train(*args, **kwargs):
     """
+    WARNING: DEPRECATED.
     Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
 
     This function creates a Trainer instance and returns the trained model.
