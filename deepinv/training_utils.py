@@ -259,9 +259,9 @@ class Trainer:
         if self.wandb_vis:
             wandb.log(log_dict_post_epoch)
 
-    def batch_eval_metric(self, x, x_net):
+    def batch_compute_metric(self, x, x_net):
         r"""
-        Perform evaluation at each iteration.
+        Compute metrics over the training batch at each iteration.
 
         It computes the PSNR of the network reconstruction and logs the training metrics.
 
@@ -337,6 +337,68 @@ class Trainer:
         # Optimizer step
         self.optimizer.step()
 
+    def get_samples_online(self, g):
+        r"""
+        Get the samples for the online measurements.
+
+        In this setting, a new sample is generated at each iteration by calling the physics operator.
+        This function returns a dictionary containing necessary data for the model inference. It needs to contain
+        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+
+        :param int g: Current dataloader index.
+        :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
+        """
+        x, _ = next(
+            self.iterators[g]
+        )  # In this case the dataloader outputs also a class label
+        x = x.to(self.device)
+        physics_cur = self.physics[g]
+
+        y = physics_cur(x)
+
+        return {"x": x, "y": y, "physics_cur": physics_cur}
+
+    def get_samples_offline(self, g):
+        r"""
+        Get the samples for the offline measurements.
+
+        In this setting, samples have been generated offline and are loaded from the dataloader.
+        This function returns a dictionary containing necessary data for the model inference. It needs to contain
+        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+
+        :param int g: Current dataloader index.
+        :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
+        """
+        if self.unsupervised:
+            y = next(self.iterators[g])
+            x = None
+        else:
+            x, y = next(self.iterators[g])
+            if type(x) is list or type(x) is tuple:
+                x = [s.to(self.device) for s in x]
+            else:
+                x = x.to(self.device)
+
+        physics_cur = self.physics[g]
+
+        return {"x": x, "y": y, "physics_cur": physics_cur}
+
+    def model_inference(self, samples):
+        r"""
+        Perform the model inference.
+
+        It returns the network reconstruction given the samples.
+
+        :param dict samples: Dictionary containing the necessary information for model inference. By default,
+            the measurement, and the current physics operator, but not necessarily; this needs to be adapted to the
+            model's forward method.
+        :returns: The network reconstruction.
+        """
+        y, physics_cur = samples["y"], samples["physics_cur"]
+        y = y.to(self.device)
+        x_net = self.model(y, physics_cur)
+        return x_net
+
     def train_batch(self, epoch, progress_bar):
         r"""
         Train a batch.
@@ -358,44 +420,22 @@ class Trainer:
 
         for g in G_perm:  # for each dataloader
             if self.online_measurements:  # the measurements y are created on-the-fly
-                x, _ = next(
-                    self.iterators[g]
-                )  # In this case the dataloader outputs also a class label
-                x = x.to(self.device)
-                physics_cur = self.physics[g]
-
-                if isinstance(physics_cur, torch.nn.DataParallel):
-                    physics_cur.module.noise_model.__init__(
-                        x_shape=x.shape, x_device=x.device
-                    )
-                else:
-                    physics_cur.reset()
-
-                y = physics_cur(x)
-
+                samples = self.get_samples_online(g)
             else:  # the measurements y were pre-computed
-                if self.unsupervised:
-                    y = next(self.iterators[g])
-                    x = None
-                else:
-                    x, y = next(self.iterators[g])
-                    if type(x) is list or type(x) is tuple:
-                        x = [s.to(self.device) for s in x]
-                    else:
-                        x = x.to(self.device)
+                samples = self.get_samples_offline(g)
 
-                physics_cur = self.physics[g]
+            x, y, physics_cur = samples["x"], samples["y"], samples["physics_cur"]
 
             y = y.to(self.device)
 
             self.optimizer.zero_grad()
 
             # Run the forward model
-            x_net = self.model(y, physics_cur)
+            x_net = self.model_inference(samples)
 
             self.backward_pass(g=g, x=x, y=y, x_net=x_net)
 
-            self.batch_eval_metric(x=x, x_net=x_net)
+            self.batch_compute_metric(x=x, x_net=x_net)
 
             progress_bar.set_postfix(self.log_dict)
 
