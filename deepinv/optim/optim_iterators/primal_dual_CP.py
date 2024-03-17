@@ -89,10 +89,8 @@ class CPIteration(OptimIterator):
         """
         iterate = X["iterate"]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
-        K_adjoint = (
-            lambda x: cur_params["K_adjoint"](x)
-            if "K_adjoint" in cur_params.keys()
-            else x
+        K_adjoint = lambda x: (
+            cur_params["K_adjoint"](x) if "K_adjoint" in cur_params.keys() else x
         )
         x_prev, u_prev, z_prev = iterate
         if self.g_first:

@@ -6,6 +6,7 @@ This example shows how to define your own optimization algorithm.
 For example, here, we implement the Condat-Vu Primal-Dual algorithm,
 and apply it for Single Pixel Camera reconstruction.
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch

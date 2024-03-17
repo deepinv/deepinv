@@ -21,6 +21,7 @@ In this example, we unfold the Chambolle-Pock algorithm to solve this problem, a
 a wavelet denoiser in a LISTA fashion.
 
 """
+
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
@@ -156,7 +157,7 @@ data_fidelity = IndicatorL2(radius=0.0)
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
 level = 3
 prior = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 
@@ -285,7 +286,7 @@ model_spec = {
 # For fixed trained model prior across iterations, initialize with a single model.
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
 prior_new = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 

@@ -417,7 +417,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     ths = 2.0
 
-    model = dinv.models.TGV(n_it_max=5000, verbose=True, crit=1e-4)
+    model = dinv.models.TGVDenoiser(n_it_max=5000, verbose=True, crit=1e-4)
 
     x = model(y, ths)  # 3. Apply the model we want to test
 
@@ -440,7 +440,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 # GD not implemented for this one
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
@@ -460,7 +460,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     # here the prior model is common for all iterations
-    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -506,7 +506,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     # for prior_name in ['L1Prior', 'Tikhonov']:
-    for prior_name in ["L1Prior", "Tikhonov"]:
+    for prior_name in ["L1Prior", "Tikhonov", "TVPrior"]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
@@ -532,6 +532,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             prior = dinv.optim.prior.L1Prior()
         elif prior_name == "Tikhonov":
             prior = dinv.optim.prior.Tikhonov()
+        elif prior_name == "TVPrior":
+            prior = dinv.optim.prior.TVPrior()
 
         stepsize_dual = 1.0 if pnp_algo == "CP" else None
         params_algo = {
@@ -576,9 +578,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
-    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
@@ -596,7 +598,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    prior = RED(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 

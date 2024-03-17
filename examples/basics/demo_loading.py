@@ -8,6 +8,8 @@ The architecture of the model and its training are described
 in the `constrained unfolded demo <https://deepinv.github.io/deepinv/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html>`_.
 
 """
+
+import importlib.util
 from pathlib import Path
 import torch
 
@@ -66,7 +68,7 @@ level = 3
 max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
 
 prior = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 
@@ -134,7 +136,7 @@ torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 # For fixed trained model prior across iterations, initialize with a single model.
 
 prior_new = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 
@@ -175,11 +177,16 @@ print(
 
 
 # load a state_dict checkpoint
-file_name = "demo_unfolded_CP.pth"
+file_name = (
+    "demo_unfolded_CP_ptwt.pth"
+    if importlib.util.find_spec("ptwt")
+    else "demo_unfolded_CP.pth"
+)
 url = get_weights_url(model_name="demo", file_name=file_name)
 ckpt_state_dict = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
 )
+
 # load a state_dict checkpoint
 model_new.load_state_dict(ckpt_state_dict)
 

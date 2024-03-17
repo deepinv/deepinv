@@ -529,7 +529,8 @@ def create_iterator(iteration, prior=None, cost_fn=None, g_first=False):
 
 def optim_builder(
     iteration,
-    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    max_iter=100,
+    params_algo={"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05},
     data_fidelity=None,
     prior=None,
     cost_fn=None,
@@ -541,8 +542,10 @@ def optim_builder(
 
     :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
-        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        If an algorithm name (string), should be either ``"GD"`` (gradient descent),
+        ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
@@ -567,6 +570,7 @@ def optim_builder(
         data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
+        max_iter=max_iter,
         **kwargs,
     )
 

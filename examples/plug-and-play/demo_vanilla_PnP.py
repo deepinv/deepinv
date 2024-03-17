@@ -5,6 +5,7 @@ Vanilla PnP for computed tomography (CT).
 This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography.
 
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -109,7 +110,7 @@ model = optim_builder(
 # --------------------------------------------------------------------
 #
 # The model returns the output and the metrics computed along the iterations.
-# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
+# For computing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)
 x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator

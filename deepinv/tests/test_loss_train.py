@@ -52,9 +52,9 @@ optim_algos = ["PGD"]
 
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, device):
-    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # pths
     BASE_DIR = Path(".")
@@ -70,7 +70,7 @@ def test_optim_algo(name_algo, imsize, device):
     max_iter = 30 if torch.cuda.is_available() else 3  # Number of unrolled iterations
     level = 3
     prior = [
-        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
         for i in range(max_iter)
     ]
 
@@ -82,8 +82,12 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [0.01 * torch.ones(level, 1)] * max_iter
-    # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
+    sigma_denoiser = [
+        0.01
+        * torch.ones(
+            level,
+        )
+    ] * max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,

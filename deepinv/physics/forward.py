@@ -1,7 +1,49 @@
 import torch
 from deepinv.optim.utils import conjugate_gradient
-from .noise import GaussianNoise
+from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
+
+
+def adjoint_function(A, input_size, device="cpu"):
+    r"""
+    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
+
+
+    The generated function can be simply called as ``A_adjoint(y)``, for example:
+
+    >>> import torch
+    >>> from deepinv.physics.forward import adjoint_function
+    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
+    >>> x = torch.randn((4, 1, 5, 5))
+    >>> y = A(x)
+    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
+    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
+    True
+
+
+    :param callable A: linear operator :math:`A`.
+    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
+        The first dimension, i.e. batch size, should be equal or lower than the batch size B
+        of the input tensor to the adjoint operator.
+    :param str device: device where the adjoint operator is computed.
+    :return: (callable) function that computes the adjoint of :math:`A`.
+
+    """
+    x = torch.ones(input_size, device=device)
+    (_, vjpfunc) = torch.func.vjp(A, x)
+    batches = x.size()[0]
+
+    def adjoint(y):
+        if y.size()[0] < batches:
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device)
+            y2[: y.size()[0], ...] = y
+            return vjpfunc(y2)[0][: y.size()[0], ...]
+        elif y.size()[0] > batches:
+            raise ValueError("Batch size of A_adjoint input is larger than expected")
+        else:
+            return vjpfunc(y)[0]
+
+    return adjoint
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -200,6 +242,12 @@ class LinearPhysics(Physics):
     :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
         It is recommended to normalize it to have unit norm.
     :param callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+
+        .. note::
+
+            A_adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function`
+            method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
+
     :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
     :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
@@ -209,6 +257,56 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
+
+    |sep|
+
+    :Examples:
+
+        Blur operator with a basic averaging filter applied to a 32x32 black image with
+        a single white pixel in the center:
+
+        >>> from deepinv.physics.blur import Blur, Downsampling
+        >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x)
+
+        Linear operators can also be added. The measurements produced by the resulting
+        model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
+        measurements of the corresponding operator:
+
+        >>> physics1 = Blur(filter=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
+        >>> physics = physics1 + physics2
+        >>> y = physics(x)
+
+        Linear operators can also be composed by multiplying them:
+
+        >>> physics = physics1 * physics2
+        >>> y = physics(x)
+
+        Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
+
+        >>> from deepinv.utils import cal_psnr
+        >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x) # Compute measurements
+        >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
+        >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
+        >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
+        True
+
+        The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
+        which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
+
+        >>> from deepinv.utils import cal_psnr
+        >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
+        >>> physics = LinearPhysics(A=A, A_adjoint=adjoint_function(A, (4, 1, 5, 5)))
+        >>> x = torch.randn((4, 1, 5, 5))
+        >>> y = physics(x)
+        >>> torch.allclose(physics.A_adjoint(y), x) # We have A^T(A(x)) = x
+        True
 
     """
 
@@ -229,8 +327,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             tol=tol,
         )
-
-        self.adjoint = A_adjoint
+        self.A_adj = A_adjoint
 
     def A_adjoint(self, y):
         r"""
@@ -246,7 +343,8 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-        return self.adjoint(y)
+
+        return self.A_adj(y)
 
     def __mul__(self, other):
         r"""
@@ -277,6 +375,11 @@ class LinearPhysics(Physics):
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
+
+        .. note::
+
+            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            noise.
 
         :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.LinearPhysics) stacked operator
@@ -400,7 +503,8 @@ class LinearPhysics(Physics):
     def A_dagger(self, y):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
-        ` conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
+        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
+        see :meth:`deepinv.optim.utils.conjugate_gradient`.
 
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
         otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
@@ -450,6 +554,30 @@ class DecomposablePhysics(LinearPhysics):
     :param callable V_adjoint: transpose of V
     :param torch.Tensor, float mask: Singular values of the transform
 
+    |sep|
+
+    :Examples:
+
+        Recreation of the Inpainting operator using the DecomposablePhysics class:
+
+        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+        >>> tensor_size = (1, 1, 3, 3)  # Input size
+        >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
+        >>> U = lambda x: x  # U is the identity operation
+        >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
+        >>> V = lambda x: x  # V is the identity operation
+        >>> V_adjoint = lambda x: x  # V_adjoint is the identity operation
+        >>> mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
+        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)
+
+        Apply the operator to a random tensor:
+
+        >>> x = torch.randn(tensor_size)
+        >>> physics.A(x)  # Apply the masking
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.7193]]]])
+
     """
 
     def __init__(
@@ -490,21 +618,6 @@ class DecomposablePhysics(LinearPhysics):
             mask = torch.conj(self.mask)
 
         return self.V(mask * self.U_adjoint(y))
-
-    def noise(self, x):
-        r"""
-        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
-
-        :param torch.Tensor x:  clean measurements
-        :return torch.Tensor: noisy measurements
-        """
-        if not isinstance(self.mask, float):
-            noise = self.U(
-                self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
-            )
-        else:
-            noise = self.noise_model(x)
-        return noise
 
     def prox_l2(self, z, y, gamma):
         r"""
@@ -553,6 +666,23 @@ class Denoising(DecomposablePhysics):
     The linear operator is just the identity mapping :math:`A(x)=x`
 
     :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+
+    |sep|
+
+    :Examples:
+
+        Denoising operator with Gaussian noise with standard deviation 0.1:
+
+        >>> from deepinv.physics import Denoising, GaussianNoise
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image
+        >>> physics = Denoising()
+        >>> physics.noise_model = GaussianNoise(sigma=0.1)
+        >>> physics(x)
+        tensor([[[[ 0.7302, -0.2064, -1.0712],
+                  [ 0.1985, -0.4322, -0.8064],
+                  [ 0.2139,  0.3624, -0.3223]]]])
+
     """
 
     def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):

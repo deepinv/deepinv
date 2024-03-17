@@ -7,6 +7,7 @@ for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal g
 soft-thresholding proximal operator with learnable thresholding parameters.
 
 """
+
 from pathlib import Path
 import torch
 from torchvision import datasets
@@ -112,7 +113,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 #           x_{k+1} = \text{prox}_{\gamma g}(x_k - \gamma \lambda A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
-# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDict`).
+# which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.models.WaveletDenoiser`).
 #
 # We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
@@ -130,7 +131,7 @@ data_fidelity = L2()
 max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
 level = 2
 prior = [
-    PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+    PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
     for i in range(max_iter)
 ]
 

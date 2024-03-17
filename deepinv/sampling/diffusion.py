@@ -23,6 +23,7 @@ class DiffusionSampler(MonteCarlo):
     :param bool save_chain: whether to save the chain
     :param int thinning: the thinning factor
     :param float burnin_ratio: the burnin ratio
+
     """
 
     def __init__(
@@ -62,7 +63,7 @@ class DiffusionSampler(MonteCarlo):
 
 
 class DDRM(nn.Module):
-    r"""
+    r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
     Denoising Diffusion Restoration Models (DDRM).
 
     This class implements the denoising diffusion restoration model (DDRM) described in https://arxiv.org/abs/2201.11793.
@@ -78,6 +79,28 @@ class DDRM(nn.Module):
     :param float eta: hyperparameter
     :param float etab: hyperparameter
     :param bool verbose: if True, print progress
+
+    |sep|
+
+    :Examples:
+
+        Denoising diffusion restoration model using a pretrained DRUNet denoiser:
+
+        >>> import deepinv as dinv
+        >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define plain gray 32x32 image
+        >>> physics = dinv.physics.Inpainting(
+        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   noise_model=dinv.physics.GaussianNoise(0.1)
+        ... )
+        >>> y = physics(x) # measurements
+        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+        >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
+        >>> xhat = model(y, physics) # sample from the posterior distribution
+        >>> dinv.utils.cal_psnr(xhat, x) > dinv.utils.cal_psnr(y, x) # Should be closer to the original
+        True
+
     """
 
     def __init__(
@@ -220,6 +243,31 @@ class DiffPIR(nn.Module):
         between 3.0 and 25.0 depending on the problem). Default: ``7.0``.
     :param bool verbose: if ``True``, print progress
     :param str device: the device to use for the computations
+    
+    |sep|
+
+    :Examples:
+
+        Denoising diffusion restoration model using a pretrained DRUNet denoiser:
+
+        >>> import deepinv as dinv
+        >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define a plain gray 32x32 image
+        >>> physics = dinv.physics.Inpainting(
+        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   noise_model=dinv.physics.GaussianNoise(0.1)
+        ... )
+        >>> y = physics(x) # Measurements
+        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+        >>> model = DiffPIR(
+        ...   model=denoiser,
+        ...   data_fidelity=dinv.optim.L2(),
+        ... ) # Define the DiffPIR model
+        >>> xhat = model(y, physics) # Run the DiffPIR algorithm
+        >>> dinv.utils.cal_psnr(xhat, x) > dinv.utils.cal_psnr(y, x) # Should be closer to the original
+        True
+        
     """
 
     def __init__(

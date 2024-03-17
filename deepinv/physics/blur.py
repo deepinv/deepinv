@@ -102,6 +102,21 @@ class Downsampling(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
 
+    |sep|
+
+    :Examples:
+
+        Downsampling operator with a gaussian filter:
+
+        >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
+        >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
+        >>> physics = Downsampling(img_size=((1, 1, 32, 32)), filter = "gaussian", factor = 2)
+        >>> y = physics(x)
+        >>> y[:, :, 7:10, 7:10] # Display the center of the downsampled image
+        tensor([[[[0.0146, 0.0241, 0.0146],
+                  [0.0241, 0.0398, 0.0241],
+                  [0.0146, 0.0241, 0.0146]]]])
+
     """
 
     def __init__(
@@ -421,6 +436,23 @@ class Blur(LinearPhysics):
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
 
+    |sep|
+
+    :Examples:
+
+        Blur operator with a basic averaging filter applied to a 16x16 black image with
+        a single white pixel in the center:
+
+        >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
+        >>> physics = Blur(filter=w)
+        >>> y = physics(x)
+        >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
+        tensor([[[[0.0000, 0.0000, 0.0000],
+                  [0.0000, 0.2500, 0.2500],
+                  [0.0000, 0.2500, 0.2500]]]])
+
     """
 
     def __init__(self, filter, padding="circular", device="cpu", **kwargs):
@@ -456,6 +488,23 @@ class BlurFFT(DecomposablePhysics):
     :param torch.tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
         :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str device: cpu or cuda
+
+    |sep|
+
+    :Examples:
+
+        BlurFFT operator with a basic averaging filter applied to a 16x16 black image with
+        a single white pixel in the center:
+
+        >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
+        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+        >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
+        >>> physics = BlurFFT(img_size=(1, 1, 16, 16), filter=filter)
+        >>> y = physics(x)
+        >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
+        tensor([[[[ 2.5000e-01,  2.5000e-01, -3.1177e-10],
+                  [ 2.5000e-01,  2.5000e-01, -7.1280e-10],
+                  [-7.5937e-10, -5.4986e-10,  3.9221e-10]]]])
 
     """
 

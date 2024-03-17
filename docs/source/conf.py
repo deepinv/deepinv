@@ -26,7 +26,10 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
+    "sphinx_exec_code",
 ]
+
+exec_code_working_dir = "../.."
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
@@ -38,7 +41,7 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 sphinx_gallery_conf = {
-    "examples_dirs": ["../../examples"],
+    "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "filename_pattern": "/demo_",
     "run_stale_examples": True,
@@ -67,8 +70,8 @@ mathjax3_config = {
             "noise": [r"{N\left({#1}\right)}", 1],
             "inverse": [r"{R\left({#1}\right)}", 1],
             "inversef": [r"{R\left({#1},{#2}\right)}", 2],
-            "reg": [r"{g\left({#1}\right)}", 1],
-            "regname": r"g",
+            "reg": [r"{g_\sigma\left({#1}\right)}", 1],
+            "regname": r"g_\sigma",
             "sensor": [r"{\eta\left({#1}\right)}", 1],
             "datafid": [r"{f\left({#1},{#2}\right)}", 2],
             "datafidname": r"f",
@@ -112,3 +115,10 @@ html_theme_options = {
     "includehidden": True,
     "titles_only": False,
 }
+
+# Separator substition : Writing |sep| in the rst file will display a horizontal line.
+rst_prolog = """
+.. |sep| raw:: html
+
+   <hr />
+"""

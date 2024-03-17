@@ -9,6 +9,7 @@ class MedianFilter(nn.Module):
     r"""
     Median filter.
 
+    It computes the median value of a sliding window over the input tensor. The window is defined by the kernel size.
 
     :param int kernel_size: size of pooling kernel, int or 2-tuple
     :param padding: pool padding, int or 4-tuple (l, r, t, b) as in pytorch F.pad

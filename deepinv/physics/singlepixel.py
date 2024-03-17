@@ -60,6 +60,22 @@ class SinglePixelCamera(DecomposablePhysics):
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
     :param str device: Device to store the forward matrix.
 
+    |sep|
+
+    :Examples:
+
+        SinglePixelCamera operators with 16 binary patterns for 32x32 image:
+
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
+        >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
+        >>> torch.sum(physics.mask).item() # Number of measurements
+        48.0
+        >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
+        tensor([[[[1., 0., 0.],
+                  [0., 0., 0.],
+                  [0., 0., 0.]]]])
+
     """
 
     def __init__(
