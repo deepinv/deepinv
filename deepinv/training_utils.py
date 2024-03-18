@@ -1,3 +1,4 @@
+import warnings
 import torchvision.utils
 from deepinv.utils import (
     save_model,
@@ -92,14 +93,17 @@ class Trainer:
 
     def setup_train(self):
         r"""
-        Setup the training process.
+        Set up the training process.
 
         It initializes the wandb logging, the different metrics, the save path, the physics and dataloaders,
         and the pretrained checkpoint if given.
-
         """
 
         self.save_path = Path(self.save_path)
+
+        if self.wandb_setup is not None and not self.wandb_vis:
+            warnings.warn('wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting wandb_vis=True).')
+            self.wandb_vis = True
 
         # wandb initialiation
         if self.wandb_vis:
@@ -245,7 +249,6 @@ class Trainer:
         Check the gradient norm and perform gradient clipping if necessary.
 
         """
-
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
@@ -270,9 +273,7 @@ class Trainer:
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor y: Measurement.
         :param torch.Tensor x_net: Network reconstruction.
-
         """
-
         # Compute the losses
         loss_total = 0
         for k, l in enumerate(self.losses):
@@ -313,7 +314,7 @@ class Trainer:
 
         y = physics_cur(x)
 
-        return {"x": x, "y": y, "physics_cur": physics_cur}
+        return x, y, physics_cur
 
     def get_samples_offline(self, iterators, g):
         r"""
@@ -339,7 +340,7 @@ class Trainer:
 
         physics_cur = self.physics[g]
 
-        return {"x": x, "y": y, "physics_cur": physics_cur}
+        return x, y, physics_cur
 
     def get_samples(self, iterators, g):
         r"""
@@ -350,6 +351,7 @@ class Trainer:
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
+        :returns: the tuple returned by the get_samples_online or get_samples_offline function.
         """
         if self.online_measurements:  # the measurements y are created on-the-fly
             samples = self.get_samples_online(iterators, g)
@@ -358,18 +360,16 @@ class Trainer:
 
         return samples
 
-    def model_inference(self, samples):
+    def model_inference(self, y, physics_cur):
         r"""
         Perform the model inference.
 
         It returns the network reconstruction given the samples.
 
-        :param dict samples: Dictionary containing the necessary information for model inference. By default,
-            the measurement, and the current physics operator, but not necessarily; this needs to be adapted to the
-            model's forward method.
+        :param torch.Tensor y: Measurement.
+        :param deepinv.physics.Physics physics_cur: Current physics operator.
         :returns: The network reconstruction.
         """
-        y, physics_cur = samples["y"], samples["physics_cur"]
         y = y.to(self.device)
         x_net = self.model(y, physics_cur)
         return x_net
@@ -394,16 +394,14 @@ class Trainer:
 
         for g in G_perm:  # for each dataloader
 
-            samples = self.get_samples(self.train_iterators, g)
-
-            x, y, physics_cur = samples["x"], samples["y"], samples["physics_cur"]
+            x, y, physics_cur = self.get_samples(self.train_iterators, g)
 
             y = y.to(self.device)
 
             self.optimizer.zero_grad()
 
             # Run the forward model
-            x_net = self.model_inference(samples)
+            x_net = self.model_inference(y=y, physics_cur=physics_cur)
 
             # Backward step
             self.backward_pass(g=g, x=x, y=y, x_net=x_net)
@@ -487,15 +485,9 @@ class Trainer:
 
                 with torch.no_grad():
 
-                    samples = self.get_samples(self.val_iterators, g)
+                    x, y, physics_cur = self.get_samples(self.val_iterators, g)
 
-                    x, y, physics_cur = (
-                        samples["x"],
-                        samples["y"],
-                        samples["physics_cur"],
-                    )
-
-                    x_net = self.model_inference(samples)
+                    x_net = self.model_inference(y=y, physics_cur=physics_cur)
 
                     for k, l in enumerate(self.losses):
                         loss = l(
@@ -526,7 +518,6 @@ class Trainer:
         Perform evaluation at the end of each epoch.
 
         :param int epoch: Current epoch.
-
         """
         wandb_log_dict_epoch = {"epoch": epoch}
 
@@ -621,6 +612,11 @@ def test(
     G = len(test_dataloader)
 
     show_operators = 5
+
+    if wandb_setup is not None and not wandb_vis:
+        warnings.warn('wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting'
+                      ' wandb_vis=True).')
+        wandb_vis = True
 
     if wandb_vis:
         if wandb.run is None:
