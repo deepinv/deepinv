@@ -1,3 +1,5 @@
+from torch import Tensor
+from typing import Tuple
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch.nn.functional as F
@@ -130,7 +132,8 @@ class Downsampling(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.factor = factor
-        assert isinstance(factor, int), "downsampling factor should be an integer"
+        assert isinstance(
+            factor, int), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.Tensor):
@@ -139,17 +142,21 @@ class Downsampling(LinearPhysics):
             self.filter = filter
         elif filter == "gaussian":
             self.filter = (
-                gaussian_blur(sigma=(factor, factor)).requires_grad_(False).to(device)
+                gaussian_blur(sigma=(factor, factor)
+                              ).requires_grad_(False).to(device)
             )
         elif filter == "bilinear":
-            self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
+            self.filter = bilinear_filter(
+                self.factor).requires_grad_(False).to(device)
         elif filter == "bicubic":
-            self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
+            self.filter = bicubic_filter(
+                self.factor).requires_grad_(False).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
+            self.Fh = filter_fft(self.filter, img_size,
+                                 real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
@@ -194,8 +201,10 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
-            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            below = torch.mean(
+                splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
+            rc = self.Fhc * (top / below).repeat(1, 1,
+                                                 self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
@@ -223,130 +232,96 @@ def extend_filter(filter):
         h_new += 1
 
     out = torch.zeros((b, c, h_new, w_new), device=filter.device)
-    out[:, :, offset_h : h + offset_h, offset_w : w + offset_w] = filter
+    out[:, :, offset_h: h + offset_h, offset_w: w + offset_w] = filter
     return out
 
 
-def conv(x, filter, padding):
+def conv(x: Tensor, filter: Tensor, padding: str = 'same'):
     r"""
     Convolution of x and filter. The transposed of this operation is conv_transpose(x, filter, padding)
 
-    :param x: (torch.Tensor) Image of size (B,C,W,H).
-    :param filter: (torcstring)h.Tensor) Filter of size (1,C,W,H) for colour filtering or (1,1,W,H) for filtering each channel with the same filter.
+    :param x: (torch.Tensor) Image of size `(B, C, W, H)`.
+    :param filter: (torch.Tensor) Filter of size `(b, c, w, h)` ) where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
+
     :param padding: ( options = 'valid', 'circular', 'replicate', 'reflect'. If padding='valid' the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
     """
-    b, c, h, w = x.shape
+    assert x.dim() == filter.dim() == 4, 'Input and filter must be 4D tensors'
 
-    filter = filter.flip(-1).flip(
-        -2
-    )  # In order to perform convolution and not correlation like Pytorch native conv
+    # Get dimensions of the input and the filter
+    B, C, H, W = x.size()
+    b, c, h, w = filter.size()
 
-    filter = extend_filter(filter)
+    if c != C:
+        assert c == 1
+        print('Warning: the number of channels of the input is different than the one of the filter. The filter is expanded in the channel dimension')
+        filter = filter.expand(-1, C, -1, -1)
 
-    ph = (filter.shape[2] - 1) / 2
-    pw = (filter.shape[3] - 1) / 2
+    if b != B:
+        assert b == 1
+        filter = filter.expand(B, -1, -1, -1)
 
     if padding != "valid":
-        pw = int(pw)
-        ph = int(ph)
+        ph = int((h - 1) / 2)
+        pw = int((w - 1) / 2)
         x = F.pad(x, (pw, pw, ph, ph), mode=padding, value=0)
 
-    if filter.shape[1] == 1:
-        if filter.shape[0] == 1:
-            filter = filter.repeat(c, 1, 1, 1)
-        y = F.conv2d(x, filter, padding="valid", groups=c)
-    else:
-        y = F.conv2d(x, filter, padding="valid")
+    # Move batch dim of the input into channels
+    x = x.reshape(1, -1, H, W)
+    # Expand the channel dim of the filter and move it into batch dimension
+    filter = filter.reshape(B * C, -1, h, w)
+    # Perform the convolution, using the groups parameter
+    output = F.conv2d(x, filter, padding=padding, groups=B * C)
+    # Make it in the good shape
+    output = output.view(B, C, output.size(-2), -1)
 
-    return y
+    return output
 
 
-def conv_transpose(y, filter, padding):
+def conv_transpose(y: Tensor, filter: Tensor, padding: str = 'valid'):
     r"""
     Transposed convolution of x and filter. The transposed of this operation is conv(x, filter, padding)
 
-    :param torch.Tensor x: Image of size (B,C,W,H).
-    :param torch.Tensor filter: Filter of size (1,C,W,H) for colour filtering or (1,C,W,H) for filtering each channel with the same filter.
+    :param torch.Tensor x: Image of size `(B, C, W, H)`.
+    :param torch.Tensor filter: Filter of size `(b, c, w, h)` ) where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     """
 
-    b, c, h, w = y.shape
+    assert y.dim() == filter.dim() == 4, 'Input and filter must be 4D tensors'
 
-    filter = filter.flip(-1).flip(
-        -2
-    )  # In order to perform convolution and not correlation like Pytorch native conv
+    # Get dimensions of the input and the filter
+    B, C, H, W = y.size()
+    b, c, h, w = filter.size()
 
-    filter = extend_filter(filter)
+    if c != C:
+        assert c == 1
+        print('Warning: the number of channels of the input is different than the one of the filter. The filter is expanded in the channel dimension')
+        filter = filter.expand(-1, C, -1, -1)
 
-    ph = (filter.shape[2] - 1) / 2
-    pw = (filter.shape[3] - 1) / 2
-
-    h_out = int(h + 2 * ph)
-    w_out = int(w + 2 * pw)
-    pw = int(pw)
-    ph = int(ph)
-
-    x = torch.zeros((b, c, h_out, w_out), device=y.device)
-    if filter.shape[1] == 1:
-        for i in range(b):
-            if filter.shape[0] > 1:
-                f = filter[i, :, :, :].unsqueeze(0)
-            else:
-                f = filter
-
-            for j in range(c):
-                x[i, j, :, :] = F.conv_transpose2d(
-                    y[i, j, :, :].unsqueeze(0).unsqueeze(1), f
-                )
-    else:
-        x = F.conv_transpose2d(y, filter)
+    if b != B:
+        assert b == 1
+        filter = filter.expand(B, -1, -1, -1)
 
     if padding == "valid":
-        out = x
-    elif padding == "zero":
-        out = x[:, :, ph:-ph, pw:-pw]
-    elif padding == "circular":
-        out = x[:, :, ph:-ph, pw:-pw]
-        # sides
-        out[:, :, :ph, :] += x[:, :, -ph:, pw:-pw]
-        out[:, :, -ph:, :] += x[:, :, :ph, pw:-pw]
-        out[:, :, :, :pw] += x[:, :, ph:-ph, -pw:]
-        out[:, :, :, -pw:] += x[:, :, ph:-ph, :pw]
-        # corners
-        out[:, :, :ph, :pw] += x[:, :, -ph:, -pw:]
-        out[:, :, -ph:, -pw:] += x[:, :, :ph, :pw]
-        out[:, :, :ph, -pw:] += x[:, :, -ph:, :pw]
-        out[:, :, -ph:, :pw] += x[:, :, :ph, -pw:]
+        pad = 0
+    elif padding == 'same':
+        pad = (h // 2, w // 2)
+    else:
+        raise NotImplementedError(
+            f'The transposed operator is not yet implemented for padding of type {padding}')
 
-    elif padding == "reflect":
-        out = x[:, :, ph:-ph, pw:-pw]
-        # sides
-        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
-        out[:, :, -ph - 1 : -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
-        out[:, :, :, 1 : 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
-        out[:, :, :, -pw - 1 : -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
-        # corners
-        out[:, :, 1 : 1 + ph, 1 : 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
-        out[:, :, -ph - 1 : -1, -pw - 1 : -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
-        out[:, :, -ph - 1 : -1, 1 : 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
-        out[:, :, 1 : 1 + ph, -pw - 1 : -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
+    # Move batch dim of the input into channels
+    y = y.reshape(1, -1, H, W)
+    # Expand the channel dim of the filter and move it into batch dimension
+    filter = filter.reshape(B * C, -1, h, w)
+    # Perform the convolution, using the groups parameter
+    output = F.conv_transpose2d(y, filter, padding=pad, groups=B * C)
+    # Make it in the good shape
+    output = output.view(B, C, output.size(-2), -1)
 
-    elif padding == "replicate":
-        out = x[:, :, ph:-ph, pw:-pw]
-        # sides
-        out[:, :, 0, :] += x[:, :, :ph, pw:-pw].sum(2)
-        out[:, :, -1, :] += x[:, :, -ph:, pw:-pw].sum(2)
-        out[:, :, :, 0] += x[:, :, ph:-ph, :pw].sum(3)
-        out[:, :, :, -1] += x[:, :, ph:-ph, -pw:].sum(3)
-        # corners
-        out[:, :, 0, 0] += x[:, :, :ph, :pw].sum(3).sum(2)
-        out[:, :, -1, -1] += x[:, :, -ph:, -pw:].sum(3).sum(2)
-        out[:, :, -1, 0] += x[:, :, -ph:, :pw].sum(3).sum(2)
-        out[:, :, 0, -1] += x[:, :, :ph, -pw:].sum(3).sum(2)
-    return out
+    return output
 
 
 class BlindBlur(Physics):
@@ -404,7 +379,8 @@ class BlindBlur(Physics):
         x = y.clone()
         mid_h = int(self.kernel_size[0] / 2)
         mid_w = int(self.kernel_size[1] / 2)
-        w = torch.zeros((y.shape[0], 1, self.kernel_size[0], self.kernel_size[1]))
+        w = torch.zeros(
+            (y.shape[0], 1, self.kernel_size[0], self.kernel_size[1]))
         w[:, :, mid_h, mid_w] = 1.0
 
         return TensorList([x, w])
@@ -451,7 +427,8 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
-        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
+        self.filter = torch.nn.Parameter(
+            filter, requires_grad=False).to(device)
 
     def A(self, x):
         return conv(x, self.filter, self.padding)
@@ -513,7 +490,8 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.abs(self.mask).unsqueeze(-1)
         self.mask = torch.cat([self.mask, self.mask], dim=-1)
 
-        self.mask = torch.nn.Parameter(self.mask, requires_grad=False).to(device)
+        self.mask = torch.nn.Parameter(
+            self.mask, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
         return torch.view_as_real(
