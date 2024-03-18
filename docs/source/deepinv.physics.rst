@@ -72,9 +72,27 @@ Blur
 
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
+
+
+Blur generation 
+^^^^^^^^^^^^^^^
+bla bla
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
    deepinv.physics.PSFDiffractionGenerator2D
+   deepinv.physics.RandomPSF
+   deepinv.physics.GaussianTrajectory
 
 
+
+
+Adjoint
+~~~~~~~
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
