@@ -1,6 +1,7 @@
 from .inpainting import Inpainting
 from .compressed_sensing import CompressedSensing
 from deepinv.physics.blur.blur import Blur, BlindBlur, Downsampling, BlurFFT
+from deepinv.physics.blur.diffraction_kernels import PSFDiffractionGenerator2D
 from .range import Decolorize
 from .haze import Haze
 from .forward import (
