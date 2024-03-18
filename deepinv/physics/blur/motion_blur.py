@@ -33,12 +33,12 @@ class GaussianTrajectory(RandomPSF):
     from a Gaussian Process with a Matérn 3/2 covariance function.
     .. math::
 
-        f_x(t), f_y(t) \sim \mathcal{GP}(0, k(t, t'))
+        f_x(t), f_y(s) \sim \mathcal{GP}(0, k(t, s))
 
-    where :math:`k(t,t')` is defined as 
+    where :math:`k(t,s)` is defined as 
     .. math::
 
-        k(t,t') = \sigma^2 \left\( 1 + \frac{\sqrt{5} |t - t'|}{l} + \frac{5 (t - t')^2}{3 l^2} \right\) \exp \left\( -\frac{\sqrt{5} |t - t'|}{l} \right\)
+        k(t,s) = \sigma^2 \left\( 1 + \frac{\sqrt{5} |t - s|}{l} + \frac{5 (t - s)^2}{3 l^2} \right\) \exp \left\( -\frac{\sqrt{5} |t - s|}{l} \right\)
 
     :param float l: the length scale of the trajectory, defaults to 0.3
     :param float sigma: the standard deviation of the Gaussian Process, defaults to 0.25
