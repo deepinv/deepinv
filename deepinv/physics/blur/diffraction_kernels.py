@@ -1,7 +1,4 @@
 import torch
-import torch.nn.functional as F
-import numpy as np
-
 
 def define_zernike():
     r"""
@@ -151,12 +148,10 @@ def bump_function(x, a=1., b=1.):
     v[torch.abs(x) <= a] = 1
     I = (torch.abs(x) > a) * (torch.abs(x) < a + b)
     v[I] = torch.exp(-1. / (1. - ((torch.abs(x[I]) - a) / b)**2)
-                     ) / np.exp(-1)
+                     ) / torch.exp(-1)
     return v
 
 
-# cutoff = (NA/wavelength)*pixelSize
-# wavenumber = (nI/wavelength)*pixelSize
 
 class PSFDiffractionGenerator2D():
     r"""
@@ -164,7 +159,7 @@ class PSFDiffractionGenerator2D():
     
     :param list[str] list_param: list of activated Zernike coefficients, defaults to ["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]
     :param int psf_size: psf size is psf_size x psf_size, defaults to 17
-    :param float fc: cutoff frequency (NA/wavelength)*pixelSize. Should be in [0, 1/4] to respect Shannon, defaults to 0.2
+    :param float fc: cutoff frequency (NA/emission_wavelength)*pixelSize. Should be in [0, 1/4] to respect Shannon, defaults to 0.2
     :param int pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to 256
     :param torch.device: device for computation , defaults to 'cpu'
     :param torch.dtype: tensor type, defaults to torch.float32
@@ -247,7 +242,7 @@ class PSFDiffractionGenerator2D():
         :param torch.Tensor coeff: B x N, Zernike coefficients of the psfs we want to synthesize.
     
         :return: tensor B x psf_size x psf_size batch of psfs
-        :rtype: (torch.Tensor, .physics)    
+        :rtype: torch.Tensor
         """
         pupil1 = (self.Z @ coeff[:, :self.n_zernike].T).transpose(2, 0)
         pupil2 = torch.exp(-2j*torch.pi*pupil1)
@@ -261,278 +256,52 @@ class PSFDiffractionGenerator2D():
                     self.pad_pre:self.pupil_size-self.pad_post]
         psf = psf3 / torch.sum(psf3, dim=(1, 2))[:, None, None]
 
-        batch_size = coeff.shape[0]
-
-        def A(x):
-            return F.conv2d(x[:, 0], psf[:, None], padding='valid', groups=batch_size)[:, None]
-
-        def AT(x):
-            return F.conv_transpose2d(x[:, 0], psf[:, None], padding=0, groups=batch_size)[:, None]
-
-        return psf, A, AT
-
-
-"""
-2D generator implemented in pytorch
-
-38: defocus (in nm), 39:cutoff
-
-cutoff = (NA/wavelength)*pixelSize
-wavenumber = (nI/wavelength)*pixelSize
-
-"""
-
-
-class PSFGenerator2Dzernike_t():
-    def __init__(
-            self, list_param=["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10"], psf_size=17,
-            pixel_size=100, NA=1.40, wavelength=610, nI=1.5, pupil_size=256,
-            min_coeff_zernike=[-0.2, -0.2, -0.2, -0.2, -0.2, -0.2, -0.2],
-            max_coeff_zernike=[0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-            device='cuda:0', dtype=torch.float32):
-
-        self.device = device
-        self.dtype = dtype
-
-        self.list_param = list_param    # list of parameters to provide
-        self.pixel_size = pixel_size    # size of a pixel in nm
-        self.NA = NA                    # numerical aperture
-        self.wavelength = wavelength    # wavelength of emitted light
-        self.nI = nI                    # refractive index of the immersion medium
-        # the generated PSF will be an image of size PSFSize x PSFSize
-        self.psf_size = psf_size
-
-        # we check whether we want to different wrt to the cut off frequency
-        self.cutoff_available = "cutoff" in list_param
-        if self.cutoff_available:
-            print("cutoff not available yet")
-
-        # these arrays specify the range of the Zernike coefficients
-        self.min_coeff_zernike = torch.tensor(
-            min_coeff_zernike, device=device, dtype=dtype)
-        self.max_coeff_zernike = torch.tensor(
-            max_coeff_zernike, device=device, dtype=dtype)
-
-        # a list of functions making it possible to evaluate Zernike polynomials
-        self.Zernike = define_zernike()
-
-        self.fc = torch.tensor(((NA/wavelength)*pixel_size)
-                               ).to(device)   # Cutoff frequency
-        # wavenumber (used for the propagation in z)
-        self.kb = torch.tensor(((nI/wavelength)*pixel_size)).to(device)
-
-        # Discretization of the Fourier plane, the higher res, the most precise the integral
-        self.pupil_size = max(pupil_size, psf_size)
-        lin_t = torch.linspace(-0.5, 0.5, self.pupil_size,
-                               device=device, dtype=dtype)
-        # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
-        XX_t, YY_t = torch.meshgrid(
-            lin_t/self.fc, lin_t/self.fc, indexing='ij')
-        # Cartesian coordinates
-        self.rho_t, th_t = cart2pol(XX_t, YY_t)
-        # The list of Zernike polynomial functions
-        list_zernike = define_zernike()
-        self.propKer_t = torch.exp(-1j*2*torch.pi *
-                                   (self.kb**2-self.fc**2*self.rho_t**2 + 0j)**.5)
-        # self.propKer_t = torch.exp(-1j*2*torch.pi*(self.kb**2-self.rho_t**2 + 0j)**.5) slight uncertainty between the two lines
-
-        # In order to avoid layover in Fourier convolution we need to zero pad and then extract a part of image
-        # computed from pupil_size and psf_size
-        from math import ceil, floor
-        self.pad_pre = ceil((self.pupil_size-self.psf_size)/2)
-        self.pad_post = floor((self.pupil_size-self.psf_size)/2)
-
-        map_names = {"Z1": 1, "Z2": 2, "Z3": 3, "Z4": 4, "Z5": 5, "Z6": 6, "Z7": 7, "Z8": 8, "Z9": 9, "Z10": 10, "Z11": 11, "Z12": 12, "Z13": 13, "Z14": 14, "Z15": 15,
-                     "Z16": 16, "Z17": 17, "Z18": 18, "Z19": 19, "Z20": 20, "Z21": 21, "Z22": 22, "Z23": 23, "Z24": 24, "Z25": 25, "Z26": 26, "Z27": 27, "Z28": 28,
-                     "Z29": 29, "Z30": 30, "Z31": 31, "Z32": 32, "Z33": 33, "Z34": 34, "Z35": 35, "Z36": 36, "Z37": 37,
-                     "defocus": 38, "cutoff": 39}
-
-        # a list of indices of the parameters
-        self.index_params = [map_names[x] for x in list_param]
-        self.index_params.sort()  # sorting the list
-        # the number of Zernike coefficients
-        self.n_zernike = len([ind for ind in self.index_params if ind <= 38])
-        # the tensor of Zernike polynomials in the pupil plane
-        self.Z_t = torch.zeros(
-            (self.pupil_size, self.pupil_size, self.n_zernike), device=device, dtype=dtype)
-        for k in range(len(self.index_params)):
-            if self.index_params[k] < 38:
-                self.Z_t[:, :, k] = list_zernike[self.index_params[k]](
-                    XX_t, YY_t)  # defining the k-th Zernike polynomial
-            elif self.index_params[k] == 38:
-                self.Z_t[:, :, k] = self.propKer_t
-
-    def generate_random_coeffs(self):
-        if torch.is_complex(self.max_coeff_zernike):
-            coeffr_t = torch.rand(len(self.list_param), dtype=self.dtype, device=self.device)*(
-                self.max_coeff_zernike.real - self.min_coeff_zernike.real) + self.min_coeff_zernike.real
-            coeffi_t = torch.rand(len(self.list_param), dtype=self.dtype, device=self.device)*(
-                self.max_coeff_zernike.imag - self.min_coeff_zernike.imag) + self.min_coeff_zernike.imag
-            # Because a sign change doesn't change the PSF
-            return (coeffr_t + 1j*coeffi_t)*torch.sign(coeffr_t[0])
-        else:
-            coeffr_t = torch.rand(len(self.list_param), dtype=self.dtype, device=self.device)*(
-                self.max_coeff_zernike - self.min_coeff_zernike) + self.min_coeff_zernike
-            # Because a sign change doesn't change the PSF
-            return coeffr_t*torch.sign(coeffr_t[0])
-
-    def generate_psf(self, coeff_t):
-        pupil1_t = self.Z_t @ coeff_t[:self.n_zernike]
-        pupil2_t = torch.exp(-2j*torch.pi*pupil1_t)
-        if self.cutoff_available:
-            # indicator_t = (self.rho_t <= coeff_t[-1])
-            indicator_t = bump_function(self.rho_t, coeff_t[-1])
-        else:
-            # indicator_t = (self.rho_t <= 1)
-            indicator_t = bump_function(self.rho_t, 1.)
-        pupil3_t = pupil2_t * indicator_t
-        psf1_t = torch.fft.ifftshift(
-            torch.fft.fft2(torch.fft.fftshift(pupil3_t)))
-        psf2_t = torch.real(psf1_t*torch.conj(psf1_t))
-
-        psf3_t = psf2_t[self.pad_pre:self.pupil_size -
-                        self.pad_post, self.pad_pre:self.pupil_size-self.pad_post]
-        psf_t = psf3_t/torch.sum(psf3_t)
-        return psf_t
-
-    def generate_batch_psf(self, coeff):
-        """
-        Generate a batch of PFS with a batch of Zernike coefficients
-
-        Parameters
-        ----------
-        coeff : tensor B x N
-            coefficients of the psfs we want to .
-
-        Returns
-        -------
-        psf : tensor B x psf_size x psf_size
-            batch of psfs.
-
-        """
-        pupil1 = (self.Z_t @ coeff[:, :self.n_zernike].T).transpose(2, 0)
-        pupil2 = torch.exp(-2j*torch.pi*pupil1)
-        if self.cutoff_available:
-            # indicator = (self.rho_t <= coeff[-1])
-            indicator = bump_function(self.rho_t, coeff[-1])
-        else:
-            # indicator = (self.rho_t <= 1)
-            indicator = bump_function(self.rho_t, 1.)
-        pupil3 = pupil2 * indicator
-        psf1 = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil3)))
-        psf2 = torch.real(psf1*torch.conj(psf1))
-
-        psf3 = psf2[:, self.pad_pre:self.pupil_size-self.pad_post,
-                    self.pad_pre:self.pupil_size-self.pad_post]
-        psf = psf3/torch.sum(psf3, dim=(1, 2))[:, None, None]
         return psf
 
 
-"""
-def A_op(x, h):
-    2D convolution between a batch of images x and a unique filter h 
-    x : nbatch x nchannels x n1 x n2
-    h : m1 x m2 or nchannels x m1 x m2
-    out : tensor of size nbatch x nchannels x (n1-m1+1) x (n2-m2+1)
-    
-    We use F.conv2d and return only the valid part of the convolution, 
-    so that the image is slightly cropped on the boundaries
-    
-    The code is simply 
-    return F.conv2d(x, h[None, None], padding = 'valid')[0]
-"""
+# # %% Test code to check the package
+# if __name__ == '__main__':
+#     # %% Checking the generation of a single PSF
+#     device = 'cpu'
+#     NA = 1.40
+#     psf_size = 64
+#     pixel_size = 100
+#     wavelength = 610
+#     list_param = ["Z2", "Z3", "Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10"]
+#     max_coeff_zernike = [0.2]*len(list_param)
+#     min_coeff_zernike = [-0.2]*len(list_param)
+#     psf_generator = PSFGenerator2Dzernike_t(
+#         psf_size=psf_size, pixel_size=pixel_size, wavelength=wavelength,
+#         list_param=list_param, min_coeff_zernike=min_coeff_zernike,
+#         max_coeff_zernike=max_coeff_zernike, device=device)
 
+#     coeff_t = psf_generator.generate_random_coeffs()
+#     h_t = psf_generator.generate_psf(coeff_t)
 
-def A_op(x_t, h_t):
-    if x_t.dim() != 4:
-        raise ValueError("Image x_t should be 4-dimensional")
+#     plt.imshow((h_t**0.5).tolist())
+#     plt.show()
 
-    nchan = x_t.shape[1]
-    if h_t.dim() == 3:
-        if h_t.shape[0] == nchan:
-            return F.conv2d(x_t, h_t[None], padding='valid', groups=nchan)
-        else:
-            raise ValueError(
-                "Filter h_t and image x_t must have the same number of channels")
-    elif h_t.dim() == 2:
-        return F.conv2d(x_t, h_t[None, None].expand(nchan, -1, -1, -1), padding='valid', groups=nchan)
-    else:
-        raise ValueError("Invalid shape for h_t")
+#     # %% Checking the operator and its adjoint
+#     from skimage import data
+#     dtype = torch.float32
+#     x = data.cat()  # WxHxC
+#     x = x/x.max()
+#     x_t = torch.tensor(x, dtype=dtype, device=device)
+#     x_t = torch.permute(x_t, (2, 0, 1))[None]  # to get 1xCxWxH
+#     Ax_t = A_op(x_t, h_t)
 
+#     Ax = torch.permute(Ax_t, (0, 2, 3, 1))[0].detach().cpu()
+#     plt.imshow(x)
+#     plt.title("Original cat")
+#     plt.show()
+#     plt.imshow(Ax)
+#     plt.title("Blurred cat")
+#     plt.show()
 
-"""
-def AT_op(x, h):
-    The adjoint operator of A_op 
-    x : nbatch x nchannels x (n1-m1) x (n2-m2)
-    h : m1 x m2 or nbatch x m1 x m2
-    out : tensor of size nbatch x nchannels x n1 x n2
+#     y_t = Ax_t[:, [2, 0, 1], :, :]
+#     Aty_t = AT_op(y_t, h_t)
 
-    The code is simply    
-    return F.conv_transpose2d(x, h[None,None], padding = 0)
-"""
-
-
-def AT_op(x_t, h_t):
-    if x_t.dim() != 4:
-        raise ValueError("Image x_t should be 4-dimensional")
-
-    nchan = x_t.shape[1]
-    if h_t.dim() == 3:
-        if h_t.shape[0] == nchan:
-            return F.conv_transpose2d(x_t, h_t[None], padding=0, groups=nchan)
-        else:
-            raise ValueError(
-                "Filter h_t and image x_t must have the same number of channels")
-    elif h_t.dim() == 2:
-        return F.conv_transpose2d(x_t, h_t[None, None].expand(nchan, -1, -1, -1), padding=0, groups=nchan)
-    else:
-        raise ValueError("Invalid shape for h_t")
-    # return F.conv_transpose2d(x_t, h_t[None,None], padding = 0)
-
-
-# %% Test code to check the package
-if __name__ == '__main__':
-    # %% Checking the generation of a single PSF
-    device = 'cpu'
-    NA = 1.40
-    psf_size = 64
-    pixel_size = 100
-    wavelength = 610
-    list_param = ["Z2", "Z3", "Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10"]
-    max_coeff_zernike = [0.2]*len(list_param)
-    min_coeff_zernike = [-0.2]*len(list_param)
-    psf_generator = PSFGenerator2Dzernike_t(
-        psf_size=psf_size, pixel_size=pixel_size, wavelength=wavelength,
-        list_param=list_param, min_coeff_zernike=min_coeff_zernike,
-        max_coeff_zernike=max_coeff_zernike, device=device)
-
-    coeff_t = psf_generator.generate_random_coeffs()
-    h_t = psf_generator.generate_psf(coeff_t)
-
-    plt.imshow((h_t**0.5).tolist())
-    plt.show()
-
-    # %% Checking the operator and its adjoint
-    from skimage import data
-    dtype = torch.float32
-    x = data.cat()  # WxHxC
-    x = x/x.max()
-    x_t = torch.tensor(x, dtype=dtype, device=device)
-    x_t = torch.permute(x_t, (2, 0, 1))[None]  # to get 1xCxWxH
-    Ax_t = A_op(x_t, h_t)
-
-    Ax = torch.permute(Ax_t, (0, 2, 3, 1))[0].detach().cpu()
-    plt.imshow(x)
-    plt.title("Original cat")
-    plt.show()
-    plt.imshow(Ax)
-    plt.title("Blurred cat")
-    plt.show()
-
-    y_t = Ax_t[:, [2, 0, 1], :, :]
-    Aty_t = AT_op(y_t, h_t)
-
-    print("<Ax,y> = %1.6e" % torch.sum(Ax_t*y_t))
-    print("<x,Aty> = %1.6e" % torch.sum(x_t*Aty_t))
+#     print("<Ax,y> = %1.6e" % torch.sum(Ax_t*y_t))
+#     print("<x,Aty> = %1.6e" % torch.sum(x_t*Aty_t))
 
 # %%
