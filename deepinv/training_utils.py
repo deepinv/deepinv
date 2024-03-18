@@ -519,16 +519,16 @@ class Trainer:
 
                     progress_bar.set_postfix(
                         {
-                            "val_loss": np.array(losses).mean(),
-                            "val_psnr": np.array(metrics).mean(),
+                            "val_loss": np.array(losses.cpu()).mean(),
+                            "val_psnr": np.array(metrics.cpu()).mean(),
                         }
                     )
 
             image, _ = self.make_grid_image(physics_cur, x, y, x_net)
             images.append(image)
 
-        mean_metric = np.mean(np.array(metrics))
-        mean_loss = np.mean(np.array(losses))
+        mean_metric = np.mean(np.array(metrics.cpu()))
+        mean_loss = np.mean(np.array(losses.cpu()))
 
         return mean_metric, mean_loss, images
 
