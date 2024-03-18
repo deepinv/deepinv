@@ -190,7 +190,7 @@ plot([x, physics.A_adjoint(y)], titles=["signal", "linear inverse"])
 
 
 physics = dinv.physics.Blur(
-    dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+    dinv.physics.blur.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
 )
 
 y = physics(x)

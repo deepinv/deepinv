@@ -96,7 +96,7 @@ class Downsampling(LinearPhysics):
 
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
