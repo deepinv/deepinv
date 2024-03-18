@@ -1,11 +1,12 @@
 import torch
 
+
 def define_zernike():
     r"""
     Returns a list of Zernike polynomials lambda functions in Cartesian coordinates
 
     :param list[func]: list of 37 lambda functions with the Zernike Polynomials. They are ordered as follows
-    
+
         Z1:Z00 Piston or Bias
         Z2:Z11 x Tilt
         Z3:Z11 y Tilt
@@ -107,14 +108,14 @@ def define_zernike():
 def cart2pol(x, y):
     r"""
     Cartesian to polar coordinates
-    
+
     :param torch.Tensor x: x coordinates
     :param torch.Tensor y: y coordinates
-    
+
     :return: tuple (rho, phi) of torch.Tensor with radius and angle
     :rtype: tuple
     """
-    
+
     rho = torch.sqrt(x**2 + y**2)
     phi = torch.arctan2(y, x)
     return (rho, phi)
@@ -133,7 +134,7 @@ def bump_function(x, a=1., b=1.):
     :param Float b: interval on which the function goes to 0. (default is 1)
 
     :return: the bump function sampled at points x
-    :rtype: tuple
+    :rtype: torch.Tensor
 
     :Examples:
 
@@ -152,24 +153,23 @@ def bump_function(x, a=1., b=1.):
     return v
 
 
-
 class PSFDiffractionGenerator2D():
     r"""
     Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory)
-    
+
     :param list[str] list_param: list of activated Zernike coefficients, defaults to ["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]
     :param int psf_size: psf size is psf_size x psf_size, defaults to 17
     :param float fc: cutoff frequency (NA/emission_wavelength)*pixelSize. Should be in [0, 1/4] to respect Shannon, defaults to 0.2
     :param int pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to 256
     :param torch.device: device for computation , defaults to 'cpu'
     :param torch.dtype: tensor type, defaults to torch.float32
-    
+
     :return: a PSFDiffractionGenerator2D object
-    
+
     |sep|
 
     :Examples:
-        
+
     >>> dtype = torch.float32
     >>> device = 'cpu'
     >>> list_param = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"]
@@ -182,7 +182,7 @@ class PSFDiffractionGenerator2D():
     >>> coeff = (torch.rand((batch_size, len(list_params)), dtype=dtype, device=device) - 0.5) * 0.3
     >>> h = psf_generator.generate_psf(coeff)
     >>> dinv.utils.plot(h)
-    
+
     """
 
     def __init__(
@@ -238,9 +238,9 @@ class PSFDiffractionGenerator2D():
     def generate_batch_psf(self, coeff):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
-    
+
         :param torch.Tensor coeff: B x N, Zernike coefficients of the psfs we want to synthesize.
-    
+
         :return: tensor B x psf_size x psf_size batch of psfs
         :rtype: torch.Tensor
         """
