@@ -52,8 +52,6 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
 
    deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
-   deepinv.physics.Blur
-   deepinv.physics.BlurFFT
    deepinv.physics.CompressedSensing
    deepinv.physics.Decolorize
    deepinv.physics.Denoising
@@ -63,6 +61,20 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
    deepinv.physics.SinglePixelCamera
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
+
+
+Blur
+~~~~
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Blur
+   deepinv.physics.BlurFFT
+   deepinv.physics.PSFDiffractionGenerator2D
+
+
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
@@ -144,5 +156,5 @@ This module also contains some utilities for physics operators.
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.physics.blur.gaussian_blur
+   deepinv.physics.blur.blur.gaussian_blur
    deepinv.physics.forward.adjoint_function
