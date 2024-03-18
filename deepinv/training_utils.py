@@ -376,6 +376,21 @@ class Trainer:
         x_net = self.model(y, physics_cur)
         return x_net
 
+    def forward_pass(self, iterator, g):
+        r"""
+        Perform the forward pass.
+
+        It returns the ground truth, the measurement, the current physics operator, and the network reconstruction.
+        """
+        x, y, physics_cur = self.get_samples(iterator, g)
+
+        y = y.to(self.device)
+
+        # Run the forward model
+        x_net = self.model_inference(y=y, physics_cur=physics_cur)
+
+        return x, y, physics_cur, x_net
+
     def train_step(self, epoch, progress_bar):
         r"""
         Train a batch.
@@ -396,14 +411,10 @@ class Trainer:
 
         for g in G_perm:  # for each dataloader
 
-            x, y, physics_cur = self.get_samples(self.train_iterators, g)
-
-            y = y.to(self.device)
-
             self.optimizer.zero_grad()
 
-            # Run the forward model
-            x_net = self.model_inference(y=y, physics_cur=physics_cur)
+            # Forward step
+            x, y, physics_cur, x_net = self.forward_pass(self.train_iterators, g)
 
             # Backward step
             self.backward_pass(g=g, x=x, y=y, x_net=x_net)
@@ -487,9 +498,8 @@ class Trainer:
 
                 with torch.no_grad():
 
-                    x, y, physics_cur = self.get_samples(self.val_iterators, g)
-
-                    x_net = self.model_inference(y=y, physics_cur=physics_cur)
+                    # Forward step
+                    x, y, physics_cur, x_net = self.forward_pass(self.val_iterators, g)
 
                     for k, l in enumerate(self.losses):
                         loss = l(
@@ -497,7 +507,14 @@ class Trainer:
                         )
                         losses.append(self.fact_losses[k] * loss)
 
-                    metric = self.batch_metric(x=x, x_net=x_net, train=False, log=False)
+                    metric = self.batch_metric(
+                        x=x,
+                        x_net=x_net,
+                        y=y,
+                        physics=physics_cur,
+                        train=False,
+                        log=False,
+                    )
                     metrics.append(metric)
 
                     progress_bar.set_postfix(
