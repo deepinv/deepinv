@@ -46,7 +46,6 @@ class Trainer:
     :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
-    :param int img_interval: Frequency of plotting images to wandb during test evaluation (at the start of each epoch)
     :param str save_path: Directory in which to save the trained model.
     :param bool verbose: Output training progress information in the console.
     :param bool unsupervised: Train an unsupervised network, i.e., uses only measurement vectors y for training.
@@ -76,7 +75,6 @@ class Trainer:
     device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
     eval_interval: int = 1
-    img_interval: int = 1
     save_path: Union[str, Path] = "."
     verbose: bool = False
     unsupervised: bool = False
@@ -103,9 +101,8 @@ class Trainer:
 
         if self.wandb_setup is not None and not self.wandb_vis:
             warnings.warn(
-                "wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting wandb_vis=True)."
+                "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
-            self.wandb_vis = True
 
         # wandb initialiation
         if self.wandb_vis:
