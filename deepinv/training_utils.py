@@ -534,19 +534,19 @@ class Trainer:
             wandb_log_dict_epoch["eval_psnr"] = mean_val_metric
             wandb_log_dict_epoch["eval_loss"] = mean_val_loss
 
-        # wandb logging
-        if self.wandb_vis:
-            last_lr = (
-                None if self.scheduler is None else self.scheduler.get_last_lr()[0]
-            )
-            wandb_log_dict_epoch["learning rate"] = last_lr
-
-            for g in range(self.G):
-                wandb_log_dict_epoch[f"Val images batch (G={g}) "] = wandb.Image(
-                    images[g]
+            # wandb logging
+            if self.wandb_vis:
+                last_lr = (
+                    None if self.scheduler is None else self.scheduler.get_last_lr()[0]
                 )
+                wandb_log_dict_epoch["learning rate"] = last_lr
 
-            wandb.log(wandb_log_dict_epoch)
+                for g in range(self.G):
+                    wandb_log_dict_epoch[f"Val images batch (G={g}) "] = wandb.Image(
+                        images[g]
+                    )
+
+                wandb.log(wandb_log_dict_epoch)
 
 
 def test(
