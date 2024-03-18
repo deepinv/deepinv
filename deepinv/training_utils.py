@@ -102,7 +102,9 @@ class Trainer:
         self.save_path = Path(self.save_path)
 
         if self.wandb_setup is not None and not self.wandb_vis:
-            warnings.warn('wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting wandb_vis=True).')
+            warnings.warn(
+                "wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting wandb_vis=True)."
+            )
             self.wandb_vis = True
 
         # wandb initialiation
@@ -203,7 +205,7 @@ class Trainer:
 
             grid_image, caption = self.make_grid_image(physics_cur, x, y, x_net)
 
-            if (epoch + 1) % self.freq_plot == 0:
+            if self.plot_images and ((epoch + 1) % self.freq_plot == 0):
                 images = wandb.Image(
                     grid_image,
                     caption=caption,
@@ -212,7 +214,7 @@ class Trainer:
 
             wandb.log(log_dict_post_epoch)
 
-    def batch_metric(self, x, x_net, train=True, log=True):
+    def batch_metric(self, x, x_net, y, physics, train=True, log=True):
         r"""
         Compute metrics over the training batch at each iteration and logs them.
 
@@ -226,7 +228,7 @@ class Trainer:
 
         assert (
             not self.unsupervised
-        ), "batch_eval_metric should not be called when self.unsupervised is True."
+        ), "batch_metric should not be called when self.unsupervised is True."
 
         with torch.no_grad():
             metric = cal_psnr(x_net, x)
@@ -407,7 +409,7 @@ class Trainer:
             self.backward_pass(g=g, x=x, y=y, x_net=x_net)
 
             # Compute the metrics over the batch
-            _ = self.batch_metric(x=x, x_net=x_net)
+            _ = self.batch_metric(x=x, x_net=x_net, y=y, physics=physics_cur)
 
             # Log metrics
             self.log_metrics()
@@ -462,7 +464,7 @@ class Trainer:
 
         return self.model
 
-    def validate(self, epoch):
+    def validation_step(self, epoch):
         r"""
         Perform validation on the validation set.
 
@@ -529,13 +531,13 @@ class Trainer:
         )
 
         if self.perform_eval:
-            mean_val_metric, mean_val_loss, images = self.validate(epoch)
+            mean_val_metric, mean_val_loss, images = self.validation_step(epoch)
             self.eval_psnr.update(mean_val_metric)
             wandb_log_dict_epoch["eval_psnr"] = mean_val_metric
             wandb_log_dict_epoch["eval_loss"] = mean_val_loss
 
             # wandb logging
-            if self.wandb_vis:
+            if self.plot_images and self.wandb_vis:
                 last_lr = (
                     None if self.scheduler is None else self.scheduler.get_last_lr()[0]
                 )
@@ -614,8 +616,10 @@ def test(
     show_operators = 5
 
     if wandb_setup is not None and not wandb_vis:
-        warnings.warn('wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting'
-                      ' wandb_vis=True).')
+        warnings.warn(
+            "wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting"
+            " wandb_vis=True)."
+        )
         wandb_vis = True
 
     if wandb_vis:
@@ -738,10 +742,14 @@ def test(
 
 def train(*args, **kwargs):
     """
-    WARNING: DEPRECATED.
     Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
 
     This function creates a Trainer instance and returns the trained model.
+
+    .. warning::
+
+        This function is deprecated and will be removed in future versions. Please use
+        :class:`deepinv.training_utils.Trainer` instead.
 
     :param args: Positional arguments to pass to Trainer constructor.
     :param kwargs: Keyword arguments to pass to Trainer constructor.
