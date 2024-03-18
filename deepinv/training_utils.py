@@ -519,16 +519,16 @@ class Trainer:
 
                     progress_bar.set_postfix(
                         {
-                            "val_loss": np.array(losses.cpu()).mean(),
-                            "val_psnr": np.array(metrics.cpu()).mean(),
+                            "val_loss": torch.Tensor(losses).mean().item(),
+                            "val_psnr": torch.Tensor(metrics).mean().item(),
                         }
                     )
 
             image, _ = self.make_grid_image(physics_cur, x, y, x_net)
             images.append(image)
 
-        mean_metric = np.mean(np.array(metrics.cpu()))
-        mean_loss = np.mean(np.array(losses.cpu()))
+        mean_metric = torch.Tensor(metrics).mean()
+        mean_loss = torch.Tensor(losses).mean()
 
         return mean_metric, mean_loss, images
 
