@@ -123,20 +123,15 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-lamb = [
-    1.0
-] * max_iter  # regularization parameter (multiplier of the data fidelity term)
 stepsize = [1.0] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "lambda": lamb,
     "g_param": sigma_denoiser,
     "beta": beta,
 }
 trainable_params = [
-    "lambda",
     "g_param",
     "stepsize",
     "beta",

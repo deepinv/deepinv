@@ -30,6 +30,7 @@ NOISES = [
     "UniformGaussian",
     "Uniform",
     "Neighbor2Neighbor",
+    "LogPoisson",
 ]
 
 
@@ -314,6 +315,8 @@ def test_linear_physics_Ajvp(device):
 def choose_noise(noise_type):
     gain = 0.1
     sigma = 0.1
+    mu = 0.2
+    N0 = 1024.0
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -328,6 +331,8 @@ def choose_noise(noise_type):
         noise_model = dinv.physics.PoissonNoise(gain)
     elif noise_type == "Neighbor2Neighbor":
         noise_model = dinv.physics.PoissonNoise(gain)
+    elif noise_type == "LogPoisson":
+        noise_model = dinv.physics.LogPoissonNoise(N0, mu)
     else:
         raise Exception("Noise model not found")
 

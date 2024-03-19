@@ -22,7 +22,7 @@ class FixedPoint(nn.Module):
     ::
 
         # This example shows how to use the FixedPoint class to solve the problem
-        #                min_x 0.5*lambda*||Ax-y||_2^2 + ||x||_1
+        #                min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1
         # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
         # Create the measurement operator A
@@ -215,8 +215,9 @@ class FixedPoint(nn.Module):
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
         The iterates are stored in a dictionary of the form ``X = {'est': (x_k, u_k), 'cost': F_k}`` where:
-            - ``est`` is a tuple containing the current primal and auxiliary iterates,
-            - ``cost`` is the value of the cost function at the current iterate.
+
+            * ``est`` is a tuple containing the current primal and auxiliary iterates,
+            * ``cost`` is the value of the cost function at the current iterate.
 
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
@@ -226,7 +227,9 @@ class FixedPoint(nn.Module):
         :param args: optional arguments for the iterator. Commonly (y,physics) where ``y`` (torch.Tensor y) is the measurement and
                     ``physics`` (deepinv.physics) is the physics model.
         :param kwargs: optional keyword arguments for the iterator.
-        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None`` otherwise.
+        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and
+                    ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None``
+                     otherwise.
         """
         X = (
             self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)

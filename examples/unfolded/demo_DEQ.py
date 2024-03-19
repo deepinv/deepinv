@@ -126,7 +126,6 @@ prior = PnP(denoiser=denoiser)
 
 # Unrolled optimization algorithm parameters
 max_iter = 20 if torch.cuda.is_available() else 10
-lamb = 1.0  # Initial value for the regularization parameter.
 stepsize = 1.0  # Initial value for the stepsize. A single stepsize is common for each iterations.
 sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
 anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
@@ -140,10 +139,8 @@ anderson_history_size = (
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
-    "lambda": lamb,
 }
 trainable_params = [
-    "lambda",
     "stepsize",
     "g_param",
 ]  # define which parameters from 'params_algo' are trainable

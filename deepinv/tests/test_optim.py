@@ -235,7 +235,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         data_fidelity = L2()  # The data fidelity term
 
-        def prior_g(x, *args):
+        def prior_g(x, *args, **kwargs):
             ths = 0.1
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -250,7 +250,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
             sigma = None
 
-        lamb = 1.1
+        lamb = 0.9
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
@@ -275,35 +275,35 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
 
         if name_algo == "HQS":
-            # In this case, the algorithm does not converge to the minimum of :math:`\lambda f+g` but to that of
-            # :math:`\lambda M_{\lambda \tau f}+g` where :math:` M_{\lambda \tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\lambda \tau`.
+            # In this case, the algorithm does not converge to the minimum of :math:`f+\lambda g` but to that of
+            # :math:` M_{\tau f}+ \lambda g` where :math:` M_{\tau f}` denotes the Moreau envelope of :math:`f` with parameter :math:`\tau`.
             # Beware, these are not fetch automatically here but handwritten in the test.
-            # The optimality condition is then :math:`0 \in \lambda M_{\lambda \tau f}(x)+\partial g(x)`
+            # The optimality condition is then :math:`0 \in M_{\tau f}(x)+ \lambda \partial g(x)`
             if not g_first:
                 subdiff = prior.grad(x)
                 moreau_grad = (
-                    x - data_fidelity.prox(x, y, physics, gamma=lamb * stepsize)
+                    x - data_fidelity.prox(x, y, physics, gamma=stepsize)
                 ) / (
+                    stepsize
+                )  # Gradient of the moreau envelope
+                assert torch.allclose(
+                    moreau_grad, -lamb * subdiff, atol=1e-8
+                )  # Optimality condition
+            else:
+                subdiff = data_fidelity.grad(x, y, physics)
+                moreau_grad = (x - prior.prox(x, gamma=lamb * stepsize)) / (
                     lamb * stepsize
                 )  # Gradient of the moreau envelope
                 assert torch.allclose(
                     lamb * moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
-            else:
-                subdiff = lamb * data_fidelity.grad(x, y, physics)
-                moreau_grad = (
-                    x - prior.prox(x, gamma=stepsize)
-                ) / stepsize  # Gradient of the moreau envelope
-                assert torch.allclose(
-                    moreau_grad, -subdiff, atol=1e-8
-                )  # Optimality condition
         else:
             subdiff = prior.grad(x)
-            # In this case, the algorithm converges to the minimum of :math:`\lambda f+g`.
-            # The optimality condition is then :math:`0 \in \lambda \nabla f(x)+\partial g(x)`
+            # In this case, the algorithm converges to the minimum of :math:`f+\lambda g`.
+            # The optimality condition is then :math:`0 \in  \nabla f(x)+ \lambda \partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-8
+                grad_deepinv, -lamb * subdiff, atol=1e-8
             )  # Optimality condition
 
 
@@ -341,7 +341,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 # GD not implemented for this one
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP"])
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
@@ -361,7 +361,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     # here the prior model is common for all iterations
-    prior = PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     stepsize_dual = 1.0 if pnp_algo == "CP" else None
     params_algo = {
@@ -479,9 +479,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
-    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
@@ -499,7 +499,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     data_fidelity = L2()
 
-    prior = RED(denoiser=dinv.models.WaveletPrior(wv="db8", level=3, device=device))
+    prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
@@ -520,13 +520,34 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     assert red.has_converged
 
 
+def test_dpir(imsize, dummy_dataset, device):
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_sample = next(iter(dataloader)).to(device)
+
+    # 2. Set a physical experiment (here, deblurring)
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(0.1),
+    )
+    y = physics(test_sample)
+    model = dinv.optim.DPIR(0.1, device=device)
+    out = model(y, physics)
+
+    in_psnr = dinv.utils.cal_psnr(test_sample, y)
+    out_psnr = dinv.utils.cal_psnr(out, test_sample)
+
+    assert out_psnr > in_psnr
+
+
 def test_CP_K(imsize, dummy_dataset, device):
     r"""
     This test checks that the CP algorithm converges to the solution of the following problem:
 
     .. math::
 
-        \min_x \lambda a(x) + b(Kx)
+        \min_x  a(x) + \lambda b(Kx)
 
 
     where :math:`a` and :math:`b` are functions and :math:`K` is a linear operator. In this setting, we test both for
@@ -547,7 +568,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         data_fidelity = L2()  # The data fidelity term
 
-        def prior_g(x, *args):
+        def prior_g(x, *args, **kwargs):
             ths = 1.0
             return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -558,12 +579,11 @@ def test_CP_K(imsize, dummy_dataset, device):
         K_forward = lambda v: K @ v
         K_adjoint = lambda v: K.transpose(0, 1) @ v
 
-        # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
         stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
         reg_param = 1.0
         stepsize_dual = 1.0
 
-        lamb = 1.5
+        lamb = 0.6
         max_iter = 1000
 
         params_algo = {
@@ -597,21 +617,19 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         # Compute the subdifferential of the regularisation at the limit point of the algorithm.
         if not g_first:
-            subdiff = prior.grad(x, 0)
-
+            subdiff = prior.grad(x)
             grad_deepinv = K_adjoint(
                 data_fidelity.grad(K_forward(x), y, physics)
             )  # This test is only valid for differentiable data fidelity terms.
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-12
+                grad_deepinv, -lamb * subdiff, atol=1e-12
             )  # Optimality condition
 
         else:
-            subdiff = K_adjoint(prior.grad(K_forward(x), 0))
-
+            subdiff = K_adjoint(prior.grad(K_forward(x)))
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                lamb * grad_deepinv, -subdiff, atol=1e-12
+                grad_deepinv, -lamb * subdiff, atol=1e-12
             )  # Optimality condition
 
 
@@ -621,7 +639,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     .. math::
 
-        \min_x \lambda d(Ax,y) + g(x)
+        \min_x d(Ax,y) + \lambda g(x)
 
 
     where :math:`d` is a distance function and :math:`g` is a prior term.
@@ -642,7 +660,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     data_fidelity = L2()  # The data fidelity term
 
-    def prior_g(x, *args):
+    def prior_g(x, *args, **kwargs):
         ths = 1.0
         return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
 
@@ -653,7 +671,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     reg_param = 1.0
     stepsize_dual = 1.0
 
-    lamb = 1.5
+    lamb = 0.6
     max_iter = 1000
 
     params_algo = {
@@ -685,11 +703,50 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     assert optimalgo.has_converged
 
     # Compute the subdifferential of the regularisation at the limit point of the algorithm.
-    subdiff = prior.grad(x, 0)
+    subdiff = prior.grad(x)
 
     grad_deepinv = A_adjoint(
         data_fidelity.grad_d(A_forward(x), y)
     )  # This test is only valid for differentiable data fidelity terms.
     assert torch.allclose(
-        lamb * grad_deepinv, -subdiff, atol=1e-12
+        grad_deepinv, -lamb * subdiff, atol=1e-12
     )  # Optimality condition
+
+
+def test_patch_prior(imsize, dummy_dataset, device):
+    pytest.importorskip(
+        "FrEIA",
+        reason="This test requires FrEIA. It should be "
+        "installed with `pip install FrEIA",
+    )
+    torch.set_grad_enabled(True)
+    torch.manual_seed(0)
+    dataloader = DataLoader(
+        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    )  # 1. Generate a dummy dataset
+    # gray-valued
+    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+
+    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
+    patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
+    prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
+    prior2 = dinv.optim.PatchPrior(patchnr)
+    data_fidelity = L2()
+
+    lam = 1.0
+    x_out = []
+    for prior in [prior1, prior2]:
+        x = y.clone()
+        x.requires_grad_(True)
+        optimizer = torch.optim.Adam([x], lr=0.01)
+        for i in range(10):
+            optimizer.zero_grad()
+            loss = data_fidelity(x, y, physics) + prior(x, lam)
+            loss.backward()
+            optimizer.step()
+        x_out.append(x)
+
+    assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)

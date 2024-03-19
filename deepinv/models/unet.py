@@ -57,11 +57,11 @@ class UNet(nn.Module):
     U-Net convolutional denoiser.
 
     This network is a fully convolutional denoiser based on the U-Net architecture. The number of downsample steps
-    can be controlled with the `scales` parameter. The number of trainable parameters increases with the number of
+    can be controlled with the ``scales`` parameter. The number of trainable parameters increases with the number of
     scales.
 
     .. warning::
-        When using the bias-free batch norm `BFBatchNorm2d` via `batch_norm=biasfree`, NaNs may be encountered
+        When using the bias-free batch norm ``BFBatchNorm2d`` via ``batch_norm="biasfree"``, NaNs may be encountered
         during training, causing the whole training procedure to fail.
 
     :param int in_channels: input image channels
@@ -70,8 +70,9 @@ class UNet(nn.Module):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param bool|str batch_norm: if False, no batchnorm applied, if True, use `nn.BatchNorm2d`, if `biasfree`, use
-        `BFBatchNorm2d` from `"Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks" by Mohan et al. <https://arxiv.org/abs/1906.05478>`_.
+    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :meth:`torch.nn.BatchNorm2d`,
+        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from
+        `"Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks" by Mohan et al. <https://arxiv.org/abs/1906.05478>`_.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
     """

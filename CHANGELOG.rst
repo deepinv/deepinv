@@ -6,6 +6,26 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+
+New Features
+^^^^^^^^^^^^
+- Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
+- Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
+
+
+Fixed
+^^^^^
+- Fixed g dependence on sigma in optim docs (:gh:`165` by `Julian Tachella`_) - 28/02/2024
+
+Changed
+^^^^^^^
+- Refactor model docs (:gh:`172` by `Julian Tachella`_) - 12/03/2024
+- Changed WaveletPrior to WaveletDenoiser (:gh:`165` by `Julian Tachella`_) - 28/02/2024
+- Move from torchwavelets to ptwt (:gh:`162` by `Matthieu Terris`_) - 22/02/2024
+
+v0.1.1
+----------------
+
 New Features
 ^^^^^^^^^^^^
 - Added r2r loss (:gh:`148` by `Brayan Monroy`_) - 30/01/2024
@@ -87,3 +107,5 @@ Authors
 .. _Riyad Chamekh: https://github.com/riyadchk
 .. _Jules Dumouchel: https://github.com/Ruli0
 .. _Brayan Monroy: https://github.com/bemc22
+.. _Nils Laurent: https://nils-laurent.github.io/
+.. _Johannes Hertrich: https://johertrich.github.io/

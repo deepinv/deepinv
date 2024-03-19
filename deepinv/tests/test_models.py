@@ -11,8 +11,9 @@ MODEL_LIST_1_CHANNEL = [
     "dncnn",
     "median",
     "tgv",
-    "waveletprior",
+    "waveletdenoiser",
     "waveletdict",
+    "epll",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -27,9 +28,9 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
 
 
 def choose_denoiser(name, imsize):
-    if name.startswith("waveletdict") or name == "waveletprior":
+    if name.startswith("waveletdict") or name == "waveletdenoiser":
         pytest.importorskip(
-            "pytorch_wavelets",
+            "ptwt",
             reason="This test requires pytorch_wavelets. It should be "
             "installed with `pip install "
             "git+https://github.com/fbcotter/pytorch_wavelets.git`",
@@ -59,14 +60,14 @@ def choose_denoiser(name, imsize):
         out = dinv.models.BM3D()
     elif name == "dncnn":
         out = dinv.models.DnCNN(in_channels=imsize[0], out_channels=imsize[0])
-    elif name == "waveletprior":
-        out = dinv.models.WaveletPrior()
+    elif name == "waveletdenoiser":
+        out = dinv.models.WaveletDenoiser()
     elif name == "waveletdict":
-        out = dinv.models.WaveletDict()
+        out = dinv.models.WaveletDictDenoiser()
     elif name == "waveletdict_hard":
-        out = dinv.models.WaveletDict(non_linearity="hard")
+        out = dinv.models.WaveletDictDenoiser(non_linearity="hard")
     elif name == "waveletdict_topk":
-        out = dinv.models.WaveletDict(non_linearity="topk")
+        out = dinv.models.WaveletDictDenoiser(non_linearity="topk")
     elif name == "tgv":
         out = dinv.models.TGVDenoiser(n_it_max=10)
     elif name == "tv":
@@ -77,6 +78,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
+    elif name == "epll":
+        out = dinv.models.EPLLDenoiser(channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 
@@ -114,6 +117,137 @@ def test_TVs_adjoint():
     e = v.flatten() @ Au.flatten() - Atv.flatten() @ u.flatten()
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+
+def test_wavelet_adjoints():
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+
+    torch.manual_seed(0)
+
+    def gen_function(Au, wvdim=2):
+        r"""
+        A helper function to generate a random tensor of the same shape as a wavelet decomposition.
+        """
+        out = [torch.randn_like(Au[0])]
+
+        if wvdim == 2:
+            for l in range(1, len(Au)):
+                out = out + [[torch.randn_like(Aul) for Aul in Au[l]]]
+
+        elif wvdim == 3:
+            for l in range(1, len(Au)):
+                out = out + [{key: torch.randn_like(Au[l][key]) for key in Au[l]}]
+        return out
+
+    for dimension in ["2d", "3d"]:
+        wvdim = 2 if dimension == "2d" else 3
+
+        model = dinv.models.WaveletDenoiser(wvdim=wvdim)
+
+        def A_f(x):
+            dx = model.dwt(x)
+            Ax = model.flatten_coeffs(dx)
+            return dx, Ax
+
+        def gen_rand(Au):
+            v = gen_function(Au, wvdim=wvdim)
+            v_flat = model.flatten_coeffs(v)
+            return v, v_flat
+
+        # Note: we only check the adjointness for square tensors as a reshape is performed in our proximal solvers
+        # to handle non-square tensors.
+        if wvdim == 2:
+            u = torch.randn((2, 3, 20, 20)).type(torch.DoubleTensor)
+        else:
+            u = torch.randn((2, 3, 20, 20, 20)).type(torch.DoubleTensor)
+
+        Au, Au_flat = A_f(u)
+        v, v_flat = gen_rand(Au)
+        Atv = model.iwt(v)
+        e = v_flat.flatten() @ Au_flat.flatten() - Atv.flatten() @ u.flatten()
+
+        assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
+
+
+def test_wavelet_models_identity():
+    # We check that variational models yield identity when regularization parameter is set to 0.
+
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+
+    # 1. Wavelet denoiser (single & dictionary)
+    for dimension in ["2d", "3d"]:
+        wvdim = 2 if dimension == "2d" else 3
+        x = (
+            torch.randn((4, 3, 31, 27))
+            if dimension == "2d"
+            else torch.randn((4, 3, 31, 27, 29))
+        )
+        for non_linearity in ["soft", "hard"]:
+            model = dinv.models.WaveletDenoiser(
+                non_linearity=non_linearity, wvdim=wvdim
+            )
+            ths = (
+                0.0 if non_linearity in ["soft", "hard"] else 1.0
+            )  # topk counts the number of coefficients to keep
+            x_hat = model(x, ths)
+            assert x_hat.shape == x.shape
+            assert torch.allclose(
+                x, x_hat, atol=1e-5
+            )  # The model should be the identity
+
+        model = dinv.models.WaveletDictDenoiser(
+            list_wv=["haar", "db3", "db8"], non_linearity="soft", wvdim=wvdim
+        )
+        x_hat = model(x, 0.0)
+        assert x_hat.shape == x.shape
+        assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
+
+    # 2. Wavelet Prior
+    for dimension in ["2d", "3d"]:
+        wvdim = 2 if dimension == "2d" else 3
+        x = (
+            torch.ones((4, 3, 31, 27))
+            if dimension == "2d"
+            else torch.ones((4, 3, 31, 27, 29))
+        )
+        level = 3
+        prior = dinv.optim.prior.WaveletPrior(wvdim=wvdim, p=1, level=level)
+        g_nonflat = prior.g(x, reduce=False)
+        g_flat = prior.g(x, reduce=True)
+        assert g_nonflat.dim() > 0
+        assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
+        assert g_flat.dim() == 0
+
+        assert torch.allclose(g_nonflat.abs().sum(), g_flat)
+
+
+def test_TV_models_identity():
+    # Next priors are checked for 2D only
+    x = torch.randn((4, 3, 31, 27))
+
+    # 3. TV
+    model = dinv.models.TVDenoiser(n_it_max=10)
+    x_hat = model(x, 0.0)
+    assert x_hat.shape == x.shape
+    assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
+
+    # 4. TGV
+    model = dinv.models.TGVDenoiser(n_it_max=10)
+    x_hat = model(
+        x, 1e-6
+    )  # There is some numerical instability when the regularization parameter is 0
+    assert x_hat.shape == x.shape
+    assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
@@ -391,8 +525,8 @@ def test_PDNet(imsize_1_channel, device):
         ("BM3D", "bm3d"),
         ("SCUNet", "timm"),
         ("SwinIR", "timm"),
-        ("WaveletPrior", "pytorch_wavelets"),
-        ("WaveletDict", "pytorch_wavelets"),
+        ("WaveletDenoiser", "ptwt"),
+        ("WaveletDictDenoiser", "ptwt"),
     ],
 )
 def test_optional_dependencies(denoiser, dep):

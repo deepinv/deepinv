@@ -12,7 +12,7 @@ OPTIM_ALGO = ["PGD", "HQS"]
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # Select the data fidelity term
     data_fidelity = L2()
@@ -24,7 +24,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
     prior = [
-        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
         for i in range(max_iter)
     ]
 
@@ -67,7 +67,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
     torch.set_grad_enabled(
         True
     )  # Disabled somewhere in previous test files, necessary for this test to pass
@@ -82,7 +82,7 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
     prior = [
-        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
         for i in range(max_iter)
     ]
 

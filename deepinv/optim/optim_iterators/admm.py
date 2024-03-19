@@ -7,7 +7,7 @@ class ADMMIteration(OptimIterator):
     Iterator for alternating direction method of multipliers.
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for
-    minimising :math:`\lambda f(x) + g(x)`.
+    minimising :math:` f(x) + \lambda g(x)`.
 
     If the attribute ``g_first`` is set to False (by default),
     the iteration is (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_):
@@ -15,8 +15,8 @@ class ADMMIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k+1} &= \operatorname{prox}_{\gamma \lambda f}(x_k - z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_{k+1} + z_k) \\
+        u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
         \end{aligned}
         \end{equation*}
@@ -75,7 +75,7 @@ class fStepADMM(fStep):
 
     def forward(self, x, z, cur_data_fidelity, cur_params, y, physics):
         r"""
-        Single iteration step on the data-fidelity term :math:`\lambda f`.
+        Single iteration step on the data-fidelity term :math:`f`.
 
         :param torch.Tensor x: current first variable
         :param torch.Tensor z: current second variable
@@ -88,9 +88,7 @@ class fStepADMM(fStep):
             p = x + z
         else:
             p = x - z
-        return cur_data_fidelity.prox(
-            p, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
-        )
+        return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
 
 
 class gStepADMM(gStep):
@@ -103,7 +101,7 @@ class gStepADMM(gStep):
 
     def forward(self, x, z, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`g`.
+        Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x: current first variable
         :param torch.Tensor z: current second variable
@@ -114,4 +112,8 @@ class gStepADMM(gStep):
             p = x - z
         else:
             p = x + z
-        return cur_prior.prox(p, cur_params["g_param"], gamma=cur_params["stepsize"])
+        return cur_prior.prox(
+            p,
+            cur_params["g_param"],
+            gamma=cur_params["lambda"] * cur_params["stepsize"],
+        )

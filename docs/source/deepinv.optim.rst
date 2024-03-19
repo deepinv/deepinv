@@ -9,7 +9,7 @@ This package contains a collection of routines that optimize
     \begin{equation}
     \label{eq:min_prob}
     \tag{1}
-    \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
+    \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda \reg{x},
     \end{equation}
 
 
@@ -23,6 +23,12 @@ between the data :math:`y` and the forward operator :math:`A` applied to the var
 
 where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
 operator (see :meth:`deepinv.physics.Physics`)
+
+.. note::
+
+    The regularization term often (but not always) depends on a hyperparameter :math:`\sigma` that can be either fixed
+    or estimated. For example, if the regularization is implicitly defined by a denoiser,
+    the hyperparameter is the noise level.
 
 Optimization algorithms for minimizing the problem above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
@@ -56,7 +62,7 @@ for all optimization algorithms.
 
    deepinv.optim.BaseOptim
 
-
+.. _data-fidelity:
 Data Fidelity
 -------------
 This is the base class for the data fidelity term :math:`\distance{Ax}{y}` where :math:`A` is a linear operator,
@@ -75,8 +81,11 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.L2
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
+   deepinv.optim.LogPoissonLikelihood
    deepinv.optim.AmplitudeLoss
 
+
+.. _priors:
 Priors
 ------
 This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and
@@ -99,7 +108,10 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.ScorePrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
+   deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
+   deepinv.optim.PatchPrior
+   deepinv.optim.PatchNR
 
 
 .. _optim-params:
@@ -122,13 +134,13 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
      - | Should be positive. Depending on the algorithm,
        | needs to be small enough for convergence;
        | e.g. for PGD with ``g_first=False``,
-       | should be smaller than :math:`1/(\lambda \|A\|_2^2)`.
+       | should be smaller than :math:`1/(\|A\|_2^2)`.
    * - ``"lambda"``
      - | Regularization parameter :math:`\lambda`
-       | multiplying the data fidelity term.
+       | multiplying the regularization term.
      - Should be positive.
    * - ``"g_param"``
-     - | Optional parameter to pass to the prior.
+     - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
        | For priors based on denoisers,
        | corresponds to the noise level.
      - Should be positive.
@@ -147,7 +159,7 @@ a single float (same value for each iteration).
 Iterators
 ---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \lambda \datafidname + \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
+:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
 by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
 .. math::
@@ -196,3 +208,16 @@ The following files contain the base classes for implementing generic optimizers
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.SMIteration
 
+
+Utils
+-------------
+We provide some useful utilities for optimization algorithms.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.optim.utils.conjugate_gradient
+    deepinv.optim.utils.gradient_descent
+    deepinv.optim.utils.GaussianMixtureModel

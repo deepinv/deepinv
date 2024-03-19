@@ -28,7 +28,7 @@ class GSPnP(nn.Module):
         self.alpha = alpha
         self.train = train
 
-    def potential(self, x, sigma):
+    def potential(self, x, sigma, *args, **kwargs):
         N = self.student_grad(x, sigma)
         return (
             0.5
@@ -36,22 +36,20 @@ class GSPnP(nn.Module):
             * torch.norm((x - N).view(x.shape[0], -1), p=2, dim=-1) ** 2
         )
 
-    def potential_grad(self, x, sigma):
+    def potential_grad(self, x, sigma, *args, **kwargs):
         r"""
         Calculate :math:`\nabla g` the gradient of the regularizer :math:`g` at input :math:`x`.
 
-        :param torch.tensor x: Input image
+        :param torch.Tensor x: Input image
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
-        torch.set_grad_enabled(True)
-        x = x.float()
-        x = x.requires_grad_()
-        N = self.student_grad(x, sigma)
-        JN = torch.autograd.grad(
-            N, x, grad_outputs=x - N, create_graph=True, only_inputs=True
-        )[0]
-        if not self.train:
-            torch.set_grad_enabled(False)
+        with torch.enable_grad():
+            x = x.float()
+            x = x.requires_grad_()
+            N = self.student_grad(x, sigma)
+            JN = torch.autograd.grad(
+                N, x, grad_outputs=x - N, create_graph=True, only_inputs=True
+            )[0]
         Dg = x - N - JN
         return self.alpha * Dg
 
@@ -59,7 +57,7 @@ class GSPnP(nn.Module):
         r"""
         Denoising with Gradient Step Denoiser
 
-        :param torch.tensor x: Input image
+        :param torch.Tensor x: Input image
         :param float sigma: Denoiser level (std)
         """
         Dg = self.potential_grad(x, sigma)
@@ -115,15 +113,19 @@ def GSDRUNet(
     GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
     if pretrained:
         if pretrained == "download":
-            url = get_weights_url(model_name="gradientstep", file_name="GSDRUNet.ckpt")
+            url = get_weights_url(
+                model_name="gradientstep", file_name="GSDRUNet_torch.ckpt"
+            )
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
-                file_name="GSDRUNet.ckpt",
-            )["state_dict"]
+                file_name="GSDRUNet_torch.ckpt",
+            )
         else:
-            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)[
-                "state_dict"
-            ]
+            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+
+        if "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+
         GSmodel.load_state_dict(ckpt, strict=False)
     return GSmodel

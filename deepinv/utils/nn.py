@@ -90,6 +90,25 @@ class TensorList:
         else:
             return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
 
+    def __rmul__(self, other):
+        r"""
+
+        Multiply two TensorLists. The sizes of the tensor lists must match.
+
+        """
+        if not isinstance(other, list) and not isinstance(other, TensorList):
+            return TensorList([xi * other for xi in self.x])
+        else:
+            return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
+
+    def conj(self):
+        r"""
+
+        Computes the conjugate of the elements of the TensorList.
+
+        """
+        return TensorList([xi.conj() for xi in self.x])
+
     def __truediv__(self, other):
         r"""
 

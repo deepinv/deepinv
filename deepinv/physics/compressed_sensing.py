@@ -9,7 +9,7 @@ def dst1(x):
     The transform is performed across the last dimension of the input signal
     Due to orthogonality we have ``dst1(dst1(x)) = x``.
 
-    :param torch.tensor x: the input signal
+    :param torch.Tensor x: the input signal
     :return: (torch.tensor) the DST-I of the signal over the last dimension
 
     """

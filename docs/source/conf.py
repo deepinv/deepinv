@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "deepinverse"
-copyright = "2023, DeepInv"
+copyright = "2024, DeepInv"
 author = "Julian Tachella, Matthieu Terris, Samuel Hurault and Dongdong Chen"
 release = "0.1"
 
@@ -70,15 +70,15 @@ mathjax3_config = {
             "noise": [r"{N\left({#1}\right)}", 1],
             "inverse": [r"{R\left({#1}\right)}", 1],
             "inversef": [r"{R\left({#1},{#2}\right)}", 2],
-            "reg": [r"{g\left({#1}\right)}", 1],
-            "regname": r"g",
+            "reg": [r"{g_\sigma\left({#1}\right)}", 1],
+            "regname": r"g_\sigma",
             "sensor": [r"{\eta\left({#1}\right)}", 1],
             "datafid": [r"{f\left({#1},{#2}\right)}", 2],
             "datafidname": r"f",
             "distance": [r"{d\left({#1},{#2}\right)}", 2],
             "distancename": r"d",
             "denoiser": [r"{\operatorname{D}_{{#2}}\left({#1}\right)}", 2],
-            "denoisername": r"\operatorname{D}",
+            "denoisername": r"\operatorname{D}_{\sigma}",
             "xset": r"\mathcal{X}",
             "yset": r"\mathcal{Y}",
             "group": r"\mathcal{G}",
