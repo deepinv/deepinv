@@ -178,7 +178,7 @@ def conv2d_fft(x: Tensor, filter: Tensor, real_fft: bool = True) -> Tensor:
     if b != B:
         assert b == 1, "Batch size of the kernel is not matched for broadcasting"
 
-    filter_f = filter_fft(filter, img_size, real_fft)
+    filter_f = filter_fft_2d(filter, img_size, real_fft)
     x_f = fft.rfft2(x) if real_fft else fft.fft2(x)
 
     return fft.irfft2(x_f * filter_f).real
@@ -211,13 +211,13 @@ def conv_transpose2d_fft(y: Tensor, filter: Tensor, real_fft: bool = True) -> Te
     if b != B:
         assert b == 1
 
-    filter_f = filter_fft(filter, img_size, real_fft)
+    filter_f = filter_fft_2d(filter, img_size, real_fft)
     y_f = fft.rfft2(y) if real_fft else fft.fft2(y)
 
     return fft.irfft2(y_f * torch.conj(filter_f)).real
 
 
-def filter_fft(filter, img_size, real_fft=True):
+def filter_fft_2d(filter, img_size, real_fft=True):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
@@ -227,6 +227,20 @@ def filter_fft(filter, img_size, real_fft=True):
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
 
     return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
+
+
+def conv3d(x: Tensor, filter: Tensor, padding: str = "valid"):
+    r"""
+    A helper function to perform 3D convolution.
+    """
+    pass
+
+
+def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
+    r"""
+    A helper function to perform 3D transpose convolution.
+    """
+    pass
 
 
 # %%
@@ -334,4 +348,3 @@ if __name__ == "__main__":
             num_threads=1,
         )
         print("FFT: ", conv_timer.blocked_autorange(min_run_time=0.5).median)
-
