@@ -34,7 +34,7 @@ Operators can be called with the ``forward`` method, for example
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    physics = dinv.physics.CompressedSensing(params=300, img_shape=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(params=300, image_size=(1, 28, 28))
     x = torch.rand(1, 1, 28, 28) # create a random image
     y = physics(x) # compute noisy measurements
 
@@ -84,7 +84,7 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    physics = dinv.physics.CompressedSensing(params=300, img_shape=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(params=300, image_size=(1, 28, 28))
     x = torch.rand(1, 1, 28, 28) # create a random image
     y = physics(x) # compute noisy measurements
     y2 = physics.A(x) # compute the linear operator (no noise)
@@ -131,7 +131,7 @@ or simply as
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    physics = dinv.physics.CompressedSensing(params=300, img_shape=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(params=300, image_size=(1, 28, 28))
     physics.noise_model = dinv.physics.GaussianNoise(sigma=.05) # set up the noise
 
 
