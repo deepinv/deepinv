@@ -7,8 +7,9 @@ class Generator:
     r"""
     Base class for parameter generation of physics.
 
-    :param torch.Tensor params: the parameter of a physic, e.g., the filter of the Blur physic.
+    :param torch.Tensor params: the parameter of a physic from :meth:`deepinv.physics`, e.g., the filter of :meth:`deepinv.physics.Blur()`.
     :param dict kwargs: default keyword arguments to be passed to :meth:`Generator` for generating new parameters.
+
     """
 
     def __init__(self, params: torch.Tensor, **kwargs) -> None:
@@ -21,7 +22,7 @@ class Generator:
 
     def step(self, *args, **kwargs):
         r"""
-        Updates the parameter
+        Updates the parameter of the physic
         """
 
         if not kwargs:

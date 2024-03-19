@@ -370,7 +370,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
-            deepinv.physics.blur.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+            deepinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            device=device,
         )
         y = physics(test_sample)
         max_iter = 1000
@@ -443,7 +444,8 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        deepinv.physics.blur.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        deepinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
     )
     y = physics(test_sample)
     max_iter = 1000
@@ -481,7 +483,7 @@ def test_dpir(imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        deepinv.physics.blur.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        deepinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.GaussianNoise(0.1),
     )

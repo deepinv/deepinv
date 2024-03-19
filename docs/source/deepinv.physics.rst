@@ -73,24 +73,6 @@ Blur
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
 
-
-Blur generation 
-^^^^^^^^^^^^^^^
-bla bla
-
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.PSFDiffractionGenerator2D
-   deepinv.physics.RandomPSF
-   deepinv.physics.GaussianTrajectory
-
-
-
-
 Adjoint
 ~~~~~~~
 
@@ -165,6 +147,19 @@ or simply as
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
 
+Generator 
+---------
+Generator for sampling operators
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Generator
+   deepinv.physics.MotionBlurGenerator
+   deepinv.physics.DiffractionBlurGenerator
+
 Utils
 -------------
 This module also contains some utilities for physics operators.
@@ -174,5 +169,5 @@ This module also contains some utilities for physics operators.
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.physics.blur.blur.gaussian_blur
+   deepinv.physics.blur.gaussian_blur
    deepinv.physics.forward.adjoint_function
