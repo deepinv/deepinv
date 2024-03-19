@@ -552,7 +552,7 @@ class DecomposablePhysics(LinearPhysics):
     :param callable U_adjoint: transpose of U
     :param callable V: orthonormal transformation
     :param callable V_adjoint: transpose of V
-    :param torch.Tensor, float mask: Singular values of the transform
+    :param torch.nn.Parameter, float params: Singular values of the transform
 
     |sep|
 
@@ -562,13 +562,13 @@ class DecomposablePhysics(LinearPhysics):
 
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> tensor_size = (1, 1, 3, 3)  # Input size
-        >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
+        >>> params = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
         >>> U = lambda x: x  # U is the identity operation
         >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
         >>> V = lambda x: x  # V is the identity operation
         >>> V_adjoint = lambda x: x  # V_adjoint is the identity operation
-        >>> mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
-        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)
+        >>> mask_svd = params.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
+        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, params=mask_svd)
 
         Apply the operator to a random tensor:
 
@@ -586,7 +586,7 @@ class DecomposablePhysics(LinearPhysics):
         U_adjoint=lambda x: x,
         V=lambda x: x,
         V_adjoint=lambda x: x,
-        mask=1.0,
+        params=1.0,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -594,10 +594,10 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = mask
+        self.params = params
 
     def A(self, x):
-        return self.U(self.mask * self.V_adjoint(x))
+        return self.U(self.params * self.V_adjoint(x))
 
     def U(self, x):
         return self._U(x)
@@ -612,12 +612,12 @@ class DecomposablePhysics(LinearPhysics):
         return self._V_adjoint(x)
 
     def A_adjoint(self, y):
-        if isinstance(self.mask, float):
-            mask = self.mask
+        if isinstance(self.params, float):
+            params = self.params
         else:
-            mask = torch.conj(self.mask)
+            params = torch.conj(self.params)
 
-        return self.V(mask * self.U_adjoint(y))
+        return self.V(params * self.U_adjoint(y))
 
     def prox_l2(self, z, y, gamma):
         r"""
@@ -631,10 +631,10 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         b = self.A_adjoint(y) + 1 / gamma * z
-        if isinstance(self.mask, float):
-            scaling = self.mask**2 + 1 / gamma
+        if isinstance(self.params, float):
+            scaling = self.params**2 + 1 / gamma
         else:
-            scaling = torch.conj(self.mask) * self.mask + 1 / gamma
+            scaling = torch.conj(self.params) * self.params + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
@@ -649,13 +649,13 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
 
-        if not isinstance(self.mask, float):
-            mask = torch.zeros_like(self.mask)
-            mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
+        if not isinstance(self.params, float):
+            params = torch.zeros_like(self.params)
+            params[self.params > 1e-5] = 1 / self.params[self.params > 1e-5]
         else:
-            mask = 1 / self.mask
+            params = 1 / self.params
 
-        return self.V(self.U_adjoint(y) * mask)
+        return self.V(self.U_adjoint(y) * params)
 
 
 class Denoising(DecomposablePhysics):

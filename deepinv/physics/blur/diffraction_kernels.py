@@ -46,7 +46,9 @@ def define_zernike():
         Z37:Z80 Tertiary Spherical
     """
     Z = [None for k in range(38)]
-    def r2(x, y): return x**2+y**2
+
+    def r2(x, y):
+        return x**2 + y**2
 
     sq3 = 3**0.5
     sq5 = 5**0.5
@@ -59,49 +61,120 @@ def define_zernike():
 
     Z[0] = lambda x, y: torch.ones_like(x)  # piston
     Z[1] = lambda x, y: torch.ones_like(x)  # piston
-    Z[2] = lambda x, y: 2*x  # tilt x
-    Z[3] = lambda x, y: 2*y  # tilt y
-    Z[4] = lambda x, y: sq3*(2*r2(x, y)-1)  # defocus
-    Z[5] = lambda x, y: 2*sq6*x*y
-    Z[6] = lambda x, y: sq6*(x**2-y**2)
-    Z[7] = lambda x, y: sq8*y*(3*r2(x, y)-2)
-    Z[8] = lambda x, y: sq8*x*(3*r2(x, y)-2)
-    Z[9] = lambda x, y: sq8*y*(3*x**2-y**2)
-    Z[10] = lambda x, y: sq8*x*(x**2-3*y**2)
-    Z[11] = lambda x, y: sq5*(6*r2(x, y)**2-6*r2(x, y)+1)
-    Z[12] = lambda x, y: sq10*(x**2-y**2)*(4*r2(x, y)-3)
-    Z[13] = lambda x, y: 2*sq10*x*y*(4*r2(x, y)-3)
-    Z[14] = lambda x, y: sq10*(r2(x, y)**2-8*x**2*y**2)
-    Z[15] = lambda x, y: 4*sq10*x*y*(x**2-y**2)
-    Z[16] = lambda x, y: sq12*x*(10*r2(x, y)**2-12*r2(x, y)+3)
-    Z[17] = lambda x, y: sq12*y*(10*r2(x, y)**2-12*r2(x, y)+3)
-    Z[18] = lambda x, y: sq12*x*(x**2-3*y**2)*(5*r2(x, y)-4)
-    Z[19] = lambda x, y: sq12*y*(3*x**2-y**2)*(5*r2(x, y)-4)
-    Z[20] = lambda x, y: sq12*x*(16*x**4-20*x**2*r2(x, y)+5*r2(x, y)**2)
-    Z[21] = lambda x, y: sq12*y*(16*y**4-20*y**2*r2(x, y)+5*r2(x, y)**2)
-    Z[22] = lambda x, y: sq7*(20*r2(x, y)**3-30*r2(x, y)**2+12*r2(x, y)-1)
-    Z[23] = lambda x, y: 2*sq14*x*y*(15*r2(x, y)**2-20*r2(x, y)+6)
-    Z[24] = lambda x, y: sq14*(x**2-y**2)*(15*r2(x, y)**2-20*r2(x, y)+6)
-    Z[25] = lambda x, y: 4*sq14*x*y*(x**2-y**2)*(6*r2(x, y)-5)
-    Z[26] = lambda x, y: sq14 * \
-        (8*x**4-8*x**2*r2(x, y)+r2(x, y)**2)*(6*r2(x, y)-5)
-    Z[27] = lambda x, y: sq14*x*y*(32*x**4-32*x**2*r2(x, y)+6*r2(x, y)**2)
-    Z[28] = lambda x, y: sq14 * \
-        (32*x**6-48*x**4*r2(x, y)+18*x**2*r2(x, y)**2-r2(x, y)**3)
-    Z[29] = lambda x, y: 4*y*(35*r2(x, y)**3-60*r2(x, y)**2+30*r2(x, y)+10)
-    Z[30] = lambda x, y: 4*x*(35*r2(x, y)**3-60*r2(x, y)**2+30*r2(x, y)+10)
-    Z[31] = lambda x, y: 4*y*(3*x**2-y**2)*(21*r2(x, y)**2-30*r2(x, y)+10)
-    Z[32] = lambda x, y: 4*x*(x**2-3*y**2)*(21*r2(x, y)**2-30*r2(x, y)+10)
-    Z[33] = lambda x, y: 4*(7*r2(x, y)-6) * \
-        (4*x**2*y*(x**2-y**2)+y*(r2(x, y)**2-8*x**2*y**2))
+    Z[2] = lambda x, y: 2 * x  # tilt x
+    Z[3] = lambda x, y: 2 * y  # tilt y
+    Z[4] = lambda x, y: sq3 * (2 * r2(x, y) - 1)  # defocus
+    Z[5] = lambda x, y: 2 * sq6 * x * y
+    Z[6] = lambda x, y: sq6 * (x**2 - y**2)
+    Z[7] = lambda x, y: sq8 * y * (3 * r2(x, y) - 2)
+    Z[8] = lambda x, y: sq8 * x * (3 * r2(x, y) - 2)
+    Z[9] = lambda x, y: sq8 * y * (3 * x**2 - y**2)
+    Z[10] = lambda x, y: sq8 * x * (x**2 - 3 * y**2)
+    Z[11] = lambda x, y: sq5 * (6 * r2(x, y) ** 2 - 6 * r2(x, y) + 1)
+    Z[12] = lambda x, y: sq10 * (x**2 - y**2) * (4 * r2(x, y) - 3)
+    Z[13] = lambda x, y: 2 * sq10 * x * y * (4 * r2(x, y) - 3)
+    Z[14] = lambda x, y: sq10 * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+    Z[15] = lambda x, y: 4 * sq10 * x * y * (x**2 - y**2)
+    Z[16] = lambda x, y: sq12 * x * (10 * r2(x, y) ** 2 - 12 * r2(x, y) + 3)
+    Z[17] = lambda x, y: sq12 * y * (10 * r2(x, y) ** 2 - 12 * r2(x, y) + 3)
+    Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
+    Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
+    Z[20] = (
+        lambda x, y: sq12
+        * x
+        * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+    )
+    Z[21] = (
+        lambda x, y: sq12
+        * y
+        * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+    )
+    Z[22] = lambda x, y: sq7 * (
+        20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
+    )
+    Z[23] = (
+        lambda x, y: 2
+        * sq14
+        * x
+        * y
+        * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    )
+    Z[24] = (
+        lambda x, y: sq14
+        * (x**2 - y**2)
+        * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    )
+    Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
+    Z[26] = (
+        lambda x, y: sq14
+        * (8 * x**4 - 8 * x**2 * r2(x, y) + r2(x, y) ** 2)
+        * (6 * r2(x, y) - 5)
+    )
+    Z[27] = (
+        lambda x, y: sq14
+        * x
+        * y
+        * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
+    )
+    Z[28] = lambda x, y: sq14 * (
+        32 * x**6
+        - 48 * x**4 * r2(x, y)
+        + 18 * x**2 * r2(x, y) ** 2
+        - r2(x, y) ** 3
+    )
+    Z[29] = (
+        lambda x, y: 4
+        * y
+        * (35 * r2(x, y) ** 3 - 60 * r2(x, y) ** 2 + 30 * r2(x, y) + 10)
+    )
+    Z[30] = (
+        lambda x, y: 4
+        * x
+        * (35 * r2(x, y) ** 3 - 60 * r2(x, y) ** 2 + 30 * r2(x, y) + 10)
+    )
+    Z[31] = (
+        lambda x, y: 4
+        * y
+        * (3 * x**2 - y**2)
+        * (21 * r2(x, y) ** 2 - 30 * r2(x, y) + 10)
+    )
+    Z[32] = (
+        lambda x, y: 4
+        * x
+        * (x**2 - 3 * y**2)
+        * (21 * r2(x, y) ** 2 - 30 * r2(x, y) + 10)
+    )
+    Z[33] = (
+        lambda x, y: 4
+        * (7 * r2(x, y) - 6)
+        * (
+            4 * x**2 * y * (x**2 - y**2)
+            + y * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+        )
+    )
     Z[34] = lambda x, y: (
-        4*(7*r2(x, y)-6)*(x*(r2(x, y)**2-8*x**2*y**2)-4*x*y**2*(x**2-y**2)))
-    Z[35] = lambda x, y: (8*x**2*y*(3*r2(x, y)**2-16*x**2*y**2) +
-                          4*y*(x**2-y**2)*(r2(x, y)**2-16*x**2*y**2))
-    Z[36] = lambda x, y: (4*x*(x**2-y**2)*(r2(x, y)**2 -
-                          16*x**2*y**2)-8*x*y**2*(3*r2(x, y)**2-16*x**2*y**2))
-    Z[37] = lambda x, y: 3*(70*r2(x, y)**4-140*r2(x, y)
-                            ** 3+90*r2(x, y)**2-20*r2(x, y)+1)
+        4
+        * (7 * r2(x, y) - 6)
+        * (
+            x * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+            - 4 * x * y**2 * (x**2 - y**2)
+        )
+    )
+    Z[35] = lambda x, y: (
+        8 * x**2 * y * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
+        + 4 * y * (x**2 - y**2) * (r2(x, y) ** 2 - 16 * x**2 * y**2)
+    )
+    Z[36] = lambda x, y: (
+        4 * x * (x**2 - y**2) * (r2(x, y) ** 2 - 16 * x**2 * y**2)
+        - 8 * x * y**2 * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
+    )
+    Z[37] = lambda x, y: 3 * (
+        70 * r2(x, y) ** 4
+        - 140 * r2(x, y) ** 3
+        + 90 * r2(x, y) ** 2
+        - 20 * r2(x, y)
+        + 1
+    )
     return Z
 
 
@@ -121,11 +194,11 @@ def cart2pol(x, y):
     return (rho, phi)
 
 
-def bump_function(x, a=1., b=1.):
+def bump_function(x, a=1.0, b=1.0):
     r"""
     Defines a function which is 1 on the interval [-a,a]
     and goes to 0 smoothly on [-a-b,-a]U[a,a+b] using a bump function
-    For the discretization of indicator functions, we advise b=1, so that 
+    For the discretization of indicator functions, we advise b=1, so that
     a=0, b=1 yields a bump.
 
     :param torch.Tensor x: tensor of arbitrary size
@@ -148,12 +221,13 @@ def bump_function(x, a=1., b=1.):
     v = torch.zeros_like(x)
     v[torch.abs(x) <= a] = 1
     I = (torch.abs(x) > a) * (torch.abs(x) < a + b)
-    v[I] = torch.exp(-1. / (1. - ((torch.abs(x[I]) - a) / b)**2)
-                     ) / torch.exp(-1)
+    v[I] = torch.exp(
+        -1.0 / (1.0 - ((torch.abs(x[I]) - a) / b) ** 2)
+    ) / torch.exp(-1)
     return v
 
 
-class PSFDiffractionGenerator2D():
+class PSFDiffractionGenerator2D:
     r"""
     Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory)
 
@@ -186,15 +260,19 @@ class PSFDiffractionGenerator2D():
     """
 
     def __init__(
-            self, list_param=["Z4", "Z5", "Z6",
-                              "Z7", "Z8", "Z9", "Z10", "Z11"],
-            psf_size=17, fc=0.2, pupil_size=256,
-            device='cuda', dtype=torch.float32):
+        self,
+        list_param=["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
+        psf_size=17,
+        fc=0.2,
+        pupil_size=256,
+        device="cuda",
+        dtype=torch.float32,
+    ):
 
         self.device = device
         self.dtype = dtype
 
-        self.list_param = list_param    # list of parameters to provide
+        self.list_param = list_param  # list of parameters to provide
         # the generated PSF will be an image of size PSFSize x PSFSize
         self.psf_size = psf_size
         self.pupil_size = pupil_size
@@ -204,23 +282,61 @@ class PSFDiffractionGenerator2D():
         self.fc = fc
         # Discretization of the Fourier plane, the higher res, the most precise the integral
         self.pupil_size = max(pupil_size, psf_size)
-        lin = torch.linspace(-0.5, 0.5, self.pupil_size,
-                             device=device, dtype=dtype)
+        lin = torch.linspace(
+            -0.5, 0.5, self.pupil_size, device=device, dtype=dtype
+        )
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
-        XX, YY = torch.meshgrid(lin/self.fc, lin/self.fc, indexing='ij')
-        self.rho, th = cart2pol(XX, YY)              # Cartesian coordinates
+        XX, YY = torch.meshgrid(lin / self.fc, lin / self.fc, indexing="ij")
+        self.rho, th = cart2pol(XX, YY)  # Cartesian coordinates
         # The list of Zernike polynomial functions
         list_zernike = define_zernike()
 
         # In order to avoid layover in Fourier convolution we need to zero pad and then extract a part of image
         # computed from pupil_size and psf_size
         from math import ceil, floor
-        self.pad_pre = ceil((self.pupil_size-self.psf_size)/2)
-        self.pad_post = floor((self.pupil_size-self.psf_size)/2)
 
-        map_names = {"Z1": 1, "Z2": 2, "Z3": 3, "Z4": 4, "Z5": 5, "Z6": 6, "Z7": 7, "Z8": 8, "Z9": 9, "Z10": 10, "Z11": 11, "Z12": 12, "Z13": 13, "Z14": 14, "Z15": 15,
-                     "Z16": 16, "Z17": 17, "Z18": 18, "Z19": 19, "Z20": 20, "Z21": 21, "Z22": 22, "Z23": 23, "Z24": 24, "Z25": 25, "Z26": 26, "Z27": 27, "Z28": 28,
-                     "Z29": 29, "Z30": 30, "Z31": 31, "Z32": 32, "Z33": 33, "Z34": 34, "Z35": 35, "Z36": 36, "Z37": 37}
+        self.pad_pre = ceil((self.pupil_size - self.psf_size) / 2)
+        self.pad_post = floor((self.pupil_size - self.psf_size) / 2)
+
+        map_names = {
+            "Z1": 1,
+            "Z2": 2,
+            "Z3": 3,
+            "Z4": 4,
+            "Z5": 5,
+            "Z6": 6,
+            "Z7": 7,
+            "Z8": 8,
+            "Z9": 9,
+            "Z10": 10,
+            "Z11": 11,
+            "Z12": 12,
+            "Z13": 13,
+            "Z14": 14,
+            "Z15": 15,
+            "Z16": 16,
+            "Z17": 17,
+            "Z18": 18,
+            "Z19": 19,
+            "Z20": 20,
+            "Z21": 21,
+            "Z22": 22,
+            "Z23": 23,
+            "Z24": 24,
+            "Z25": 25,
+            "Z26": 26,
+            "Z27": 27,
+            "Z28": 28,
+            "Z29": 29,
+            "Z30": 30,
+            "Z31": 31,
+            "Z32": 32,
+            "Z33": 33,
+            "Z34": 34,
+            "Z35": 35,
+            "Z36": 36,
+            "Z37": 37,
+        }
 
         # a list of indices of the parameters
         self.index_params = [map_names[x] for x in list_param]
@@ -229,11 +345,15 @@ class PSFDiffractionGenerator2D():
         self.n_zernike = len([ind for ind in self.index_params if ind <= 38])
         # the tensor of Zernike polynomials in the pupil plane
         self.Z = torch.zeros(
-            (self.pupil_size, self.pupil_size, self.n_zernike), device=device, dtype=dtype)
+            (self.pupil_size, self.pupil_size, self.n_zernike),
+            device=device,
+            dtype=dtype,
+        )
         for k in range(len(self.index_params)):
             if self.index_params[k] < 38:
                 self.Z[:, :, k] = list_zernike[self.index_params[k]](
-                    XX, YY)  # defining the k-th Zernike polynomial
+                    XX, YY
+                )  # defining the k-th Zernike polynomial
 
     def generate_batch_psf(self, coeff):
         r"""
@@ -244,16 +364,19 @@ class PSFDiffractionGenerator2D():
         :return: tensor B x psf_size x psf_size batch of psfs
         :rtype: torch.Tensor
         """
-        pupil1 = (self.Z @ coeff[:, :self.n_zernike].T).transpose(2, 0)
-        pupil2 = torch.exp(-2j*torch.pi*pupil1)
+        pupil1 = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
+        pupil2 = torch.exp(-2j * torch.pi * pupil1)
         # indicator = (self.rho <= 1)
-        indicator = bump_function(self.rho, 1.)
+        indicator = bump_function(self.rho, 1.0)
         pupil3 = pupil2 * indicator
         psf1 = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil3)))
         psf2 = torch.real(psf1 * torch.conj(psf1))
 
-        psf3 = psf2[:, self.pad_pre:self.pupil_size-self.pad_post,
-                    self.pad_pre:self.pupil_size-self.pad_post]
+        psf3 = psf2[
+            :,
+            self.pad_pre : self.pupil_size - self.pad_post,
+            self.pad_pre : self.pupil_size - self.pad_post,
+        ]
         psf = psf3 / torch.sum(psf3, dim=(1, 2))[:, None, None]
 
         return psf

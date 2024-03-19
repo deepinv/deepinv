@@ -124,8 +124,8 @@ class Downsampling(LinearPhysics):
     def __init__(
         self,
         img_size,
+        params,
         factor=2,
-        filter="gaussian",
         device="cpu",
         padding="circular",
         **kwargs,
@@ -136,44 +136,48 @@ class Downsampling(LinearPhysics):
             factor, int), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
-        if isinstance(filter, torch.Tensor):
-            self.filter = filter.to(device)
-        elif filter is None:
-            self.filter = filter
-        elif filter == "gaussian":
-            self.filter = (
-                gaussian_blur(sigma=(factor, factor)
-                              ).requires_grad_(False).to(device)
-            )
-        elif filter == "bilinear":
-            self.filter = bilinear_filter(
-                self.factor).requires_grad_(False).to(device)
-        elif filter == "bicubic":
-            self.filter = bicubic_filter(
-                self.factor).requires_grad_(False).to(device)
+        if isinstance(params, torch.nn.Parameter):
+            self.params = params.requires_grad_(False).to(device)
+        if isinstance(params, torch.Tensor):
+            self.params = torch.nn.Parameter(self.params, requires_grad=False).to(device)    
+        elif params is None:
+            self.params = params
+        elif params == "gaussian":
+            self.params = torch.nn.Parameter(
+                gaussian_blur(sigma=(factor, factor)),
+                              requires_grad=False
+                              ).to(device)
+        elif params == "bilinear":
+            self.params = torch.nn.Parameter(
+                bilinear_filter(
+                self.factor), requires_grad=False).to(device)
+        elif params == "bicubic":
+            self.params = torch.nn.Parameter(
+                bicubic_filter(
+                self.factor), requires_grad=False).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
 
-        if self.filter is not None:
-            self.Fh = filter_fft(self.filter, img_size,
+        if self.params is not None:
+            self.Fh = filter_fft(self.params, img_size,
                                  real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
-            self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
+            #self.params = torch.nn.Parameter(self.params, requires_grad=False)
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
     def A(self, x):
-        if self.filter is not None:
-            x = conv(x, self.filter, padding=self.padding)
+        if self.params is not None:
+            x = conv(x, self.params, padding=self.padding)
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
         return x
 
     def A_adjoint(self, y):
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
-        if self.filter is not None:
-            x = conv_transpose(x, self.filter, padding=self.padding)
+        if self.params is not None:
+            x = conv_transpose(x, self.params, padding=self.padding)
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):
@@ -464,12 +468,14 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter, padding="circular", device="cpu", **kwargs):
+    def __init__(self, params, padding="circular", device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
-        self.filter = torch.nn.Parameter(
-            filter, requires_grad=False).to(device)
+        if isinstance(params, torch.nn.Parameter):
+            self.params = params.requires_grad_(False).to(device)
+        if isinstance(params, torch.Tensor):
+            self.params = torch.nn.Parameter(self.params, requires_grad=False).to(device)    
 
     def A(self, x):
         return conv(x, self.filter, self.padding)
@@ -518,21 +524,26 @@ class BlurFFT(DecomposablePhysics):
 
     """
 
-    def __init__(self, img_size, filter, device="cpu", **kwargs):
+    def __init__(self, img_size, params, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.img_size = img_size
 
-        if img_size[0] > filter.shape[1]:
-            filter = filter.repeat(1, img_size[0], 1, 1)
+        if isinstance(params, torch.nn.Parameter):
+            self.params = params.requires_grad_(False).to(device)
+        if isinstance(params, torch.Tensor):
+            self.params = torch.nn.Parameter(params, requires_grad=False).to(device)    
 
-        self.mask = filter_fft(filter, img_size).to("cpu")
-        self.angle = torch.angle(self.mask)
+        if img_size[0] > params.shape[1]:
+            params = params.repeat(1, img_size[0], 1, 1)
+
+        self.params = filter_fft(params, img_size).to("cpu")
+        self.angle = torch.angle(self.params)
         self.angle = torch.exp(-1j * self.angle).to(device)
-        self.mask = torch.abs(self.mask).unsqueeze(-1)
-        self.mask = torch.cat([self.mask, self.mask], dim=-1)
+        self.params = torch.abs(self.params).unsqueeze(-1)
+        self.params = torch.cat([self.params, self.params], dim=-1)
 
-        self.mask = torch.nn.Parameter(
-            self.mask, requires_grad=False).to(device)
+        self.params = torch.nn.Parameter(
+            self.params, requires_grad=False).to(device)
 
     def V_adjoint(self, x):
         return torch.view_as_real(

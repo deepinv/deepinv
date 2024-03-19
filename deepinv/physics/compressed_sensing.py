@@ -75,7 +75,7 @@ class CompressedSensing(LinearPhysics):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(img_shape=(1, 3, 3), m=10)
+        >>> physics = CompressedSensing(img_shape=(1, 3, 3), params=10)
         >>> physics(x)
         tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
                   0.7754, -0.0479]])
@@ -84,7 +84,7 @@ class CompressedSensing(LinearPhysics):
 
     def __init__(
         self,
-        m,
+        params,
         img_shape,
         fast=False,
         channelwise=False,
@@ -93,7 +93,7 @@ class CompressedSensing(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.name = f"CS_m{m}"
+        self.name = f"CS_m{params}"
         self.img_shape = img_shape
         self.fast = fast
         self.channelwise = channelwise
@@ -109,17 +109,19 @@ class CompressedSensing(LinearPhysics):
             self.D = torch.ones(self.n, device=device)
             self.D[torch.rand_like(self.D) > 0.5] = -1.0
             self.mask = torch.zeros(self.n, device=device)
-            idx = np.sort(np.random.choice(self.n, size=m, replace=False))
+            idx = np.sort(np.random.choice(self.n, size=params, replace=False))
             self.mask[torch.from_numpy(idx)] = 1
             self.mask = self.mask.type(torch.bool)
 
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            self._A = torch.randn((m, n), device=device) / np.sqrt(m)
+            self._A = torch.randn((params, n), device=device) / np.sqrt(params)
             self._A_dagger = torch.linalg.pinv(self._A)
             self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
+            self._A_dagger = torch.nn.Parameter(
+                self._A_dagger, requires_grad=False
+            )
             self._A_adjoint = (
                 torch.nn.Parameter(self._A.t(), requires_grad=False)
                 .type(dtype)
