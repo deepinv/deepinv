@@ -109,7 +109,7 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
 
 Phase retrieval operators
 -------------------------
-Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Ax|^2` with :math:`A` a matrix.
+Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2` with :math:`B` a linear operator.
 
 .. autosummary::
    :toctree: stubs

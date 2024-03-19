@@ -58,9 +58,9 @@ class PhaseRetrieval(Physics):
         r"""
         Computes the product between the Jacobian of the forward operator :math:`A` at the input x and perturbation v, defined as:
 
-        ..math::
+        .. math::
 
-            A_jvp(x, v) = 2 \overline{B}^{\top} diag(Bx) v.
+            A_{jvp}(x, v) = 2 \overline{B}^{\top} diag(Bx) v.
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: perturbation.
@@ -77,7 +77,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
     .. math::
 
-        A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m}) \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
+        B_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m}) \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
 
