@@ -29,7 +29,7 @@ def dst1(x):
 class CompressedSensing(LinearPhysics):
     r"""
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
-    number of elements of the signal, i.e., ``np.prod(img_shape)`` and ``m`` is the number of measurements.
+    number of elements of the signal, i.e., ``np.prod(image_size)`` and ``m`` is the number of measurements.
 
     This class generates a random iid Gaussian matrix if ``fast=False``
 
@@ -61,7 +61,7 @@ class CompressedSensing(LinearPhysics):
         If ``fast=True``, the forward operator has a unit norm.
 
     :param int params: number of measurements (m).
-    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param tuple image_size: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param torch.type dtype: Forward matrix is stored as a dtype.
@@ -95,15 +95,15 @@ class CompressedSensing(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.name = f"CS_m{params}"
-        self.img_shape = img_shape
+        self.image_size = image_size
         self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
 
         if channelwise:
-            n = int(np.prod(img_shape[1:]))
+            n = int(np.prod(image_size[1:]))
         else:
-            n = int(np.prod(img_shape))
+            n = int(np.prod(image_size))
 
         if self.fast:
             self.n = n
@@ -148,7 +148,7 @@ class CompressedSensing(LinearPhysics):
 
     def A_adjoint(self, y):
         N = y.shape[0]
-        C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+        C, H, W = self.image_size[0], self.image_size[1], self.image_size[2]
 
         if self.channelwise:
             N2 = N * C
@@ -171,7 +171,7 @@ class CompressedSensing(LinearPhysics):
             return self.A_adjoint(y)
         else:
             N = y.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            C, H, W = self.image_size[0], self.image_size[1], self.image_size[2]
 
             if self.channelwise:
                 y = y.reshape(N * C, -1)
@@ -193,7 +193,7 @@ class CompressedSensing(LinearPhysics):
 #
 #         print((dst1(dst1(x)) - x).flatten().abs().sum())
 #
-#         physics = CompressedSensing(img_shape=im_size, m=m, fast=True, device=device)
+#         physics = CompressedSensing(image_size=im_size, m=m, fast=True, device=device)
 #
 #         print((physics.A_adjoint(physics.A(x)) - x).flatten().abs().sum())
 #         print(f"adjointness: {physics.adjointness_test(x)}")
