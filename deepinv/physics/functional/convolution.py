@@ -38,7 +38,19 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
     if padding != "valid":
         ph = int((h - 1) / 2)
         pw = int((w - 1) / 2)
-        x = F.pad(x, (pw, pw, ph, ph), mode=padding, value=0)
+        pad = (pw, pw, ph, ph)
+
+        # For treating the filter of even shape, but might not be necessary
+        # if h % 2 == 0 and w % 2 == 0:
+        #     pad = (pw, pw + 1, ph, ph + 1)
+        # elif h % 2 == 0:
+        #     pad = (pw, pw, ph, ph + 1)
+        # elif w % 2 == 0:
+        #     pad = (pw, pw + 1, ph, ph)
+        # else:
+        #     pad = (pw, pw, ph, ph)
+
+        x = F.pad(x, pad, mode=padding, value=0)
         B, C, H, W = x.size()
 
     # Move batch dim of the input into channels
@@ -277,8 +289,8 @@ if __name__ == "__main__":
     x = torch.from_numpy(img).permute(2, 0, 1)[None].to(device=device, dtype=dtype)
     x = x.expand(B, -1, -1, -1)
 
-    # filter = torch.randn((B, C, H // 2, W // 2), device=device, dtype=dtype)
-    filter = gaussian_blur(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
+    filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
+    # filter = gaussian_blur(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
 
     # filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
     # 'valid', 'circular', 'replicate', 'reflect'
@@ -286,11 +298,11 @@ if __name__ == "__main__":
 
     filter = filter[:, 0:1, ...]
 
-    Ax = conv2d(x, filter, padding)
+    Ax = conv2d(x, filter.flip(-1).flip(-2), padding)
     dinv.utils.plot(Ax[0])
 
     y = torch.randn_like(Ax)
-    z = conv_transpose2d(y, filter, padding)
+    z = conv_transpose2d(y, filter.flip(-1).flip(-2), padding)
     print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))
 
     Ax_fft = conv2d_fft(x, filter)
@@ -302,4 +314,24 @@ if __name__ == "__main__":
 
     print((Ax - Ax_fft).abs().sum())
 
-# %% Benchmark
+    # %% Benchmark
+    from torch.utils.benchmark import Timer
+
+    for kernel_size in range(1, H // 2 - 1, 10):
+        filter = torch.randn(
+            (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
+        )
+        print("Kernel size: ", kernel_size * 2 + 1)
+        conv_timer = Timer(
+            stmt="conv2d(x, filter, padding)",
+            globals=globals(),
+            num_threads=1,
+        )
+        print("Conv: ", conv_timer.blocked_autorange(min_run_time=0.5).median)
+        fft_timer = Timer(
+            stmt="conv2d_fft(x, filter)",
+            globals=globals(),
+            num_threads=1,
+        )
+        print("FFT: ", conv_timer.blocked_autorange(min_run_time=0.5).median)
+
