@@ -461,7 +461,7 @@ class LinearPhysics(Physics):
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
 
-        :returns z: (float) spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
+        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.
         """
         x = torch.randn_like(x0)
         x /= torch.norm(x)
@@ -469,7 +469,7 @@ class LinearPhysics(Physics):
         for it in range(max_iter):
             y = self.A(x)
             y = self.A_adjoint(y)
-            z = torch.matmul(x.reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
             if rel_var < tol and verbose:
@@ -480,7 +480,7 @@ class LinearPhysics(Physics):
             zold = z
             x = y / torch.norm(y)
 
-        return z
+        return z.real
 
     def adjointness_test(self, u):
         r"""

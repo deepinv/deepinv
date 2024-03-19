@@ -101,11 +101,13 @@ def find_operator(name, device):
         norm = 1 / factor**2
         p = dinv.physics.Downsampling(img_size=img_size, factor=factor, device=device)
     elif name == "complex_compressed_sensing":
-        img_size = (1, 32, 32)
+        img_size = (1, 8, 8)
+        m = 50
         p = dinv.physics.CompressedSensing(
-            m=10, img_shape=img_size, dtype=torch.cfloat, device=device
+            m=m, img_shape=img_size, dtype=torch.cfloat, device=device
         )
         dtype = p.dtype
+        norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
@@ -185,13 +187,9 @@ def test_operators_norm(name, device):
     if name == "singlepixel" or name == "CS":
         device = torch.device("cpu")
 
-    # unit norm is not necessary to be tested for complex compressed sensing
-    if name == "complex_compressed_sensing":
-        return
-
     torch.manual_seed(0)
-    physics, imsize, norm_ref, _ = find_operator(name, device)
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    physics, imsize, norm_ref, dtype = find_operator(name, device)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     norm = physics.compute_norm(x)
     assert torch.abs(norm - norm_ref) < 0.2
 

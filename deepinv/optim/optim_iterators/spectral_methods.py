@@ -84,7 +84,7 @@ class fStepSM(fStep):
         y = y.to(torch.cfloat)
         res = physics.B(x)
         res = diag_T * res
-        res = physics.A_adjoint(res)
+        res = physics.B_adjoint(res)
         x_new = res + self.lamb * x
         x_new = x_new / torch.linalg.norm(x_new)
         return x_new

@@ -39,10 +39,10 @@ class PhaseRetrieval(Physics):
         """
         return self.B(x).abs().square()
 
-    def A_adjoint(self, y: torch.Tensor) -> torch.Tensor:
+    def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         return self.B.A_adjoint(y)
 
-    def A_dagger(self, y):
+    def B_dagger(self, y):
         r"""
         Computes the linear pseudo-inverse of :math:`B`.
 
@@ -72,7 +72,7 @@ class PhaseRetrieval(Physics):
         :param torch.Tensor v: vector.
         :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
         """
-        return 2 * self.A_adjoint(self.B(x) * v)
+        return 2 * self.B_adjoint(self.B(x) * v)
 
 
 class RandomPhaseRetrieval(PhaseRetrieval):
