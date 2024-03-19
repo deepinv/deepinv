@@ -151,7 +151,11 @@ class Trainer:
     def make_grid_image(self, physics_cur, x, y, x_net):
 
         with torch.no_grad():
-            if self.plot_measurements and y.shape != x.shape:
+            if (
+                self.plot_measurements
+                and len(y.shape) == len(x.shape)
+                and y.shape != x.shape
+            ):
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
                     imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
