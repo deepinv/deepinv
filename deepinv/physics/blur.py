@@ -5,21 +5,7 @@ import numpy as np
 import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 from deepinv.utils import TensorList
-from deepinv.physics.functional import conv2d, conv_transpose2d
-
-
-def filter_fft(filter, img_size, real_fft=True):
-    ph = int((filter.shape[2] - 1) / 2)
-    pw = int((filter.shape[3] - 1) / 2)
-
-    filt2 = torch.zeros(filter.shape[:2] + img_size[-2:], device=filter.device)
-
-    print("filt2:", filt2.shape)
-    filt2[..., : filter.shape[2], : filter.shape[3]] = filter
-    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
-
-    return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
-
+from deepinv.physics.functional import conv2d, conv_transpose2d, filter_fft
 
 def gaussian_blur(sigma=(1, 1), angle=0):
     r"""
@@ -379,7 +365,6 @@ class BlurFFT(DecomposablePhysics):
         self.angle = torch.exp(-1.0j * self.angle).to(device)
         self.mask = torch.abs(self.mask).unsqueeze(-1)
         self.mask = torch.cat([self.mask, self.mask], dim=-1)
-
 
     def V_adjoint(self, x):
         return torch.view_as_real(
