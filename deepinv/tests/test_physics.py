@@ -312,6 +312,26 @@ def test_linear_physics_Ajvp(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
+def test_physics_Ajvp(device):
+    r"""
+    Tests if the Jacobian vector product computed by A_jvp method of physics is correct.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: assertion error if the relative difference between the computed gradients and expected values is more than 1e-5
+    """
+    A = torch.eye(3, dtype=torch.float64)
+
+    def A_forward(v):
+        return A @ v
+
+    physics = dinv.physics.Physics(A=A_forward)
+    for _ in range(100):
+        x = torch.randn(3, dtype=torch.float64)
+        v = torch.randn(3, dtype=torch.float64)
+        # Jacobian in this case should be identity
+        assert torch.allclose(physics.A_jvp(x, v), v)
+
+
 def choose_noise(noise_type):
     gain = 0.1
     sigma = 0.1
