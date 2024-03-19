@@ -629,13 +629,6 @@ def test(
 
     show_operators = 5
 
-    if wandb_setup is not None and not wandb_vis:
-        warnings.warn(
-            "wandb_vis is False but wandb_setup is provided. Activating wandb visualization (setting"
-            " wandb_vis=True)."
-        )
-        wandb_vis = True
-
     if wandb_vis:
         if wandb.run is None:
             wandb.init(**wandb_setup)
