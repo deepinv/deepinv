@@ -76,7 +76,7 @@ class CompressedSensing(LinearPhysics):
         >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(img_shape=(1, 3, 3), params=10)
+        >>> physics = CompressedSensing(params=10, image_size=(1, 3, 3))
         >>> physics(x)
         tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
                   0.7754, -0.0479]])
@@ -86,7 +86,7 @@ class CompressedSensing(LinearPhysics):
     def __init__(
         self,
         params,
-        img_shape,
+        image_size,
         fast=False,
         channelwise=False,
         dtype=torch.float,
