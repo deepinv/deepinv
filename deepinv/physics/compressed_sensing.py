@@ -60,7 +60,7 @@ class CompressedSensing(LinearPhysics):
         <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
         If ``fast=True``, the forward operator has a unit norm.
 
-    If ``dtype=torch.cfloat``, the forward operator will be generated as a random i.i.d. complex Gaussian matrix
+    If ``dtype=torch.cfloat``, the forward operator will be generated as a random i.i.d. complex Gaussian matrix to be used with ``fast=False``
 
     .. math::
 

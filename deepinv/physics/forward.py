@@ -224,8 +224,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         return x.clone()
 
     def A_jvp(self, x, v):
-        r""" "
-        Applies the Jacobian of the forward operator to the input x and perturbation v, defined as:
+        r"""
+        Computes the product between the Jacobian of the forward operator :math:`A` evaluated at :math:`x` and the vector :math:`v`, defined as:
 
         ..math::
 
@@ -234,7 +234,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         By default, the Jacobian is computed using automatic differentiation.
 
         :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: perturbation.
+        :param torch.Tensor v: vector.
         :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
         """
         return torch.func.jvp(self.A, (x,), (v,))[1]
@@ -364,14 +364,14 @@ class LinearPhysics(Physics):
 
     def A_jvp(self, x, v):
         r""" "
-        Applies the Jacobian of the forward operator to the input x and perturbation v, defined as:
+        Computes the product between the Jacobian of the forward operator :math:`A` evaluated at :math:`x` and the vector :math:`v`, defined as:
 
         ..math::
 
             A_jvp(x, v) = \left, \frac{\delta A}{\delta x}  \right|_x  v.
 
         :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: perturbation.
+        :param torch.Tensor v: vector.
         :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
         """
         return self.A_adjoint(v)

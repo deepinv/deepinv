@@ -210,9 +210,8 @@ def test_data_fidelity_amplitude_loss(device):
         m=10, img_shape=(1, 3, 3), device=device
     )
     loss = AmplitudeLoss()
-    grad_value = torch.autograd.grad(loss(x, torch.ones_like(physics(x)), physics), x)[
-        0
-    ]
+    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+    grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 

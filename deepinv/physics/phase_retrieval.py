@@ -6,7 +6,13 @@ import numpy as np
 
 class PhaseRetrieval(Physics):
     r"""
-    Phase Retrieval forward operator. The linear operator is defined by a :meth:`deepinv.physics.LinearPhysics` object with :math:`B`.
+    Phase Retrieval base class corresponding to the operator
+
+    ..math::
+
+        A(x) = |Bx|^2.
+
+    The linear operator :math:`B` is defined by a :meth:`deepinv.physics.LinearPhysics` object.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
 
@@ -56,14 +62,14 @@ class PhaseRetrieval(Physics):
 
     def A_jvp(self, x, v):
         r"""
-        Computes the product between the Jacobian of the forward operator :math:`A` at the input x and perturbation v, defined as:
+        Computes the product between the Jacobian of the forward operator :math:`A` at the input x and vector v, defined as:
 
         .. math::
 
             A_{jvp}(x, v) = 2 \overline{B}^{\top} diag(Bx) v.
 
         :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: perturbation.
+        :param torch.Tensor v: vector.
         :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
         """
         return 2 * self.A_adjoint(self.B(x) * v)
@@ -71,7 +77,7 @@ class PhaseRetrieval(Physics):
 
 class RandomPhaseRetrieval(PhaseRetrieval):
     r"""
-    Random Phase Retrieval forward operator. Creates a random :math:`m \times n` sampling matrix where :math:`n` is the number of elements of the signal and :math:`m` is the number of measurements.
+    Random Phase Retrieval forward operator. Creates a random :math:`m \times n` sampling matrix :math:`B` where :math:`n` is the number of elements of the signal and :math:`m` is the number of measurements.
 
     This class generates a random i.i.d. Gaussian matrix
 
@@ -97,8 +103,8 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
         >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3))
         >>> physics(x)
-        tensor([[1.1901, 4.0743, 0.1858, 2.3197, 0.0734, 0.4557, 0.1231, 0.6597,
-                  1.7768, 0.3864]])
+        tensor([[1.1901, 4.0743, 0.1858, 2.3197, 0.0734, 0.4557, 0.1231, 0.6597, 1.7768,
+                 0.3864]])
     """
 
     def __init__(

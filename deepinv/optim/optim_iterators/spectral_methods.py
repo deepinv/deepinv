@@ -5,13 +5,13 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class SMIteration(OptimIterator):
     r"""
-    Iterator for Spectral Methods.
+    Iterator for Spectral Methods for Phase retrieval.
     
     Class for a single iteration of the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
     
     .. math::
         \begin{equation*}
-        M = A^H diag(T(y)) A + \lambda I,
+        M = \conj{A} diag(T(y)) A + \lambda I,
         \end{equation*}
     
     where :math:`A` is the forward matrix of the phase retrieval operator, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
@@ -21,7 +21,7 @@ class SMIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        x_{k+1} &= (M + \lambda I)x_k \\
+        x_{k+1} &= M x_k \\
         x_{k+1} &= \operatorname{prox}_{\gamma g}(x_{k+1}),
         \end{aligned}
         \end{equation*}
@@ -30,7 +30,13 @@ class SMIteration(OptimIterator):
     where :math:`\gamma` is a stepsize that should satisfy :math:`\lambda \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
     """
 
-    def __init__(self, lamb, n_iter=50, preprocessing=lambda x: x, **kwargs):
+    def __init__(
+        self,
+        lamb=10,
+        n_iter=50,
+        preprocessing=lambda x: torch.max(1 - 1 / x, -5),
+        **kwargs,
+    ):
         super(SMIteration, self).__init__()
         self.n_iter = n_iter
         self.f_step = fStepSM(lamb, preprocessing=preprocessing, **kwargs)
