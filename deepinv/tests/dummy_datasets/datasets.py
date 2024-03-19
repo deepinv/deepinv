@@ -17,10 +17,13 @@ def create_circular_mask(imsize, center=None, radius=None):
 
 
 class DummyCircles(Dataset):
-    def __init__(self, samples, imsize=(3, 32, 28), max_circles=10, seed=1):
+    def __init__(
+        self, samples, imsize=(3, 32, 28), max_circles=10, seed=1, physics=None
+    ):
         super().__init__()
 
         self.x = torch.zeros((samples,) + imsize, dtype=torch.float32)
+        self.y = torch.zeros((samples,) + imsize, dtype=torch.float32)
 
         rng = np.random.default_rng(seed)
 
@@ -37,8 +40,11 @@ class DummyCircles(Dataset):
                 )
                 self.x[i, :, mask] = torch.from_numpy(colour)
 
+                if physics is not None:
+                    self.y[i] = physics(self.x[i : i + 1].unsqueeze(0)).squeeze(0)
+
     def __getitem__(self, index):
-        return self.x[index, :, :, :]
+        return self.x[index, :, :, :], self.y[index, :, :, :]
 
     def __len__(self):
         return self.x.shape[0]
