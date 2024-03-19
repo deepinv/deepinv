@@ -95,10 +95,10 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param tuple[int] img_size: size of the input image
-    :param int factor: downsampling factor
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
+    :param torch.Tensor, str, NoneType params: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param tuple[int] image_size: size of the input image
+    :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -108,10 +108,11 @@ class Downsampling(LinearPhysics):
     :Examples:
 
         Downsampling operator with a gaussian filter:
-
+            
+        >>> from deepinv.physics import Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
-        >>> physics = Downsampling(img_size=((1, 1, 32, 32)), filter = "gaussian", factor = 2)
+        >>> physics = Downsampling(params = "gaussian", image_size=((1, 1, 32, 32)), factor = 2)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the downsampled image
         tensor([[[[0.0146, 0.0241, 0.0146],
@@ -122,8 +123,8 @@ class Downsampling(LinearPhysics):
 
     def __init__(
         self,
-        img_size,
         params,
+        image_size,
         factor=2,
         device="cpu",
         padding="circular",
@@ -132,7 +133,7 @@ class Downsampling(LinearPhysics):
         super().__init__(**kwargs)
         self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
-        self.imsize = img_size
+        self.imsize = image_size
         self.padding = padding
         if isinstance(params, torch.nn.Parameter):
             self.params = params.requires_grad_(False).to(device)
@@ -285,7 +286,7 @@ class Blur(LinearPhysics):
 
     This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
 
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_blur`.
+    :param torch.Tensor params: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
@@ -297,10 +298,11 @@ class Blur(LinearPhysics):
         Blur operator with a basic averaging filter applied to a 16x16 black image with
         a single white pixel in the center:
 
+        >>> from deepinv.physics import Blur
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-        >>> physics = Blur(filter=w)
+        >>> physics = Blur(params=w)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
         tensor([[[[0.0000, 0.0000, 0.0000],
@@ -319,10 +321,10 @@ class Blur(LinearPhysics):
             self.params = torch.nn.Parameter(params, requires_grad=False).to(device)
 
     def A(self, x):
-        return conv2d(x, self.filter, self.padding)
+        return conv2d(x, self.params, self.padding)
 
     def A_adjoint(self, y):
-        return conv_transpose2d(y, self.filter, self.padding)
+        return conv_transpose2d(y, self.params, self.padding)
 
 
 class BlurFFT(DecomposablePhysics):
@@ -341,9 +343,9 @@ class BlurFFT(DecomposablePhysics):
 
 
 
-    :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
         :meth:`deepinv.physics.blur.gaussian_blur`.
+    :param tuple image_size: Input image size in the form (C, H, W).
     :param str device: cpu or cuda
 
     |sep|
@@ -353,10 +355,11 @@ class BlurFFT(DecomposablePhysics):
         BlurFFT operator with a basic averaging filter applied to a 16x16 black image with
         a single white pixel in the center:
 
+        >>> from deepinv.physics import BlurFFT
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
-        >>> physics = BlurFFT(img_size=(1, 1, 16, 16), filter=filter)
+        >>> physics = BlurFFT(params=filter, image_size=(1, 1, 16, 16))
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
         tensor([[[[ 2.5000e-01,  2.5000e-01, -3.1177e-10],
@@ -365,16 +368,16 @@ class BlurFFT(DecomposablePhysics):
 
     """
 
-    def __init__(self, img_size, params, device="cpu", **kwargs):
+    def __init__(self, params, image_size, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size
+        self.image_size = image_size
 
-        if img_size[0] > params.shape[1]:
-            params = params.repeat(1, img_size[0], 1, 1)
+        if image_size[0] > params.shape[1]:
+            params = params.repeat(1, image_size[0], 1, 1)
 
         self.params = torch.nn.Parameter(params, requires_grad=False).to(device)
 
-        self.mask = filter_fft(params, img_size).to(device)
+        self.mask = filter_fft(params, image_size).to(device)
         self.angle = torch.angle(self.mask)
         self.angle = torch.exp(-1.0j * self.angle).to(device)
         self.mask = torch.abs(self.mask).unsqueeze(-1)
@@ -388,7 +391,7 @@ class BlurFFT(DecomposablePhysics):
 
     def U(self, x):
         return fft.irfft2(
-            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.img_size[-2:]
+            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.image_size[-2:]
         )
 
     def U_adjoint(self, x):
@@ -397,7 +400,7 @@ class BlurFFT(DecomposablePhysics):
         )  # make it a true SVD (see J. Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.image_size[-2:])
 
 
 # # test code
@@ -414,8 +417,8 @@ class BlurFFT(DecomposablePhysics):
 #     sigma_noise = 0.0
 #     kernel = torch.zeros((1, 1, 15, 15), device=device)
 #     kernel[:, :, 7, :] = 1 / 15
-#     physics = Downsampling(img_size=x.shape[1:], filter="bilinear", device=device)
-#     physics2 = Blur(img_size=x.shape[1:], filter=kernel, device=device)
+#     physics = Downsampling(image_size=x.shape[1:], filter="bilinear", device=device)
+#     physics2 = Blur(image_size=x.shape[1:], filter=kernel, device=device)
 #
 #     y = physics(x)
 #     y2 = physics2(x)

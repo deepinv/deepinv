@@ -31,7 +31,6 @@ class Haze(Physics):
         if isinstance(params, torch.Tensor):
             self.params = torch.nn.Parameter(params, requires_grad=False).to(device)    
         
-        
 
     def A(self, x):
         r"""

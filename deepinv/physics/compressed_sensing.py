@@ -60,7 +60,7 @@ class CompressedSensing(LinearPhysics):
         <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
         If ``fast=True``, the forward operator has a unit norm.
 
-    :param int m: number of measurements.
+    :param int params: number of measurements (m).
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
@@ -73,6 +73,7 @@ class CompressedSensing(LinearPhysics):
 
         Compressed sensing operator with 100 measurements for a 3x3 image:
 
+        >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = CompressedSensing(img_shape=(1, 3, 3), params=10)

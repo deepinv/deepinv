@@ -19,12 +19,14 @@ class Pansharpen(LinearPhysics):
 
     It is possible to assign a different noise model to the RGB and grayscale images.
 
-    :param tuple[int] img_size: size of the input image.
+
+    :param tuple[int] image_size: size of the input image.
+    :param torch.Tensor, str, NoneType params: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
     :param torch.nn.Module noise_color: noise model for the RGB image.
     :param torch.nn.Module noise_gray: noise model for the grayscale image.
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -35,9 +37,10 @@ class Pansharpen(LinearPhysics):
 
         Pansharpen operator applied to a random 32x32 image:
 
+        >>> from deepinv.physics import Pansharpen
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 image
-        >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
+        >>> physics = Pansharpen(image_size=x.shape[1:], device=x.device)
         >>> physics(x)[0][:, :, 0, :3] # Display first pixels of RGB image
         tensor([[[-0.0009, -0.0251, -0.0411],
                  [-0.1576, -0.1098, -0.0340],
@@ -49,8 +52,8 @@ class Pansharpen(LinearPhysics):
 
     def __init__(
         self,
-        img_size,
-        params,
+        image_size,
+        params = None,
         factor=4,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
@@ -61,7 +64,7 @@ class Pansharpen(LinearPhysics):
         super().__init__(**kwargs)
 
         self.downsampling = Downsampling(
-            img_size=img_size,
+            image_size=image_size,
             factor=factor,
             params=params,
             device=device,
@@ -106,8 +109,8 @@ class Pansharpen(LinearPhysics):
 #     sigma_noise = 0.1
 #     kernel = torch.zeros((1, 1, 15, 15), device=device)
 #     kernel[:, :, 7, :] = 1 / 15
-#     # physics = deepinv.physics.BlurFFT(img_size=x.shape[1:], filter=kernel, device=device)
-#     physics = Pansharpen(factor=8, img_size=x.shape[1:], device=device)
+#     # physics = deepinv.physics.BlurFFT(image_size=x.shape[1:], filter=kernel, device=device)
+#     physics = Pansharpen(factor=8, image_size=x.shape[1:], device=device)
 #
 #     y = physics(x)
 #

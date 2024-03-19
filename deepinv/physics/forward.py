@@ -269,15 +269,15 @@ class LinearPhysics(Physics):
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-        >>> physics = Blur(filter=w)
+        >>> physics = Blur(params=w)
         >>> y = physics(x)
 
         Linear operators can also be added. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator:
 
-        >>> physics1 = Blur(filter=w)
-        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
+        >>> physics1 = Blur(params=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), params="gaussian", factor=4)
         >>> physics = physics1 + physics2
         >>> y = physics(x)
 
@@ -290,7 +290,7 @@ class LinearPhysics(Physics):
 
         >>> from deepinv.utils import cal_psnr
         >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
-        >>> physics = Blur(filter=w)
+        >>> physics = Blur(params=w)
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
@@ -299,7 +299,8 @@ class LinearPhysics(Physics):
 
         The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
-
+        
+        >>> from deepinv.physics import LinearPhysics, adjoint_function
         >>> from deepinv.utils import cal_psnr
         >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
         >>> physics = LinearPhysics(A=A, A_adjoint=adjoint_function(A, (4, 1, 5, 5)))
@@ -559,16 +560,17 @@ class DecomposablePhysics(LinearPhysics):
     :Examples:
 
         Recreation of the Inpainting operator using the DecomposablePhysics class:
-
+            
+        >>> from deepinv.physics import DecomposablePhysics
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> tensor_size = (1, 1, 3, 3)  # Input size
-        >>> params = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
+        >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
         >>> U = lambda x: x  # U is the identity operation
         >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
         >>> V = lambda x: x  # V is the identity operation
         >>> V_adjoint = lambda x: x  # V_adjoint is the identity operation
-        >>> mask_svd = params.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
-        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, params=mask_svd)
+        >>> mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions
+        >>> physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)
 
         Apply the operator to a random tensor:
 
