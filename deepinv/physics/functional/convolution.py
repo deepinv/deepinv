@@ -292,8 +292,8 @@ if __name__ == "__main__":
 
     B = 4
     C = 3
-    H = 256
-    W = 256
+    H = 1024
+    W = 1024
 
     img = resize(astronaut(), (H, W))
 
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     # %% Benchmark
     from torch.utils.benchmark import Timer
 
-    for kernel_size in range(1, H // 2 - 1, 10):
+    for kernel_size in range(33, H // 2 - 1, 10):
         filter = torch.randn(
             (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
         )
@@ -341,10 +341,10 @@ if __name__ == "__main__":
             globals=globals(),
             num_threads=1,
         )
-        print("Conv: ", conv_timer.blocked_autorange(min_run_time=0.5).median)
+        print("Conv: ", conv_timer.blocked_autorange(min_run_time=10).median)
         fft_timer = Timer(
             stmt="conv2d_fft(x, filter)",
             globals=globals(),
             num_threads=1,
         )
-        print("FFT: ", conv_timer.blocked_autorange(min_run_time=0.5).median)
+        print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)

@@ -5,7 +5,8 @@ import numpy as np
 import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 from deepinv.utils import TensorList
-from deepinv.physics.functional import conv2d, conv_transpose2d, filter_fft
+from deepinv.physics.functional import conv2d, conv_transpose2d, filter_fft_2d
+
 
 def gaussian_blur(sigma=(1, 1), angle=0):
     r"""
