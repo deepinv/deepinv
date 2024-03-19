@@ -50,10 +50,10 @@ class Pansharpen(LinearPhysics):
     def __init__(
         self,
         img_size,
+        params,
         factor=4,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
-        filter="gaussian",
         device="cpu",
         padding="circular",
         **kwargs,
@@ -63,7 +63,7 @@ class Pansharpen(LinearPhysics):
         self.downsampling = Downsampling(
             img_size=img_size,
             factor=factor,
-            filter=filter,
+            params=params,
             device=device,
             padding=padding,
         )

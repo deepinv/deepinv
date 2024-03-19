@@ -24,10 +24,14 @@ class Haze(Physics):
 
     """
 
-    def __init__(self, beta=0.1, offset=0, **kwargs):
+    def __init__(self, params=torch.nn.Parameter(torch.Tensor([0.1, 0])), **kwargs):
         super().__init__(**kwargs)
-        self.beta = beta
-        self.offset = offset
+        if isinstance(params, torch.nn.Parameter):
+            self.params = params.requires_grad_(False).to(device)
+        if isinstance(params, torch.Tensor):
+            self.params = torch.nn.Parameter(params, requires_grad=False).to(device)    
+        
+        
 
     def A(self, x):
         r"""
@@ -39,8 +43,11 @@ class Haze(Physics):
         im = x[0]
         d = x[1]
         A = x[2]
-
-        t = torch.exp(-self.beta * (d + self.offset))
+        
+        beta =  self.params[0]
+        offset = self.params[1] 
+        
+        t = torch.exp(-beta * (d + offset))
         y = t * im + (1 - t) * A
         return y
 

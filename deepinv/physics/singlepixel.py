@@ -68,8 +68,8 @@ class SinglePixelCamera(DecomposablePhysics):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
-        >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
-        >>> torch.sum(physics.mask).item() # Number of measurements
+        >>> physics = SinglePixelCamera(params=16, img_shape=(1, 32, 32), fast=True)
+        >>> torch.sum(physics.params).item() # Number of measurements
         48.0
         >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
         tensor([[[[1., 0., 0.],
@@ -78,19 +78,67 @@ class SinglePixelCamera(DecomposablePhysics):
 
     """
 
+
+
+    # def __init__(
+    #     self, m, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
+    # ):
+    #     super().__init__(**kwargs)
+    #     self.name = f"spcamera_m{m}"
+    #     self.img_shape = img_shape
+    #     self.fast = fast
+    #     self.device = device
+
+    #     if self.fast:
+    #         C, H, W = img_shape
+    #         mi = min(int(np.sqrt(m)), H)
+    #         mj = min(m - mi, W)
+
+    #         revi = get_permutation_list(H)[:mi]
+    #         revj = get_permutation_list(W)[:mj]
+
+    #         assert H == 1 << int(np.log2(H)), "image height must be a power of 2"
+    #         assert W == 1 << int(np.log2(W)), "image width must be a power of 2"
+
+    #         params = torch.zeros(img_shape).unsqueeze(0)
+    #         for i in range(len(revi)):
+    #             for j in range(len(revj)):
+    #                 params[0, :, revi[i], revj[j]] = 1
+
+    #         params = params.to(device)
+    #         self.params = torch.nn.Parameter(params, requires_grad=False)
+
+    #     else:
+    #         n = int(np.prod(img_shape[1:]))
+    #         A = torch.ones((m, n), device=device)
+    #         A[torch.randn_like(A) > 0.5] = -1.0
+    #         A /= np.sqrt(m)  # normalize
+    #         u, params, vh = torch.linalg.svd(A, full_matrices=False)
+
+    #         self.params = params.to(device).unsqueeze(0).type(dtype)
+    #         self.vh = vh.to(device).type(dtype)
+    #         self.u = u.to(device).type(dtype)
+
+    #         self.u = torch.nn.Parameter(self.u, requires_grad=False)
+    #         self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
+    #         self.params = torch.nn.Parameter(self.params, requires_grad=False)
+
+
+
+
     def __init__(
-        self, m, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
+        self, params, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
     ):
         super().__init__(**kwargs)
-        self.name = f"spcamera_m{m}"
+        self.name = f"spcamera_m{params}"
         self.img_shape = img_shape
         self.fast = fast
         self.device = device
 
         if self.fast:
             C, H, W = img_shape
-            mi = min(int(np.sqrt(m)), H)
-            mj = min(m - mi, W)
+            mi = min(int(np.sqrt(params)), H)
+            mj = min(params - mi, W)
 
             revi = get_permutation_list(H)[:mi]
             revj = get_permutation_list(W)[:mj]
@@ -98,28 +146,28 @@ class SinglePixelCamera(DecomposablePhysics):
             assert H == 1 << int(np.log2(H)), "image height must be a power of 2"
             assert W == 1 << int(np.log2(W)), "image width must be a power of 2"
 
-            mask = torch.zeros(img_shape).unsqueeze(0)
+            params = torch.zeros(img_shape).unsqueeze(0)
             for i in range(len(revi)):
                 for j in range(len(revj)):
-                    mask[0, :, revi[i], revj[j]] = 1
+                    params[0, :, revi[i], revj[j]] = 1
 
-            mask = mask.to(device)
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+            params = params.to(device)
+            self.params = torch.nn.Parameter(params, requires_grad=False)
 
         else:
             n = int(np.prod(img_shape[1:]))
-            A = torch.ones((m, n), device=device)
+            A = torch.ones((params, n), device=device)
             A[torch.randn_like(A) > 0.5] = -1.0
-            A /= np.sqrt(m)  # normalize
-            u, mask, vh = torch.linalg.svd(A, full_matrices=False)
+            A /= np.sqrt(params)  # normalize
+            u, params, vh = torch.linalg.svd(A, full_matrices=False)
 
-            self.mask = mask.to(device).unsqueeze(0).type(dtype)
+            self.params = params.to(device).unsqueeze(0).type(dtype)
             self.vh = vh.to(device).type(dtype)
             self.u = u.to(device).type(dtype)
 
             self.u = torch.nn.Parameter(self.u, requires_grad=False)
             self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
-            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
+            self.params = torch.nn.Parameter(self.params, requires_grad=False)
 
     def V_adjoint(self, x):
         if self.fast:

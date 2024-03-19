@@ -29,7 +29,7 @@ class Decolorize(DecomposablePhysics):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.mask = 1.0
+        self.params = 1.0
 
     def V_adjoint(self, x):
         y = x[:, 0, :, :] * 0.2989 + x[:, 1, :, :] * 0.5870 + x[:, 2, :, :] * 0.1140

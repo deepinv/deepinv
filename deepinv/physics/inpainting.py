@@ -13,7 +13,7 @@ class Inpainting(DecomposablePhysics):
 
         A = \text{diag}(m) \in \mathbb{R}^{n\times n}
 
-    where :math:`m` is a binary mask with n entries.
+    where :math:`` is a binary mask with n entries.
 
     This operator is linear and has a trivial SVD decomposition, which allows for fast computation
     of the pseudo-inverse and proximal operator.
@@ -22,9 +22,9 @@ class Inpainting(DecomposablePhysics):
     in a similar fashion to ``torch.nn.Module``.
 
     :param tuple Tensor_size: size of the input images, e.g., (C, H, W).
-    :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
-        distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,
-        the mask will be set to this tensor.
+    :param torch.Tensor, float params: If the input is a float, the entries of the mask (params) will be sampled from a bernoulli
+        distribution with probability equal to ``params``. If the input is a ``torch.tensor`` matching tensor_size,
+        the mask (params) will be set to this tensor.
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
 
@@ -32,13 +32,13 @@ class Inpainting(DecomposablePhysics):
 
     :Examples:
 
-        Inpainting operator using defined mask, removing the second column of a 3x3 image:
+        Inpainting operator using defined mask (params), removing the second column of a 3x3 image:
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> m = torch.zeros(1, 3, 3) # Define empty mask
         >>> m[:, 2, :] = 1 # Keeping last line only
-        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), mask=m)
+        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), params=m)
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0000, -0.0000],
                   [ 0.0000, -0.0000, -0.0000],
@@ -48,7 +48,7 @@ class Inpainting(DecomposablePhysics):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), mask=0.7)
+        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), params=0.7)
         >>> physics(x)
         tensor([[[[[ 1.5410, -0.0000, -2.1788],
                    [ 0.0000, -1.0845, -1.3986],
@@ -56,22 +56,44 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    def __init__(self, tensor_size, mask=0.3, pixelwise=True, device="cpu", **kwargs):
+    # def __init__(self, tensor_size, mask=0.3, pixelwise=True, device="cpu", **kwargs):
+    #     super().__init__(**kwargs)
+    #     self.tensor_size = tensor_size
+
+    #     if isinstance(mask, torch.Tensor):  # check if the user created mask
+    #         self.mask = mask
+    #     else:  # otherwise create new random mask
+    #         mask_rate = mask
+    #         self.mask = torch.ones(tensor_size, device=device)
+    #         aux = torch.rand_like(self.mask)
+    #         if not pixelwise:
+    #             self.mask[aux > mask_rate] = 0
+    #         else:
+    #             self.mask[:, aux[0, :, :] > mask_rate] = 0
+
+    #     self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
+    
+    
+    
+    def __init__(self, tensor_size, params, pixelwise=True, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.tensor_size = tensor_size
-
-        if isinstance(mask, torch.Tensor):  # check if the user created mask
-            self.mask = mask
-        else:  # otherwise create new random mask
-            mask_rate = mask
-            self.mask = torch.ones(tensor_size, device=device)
-            aux = torch.rand_like(self.mask)
+        if isinstance(params, torch.nn.Parameter):
+            self.params = params.requires_grad_(False).to(device)
+        if isinstance(params, torch.Tensor):
+            self.params = torch.nn.Parameter(params, requires_grad=False).to(device)  
+        if type(params) == float:
+            print('For demo puprposes onlu. Will create random mask. In training, use a Generator instead')
+            mask_rate = params
+            self.params = torch.ones(tensor_size, device=device)
+            aux = torch.rand_like(self.params)
             if not pixelwise:
-                self.mask[aux > mask_rate] = 0
+                self.params[aux > mask_rate] = 0
             else:
-                self.mask[:, aux[0, :, :] > mask_rate] = 0
+                self.params[:, aux[0, :, :] > mask_rate] = 0
 
-        self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
+        self.params = torch.nn.Parameter(self.params.unsqueeze(0), requires_grad=False)
+    
+    
 
     def noise(self, x):
         r"""
@@ -81,6 +103,6 @@ class Inpainting(DecomposablePhysics):
         :return torch.Tensor: noisy measurements
         """
         noise = self.U(
-            self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
+            self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.params))
         )
         return noise
