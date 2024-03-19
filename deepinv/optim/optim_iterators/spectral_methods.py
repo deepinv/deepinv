@@ -53,6 +53,12 @@ class SMIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics containing the forward operator.
         :return: The new iterate :math:`x_{k+1}`.
         """
+        assert hasattr(
+            physics, "B"
+        ), "The physics should inherit from the PhaseRetrieval class."
+        assert hasattr(
+            physics, "B_adjoint"
+        ), "The physics should inherit from the PhaseRetrieval class."
         x = self.f_step(x, y, physics)
         x = self.g_step(x, cur_prior, cur_params)
         return x
