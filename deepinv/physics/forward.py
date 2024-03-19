@@ -586,7 +586,7 @@ class DecomposablePhysics(LinearPhysics):
         U_adjoint=lambda x: x,
         V=lambda x: x,
         V_adjoint=lambda x: x,
-        params=1.0,
+        mask=1.0,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -594,10 +594,10 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.params = params
+        self.mask = mask
 
     def A(self, x):
-        return self.U(self.params * self.V_adjoint(x))
+        return self.U(self.mask * self.V_adjoint(x))
 
     def U(self, x):
         return self._U(x)
@@ -612,12 +612,12 @@ class DecomposablePhysics(LinearPhysics):
         return self._V_adjoint(x)
 
     def A_adjoint(self, y):
-        if isinstance(self.params, float):
-            params = self.params
+        if isinstance(self.mask, float):
+            mask = self.mask
         else:
-            params = torch.conj(self.params)
+            mask = torch.conj(self.mask)
 
-        return self.V(params * self.U_adjoint(y))
+        return self.V(mask * self.U_adjoint(y))
 
     def prox_l2(self, z, y, gamma):
         r"""
@@ -631,10 +631,10 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         b = self.A_adjoint(y) + 1 / gamma * z
-        if isinstance(self.params, float):
-            scaling = self.params**2 + 1 / gamma
+        if isinstance(self.mask, float):
+            scaling = self.mask**2 + 1 / gamma
         else:
-            scaling = torch.conj(self.params) * self.params + 1 / gamma
+            scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
@@ -649,13 +649,13 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
 
-        if not isinstance(self.params, float):
-            params = torch.zeros_like(self.params)
-            params[self.params > 1e-5] = 1 / self.params[self.params > 1e-5]
+        if not isinstance(self.mask, float):
+            mask = torch.zeros_like(self.mask)
+            mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
         else:
-            params = 1 / self.params
+            mask = 1 / self.mask
 
-        return self.V(self.U_adjoint(y) * params)
+        return self.V(self.U_adjoint(y) * mask)
 
 
 class Denoising(DecomposablePhysics):

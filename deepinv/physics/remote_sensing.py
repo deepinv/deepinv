@@ -1,7 +1,7 @@
 import torch
 from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import LinearPhysics
-from deepinv.physics.blur.blur import Downsampling
+from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
 from deepinv.utils import TensorList
 

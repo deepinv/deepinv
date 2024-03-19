@@ -460,17 +460,20 @@ def bump_function(x, a=1.0, b=1.0):
 
 if __name__ == "__main__":
     import deepinv as dinv
-    from deepinv.physics import Blur
+    from deepinv.physics import Blur, BlurFFT
 
     filter = torch.randn(1, 1, 51, 51)
-    physic = Blur(filter=filter)
-    print(physic.filter.shape)
-    Motion = MotionBlurGenerator(physic.filter)
+    physic = BlurFFT(params=filter.clone(), img_size=(3, 128, 128))
+    print(physic.params.shape)
+    Motion = MotionBlurGenerator(physic.params)
     Motion.step()
-    print(physic.filter.shape)
-    dinv.utils.plot(physic.filter)
+    print(physic.params.shape)
+    dinv.utils.plot(physic.params)
 
-    Diffraction = DiffractionBlurGenerator(physic.filter)
+    Diffraction = DiffractionBlurGenerator(physic.params)
     Diffraction.step()
-    print(physic.filter.shape)
-    dinv.utils.plot(physic.filter)
+    print(physic.params.shape)
+    dinv.utils.plot(physic.params)
+
+    # print(physic.params)
+    print((physic.params - filter).abs().mean())
