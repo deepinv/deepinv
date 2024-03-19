@@ -4,7 +4,7 @@ from .data_fidelity import (
     L1,
     IndicatorL2,
     PoissonLikelihood,
-    IntensityLoss,
+    AmplitudeLoss,
 )
 from .optimizers import BaseOptim, optim_builder
 from .fixed_point import FixedPoint

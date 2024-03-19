@@ -6,7 +6,7 @@ from deepinv.optim.utils import gradient_descent
 
 class DataFidelity(nn.Module):
     r"""
-    Data fidelity term :math:`\datafid{x}{y}=\distance{Ax}{y}`.
+    Data fidelity term :math:`\datafid{x}{y}=\distance{A(x)}{y}`.
 
     This is the base class for the data fidelity term :math:`\datafid{x}{y} = \distance{A(x)}{y}` where :math:`A` is a
     linear or nonlinear operator, :math:`x\in\xset` is a variable , :math:`y\in\yset` is the observation and
@@ -105,7 +105,7 @@ class DataFidelity(nn.Module):
 
     def forward(self, x, y, physics, *args, **kwargs):
         r"""
-        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{Ax}{y}`.
+        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{A(x)}{y}`.
 
         :param torch.tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param torch.tensor y: Data :math:`y`.
@@ -118,12 +118,20 @@ class DataFidelity(nn.Module):
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
+        The gradient is computed using the chain rule:
+
+        .. math::
+
+            \nabla_x \distance{A(x)}{y} = J_x \nabla_u \distance{u}{y},
+
+        where :math:`J_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`u = A(x)` is computed using ``grad_d``. The multiplication is computed using the ``A_jvp`` of the physics.
+
         :param torch.tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
         :return: (torch.tensor) gradient :math:`\nabla_x\datafid{x}{y}`, computed in :math:`x`.
         """
-        return physics.A_grad(self.grad_d(physics.A(x), y, *args, **kwargs), x)
+        return physics.A_jvp(x, self.grad_d(physics.A(x), y, *args, **kwargs))
 
     def prox(
         self,
@@ -578,15 +586,15 @@ class L1(DataFidelity):
         return t
 
 
-class IntensityLoss(DataFidelity):
+class AmplitudeLoss(DataFidelity):
     r"""
-    Intensity loss as the data fidelity term for phase retrieval reconstrunction.
+    Amplitude loss as the data fidelity term for phase retrieval reconstrunction.
 
     In this case, the data fidelity term is defined as
 
     .. math::
 
-        f(x) = \frac{1}{2}\sum_{i=1}^{m}{||a_i x|^2-y_i|^2},
+        f(x) = \sum_{i=1}^{m}{(\sqrt{|a_i x|^2}-\sqrt{y_i})^2},
 
     where :math:`a_i` is the i-th row of the measurement matrix :math:`A` and :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
 
@@ -595,14 +603,26 @@ class IntensityLoss(DataFidelity):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, y, physics, *args, **kwargs):
-        return 0.5 * torch.sum(torch.pow(physics(x) - y, 2))
+    def d(self, u, y):
+        x = torch.sqrt(u) - torch.sqrt(y)
+        d = torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        return d
 
-    def grad(self, x, y, physics, *args, **kwargs):
-        y_est = physics(x)
-        middle_est = physics.A(x)
-        diff = y_est - y
-        return physics.A_adjoint(middle_est * diff)
+    def grad_d(self, u, y, epsilon=1e-12):
+        r"""
+        Computes the gradient of the amplitude loss :math:`\distance{u}{y}`, i.e.,
+
+        .. math::
+
+            \nabla_{u}\distance{u}{y} = \frac{\sqrt{u}-\sqrt{y}}{\sqrt{u}}
+
+
+        :param torch.tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.tensor y: Data :math:`y`.
+        :param float epsilon: small value to avoid division by zero.
+        :return: (torch.tensor) gradient of the amplitude loss function.
+        """
+        return (torch.sqrt(u + epsilon) - torch.sqrt(y)) / torch.sqrt(u + epsilon)
 
 
 if __name__ == "__main__":

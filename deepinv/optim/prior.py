@@ -109,7 +109,7 @@ class Prior(nn.Module):
 
 class Zero(Prior):
     r"""
-    Zero prior :math:`g(x) = 0`.
+    Zero prior :math:`\reg{x} = 0`.
     """
 
     def __init__(self):
@@ -119,7 +119,7 @@ class Zero(Prior):
 
     def grad(self, x, *args):
         r"""
-        Computes the gradient of the zero prior :math:`g(x) = 0` at :math:`x`.
+        Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
         It returns a tensor of zeros of the same shape as :math:`x`.
         """
@@ -127,7 +127,7 @@ class Zero(Prior):
 
     def prox(self, x, ths=1.0, gamma=1.0):
         r"""
-        Computes the proximal operator of the zero prior :math:`g(x) = 0` at :math:`x`.
+        Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
         It returns the identity :math:`x`.
         """

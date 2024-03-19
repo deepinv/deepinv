@@ -7,3 +7,4 @@ from .hqs import HQSIteration
 from .drs import DRSIteration
 from .gradient_descent import GDIteration
 from .optim_iterator import OptimIterator, fStep, gStep
+from .spectral_methods import SMIteration

@@ -75,7 +75,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.L2
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
-   deepinv.optim.IntensityLoss
+   deepinv.optim.AmplitudeLoss
 
 Priors
 ------
@@ -194,4 +194,5 @@ The following files contain the base classes for implementing generic optimizers
    deepinv.optim.optim_iterators.ADMMIteration
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
+   deepinv.optim.optim_iterators.SMIteration
 

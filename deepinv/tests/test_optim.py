@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
@@ -194,6 +194,27 @@ def test_zero_prior():
         x = torch.randn((3,), dtype=torch.float64)
         xhat = optimalgo(x, physics)
         assert torch.allclose(xhat, x)
+
+
+def test_data_fidelity_amplitude_loss(device):
+    r"""
+    Tests if the gradient computed with grad_d method of amplitude loss is consistent with the autograd gradient.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: assertion error if the relative difference between the two gradients is more than 1e-5
+    """
+    # essential to enable autograd
+    torch.set_grad_enabled(True)
+    x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
+    physics = dinv.physics.RandomPhaseRetrieval(
+        m=10, img_shape=(1, 3, 3), device=device
+    )
+    loss = AmplitudeLoss()
+    grad_value = torch.autograd.grad(loss(x, torch.ones_like(physics(x)), physics), x)[
+        0
+    ]
+    jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
+    assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)

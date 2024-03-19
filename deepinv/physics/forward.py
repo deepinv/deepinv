@@ -346,15 +346,19 @@ class LinearPhysics(Physics):
 
         return self.A_adj(y)
 
-    def A_grad(self, diff, x_est):
-        r"""
-        Computes the gradient of the forward operator :math:`\nabla_x f(A(x))`. It can make the representation of the gradient of the L2 loss more general and compact.
+    def A_jvp(self, x, v):
+        r""" "
+        Applies the Jacobian of the forward operator to the input x and perturbation v, defined as:
 
-        :param torch.Tensor diff: the difference between estimated measurements and true measurements.
-        :return: (torch.Tensor) the gradient times the difference.
+        ..math::
 
+            A_jvp(x, v) = \left, \frac{\delta A}{\delta x}  \right|_x  v.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: perturbation.
+        :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
         """
-        return self.A_adjoint(diff)
+        return self.A_adjoint(v)
 
     def __mul__(self, other):
         r"""

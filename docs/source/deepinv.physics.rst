@@ -105,7 +105,7 @@ Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Ax|^2
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.BasePhaseRetrieval
+   deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
 
 Noise distributions
