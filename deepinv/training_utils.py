@@ -112,22 +112,36 @@ class Trainer:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
-        self.total_loss = AverageMeter("loss", ":.2e")
         if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
             self.losses = [self.losses]
         if not isinstance(self.metrics, list) or isinstance(self.metrics, tuple):
             self.metrics = [self.metrics]
         if self.fact_losses is None:
             self.fact_losses = [1] * len(self.losses)
-        self.losses_verbose = [
-            AverageMeter("Loss " + l.name, ":.2e") for l in self.losses
+
+        # losses
+        self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
+        self.logs_losses_train = [
+            AverageMeter("Training loss " + l.name, ":.2e") for l in self.losses
         ]
-        self.metrics_verbose = [
-            AverageMeter(l.__class__.__name__, ":.2e") for l in self.metrics
-        ]
-        self.train_metric = AverageMeter("Train psnr model", ":.2f")
         if self.eval_dataloader:
-            self.eval_psnr = AverageMeter("Eval psnr model", ":.2f")
+            self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
+            self.logs_losses_eval = [
+                AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
+            ]
+
+        # metrics
+        self.logs_metrics_train = [
+            AverageMeter("Training metric " + l.__class__.__name__, ":.2e")
+            for l in self.metrics
+        ]
+        if self.eval_dataloader:
+            self.logs_metrics_eval = [
+                AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
+                for l in self.metrics
+            ]
+
+        # gradient clipping
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
@@ -308,42 +322,51 @@ class Trainer:
 
     def compute_loss(self, physics, x, y, x_net, train=True):
         logs = {}
+        post_str = "train" if train else "eval"
 
         # Compute the losses
         loss_total = 0
         for k, l in enumerate(self.losses):
             loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
             loss_total += self.fact_losses[k] * loss
-            # TODO: move out
-            # self.losses_verbose[k].update(loss.item())
             if len(self.losses) > 1 and self.verbose_individual_losses:
-                logs[l.__class__.__name__] = self.losses_verbose[k].val
+                current_log = (
+                    self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                )
+                current_log.update(loss.item())
+                cur_loss = current_log.avg
+                logs[f"loss_{k}_{post_str}_{l.__class__.__name__}"] = cur_loss
 
-        # TODO: move out
-        # self.total_loss.update(loss_total.item())
-
-        logs["TotalLoss"] = self.total_loss.val
+        current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
+        current_log.update(loss_total.item())
+        logs[f"TotalLoss_{post_str}"] = current_log.avg
 
         if train:
             loss_total.backward()  # Backward the total loss
 
             norm = self.check_clip_grad()  # Optional gradient clipping
             if norm is not None:
-                logs["gradient norm"] = norm
+                logs["gradient_norm"] = self.check_grad_val.avg
 
             # Optimizer step
             self.optimizer.step()
 
         return logs
 
-    def compute_metrics(self, x, x_net, y, physics, logs):
+    def compute_metrics(self, x, x_net, y, physics, logs, train=True):
+
+        post_str = "train" if train else "eval"
 
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
                 metric = l(x=x, x_net=x_net, y=y, physics=physics)
-                self.metrics_verbose[k].update(metric)
-                logs[l.__class__.__name__] = self.metrics_verbose[k].val
+
+                current_log = (
+                    self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
+                )
+                current_log.update(metric)
+                logs[f"metric_{k}_{post_str}_{l.__class__.__name__}"] = current_log.avg
 
         return logs
 
@@ -359,10 +382,6 @@ class Trainer:
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-
-        # TODO: remove
-        # Initialize the logging dictionary
-        # log_dict_iter = {}
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
@@ -384,13 +403,12 @@ class Trainer:
             # Update the progress bar
             progress_bar.set_postfix(logs)
 
-        if last_batch and not train:
-            # Log metrics to wandb
-            self.log_metrics_wandb(logs)
-            # Plot images
-            self.plot(epoch, physics_cur, x, y, x_net)
+        if last_batch:
+            self.log_metrics_wandb(logs)  # Log metrics to wandb
+            self.plot(epoch, physics_cur, x, y, x_net, train=train)  # Plot images
 
-    def plot(self, epoch, physics_cur, x, y, x_net):
+    def plot(self, epoch, physics_cur, x, y, x_net, train=True):
+        post_str = "Training" if train else "Eval"
         if self.plot_images and ((epoch + 1) % self.freq_plot == 0):
             imgs, titles, grid_image, caption = self.prepare_images(
                 physics_cur, x, y, x_net
@@ -409,7 +427,7 @@ class Trainer:
                     grid_image,
                     caption=caption,
                 )
-                log_dict_post_epoch["Training samples"] = images
+                log_dict_post_epoch[post_str + " samples"] = images
                 wandb.log(log_dict_post_epoch)
 
     def train(self):
@@ -444,7 +462,7 @@ class Trainer:
                         epoch, progress_bar, train=False, last_batch=(i == batches - 1)
                     )
 
-                self.eval_psnr = self.metrics_verbose[0].avg
+                self.eval_psnr = self.logs_metrics_eval[0].avg
 
             ## Training
             self.train_iterators = [iter(loader) for loader in self.train_dataloader]
@@ -461,7 +479,7 @@ class Trainer:
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
 
-            self.loss_history.append(self.total_loss.avg)
+            self.loss_history.append(self.logs_total_loss_train.avg)
 
             if self.scheduler:
                 self.scheduler.step()
