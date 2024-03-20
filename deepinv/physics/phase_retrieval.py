@@ -8,7 +8,7 @@ class PhaseRetrieval(Physics):
     r"""
     Phase Retrieval base class corresponding to the operator
 
-    ..math::
+    .. math::
 
         A(x) = |Bx|^2.
 
@@ -60,17 +60,17 @@ class PhaseRetrieval(Physics):
         """
         return self.sensor(self.noise(self.A(x)))
 
-    def A_jvp(self, x, v):
+    def A_vjp(self, x, v):
         r"""
-        Computes the product between the Jacobian of the forward operator :math:`A` at the input x and vector v, defined as:
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` at the input x, defined as:
 
         .. math::
 
-            A_{jvp}(x, v) = 2 \overline{B}^{\top} diag(Bx) v.
+            A_{vjp}(x, v) = 2 \overline{B}^{\top} diag(Bx) v.
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.
-        :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
         """
         return 2 * self.B_adjoint(self.B(x) * v)
 

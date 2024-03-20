@@ -270,9 +270,9 @@ def test_phase_retrieval(device):
     assert torch.equal(physics(x), physics(-x))
 
 
-def test_phase_retrieval_Ajvp(device):
+def test_phase_retrieval_Avjp(device):
     r"""
-    Tests if the gradient computed with A_jvp method of phase retrieval is consistent with the autograd gradient.
+    Tests if the gradient computed with A_vjp method of phase retrieval is consistent with the autograd gradient.
 
     :param device: (torch.device) cpu or cuda:x
     :return: assertion error if the relative difference between the two gradients is more than 1e-5
@@ -290,9 +290,9 @@ def test_phase_retrieval_Ajvp(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
-def test_linear_physics_Ajvp(device):
+def test_linear_physics_Avjp(device):
     r"""
-    Tests if the gradient computed with A_jvp method of linear physics is consistent with the autograd gradient.
+    Tests if the gradient computed with A_vjp method of linear physics is consistent with the autograd gradient.
 
     :param device: (torch.device) cpu or cuda:x
     :return: assertion error if the relative difference between the two gradients is more than 1e-5
@@ -308,9 +308,9 @@ def test_linear_physics_Ajvp(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
-def test_physics_Ajvp(device):
+def test_physics_Avjp(device):
     r"""
-    Tests if the Jacobian vector product computed by A_jvp method of physics is correct.
+    Tests if the vector Jacobian product computed by A_vjp method of physics is correct.
 
     :param device: (torch.device) cpu or cuda:x
     :return: assertion error if the relative difference between the computed gradients and expected values is more than 1e-5
@@ -325,7 +325,7 @@ def test_physics_Ajvp(device):
         x = torch.randn(3, dtype=torch.float64)
         v = torch.randn(3, dtype=torch.float64)
         # Jacobian in this case should be identity
-        assert torch.allclose(physics.A_jvp(x, v), v)
+        assert torch.allclose(physics.A_vjp(x, v), v)
 
 
 def choose_noise(noise_type):

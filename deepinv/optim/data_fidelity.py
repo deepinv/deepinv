@@ -8,7 +8,7 @@ class DataFidelity(nn.Module):
     r"""
     Data fidelity term :math:`\datafid{x}{y}=\distance{\forw{x}}{y}`.
 
-    This is the base class for the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}{y}` where :math:`A` is a
+    This is the base class for the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}` where :math:`A` is a
     linear or nonlinear operator, :math:`x\in\xset` is a variable , :math:`y\in\yset` is the observation and
     :math:`\distancename` is a distance function.
 
@@ -122,16 +122,16 @@ class DataFidelity(nn.Module):
 
         .. math::
 
-            \nabla_x \distance{\forw{x}}}{y} = \left, \frac{\partial A}{\partial x} \right|_x \nabla_u \distance{u}{y},
+            \nabla_x \distance{\forw{x}}{y} = \left. \frac{\partial A}{\partial x} \right|_x^\top \nabla_u \distance{u}{y},
 
-        where :math:`\left, \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`u = \forw{x}` is computed using ``grad_d``. The multiplication is computed using the ``A_jvp`` method of the physics.
+        where :math:`\left. \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`\nabla_u \distance{u}{y}` is computed using ``grad_d`` with :math:`u = \forw{x}`. The multiplication is computed using the ``A_vjp`` method of the physics.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.Tensor) gradient :math:`\nabla_x\datafid{x}{y}`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
-        return physics.A_jvp(x, self.grad_d(physics.A(x), y, *args, **kwargs))
+        return physics.A_vjp(x, self.grad_d(physics.A(x), y, *args, **kwargs))
 
     def prox(
         self,

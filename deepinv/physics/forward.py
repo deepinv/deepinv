@@ -223,21 +223,22 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return x.clone()
 
-    def A_jvp(self, x, v):
+    def A_vjp(self, x, v):
         r"""
-        Computes the product between the Jacobian of the forward operator :math:`A` evaluated at :math:`x` and the vector :math:`v`, defined as:
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
 
-        ..math::
+        .. math::
 
-            A_jvp(x, v) = \left, \frac{\delta A}{\delta x}  \right|_x  v.
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
 
         By default, the Jacobian is computed using automatic differentiation.
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.
-        :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
         """
-        return torch.func.jvp(self.A, (x,), (v,))[1]
+        _, vjpfunc = torch.func.vjp(self.A, x)
+        return vjpfunc(v)[0]
 
 
 class LinearPhysics(Physics):
@@ -362,17 +363,17 @@ class LinearPhysics(Physics):
 
         return self.A_adj(y)
 
-    def A_jvp(self, x, v):
-        r""" "
-        Computes the product between the Jacobian of the forward operator :math:`A` evaluated at :math:`x` and the vector :math:`v`, defined as:
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
 
-        ..math::
+        .. math::
 
-            A_jvp(x, v) = \left, \frac{\delta A}{\delta x}  \right|_x  v.
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.
-        :return: (torch.Tensor) the Jacobian of the forward operator at x in the direction v.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
         """
         return self.A_adjoint(v)
 
