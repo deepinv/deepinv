@@ -210,7 +210,7 @@ class L2(DataFidelity):
 
     .. math::
 
-        f(x) = \frac{1}{2\sigma^2}\|Ax-y\|^2
+        f(x) = \frac{1}{2\sigma^2}\|\forw{x}-y\|^2
 
     It can be used to define a log-likelihood function associated with additive Gaussian noise
     by setting an appropriate noise level :math:`\sigma`.

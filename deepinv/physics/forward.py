@@ -196,9 +196,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def A_dagger(self, y, x_init=None):
         r"""
-        Computes an inverse of :math:`y = Ax` via gradient descent.
+        Computes an inverse as:
+        
+        .. math::
 
-        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
+            x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
+
+        This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
         :param torch.Tensor x_init: initial guess for the reconstruction.
@@ -209,15 +213,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
         if x_init is None:
             x_init = self.A_adjoint(y)
 
-        x = torch.nn.Parameter(x_init, requires_grad=True)
+        x = x_init
 
-        optimizer = torch.optim.SGD([x], lr=1e-1)
+        lr = 1e-1
         loss = torch.nn.MSELoss()
-        for i in range(self.max_iter):
+        for _ in range(self.max_iter):
+            x = x - lr * self.A_vjp(x, self.A(x) - y)
             err = loss(self.A(x), y)
-            optimizer.zero_grad()
-            err.backward(retain_graph=True)
-            optimizer.step()
             if err < self.tol:
                 break
 
