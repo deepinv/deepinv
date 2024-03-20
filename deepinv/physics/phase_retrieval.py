@@ -42,7 +42,7 @@ class PhaseRetrieval(Physics):
     def A_dagger(self, y: torch.Tensor) -> torch.Tensor:
         x_init = self.B.A_adjoint(y)
         return super().A_dagger(y, x_init)
-    
+
     def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         return self.B.A_adjoint(y)
 

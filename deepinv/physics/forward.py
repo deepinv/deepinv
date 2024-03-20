@@ -197,7 +197,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def A_dagger(self, y, x_init=None):
         r"""
         Computes an inverse as:
-        
+
         .. math::
 
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
