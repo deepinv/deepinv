@@ -252,7 +252,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import deepinv as dinv
 
-    def gaussian_blur(sigma=(1, 1), angle=0):
+    def gaussian_filter(sigma=(1, 1), angle=0):
         r"""
         Gaussian blur filter.
 
@@ -304,7 +304,7 @@ if __name__ == "__main__":
     x = x.expand(B, -1, -1, -1)
 
     filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
-    # filter = gaussian_blur(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
+    # filter = gaussian_filter(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
 
     # filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
     # 'valid', 'circular', 'replicate', 'reflect'

@@ -169,5 +169,5 @@ This module also contains some utilities for physics operators.
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.physics.blur.gaussian_blur
+   deepinv.physics.blur.gaussian_filter
    deepinv.physics.forward.adjoint_function

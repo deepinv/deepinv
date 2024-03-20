@@ -5,10 +5,10 @@ import numpy as np
 import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 from deepinv.utils import TensorList
-from deepinv.physics.functional import conv2d, conv_transpose2d, filter_fft_2d
+from deepinv.physics.functional import conv2d, conv_transpose2d, filter_fft_2d, downsample
 
 
-def gaussian_blur(sigma=(1, 1), angle=0):
+def gaussian_filter(sigma=(1, 1), angle=0):
     r"""
     Gaussian blur filter.
 
@@ -132,7 +132,7 @@ class Downsampling(LinearPhysics):
             self.params = params
         elif params == "gaussian":
             self.params = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
+                gaussian_filter(sigma=(factor, factor)), requires_grad=False
             ).to(device)
         elif params == "bilinear":
             self.params = torch.nn.Parameter(
@@ -156,12 +156,13 @@ class Downsampling(LinearPhysics):
     def A(self, x):
         if self.params is not None:
             x = conv2d(x, self.params, padding=self.padding)
-        x = x[:, :, :: self.factor, :: self.factor]  # downsample
+        x = downsample(x, self.factor)  # downsample
         return x
 
     def A_adjoint(self, y):
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
-        x[:, :, :: self.factor, :: self.factor] = y  # upsample
+        x = downsample(x, self.factor) 
+        x = y  # upsample
         if self.params is not None:
             x = conv_transpose2d(x, self.params, padding=self.padding)
         return x
@@ -273,7 +274,7 @@ class Blur(LinearPhysics):
 
     This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
 
-    :param torch.Tensor params: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_blur`.
+    :param torch.Tensor params: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda.
@@ -331,7 +332,7 @@ class BlurFFT(DecomposablePhysics):
 
 
     :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
-        :meth:`deepinv.physics.blur.gaussian_blur`.
+        :meth:`deepinv.physics.blur.gaussian_filter`.
     :param tuple image_size: Input image size in the form (C, H, W).
     :param str device: cpu or cuda
 

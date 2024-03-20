@@ -5,3 +5,13 @@ from .convolution import (
     conv_transpose2d_fft,
     filter_fft_2d,
 )
+
+
+from .downsampling import downsample
+
+
+from .radon import (
+    Radon,
+    IRadon
+)
+
