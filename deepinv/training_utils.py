@@ -23,6 +23,52 @@ class Trainer:
     r"""
     Trainer class for training a reconstruction network.
 
+    This class trains a reconstruction network using a set of losses, a forward operator, and a dataset.
+    The class provides a flexible training loop that can be customized by the user. In particular, the user can
+    rewrite the ``compute_loss``  method to define their custom training step without having to write all the training code
+    from scratch:.
+
+
+    ::
+
+        def compute_loss(self, physics, x, y, train=True):
+            logs = {}
+
+            self.optimizer.zero_grad()
+
+            # Evaluate reconstruction network
+            x_net = self.model_inference(y=y, physics=physics)
+
+            # Compute the losses
+            loss_total = 0
+            for k, l in enumerate(self.losses):
+                loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+                loss_total += self.fact_losses[k] * loss
+                if len(self.losses) > 1 and self.verbose_individual_losses:
+                    current_log = (
+                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                    )
+                    current_log.update(loss.item())
+                    cur_loss = current_log.avg
+                    logs[l.__class__.__name__] = cur_loss
+
+            current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            current_log.update(loss_total.item())
+            logs[f"TotalLoss"] = current_log.avg
+
+            if train:
+                loss_total.backward()  # Backward the total loss
+
+                norm = self.check_clip_grad()  # Optional gradient clipping
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
+
+                # Optimizer step
+                self.optimizer.step()
+
+            return x_net, logs
+
+
     .. note::
 
         The losses can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
@@ -31,7 +77,6 @@ class Trainer:
         ``y`` is the measurement vector, ``physics`` is the forward operator
         and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
-
 
     :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -90,7 +135,7 @@ class Trainer:
     ckpt_pretrained: Union[str, None] = None
     fact_losses: list = None
     freq_plot: int = 1
-    verbose_individual_losses: bool = False
+    verbose_individual_losses: bool = True
 
     def setup_train(self):
         r"""
@@ -306,23 +351,27 @@ class Trainer:
 
         return samples
 
-    def model_inference(self, y, physics_cur):
+    def model_inference(self, y, physics):
         r"""
         Perform the model inference.
 
         It returns the network reconstruction given the samples.
 
         :param torch.Tensor y: Measurement.
-        :param deepinv.physics.Physics physics_cur: Current physics operator.
+        :param deepinv.physics.Physics physics: Current physics operator.
         :returns: The network reconstruction.
         """
         y = y.to(self.device)
-        x_net = self.model(y, physics_cur)
+        x_net = self.model(y, physics)
         return x_net
 
-    def compute_loss(self, physics, x, y, x_net, train=True):
+    def compute_loss(self, physics, x, y, train=True):
         logs = {}
-        post_str = "train" if train else "eval"
+
+        self.optimizer.zero_grad()
+
+        # Evaluate reconstruction network
+        x_net = self.model_inference(y=y, physics=physics)
 
         # Compute the losses
         loss_total = 0
@@ -335,11 +384,11 @@ class Trainer:
                 )
                 current_log.update(loss.item())
                 cur_loss = current_log.avg
-                logs[f"loss_{k}_{post_str}_{l.__class__.__name__}"] = cur_loss
+                logs[l.__class__.__name__] = cur_loss
 
         current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
         current_log.update(loss_total.item())
-        logs[f"TotalLoss_{post_str}"] = current_log.avg
+        logs[f"TotalLoss"] = current_log.avg
 
         if train:
             loss_total.backward()  # Backward the total loss
@@ -351,11 +400,10 @@ class Trainer:
             # Optimizer step
             self.optimizer.step()
 
-        return logs
+        return x_net, logs
+
 
     def compute_metrics(self, x, x_net, y, physics, logs, train=True):
-
-        post_str = "train" if train else "eval"
 
         # Compute the metrics over the batch
         with torch.no_grad():
@@ -366,7 +414,7 @@ class Trainer:
                     self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
                 )
                 current_log.update(metric)
-                logs[f"metric_{k}_{post_str}_{l.__class__.__name__}"] = current_log.avg
+                logs[l.__class__.__name__] = current_log.avg
 
         return logs
 
@@ -387,15 +435,10 @@ class Trainer:
         G_perm = np.random.permutation(self.G)
 
         for g in G_perm:  # for each dataloader
-            self.optimizer.zero_grad()
-
             x, y, physics_cur = self.get_samples(self.train_iterators, g)
 
-            # Run the forward model
-            x_net = self.model_inference(y=y, physics_cur=physics_cur)
-
             # Compute loss and perform backprop
-            logs = self.compute_loss(physics_cur, x, y, x_net, train=train)
+            x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
 
             # Log metrics
             logs = self.compute_metrics(x, x_net, y, physics_cur, logs)
@@ -457,7 +500,7 @@ class Trainer:
 
                 self.model.eval()
                 for i in (
-                    progress_bar := tqdm(range(batches), disable=not self.verbose)
+                    progress_bar := tqdm(range(batches), ncols=150, disable=not self.verbose)
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
                     self.step(
@@ -475,7 +518,7 @@ class Trainer:
             self.model.train()
             for i in (
                 progress_bar := tqdm(
-                    range(batches), ncols=100, disable=not self.verbose
+                    range(batches), ncols=150, disable=not self.verbose
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
