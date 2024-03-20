@@ -336,7 +336,7 @@ class Trainer:
 
         return logs
 
-    def log_metrics(self, x, x_net, y, physics, logs):
+    def compute_metrics(self, x, x_net, y, physics, logs):
 
         # Compute the metrics over the batch
         with torch.no_grad():
@@ -344,6 +344,8 @@ class Trainer:
                 metric = l(x=x, x_net=x_net, y=y, physics=physics)
                 self.metrics_verbose[k].update(metric)
                 logs[l.__class__.__name__] = self.metrics_verbose[k].val
+
+        return logs
 
     def step(self, epoch, progress_bar, train=True, last_batch=False):
         r"""
@@ -377,7 +379,7 @@ class Trainer:
             logs = self.compute_loss(physics_cur, x, y, x_net, train=train)
 
             # Log metrics
-            logs = self.log_metrics(x, x_net, y, physics_cur, logs)
+            logs = self.compute_metrics(x, x_net, y, physics_cur, logs)
 
             # Update the progress bar
             progress_bar.set_postfix(logs)
