@@ -30,6 +30,18 @@ an alias for the train function of the Trainer class.
         deepinv.training_utils.train_normalizing_flow
 
 
+Metrics
+--------
+Metrics are used to compute the performance of a trained model.
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+        deepinv.utils.PSNR
+
 Plotting
 --------
 We provide some basic plotting functions that are adapted to inverse problems.
