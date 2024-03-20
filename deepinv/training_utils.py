@@ -306,7 +306,46 @@ class Trainer:
         x_net = self.model(y, physics_cur)
         return x_net
 
-    def train_step(self, epoch, progress_bar, train=True, last_batch=False):
+    def compute_loss(self, physics, x, y, x_net, train=True):
+        logs = {}
+
+        # Compute the losses
+        loss_total = 0
+        for k, l in enumerate(self.losses):
+            loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+            loss_total += self.fact_losses[k] * loss
+            # TODO: move out
+            # self.losses_verbose[k].update(loss.item())
+            if len(self.losses) > 1 and self.verbose_individual_losses:
+                logs[l.__class__.__name__] = self.losses_verbose[k].val
+
+        # TODO: move out
+        # self.total_loss.update(loss_total.item())
+
+        logs["TotalLoss"] = self.total_loss.val
+
+        if train:
+            loss_total.backward()  # Backward the total loss
+
+            norm = self.check_clip_grad()  # Optional gradient clipping
+            if norm is not None:
+                logs["gradient norm"] = norm
+
+            # Optimizer step
+            self.optimizer.step()
+
+        return logs
+
+    def log_metrics(self, x, x_net, y, physics, logs):
+
+        # Compute the metrics over the batch
+        with torch.no_grad():
+            for k, l in enumerate(self.metrics):
+                metric = l(x=x, x_net=x_net, y=y, physics=physics)
+                self.metrics_verbose[k].update(metric)
+                logs[l.__class__.__name__] = self.metrics_verbose[k].val
+
+    def step(self, epoch, progress_bar, train=True, last_batch=False):
         r"""
         Train/Eval a batch.
 
@@ -319,8 +358,9 @@ class Trainer:
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
 
+        # TODO: remove
         # Initialize the logging dictionary
-        log_dict_iter = {}
+        # log_dict_iter = {}
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
@@ -333,46 +373,18 @@ class Trainer:
             # Run the forward model
             x_net = self.model_inference(y=y, physics_cur=physics_cur)
 
-            if train:
-                # Compute the losses
-                loss_total = 0
-                for k, l in enumerate(self.losses):
-                    loss = l(
-                        x=x, x_net=x_net, y=y, physics=self.physics[g], model=self.model
-                    )
-                    loss_total += self.fact_losses[k] * loss
-                    self.losses_verbose[k].update(loss.item())
-                    if len(self.losses) > 1 and self.verbose_individual_losses:
-                        log_dict_iter[l.__class__.__name__] = self.losses_verbose[k].val
+            # Compute loss and perform backprop
+            logs = self.compute_loss(physics_cur, x, y, x_net, train=train)
 
-                self.total_loss.update(loss_total.item())
-
-                log_dict_iter["TotalLoss"] = self.total_loss.val
-
-                # Backward the total loss
-                loss_total.backward()
-
-                # Optional gradient clipping
-                norm = self.check_clip_grad()
-                if norm is not None:
-                    log_dict_iter["gradient norm"] = norm
-
-                # Optimizer step
-                self.optimizer.step()
-
-            # Compute the metrics over the batch
-            with torch.no_grad():
-                for k, l in enumerate(self.metrics):
-                    metric = l(x=x, x_net=x_net, y=y, physics=self.physics[g])
-                    self.metrics_verbose[k].update(metric)
-                    log_dict_iter[l.__class__.__name__] = self.metrics_verbose[k].val
+            # Log metrics
+            logs = self.log_metrics(x, x_net, y, physics_cur, logs)
 
             # Update the progress bar
-            progress_bar.set_postfix(log_dict_iter)
+            progress_bar.set_postfix(logs)
 
         if last_batch and not train:
             # Log metrics to wandb
-            self.log_metrics_wandb(log_dict_iter)
+            self.log_metrics_wandb(logs)
             # Plot images
             self.plot(epoch, physics_cur, x, y, x_net)
 
@@ -426,7 +438,7 @@ class Trainer:
                     progress_bar := tqdm(range(batches), disable=not self.verbose)
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
-                    self.train_step(
+                    self.step(
                         epoch, progress_bar, train=False, last_batch=(i == batches - 1)
                     )
 
@@ -443,7 +455,7 @@ class Trainer:
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
-                self.train_step(
+                self.step(
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
 
