@@ -5,9 +5,10 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
+from deepinv.optim.optim_iterators import GDIteration
 
 
 def custom_init_CP(y, physics):
@@ -169,6 +170,50 @@ def test_data_fidelity_l1(device):
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
     assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
+
+
+def test_zero_prior():
+    A = torch.eye(3, dtype=torch.float64)
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.T @ v
+
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    data_fidelity = dinv.optim.data_fidelity.L2()
+    params_algo = {"stepsize": 0.5, "lambda": 1.0}
+    iterator = GDIteration()
+    optimalgo = dinv.optim.BaseOptim(
+        iterator,
+        data_fidelity=data_fidelity,
+        params_algo=params_algo,
+    )
+    for _ in range(10):
+        x = torch.randn((3,), dtype=torch.float64)
+        xhat = optimalgo(x, physics)
+        assert torch.allclose(xhat, x)
+
+
+def test_data_fidelity_amplitude_loss(device):
+    r"""
+    Tests if the gradient computed with grad_d method of amplitude loss is consistent with the autograd gradient.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: assertion error if the relative difference between the two gradients is more than 1e-5
+    """
+    # essential to enable autograd
+    torch.set_grad_enabled(True)
+    x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
+    physics = dinv.physics.RandomPhaseRetrieval(
+        m=10, img_shape=(1, 3, 3), device=device
+    )
+    loss = AmplitudeLoss()
+    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+    grad_value = torch.func.grad(func)(x)
+    jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
+    assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)

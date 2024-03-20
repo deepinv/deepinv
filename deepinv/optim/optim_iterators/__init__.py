@@ -5,3 +5,4 @@ from .primal_dual_CP import CPIteration
 from .hqs import HQSIteration
 from .drs import DRSIteration
 from .gradient_descent import GDIteration
+from .spectral_methods import SMIteration
