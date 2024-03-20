@@ -1,7 +1,7 @@
 import torch
 from typing import List, Tuple
 import numpy as np
-from .base import Generator
+from deepinv.physics.generator import Generator
 from math import ceil, floor
 
 
@@ -88,10 +88,8 @@ class MotionBlurGenerator(PSFGenerator):
     def f_matern(self, sigma: float = None, l: float = None):
 
         batch_size = self.params.size(0)
-        vec = torch.randn(batch_size, self.n_steps, **self.factory_kwargs)
-        time = torch.linspace(-torch.pi, torch.pi, self.n_steps, **self.factory_kwargs)[
-            None
-        ]
+        vec = torch.randn(batch_size, self.n_steps)
+        time = torch.linspace(-torch.pi, torch.pi, self.n_steps)[None]
 
         kernel = self.matern_kernel(time, sigma, l)
         kernel_fft = torch.fft.rfft(kernel)
@@ -123,7 +121,7 @@ class MotionBlurGenerator(PSFGenerator):
         kernels = [
             torch.histogramdd(
                 trajectory, bins=list(self.kernel_size), range=[-1, 1, -1, 1]
-            )[0][None, None]
+            )[0][None, None].to(**self.factory_kwargs)
             for trajectory in trajectories
         ]
         kernel = torch.cat(kernels, dim=0)
@@ -244,16 +242,15 @@ class DiffractionBlurGenerator(PSFGenerator):
             :,
             self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
             self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
-        ]
-        psf = psf3 / torch.sum(psf3, dim=(1, 2))[:, None, None]
+        ].unsqueeze(1)
+        psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
 
-        return psf
+        return psf.expand(-1, self.params.size(1), -1, -1)
 
     def generate_coeff(self):
         batch_size = self.params.size(0)
-        coeff = (
-            torch.rand((batch_size, len(self.list_param)), **self.factory_kwargs) - 0.5
-        ) * 0.3
+        coeff = torch.rand((batch_size, len(self.list_param)), **self.factory_kwargs)
+        coeff = (coeff - 0.5) * 0.3
         return coeff
 
 
@@ -462,8 +459,8 @@ if __name__ == "__main__":
     import deepinv as dinv
     from deepinv.physics import Blur, BlurFFT
 
-    filter = torch.randn(1, 1, 51, 51)
-    physic = BlurFFT(params=filter.clone(), img_size=(3, 128, 128))
+    filter = torch.randn(4, 1, 51, 51).cuda()
+    physic = BlurFFT(params=filter.clone(), image_size=(3, 128, 128), device="cuda")
     print(physic.params.shape)
     Motion = MotionBlurGenerator(physic.params)
     Motion.step()
@@ -472,7 +469,7 @@ if __name__ == "__main__":
 
     Diffraction = DiffractionBlurGenerator(physic.params)
     Diffraction.step()
-    print(physic.params.shape)
+    print("Physics params: ", physic.params.shape)
     dinv.utils.plot(physic.params)
 
     # print(physic.params)

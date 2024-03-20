@@ -5,7 +5,12 @@ import numpy as np
 import torch.fft as fft
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 from deepinv.utils import TensorList
-from deepinv.physics.functional import conv2d, conv_transpose2d, filter_fft_2d, downsample
+from deepinv.physics.functional import (
+    conv2d,
+    conv_transpose2d,
+    filter_fft_2d,
+    downsample,
+)
 
 
 def gaussian_filter(sigma=(1, 1), angle=0):
@@ -95,7 +100,7 @@ class Downsampling(LinearPhysics):
     :Examples:
 
         Downsampling operator with a gaussian filter:
-            
+
         >>> from deepinv.physics import Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
@@ -146,7 +151,7 @@ class Downsampling(LinearPhysics):
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.params is not None:
-            self.Fh = filter_fft(self.params, img_size, real_fft=False).to(device)
+            self.Fh = filter_fft_2d(self.params, image_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             # self.params = torch.nn.Parameter(self.params, requires_grad=False)
@@ -161,7 +166,7 @@ class Downsampling(LinearPhysics):
 
     def A_adjoint(self, y):
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
-        x = downsample(x, self.factor) 
+        x = downsample(x, self.factor)
         x = y  # upsample
         if self.params is not None:
             x = conv_transpose2d(x, self.params, padding=self.padding)
@@ -365,7 +370,7 @@ class BlurFFT(DecomposablePhysics):
 
         self.params = torch.nn.Parameter(params, requires_grad=False).to(device)
 
-        self.mask = filter_fft(params, image_size).to(device)
+        self.mask = filter_fft_2d(params, image_size).to(device)
         self.angle = torch.angle(self.mask)
         self.angle = torch.exp(-1.0j * self.angle).to(device)
         self.mask = torch.abs(self.mask).unsqueeze(-1)
@@ -387,7 +392,9 @@ class BlurFFT(DecomposablePhysics):
         )  # make it a true SVD (see J. Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.image_size[-2:])
+        return fft.irfft2(
+            torch.view_as_complex(x), norm="ortho", s=self.image_size[-2:]
+        )
 
 
 # # test code
