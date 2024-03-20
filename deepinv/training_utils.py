@@ -123,7 +123,7 @@ class Trainer:
             AverageMeter("Loss " + l.name, ":.2e") for l in self.losses
         ]
         self.metrics_verbose = [
-            AverageMeter(l.name, ":.2e") for l in self.metrics
+            AverageMeter(l.__class__.__name__, ":.2e") for l in self.metrics
         ]
         self.train_metric = AverageMeter("Train psnr model", ":.2f")
         if self.eval_dataloader:
@@ -159,9 +159,9 @@ class Trainer:
     def prepare_images(self, physics_cur, x, y, x_net):
         with torch.no_grad():
             if (
-                    self.plot_measurements
-                    and len(y.shape) == len(x.shape)
-                    and y.shape != x.shape
+                self.plot_measurements
+                and len(y.shape) == len(x.shape)
+                and y.shape != x.shape
             ):
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
@@ -194,7 +194,6 @@ class Trainer:
             grid_image = torchvision.utils.make_grid(vis_array, nrow=y.shape[0])
 
         return imgs, titles, grid_image, caption
-
 
     def log_metrics_wandb(self, log_dict_iter):
         r"""
@@ -338,7 +337,9 @@ class Trainer:
                 # Compute the losses
                 loss_total = 0
                 for k, l in enumerate(self.losses):
-                    loss = l(x=x, x_net=x_net, y=y, physics=self.physics[g], model=self.model)
+                    loss = l(
+                        x=x, x_net=x_net, y=y, physics=self.physics[g], model=self.model
+                    )
                     loss_total += self.fact_losses[k] * loss
                     self.losses_verbose[k].update(loss.item())
                     if len(self.losses) > 1 and self.verbose_individual_losses:
@@ -377,7 +378,9 @@ class Trainer:
 
     def plot(self, epoch, physics_cur, x, y, x_net):
         if self.plot_images and ((epoch + 1) % self.freq_plot == 0):
-            imgs, titles, grid_image, caption = self.prepare_images(physics_cur, x, y, x_net)
+            imgs, titles, grid_image, caption = self.prepare_images(
+                physics_cur, x, y, x_net
+            )
 
             plot(
                 imgs,
@@ -410,30 +413,39 @@ class Trainer:
 
             ## Evaluation
             perform_eval = (
-                    (not self.unsupervised)
-                    and self.eval_dataloader
-                    and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
+                (not self.unsupervised)
+                and self.eval_dataloader
+                and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
             )
             if perform_eval:
                 self.train_iterators = [iter(loader) for loader in self.eval_dataloader]
                 batches = len(self.eval_dataloader[self.G - 1])
 
                 self.model.eval()
-                for i in (progress_bar := tqdm(range(batches), disable=not self.verbose)):
+                for i in (
+                    progress_bar := tqdm(range(batches), disable=not self.verbose)
+                ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
-                    self.train_step(epoch, progress_bar, train=False, last_batch=(i == batches - 1))
+                    self.train_step(
+                        epoch, progress_bar, train=False, last_batch=(i == batches - 1)
+                    )
 
                 self.eval_psnr = self.metrics_verbose[0].avg
-
 
             ## Training
             self.train_iterators = [iter(loader) for loader in self.train_dataloader]
             batches = len(self.train_dataloader[self.G - 1])
 
             self.model.train()
-            for i in (progress_bar := tqdm(range(batches), ncols=100, disable=not self.verbose)):
+            for i in (
+                progress_bar := tqdm(
+                    range(batches), ncols=100, disable=not self.verbose
+                )
+            ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
-                self.train_step(epoch, progress_bar, train=True, last_batch=(i == batches - 1))
+                self.train_step(
+                    epoch, progress_bar, train=True, last_batch=(i == batches - 1)
+                )
 
             self.loss_history.append(self.total_loss.avg)
 
@@ -457,23 +469,24 @@ class Trainer:
 
         return self.model
 
+
 def test(
-        model,
-        test_dataloader,
-        physics,
-        device="cpu",
-        plot_images=False,
-        save_folder="results",
-        plot_metrics=False,
-        verbose=True,
-        plot_only_first_batch=True,
-        wandb_vis=False,
-        wandb_setup={},
-        step=0,
-        online_measurements=False,
-        plot_measurements=True,
-        img_interval=1,
-        **kwargs,
+    model,
+    test_dataloader,
+    physics,
+    device="cpu",
+    plot_images=False,
+    save_folder="results",
+    plot_metrics=False,
+    verbose=True,
+    plot_only_first_batch=True,
+    wandb_vis=False,
+    wandb_setup={},
+    step=0,
+    online_measurements=False,
+    plot_measurements=True,
+    img_interval=1,
+    **kwargs,
 ):
     r"""
     Tests a reconstruction network.
@@ -582,21 +595,21 @@ def test(
 
                 if plot_images:
                     save_folder_im = (
-                                         (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                                     ) / "images"
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "images"
                     save_folder_im.mkdir(parents=True, exist_ok=True)
                 else:
                     save_folder_im = None
                 if plot_metrics:
                     save_folder_curve = (
-                                            (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                                        ) / "curves"
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "curves"
                     save_folder_curve.mkdir(parents=True, exist_ok=True)
 
                 if (plot_images or wandb_vis) and (step + 1) % img_interval == 0:
                     if g < show_operators:
                         if not plot_only_first_batch or (
-                                plot_only_first_batch and i == 0
+                            plot_only_first_batch and i == 0
                         ):
                             if plot_measurements and len(y.shape) == 4:
                                 imgs = [y, x_init, x1, x]
@@ -660,13 +673,13 @@ def train(*args, **kwargs):
 
 
 def train_normalizing_flow(
-        model,
-        dataloader,
-        epochs=10,
-        learning_rate=1e-3,
-        device="cpu",
-        jittering=1 / 255.0,
-        verbose=False,
+    model,
+    dataloader,
+    epochs=10,
+    learning_rate=1e-3,
+    device="cpu",
+    jittering=1 / 255.0,
+    verbose=False,
 ):
     r"""
     Trains a normalizing flow.
@@ -691,7 +704,7 @@ def train_normalizing_flow(
     for epoch in range(epochs):
         mean_loss = 0.0
         for i, (x, _) in enumerate(
-                progress_bar := tqdm(dataloader, disable=not verbose)
+            progress_bar := tqdm(dataloader, disable=not verbose)
         ):
             x = x.to(device)
             x = x + jittering * (2 * torch.rand_like(x) - 1)

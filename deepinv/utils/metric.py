@@ -22,6 +22,7 @@ class PSNR(torch.nn.Module):
     def forward(self, x_net, x, **kwargs):
         return cal_psnr(x_net, x, self.max_pixel, self.normalize)
 
+
 def cal_psnr(a, b, max_pixel=1, normalize=False):
     r"""
     Computes the peak signal-to-noise ratio (PSNR)
