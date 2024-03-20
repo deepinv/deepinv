@@ -451,7 +451,9 @@ class Trainer:
             )
             if perform_eval:
                 self.train_iterators = [iter(loader) for loader in self.eval_dataloader]
-                batches = len(self.eval_dataloader[self.G - 1])-int(self.eval_dataloader[self.G - 1].drop_last)
+                batches = len(self.eval_dataloader[self.G - 1]) - int(
+                    self.eval_dataloader[self.G - 1].drop_last
+                )
 
                 self.model.eval()
                 for i in (
@@ -466,7 +468,9 @@ class Trainer:
 
             ## Training
             self.train_iterators = [iter(loader) for loader in self.train_dataloader]
-            batches = len(self.train_dataloader[self.G - 1])-int(self.train_dataloader[self.G - 1].drop_last)
+            batches = len(self.train_dataloader[self.G - 1]) - int(
+                self.train_dataloader[self.G - 1].drop_last
+            )
 
             self.model.train()
             for i in (
