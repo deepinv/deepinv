@@ -6,12 +6,6 @@ from .convolution import (
     filter_fft_2d,
 )
 
-
+from .hist import histogram, histogramdd
 from .downsampling import downsample
-
-
-from .radon import (
-    Radon,
-    IRadon
-)
-
+from .radon import Radon, IRadon
