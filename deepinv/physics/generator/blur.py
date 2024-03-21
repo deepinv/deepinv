@@ -3,6 +3,7 @@ from typing import List, Tuple
 import numpy as np
 from deepinv.physics.generator import Generator
 from math import ceil, floor
+from deepinv.physics.functional import histogramdd
 
 
 class PSFGenerator(Generator):
@@ -119,9 +120,9 @@ class MotionBlurGenerator(PSFGenerator):
             dim=-1,
         )
         kernels = [
-            torch.histogramdd(
-                trajectory, bins=list(self.kernel_size), range=[-1, 1, -1, 1]
-            )[0][None, None].to(**self.factory_kwargs)
+            histogramdd(
+                trajectory, bins=list(self.kernel_size), low=[-1, -1], upp=[1, 1]
+            )[None, None].to(**self.factory_kwargs)
             for trajectory in trajectories
         ]
         kernel = torch.cat(kernels, dim=0)
