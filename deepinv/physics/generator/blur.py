@@ -1,3 +1,4 @@
+# %%
 import torch
 from typing import List, Tuple
 import numpy as np
@@ -223,6 +224,11 @@ class DiffractionBlurGenerator(PSFGenerator):
                 XX, YY
             )  # defining the k-th Zernike polynomial
 
+    def __update__(self):
+        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        self.rho = self.rho.to(**self.factory_kwargs)
+        self.Z = self.Z.to(**self.factory_kwargs)
+
     def __call__(self):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
@@ -230,6 +236,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         :return: tensor B x psf_size x psf_size batch of psfs
         :rtype: torch.Tensor
         """
+        self.__update__()
+
         coeff = self.generate_coeff()
 
         pupil1 = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
@@ -456,12 +464,13 @@ def bump_function(x, a=1.0, b=1.0):
     return v
 
 
+# %%
 if __name__ == "__main__":
     import deepinv as dinv
-    from deepinv.physics import Blur, BlurFFT
+    from deepinv.physics import Blur
 
-    filter = torch.randn(4, 1, 51, 51).cuda()
-    physic = BlurFFT(params=filter.clone(), image_size=(3, 128, 128), device="cuda")
+    filter = torch.randn(4, 1, 51, 51)
+    physic = Blur(params=filter.clone(), image_size=(3, 128, 128), device="cpu")
     print(physic.params.shape)
     Motion = MotionBlurGenerator(physic.params)
     Motion.step()
@@ -475,3 +484,5 @@ if __name__ == "__main__":
 
     # print(physic.params)
     print((physic.params - filter).abs().mean())
+
+# %%

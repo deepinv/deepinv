@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 
 
-class Generator:
+class Generator(nn.Module):
     r"""
     Base class for parameter generation of physics.
 
@@ -15,6 +15,7 @@ class Generator:
     """
 
     def __init__(self, params: torch.Tensor, **kwargs) -> None:
+        super().__init__()
         self.params = params
         self.kwargs = kwargs
         self.factory_kwargs = {"device": params.device, "dtype": params.dtype}
@@ -29,6 +30,7 @@ class Generator:
 
         if not kwargs:
             self.kwargs = kwargs
+        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
 
         new_params = self.__call__(*args, **self.kwargs)
         # print(new_params.shape)
@@ -42,7 +44,7 @@ class Generator:
         return torch.zeros_like(self.params)
 
 
-class GeneratorMixture:
+class GeneratorMixture(Generator):
     r"""
     Base class for mixing multiple generators.
 
@@ -51,6 +53,7 @@ class GeneratorMixture:
     """
 
     def __init__(self, generators: List[Generator], probs: List[float]) -> None:
+        super().__init__(generators[0].params)
         assert np.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
@@ -62,11 +65,13 @@ class GeneratorMixture:
         """
         if not kwargs:
             self.kwargs = kwargs
+        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
         self.generators[idx].step(*args, **kwargs)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
+
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
         return self.generators[idx](*args, **kwargs)
@@ -77,8 +82,10 @@ if __name__ == "__main__":
     class Physic(nn.Module):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
-            # self.params = nn.Parameter(torch.tensor([1., 2., 3.]), requires_grad=False)
-            self.params = torch.tensor([1.0, 2.0, 3.0])
+            self.params = nn.Parameter(
+                torch.tensor([1.0, 2.0, 3.0]), requires_grad=False
+            )
+            # self.params = torch.tensor([1.0, 2.0, 3.0])
             self.kwargs = kwargs
 
         def forward(self, *args, **kwargs):
