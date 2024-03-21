@@ -12,7 +12,7 @@ For the reconstruction, we minimize the variational problem
 .. math::
     \begin{equation*}
     \label{eq:min_prob}
-    \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + g(x).
+    \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda g(x).
     \end{equation*}
 
 Here, the regularizier :math:`g` is explicitly defined as
