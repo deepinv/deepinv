@@ -204,3 +204,25 @@ for epoch in range(num_epochs):
         dinv.utils.plot(x_hat)
 
 # %%
+import numpy as np
+torch.backends.cudnn.benchmark = True
+
+m = 10
+step = 11
+n_list = 2**7 * (4 + np.array([0, 1, 2, 3, 4]))
+bs = 4
+
+from torch.utils.benchmark import Timer
+
+model.eval()
+with torch.no_grad():
+    for j, n in enumerate(n_list):
+        x = torch.randn((bs, 3, n, n), device=device, dtype=dtype)
+        y = physic(x)
+    
+        timer = Timer(stmt = 'model(y, physic)',
+                      globals = globals(),
+                      num_threads=8)
+        
+        t = timer.blocked_autorange(min_run_time=5) 
+        print("size: %i -- time: %1.3e " % (n, t.median / (n**2)))

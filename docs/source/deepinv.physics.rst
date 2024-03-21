@@ -1,7 +1,7 @@
 .. _physics:
 
 Physics
-=======
+*******
 
 This package contains a large collection of forward operators appearing in imaging applications.
 
@@ -13,7 +13,7 @@ The operators and are of the form
 
 where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are the measurements of size :math:`m`,
 :math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
-and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting the measurements.
+and :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
 
 
 All forward operators inherit the structure of the ``Physics`` class.
@@ -39,7 +39,7 @@ Operators can be called with the ``forward`` method, for example
     y = physics(x) # compute noisy measurements
 
 Linear operators
-----------------
+================
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
 All linear operators inherit the structure of the :class:`LinearPhysics` class.
 Linear operators with a closed-form singular value decomposition are defined via :class:`DecomposablePhysics`,
@@ -52,29 +52,9 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
 
    deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
-   deepinv.physics.CompressedSensing
-   deepinv.physics.Decolorize
-   deepinv.physics.Denoising
-   deepinv.physics.Downsampling
-   deepinv.physics.MRI
-   deepinv.physics.Inpainting
-   deepinv.physics.SinglePixelCamera
-   deepinv.physics.Tomography
-   deepinv.physics.Pansharpen
 
-
-Blur
-~~~~
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.Blur
-   deepinv.physics.BlurFFT
-
-Adjoint
-~~~~~~~
+Adjoint, pseudo-inverse, prox
+-----------------------------
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
@@ -95,8 +75,7 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
 Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
 have additional methods.
 
-When defining a new linear operator, you can define the adjoint automatically using
-
+When defining a new linear operator, you can define the adjoint automatically using autograd with
 
 .. autosummary::
    :toctree: stubs
@@ -105,9 +84,85 @@ When defining a new linear operator, you can define the adjoint automatically us
 
     deepinv.physics.adjoint_function
 
+Applications
+------------
+
+Various popular linear transforms are provided with state-of-the-art implementation.
+
+Diagonal operators
+^^^^^^^^^^^^^^^^^^
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Denoising
+   deepinv.physics.Inpainting
+   deepinv.physics.Decolorize
+
+Blur
+^^^^
+Different types of blurs are available. They can be stationary (convolutions) or space-varying. Also, we integrated super-resolution applications by composing blurs with downsampling.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Blur
+   deepinv.physics.BlurFFT
+   .. deepinv.physics.SpaceVaryingBlur
+
+MRI 
+^^^
+In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.MRI
+
+Tomography 
+^^^^^^^^^^
+
+Tomography is based on the Radon-transform which computes line-integrals. 
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Tomography
+
+Super-resolution
+^^^^^^^^^^^^^^^^
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Downsampling
+   deepinv.physics.Pansharpen
+
+
+Random linear forms
+^^^^^^^^^^^^^^^^^^^
+
+The field of compressed sensing initially suggested to use white Gaussian or Bernoulli random vectors. These operators are implented in the following functions.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.CompressedSensing
+   deepinv.physics.SinglePixelCamera
+
 
 Non-linear operators
---------------------
+====================
 Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
 
 .. autosummary::
@@ -120,7 +175,7 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
    deepinv.physics.SinglePhotonLidar
 
 Noise distributions
--------------------
+===================
 Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.
 The noise of a forward operator can be set in its construction
 or simply as
@@ -147,9 +202,9 @@ or simply as
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
 
-Generator 
----------
-Generator for sampling operators
+Generators 
+==========
+The generators are used to 
 
 .. autosummary::
    :toctree: stubs
@@ -161,7 +216,7 @@ Generator for sampling operators
    deepinv.physics.DiffractionBlurGenerator
 
 Utils
--------------
+=====
 This module also contains some utilities for physics operators.
 
 .. autosummary::
