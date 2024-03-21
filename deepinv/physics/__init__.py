@@ -27,7 +27,7 @@ from .remote_sensing import Pansharpen
 from .functional import conv2d, conv_transpose2d
 from .generator import (
     Generator,
-    GeneratorMixer,
+    GeneratorMixture,
     MotionBlurGenerator,
     DiffractionBlurGenerator,
 )

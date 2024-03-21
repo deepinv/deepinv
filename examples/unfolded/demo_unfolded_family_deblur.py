@@ -18,7 +18,7 @@ from deepinv.training_utils import train, test
 from deepinv.physics import (
     MotionBlurGenerator,
     DiffractionBlurGenerator,
-    GeneratorMixer,
+    GeneratorMixture,
     Blur,
     GaussianNoise,
 )
@@ -149,7 +149,7 @@ physic = Blur(
 motion_gen = MotionBlurGenerator(physic.params)
 motion_gen.step()
 diffraction_gen = DiffractionBlurGenerator(physic.params)
-generator = GeneratorMixer([motion_gen, diffraction_gen], probs=[0.5, 0.5])
+generator = GeneratorMixture([motion_gen, diffraction_gen], probs=[0.5, 0.5])
 generator.step()
 
 dinv.utils.plot(physic.params)

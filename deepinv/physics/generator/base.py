@@ -42,7 +42,7 @@ class Generator:
         return torch.zeros_like(self.params)
 
 
-class GeneratorMixer:
+class GeneratorMixture:
     r"""
     Base class for mixing multiple generators.
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     print(P.params)
     g1 = Generator(P.params, l=1, n=2)
     g2 = Generator(P.params, l=1, n=2)
-    G = GeneratorMixer([g1, g2], [0.5, 0.5])
+    G = GeneratorMixture([g1, g2], [0.5, 0.5])
     G.step()
     print(P.params)
     # %%
