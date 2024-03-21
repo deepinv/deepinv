@@ -216,7 +216,9 @@ trainer = Trainer(
     ckp_interval=10,
 )
 
-model = trainer.train(model, train_dataloader=train_dataloader, eval_dataloader=test_dataloader)
+model = trainer.train(
+    model, train_dataloader=train_dataloader, eval_dataloader=test_dataloader
+)
 
 # %%
 # Test the network
@@ -225,4 +227,3 @@ model = trainer.train(model, train_dataloader=train_dataloader, eval_dataloader=
 #
 
 trainer.test(model, test_dataloader)
-

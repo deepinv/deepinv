@@ -212,9 +212,9 @@ class Trainer:
     def prepare_images(self, physics_cur, x, y, x_net):
         with torch.no_grad():
             if (
-                    self.plot_measurements
-                    and len(y.shape) == len(x.shape)
-                    and y.shape != x.shape
+                self.plot_measurements
+                and len(y.shape) == len(x.shape)
+                and y.shape != x.shape
             ):
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
@@ -393,7 +393,9 @@ class Trainer:
                     cur_loss = current_log.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            current_log = (
+                self.logs_total_loss_train if train else self.logs_total_loss_eval
+            )
             current_log.update(loss_total.item())
             logs[f"TotalLoss"] = current_log.avg
 
@@ -530,9 +532,9 @@ class Trainer:
 
             ## Evaluation
             perform_eval = (
-                    (not self.unsupervised)
-                    and eval_dataloader
-                    and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
+                (not self.unsupervised)
+                and eval_dataloader
+                and ((epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs)
             )
             if perform_eval:
                 self.current_iterators = [iter(loader) for loader in eval_dataloader]
@@ -542,7 +544,9 @@ class Trainer:
 
                 self.model.eval()
                 for i in (
-                        progress_bar := tqdm(range(batches), ncols=150, disable=not self.verbose)
+                    progress_bar := tqdm(
+                        range(batches), ncols=150, disable=not self.verbose
+                    )
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
                     self.step(
@@ -559,9 +563,9 @@ class Trainer:
 
             self.model.train()
             for i in (
-                    progress_bar := tqdm(
-                        range(batches), ncols=150, disable=not self.verbose
-                    )
+                progress_bar := tqdm(
+                    range(batches), ncols=150, disable=not self.verbose
+                )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
                 self.step(
@@ -615,12 +619,10 @@ class Trainer:
 
         self.model.eval()
         for _ in (
-                progress_bar := tqdm(range(batches), ncols=150, disable=not self.verbose)
+            progress_bar := tqdm(range(batches), ncols=150, disable=not self.verbose)
         ):
             progress_bar.set_description(f"Test")
-            self.step(
-                1, progress_bar, train=False, last_batch=True
-            )
+            self.step(1, progress_bar, train=False, last_batch=True)
 
         self.eval_psnr = self.logs_metrics_eval[0].avg
 
@@ -628,20 +630,20 @@ class Trainer:
 
 
 def test(
-        model,
-        test_dataloader,
-        physics,
-        device="cpu",
-        plot_images=False,
-        save_folder="results",
-        plot_metrics=False,
-        verbose=True,
-        plot_only_first_batch=True,
-        step=0,
-        online_measurements=False,
-        plot_measurements=True,
-        img_interval=1,
-        **kwargs,
+    model,
+    test_dataloader,
+    physics,
+    device="cpu",
+    plot_images=False,
+    save_folder="results",
+    plot_metrics=False,
+    verbose=True,
+    plot_only_first_batch=True,
+    step=0,
+    online_measurements=False,
+    plot_measurements=True,
+    img_interval=1,
+    **kwargs,
 ):
     r"""
     Tests a reconstruction model (algorithm or network).
@@ -740,21 +742,21 @@ def test(
 
                 if plot_images:
                     save_folder_im = (
-                                         (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                                     ) / "images"
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "images"
                     save_folder_im.mkdir(parents=True, exist_ok=True)
                 else:
                     save_folder_im = None
                 if plot_metrics:
                     save_folder_curve = (
-                                            (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                                        ) / "curves"
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "curves"
                     save_folder_curve.mkdir(parents=True, exist_ok=True)
 
                 if plot_images and (step + 1) % img_interval == 0:
                     if g < show_operators:
                         if not plot_only_first_batch or (
-                                plot_only_first_batch and i == 0
+                            plot_only_first_batch and i == 0
                         ):
                             if plot_measurements and len(y.shape) == 4:
                                 imgs = [y, x_init, x1, x]
@@ -785,7 +787,7 @@ def test(
     return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
 
 
-def train(*args, **kwargs):
+def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwargs):
     """
     Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
 
@@ -801,18 +803,20 @@ def train(*args, **kwargs):
     :return: Trained model.
     """
     trainer = Trainer(*args, **kwargs)
-    trained_model = trainer.train()
+    trained_model = trainer.train(
+        model=model, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
+    )
     return trained_model
 
 
 def train_normalizing_flow(
-        model,
-        dataloader,
-        epochs=10,
-        learning_rate=1e-3,
-        device="cpu",
-        jittering=1 / 255.0,
-        verbose=False,
+    model,
+    dataloader,
+    epochs=10,
+    learning_rate=1e-3,
+    device="cpu",
+    jittering=1 / 255.0,
+    verbose=False,
 ):
     r"""
     Trains a normalizing flow.
@@ -837,7 +841,7 @@ def train_normalizing_flow(
     for epoch in range(epochs):
         mean_loss = 0.0
         for i, (x, _) in enumerate(
-                progress_bar := tqdm(dataloader, disable=not verbose)
+            progress_bar := tqdm(dataloader, disable=not verbose)
         ):
             x = x.to(device)
             x = x + jittering * (2 * torch.rand_like(x) - 1)
