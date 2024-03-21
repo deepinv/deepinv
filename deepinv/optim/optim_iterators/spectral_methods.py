@@ -5,16 +5,16 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class SMIteration(OptimIterator):
     r"""
-    Iterator for Spectral Methods for Phase retrieval.
+    Iterator for Spectral Methods for :meth:`deepinv.physics.PhaseRetrieval`.
     
     Class for a single iteration of the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
     
     .. math::
         \begin{equation*}
-        M = \conj{A} diag(T(y)) A + \lambda I,
+        M = \conj{B} \text{diag}(T(y)) B + \lambda I,
         \end{equation*}
     
-    where :math:`A` is the forward matrix of the phase retrieval operator, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
+    where :math:`B` is the linear operator of the phase retrieval class, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
 
     The iteration is given by
 
