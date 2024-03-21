@@ -467,6 +467,7 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if last_batch:
+            logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # Plot images
 
@@ -503,6 +504,7 @@ class Trainer:
                     caption=caption,
                 )
                 log_dict_post_epoch[post_str + " samples"] = images
+                log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
     def train(self, model, train_dataloader, eval_dataloader=None):
