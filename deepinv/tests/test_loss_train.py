@@ -125,11 +125,17 @@ def test_optim_algo(name_algo, imsize, device):
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
-    N = 10
-    train_dataset = DummyCircles(samples=N, imsize=imsize)
-    test_dataset = DummyCircles(samples=N, imsize=imsize)
+    epochs = 1
+    losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+    optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
 
     physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+
+    N = 10
+
+    # 1. Check the training of the non-online measurements setup
+    train_dataset = DummyCircles(samples=N, imsize=imsize, physics=physics)
+    test_dataset = DummyCircles(samples=N, imsize=imsize, physics=physics)
 
     train_dataloader = DataLoader(
         train_dataset, batch_size=2, num_workers=1, shuffle=True
@@ -137,10 +143,6 @@ def test_optim_algo(name_algo, imsize, device):
     test_dataloader = DataLoader(
         test_dataset, batch_size=2, num_workers=1, shuffle=False
     )
-
-    epochs = 1
-    losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
-    optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
 
     trained_unfolded_model = train(
         model=model_unfolded,
@@ -154,6 +156,7 @@ def test_optim_algo(name_algo, imsize, device):
         save_path=str(CKPT_DIR),
         verbose=True,
         wandb_vis=False,
+        online_measurements=False,
     )
 
     results = feature_test(
@@ -166,7 +169,7 @@ def test_optim_algo(name_algo, imsize, device):
         wandb_vis=False,
     )
 
-    # Now check that training with online measurements works as well
+    # 2. Check that training with online measurements works as well
     train(
         model=model_unfolded,
         train_dataloader=train_dataloader,
@@ -198,7 +201,7 @@ def test_train_patchnr(imsize, dummy_dataset, device):
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
     # gray-valued
-    test_sample = next(iter(dataloader)).mean(1, keepdim=True)
+    test_sample = next(iter(dataloader))[0].mean(1, keepdim=True)
     patch_size = 3
     patch_dataset = PatchDataset(test_sample.to(device), patch_size=patch_size)
     patchnr_dataloader = DataLoader(

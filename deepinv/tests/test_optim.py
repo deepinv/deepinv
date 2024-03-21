@@ -310,7 +310,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
-    test_sample = next(iter(dataloader))
+    test_sample = next(iter(dataloader))[0]
 
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
@@ -344,7 +344,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))[0].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -411,7 +411,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
         )
-        test_sample = next(iter(dataloader)).to(device)
+        test_sample = next(iter(dataloader))[0].to(device)
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
@@ -484,7 +484,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))[0].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -522,7 +522,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 def test_dpir(imsize, dummy_dataset, device):
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))[0].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -724,7 +724,7 @@ def test_patch_prior(imsize, dummy_dataset, device):
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
     # gray-valued
-    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+    test_sample = next(iter(dataloader))[0].mean(1, keepdim=True).to(device)
 
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
