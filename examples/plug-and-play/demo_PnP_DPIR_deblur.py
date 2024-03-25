@@ -72,7 +72,7 @@ dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 p = dinv.physics.BlurFFT(
-    img_size=(n_channels, img_size, img_size),
+    image_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
