@@ -54,7 +54,7 @@ class GeneratorMixture(Generator):
     """
 
     def __init__(self, generators: List[Generator], probs: List[float]) -> None:
-        super().__init__(generators[0].params)
+        super().__init__(generators[0].shape)
         assert np.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
@@ -66,7 +66,7 @@ class GeneratorMixture(Generator):
         """
         if not kwargs:
             self.kwargs = kwargs
-        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
         self.generators[idx].step(*args, **kwargs)
