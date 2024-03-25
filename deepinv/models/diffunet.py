@@ -73,16 +73,16 @@ class DiffUNet(nn.Module):
         out_channels = 6 if out_channels == 3 else out_channels
         channel_mult = (1, 1, 2, 2, 4, 4)
 
-        image_size = 256
+        img_size = 256
         attention_ds = []
         for res in attention_resolutions.split(","):
-            attention_ds.append(image_size // int(res))
+            attention_ds.append(img_size // int(res))
         attention_resolutions = tuple(attention_ds)
 
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
 
-        self.image_size = image_size
+        self.img_size = img_size
         self.in_channels = in_channels
         self.model_channels = model_channels
         self.out_channels = out_channels

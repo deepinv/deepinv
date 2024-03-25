@@ -7,11 +7,12 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
-    filter_fft_2d
+    filter_fft_2d,
+    downsample,
 )
 
 
-def gaussian_filter(sigma=(1, 1), angle=0):
+def gaussian_blur(sigma=(1, 1), angle=0):
     r"""
     Gaussian blur filter.
 
@@ -85,10 +86,10 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
+        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -99,9 +100,10 @@ class Downsampling(LinearPhysics):
 
         Downsampling operator with a gaussian filter:
 
+        >>> from deepinv.physics import Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
-        >>> physics = Downsampling(img_size=((1, 1, 32, 32)), filter = "gaussian", factor = 2)
+        >>> physics = Downsampling(filter = "gaussian", img_size=((1, 1, 32, 32)), factor = 2)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the downsampled image
         tensor([[[[0.0146, 0.0241, 0.0146],
@@ -113,8 +115,8 @@ class Downsampling(LinearPhysics):
     def __init__(
         self,
         img_size,
+        filter=None,
         factor=2,
-        filter="gaussian",
         device="cpu",
         padding="circular",
         **kwargs,
@@ -124,40 +126,69 @@ class Downsampling(LinearPhysics):
         assert isinstance(factor, int), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
+        if isinstance(filter, torch.nn.Parameter):
+            self.filter = filter.requires_grad_(False).to(device)
         if isinstance(filter, torch.Tensor):
-            self.filter = filter.to(device)
+            self.filter = torch.nn.Parameter(self.filter, requires_grad=False).to(
+                device
+            )
         elif filter is None:
             self.filter = filter
         elif filter == "gaussian":
-            self.filter = (
-                gaussian_blur(sigma=(factor, factor)).requires_grad_(False).to(device)
-            )
+            self.filter = torch.nn.Parameter(
+                gaussian_blur(sigma=(factor, factor)), requires_grad=False
+            ).to(device)
         elif filter == "bilinear":
-            self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
+            self.filter = torch.nn.Parameter(
+                bilinear_filter(self.factor), requires_grad=False
+            ).to(device)
         elif filter == "bicubic":
-            self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
+            self.filter = torch.nn.Parameter(
+                bicubic_filter(self.factor), requires_grad=False
+            ).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
+            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
-            self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
-    def A(self, x):
+    def A(self, x, theta=None):
+        r"""
+        Applies the downsampling operator to the input image.
+
+        :param torch.Tensor x: input image.
+        :param None, torch.Tensor theta: Filter :math:`h` to be applied to the input image before downsampling.
+            If not ``None``, it uses this filter and stores it as the current filter.
+        """
+        if theta is not None:
+            self.filter = torch.nn.Parameter(torch.tensor(theta))
+
         if self.filter is not None:
-            x = conv(x, self.filter, padding=self.padding)
-        x = x[:, :, :: self.factor, :: self.factor]  # downsample
+            x = conv2d(x, self.filter, padding=self.padding)
+
+        x = downsample(x, self.factor)  # downsample
         return x
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, theta=None):
+        r"""
+        Adjoint operator of the downsampling operator.
+
+
+        :param torch.Tensor y: downsampled image.
+        :param None, torch.Tensor theta: Filter :math:`h` to be applied to the input image before downsampling.
+            If not ``None``, it uses this filter and stores it as the current filter.
+        """
+        if theta is not None:
+            self.filter = torch.nn.Parameter(torch.tensor(theta))
+
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose(x, self.filter, padding=self.padding)
+            x = conv_transpose2d(x, self.filter, padding=self.padding)
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):
@@ -292,7 +323,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
         :meth:`deepinv.physics.blur.gaussian_filter`.
-    :param tuple image_size: Input image size in the form (C, H, W).
+    :param tuple img_size: Input image size in the form (C, H, W).
     :param str device: cpu or cuda
 
     |sep|
@@ -306,7 +337,7 @@ class BlurFFT(DecomposablePhysics):
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
-        >>> physics = BlurFFT(filter=filter, image_size=(1, 1, 16, 16))
+        >>> physics = BlurFFT(filter=filter, img_size=(1, 1, 16, 16))
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
         tensor([[[[ 2.5000e-01,  2.5000e-01, -3.1177e-10],
@@ -315,18 +346,18 @@ class BlurFFT(DecomposablePhysics):
 
     """
 
-    def __init__(self, filter, image_size, device="cpu", **kwargs):
+    def __init__(self, filter, img_size, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.image_size = image_size
+        self.img_size = img_size
         self.device = device
         self.set_mask(filter)
 
     def set_mask(self, filter):
-        if self.image_size[0] > filter.shape[1]:
-            filter = filter.repeat(1, self.image_size[0], 1, 1)
+        if self.img_size[0] > filter.shape[1]:
+            filter = filter.repeat(1, self.img_size[0], 1, 1)
         self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
 
-        self.mask = filter_fft_2d(filter, self.image_size).to(self.device)
+        self.mask = filter_fft_2d(filter, self.img_size).to(self.device)
         self.angle = torch.angle(self.mask)
         self.angle = torch.exp(-1.0j * self.angle).to(self.device)
         self.mask = torch.abs(self.mask).unsqueeze(-1)
@@ -349,7 +380,7 @@ class BlurFFT(DecomposablePhysics):
 
     def U(self, x):
         return fft.irfft2(
-            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.image_size[-2:]
+            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.img_size[-2:]
         )
 
     def U_adjoint(self, x):
@@ -359,7 +390,7 @@ class BlurFFT(DecomposablePhysics):
 
     def V(self, x):
         return fft.irfft2(
-            torch.view_as_complex(x), norm="ortho", s=self.image_size[-2:]
+            torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:]
         )
 
 
@@ -367,7 +398,7 @@ class BlurFFT(DecomposablePhysics):
 if __name__ == "__main__":
     import deepinv as dinv
     w = torch.ones((1, 1, 2, 2)) / 4
-    physics = BlurFFT(filter=w, image_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
+    physics = BlurFFT(filter=w, img_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
 
     x = torch.zeros((1, 1, 16, 16))
     x[:, :, 8, 8] = 1
@@ -377,8 +408,6 @@ if __name__ == "__main__":
 
     y2 = physics(y, w2)
 
-    y3 = physics(y, w2, 1.)
+    y3 = physics(y, w2, 1.0)
 
     dinv.utils.plot([x, y, y2, y3])
-
-

@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 import warnings
 
-class Generator(nn.Module):
+class PhysicsGenerator(nn.Module):
     r"""
     Base class for parameter generation of physics.
 
@@ -14,7 +14,9 @@ class Generator(nn.Module):
 
     """
 
-    def __init__(self, shape: tuple, device='cpu', dtype=torch.float32, **kwargs) -> None:
+    def __init__(
+        self, shape: tuple, device="cpu", dtype=torch.float32, **kwargs
+    ) -> None:
         super().__init__()
         if type(shape) == int :
             self.shape = (1, shape, shape)
@@ -48,11 +50,17 @@ class Generator(nn.Module):
         """
         if not kwargs:
             self.kwargs = kwargs
+<<<<<<< HEAD
         
         return torch.zeros((batch_size, ) + self.shape)
         
+=======
+>>>>>>> 6fa6d74c7b4711deac69a477c8429c0f6daaab83
 
-class GeneratorMixture(Generator):
+        return torch.zeros(self.shape)
+
+
+class GeneratorMixture(PhysicsGenerator):
     r"""
     Base class for mixing multiple generators.
 
@@ -60,7 +68,7 @@ class GeneratorMixture(Generator):
     :param list[float] probs: the probability of each generator to be used at each step
     """
 
-    def __init__(self, generators: List[Generator], probs: List[float]) -> None:
+    def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
         super().__init__(generators[0].shape)
         assert np.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
@@ -73,8 +81,13 @@ class GeneratorMixture(Generator):
         """
         if not kwargs:
             self.kwargs = kwargs
+<<<<<<< HEAD
         #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = torch.rand(1).item() #np.random.uniform()
+=======
+        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        p = np.random.uniform()
+>>>>>>> 6fa6d74c7b4711deac69a477c8429c0f6daaab83
         idx = np.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(*args, **kwargs)
 
@@ -96,8 +109,8 @@ if __name__ == "__main__":
     # %%
     P = Physic()
     print(P.params)
-    g1 = Generator(P.params, l=1, n=2)
-    g2 = Generator(P.params, l=1, n=2)
+    g1 = PhysicsGenerator(P.params, l=1, n=2)
+    g2 = PhysicsGenerator(P.params, l=1, n=2)
     G = GeneratorMixture([g1, g2], [0.5, 0.5])
     G.step()
     print(P.params)

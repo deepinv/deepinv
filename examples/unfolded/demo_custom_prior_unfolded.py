@@ -70,7 +70,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_shape=(n_channels, img_size, img_size), fast=True, device=device
+    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LICP"
 n_images_max = (

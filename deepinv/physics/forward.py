@@ -80,7 +80,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         noise_model=lambda x: x,
         sensor_model=lambda x: x,
         max_iter=50,
-        tol=1e-3
+        tol=1e-3,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -167,7 +167,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (torch.Tensor) noisy measurements
 
         """
-
         return self.sensor(self.noise(self.A(x, theta), noise_level))
 
     def A(self, x, theta=None):
@@ -195,8 +194,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
         :param torch.Tensor x:  clean measurements
+        :param None, float noise_level: optional noise level parameter
         :return torch.Tensor: noisy measurements
-
+        
         """
         if noise_level is None:
             return self.noise_model(x)
@@ -307,7 +307,7 @@ class LinearPhysics(Physics):
 
         The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
-        
+
         >>> from deepinv.physics import LinearPhysics, adjoint_function
         >>> from deepinv.utils import cal_psnr
         >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
@@ -349,7 +349,7 @@ class LinearPhysics(Physics):
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
         :param torch.Tensor y: measurements.
-        :param None, torch.Tensor params: additional parameters for the adjoint operator.
+        :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
@@ -395,10 +395,16 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        A = lambda x, theta: TensorList(self.A(x, theta)).append(TensorList(other.A(x, theta)))
+        A = lambda x, theta: TensorList(self.A(x, theta)).append(
+            TensorList(other.A(x, theta))
+        )
 
         def A_adjoint(y, theta=None):
-            at1 = self.A_adjoint(y[:-1], theta) if len(y) > 2 else self.A_adjoint(y[0], theta)
+            at1 = (
+                self.A_adjoint(y[:-1], theta)
+                if len(y) > 2
+                else self.A_adjoint(y[0], theta)
+            )
             return at1 + other.A_adjoint(y[-1], theta)
 
         class noise(torch.nn.Module):
@@ -408,7 +414,9 @@ class LinearPhysics(Physics):
                 self.noise2 = noise2
 
             def forward(self, x, noise_level):
-                return TensorList(self.noise1(x[:-1], noise_level)).append(self.noise2(x[-1], noise_level))
+                return TensorList(self.noise1(x[:-1], noise_level)).append(
+                    self.noise2(x[-1], noise_level)
+                )
 
         class sensor(torch.nn.Module):
             def __init__(self, sensor1, sensor2):
@@ -569,7 +577,7 @@ class DecomposablePhysics(LinearPhysics):
     :Examples:
 
         Recreation of the Inpainting operator using the DecomposablePhysics class:
-            
+
         >>> from deepinv.physics import DecomposablePhysics
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> tensor_size = (1, 1, 3, 3)  # Input size

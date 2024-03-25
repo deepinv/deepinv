@@ -40,11 +40,11 @@ class Decolorize(dinv.physics.LinearPhysics):
         super().__init__(**kwargs)
         self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
-    def A(self, x):
+    def A(self, x, theta=None):  # theta is an optional parameter that is not used here
         y = x[:, 0, :, :] * 0.2989 + x[:, 1, :, :] * 0.5870 + x[:, 2, :, :] * 0.1140
         return y.unsqueeze(1)
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, theta=None):
         return torch.cat([y * 0.2989, y * 0.5870, y * 0.1140], dim=1)
 
 

@@ -19,7 +19,7 @@ OPERATORS = [
     "MRI",
     "pansharpen",
 ]
-NONLINEAR_OPERATORS = ["haze", "blind_deblur", "lidar"]
+NONLINEAR_OPERATORS = ["haze", "lidar"]
 
 NOISES = [
     "Gaussian",
@@ -44,16 +44,16 @@ def find_operator(name, device):
     norm = 1
     if name == "CS":
         m = 30
-        p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
+        p = dinv.physics.CompressedSensing(m=m, img_size=img_size, device=device)
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
-            m=20, fast=True, channelwise=True, img_shape=img_size, device=device
+            m=20, fast=True, channelwise=True, img_size=img_size, device=device
         )
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
         img_size = (2, 16, 8)
         p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
@@ -70,32 +70,32 @@ def find_operator(name, device):
         norm = 0.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device
+            m=20, fast=True, img_size=img_size, device=device
         )
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=m, fast=False, img_shape=img_size, device=device
+            m=m, fast=False, img_size=img_size, device=device
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "deblur":
         img_size = (3, 17, 19)
-        p = dinv.physics.Blur(dinv.physics.blur.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
         )
     elif name == "deblur_fft":
         img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
-            filter=dinv.physics.blur.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
             device=device,
         )
     elif name == "super_resolution":
         img_size = (1, 32, 32)
         factor = 2
         norm = 1 / factor**2
-        p = dinv.physics.Downsampling(img_size=img_size, factor=factor, device=device)
+        p = dinv.physics.Downsampling(filter=None, img_size=img_size, factor=factor, device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm
@@ -109,15 +109,7 @@ def find_nonlinear_operator(name, device):
     :param device: (torch.device) cpu or cuda
     :return: (deepinv.physics.Physics) forward operator.
     """
-    if name == "blind_deblur":
-        x = dinv.utils.TensorList(
-            [
-                torch.randn(1, 3, 16, 16, device=device),
-                torch.randn(1, 1, 3, 3, device=device),
-            ]
-        )
-        p = dinv.physics.BlindBlur(kernel_size=3)
-    elif name == "haze":
+    if name == "haze":
         x = dinv.utils.TensorList(
             [
                 torch.randn(1, 1, 16, 16, device=device),
@@ -227,18 +219,14 @@ def test_MRI(device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    physics = dinv.physics.MRI(mask=None, device=device, acceleration_factor=4)
+
+    generator = dinv.physics.generator.AccelerationMaskGenerator((320, 320), 4, device=device)
+    mask = generator.step()
+    physics = dinv.physics.MRI(mask=mask, device=device, acceleration_factor=4)
     x = torch.randn((2, 320, 320), device=device).unsqueeze(0)
     x2 = physics.A_adjoint(physics.A(x))
     assert x2.shape == x.shape
 
-    physics = dinv.physics.MRI(mask=None, device=device, acceleration_factor=8, seed=0)
-    y1 = physics.A(x)
-    physics.reset()
-    y2 = physics.A(x)
-    if y1.shape == y2.shape:
-        error = (y1.abs() - y2.abs()).flatten().mean().abs()
-        assert error > 0.0
 
 
 def choose_noise(noise_type):
@@ -251,9 +239,7 @@ def choose_noise(noise_type):
     elif noise_type == "Gaussian":
         noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "UniformGaussian":
-        noise_model = dinv.physics.UniformGaussianNoise(
-            sigma=sigma
-        )  # This is equivalent to GaussianNoise when sigma is fixed
+        noise_model = dinv.physics.UniformGaussianNoise()
     elif noise_type == "Uniform":
         noise_model = dinv.physics.UniformNoise(a=gain)
     elif noise_type == "Poisson":
@@ -273,20 +259,15 @@ def test_noise(device, noise_type):
     r"""
     Tests noise models.
     """
-    physics = dinv.physics.DecomposablePhysics()
+    physics = dinv.physics.Denoising()
     physics.noise_model = choose_noise(noise_type)
-    x = torch.ones((1, 12, 7), device=device).unsqueeze(0)
+    x = torch.ones((1, 3, 3), device=device).unsqueeze(0)
 
     y1 = physics(
         x
     )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
     assert y1.shape == x.shape
 
-    if noise_type == "UniformGaussian":
-        physics.reset()
-        y2 = physics(x)
-        error = (y1 - y2).flatten().abs().sum()
-        assert error > 0.0
 
 
 def test_noise_domain(device):
@@ -301,7 +282,7 @@ def test_noise_domain(device):
     mask[1, 1, 1] = 0
     mask[2, 2, 2] = 0
 
-    physics = dinv.physics.Inpainting(tensor_size=x.shape, mask=mask, device=device)
+    physics = dinv.physics.Inpainting(img_size=x.shape, mask=mask, device=device)
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
@@ -357,19 +338,13 @@ def test_reset_noise(device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is > 0
     """
-    physics = dinv.physics.DecomposablePhysics()
-    physics.noise_model = dinv.physics.UniformGaussianNoise(
-        sigma=None
-    )  # Should be 20/255 (to check)
-    x = torch.ones((1, 12, 7), device=device).unsqueeze(0)
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(.1)  # Should be 20/255 (to check)
+    x = torch.ones((1, 2, 3), device=device).unsqueeze(0)
+    y1 = physics(x, noise_level=.2)
+    y1 = physics(x, None, torch.ones(1, device=device)*.2)
 
-    y1 = physics(
-        x
-    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
-    physics.reset()
-    y2 = physics(x)
-    error = (y1 - y2).flatten().abs().sum()
-    assert error > 0.0
+    assert physics.noise_model.sigma == .2
 
 
 def test_tomography(device):

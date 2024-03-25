@@ -24,15 +24,12 @@ class Haze(Physics):
 
     """
 
-    def __init__(self, params=torch.nn.Parameter(torch.Tensor([0.1, 0])), **kwargs):
+    def __init__(self, beta=0.1, offset=0, **kwargs):
         super().__init__(**kwargs)
-        if isinstance(params, torch.nn.Parameter):
-            self.params = params.requires_grad_(False).to(device)
-        if isinstance(params, torch.Tensor):
-            self.params = torch.nn.Parameter(params, requires_grad=False).to(device)    
-        
+        self.beta = beta
+        self.offset = offset
 
-    def A(self, x, **kwargs):
+    def A(self, x, theta=None):
         r"""
         :param list, tuple x:  The input x should be a tuple/list such that x[0] = image torch.tensor :math:`I`,
          x[1] = depth torch.tensor :math:`d`, x[2] = scalar or torch.tensor of one element :math:`a`.
@@ -42,11 +39,8 @@ class Haze(Physics):
         im = x[0]
         d = x[1]
         A = x[2]
-        
-        beta =  self.params[0]
-        offset = self.params[1] 
-        
-        t = torch.exp(-beta * (d + offset))
+
+        t = torch.exp(-self.beta * (d + self.offset))
         y = t * im + (1 - t) * A
         return y
 
