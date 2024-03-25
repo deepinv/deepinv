@@ -152,7 +152,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     >>> filter = torch.randn(1, 1, 31, 31)
     >>> physic = dinv.physics.Blur(filter=filter)
-    >>> diffraction_blur_generator = DiffractionBlurGenerator(physic.params)
+    >>> diffraction_blur_generator = DiffractionBlurGenerator(physics.params)
     >>> diffraction_blur_generator.step()
     >>> print(physic.params.shape)
     >>> dinv.utils.plot(physic.params)

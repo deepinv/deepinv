@@ -1,14 +1,6 @@
-from torchvision.transforms.functional import rotate
-import torchvision
 import torch
 from torch import Tensor
-from deepinv.utils import TensorList
-from deepinv.physics.functional import (
-    conv2d,
-    conv_transpose2d,
-    multiplier, 
-    multiplier_adjoint
-)
+from deepinv.physics.functional import conv2d, conv_transpose2d, multiplier, multiplier_adjoint
 
 def product_convolution(x: Tensor, w: Tensor, h: Tensor) -> Tensor:
     r"""
@@ -31,7 +23,7 @@ def product_convolution(x: Tensor, w: Tensor, h: Tensor) -> Tensor:
     K = w.shape[0]
     result = torch.zeros_like(x)
     for k in range(K):
-        xk =  multiplier(x, w[k])
+        xk = multiplier(x, w[k])
         result += conv2d(xk, h[k])
         
     return result
@@ -53,3 +45,22 @@ def product_convolution_adjoint(x: Tensor, w: Tensor, h: Tensor) -> Tensor:
         result += multiplier_adjoint(xk, w[k])
     
     return result
+
+
+if __name__ == "main":
+    import deepinv as dinv
+    import torch
+    from deepinv.utils.plotting import plot
+    from deepinv.utils.demo import load_url_image, get_image_url
+    from deepinv.physics.generator.blur import DiffractionBlurGenerator
+    
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url, grayscale=False).to(device)
+    x = torch.tensor(x, device=device, dtype=torch.float)
+    plot(x)
+    
+    
+    
+    

@@ -3,14 +3,13 @@ import torchvision
 import torch
 import numpy as np
 import torch.fft as fft
+from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
-    conv2d,
+    convolution,
     conv_transpose2d,
     filter_fft_2d,
-    downsample,
-    product_convolution,
-    product_convolution_adjoint
+    downsample
 )
 
 
@@ -274,10 +273,6 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.padding = padding
         self.device = device
-        if isinstance(filter, torch.nn.Parameter):
-            self.filter = filter.requires_grad_(False).to(device)
-        elif isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
 
     def A(self, x, theta=None):
         r"""
@@ -289,7 +284,7 @@ class Blur(LinearPhysics):
             the provided filter is stored as the current filter.
         """
         if theta is not None:
-            self.filter = torch.nn.Parameter(theta)
+            self.filter = theta
         return conv2d(x, self.filter, self.padding)
 
     def A_adjoint(self, y, theta=None):
@@ -394,9 +389,7 @@ class BlurFFT(DecomposablePhysics):
         return fft.irfft2(
             torch.view_as_complex(x), norm="ortho", s=self.image_size[-2:]
         )
-
-
-<<<<<<< HEAD
+    
 class SpaceVaryingBlur(LinearPhysics):
     """
 
@@ -425,30 +418,30 @@ class SpaceVaryingBlur(LinearPhysics):
         self.device = device
         if self.method == 'product_convolution':
             if params is not None:
-                self.w = params[0]
-                self.h = params[1]
+                if 'w' in params:
+                    self.w = params['w']
+                if 'h' in params:
+                    self.h = params['h']
             
-    def A(self, x, **kwargs):
+    def A(self, x: Tensor, params=None) -> Tensor:
         if self.method == 'product_convolution':
-            if w is not None:
-                self.w = w
-            if h is not None:
-                self.h = h
+            if params is not None:
+                if 'w' in params:
+                    self.w = params['w']
+                if 'h' in params:
+                    self.h = params['h']
                 
             return product_convolution(x, self.w, self.h)
 
-    def A_adjoint(self, w=None, h=None):
+    def A_adjoint(self, y: Tensor, params=None) -> Tensor:
         if self.method == 'product_convolution':
-            if w is not None:
-                self.w = w
-            if h is not None:
-                self.h = h
+            if params is not None:
+                if 'w' in params:
+                    self.w = params['w']
+                if 'h' in params:
+                    self.h = params['h']
                 
         return product_convolution_adjoint(y, self.w, self.h)
-        
-            
-
-
 
 # # test code
 # if __name__ == "__main__":
@@ -498,24 +491,3 @@ class SpaceVaryingBlur(LinearPhysics):
 #
 #     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
 #     plt.show()
-=======
-
-if __name__ == "__main__":
-    import deepinv as dinv
-    w = torch.ones((1, 1, 2, 2)) / 4
-    physics = BlurFFT(filter=w, image_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
-
-    x = torch.zeros((1, 1, 16, 16))
-    x[:, :, 8, 8] = 1
-    y = physics(x)
-
-    w2 = torch.ones((1, 1, 3, 3)) / 9
-
-    y2 = physics(y, w2)
-
-    y3 = physics(y, w2, 1.)
-
-    dinv.utils.plot([x, y, y2, y3])
-
-
->>>>>>> 4e3e40f93e3ca27c3f0da3767ca8b89143f5f49b
