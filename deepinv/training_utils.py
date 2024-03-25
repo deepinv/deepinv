@@ -307,13 +307,13 @@ class Trainer:
 
         physics_generator = self.physics_generator[g]
         if physics_generator is not None:
-            theta = physics_generator.step()
+            theta = physics_generator.step(x.size(0))
         else:
             theta = None
 
         noise_generator = self.noise_generator[g]
         if noise_generator is not None:
-            noise_level = noise_generator.step()
+            noise_level = noise_generator.step(x.size(0))
         else:
             noise_level = None
 
