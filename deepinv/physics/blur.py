@@ -7,8 +7,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
-    filter_fft_2d,
-    downsample,
+    filter_fft_2d
 )
 
 
@@ -86,10 +85,10 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
-    :param tuple[int] image_size: size of the input image
+    :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -100,10 +99,9 @@ class Downsampling(LinearPhysics):
 
         Downsampling operator with a gaussian filter:
 
-        >>> from deepinv.physics import Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
-        >>> physics = Downsampling(filter = "gaussian", image_size=((1, 1, 32, 32)), factor = 2)
+        >>> physics = Downsampling(img_size=((1, 1, 32, 32)), filter = "gaussian", factor = 2)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the downsampled image
         tensor([[[[0.0146, 0.0241, 0.0146],
@@ -114,9 +112,9 @@ class Downsampling(LinearPhysics):
 
     def __init__(
         self,
-        filter,
-        image_size,
+        img_size,
         factor=2,
+        filter="gaussian",
         device="cpu",
         padding="circular",
         **kwargs,
@@ -124,71 +122,42 @@ class Downsampling(LinearPhysics):
         super().__init__(**kwargs)
         self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
-        self.imsize = image_size
+        self.imsize = img_size
         self.padding = padding
-        if isinstance(filter, torch.nn.Parameter):
-            self.filter = filter.requires_grad_(False).to(device)
         if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(self.filter, requires_grad=False).to(
-                device
-            )
+            self.filter = filter.to(device)
         elif filter is None:
             self.filter = filter
         elif filter == "gaussian":
-            self.filter = torch.nn.Parameter(
-                gaussian_filter(sigma=(factor, factor)), requires_grad=False
-            ).to(device)
+            self.filter = (
+                gaussian_blur(sigma=(factor, factor)).requires_grad_(False).to(device)
+            )
         elif filter == "bilinear":
-            self.filter = torch.nn.Parameter(
-                bilinear_filter(self.factor), requires_grad=False
-            ).to(device)
+            self.filter = bilinear_filter(self.factor).requires_grad_(False).to(device)
         elif filter == "bicubic":
-            self.filter = torch.nn.Parameter(
-                bicubic_filter(self.factor), requires_grad=False
-            ).to(device)
+            self.filter = bicubic_filter(self.factor).requires_grad_(False).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, image_size, real_fft=False).to(device)
+            self.Fh = filter_fft(self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
+            self.filter = torch.nn.Parameter(self.filter, requires_grad=False)
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
-    def A(self, x, theta=None):
-        r"""
-        Applies the downsampling operator to the input image.
-
-        :param torch.Tensor x: input image.
-        :param None, torch.Tensor theta: Filter :math:`h` to be applied to the input image before downsampling.
-            If not ``None``, it uses this filter and stores it as the current filter.
-        """
-        if theta is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(theta))
-
+    def A(self, x):
         if self.filter is not None:
-            x = conv2d(x, self.filter, padding=self.padding)
-
-        x = downsample(x, self.factor)  # downsample
+            x = conv(x, self.filter, padding=self.padding)
+        x = x[:, :, :: self.factor, :: self.factor]  # downsample
         return x
 
-    def A_adjoint(self, y, theta=None):
-        r"""
-        Adjoint operator of the downsampling operator.
-
-
-        :param torch.Tensor y: downsampled image.
-        :param None, torch.Tensor theta: Filter :math:`h` to be applied to the input image before downsampling.
-            If not ``None``, it uses this filter and stores it as the current filter.
-        """
-        if theta is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(theta))
+    def A_adjoint(self, y):
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
-        x = downsample(x, self.factor)
-        x = y  # upsample
+        x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(x, self.filter, padding=self.padding)
+            x = conv_transpose(x, self.filter, padding=self.padding)
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):

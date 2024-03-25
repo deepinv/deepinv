@@ -102,7 +102,7 @@ class MotionBlurGenerator(PSFGenerator):
             :, torch.arange(self.n_steps // (2 * torch.pi)).type(torch.int)
         ]
 
-    def step(self, sigma: float = None, l: float = None):
+    def step(self, batch_size: int = 1, sigma: float = None, l: float = None):
         r"""
         Generate a random motion blur PSF with parameters :math: '\sigma' and :math: `l`
 
@@ -112,6 +112,12 @@ class MotionBlurGenerator(PSFGenerator):
         :return: the generated PSF of shape `(batch_size, 1, kernel_size, kernel_size)`
         :rtype: torch.Tensor
         """
+        ## add batch size to the shape. We can have a different batch size at each call of step()
+        ## We enforce only one channel as the underlying generator code only works for one channel at the time
+        if self.shape[0] != 1:
+            self.shape = (batch_size, 1, self.shape[-2], self.shape[-1])
+        else:
+            self.shape = (batch_size, self.shape[-3], self.shape[-2], self.shape[-1])
 
         f_x = self.f_matern(sigma, l)[..., None]
         f_y = self.f_matern(sigma, l)[..., None]
@@ -233,7 +239,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
-    def step(self):
+    def step(self, batch_size: int = 1):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
 
@@ -241,6 +247,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         :rtype: torch.Tensor
         """
         self.__update__()
+        
+        ## add batch size to the shape. We can have a different batch size at each call of step()
+        self.shape = (batch_size, self.shape[-3], self.shape[-2], self.shape[-1])
+        
 
         coeff = self.generate_coeff()
 

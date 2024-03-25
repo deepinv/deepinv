@@ -231,7 +231,16 @@ def filter_fft_2d(filter, img_size, real_fft=True):
 
 def conv3d(x: Tensor, filter: Tensor, padding: str = "valid"):
     r"""
-    A helper function to perform 3D convolution.
+    A helper function to perform 3D convolution of images :math:`x` and `filter`.  The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed3d()`
+
+    :param torch.Tensor x: Image of size `(B, C, D, W, H)`.
+    :param torch.Tensor filter: Filter of size `(b, c, d, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
+
+    If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
+
+    :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
+
+    :return torch.Tensor : the output
     """
     pass
 
