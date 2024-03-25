@@ -71,12 +71,14 @@ class MotionBlurGenerator(PSFGenerator):
     def __init__(
         self,
         shape: tuple,
+        device: str = 'cpu',
+        dtype: type = torch.float32,
         l: float = 0.3,
         sigma: float = 0.25,
         n_steps: int = 1000,
     ) -> None:
         kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
-        super().__init__(shape, **kwargs)
+        super().__init__(shape, device=device, dtype=dtype, **kwargs)
 
     def matern_kernel(self, diff, sigma: float = None, l: float = None):
         if sigma is None:
@@ -167,13 +169,15 @@ class DiffractionBlurGenerator(PSFGenerator):
     def __init__(
         self,
         shape: tuple,
+        device: str = 'cpu',
+        dtype: type = torch.float32,
         list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
         fc: float = 0.2,
         pupil_size: Tuple[int] = (256, 256),
     ):
 
         kwargs = {"list_param": list_param, "fc": fc, "pupil_size": pupil_size}
-        super().__init__(shape, **kwargs)
+        super().__init__(shape, device=device, dtype=dtype, **kwargs)
 
         self.list_param = list_param  # list of parameters to provide
 
