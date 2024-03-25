@@ -70,7 +70,7 @@ plot(
 
 sigma = 0.01
 physics = Inpainting(
-    test_img[0].shape, mask=0.7, device=device, noise_model=GaussianNoise(sigma)
+    image_size=test_img[0].shape, mask=0.7, device=device, noise_model=GaussianNoise(sigma)
 )
 observation = physics(test_img)
 

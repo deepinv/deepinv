@@ -88,7 +88,7 @@ class UniformGaussianNoise(torch.nn.Module):
             self.sigma_max = noise_level[1]
 
         sigma = (
-            torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2))
+            torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2), device=x.device)
             * (self.sigma_max - self.sigma_min)
             + self.sigma_min
         )
