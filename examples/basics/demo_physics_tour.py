@@ -75,7 +75,7 @@ plot([x, y], titles=["signal", "measurement"])
 # Here we take 2048 measurements of an image of size 64x64, which corresponds to a compression ratio of 2.
 
 physics = dinv.physics.CompressedSensing(
-    m=2048, fast=False, channelwise=True, img_shape=img_size, device=device
+    m=2048, fast=False, channelwise=True, image_size=img_size, device=device
 )
 
 y = physics(x)
@@ -157,7 +157,7 @@ plot([x, y], titles=["signal", "measurement"])
 # The class :class:`deepinv.physics.Pansharpen` obtains measurements which consist of
 # a high-resolution grayscale image and a low-resolution RGB image.
 
-physics = dinv.physics.Pansharpen(img_size=img_size, device=device)
+physics = dinv.physics.Pansharpen(image_size=img_size, device=device)
 
 y = physics(x)
 
@@ -172,7 +172,7 @@ plot([x, y[0], y[1]], titles=["signal", "low res rgb", "high res gray"])
 # When ``fast=True``, the patterns are generated using a fast Hadamard transform.
 
 physics = dinv.physics.SinglePixelCamera(
-    m=256, fast=True, img_shape=img_size, device=device
+    m=256, fast=True, image_size=img_size, device=device
 )
 
 y = physics(x)
@@ -205,7 +205,7 @@ plot([x, y], titles=["signal", "measurement"])
 # The downsampling class :class:`deepinv.physics.Downsampling` is associated with a downsampling operator.
 
 
-physics = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device)
+physics = dinv.physics.Downsampling(image_size=img_size, factor=2, device=device)
 
 
 y = physics(x)

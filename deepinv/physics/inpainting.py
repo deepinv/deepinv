@@ -64,7 +64,7 @@ class Inpainting(DecomposablePhysics):
             self.mask = mask
         if type(mask) == float:
             print(
-                "For demo puprposes onlu. Will create random mask. In training, use a Generator instead"
+                "For demo puprposes only. Will create random mask. In training, use a Generator instead"
             )
             mask_rate = mask
             self.mask = torch.ones(image_size, device=device)
