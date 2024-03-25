@@ -56,7 +56,7 @@ class SinglePixelCamera(DecomposablePhysics):
     in a similar fashion to :meth:`torch.nn.Module`.
 
     :param int m: number of single pixel measurements per acquisition (m).
-    :param tuple image_size: shape (C, H, W) of images.
+    :param tuple img_size: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
     :param str device: Device to store the forward matrix.
 
@@ -69,7 +69,7 @@ class SinglePixelCamera(DecomposablePhysics):
         >>> from deepinv.physics import SinglePixelCamera
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
-        >>> physics = SinglePixelCamera(m=16, image_size=(1, 32, 32), fast=True)
+        >>> physics = SinglePixelCamera(m=16, img_size=(1, 32, 32), fast=True)
         >>> torch.sum(physics.mask).item() # Number of measurements
         48.0
         >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
@@ -80,16 +80,16 @@ class SinglePixelCamera(DecomposablePhysics):
     """
 
     def __init__(
-        self, m, image_size, fast=True, device="cpu", dtype=torch.float32, **kwargs
+        self, m, img_size, fast=True, device="cpu", dtype=torch.float32, **kwargs
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
-        self.image_size = image_size
+        self.img_size = img_size
         self.fast = fast
         self.device = device
 
         if self.fast:
-            C, H, W = image_size
+            C, H, W = img_size
             mi = min(int(np.sqrt(m)), H)
             mj = min(m - mi, W)
 
@@ -99,7 +99,7 @@ class SinglePixelCamera(DecomposablePhysics):
             assert H == 1 << int(np.log2(H)), "image height must be a power of 2"
             assert W == 1 << int(np.log2(W)), "image width must be a power of 2"
 
-            mask = torch.zeros(image_size).unsqueeze(0)
+            mask = torch.zeros(img_size).unsqueeze(0)
             for i in range(len(revi)):
                 for j in range(len(revj)):
                     mask[0, :, revi[i], revj[j]] = 1
@@ -108,7 +108,7 @@ class SinglePixelCamera(DecomposablePhysics):
             self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
         else:
-            n = int(np.prod(image_size[1:]))
+            n = int(np.prod(img_size[1:]))
             A = torch.ones((m, n), device=device)
             A[torch.randn_like(A) > 0.5] = -1.0
             A /= np.sqrt(m)  # normalize
@@ -126,7 +126,7 @@ class SinglePixelCamera(DecomposablePhysics):
         if self.fast:
             y = hadamard_2d(x)
         else:
-            N, C = x.shape[0], self.image_size[0]
+            N, C = x.shape[0], self.img_size[0]
             x = x.reshape(N, C, -1)
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y
@@ -136,7 +136,7 @@ class SinglePixelCamera(DecomposablePhysics):
             x = hadamard_2d(y)
         else:
             N = y.shape[0]
-            C, H, W = self.image_size[0], self.image_size[1], self.image_size[2]
+            C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
             x = torch.einsum("ijk, km->ijm", y, self.vh)
             x = x.reshape(N, C, H, W)
         return x

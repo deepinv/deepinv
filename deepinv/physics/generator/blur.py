@@ -149,7 +149,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     :Examples:
 
-    >>> generator = DiffractionBlurGenerator((1, 16, 16))
+    >>> generator = DiffractionBlurGenerator((16, 16))
     >>> filter = generator.step()
     >>> dinv.utils.plot(filter)
     >>> print(filter.shape)
@@ -462,11 +462,10 @@ def bump_function(x, a=1.0, b=1.0):
 # %%
 if __name__ == "__main__":
     import deepinv as dinv
-    from deepinv.physics import Blur
 
-    generator = DiffractionBlurGenerator((1, 16, 16))
+    generator = DiffractionBlurGenerator((16, 16))
     blur = generator.step()
-    print(generator.shape)
+    print(blur.shape)
     dinv.utils.plot(blur)
 
 # %%

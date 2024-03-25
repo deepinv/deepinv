@@ -44,16 +44,16 @@ def find_operator(name, device):
     norm = 1
     if name == "CS":
         m = 30
-        p = dinv.physics.CompressedSensing(m=m, image_size=img_size, device=device)
+        p = dinv.physics.CompressedSensing(m=m, img_size=img_size, device=device)
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
-            m=20, fast=True, channelwise=True, image_size=img_size, device=device
+            m=20, fast=True, channelwise=True, img_size=img_size, device=device
         )
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(image_size=img_size, mask=0.5, device=device)
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
         img_size = (2, 16, 8)
         p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
@@ -66,16 +66,16 @@ def find_operator(name, device):
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name == "pansharpen":
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(image_size=img_size, device=device)
+        p = dinv.physics.Pansharpen(img_size=img_size, device=device)
         norm = 0.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, image_size=img_size, device=device
+            m=20, fast=True, img_size=img_size, device=device
         )
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=m, fast=False, image_size=img_size, device=device
+            m=m, fast=False, img_size=img_size, device=device
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -87,7 +87,7 @@ def find_operator(name, device):
     elif name == "deblur_fft":
         img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
-            image_size=img_size,
+            img_size=img_size,
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
             device=device,
         )
@@ -95,7 +95,7 @@ def find_operator(name, device):
         img_size = (1, 32, 32)
         factor = 2
         norm = 1 / factor**2
-        p = dinv.physics.Downsampling(filter=None, image_size=img_size, factor=factor, device=device)
+        p = dinv.physics.Downsampling(filter=None, img_size=img_size, factor=factor, device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm
@@ -282,7 +282,7 @@ def test_noise_domain(device):
     mask[1, 1, 1] = 0
     mask[2, 2, 2] = 0
 
-    physics = dinv.physics.Inpainting(image_size=x.shape, mask=mask, device=device)
+    physics = dinv.physics.Inpainting(img_size=x.shape, mask=mask, device=device)
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
@@ -304,13 +304,13 @@ def test_blur(device):
     h = torch.ones((1, 1, 5, 5)) / 25.0
 
     physics_blur = dinv.physics.Blur(
-        image_size=(1, x.shape[-2], x.shape[-1]),
+        img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
     )
 
     physics_blurfft = dinv.physics.BlurFFT(
-        image_size=(1, x.shape[-2], x.shape[-1]),
+        img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
     )

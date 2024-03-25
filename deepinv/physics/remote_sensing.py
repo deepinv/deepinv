@@ -20,7 +20,7 @@ class Pansharpen(LinearPhysics):
     It is possible to assign a different noise model to the RGB and grayscale images.
 
 
-    :param tuple[int] image_size: size of the input image.
+    :param tuple[int] img_size: size of the input image.
     :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
@@ -40,7 +40,7 @@ class Pansharpen(LinearPhysics):
         >>> from deepinv.physics import Pansharpen
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 image
-        >>> physics = Pansharpen(image_size=x.shape[1:], device=x.device)
+        >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
         >>> physics(x)[0][:, :, 0, :3] # Display first pixels of RGB image
         tensor([[[-0.0009, -0.0251, -0.0411],
                  [-0.1576, -0.1098, -0.0340],
@@ -52,7 +52,7 @@ class Pansharpen(LinearPhysics):
 
     def __init__(
         self,
-        image_size,
+        img_size,
         filter = None,
         factor=4,
         noise_color=GaussianNoise(sigma=0.0),
@@ -64,7 +64,7 @@ class Pansharpen(LinearPhysics):
         super().__init__(**kwargs)
 
         self.downsampling = Downsampling(
-            image_size=image_size,
+            img_size=img_size,
             factor=factor,
             filter=filter,
             device=device,
@@ -109,8 +109,8 @@ class Pansharpen(LinearPhysics):
 #     sigma_noise = 0.1
 #     kernel = torch.zeros((1, 1, 15, 15), device=device)
 #     kernel[:, :, 7, :] = 1 / 15
-#     # physics = deepinv.physics.BlurFFT(image_size=x.shape[1:], filter=kernel, device=device)
-#     physics = Pansharpen(factor=8, image_size=x.shape[1:], device=device)
+#     # physics = deepinv.physics.BlurFFT(img_size=x.shape[1:], filter=kernel, device=device)
+#     physics = Pansharpen(factor=8, img_size=x.shape[1:], device=device)
 #
 #     y = physics(x)
 #
