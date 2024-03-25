@@ -10,12 +10,12 @@ from deepinv.physics.functional import histogramdd
 class PSFGenerator(Generator):
     def __init__(
         self,
-        params: torch.Tensor,
+        shape: tuple,
         **kwargs,
     ) -> None:
-        super().__init__(params, **kwargs)
+        super().__init__(shape, **kwargs)
 
-        kernel_size = (self.params.size(-2), self.params.size(-1))
+        kernel_size = (self.shape[-2], self.shape[-1])
 
         self.kernel_size = kernel_size
         # The default Dirac mass (identity)
@@ -70,13 +70,13 @@ class MotionBlurGenerator(PSFGenerator):
 
     def __init__(
         self,
-        params: torch.Tensor,
+        shape: tuple,
         l: float = 0.3,
         sigma: float = 0.25,
         n_steps: int = 1000,
     ) -> None:
         kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
-        super().__init__(params, **kwargs)
+        super().__init__(shape, **kwargs)
 
     def matern_kernel(self, diff, sigma: float = None, l: float = None):
         if sigma is None:
@@ -89,7 +89,7 @@ class MotionBlurGenerator(PSFGenerator):
     # @torch.compile
     def f_matern(self, sigma: float = None, l: float = None):
 
-        batch_size = self.params.size(0)
+        batch_size = self.shape[0]
         vec = torch.randn(batch_size, self.n_steps)
         time = torch.linspace(-torch.pi, torch.pi, self.n_steps)[None]
 
@@ -166,14 +166,14 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     def __init__(
         self,
-        params: torch.Tensor,
+        shape: tuple,
         list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
         fc: float = 0.2,
         pupil_size: Tuple[int] = (256, 256),
     ):
 
         kwargs = {"list_param": list_param, "fc": fc, "pupil_size": pupil_size}
-        super().__init__(params, **kwargs)
+        super().__init__(shape, **kwargs)
 
         self.list_param = list_param  # list of parameters to provide
 
@@ -225,7 +225,7 @@ class DiffractionBlurGenerator(PSFGenerator):
             )  # defining the k-th Zernike polynomial
 
     def __update__(self):
-        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
@@ -254,10 +254,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         ].unsqueeze(1)
         psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
 
-        return psf.expand(-1, self.params.size(1), -1, -1)
+        return psf.expand(-1, self.shape[1], -1, -1)
 
     def generate_coeff(self):
-        batch_size = self.params.size(0)
+        batch_size = self.shape[0]
         coeff = torch.rand((batch_size, len(self.list_param)), **self.factory_kwargs)
         coeff = (coeff - 0.5) * 0.3
         return coeff
