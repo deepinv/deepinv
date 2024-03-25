@@ -42,8 +42,8 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(42)
 
-# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device = torch.device("cuda:0")
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+# device = torch.device("cuda:0")
 dtype = torch.float32
 factory_kwargs = {"device": device, "dtype": dtype}
 # %%
@@ -103,11 +103,11 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 }
 trainable_params = [
     "g_param",
+    "stepsize"
 ]  # define which parameters from 'params_algo' are trainable
 
 data_fidelity = L2()
 prior = PnP(denoiser=DRUNet(train=True).to(device))
-
 
 # Define the unfolded trainable model.
 
@@ -139,20 +139,19 @@ kernel_size = 15
 kernel_init = torch.zeros((batch_size, 1, kernel_size, kernel_size), **factory_kwargs)
 noise_model = GaussianNoise(0.03)
 physic = Blur(
-    params=kernel_init,
+    filter=kernel_init,
     padding="valid",
     device=device,
     noise_model=noise_model,
     max_iter=40,
     tol=1e-5,
 )
-motion_gen = MotionBlurGenerator(physic.params)
-motion_gen.step()
-diffraction_gen = DiffractionBlurGenerator(physic.params)
+motion_gen = MotionBlurGenerator(shape=(batch_size, 3, kernel_size, kernel_size), device=device)
+diffraction_gen = DiffractionBlurGenerator(shape=(batch_size, 3, kernel_size, kernel_size), device=device)
 generator = GeneratorMixture([motion_gen, diffraction_gen], probs=[0.5, 0.5])
 generator.step()
 
-dinv.utils.plot(physic.params)
+# dinv.utils.plot(physic.params)
 x = next(iter(train_dataloader))[0].to(**factory_kwargs)
 y = physic(x)
 x_hat = model(y, physic)
@@ -164,7 +163,8 @@ with torch.no_grad():
     est = tikhonov(y, physic)
     dinv.utils.plot(est["est"][0])
 # %% Optimization parameters
-num_epochs = 1000
+# num_epochs = 1000
+num_epochs = 10
 learning_rate = 1e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -182,9 +182,9 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         x = x.to(device)
         # Random generate a PSF for training
-        generator.step()
+        kernel = generator.step()
         # Measuring the blurry images
-        y = physic(x)
+        y = physic(x, theta = kernel)
         # Compute the estimation
         x_hat = model(y, physic)
 
