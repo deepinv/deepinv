@@ -29,7 +29,7 @@ class Tomography(LinearPhysics):
 
     :param int, torch.tensor angles: These are the tomography angles. If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
         If the type is ``torch.tensor``, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).
-    :param int image_width: width/height of the square image input.
+    :param int img_width: width/height of the square image input.
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param str device: gpu or cpu.
@@ -44,7 +44,7 @@ class Tomography(LinearPhysics):
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
         >>> angles = torch.linspace(0, 45, steps=3)
-        >>> physics = Tomography(angles=angles, image_width=4, circle=True)
+        >>> physics = Tomography(angles=angles, img_width=4, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.2640,  1.6995],
                   [-0.4860,  0.2674,  0.9971],
@@ -69,7 +69,7 @@ class Tomography(LinearPhysics):
     def __init__(
         self,
         angles,
-        image_width,
+        img_width,
         circle=False,
         device=torch.device("cpu"),
         dtype=torch.float,
@@ -86,10 +86,10 @@ class Tomography(LinearPhysics):
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
         self.radon = Radon(
-            image_width, theta, circle=circle, device=device, dtype=dtype
+            img_width, theta, circle=circle, device=device, dtype=dtype
         ).to(device)
         self.iradon = IRadon(
-            image_width, theta, circle=circle, device=device, dtype=dtype
+            img_width, theta, circle=circle, device=device, dtype=dtype
         ).to(device)
 
     def A(self, x, **kwargs):

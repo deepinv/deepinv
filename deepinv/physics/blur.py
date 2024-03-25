@@ -12,7 +12,7 @@ from deepinv.physics.functional import (
 )
 
 
-def gaussian_filter(sigma=(1, 1), angle=0):
+def gaussian_blur(sigma=(1, 1), angle=0):
     r"""
     Gaussian blur filter.
 
@@ -114,8 +114,8 @@ class Downsampling(LinearPhysics):
 
     def __init__(
         self,
-        filter,
         image_size,
+        filter=None,
         factor=2,
         device="cpu",
         padding="circular",
@@ -136,7 +136,7 @@ class Downsampling(LinearPhysics):
             self.filter = filter
         elif filter == "gaussian":
             self.filter = torch.nn.Parameter(
-                gaussian_filter(sigma=(factor, factor)), requires_grad=False
+                gaussian_blur(sigma=(factor, factor)), requires_grad=False
             ).to(device)
         elif filter == "bilinear":
             self.filter = torch.nn.Parameter(
@@ -184,9 +184,9 @@ class Downsampling(LinearPhysics):
         """
         if theta is not None:
             self.filter = torch.nn.Parameter(torch.tensor(theta))
+
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
-        x = downsample(x, self.factor)
-        x = y  # upsample
+        x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
             x = conv_transpose2d(x, self.filter, padding=self.padding)
         return x
