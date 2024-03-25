@@ -21,7 +21,7 @@ class Pansharpen(LinearPhysics):
 
 
     :param tuple[int] image_size: size of the input image.
-    :param torch.Tensor, str, NoneType params: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
     :param torch.nn.Module noise_color: noise model for the RGB image.
@@ -53,7 +53,7 @@ class Pansharpen(LinearPhysics):
     def __init__(
         self,
         image_size,
-        params = None,
+        filter = None,
         factor=4,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
@@ -66,7 +66,7 @@ class Pansharpen(LinearPhysics):
         self.downsampling = Downsampling(
             image_size=image_size,
             factor=factor,
-            params=params,
+            filter=filter,
             device=device,
             padding=padding,
         )

@@ -27,7 +27,7 @@ class Tomography(LinearPhysics):
 
         The adjoint operator has small numerical errors due to interpolation.
 
-    :param int, torch.tensor params: These are the tomography angles. If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
+    :param int, torch.tensor angles: These are the tomography angles. If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
         If the type is ``torch.tensor``, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).
     :param int image_width: width/height of the square image input.
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
@@ -44,7 +44,7 @@ class Tomography(LinearPhysics):
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
         >>> angles = torch.linspace(0, 45, steps=3)
-        >>> physics = Tomography(params=angles, image_width=4, circle=True)
+        >>> physics = Tomography(angles=angles, image_width=4, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.2640,  1.6995],
                   [-0.4860,  0.2674,  0.9971],
@@ -56,7 +56,7 @@ class Tomography(LinearPhysics):
         >>> from deepinv.physics import Tomography
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
-        >>> physics = Tomography(params=3, image_width=4, circle=True)
+        >>> physics = Tomography(angles=3, image_width=4, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.9493,  1.9897],
                   [-0.4860,  0.7137, -1.6536],
@@ -68,7 +68,7 @@ class Tomography(LinearPhysics):
 
     def __init__(
         self,
-        params,
+        angles,
         image_width,
         circle=False,
         device=torch.device("cpu"),
@@ -80,10 +80,10 @@ class Tomography(LinearPhysics):
         ## I think the best would be to remove the linspace out of the function 
         ## and put it in an example. If you want fixed angles given by a number of sampling 
         ## angles between 0 and 360, just do the linspace before calling the function
-        if isinstance(params, int) or isinstance(params, float):
-            theta = torch.nn.Parameter(torch.linspace(0, 180, steps=params + 1, device=device)[:-1], requires_grad=False).to(device)
+        if isinstance(angles, int) or isinstance(angles, float):
+            theta = torch.nn.Parameter(torch.linspace(0, 180, steps=angles + 1, device=device)[:-1], requires_grad=False).to(device)
         else:
-            theta = torch.nn.Parameter(params, requires_grad=False).to(device)
+            theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
         self.radon = Radon(
             image_width, theta, circle=circle, device=device, dtype=dtype

@@ -22,8 +22,8 @@ class MRI(DecomposablePhysics):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    :param torch.Tensor params: the params values should be a binary mask.
-        The mask (params) size should be of the form (H,W) where H is the image height and W is the image width.
+    :param torch.Tensor mask: binary mask.
+        The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -37,7 +37,7 @@ class MRI(DecomposablePhysics):
         >>> x = torch.randn(1, 2, 3, 3) # Define random 3x3 image
         >>> mask = torch.ones((3, 3))
         >>> mask[:, ::2] = 0
-        >>> physics = MRI(params=mask)
+        >>> physics = MRI(mask=mask)
         >>> physics(x)
         tensor([[-0.5305,  0.0351,  0.3326,  2.1730,  1.7072,  0.0418]])
 
@@ -45,7 +45,7 @@ class MRI(DecomposablePhysics):
 
     def __init__(
         self,
-        params=None,
+        mask=None,
         image_size=(320, 320),
         acceleration_factor=4,
         device="cpu",
@@ -56,8 +56,8 @@ class MRI(DecomposablePhysics):
         self.device = device
         self.image_size = image_size
 
-        if params is not None:
-            mask = params.to(device).unsqueeze(0).unsqueeze(0)
+        if mask is not None:
+            mask = mask.to(device).unsqueeze(0).unsqueeze(0)
         else:
             mask = (
                 self.sample_mask(
@@ -299,7 +299,7 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
 #     mask[mask > 1] = 1
 #
 #     sigma = 0.1
-#     # physics = MRI(params=mask, device=dinv.device)
+#     # physics = MRI(mask=mask, device=dinv.device)
 #     physics = dinv.physics.Denoising()
 #     physics.noise_model = dinv.physics.GaussianNoise(sigma)
 #

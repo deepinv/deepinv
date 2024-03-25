@@ -60,7 +60,7 @@ class CompressedSensing(LinearPhysics):
         <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
         If ``fast=True``, the forward operator has a unit norm.
 
-    :param int params: number of measurements (m).
+    :param int m: number of measurements (m).
     :param tuple image_size: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
@@ -76,7 +76,7 @@ class CompressedSensing(LinearPhysics):
         >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(params=10, image_size=(1, 3, 3))
+        >>> physics = CompressedSensing(m=10, image_size=(1, 3, 3))
         >>> physics(x)
         tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
                   0.7754, -0.0479]])
@@ -85,7 +85,7 @@ class CompressedSensing(LinearPhysics):
 
     def __init__(
         self,
-        params,
+        m,
         image_size,
         fast=False,
         channelwise=False,
@@ -94,7 +94,7 @@ class CompressedSensing(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.name = f"CS_m{params}"
+        self.name = f"CS_m{m}"
         self.image_size = image_size
         self.fast = fast
         self.channelwise = channelwise
@@ -110,14 +110,14 @@ class CompressedSensing(LinearPhysics):
             self.D = torch.ones(self.n, device=device)
             self.D[torch.rand_like(self.D) > 0.5] = -1.0
             self.mask = torch.zeros(self.n, device=device)
-            idx = np.sort(np.random.choice(self.n, size=params, replace=False))
+            idx = np.sort(np.random.choice(self.n, size=m, replace=False))
             self.mask[torch.from_numpy(idx)] = 1
             self.mask = self.mask.type(torch.bool)
 
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            self._A = torch.randn((params, n), device=device) / np.sqrt(params)
+            self._A = torch.randn((m, n), device=device) / np.sqrt(m)
             self._A_dagger = torch.linalg.pinv(self._A)
             self._A = torch.nn.Parameter(self._A, requires_grad=False)
             self._A_dagger = torch.nn.Parameter(
