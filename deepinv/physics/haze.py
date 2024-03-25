@@ -39,7 +39,7 @@ class Haze(Physics):
         im = x[0]
         d = x[1]
         A = x[2]
-        
+
         t = torch.exp(-self.beta * (d + self.offset))
         y = t * im + (1 - t) * A
         return y

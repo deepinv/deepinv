@@ -14,7 +14,9 @@ class Generator(nn.Module):
 
     """
 
-    def __init__(self, shape: tuple, device='cpu', dtype=torch.float32, **kwargs) -> None:
+    def __init__(
+        self, shape: tuple, device="cpu", dtype=torch.float32, **kwargs
+    ) -> None:
         super().__init__()
         self.shape = shape
         self.kwargs = kwargs
@@ -30,9 +32,9 @@ class Generator(nn.Module):
 
         if not kwargs:
             self.kwargs = kwargs
-        
+
         return torch.zeros(self.shape)
-        
+
 
 class GeneratorMixture(Generator):
     r"""
@@ -55,7 +57,7 @@ class GeneratorMixture(Generator):
         """
         if not kwargs:
             self.kwargs = kwargs
-        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(*args, **kwargs)

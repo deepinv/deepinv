@@ -408,8 +408,6 @@ if __name__ == "__main__":
 
     y2 = physics(y, w2)
 
-    y3 = physics(y, w2, 1.)
+    y3 = physics(y, w2, 1.0)
 
     dinv.utils.plot([x, y, y2, y3])
-
-

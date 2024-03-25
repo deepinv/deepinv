@@ -38,7 +38,9 @@ class GaussianNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if noise_level is not None:
-            self.sigma = torch.nn.Parameter(torch.tensor(noise_level), requires_grad=False)
+            self.sigma = torch.nn.Parameter(
+                torch.tensor(noise_level), requires_grad=False
+            )
 
         return x + torch.randn_like(x) * self.sigma
 
@@ -286,8 +288,12 @@ class LogPoissonNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if noise_level is not None:
-            self.N0 = torch.nn.Parameter(torch.tensor(noise_level[0]), requires_grad=False)
-            self.mu = torch.nn.Parameter(torch.tensor(noise_level[1]), requires_grad=False)
+            self.N0 = torch.nn.Parameter(
+                torch.tensor(noise_level[0]), requires_grad=False
+            )
+            self.mu = torch.nn.Parameter(
+                torch.tensor(noise_level[1]), requires_grad=False
+            )
 
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu))
         y = -torch.log(N1_tilde / self.N0) / self.mu

@@ -78,7 +78,6 @@ class MRI(DecomposablePhysics):
         return ifft2c_new(x).permute(0, 3, 1, 2)
 
 
-
 #
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
