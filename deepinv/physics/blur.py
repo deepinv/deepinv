@@ -10,6 +10,8 @@ from deepinv.physics.functional import (
     conv_transpose2d,
     filter_fft_2d,
     downsample,
+    product_convolution,
+    product_convolution_adjoint
 )
 
 
@@ -395,6 +397,59 @@ class BlurFFT(DecomposablePhysics):
         return fft.irfft2(
             torch.view_as_complex(x), norm="ortho", s=self.image_size[-2:]
         )
+
+
+class SpaceVaryingBlur(LinearPhysics):
+    """
+
+    Implements a space varying blur
+    It implements general integral operator of the form
+
+    .. math:: y(s) = \int k(s,t) x(t) \,dt
+
+    where :math:`k` is an integral kernel. Expressed as above, this is an arbitrary operator which cannot be computed efficiently. 
+    Efficient methods are available if :math:`k` is sufficiently smooth.
+     
+    :param str method: method 'product_convolution'
+    :param list params: list of parameters describing the method. 
+        'product_convolution': params is a list [w, h], see deepinv.physics.functional.product_convolution
+    :param str device: cpu or cuda
+    
+    |sep|
+
+    :Examples:
+
+    """
+    
+    def __init__(self, method, params=None, device="cpu", **kwargs):
+        super().__init__(**kwargs)
+        self.method = method
+        self.device = device
+        if self.method == 'product_convolution':
+            if params is not None:
+                self.w = params[0]
+                self.h = params[1]
+            
+    def A(self, x, **kwargs):
+        if self.method == 'product_convolution':
+            if w is not None:
+                self.w = w
+            if h is not None:
+                self.h = h
+                
+            return product_convolution(x, self.w, self.h)
+
+    def A_adjoint(self, w=None, h=None):
+        if self.method == 'product_convolution':
+            if w is not None:
+                self.w = w
+            if h is not None:
+                self.h = h
+                
+        return product_convolution_adjoint(y, self.w, self.h)
+        
+            
+
 
 
 # # test code

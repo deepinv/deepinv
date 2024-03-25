@@ -10,7 +10,7 @@ import torch.fft as fft
 
 def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
     r"""
-    A helper function performing the 2d convolution of images :math:`x` and `filter`.  The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed2d()`
+    A helper function performing the 2d convolution of images :math:`x` and `filter`. The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed2d()`
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
