@@ -13,6 +13,15 @@ class AccelerationMaskGenerator(Generator):
     :param tuple image_size: image size.
     :param int acceleration: acceleration factor.
     :param str device: cpu or gpu.
+
+    |sep|
+
+    :Examples:
+
+    >>> mask_generator = AccelerationMaskGenerator((32, 32))
+    >>> mask = mask_generator.step()
+    >>> dinv.utils.plot(mask.unsqueeze(0))
+
     """
 
     def __init__(self, image_size: tuple, acceleration=4, device: str = "cpu"):
@@ -21,17 +30,17 @@ class AccelerationMaskGenerator(Generator):
         self.image_size = image_size
         self.acceleration = acceleration
 
-    def sample_mask(self, image_size, acceleration_factor=4, seed=None):
+    def step(self, batch_size):
         r"""
         Create a mask of vertical lines.
 
-        :param tuple image_size: image size.
+        :param tuple image_size: image size (H, W).
         :param int acceleration_factor: acceleration factor.
-        :param int seed: random seed.
         :return: mask of size (H, W) with values in {0, 1}.
         """
-        if seed is not None:
-            np.random.seed(seed)
+        image_size = self.image_size
+        acceleration_factor = self.acceleration
+
         if acceleration_factor == 4:
             central_lines_percent = 0.08
             num_lines_center = int(central_lines_percent * image_size[-1])
@@ -42,7 +51,7 @@ class AccelerationMaskGenerator(Generator):
             num_lines_center = int(central_lines_percent * image_size[-1])
             side_lines_percent = 0.125 - central_lines_percent
             num_lines_side = int(side_lines_percent * image_size[-1])
-        mask = torch.zeros(image_size)
+        mask = torch.zeros(image_size, device=self.device)
         center_line_indices = torch.linspace(
             image_size[0] // 2 - num_lines_center // 2,
             image_size[0] // 2 + num_lines_center // 2 + 1,
@@ -54,5 +63,11 @@ class AccelerationMaskGenerator(Generator):
             image_size[0], size=(num_lines_side // 2,), replace=False
         )
         mask[:, random_line_indices] = 1
-        return mask.float().to(self.device)
+        return mask.float()
 
+
+if __name__ == "__main__":
+    import deepinv as dinv
+    mask_generator = AccelerationMaskGenerator((32, 32))
+    mask = mask_generator.step()
+    dinv.utils.plot(mask.unsqueeze(0))

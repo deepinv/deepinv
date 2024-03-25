@@ -52,19 +52,18 @@ class MotionBlurGenerator(PSFGenerator):
 
     :Examples:
 
-    >>> filter = torch.randn(1, 1, 31, 31)
-    >>> physic = dinv.physics.Blur(filter=filter)
-    >>> motio_blur_generator = MotionBlurGenerator(physic.params)
-    >>> motio_blur_generator.step()
-    >>> print(physic.params.shape)
-    >>> dinv.utils.plot(physic.params)
+    >>> generator = MotionBlurGenerator((1, 16, 16))
+    >>> blur = generator.step()
+    >>> blur = generator.step()
+    >>> print(blur.shape)
+    torch.Size([1, 1, 16, 16])
 
 
     :Examples:
 
     To generate new kernel, one can also call:
 
-    >>> kernel = motio_blur_generator()
+    >>> kernel = generator()
     >>> dinv.utils.plot(kernel)
     """
 
@@ -150,20 +149,12 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     :Examples:
 
-    >>> filter = torch.randn(1, 1, 31, 31)
-    >>> physic = dinv.physics.Blur(filter=filter)
-    >>> diffraction_blur_generator = DiffractionBlurGenerator(physic.params)
-    >>> diffraction_blur_generator.step()
-    >>> print(physic.params.shape)
-    >>> dinv.utils.plot(physic.params)
+    >>> generator = DiffractionBlurGenerator((1, 16, 16))
+    >>> filter = generator.step()
+    >>> dinv.utils.plot(filter)
+    >>> print(filter.shape)
+    torch.Size([1, 1, 16, 16])
 
-
-    :Examples:
-
-    To generate new kernel, one can also call:
-
-    >>> kernel = diffraction_blur_generator()
-    >>> dinv.utils.plot(kernel)
     """
 
     def __init__(
@@ -473,20 +464,9 @@ if __name__ == "__main__":
     import deepinv as dinv
     from deepinv.physics import Blur
 
-    filter = torch.randn(4, 1, 51, 51)
-    physic = Blur(params=filter.clone(), image_size=(3, 128, 128), device="cpu")
-    print(physic.params.shape)
-    Motion = MotionBlurGenerator(physic.params)
-    Motion.step()
-    print(physic.params.shape)
-    dinv.utils.plot(physic.params)
-
-    Diffraction = DiffractionBlurGenerator(physic.params)
-    Diffraction.step()
-    print("Physics params: ", physic.params.shape)
-    dinv.utils.plot(physic.params)
-
-    # print(physic.params)
-    print((physic.params - filter).abs().mean())
+    generator = DiffractionBlurGenerator((1, 16, 16))
+    blur = generator.step()
+    print(generator.shape)
+    dinv.utils.plot(blur)
 
 # %%
