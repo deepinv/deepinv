@@ -21,6 +21,8 @@ class AccelerationMaskGenerator(PhysicsGenerator):
     >>> mask_generator = AccelerationMaskGenerator((32, 32))
     >>> mask = mask_generator.step()
     >>> dinv.utils.plot(mask.unsqueeze(0))
+    >>> print(mask.shape)
+    torch.Size([1, 1, 32, 32])
 
     """
 
