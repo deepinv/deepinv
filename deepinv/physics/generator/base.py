@@ -44,7 +44,7 @@ class GeneratorMixture(PhysicsGenerator):
     :param list[float] probs: the probability of each generator to be used at each step
     """
 
-    def __init__(self, generators: List[Generator], probs: List[float]) -> None:
+    def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
         super().__init__(generators[0].shape)
         assert np.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     # %%
     P = Physic()
     print(P.params)
-    g1 = Generator(P.params, l=1, n=2)
-    g2 = Generator(P.params, l=1, n=2)
+    g1 = PhysicsGenerator(P.params, l=1, n=2)
+    g2 = PhysicsGenerator(P.params, l=1, n=2)
     G = GeneratorMixture([g1, g2], [0.5, 0.5])
     G.step()
     print(P.params)
