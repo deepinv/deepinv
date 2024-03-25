@@ -185,8 +185,6 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        print(physics.filter.max())
-
         avg_loss += loss.item()
         progress_bar.set_description(
             f"Epoch: {epoch + 1:02d} | Iteration: {i + 1:04d} | Avg Loss: {avg_loss / (i + 1):.4f}"
