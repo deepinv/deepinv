@@ -120,9 +120,7 @@ class CompressedSensing(LinearPhysics):
             self._A = torch.randn((m, n), device=device) / np.sqrt(m)
             self._A_dagger = torch.linalg.pinv(self._A)
             self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            self._A_dagger = torch.nn.Parameter(
-                self._A_dagger, requires_grad=False
-            )
+            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
             self._A_adjoint = (
                 torch.nn.Parameter(self._A.t(), requires_grad=False)
                 .type(dtype)

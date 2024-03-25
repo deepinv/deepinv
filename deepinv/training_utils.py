@@ -531,7 +531,6 @@ class Trainer:
 
         self.setup_train(eval=eval_dataloader is not None)
         for epoch in range(self.epoch_start, self.epochs):
-
             ## Evaluation
             perform_eval = (
                 (not self.unsupervised)

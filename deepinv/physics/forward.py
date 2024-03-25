@@ -80,7 +80,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         noise_model=lambda x: x,
         sensor_model=lambda x: x,
         max_iter=50,
-        tol=1e-3
+        tol=1e-3,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -306,7 +306,7 @@ class LinearPhysics(Physics):
 
         The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
-        
+
         >>> from deepinv.physics import LinearPhysics, adjoint_function
         >>> from deepinv.utils import cal_psnr
         >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
@@ -394,10 +394,16 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        A = lambda x, theta: TensorList(self.A(x, theta)).append(TensorList(other.A(x, theta)))
+        A = lambda x, theta: TensorList(self.A(x, theta)).append(
+            TensorList(other.A(x, theta))
+        )
 
         def A_adjoint(y, theta=None):
-            at1 = self.A_adjoint(y[:-1], theta) if len(y) > 2 else self.A_adjoint(y[0], theta)
+            at1 = (
+                self.A_adjoint(y[:-1], theta)
+                if len(y) > 2
+                else self.A_adjoint(y[0], theta)
+            )
             return at1 + other.A_adjoint(y[-1], theta)
 
         class noise(torch.nn.Module):
@@ -407,7 +413,9 @@ class LinearPhysics(Physics):
                 self.noise2 = noise2
 
             def forward(self, x, noise_level):
-                return TensorList(self.noise1(x[:-1], noise_level)).append(self.noise2(x[-1], noise_level))
+                return TensorList(self.noise1(x[:-1], noise_level)).append(
+                    self.noise2(x[-1], noise_level)
+                )
 
         class sensor(torch.nn.Module):
             def __init__(self, sensor1, sensor2):
@@ -568,7 +576,7 @@ class DecomposablePhysics(LinearPhysics):
     :Examples:
 
         Recreation of the Inpainting operator using the DecomposablePhysics class:
-            
+
         >>> from deepinv.physics import DecomposablePhysics
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> tensor_size = (1, 1, 3, 3)  # Input size

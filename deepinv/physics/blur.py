@@ -394,11 +394,15 @@ class BlurFFT(DecomposablePhysics):
         )
 
 
-
 if __name__ == "__main__":
     import deepinv as dinv
+
     w = torch.ones((1, 1, 2, 2)) / 4
-    physics = BlurFFT(filter=w, image_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
+    physics = BlurFFT(
+        filter=w,
+        image_size=(1, 1, 16, 16),
+        noise_model=dinv.physics.GaussianNoise(0.01),
+    )
 
     x = torch.zeros((1, 1, 16, 16))
     x[:, :, 8, 8] = 1
@@ -408,8 +412,6 @@ if __name__ == "__main__":
 
     y2 = physics(y, w2)
 
-    y3 = physics(y, w2, 1.)
+    y3 = physics(y, w2, 1.0)
 
     dinv.utils.plot([x, y, y2, y3])
-
-

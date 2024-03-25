@@ -82,7 +82,8 @@ def find_operator(name, device):
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name == "deblur":
         img_size = (3, 17, 19)
-        p = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        p = dinv.physics.Blur(
+            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
         )
     elif name == "deblur_fft":
         img_size = (3, 17, 19)
@@ -95,7 +96,9 @@ def find_operator(name, device):
         img_size = (1, 32, 32)
         factor = 2
         norm = 1 / factor**2
-        p = dinv.physics.Downsampling(filter=None, image_size=img_size, factor=factor, device=device)
+        p = dinv.physics.Downsampling(
+            filter=None, image_size=img_size, factor=factor, device=device
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm
@@ -220,13 +223,14 @@ def test_MRI(device):
     :return: asserts error is less than 1e-3
     """
 
-    generator = dinv.physics.generator.AccelerationMaskGenerator((320, 320), 4, device=device)
+    generator = dinv.physics.generator.AccelerationMaskGenerator(
+        (320, 320), 4, device=device
+    )
     mask = generator.step()
     physics = dinv.physics.MRI(mask=mask, device=device, acceleration_factor=4)
     x = torch.randn((2, 320, 320), device=device).unsqueeze(0)
     x2 = physics.A_adjoint(physics.A(x))
     assert x2.shape == x.shape
-
 
 
 def choose_noise(noise_type):
@@ -267,7 +271,6 @@ def test_noise(device, noise_type):
         x
     )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
     assert y1.shape == x.shape
-
 
 
 def test_noise_domain(device):
@@ -339,12 +342,12 @@ def test_reset_noise(device):
     :return: asserts error is > 0
     """
     physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(.1)  # Should be 20/255 (to check)
+    physics.noise_model = dinv.physics.GaussianNoise(0.1)  # Should be 20/255 (to check)
     x = torch.ones((1, 2, 3), device=device).unsqueeze(0)
-    y1 = physics(x, noise_level=.2)
-    y1 = physics(x, None, torch.ones(1, device=device)*.2)
+    y1 = physics(x, noise_level=0.2)
+    y1 = physics(x, None, torch.ones(1, device=device) * 0.2)
 
-    assert physics.noise_model.sigma == .2
+    assert physics.noise_model.sigma == 0.2
 
 
 def test_tomography(device):

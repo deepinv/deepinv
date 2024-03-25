@@ -53,7 +53,7 @@ class Pansharpen(LinearPhysics):
     def __init__(
         self,
         image_size,
-        filter = None,
+        filter=None,
         factor=4,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),

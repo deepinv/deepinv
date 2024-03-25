@@ -48,11 +48,10 @@ class AccelerationMaskGenerator(Generator):
             image_size[0] // 2 + num_lines_center // 2 + 1,
             steps=50,
             dtype=torch.long,
-            )
+        )
         mask[:, center_line_indices] = 1
         random_line_indices = np.random.choice(
             image_size[0], size=(num_lines_side // 2,), replace=False
         )
         mask[:, random_line_indices] = 1
         return mask.float().to(self.device)
-
