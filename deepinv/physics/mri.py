@@ -54,7 +54,9 @@ class MRI(DecomposablePhysics):
         self.device = device
         self.img_size = img_size
 
-        mask = mask.to(device).unsqueeze(0).unsqueeze(0)
+        mask = mask.to(device)
+        if len(mask.shape) == 2:
+            mask = mask.unsqueeze(0).unsqueeze(0)
 
         self.mask = torch.nn.Parameter(
             torch.cat([mask, mask], dim=1), requires_grad=False
