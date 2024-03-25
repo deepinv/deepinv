@@ -80,7 +80,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         noise_model=lambda x: x,
         sensor_model=lambda x: x,
         max_iter=50,
-        tol=1e-3,
+        tol=1e-3
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -151,29 +151,35 @@ class Physics(torch.nn.Module):  # parent class for forward models
             tol=self.tol,
         )
 
-    def reset(self, **kwargs):
-        if isinstance(self.noise_model, torch.nn.Module):
-            self.noise_model.__init__(**kwargs)
-
-    def forward(self, x):
+    def forward(self, x, theta=None, noise_level=None):
         r"""
-        Computes forward operator :math:`y = N(A(x))` (with noise and/or sensor non-linearities)
+        Computes forward operator
 
-        :param torch.Tensor,list[torch.Tensor] x: signal/image
+        .. math::
+
+                y = N(A(x, \theta), \sigma)
+
+        where :math:`\theta` are some optional parameters of the forward model, e.g., the blur kernel.
+
+        :param torch.Tensor, list[torch.Tensor] x: signal/image
+        :param None, torch.Tensor, deepinv.utils.TensorList params: additional parameters for the forward model
+        :param None, float, torch.Tensor noise_level: optional noise level parameter
         :return: (torch.Tensor) noisy measurements
 
         """
-        return self.sensor(self.noise(self.A(x)))
 
-    def A(self, x):
+        return self.sensor(self.noise(self.A(x, theta), noise_level))
+
+    def A(self, x, theta=None):
         r"""
         Computes forward operator :math:`y = A(x)` (without noise and/or sensor non-linearities)
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
+        :param None, torch.Tensor, deepinv.utils.TensorList params: additional parameters for the forward model
         :return: (torch.Tensor) clean measurements
 
         """
-        return self.forw(x)
+        return self.forw(x) if theta is None else self.forw(x, theta)
 
     def sensor(self, x):
         r"""
@@ -184,7 +190,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         return self.sensor_model(x)
 
-    def noise(self, x):
+    def noise(self, x, noise_level=None):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -192,7 +198,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return torch.Tensor: noisy measurements
 
         """
-        return self.noise_model(x)
+        if noise_level is None:
+            return self.noise_model(x)
+        return self.noise_model(x, noise_level)
 
     def A_dagger(self, y, x_init=None):
         r"""
@@ -330,7 +338,7 @@ class LinearPhysics(Physics):
         )
         self.A_adj = A_adjoint
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, theta=None):
         r"""
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
         If :math:`A` is linear, it should be the exact transpose of the forward matrix.
@@ -341,11 +349,12 @@ class LinearPhysics(Physics):
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
         :param torch.Tensor y: measurements.
+        :param None, torch.Tensor params: additional parameters for the adjoint operator.
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
 
-        return self.A_adj(y)
+        return self.A_adj(y) if theta is None else self.A_adj(y, theta)
 
     def __mul__(self, other):
         r"""
@@ -357,8 +366,8 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) concatenated operator
 
         """
-        A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
-        A_adjoint = lambda x: other.A_adjoint(self.A_adjoint(x))
+        A = lambda x, theta: self.A(other.A(x, theta), theta)  # (A' = A_1 A_2)
+        A_adjoint = lambda x, theta: other.A_adjoint(self.A_adjoint(x, theta), theta)
         noise = self.noise_model
         sensor = self.sensor_model
         return LinearPhysics(
@@ -386,11 +395,11 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        A = lambda x: TensorList(self.A(x)).append(TensorList(other.A(x)))
+        A = lambda x, theta: TensorList(self.A(x, theta)).append(TensorList(other.A(x, theta)))
 
-        def A_adjoint(y):
-            at1 = self.A_adjoint(y[:-1]) if len(y) > 2 else self.A_adjoint(y[0])
-            return at1 + other.A_adjoint(y[-1])
+        def A_adjoint(y, theta=None):
+            at1 = self.A_adjoint(y[:-1], theta) if len(y) > 2 else self.A_adjoint(y[0], theta)
+            return at1 + other.A_adjoint(y[-1], theta)
 
         class noise(torch.nn.Module):
             def __init__(self, noise1, noise2):
@@ -398,8 +407,8 @@ class LinearPhysics(Physics):
                 self.noise1 = noise1
                 self.noise2 = noise2
 
-            def forward(self, x):
-                return TensorList(self.noise1(x[:-1])).append(self.noise2(x[-1]))
+            def forward(self, x, noise_level):
+                return TensorList(self.noise1(x[:-1], noise_level)).append(self.noise2(x[-1], noise_level))
 
         class sensor(torch.nn.Module):
             def __init__(self, sensor1, sensor2):
@@ -501,7 +510,7 @@ class LinearPhysics(Physics):
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, x_init=None):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
         `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
@@ -598,8 +607,44 @@ class DecomposablePhysics(LinearPhysics):
         self._V_adjoint = V_adjoint
         self.mask = mask
 
-    def A(self, x):
+    def A(self, x, theta=None):
+        r"""
+        Applies the forward operator :math:`y = A(x)`.
+
+        If a mask/singular values is provided, it is used to apply the forward operator,
+        and also stored as the current mask/singular values.
+
+        :param torch.Tensor x: input tensor
+        :param torch.nn.Parameter, float theta: mask/singular values.
+        :return: (torch.Tensor) output tensor
+
+        """
+        if theta is not None:
+            self.mask = theta
+
         return self.U(self.mask * self.V_adjoint(x))
+
+    def A_adjoint(self, y, theta=None):
+        r"""
+        Computes the adjoint of the forward operator :math:`\tilde{x} = A^{\top}y`.
+
+        If a mask/singular values is provided, it is used to apply the adjoint operator,
+        and also stored as the current mask/singular values.
+
+        :param torch.Tensor y: input tensor
+        :param torch.nn.Parameter, float theta: mask/singular values.
+        :return: (torch.Tensor) output tensor
+        """
+
+        if theta is not None:
+            self.mask = theta
+
+        if isinstance(self.mask, float):
+            mask = self.mask
+        else:
+            mask = torch.conj(self.mask)
+
+        return self.V(mask * self.U_adjoint(y))
 
     def U(self, x):
         return self._U(x)
@@ -612,14 +657,6 @@ class DecomposablePhysics(LinearPhysics):
 
     def V_adjoint(self, x):
         return self._V_adjoint(x)
-
-    def A_adjoint(self, y):
-        if isinstance(self.mask, float):
-            mask = self.mask
-        else:
-            mask = torch.conj(self.mask)
-
-        return self.V(mask * self.U_adjoint(y))
 
     def prox_l2(self, z, y, gamma):
         r"""
@@ -640,7 +677,7 @@ class DecomposablePhysics(LinearPhysics):
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, **kwargs):
         r"""
         Computes :math:`A^{\dagger}y = x` in an efficient manner leveraging the singular vector decomposition.
 

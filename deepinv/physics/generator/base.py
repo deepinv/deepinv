@@ -9,16 +9,16 @@ class Generator(nn.Module):
     r"""
     Base class for parameter generation of physics.
 
-    :param torch.Tensor params: the parameter of a physic from :meth:`deepinv.physics`, e.g., the filter of :meth:`deepinv.physics.Blur()`.
+    :param torch.Tensor params: parameters to be fed to a physics from :meth:`deepinv.physics`, e.g., a blur filter to be used in :meth:`deepinv.physics.Blur()`.
     :param dict kwargs: default keyword arguments to be passed to :meth:`Generator` for generating new parameters.
 
     """
 
-    def __init__(self, params: torch.Tensor, **kwargs) -> None:
+    def __init__(self, shape: tuple, device='cpu', dtype=torch.float32, **kwargs) -> None:
         super().__init__()
-        self.params = params
+        self.shape = shape
         self.kwargs = kwargs
-        self.factory_kwargs = {"device": params.device, "dtype": params.dtype}
+        self.factory_kwargs = {"device": device, "dtype": dtype}
         # Set attributes
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -30,19 +30,9 @@ class Generator(nn.Module):
 
         if not kwargs:
             self.kwargs = kwargs
-        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
-
-        new_params = self.__call__(*args, **self.kwargs)
-        # print(new_params.shape)
-        self.params.zero_()
-        self.params.add_(new_params)
-
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-        r"""
-        Return new parameter
-        """
-        return torch.zeros_like(self.params)
-
+        
+        return torch.zeros(self.shape)
+        
 
 class GeneratorMixture(Generator):
     r"""
@@ -53,7 +43,7 @@ class GeneratorMixture(Generator):
     """
 
     def __init__(self, generators: List[Generator], probs: List[float]) -> None:
-        super().__init__(generators[0].params)
+        super().__init__(generators[0].shape)
         assert np.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
@@ -65,16 +55,10 @@ class GeneratorMixture(Generator):
         """
         if not kwargs:
             self.kwargs = kwargs
-        self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
-        self.generators[idx].step(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-
-        p = np.random.uniform()
-        idx = np.searchsorted(self.cum_probs, p)
-        return self.generators[idx](*args, **kwargs)
+        return self.generators[idx].step(*args, **kwargs)
 
 
 if __name__ == "__main__":

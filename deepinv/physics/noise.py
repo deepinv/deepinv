@@ -28,13 +28,18 @@ class GaussianNoise(torch.nn.Module):
         super().__init__()
         self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
 
-    def forward(self, x):
+    def forward(self, x, noise_level=None):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
+        :param float, torch.Tensor noise_level: standard deviation of the noise.
+            If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
+        if noise_level is not None:
+            self.sigma = torch.nn.Parameter(torch.tensor(noise_level), requires_grad=False)
+
         return x + torch.randn_like(x) * self.sigma
 
 
@@ -61,33 +66,33 @@ class UniformGaussianNoise(torch.nn.Module):
 
     :param float sigma_min: minimum standard deviation of the noise.
     :param float sigma_max: maximum standard deviation of the noise.
-    :param float, torch.Tensor sigma: standard deviation of the noise.
-        If ``None``, the noise is sampled uniformly at random
-        in :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`) during the forward pass. Default: ``None``.
 
     """
 
-    def __init__(self, sigma_min=0.0, sigma_max=0.5, sigma=None):
+    def __init__(self, sigma_min=0.0, sigma_max=0.5):
         super().__init__()
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        self.sigma = sigma
 
-    def forward(self, x):
+    def forward(self, x, noise_level=None):
         r"""
         Adds the noise to measurements x.
 
-        :param torch.Tensor x: measurements
+        :param torch.Tensor x: measurements.
+        :param torch.Tensor noise_level: Tensor of two elements containing minimum and maximum standard deviation.
+            If not None, it will overwrite the current noise level.
         :returns: noisy measurements.
         """
-        if self.sigma is None:
-            sigma = (
-                torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2))
-                * (self.sigma_max - self.sigma_min)
-                + self.sigma_min
-            )
-            self.sigma = sigma.to(x.device)
-        noise = torch.randn_like(x) * self.sigma
+        if noise_level is not None:
+            self.sigma_min = noise_level[0]
+            self.sigma_max = noise_level[1]
+
+        sigma = (
+            torch.rand((x.shape[0], 1) + (1,) * (x.dim() - 2))
+            * (self.sigma_max - self.sigma_min)
+            + self.sigma_min
+        )
+        noise = torch.randn_like(x) * sigma
         return x + noise
 
 
@@ -127,13 +132,18 @@ class PoissonNoise(torch.nn.Module):
         self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
         self.clip_positive = clip_positive
 
-    def forward(self, x):
+    def forward(self, x, noise_level=None):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
+        :param float, torch.Tensor noise_level: gain of the noise. If not None, it will overwrite the current noise level.
+
         :returns: noisy measurements
         """
+        if noise_level is not None:
+            self.gain = torch.nn.Parameter(noise_level, requires_grad=False)
+
         y = torch.poisson(
             torch.clip(x / self.gain, min=0.0) if self.clip_positive else x / self.gain
         )
@@ -171,13 +181,19 @@ class PoissonGaussianNoise(torch.nn.Module):
         self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
         self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
 
-    def forward(self, x):
+    def forward(self, x, noise_level=None):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
+        :param torch.Tensor noise_level: Tensor containing gain and standard deviation.
+            If not None, it will overwrite the current gain and standard deviation.
         :returns: noisy measurements
         """
+        if noise_level is not None:
+            self.gain = torch.nn.Parameter(noise_level[0], requires_grad=False)
+            self.sigma = torch.nn.Parameter(noise_level[1], requires_grad=False)
+
         y = torch.poisson(x / self.gain) * self.gain
 
         y += torch.randn_like(x) * self.sigma
@@ -209,13 +225,17 @@ class UniformNoise(torch.nn.Module):
         super().__init__()
         self.a = torch.nn.Parameter(torch.tensor(a), requires_grad=False)
 
-    def forward(self, x):
+    def forward(self, x, noise_level=None):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
+        :param float, torch.Tensor noise_level: amplitude of the noise. If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
+        if noise_level is not None:
+            self.a = torch.nn.Parameter(noise_level, requires_grad=False)
+
         return x + (torch.rand_like(x) - 0.5) * 2 * self.a
 
 
@@ -253,16 +273,22 @@ class LogPoissonNoise(torch.nn.Module):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0):
         super().__init__()
-        self.mu = mu
-        self.N0 = N0
+        self.mu = torch.nn.Parameter(torch.tensor(mu))
+        self.N0 = torch.nn.Parameter(torch.tensor(N0))
 
-    def forward(self, x):
+    def forward(self, x, noise_level=None):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
+        :param float, torch.Tensor noise_level: Tensor of two elements containing number of photons and normalization constant.
+            If not None, it will overwrite the current noise level.1
         :returns: noisy measurements
         """
+        if noise_level is not None:
+            self.N0 = torch.nn.Parameter(torch.tensor(noise_level[0]), requires_grad=False)
+            self.mu = torch.nn.Parameter(torch.tensor(noise_level[1]), requires_grad=False)
+
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu))
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y
