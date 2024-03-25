@@ -58,7 +58,6 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    
     def __init__(self, mask, image_size, pixelwise=True, device="cpu", **kwargs):
         super().__init__(**kwargs)
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
@@ -74,10 +73,8 @@ class Inpainting(DecomposablePhysics):
                 self.mask[:, aux[0, :, :] > mask_rate] = 0
 
         self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False).to(device)
-    
-    
 
-    def noise(self, x):
+    def noise(self, x, noise_level=None):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -85,6 +82,6 @@ class Inpainting(DecomposablePhysics):
         :return torch.Tensor: noisy measurements
         """
         noise = self.U(
-            self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
+            self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x, noise_level)) * self.mask))
         )
         return noise

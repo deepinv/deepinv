@@ -75,10 +75,10 @@ class Pansharpen(LinearPhysics):
         self.noise_gray = noise_gray
         self.colorize = Decolorize()
 
-    def A(self, x):
-        return TensorList([self.downsampling.A(x), self.colorize.A(x)])
+    def A(self, x, theta=None):
+        return TensorList([self.downsampling.A(x, theta), self.colorize.A(x)])
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         return self.downsampling.A_adjoint(y[0]) + self.colorize.A_adjoint(y[1])
 
     def forward(self, x):

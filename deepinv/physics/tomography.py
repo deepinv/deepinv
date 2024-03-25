@@ -92,11 +92,11 @@ class Tomography(LinearPhysics):
             image_width, theta, circle=circle, device=device, dtype=dtype
         ).to(device)
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         return self.radon(x)
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, **kwargs):
         return self.iradon(y)
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         return self.iradon(y, filtering=False)

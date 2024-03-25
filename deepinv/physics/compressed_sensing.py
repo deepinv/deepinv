@@ -129,7 +129,7 @@ class CompressedSensing(LinearPhysics):
                 .to(device)
             )
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         N, C = x.shape[:2]
         if self.channelwise:
             x = x.reshape(N * C, -1)
@@ -146,7 +146,7 @@ class CompressedSensing(LinearPhysics):
 
         return y
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         N = y.shape[0]
         C, H, W = self.image_size[0], self.image_size[1], self.image_size[2]
 
@@ -166,7 +166,7 @@ class CompressedSensing(LinearPhysics):
         x = x.view(N, C, H, W)
         return x
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, **kwargs):
         if self.fast:
             return self.A_adjoint(y)
         else:
