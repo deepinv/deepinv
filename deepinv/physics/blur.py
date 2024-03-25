@@ -170,7 +170,7 @@ class Downsampling(LinearPhysics):
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
 
-        x = downsample(x, self.factor)  # downsample
+        x = x[:, :, :: self.factor, :: self.factor]  # downsample
         return x
 
     def A_adjoint(self, y, theta=None):
