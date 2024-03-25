@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from deepinv.physics.generator import Generator
+from deepinv.physics.generator import PhysicsGenerator
 
 
-class AccelerationMaskGenerator(Generator):
+class AccelerationMaskGenerator(PhysicsGenerator):
     r"""
     Generator for MRI cartesian acceleration masks.
 

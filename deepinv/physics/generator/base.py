@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 
 
-class Generator(nn.Module):
+class PhysicsGenerator(nn.Module):
     r"""
     Base class for parameter generation of physics.
 
@@ -36,7 +36,7 @@ class Generator(nn.Module):
         return torch.zeros(self.shape)
 
 
-class GeneratorMixture(Generator):
+class GeneratorMixture(PhysicsGenerator):
     r"""
     Base class for mixing multiple generators.
 

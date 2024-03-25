@@ -194,8 +194,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
         :param torch.Tensor x:  clean measurements
+        :param None, float noise_level: optional noise level parameter
         :return torch.Tensor: noisy measurements
-
+        
         """
         if noise_level is None:
             return self.noise_model(x)
@@ -348,7 +349,7 @@ class LinearPhysics(Physics):
             but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
         :param torch.Tensor y: measurements.
-        :param None, torch.Tensor params: additional parameters for the adjoint operator.
+        :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """

@@ -2,12 +2,12 @@
 import torch
 from typing import List, Tuple
 import numpy as np
-from deepinv.physics.generator import Generator
+from deepinv.physics.generator import PhysicsGenerator
 from math import ceil, floor
 from deepinv.physics.functional import histogramdd
 
 
-class PSFGenerator(Generator):
+class PSFGenerator(PhysicsGenerator):
     def __init__(
         self,
         shape: tuple,

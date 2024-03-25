@@ -6,8 +6,9 @@ from deepinv.utils import (
     get_timestamp,
     cal_psnr,
 )
-from deepinv.utils import plot, plot_curves, wandb_plot_curves, rescale_img, zeros_like
+from deepinv.utils import plot, plot_curves, rescale_img, zeros_like
 from deepinv.physics import Physics
+from deepinv.physics.generator import PhysicsGenerator
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -88,6 +89,7 @@ class Trainer:
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at train time.
     :param torch.nn.optim optimizer: Torch optimizer for training the network.
+    :param torch.nn.Module, list[torch.nn.Module] metrics: Metric or list of metrics used for evaluating the model.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
     :param torch.device device: gpu or cpu.
@@ -115,9 +117,11 @@ class Trainer:
     losses: list
     physics: Physics = None
     optimizer: torch.optim.Optimizer = None
-    grad_clip: float = None
-    scheduler: torch.optim.lr_scheduler.LRScheduler = None
     metrics: Union[torch.nn.Module, list[torch.nn.Module]] = PSNR()
+    grad_clip: float = None
+    physics_generator: PhysicsGenerator = None
+    noise_generator: PhysicsGenerator = None
+    scheduler: torch.optim.lr_scheduler.LRScheduler = None
     device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
     eval_interval: int = 1
@@ -185,6 +189,12 @@ class Trainer:
                 AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
                 for l in self.metrics
             ]
+
+        if type(self.physics_generator) is not list:
+            self.physics_generator = [self.physics_generator]
+
+        if type(self.noise_generator) is not list:
+            self.noise_generator = [self.noise_generator]
 
         # gradient clipping
         if self.check_grad:
@@ -294,9 +304,22 @@ class Trainer:
             iterators[g]
         )  # In this case the dataloader outputs also a class label
         x = x.to(self.device)
+
+        physics_generator = self.physics_generator[g]
+        if physics_generator is not None:
+            theta = physics_generator.step()
+        else:
+            theta = None
+
+        noise_generator = self.noise_generator[g]
+        if noise_generator is not None:
+            noise_level = noise_generator.step()
+        else:
+            noise_level = None
+
         physics_cur = self.physics[g]
 
-        y = physics_cur(x)
+        y = physics_cur(x, theta, noise_level)
 
         return x, y, physics_cur
 

@@ -19,7 +19,7 @@ def test_generate_dataset(tmp_path, imsize, device):
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    physics = dinv.physics.Inpainting(mask=0.5, img_size=imsize, device=device)
 
     dinv.datasets.generate_dataset(
         train_dataset,
@@ -129,7 +129,7 @@ def test_optim_algo(name_algo, imsize, device):
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    physics = dinv.physics.Inpainting(mask=0.5, img_size=imsize, device=device)
 
     train_dataloader = DataLoader(
         train_dataset, batch_size=2, num_workers=1, shuffle=True
