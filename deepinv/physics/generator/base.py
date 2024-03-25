@@ -69,7 +69,7 @@ class GeneratorMixture(Generator):
         #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
-        self.generators[idx].step(*args, **kwargs)
+        return self.generators[idx].step(*args, **kwargs)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
 
