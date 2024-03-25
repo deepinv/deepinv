@@ -15,7 +15,7 @@ def multiplier(x: Tensor, mult: Tensor) -> Tensor:
     :return torch.Tensor : the output of the multiplier, same shape as :math:`x`
     """
     
-    assert x.dim() == filter.dim(), "Input and filter must have the same number of dimension"
+    assert x.dim() == mult.dim(), "Input and filter must have the same number of dimension"
     return mult * x
         
 def multiplier_adjoint(x: Tensor, mult: Tensor) -> Tensor:
@@ -31,5 +31,5 @@ def multiplier_adjoint(x: Tensor, mult: Tensor) -> Tensor:
     :return torch.Tensor : the output of the multiplier, same shape as :math:`x`
     """
     
-    assert x.dim() == filter.dim(), "Input and filter must have the same number of dimension"
+    assert x.dim() == mult.dim(), "Input and filter must have the same number of dimension"
     return torch.conj(mult) * x

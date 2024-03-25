@@ -1,6 +1,8 @@
 import torch
 from torch import Tensor
-from deepinv.physics.functional import conv2d, conv_transpose2d, multiplier, multiplier_adjoint
+from deepinv.physics.functional.multiplier import multiplier, multiplier_adjoint
+from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
+
 
 def product_convolution(x: Tensor, w: Tensor, h: Tensor) -> Tensor:
     r"""
@@ -15,52 +17,36 @@ def product_convolution(x: Tensor, w: Tensor, h: Tensor) -> Tensor:
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
 
     :param torch.Tensor x: Tensor of size (B, C, ...)
-    :param torch.Tensor w: Tensor of size (K, c, ...)
-    :param torch.Tensor h: Tensor of size (K, c, ...)
+    :param torch.Tensor w: Tensor of size (K, b, c, ...)
+    :param torch.Tensor h: Tensor of size (K, b, c, ...)
 
     """
     
     K = w.shape[0]
-    result = torch.zeros_like(x)
     for k in range(K):
-        xk = multiplier(x, w[k])
-        result += conv2d(xk, h[k])
+        if k==0:
+            result = conv2d(multiplier(x, w[k]), h[k])
+        else:
+            result += conv2d(multiplier(x, w[k]), h[k])
         
     return result
 
-def product_convolution_adjoint(x: Tensor, w: Tensor, h: Tensor) -> Tensor:
+def product_convolution_adjoint(y: Tensor, w: Tensor, h: Tensor) -> Tensor:
     r"""
 
     Product-convolution adjoint operator. 
         
     :param torch.Tensor x: Tensor of size (B, C, ...)
-    :param torch.Tensor w: Tensor of size (K, c, ...)
-    :param torch.Tensor h: Tensor of size (K, c, ...)
+    :param torch.Tensor w: Tensor of size (K, b, c, ...)
+    :param torch.Tensor h: Tensor of size (K, b, c, ...)
     """
     
     K = w.shape[0]
-    result = torch.zeros_like(x)
     for k in range(K):
-        xk =  conv_transpose2d(x, h[k])
-        result += multiplier_adjoint(xk, w[k])
-    
+        if k==0:
+            result = multiplier_adjoint(conv_transpose2d(y, h[k]), w[k])
+        else:
+            result += multiplier_adjoint(conv_transpose2d(y, h[k]), w[k])
+            
     return result
 
-
-if __name__ == "main":
-    import deepinv as dinv
-    import torch
-    from deepinv.utils.plotting import plot
-    from deepinv.utils.demo import load_url_image, get_image_url
-    from deepinv.physics.generator.blur import DiffractionBlurGenerator
-    
-    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    
-    url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url, grayscale=False).to(device)
-    x = torch.tensor(x, device=device, dtype=torch.float)
-    plot(x)
-    
-    
-    
-    

@@ -6,10 +6,12 @@ import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
-    convolution,
+    conv2d,
     conv_transpose2d,
     filter_fft_2d,
-    downsample
+    downsample, 
+    product_convolution, 
+    product_convolution_adjoint
 )
 
 
@@ -269,10 +271,9 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter, padding="circular", device="cpu", **kwargs):
+    def __init__(self, filter, padding="circular", **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
-        self.device = device
 
     def A(self, x, theta=None):
         r"""
@@ -412,10 +413,9 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
     
-    def __init__(self, method, params=None, device="cpu", **kwargs):
+    def __init__(self, method, params=None, **kwargs):
         super().__init__(**kwargs)
         self.method = method
-        self.device = device
         if self.method == 'product_convolution':
             if params is not None:
                 if 'w' in params:
@@ -443,7 +443,104 @@ class SpaceVaryingBlur(LinearPhysics):
                 
         return product_convolution_adjoint(y, self.w, self.h)
 
+
 # # test code
+if __name__ == "__main__":
+    #%%
+    import deepinv as dinv
+    from deepinv.utils.plotting import plot
+    from deepinv.utils.demo import load_url_image, get_image_url
+    from deepinv.physics.generator.blur import DiffractionBlurGenerator, MotionBlurGenerator
+    from deepinv.physics.functional.interp import ThinPlateSpline
+    from deepinv.physics.blur import SpaceVaryingBlur
+    
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    dtype = torch.float32
+    
+    #%%
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url, grayscale=False).to(device)
+    x = torch.tensor(x, device=device, dtype=torch.float)
+    n0, n1 = x.shape[-2:]
+    
+    #%%
+    B = 1024
+    psf_size = 41
+    generator = DiffractionBlurGenerator((B, 1, psf_size, psf_size), fc=0.25, device=device)
+    psfs = generator.step()
+    plot(psfs)
+    
+    #%%
+    q = 4
+    psfs_reshape = psfs.reshape(B, psf_size*psf_size)
+    U, S, V = torch.svd_lowrank(psfs_reshape, q=q)
+    eigen_psf = (V.T).reshape(q, psf_size, psf_size)[:,None,None]
+    coeffs = (psfs_reshape@V)
+    mu = torch.mean(coeffs, 0)
+    sigma = torch.std(coeffs, 0)
+    
+    plot(eigen_psf[:,0])
+        
+    #%% 
+    spacing_psf =  2 * psf_size
+    T0 = torch.linspace(0, 1, n0//spacing_psf, device=device, dtype=dtype)
+    T1 = torch.linspace(0, 1, n1//spacing_psf, device=device, dtype=dtype)
+    yy, xx = torch.meshgrid(T0, T1)
+    X = torch.stack((yy.flatten(), xx.flatten()),dim=1)
+    C = mu[None,:] + torch.randn(X.shape[0], q, device=device) * sigma[None,:]
+    tps = ThinPlateSpline(0.0, device)
+    tps.fit(X, C)
+    T0 = torch.linspace(0, 1, n0, device=device, dtype=dtype)
+    T1 = torch.linspace(0, 1, n1, device=device, dtype=dtype)
+    yy, xx = torch.meshgrid(T0, T1)
+    w = tps.transform(torch.stack((yy.flatten(), xx.flatten()),dim=1)).T
+    w = w.reshape(q, n0, n1)[:, None, None]
+    
+    #%% 
+    params_blur = {'h': eigen_psf, 'w': w}
+    svb = SpaceVaryingBlur(method='product_convolution', params=params_blur)
+    
+    #%% 
+    y = svb(x)
+    plot([x,y], titles=['original', 'blurred image'])
+
+    def dirac_comb(shape, spacing, color='False', device='cpu', dtype='torch.float32'):
+        r"""
+        
+        Creates a Dirac comb size shape and spacing delta
+
+        Parameters
+        ----------
+        shape : tuple
+            used to define the tensor's shape.
+        delta : int 
+            spacing between Dirac masses.
+
+        Returns
+        -------
+        x: Tensor Dirac comb
+
+        """
+        # Create a list of 1D Dirac comb tensors along each dimension
+        dirac_combs = [torch.zeros((shape[i],), device=device, dtype=dtype) for i in range(len(shape))]
+        
+        # Set values to 1 at positions determined by the spacing along each dimension
+        for i in range(len(shape)):
+            dirac_combs[i][::spacing] = 1
+        
+        # Use torch.tensordot to compute the tensor product of all 1D Dirac combs
+        result = dirac_combs[0]
+        for i in range(1, len(shape)):
+            result = torch.tensordot(result, dirac_combs[i], dims=0)
+        
+        return result
+    
+    dc = dirac_comb(x.shape[2:], psf_size, device=device, dtype=dtype)
+    dc = dc[None,None].repeat(1, 3, 1, 1)
+    y = svb(dc)
+    plot([dc, y], titles=['Dirac grid', 'blurred Dirac grid'])
+
+
 # if __name__ == "__main__":
 #     device = "cuda:0"
 #

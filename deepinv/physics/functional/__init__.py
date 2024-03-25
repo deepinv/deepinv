@@ -6,6 +6,11 @@ from .convolution import (
     filter_fft_2d,
 )
 
+from .product_convolution import(
+    product_convolution, 
+    product_convolution_adjoint
+)
+
 from .multiplier import(
     multiplier, 
     multiplier_adjoint,
@@ -14,3 +19,4 @@ from .multiplier import(
 from .hist import histogram, histogramdd
 from .downsampling import downsample
 from .radon import Radon, IRadon
+from .interp import ThinPlateSpline
