@@ -14,7 +14,7 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 from dataclasses import dataclass, field
 from deepinv.utils import PSNR
 
@@ -117,7 +117,7 @@ class Trainer:
     losses: list
     physics: Physics = None
     optimizer: torch.optim.Optimizer = None
-    metrics: Union[torch.nn.Module, list[torch.nn.Module]] = PSNR()
+    metrics: Union[torch.nn.Module, List[torch.nn.Module]] = PSNR()
     grad_clip: float = None
     physics_generator: PhysicsGenerator = None
     noise_generator: PhysicsGenerator = None
