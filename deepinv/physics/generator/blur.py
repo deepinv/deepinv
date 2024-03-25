@@ -102,7 +102,7 @@ class MotionBlurGenerator(PSFGenerator):
             :, torch.arange(self.n_steps // (2 * torch.pi)).type(torch.int)
         ]
 
-    def __call__(self, sigma: float = None, l: float = None):
+    def step(self, sigma: float = None, l: float = None):
         r"""
         Generate a random motion blur PSF with parameters :math: '\sigma' and :math: `l`
 
@@ -233,7 +233,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
-    def __call__(self):
+    def step(self):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
 

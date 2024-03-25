@@ -30,20 +30,9 @@ class Generator(nn.Module):
 
         if not kwargs:
             self.kwargs = kwargs
-        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
-
-        new_params = self.__call__(*args, **self.kwargs)
-        # print(new_params.shape)
         
-        return new_params
-        
-
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-        r"""
-        Return new parameter
-        """
         return torch.zeros(self.shape)
-
+        
 
 class GeneratorMixture(Generator):
     r"""
@@ -70,12 +59,6 @@ class GeneratorMixture(Generator):
         p = np.random.uniform()
         idx = np.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-
-        p = np.random.uniform()
-        idx = np.searchsorted(self.cum_probs, p)
-        return self.generators[idx](*args, **kwargs)
 
 
 if __name__ == "__main__":
