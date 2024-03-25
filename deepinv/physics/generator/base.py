@@ -50,14 +50,9 @@ class PhysicsGenerator(nn.Module):
         """
         if not kwargs:
             self.kwargs = kwargs
-<<<<<<< HEAD
         
         return torch.zeros((batch_size, ) + self.shape)
         
-=======
->>>>>>> 6fa6d74c7b4711deac69a477c8429c0f6daaab83
-
-        return torch.zeros(self.shape)
 
 
 class GeneratorMixture(PhysicsGenerator):
@@ -81,13 +76,8 @@ class GeneratorMixture(PhysicsGenerator):
         """
         if not kwargs:
             self.kwargs = kwargs
-<<<<<<< HEAD
         #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = torch.rand(1).item() #np.random.uniform()
-=======
-        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
-        p = np.random.uniform()
->>>>>>> 6fa6d74c7b4711deac69a477c8429c0f6daaab83
         idx = np.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(*args, **kwargs)
 
