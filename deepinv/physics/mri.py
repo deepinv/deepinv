@@ -46,15 +46,17 @@ class MRI(DecomposablePhysics):
     def __init__(
         self,
         mask=None,
-        image_size=(320, 320),
+        img_size=(320, 320),
         device="cpu",
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.device = device
-        self.image_size = image_size
+        self.img_size = img_size
 
-        mask = mask.to(device).unsqueeze(0).unsqueeze(0)
+        mask = mask.to(device)
+        if len(mask.shape) == 2:
+            mask = mask.unsqueeze(0).unsqueeze(0)
 
         self.mask = torch.nn.Parameter(
             torch.cat([mask, mask], dim=1), requires_grad=False
@@ -76,7 +78,6 @@ class MRI(DecomposablePhysics):
     def V(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         x = x.permute(0, 2, 3, 1)
         return ifft2c_new(x).permute(0, 3, 1, 2)
-
 
 
 #

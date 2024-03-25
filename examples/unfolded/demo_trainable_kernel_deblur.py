@@ -26,6 +26,7 @@ from deepinv.models import DRUNet
 from tqdm import tqdm
 import torch.nn.functional as F
 from deepinv.optim.utils import conjugate_gradient
+import torch.nn as nn
 
 # %%
 # Setup paths for data loading and results.
@@ -112,9 +113,9 @@ prior = PnP(denoiser=DRUNet(train=True).to(device))
 # Define the unfolded trainable model.
 
 
-def tikhonov(y, physic):
-    operator = lambda x: physic.A_adjoint(physic.A(x)) + 5e-2 * x
-    b = physic.A_adjoint(y)
+def tikhonov(y, physics):
+    operator = lambda x: physics.A_adjoint(physics.A(x)) + 5e-2 * x
+    b = physics.A_adjoint(y)
     x_init = conjugate_gradient(operator, b, max_iter=40)
     u_init = y
     return {"est": (x_init, u_init)}
@@ -137,8 +138,12 @@ print(
 # %% Generate blur operator
 kernel_size = 15
 kernel_init = torch.zeros((batch_size, 1, kernel_size, kernel_size), **factory_kwargs)
+kernel_init = nn.Parameter(kernel_init)
+
 noise_model = GaussianNoise(0.03)
-physic = Blur(
+
+
+physics = Blur(
     filter=kernel_init,
     padding="valid",
     device=device,
@@ -146,31 +151,16 @@ physic = Blur(
     max_iter=40,
     tol=1e-5,
 )
-motion_gen = MotionBlurGenerator(
-    shape=(batch_size, 3, kernel_size, kernel_size), device=device
-)
-diffraction_gen = DiffractionBlurGenerator(
-    shape=(batch_size, 3, kernel_size, kernel_size), device=device
-)
-generator = GeneratorMixture([motion_gen, diffraction_gen], probs=[0.5, 0.5])
-generator.step()
 
-# dinv.utils.plot(physic.params)
-x = next(iter(train_dataloader))[0].to(**factory_kwargs)
-y = physic(x)
-x_hat = model(y, physic)
-dinv.utils.plot(x)
-dinv.utils.plot(y)
-dinv.utils.plot(x_hat)
-with torch.no_grad():
-    print(x_hat.min(), x_hat.max())
-    est = tikhonov(y, physic)
-    dinv.utils.plot(est["est"][0])
+physics.filter = physics.filter.requires_grad_(True).to(device)
+
 # %% Optimization parameters
 # num_epochs = 1000
 num_epochs = 10
 learning_rate = 1e-4
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(
+    [{"params": model.parameters()}, {"params": physics.parameters()}], lr=learning_rate
+)
 lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
     optimizer, T_max=num_epochs * len(train_dataloader), eta_min=1e-6
 )
@@ -185,12 +175,10 @@ for epoch in range(num_epochs):
     for i, (x, _) in enumerate(progress_bar):
         optimizer.zero_grad()
         x = x.to(device)
-        # Random generate a PSF for training
-        kernel = generator.step()
         # Measuring the blurry images
-        y = physic(x, theta=kernel)
+        y = physics(x)
         # Compute the estimation
-        x_hat = model(y, physic)
+        x_hat = model(y, physics)
 
         # Optimization
         loss = F.l1_loss(x_hat, x)
@@ -223,9 +211,9 @@ model.eval()
 with torch.no_grad():
     for j, n in enumerate(n_list):
         x = torch.randn((bs, 3, n, n), device=device, dtype=dtype)
-        y = physic(x)
+        y = physics(x)
 
-        timer = Timer(stmt="model(y, physic)", globals=globals(), num_threads=8)
+        timer = Timer(stmt="model(y, physics)", globals=globals(), num_threads=8)
 
         t = timer.blocked_autorange(min_run_time=5)
         print("size: %i -- time: %1.3e " % (n, t.median / (n**2)))

@@ -52,7 +52,7 @@ class Tomography(LinearPhysics):
                   [-2.4882, -2.1068, -2.5720]]]])
 
         Tomography operator with 3 uniformly sampled angles in [0, 360] for 3x3 image:
-            
+
         >>> from deepinv.physics import Tomography
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
@@ -77,11 +77,14 @@ class Tomography(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        ## I think the best would be to remove the linspace out of the function 
-        ## and put it in an example. If you want fixed angles given by a number of sampling 
+        ## I think the best would be to remove the linspace out of the function
+        ## and put it in an example. If you want fixed angles given by a number of sampling
         ## angles between 0 and 360, just do the linspace before calling the function
         if isinstance(angles, int) or isinstance(angles, float):
-            theta = torch.nn.Parameter(torch.linspace(0, 180, steps=angles + 1, device=device)[:-1], requires_grad=False).to(device)
+            theta = torch.nn.Parameter(
+                torch.linspace(0, 180, steps=angles + 1, device=device)[:-1],
+                requires_grad=False,
+            ).to(device)
         else:
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 

@@ -2,12 +2,12 @@
 import torch
 from typing import List, Tuple
 import numpy as np
-from deepinv.physics.generator import Generator
+from deepinv.physics.generator import PhysicsGenerator
 from math import ceil, floor
 from deepinv.physics.functional import histogramdd
 
 
-class PSFGenerator(Generator):
+class PSFGenerator(PhysicsGenerator):
     def __init__(
         self,
         shape: tuple,
@@ -70,7 +70,7 @@ class MotionBlurGenerator(PSFGenerator):
     def __init__(
         self,
         shape: tuple,
-        device: str = 'cpu',
+        device: str = "cpu",
         dtype: type = torch.float32,
         l: float = 0.3,
         sigma: float = 0.25,
@@ -89,7 +89,6 @@ class MotionBlurGenerator(PSFGenerator):
 
     # @torch.compile
     def f_matern(self, sigma: float = None, l: float = None):
-
         batch_size = self.shape[0]
         vec = torch.randn(batch_size, self.n_steps)
         time = torch.linspace(-torch.pi, torch.pi, self.n_steps)[None]
@@ -101,7 +100,7 @@ class MotionBlurGenerator(PSFGenerator):
             :, torch.arange(self.n_steps // (2 * torch.pi)).type(torch.int)
         ]
 
-    def step(self, sigma: float = None, l: float = None):
+    def step(self, batch_size: int = 1, sigma: float = None, l: float = None):
         r"""
         Generate a random motion blur PSF with parameters :math: '\sigma' and :math: `l`
 
@@ -111,6 +110,12 @@ class MotionBlurGenerator(PSFGenerator):
         :return: the generated PSF of shape `(batch_size, 1, kernel_size, kernel_size)`
         :rtype: torch.Tensor
         """
+        ## add batch size to the shape. We can have a different batch size at each call of step()
+        ## We enforce only one channel as the underlying generator code only works for one channel at the time
+        if self.shape[0] != 1:
+            self.shape = (batch_size, 1, self.shape[-2], self.shape[-1])
+        else:
+            self.shape = (batch_size, self.shape[-3], self.shape[-2], self.shape[-1])
 
         f_x = self.f_matern(sigma, l)[..., None]
         f_y = self.f_matern(sigma, l)[..., None]
@@ -149,7 +154,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     :Examples:
 
-    >>> generator = DiffractionBlurGenerator((1, 16, 16))
+    >>> generator = DiffractionBlurGenerator((16, 16))
     >>> filter = generator.step()
     >>> dinv.utils.plot(filter)
     >>> print(filter.shape)
@@ -160,13 +165,12 @@ class DiffractionBlurGenerator(PSFGenerator):
     def __init__(
         self,
         shape: tuple,
-        device: str = 'cpu',
+        device: str = "cpu",
         dtype: type = torch.float32,
         list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
         fc: float = 0.2,
         pupil_size: Tuple[int] = (256, 256),
     ):
-
         kwargs = {"list_param": list_param, "fc": fc, "pupil_size": pupil_size}
         super().__init__(shape, device=device, dtype=dtype, **kwargs)
 
@@ -220,11 +224,11 @@ class DiffractionBlurGenerator(PSFGenerator):
             )  # defining the k-th Zernike polynomial
 
     def __update__(self):
-        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
-    def step(self):
+    def step(self, batch_size: int = 1):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
 
@@ -232,6 +236,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         :rtype: torch.Tensor
         """
         self.__update__()
+        
+        ## add batch size to the shape. We can have a different batch size at each call of step()
+        self.shape = (batch_size, self.shape[-3], self.shape[-2], self.shape[-1])
+        
 
         coeff = self.generate_coeff()
 
@@ -337,16 +345,22 @@ def define_zernike():
     Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
     Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
     Z[20] = (
-        lambda x, y: sq12 * x * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12
+        * x
+        * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[21] = (
-        lambda x, y: sq12 * y * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12
+        * y
+        * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[22] = lambda x, y: sq7 * (
         20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
     )
     Z[23] = lambda x, y: 2 * sq14 * x * y * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    Z[24] = (
+        lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    )
     Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
     Z[26] = (
         lambda x, y: sq14
@@ -360,7 +374,10 @@ def define_zernike():
         * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
     )
     Z[28] = lambda x, y: sq14 * (
-        32 * x**6 - 48 * x**4 * r2(x, y) + 18 * x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
+        32 * x**6
+        - 48 * x**4 * r2(x, y)
+        + 18 * x**2 * r2(x, y) ** 2
+        - r2(x, y) ** 3
     )
     Z[29] = (
         lambda x, y: 4
@@ -387,12 +404,18 @@ def define_zernike():
     Z[33] = (
         lambda x, y: 4
         * (7 * r2(x, y) - 6)
-        * (4 * x**2 * y * (x**2 - y**2) + y * (r2(x, y) ** 2 - 8 * x**2 * y**2))
+        * (
+            4 * x**2 * y * (x**2 - y**2)
+            + y * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+        )
     )
     Z[34] = lambda x, y: (
         4
         * (7 * r2(x, y) - 6)
-        * (x * (r2(x, y) ** 2 - 8 * x**2 * y**2) - 4 * x * y**2 * (x**2 - y**2))
+        * (
+            x * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+            - 4 * x * y**2 * (x**2 - y**2)
+        )
     )
     Z[35] = lambda x, y: (
         8 * x**2 * y * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
@@ -462,11 +485,10 @@ def bump_function(x, a=1.0, b=1.0):
 # %%
 if __name__ == "__main__":
     import deepinv as dinv
-    from deepinv.physics import Blur
 
-    generator = DiffractionBlurGenerator((1, 16, 16))
+    generator = DiffractionBlurGenerator((16, 16))
     blur = generator.step()
-    print(generator.shape)
+    print(blur.shape)
     dinv.utils.plot(blur)
 
 # %%

@@ -91,7 +91,7 @@ class DDRM(nn.Module):
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   mask=0.5, img_size=(3, 32, 32),
         ...   noise_model=dinv.physics.GaussianNoise(0.1)
         ... )
         >>> y = physics(x) # measurements
@@ -255,7 +255,7 @@ class DiffPIR(nn.Module):
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   mask=0.5, img_size=(3, 32, 32),
         ...   noise_model=dinv.physics.GaussianNoise(0.1)
         ... )
         >>> y = physics(x) # Measurements
