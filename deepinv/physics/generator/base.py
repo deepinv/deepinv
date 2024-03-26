@@ -88,6 +88,9 @@ class GeneratorMixture(PhysicsGenerator):
 
 
 
+if __name__ == "__main__":
+    # %%
+
     class Physic(nn.Module):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
@@ -100,8 +103,6 @@ class GeneratorMixture(PhysicsGenerator):
         def forward(self, *args, **kwargs):
             pass
 
-if __name__ == "__main__":
-    # %%
     P = Physic()
     print(P.params)
     g1 = PhysicsGenerator(P.params, l=1, n=2)
