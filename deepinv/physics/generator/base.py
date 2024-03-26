@@ -100,6 +100,7 @@ class GeneratorMixture(PhysicsGenerator):
         def forward(self, *args, **kwargs):
             pass
 
+if __name__ == "__main__":
     # %%
     P = Physic()
     print(P.params)
