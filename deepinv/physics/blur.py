@@ -423,30 +423,27 @@ class SpaceVaryingBlur(LinearPhysics):
                 if 'h' in params:
                     self.h = params['h']
             
-    def A(self, x: Tensor, params=None) -> Tensor:
+    def A(self, x: Tensor, h=None, w=None) -> Tensor:
         if self.method == 'product_convolution':
-            if params is not None:
-                if 'w' in params:
-                    self.w = params['w']
-                if 'h' in params:
-                    self.h = params['h']
+            if w is not None:
+                self.w = w
+            if h is not None:
+                self.h = h
                 
             return product_convolution(x, self.w, self.h)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    def A_adjoint(self, y: Tensor, params=None) -> Tensor:
+    def A_adjoint(self, y: Tensor, h=None, w=None) -> Tensor:
         if self.method == 'product_convolution':
-            if params is not None:
-                if 'w' in params:
-                    self.w = params['w']
-                if 'h' in params:
-                    self.h = params['h']
+            if w is not None:
+                self.w = w
+            if h is not None:
+                self.h = h
                 
             return product_convolution_adjoint(y, self.w, self.h)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
-
 
 # # test code
 if __name__ == "__main__":
@@ -503,7 +500,7 @@ if __name__ == "__main__":
     #%% 
     params_blur = {'h': eigen_psf, 'w': w}
     svb = SpaceVaryingBlur(method='product_convolution', params=params_blur)
-    
+        
     #%% 
     y = svb(x)
     plot([x,y], titles=['original', 'blurred image'])

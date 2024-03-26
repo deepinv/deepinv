@@ -12,8 +12,6 @@ GENERATORS = [
 MIXTURES = list(itertools.combinations(GENERATORS, 2))
 
 SIZES = [
-    5,
-    (5,),
     (5, 5),
     (3, 5, 5),
     (2, 3, 5, 5)
