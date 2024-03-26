@@ -294,24 +294,23 @@ class Trainer:
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
-        :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
+        :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.
         """
         x, _ = next(
             iterators[g]
         )  # In this case the dataloader outputs also a class label
         x = x.to(self.device)
 
-        physics_generator = self.physics_generator[g]
-        if physics_generator is not None:
-            theta = physics_generator.step(x.size(0))
+        physics = self.physics[g]
+
+        if self.physics_generator[g] is not None:
+            params = self.physics_generator[g].step(x.size(0))
+            y = physics(x, **params)
         else:
-            theta = {}
+            y = physics(x)
 
-        physics_cur = self.physics[g]
+        return x, y, physics
 
-        y = physics_cur(x, **theta)
-
-        return x, y, physics_cur
 
     def get_samples_offline(self, iterators, g):
         r"""
