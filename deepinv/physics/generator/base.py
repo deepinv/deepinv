@@ -71,7 +71,7 @@ class GeneratorMixture(PhysicsGenerator):
     """
 
     def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
-        super().__init__(generators[0].shape)
+        super().__init__()
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs

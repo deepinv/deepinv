@@ -77,7 +77,8 @@ class MotionBlurGenerator(PSFGenerator):
         n_steps: int = 1000,
     ) -> None:
         kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
-        super().__init__(shape, device=device, dtype=dtype, **kwargs)
+        self.shape = shape
+        super().__init__(device=device, dtype=dtype, **kwargs)
 
     def matern_kernel(self, diff, sigma: float = None, l: float = None):
         if sigma is None:
@@ -173,7 +174,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         pupil_size: Tuple[int] = (256, 256),
     ):
         kwargs = {"list_param": list_param, "fc": fc, "pupil_size": pupil_size}
-        super().__init__(shape, device=device, dtype=dtype, **kwargs)
+        self.shape = shape
+        super().__init__(device=device, dtype=dtype, **kwargs)
 
         self.list_param = list_param  # list of parameters to provide
 
