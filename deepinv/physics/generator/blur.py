@@ -135,7 +135,7 @@ class MotionBlurGenerator(PSFGenerator):
         kernel = torch.cat(kernels, dim=0)
         kernel = kernel / torch.sum(kernel, dim=(-2, -1), keepdim=True)
         
-        return torch.fft.fftshift(kernel, dim=(-2,-1))
+        return kernel
 
 
 class DiffractionBlurGenerator(PSFGenerator):
@@ -257,7 +257,7 @@ class DiffractionBlurGenerator(PSFGenerator):
             self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
             self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
         ].unsqueeze(1)
-        psf = torch.fft.fftshift(psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True), dim=(-2,-1))
+        psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
 
         return psf.expand(-1, self.shape[1], -1, -1)
 

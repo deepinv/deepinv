@@ -405,7 +405,7 @@ class SpaceVaryingBlur(LinearPhysics):
      
     :param str method: method 'product_convolution'
     :param list params: list of parameters describing the method. 
-        'product_convolution': params is a list [w, h], see deepinv.physics.functional.product_convolution
+        'product_convolution': params is a list [w, h, params], see deepinv.physics.functional.product_convolution
     :param str device: cpu or cuda
     
     |sep|
@@ -423,26 +423,33 @@ class SpaceVaryingBlur(LinearPhysics):
                     self.w = params['w']
                 if 'h' in params:
                     self.h = params['h']
+                if 'padding' in params:
+                    self.padding = params['padding']
             
-    def A(self, x: Tensor, h=None, w=None) -> Tensor:
+    def A(self, x: Tensor, h=None, w=None, padding=None) -> Tensor:
         if self.method == 'product_convolution':
             if w is not None:
                 self.w = w
             if h is not None:
                 self.h = h
+            if padding is not None:
+                self.padding = padding
                 
-            return product_convolution(x, self.w, self.h)
+                
+            return product_convolution(x, self.w, self.h, self.padding)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    def A_adjoint(self, y: Tensor, h=None, w=None) -> Tensor:
+    def A_adjoint(self, y: Tensor, h=None, w=None, padding=None) -> Tensor:
         if self.method == 'product_convolution':
             if w is not None:
                 self.w = w
             if h is not None:
                 self.h = h
+            if padding is not None:
+                self.padding = padding
                 
-            return product_convolution_adjoint(y, self.w, self.h)
+            return product_convolution_adjoint(y, self.w, self.h, self.padding)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
@@ -500,7 +507,7 @@ if __name__ == "__main__":
     plot(w[:,0])
 
     #%% 
-    params_blur = {'h': eigen_psf, 'w': w}
+    params_blur = {'h': eigen_psf, 'w': w, 'padding': 'reflect'}
     svb = SpaceVaryingBlur(method='product_convolution', params=params_blur)
         
     #%% 
@@ -508,7 +515,6 @@ if __name__ == "__main__":
     plot([x,y], titles=['original', 'blurred image'])
 
     dc = torch.zeros_like(x)
-    # dc[0,:,20,20] = 1
     dc[:,:,psf_size//2:-psf_size//2:2*psf_size,psf_size//2:-psf_size//2:2*psf_size] = 1
     y = svb(dc)
     plot([dc, y], titles=['Dirac grid', 'blurred Dirac grid'])
