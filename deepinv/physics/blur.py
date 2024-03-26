@@ -432,6 +432,8 @@ class SpaceVaryingBlur(LinearPhysics):
                     self.h = params['h']
                 
             return product_convolution(x, self.w, self.h)
+        else:
+            raise NotImplementedError("Method not implemented in product-convolution")
 
     def A_adjoint(self, y: Tensor, params=None) -> Tensor:
         if self.method == 'product_convolution':
@@ -441,7 +443,9 @@ class SpaceVaryingBlur(LinearPhysics):
                 if 'h' in params:
                     self.h = params['h']
                 
-        return product_convolution_adjoint(y, self.w, self.h)
+            return product_convolution_adjoint(y, self.w, self.h)
+        else:
+            raise NotImplementedError("Method not implemented in product-convolution")
 
 
 # # test code
@@ -464,15 +468,15 @@ if __name__ == "__main__":
     n0, n1 = x.shape[-2:]
     
     #%%
-    B = 1024
+    n_psfs = 1024
     psf_size = 41
-    generator = DiffractionBlurGenerator((B, 1, psf_size, psf_size), fc=0.25, device=device)
-    psfs = generator.step()
+    generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25, device=device)
+    psfs = generator.step(n_psfs)
     plot(psfs)
     
     #%%
-    q = 4
-    psfs_reshape = psfs.reshape(B, psf_size*psf_size)
+    q = 10
+    psfs_reshape = psfs.reshape(n_psfs, psf_size*psf_size)
     U, S, V = torch.svd_lowrank(psfs_reshape, q=q)
     eigen_psf = (V.T).reshape(q, psf_size, psf_size)[:,None,None]
     coeffs = (psfs_reshape@V)
@@ -540,9 +544,9 @@ if __name__ == "__main__":
     y = svb(dc)
     plot([dc, y], titles=['Dirac grid', 'blurred Dirac grid'])
 
-    #%%
-    w = torch.ones((1, 1, 2, 2)) / 4
-    physics = BlurFFT(filter=w, img_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
+    # #%%
+    # w = torch.ones((1, 1, 2, 2)) / 4
+    # physics = BlurFFT(filter=w, img_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
 
 # if __name__ == "__main__":
 #     device = "cuda:0"
