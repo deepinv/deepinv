@@ -25,6 +25,81 @@ class PSFGenerator(PhysicsGenerator):
         self.dirac_mass[..., kernel_size[0] // 2, kernel_size[1] // 2] = 1.0
 
 
+class ProductConvolutionBlurGenerator(PSFGenerator):
+    r"""
+    Generates a dictionary {'h', 'w'} of parameters to be used within :meth:`deepinv.physics.blur.SpaceVaryingBlur`
+
+    :param tuple shape: 
+    :param list[str] list_param: list of activated Zernike coefficients, defaults to `["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]`
+    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
+    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
+            If a int is given, a square pupil is considered.
+
+    :return: a DiffractionBlurGenerator object
+
+    |sep|
+
+    :Examples:
+
+    >>> generator = DiffractionBlurGenerator((16, 16))
+    >>> filter = generator.step()
+    >>> dinv.utils.plot(filter)
+    >>> print(filter.shape)
+    torch.Size([1, 1, 16, 16])
+
+    """
+    
+    def __init__(
+        self,
+        shape: tuple,
+        device: str = "cpu",
+        dtype: type = torch.float32,
+        l: float = 0.3,
+        sigma: float = 0.25,
+        n_steps: int = 1000,
+    ) -> None:
+        kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
+        super().__init__(shape=shape, device=device, dtype=dtype, **kwargs)
+
+    
+    n_psfs = 1024
+    psf_size = 41
+    generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25, device=device)
+    psfs = generator.step(n_psfs)
+    plot(psfs)
+    
+    #%%
+    q = 10
+    psfs_reshape = psfs.reshape(n_psfs, psf_size*psf_size)
+    U, S, V = torch.svd_lowrank(psfs_reshape, q=q)
+    eigen_psf = (V.T).reshape(q, psf_size, psf_size)[:,None,None]
+    coeffs = (psfs_reshape@V)
+    mu = torch.mean(coeffs, 0)
+    sigma = torch.std(coeffs, 0)
+    
+    plot(eigen_psf[:,0])
+        
+    #%% 
+    spacing_psf =  2 * psf_size
+    T0 = torch.linspace(0, 1, n0//spacing_psf, device=device, dtype=dtype)
+    T1 = torch.linspace(0, 1, n1//spacing_psf, device=device, dtype=dtype)
+    yy, xx = torch.meshgrid(T0, T1)
+    X = torch.stack((yy.flatten(), xx.flatten()),dim=1)
+    C = mu[None,:] + torch.randn(X.shape[0], q, device=device) * sigma[None,:]
+    tps = ThinPlateSpline(0.0, device)
+    tps.fit(X, C)
+    T0 = torch.linspace(0, 1, n0, device=device, dtype=dtype)
+    T1 = torch.linspace(0, 1, n1, device=device, dtype=dtype)
+    yy, xx = torch.meshgrid(T0, T1)
+    w = tps.transform(torch.stack((yy.flatten(), xx.flatten()),dim=1)).T
+    w = w.reshape(q, n0, n1)[:, None, None]
+    plot(w[:,0])
+
+    #%% 
+    params_blur = {'h': eigen_psf, 'w': w, 'padding': 'reflect'}
+    
+    
+
 class MotionBlurGenerator(PSFGenerator):
     r"""
     Random motion blurs generator, `reference <https://arxiv.org/pdf/1406.7444.pdf>`_.
@@ -135,7 +210,7 @@ class MotionBlurGenerator(PSFGenerator):
         kernel = torch.cat(kernels, dim=0)
         kernel = kernel / torch.sum(kernel, dim=(-2, -1), keepdim=True)
         
-        return kernel
+        return {'filter': kernel}
 
 
 class DiffractionBlurGenerator(PSFGenerator):
@@ -149,6 +224,7 @@ class DiffractionBlurGenerator(PSFGenerator):
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
             If a int is given, a square pupil is considered.
+    :param float max_zernike_amplitude: range for the Zernike coefficient linear combination, defaults to 0.2.
 
     :return: a DiffractionBlurGenerator object
 
@@ -171,6 +247,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         dtype: type = torch.float32,
         list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
         fc: float = 0.2,
+        max_zernike_amplitude: float = 0.15,
         pupil_size: Tuple[int] = (256, 256),
     ):
         kwargs = {"list_param": list_param, "fc": fc, "pupil_size": pupil_size}
@@ -241,7 +318,6 @@ class DiffractionBlurGenerator(PSFGenerator):
         
         ## add batch size to the shape. We can have a different batch size at each call of step()
         self.shape = (batch_size, self.shape[-3], self.shape[-2], self.shape[-1])
-        
 
         coeff = self.generate_coeff()
 
@@ -259,12 +335,12 @@ class DiffractionBlurGenerator(PSFGenerator):
         ].unsqueeze(1)
         psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
 
-        return psf.expand(-1, self.shape[1], -1, -1)
+        return {'filter': psf.expand(-1, self.shape[1], -1, -1)}
 
     def generate_coeff(self):
         batch_size = self.shape[0]
         coeff = torch.rand((batch_size, len(self.list_param)), **self.factory_kwargs)
-        coeff = (coeff - 0.5) * 0.3
+        coeff = 2 * (coeff - 0.5) * self.max_zernike_amplitude
         return coeff
 
 
