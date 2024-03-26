@@ -17,7 +17,6 @@ SIZES = [
     (2, 3, 5, 5)
 ]
 
-
 list_2d = [[(GENERATORS[i], SIZES[j]) for j in range(len(SIZES)) ] for i in range(len(GENERATORS))]
 list_names_shape = [item for row in list_2d for item in row]
 

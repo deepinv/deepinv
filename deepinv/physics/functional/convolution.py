@@ -36,8 +36,8 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
         filter = filter.expand(B, -1, -1, -1)
 
     if padding != "valid":
-        ph = int((h - 1) / 2)
-        pw = int((w - 1) / 2)
+        ph = (h - 1) // 2
+        pw = (w - 1) // 2
         pad = (pw, pw, ph, ph)
 
         # For treating the filter of even shape, but might not be necessary
@@ -85,8 +85,8 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
     B, C, H, W = y.size()
     b, c, h, w = filter.size()
 
-    ph = int((h - 1) / 2)
-    pw = int((w - 1) / 2)
+    ph = (h - 1) // 2
+    pw = (w - 1) // 2
 
     if c != C:
         assert c == 1

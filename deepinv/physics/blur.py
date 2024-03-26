@@ -497,7 +497,8 @@ if __name__ == "__main__":
     yy, xx = torch.meshgrid(T0, T1)
     w = tps.transform(torch.stack((yy.flatten(), xx.flatten()),dim=1)).T
     w = w.reshape(q, n0, n1)[:, None, None]
-    
+    plot(w[:,0])
+
     #%% 
     params_blur = {'h': eigen_psf, 'w': w}
     svb = SpaceVaryingBlur(method='product_convolution', params=params_blur)
@@ -506,39 +507,9 @@ if __name__ == "__main__":
     y = svb(x)
     plot([x,y], titles=['original', 'blurred image'])
 
-    def dirac_comb(shape, spacing, color='False', device='cpu', dtype='torch.float32'):
-        r"""
-        
-        Creates a Dirac comb size shape and spacing delta
-
-        Parameters
-        ----------
-        shape : tuple
-            used to define the tensor's shape.
-        delta : int 
-            spacing between Dirac masses.
-
-        Returns
-        -------
-        x: Tensor Dirac comb
-
-        """
-        # Create a list of 1D Dirac comb tensors along each dimension
-        dirac_combs = [torch.zeros((shape[i],), device=device, dtype=dtype) for i in range(len(shape))]
-        
-        # Set values to 1 at positions determined by the spacing along each dimension
-        for i in range(len(shape)):
-            dirac_combs[i][::spacing] = 1
-        
-        # Use torch.tensordot to compute the tensor product of all 1D Dirac combs
-        result = dirac_combs[0]
-        for i in range(1, len(shape)):
-            result = torch.tensordot(result, dirac_combs[i], dims=0)
-        
-        return result
-    
-    dc = dirac_comb(x.shape[2:], psf_size, device=device, dtype=dtype)
-    dc = dc[None,None].repeat(1, 3, 1, 1)
+    dc = torch.zeros_like(x)
+    # dc[0,:,20,20] = 1
+    dc[:,:,psf_size//2:-psf_size//2:2*psf_size,psf_size//2:-psf_size//2:2*psf_size] = 1
     y = svb(dc)
     plot([dc, y], titles=['Dirac grid', 'blurred Dirac grid'])
 
