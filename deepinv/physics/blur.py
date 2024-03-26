@@ -591,8 +591,3 @@ if __name__ == "__main__":
 #
 #     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
 #     plt.show()
-=======
-    y3 = physics(y, w2, 1.0)
-
-    dinv.utils.plot([x, y, y2, y3])
->>>>>>> 09a4c25780a4f5bacb47714e0350746cd073ed62
