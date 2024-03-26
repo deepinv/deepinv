@@ -28,6 +28,9 @@ Operators can be called with the ``forward`` method, for example
     y = physics(x) # compute noisy measurements
 
 
+Introduction
+------------
+
 All forward operators inherit the structure of the ``Physics`` class.
 
 .. autosummary::
@@ -81,7 +84,7 @@ have additional methods.
 
 
 Generators
-------------
+^^^^^^^^^^^
 The generators are used to
 
 .. autosummary::
@@ -101,10 +104,10 @@ The generators are used to
     physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(1))
     y = physics(x) # compute with Gaussian blur
     generator = dinv.physics.generator.MotionBlurGenerator((1, 5, 5))
-    # kernel = generator.step() # generate new motion blur kernel
-    # y1 = physics(x, kernel) # compute with motion blur
-    # y2 = physics(x) # motion kernel is stored in the physics object as default kernel
-    # assert torch.all_close(y1, y2) # same result
+    kernel = generator.step() # generate new motion blur kernel
+    y1 = physics(x, kernel) # compute with motion blur
+    y2 = physics(x) # motion kernel is stored in the physics object as default kernel
+    assert torch.all_close(y1, y2) # same result
 
 Applications
 ------------
@@ -113,6 +116,8 @@ Various popular forward operators are provided with state-of-the-art implementat
 
 Diagonal operators
 ^^^^^^^^^^^^^^^^^^
+Diagonal operators operate in the pixel domain and are used for denoising, inpainting, decolorization, etc.
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -123,7 +128,7 @@ Diagonal operators
    deepinv.physics.Decolorize
 
 Blur & Super-Resolution
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 Different types of blur operators are available.
 They can be stationary (convolutions) or space-varying. Also, we integrated super-resolution applications by composing blurs with downsampling.
 
@@ -145,7 +150,7 @@ We provide the implementation of typical blur kernels such as Gaussian, bilinear
    :nosignatures:
 
    deepinv.physics.blur.gaussian_blur
-   deepínv.physics.blur.bilinear_filter
+   deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
 
 
@@ -170,6 +175,9 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    :nosignatures:
 
    deepinv.physics.MRI
+
+
+We provide generators for sampling acceleration masks:
 
 .. autosummary::
    :toctree: stubs
@@ -207,7 +215,8 @@ Remote sensing operators are used to simulate the acquisition of satellite data.
 Compressive operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The field of compressed sensing initially suggested to use white Gaussian or Bernoulli random vectors. These operators are implented in the following functions.
+The field of compressed sensing initially suggested to use white Gaussian or Bernoulli random vectors.
+These operators are implemented in the following functions.
 
 .. autosummary::
    :toctree: stubs
@@ -220,7 +229,7 @@ The field of compressed sensing initially suggested to use white Gaussian or Ber
 
 Single-photon lidar
 ^^^^^^^^^^^^^^^^^^^^^^^
-
+Single-photon lidar is a popular technique for depth ranging and imaging.
 
 .. autosummary::
    :toctree: stubs
@@ -232,6 +241,8 @@ Single-photon lidar
 
 Dehazing
 ^^^^^^^^^^^^^
+Haze operators are used to capture the physics of light scattering in the atmosphere.
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
