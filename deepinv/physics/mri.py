@@ -45,7 +45,7 @@ class MRI(DecomposablePhysics):
 
     def __init__(
         self,
-        mask=None,
+        mask,
         img_size=(320, 320),
         device="cpu",
         **kwargs,

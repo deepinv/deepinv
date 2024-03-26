@@ -55,7 +55,7 @@ from deepinv import unfolded
 
 __all__ += ["unfolded"]
 
-from deepinv.training_utils import train, test
+from deepinv.training_utils import train, test, Trainer
 
 # GLOBAL PROPERTY
 dtype = torch.float

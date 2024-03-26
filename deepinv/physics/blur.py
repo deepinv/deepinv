@@ -159,16 +159,16 @@ class Downsampling(LinearPhysics):
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
-    def A(self, x, theta=None):
+    def A(self, x, filter=None, **kwargs):
         r"""
         Applies the downsampling operator to the input image.
 
         :param torch.Tensor x: input image.
-        :param None, torch.Tensor theta: Filter :math:`h` to be applied to the input image before downsampling.
+        :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if theta is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(theta))
+        if filter is not None:
+            self.filter = torch.nn.Parameter(torch.tensor(filter))
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -176,17 +176,17 @@ class Downsampling(LinearPhysics):
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
         return x
 
-    def A_adjoint(self, y, theta=None):
+    def A_adjoint(self, y, filter=None, **kwargs):
         r"""
         Adjoint operator of the downsampling operator.
 
 
         :param torch.Tensor y: downsampled image.
-        :param None, torch.Tensor theta: Filter :math:`h` to be applied to the input image before downsampling.
+        :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if theta is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(theta))
+        if filter is not None:
+            self.filter = torch.nn.Parameter(torch.tensor(filter))
 
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
@@ -271,35 +271,36 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter, padding="circular", **kwargs):
+    def __init__(self, filter, padding="circular", device='cpu', **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
+        self.filter = filter.to(device)
 
-    def A(self, x, theta=None):
+    def A(self, x, filter=None, **kwargs):
         r"""
         Applies the filter to the input image.
 
         :param torch.Tensor x: input image.
-        :param torch.Tensor theta: Filter :math:`w` to be applied to the input image.
+        :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        if theta is not None:
-            self.filter = theta
+        if filter is not None:
+            self.filter = filter
         return conv2d(x, self.filter, self.padding)
 
-    def A_adjoint(self, y, theta=None):
+    def A_adjoint(self, y, filter=None, **kwargs):
         r"""
         Adjoint operator of the blur operator.
 
         :param torch.Tensor y: blurred image.
-        :param torch.Tensor theta: Filter :math:`w` to be applied to the input image.
+        :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
 
-        if theta is not None:
-            self.filter = theta
+        if filter is not None:
+            self.filter = filter
         return conv_transpose2d(y, self.filter, self.padding)
 
 
@@ -319,9 +320,9 @@ class BlurFFT(DecomposablePhysics):
 
 
 
+    :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
         :meth:`deepinv.physics.blur.gaussian_filter`.
-    :param tuple img_size: Input image size in the form (C, H, W).
     :param str device: cpu or cuda
 
     |sep|
@@ -344,10 +345,10 @@ class BlurFFT(DecomposablePhysics):
 
     """
 
-    def __init__(self, filter, img_size, device="cpu", **kwargs):
+    def __init__(self, img_size, filter, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.img_size = img_size
         self.device = device
+        self.img_size = img_size
         self.set_mask(filter)
 
     def set_mask(self, filter):
@@ -361,14 +362,14 @@ class BlurFFT(DecomposablePhysics):
         self.mask = torch.abs(self.mask).unsqueeze(-1)
         self.mask = torch.cat([self.mask, self.mask], dim=-1)
 
-    def A(self, x, theta=None):
-        if theta is not None:
-            self.set_mask(theta)
+    def A(self, x, filter=None, **kwargs):
+        if filter is not None:
+            self.set_mask(filter)
         return super().A(x)
 
-    def A_adjoint(self, x, theta=None):
-        if theta is not None:
-            self.set_mask(theta)
+    def A_adjoint(self, x, filter=None, **kwargs):
+        if filter is not None:
+            self.set_mask(filter)
         return super().A_adjoint(x)
 
     def V_adjoint(self, x):

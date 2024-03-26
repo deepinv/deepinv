@@ -120,7 +120,6 @@ class Trainer:
     metrics: Union[torch.nn.Module, List[torch.nn.Module]] = PSNR()
     grad_clip: float = None
     physics_generator: PhysicsGenerator = None
-    noise_generator: PhysicsGenerator = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
@@ -192,9 +191,6 @@ class Trainer:
 
         if type(self.physics_generator) is not list:
             self.physics_generator = [self.physics_generator]
-
-        if type(self.noise_generator) is not list:
-            self.noise_generator = [self.noise_generator]
 
         # gradient clipping
         if self.check_grad:
@@ -309,17 +305,11 @@ class Trainer:
         if physics_generator is not None:
             theta = physics_generator.step(x.size(0))
         else:
-            theta = None
-
-        noise_generator = self.noise_generator[g]
-        if noise_generator is not None:
-            noise_level = noise_generator.step(x.size(0))
-        else:
-            noise_level = None
+            theta = {}
 
         physics_cur = self.physics[g]
 
-        y = physics_cur(x, theta, noise_level)
+        y = physics_cur(x, **theta)
 
         return x, y, physics_cur
 
