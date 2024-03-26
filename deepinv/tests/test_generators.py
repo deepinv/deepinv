@@ -1,6 +1,5 @@
 import pytest
 import torch
-import numpy as np
 import deepinv as dinv
 import itertools
 

@@ -52,7 +52,7 @@ class PhysicsGenerator(nn.Module):
             self.kwargs = kwargs
         
         return self.step_func(**kwargs)
-        
+
     def __add__(self, other):
         def step(**kwargs):
             x = self.step(**kwargs)
@@ -72,24 +72,21 @@ class GeneratorMixture(PhysicsGenerator):
 
     def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
         super().__init__(generators[0].shape)
-        assert np.sum(probs) == 1, "The sum of the probabilities must be 1."
+        assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
-        self.cum_probs = np.cumsum(probs)
+        self.cum_probs = torch.cumsum(probs)
 
-    def step(self, *args, **kwargs):
+    def step(self, batch_size):
         r"""
         Updates the parameter of the physic
         """
-        if not kwargs:
-            self.kwargs = kwargs
         #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = torch.rand(1).item() #np.random.uniform()
-        idx = np.searchsorted(self.cum_probs, p)
-        return self.generators[idx].step(*args, **kwargs)
+        idx = torch.searchsorted(self.cum_probs, p)
+        return self.generators[idx].step(batch_size)
 
 
-if __name__ == "__main__":
 
     class Physic(nn.Module):
         def __init__(self, *args, **kwargs) -> None:

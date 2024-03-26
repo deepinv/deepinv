@@ -1,4 +1,3 @@
-import torch
 from torch import Tensor
 from deepinv.physics.functional.multiplier import multiplier, multiplier_adjoint
 from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
