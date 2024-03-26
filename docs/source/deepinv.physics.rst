@@ -1,7 +1,7 @@
 .. _physics:
 
 Physics
-*******
+=========
 
 This package contains a large collection of forward operators appearing in imaging applications.
 
@@ -15,6 +15,21 @@ where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are t
 :math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
 and :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
 
+Operators can be called with the ``forward`` method, for example
+
+.. exec_code::
+
+    import torch
+    import deepinv as dinv
+
+    # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
+    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    x = torch.rand(1, 1, 28, 28) # create a random image
+    y = physics(x) # compute noisy measurements
+
+
+Introduction
+------------
 
 All forward operators inherit the structure of the ``Physics`` class.
 
@@ -25,23 +40,16 @@ All forward operators inherit the structure of the ``Physics`` class.
 
    deepinv.physics.Physics
 
-
-Operators can be called with the ``forward`` method, for example
-
-.. exec_code::
-
-    import torch
-    import deepinv as dinv
-
-    # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    physics = dinv.physics.CompressedSensing(params=300, image_size=(1, 28, 28))
-    x = torch.rand(1, 1, 28, 28) # create a random image
-    y = physics(x) # compute noisy measurements
-
-Linear operators
-================
 Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
 All linear operators inherit the structure of the :class:`LinearPhysics` class.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.LinearPhysics
+
 Linear operators with a closed-form singular value decomposition are defined via :class:`DecomposablePhysics`,
 which enables the efficient computation of their pseudo-inverse and proximal operators.
 
@@ -50,11 +58,9 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
 
-Adjoint, pseudo-inverse, prox
------------------------------
+
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
@@ -64,7 +70,7 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    physics = dinv.physics.CompressedSensing(params=300, image_size=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
     x = torch.rand(1, 1, 28, 28) # create a random image
     y = physics(x) # compute noisy measurements
     y2 = physics.A(x) # compute the linear operator (no noise)
@@ -75,22 +81,43 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
 Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
 have additional methods.
 
-When defining a new linear operator, you can define the adjoint automatically using autograd with
+
+
+Generators
+^^^^^^^^^^^
+The generators are used to
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.physics.adjoint_function
+   deepinv.physics.PhysicsGenerator
+   deepinv.physics.GeneratorMixture
+
+.. exec_code::
+
+    import torch
+    import deepinv as dinv
+
+    x = torch.rand((1, 1, 32, 32))
+    physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(1))
+    y = physics(x) # compute with Gaussian blur
+    generator = dinv.physics.generator.MotionBlurGenerator((1, 5, 5))
+    kernel = generator.step() # generate new motion blur kernel
+    y1 = physics(x, kernel) # compute with motion blur
+    y2 = physics(x) # motion kernel is stored in the physics object as default kernel
+    assert torch.all_close(y1, y2) # same result
 
 Applications
 ------------
 
-Various popular linear transforms are provided with state-of-the-art implementation.
+Various popular forward operators are provided with state-of-the-art implementations.
 
 Diagonal operators
 ^^^^^^^^^^^^^^^^^^
+Diagonal operators operate in the pixel domain and are used for denoising, inpainting, decolorization, etc.
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -100,9 +127,10 @@ Diagonal operators
    deepinv.physics.Inpainting
    deepinv.physics.Decolorize
 
-Blur
-^^^^
-Different types of blurs are available. They can be stationary (convolutions) or space-varying. Also, we integrated super-resolution applications by composing blurs with downsampling.
+Blur & Super-Resolution
+^^^^^^^^^^^^^^^^^^^^^^^^
+Different types of blur operators are available.
+They can be stationary (convolutions) or space-varying. Also, we integrated super-resolution applications by composing blurs with downsampling.
 
 .. autosummary::
    :toctree: stubs
@@ -111,10 +139,34 @@ Different types of blurs are available. They can be stationary (convolutions) or
 
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
-   .. deepinv.physics.SpaceVaryingBlur
+   deepinv.physics.SpaceVaryingBlur
+   deepinv.physics.Downsampling
 
-MRI 
-^^^
+We provide the implementation of typical blur kernels such as Gaussian, bilinear, bicubic, etc.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.physics.blur.gaussian_blur
+   deepinv.physics.blur.bilinear_filter
+   deepinv.physics.blur.bicubic_filter
+
+
+We also provide a set of generators to simulate various types of blur, which can be used to train blind or semi-blind
+deblurring networks.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.MotionBlurGenerator
+   deepinv.physics.generator.DiffractionBlurGenerator
+
+Magnetic Resonance Imaging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
 
 .. autosummary::
@@ -123,6 +175,16 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    :nosignatures:
 
    deepinv.physics.MRI
+
+
+We provide generators for sampling acceleration masks:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.AccelerationMaskGenerator
 
 Tomography 
 ^^^^^^^^^^
@@ -136,21 +198,25 @@ Tomography is based on the Radon-transform which computes line-integrals.
 
    deepinv.physics.Tomography
 
-Super-resolution
+
+
+Remote Sensing
 ^^^^^^^^^^^^^^^^
+Remote sensing operators are used to simulate the acquisition of satellite data.
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.Downsampling
    deepinv.physics.Pansharpen
 
 
-Random linear forms
-^^^^^^^^^^^^^^^^^^^
+Compressive operators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The field of compressed sensing initially suggested to use white Gaussian or Bernoulli random vectors. These operators are implented in the following functions.
+The field of compressed sensing initially suggested to use white Gaussian or Bernoulli random vectors.
+These operators are implemented in the following functions.
 
 .. autosummary::
    :toctree: stubs
@@ -161,18 +227,29 @@ The field of compressed sensing initially suggested to use white Gaussian or Ber
    deepinv.physics.SinglePixelCamera
 
 
-Non-linear operators
-====================
-Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
+Single-photon lidar
+^^^^^^^^^^^^^^^^^^^^^^^
+Single-photon lidar is a popular technique for depth ranging and imaging.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.BlindBlur
-   deepinv.physics.Haze
    deepinv.physics.SinglePhotonLidar
+
+
+Dehazing
+^^^^^^^^^^^^^
+Haze operators are used to capture the physics of light scattering in the atmosphere.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Haze
+
 
 Noise distributions
 ===================
@@ -186,7 +263,7 @@ or simply as
     import deepinv as dinv
 
     # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    physics = dinv.physics.CompressedSensing(params=300, image_size=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
     physics.noise_model = dinv.physics.GaussianNoise(sigma=.05) # set up the noise
 
 
@@ -202,27 +279,17 @@ or simply as
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
 
-Generators 
-==========
-The generators are used to 
+
+
+
+Defining new operators
+--------------------------------
+
+When defining a new linear operator, you can define the adjoint automatically using autograd with
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.Generator
-   deepinv.physics.MotionBlurGenerator
-   deepinv.physics.DiffractionBlurGenerator
-
-Utils
-=====
-This module also contains some utilities for physics operators.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-   deepinv.physics.blur.gaussian_filter
-   deepinv.physics.forward.adjoint_function
+    deepinv.physics.adjoint_function

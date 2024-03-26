@@ -79,7 +79,7 @@ mask[
 ] = 0
 
 physics = dinv.physics.Inpainting(
-    img_size=(n_channels, img_size, img_size),
+    tensor_size=(n_channels, img_size, img_size),
     mask=mask,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),

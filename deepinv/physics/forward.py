@@ -151,34 +151,30 @@ class Physics(torch.nn.Module):  # parent class for forward models
             tol=self.tol,
         )
 
-    def forward(self, x, theta=None, noise_level=None):
+    def forward(self, x, **kwargs):
         r"""
         Computes forward operator
 
         .. math::
 
-                y = N(A(x, \theta), \sigma)
+                y = N(A(x), \sigma)
 
-        where :math:`\theta` are some optional parameters of the forward model, e.g., the blur kernel.
 
         :param torch.Tensor, list[torch.Tensor] x: signal/image
-        :param None, torch.Tensor, deepinv.utils.TensorList params: additional parameters for the forward model
-        :param None, float, torch.Tensor noise_level: optional noise level parameter
         :return: (torch.Tensor) noisy measurements
 
         """
-        return self.sensor(self.noise(self.A(x, theta), noise_level))
+        return self.sensor(self.noise(self.A(x, **kwargs), **kwargs))
 
-    def A(self, x, theta=None):
+    def A(self, x, **kwargs):
         r"""
         Computes forward operator :math:`y = A(x)` (without noise and/or sensor non-linearities)
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
-        :param None, torch.Tensor, deepinv.utils.TensorList params: additional parameters for the forward model
         :return: (torch.Tensor) clean measurements
 
         """
-        return self.forw(x) if theta is None else self.forw(x, theta)
+        return self.forw(x, **kwargs)
 
     def sensor(self, x):
         r"""
@@ -189,7 +185,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         return self.sensor_model(x)
 
-    def noise(self, x, noise_level=None):
+    def noise(self, x, **kwargs):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -198,9 +194,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return torch.Tensor: noisy measurements
         
         """
-        if noise_level is None:
-            return self.noise_model(x)
-        return self.noise_model(x, noise_level)
+        return self.noise_model(x, **kwargs)
 
     def A_dagger(self, y, x_init=None):
         r"""
@@ -338,7 +332,7 @@ class LinearPhysics(Physics):
         )
         self.A_adj = A_adjoint
 
-    def A_adjoint(self, y, theta=None):
+    def A_adjoint(self, y, **kwargs):
         r"""
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
         If :math:`A` is linear, it should be the exact transpose of the forward matrix.
@@ -354,7 +348,7 @@ class LinearPhysics(Physics):
 
         """
 
-        return self.A_adj(y) if theta is None else self.A_adj(y, theta)
+        return self.A_adj(y, **kwargs)
 
     def __mul__(self, other):
         r"""
@@ -366,8 +360,8 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) concatenated operator
 
         """
-        A = lambda x, theta: self.A(other.A(x, theta), theta)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, theta: other.A_adjoint(self.A_adjoint(x, theta), theta)
+        A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
+        A_adjoint = lambda x, **kwargs: other.A_adjoint(self.A_adjoint(x, **kwargs), **kwargs)
         noise = self.noise_model
         sensor = self.sensor_model
         return LinearPhysics(
@@ -395,17 +389,17 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        A = lambda x, theta: TensorList(self.A(x, theta)).append(
-            TensorList(other.A(x, theta))
+        A = lambda x, **kwargs: TensorList(self.A(x, **kwargs)).append(
+            TensorList(other.A(x, **kwargs))
         )
 
-        def A_adjoint(y, theta=None):
+        def A_adjoint(y, **kwargs):
             at1 = (
-                self.A_adjoint(y[:-1], theta)
+                self.A_adjoint(y[:-1], **kwargs)
                 if len(y) > 2
-                else self.A_adjoint(y[0], theta)
+                else self.A_adjoint(y[0], **kwargs)
             )
-            return at1 + other.A_adjoint(y[-1], theta)
+            return at1 + other.A_adjoint(y[-1], **kwargs)
 
         class noise(torch.nn.Module):
             def __init__(self, noise1, noise2):
@@ -413,9 +407,9 @@ class LinearPhysics(Physics):
                 self.noise1 = noise1
                 self.noise2 = noise2
 
-            def forward(self, x, noise_level):
-                return TensorList(self.noise1(x[:-1], noise_level)).append(
-                    self.noise2(x[-1], noise_level)
+            def forward(self, x, **kwargs):
+                return TensorList(self.noise1(x[:-1], **kwargs)).append(
+                    self.noise2(x[-1], **kwargs)
                 )
 
         class sensor(torch.nn.Module):
@@ -613,9 +607,9 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = mask
+        self.mask = torch.nn.Parameter(torch.tensor(mask))
 
-    def A(self, x, theta=None):
+    def A(self, x, mask=None, **kwargs):
         r"""
         Applies the forward operator :math:`y = A(x)`.
 
@@ -623,16 +617,16 @@ class DecomposablePhysics(LinearPhysics):
         and also stored as the current mask/singular values.
 
         :param torch.Tensor x: input tensor
-        :param torch.nn.Parameter, float theta: mask/singular values.
+        :param torch.nn.Parameter, float mask: singular values.
         :return: (torch.Tensor) output tensor
 
         """
-        if theta is not None:
-            self.mask = theta
+        if mask is not None:
+            self.mask = torch.nn.Parameter(mask)
 
         return self.U(self.mask * self.V_adjoint(x))
 
-    def A_adjoint(self, y, theta=None):
+    def A_adjoint(self, y, mask=None, **kwargs):
         r"""
         Computes the adjoint of the forward operator :math:`\tilde{x} = A^{\top}y`.
 
@@ -640,12 +634,12 @@ class DecomposablePhysics(LinearPhysics):
         and also stored as the current mask/singular values.
 
         :param torch.Tensor y: input tensor
-        :param torch.nn.Parameter, float theta: mask/singular values.
+        :param torch.nn.Parameter, float mask: singular values.
         :return: (torch.Tensor) output tensor
         """
 
-        if theta is not None:
-            self.mask = theta
+        if mask is not None:
+            self.mask = mask
 
         if isinstance(self.mask, float):
             mask = self.mask

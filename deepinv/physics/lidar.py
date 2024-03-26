@@ -45,7 +45,7 @@ class SinglePhotonLidar(Physics):
         self.irf = h.unsqueeze(0).unsqueeze(0)  # set impulse response function
         self.grid = self.grid.unsqueeze(0).unsqueeze(2).unsqueeze(3)
 
-    def A(self, x, theta=None):
+    def A(self, x, **kwargs):
         r"""
         Applies the forward operator.
 

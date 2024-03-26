@@ -120,7 +120,6 @@ class Trainer:
     metrics: Union[torch.nn.Module, List[torch.nn.Module]] = PSNR()
     grad_clip: float = None
     physics_generator: PhysicsGenerator = None
-    noise_generator: PhysicsGenerator = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
@@ -192,9 +191,6 @@ class Trainer:
 
         if type(self.physics_generator) is not list:
             self.physics_generator = [self.physics_generator]
-
-        if type(self.noise_generator) is not list:
-            self.noise_generator = [self.noise_generator]
 
         # gradient clipping
         if self.check_grad:
@@ -298,30 +294,23 @@ class Trainer:
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
-        :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
+        :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.
         """
         x, _ = next(
             iterators[g]
         )  # In this case the dataloader outputs also a class label
         x = x.to(self.device)
 
-        physics_generator = self.physics_generator[g]
-        if physics_generator is not None:
-            theta = physics_generator.step(x.size(0))
+        physics = self.physics[g]
+
+        if self.physics_generator[g] is not None:
+            params = self.physics_generator[g].step(x.size(0))
+            y = physics(x, **params)
         else:
-            theta = None
+            y = physics(x)
 
-        noise_generator = self.noise_generator[g]
-        if noise_generator is not None:
-            noise_level = noise_generator.step(x.size(0))
-        else:
-            noise_level = None
+        return x, y, physics
 
-        physics_cur = self.physics[g]
-
-        y = physics_cur(x, theta, noise_level)
-
-        return x, y, physics_cur
 
     def get_samples_offline(self, iterators, g):
         r"""

@@ -57,7 +57,7 @@ plot([x, y], titles=["signal", "measurement"])
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(
     mask=0.5,
-    img_size=x.shape[1:],
+    tensor_size=x.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma),
     device=device,
 )
@@ -190,7 +190,7 @@ plot([x, physics.A_adjoint(y)], titles=["signal", "linear inverse"])
 
 
 physics = dinv.physics.Blur(
-    dinv.physics.blur.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+    dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
 )
 
 y = physics(x)

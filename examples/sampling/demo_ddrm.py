@@ -44,7 +44,7 @@ x = load_url_image(url=url, img_size=32).to(device)
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(
     mask=0.5,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=sigma),
 )
