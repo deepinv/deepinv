@@ -291,7 +291,7 @@ which is useful for training and evaluating methods under various noise conditio
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.SigmaGenerator
+   deepinv.physics.generator.SigmaGenerator
 
 
 Defining new operators
