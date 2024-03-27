@@ -6,13 +6,10 @@ from .convolution import (
     filter_fft_2d,
 )
 
-from .product_convolution import(
-    product_convolution, 
-    product_convolution_adjoint
-)
+from .product_convolution import product_convolution, product_convolution_adjoint
 
-from .multiplier import(
-    multiplier, 
+from .multiplier import (
+    multiplier,
     multiplier_adjoint,
 )
 

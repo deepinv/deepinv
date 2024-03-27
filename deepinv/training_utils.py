@@ -311,7 +311,6 @@ class Trainer:
 
         return x, y, physics
 
-
     def get_samples_offline(self, iterators, g):
         r"""
         Get the samples for the offline measurements.

@@ -19,7 +19,3 @@ url = get_image_url("CBSD_0010.png")
 x = load_url_image(url, grayscale=False).to(device)
 
 x = torch.tensor(x, device=device, dtype=torch.float)
-
-
-
-

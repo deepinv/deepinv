@@ -229,7 +229,9 @@ def test_MRI(device):
     x2 = physics.A_adjoint(y1)
     assert x2.shape == x.shape
 
-    generator = dinv.physics.generator.AccelerationMaskGenerator((32, 32), device=device)
+    generator = dinv.physics.generator.AccelerationMaskGenerator(
+        (32, 32), device=device
+    )
     mask = generator.step()
     y2 = physics.A(x, **mask)
     if y1.shape == y2.shape:
@@ -349,21 +351,21 @@ def test_reset_noise(device):
     """
     x = torch.ones((1, 3, 3), device=device).unsqueeze(0)
     physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(.1)
+    physics.noise_model = dinv.physics.GaussianNoise(0.1)
 
     y1 = physics(x)
     y2 = physics(x, sigma=0.2)
 
     assert physics.noise_model.sigma == 0.2
 
-    physics.noise_model = dinv.physics.PoissonNoise(.1)
+    physics.noise_model = dinv.physics.PoissonNoise(0.1)
 
     y1 = physics(x)
     y2 = physics(x, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
 
-    physics.noise_model = dinv.physics.PoissonGaussianNoise(.5, .3)
+    physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3)
     y1 = physics(x)
     y2 = physics(x, sigma=0.2, gain=0.2)
 

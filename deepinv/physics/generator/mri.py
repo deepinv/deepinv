@@ -59,7 +59,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             img_size[0] // 2 + num_lines_center // 2 + 1,
             steps=50,
             dtype=torch.long,
-            )
+        )
         mask[:, :, center_line_indices] = 1
 
         for i in range(batch_size):
@@ -68,12 +68,13 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             )
             mask[i, :, random_line_indices] = 1
 
-        return {'mask': torch.cat([mask.float().unsqueeze(1)]*2, dim=1)}
+        return {"mask": torch.cat([mask.float().unsqueeze(1)] * 2, dim=1)}
 
 
 if __name__ == "__main__":
     import deepinv as dinv
+
     mask_generator = AccelerationMaskGenerator((32, 32))
     params = mask_generator.step(4)
-    dinv.utils.plot(params['mask'])
-    print(params['mask'].shape)
+    dinv.utils.plot(params["mask"])
+    print(params["mask"].shape)

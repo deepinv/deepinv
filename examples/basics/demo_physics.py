@@ -102,7 +102,7 @@ class DecolorizeSVD(dinv.physics.DecomposablePhysics):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(mask = 0.447, **kwargs)
+        super().__init__(mask=0.447, **kwargs)
         self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
     def V_adjoint(self, x):
