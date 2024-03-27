@@ -10,8 +10,20 @@ class PhysicsGenerator(nn.Module):
     r"""
     Base class for parameter generation of physics.
 
-    :param torch.Tensor params: parameters to be fed to a physics from :meth:`deepinv.physics`, e.g., a blur filter to be used in :meth:`deepinv.physics.Blur()`.
-    :param dict kwargs: default keyword arguments to be passed to :meth:`Generator` for generating new parameters.
+
+    :param torch.Tensor params: parameters to be fed to a physics from :meth:`deepinv.physics.Physics`,
+        e.g., a blur filter to be used in :meth:`deepinv.physics.Blur()`.
+
+    |sep|
+
+    :Examples:
+
+        Generating blur and noise levels:
+
+        >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
+        >>> generator = MotionBlurGenerator((1, 1, 3, 3)) + SigmaGenerator()
+        >>> params_dict = generator.step(batch_size=1)
+
 
     """
 
@@ -19,24 +31,6 @@ class PhysicsGenerator(nn.Module):
         self, step=lambda **kwargs: {}, device="cpu", dtype=torch.float32, **kwargs
     ) -> None:
         super().__init__()
-        # if type(shape) == int :
-        #    self.shape = (1, shape, shape)
-        # elif type(shape) == float:
-        #    self.shape = (1, int(shape), int(shape))
-        # elif type(shape) == tuple:
-        #    if len(shape) == 1:
-        #        self.shape = (1, shape[0], shape[0])
-        #    elif len(shape) == 2:
-        #        self.shape = (1, shape[0], shape[1])
-        #    elif len(shape) == 3:
-        #        self.shape = shape
-        #    elif len(shape) == 4:
-        #        self.shape = shape[1:]
-        #        warnings.warn('Batch_size should be called when using the .step() method. Trimming it out.')
-        #    else:
-        #        raise ValueError('Wrong shape. Should (B, C, W, H), (C, W, H), (W, H), (W,) or W')
-        # else:
-        #    raise ValueError('Wrong shape argument')
 
         self.step_func = step
         self.kwargs = kwargs
@@ -47,7 +41,10 @@ class PhysicsGenerator(nn.Module):
 
     def step(self, batch_size=1, **kwargs):
         r"""
-        Updates the parameter of the physics
+        Generates new parameter for the forward operator
+
+        :param int batch_size: the number of samples to generate.
+        :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
         if not kwargs:
             self.kwargs = kwargs
@@ -55,6 +52,11 @@ class PhysicsGenerator(nn.Module):
         return self.step_func(**kwargs)
 
     def __add__(self, other):
+        r"""
+        Creates a new generator from the sum of two generators.
+
+        :param Generator other: the other generator to be added.
+        """
         def step(**kwargs):
             x = self.step(**kwargs)
             y = other.step(**kwargs)
@@ -70,6 +72,20 @@ class GeneratorMixture(PhysicsGenerator):
 
     :param list[Generator] generators: the generators instantiated from :meth:`deepinv.physics.Generator`.
     :param list[float] probs: the probability of each generator to be used at each step
+
+    |sep|
+
+    :Examples:
+
+        Generating two types of blur
+
+        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
+        >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
+        >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
+        >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
+        >>> params_dict = generator.step(batch_size=1)
+
+
     """
 
     def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
@@ -80,36 +96,21 @@ class GeneratorMixture(PhysicsGenerator):
         self.probs = probs
         self.cum_probs = torch.cumsum(probs, dim=0)
 
-    def step(self, batch_size):
+    def step(self, batch_size=1, **kwargs):
         r"""
-        Updates the parameter of the physic
+        Updates the parameter of the physics
         """
         # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = torch.rand(1).item()  # np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
-        return self.generators[idx].step(batch_size)
+        return self.generators[idx].step(batch_size, **kwargs)
 
 
 if __name__ == "__main__":
     # %%
 
-    class Physic(nn.Module):
-        def __init__(self, *args, **kwargs) -> None:
-            super().__init__()
-            self.params = nn.Parameter(
-                torch.tensor([1.0, 2.0, 3.0]), requires_grad=False
-            )
-            # self.params = torch.tensor([1.0, 2.0, 3.0])
-            self.kwargs = kwargs
-
-        def forward(self, *args, **kwargs):
-            pass
-
-    P = Physic()
-    print(P.params)
-    g1 = PhysicsGenerator(P.params, l=1, n=2)
-    g2 = PhysicsGenerator(P.params, l=1, n=2)
-    G = GeneratorMixture([g1, g2], [0.5, 0.5])
-    G.step()
-    print(P.params)
-    # %%
+    from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
+    g1 = MotionBlurGenerator((1, 1, 3, 3))
+    g2 = DiffractionBlurGenerator((1, 1, 3, 3))
+    generator = GeneratorMixture([g1, g2], [0.5, 0.5])
+    params_dict = generator.step(batch_size=1)
