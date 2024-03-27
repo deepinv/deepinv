@@ -9,9 +9,9 @@ from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
     filter_fft_2d,
-    downsample, 
-    product_convolution, 
-    product_convolution_adjoint
+    downsample,
+    product_convolution,
+    product_convolution_adjoint,
 )
 
 
@@ -132,9 +132,7 @@ class Downsampling(LinearPhysics):
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(device)
         if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(self.filter, requires_grad=False).to(
-                device
-            )
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
         elif filter is None:
             self.filter = filter
         elif filter == "gaussian":
@@ -271,7 +269,7 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter, padding="circular", device='cpu', **kwargs):
+    def __init__(self, filter, padding="circular", device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
         self.filter = filter.to(device)
@@ -356,11 +354,12 @@ class BlurFFT(DecomposablePhysics):
             filter = filter.repeat(1, self.img_size[0], 1, 1)
         self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
 
-        self.mask = filter_fft_2d(filter, self.img_size).to(self.device)
-        self.angle = torch.angle(self.mask)
+        mask = filter_fft_2d(filter, self.img_size).to(self.device)
+        self.angle = torch.angle(mask)
         self.angle = torch.exp(-1.0j * self.angle).to(self.device)
-        self.mask = torch.abs(self.mask).unsqueeze(-1)
-        self.mask = torch.cat([self.mask, self.mask], dim=-1)
+        mask = torch.abs(mask).unsqueeze(-1)
+        mask = torch.cat([mask, mask], dim=-1)
+        self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
     def A(self, x, filter=None, **kwargs):
         if filter is not None:
@@ -388,10 +387,9 @@ class BlurFFT(DecomposablePhysics):
         )  # make it a true SVD (see J. Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(
-            torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:]
-        )
-    
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
+
+
 class SpaceVaryingBlur(LinearPhysics):
     """
 
@@ -400,124 +398,134 @@ class SpaceVaryingBlur(LinearPhysics):
 
     .. math:: y(s) = \int k(s,t) x(t) \,dt
 
-    where :math:`k` is an integral kernel. Expressed as above, this is an arbitrary operator which cannot be computed efficiently. 
+    where :math:`k` is an integral kernel. Expressed as above, this is an arbitrary operator which cannot be computed efficiently.
     Efficient methods are available if :math:`k` is sufficiently smooth.
-     
+
     :param str method: method 'product_convolution'
-    :param list params: list of parameters describing the method. 
+    :param list params: list of parameters describing the method.
         'product_convolution': params is a list [w, h, params], see deepinv.physics.functional.product_convolution
     :param str device: cpu or cuda
-    
+
     |sep|
 
     :Examples:
 
     """
-    
+
     def __init__(self, method, params=None, **kwargs):
         super().__init__(**kwargs)
         self.method = method
-        if self.method == 'product_convolution':
+        if self.method == "product_convolution":
             if params is not None:
-                if 'w' in params:
-                    self.w = params['w']
-                if 'h' in params:
-                    self.h = params['h']
-                if 'padding' in params:
-                    self.padding = params['padding']
-            
+                if "w" in params:
+                    self.w = params["w"]
+                if "h" in params:
+                    self.h = params["h"]
+                if "padding" in params:
+                    self.padding = params["padding"]
+
     def A(self, x: Tensor, h=None, w=None, padding=None) -> Tensor:
-        if self.method == 'product_convolution':
+        if self.method == "product_convolution":
             if w is not None:
                 self.w = w
             if h is not None:
                 self.h = h
             if padding is not None:
                 self.padding = padding
-                
-                
+
             return product_convolution(x, self.w, self.h, self.padding)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
     def A_adjoint(self, y: Tensor, h=None, w=None, padding=None) -> Tensor:
-        if self.method == 'product_convolution':
+        if self.method == "product_convolution":
             if w is not None:
                 self.w = w
             if h is not None:
                 self.h = h
             if padding is not None:
                 self.padding = padding
-                
+
             return product_convolution_adjoint(y, self.w, self.h, self.padding)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
+
 # # test code
 if __name__ == "__main__":
-    #%%
+    # %%
     import deepinv as dinv
     from deepinv.utils.plotting import plot
     from deepinv.utils.demo import load_url_image, get_image_url
-    from deepinv.physics.generator.blur import DiffractionBlurGenerator, MotionBlurGenerator
+    from deepinv.physics.generator.blur import (
+        DiffractionBlurGenerator,
+        MotionBlurGenerator,
+    )
     from deepinv.physics.functional.interp import ThinPlateSpline
     from deepinv.physics.blur import SpaceVaryingBlur
-    
+
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     dtype = torch.float32
-    
-    #%%
+
+    # %%
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url, grayscale=False).to(device)
     x = torch.tensor(x, device=device, dtype=torch.float)
     n0, n1 = x.shape[-2:]
-    
-    #%%
+
+    # %%
     n_psfs = 1024
     psf_size = 41
-    generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25, device=device)
+    generator = DiffractionBlurGenerator(
+        (1, psf_size, psf_size), fc=0.25, device=device
+    )
     psfs = generator.step(n_psfs)
     plot(psfs)
-    
-    #%%
+
+    # %%
     q = 10
-    psfs_reshape = psfs.reshape(n_psfs, psf_size*psf_size)
+    psfs_reshape = psfs.reshape(n_psfs, psf_size * psf_size)
     U, S, V = torch.svd_lowrank(psfs_reshape, q=q)
-    eigen_psf = (V.T).reshape(q, psf_size, psf_size)[:,None,None]
-    coeffs = (psfs_reshape@V)
+    eigen_psf = (V.T).reshape(q, psf_size, psf_size)[:, None, None]
+    coeffs = psfs_reshape @ V
     mu = torch.mean(coeffs, 0)
     sigma = torch.std(coeffs, 0)
-    
-    plot(eigen_psf[:,0])
-        
-    #%% 
-    spacing_psf =  2 * psf_size
-    T0 = torch.linspace(0, 1, n0//spacing_psf, device=device, dtype=dtype)
-    T1 = torch.linspace(0, 1, n1//spacing_psf, device=device, dtype=dtype)
+
+    plot(eigen_psf[:, 0])
+
+    # %%
+    spacing_psf = 2 * psf_size
+    T0 = torch.linspace(0, 1, n0 // spacing_psf, device=device, dtype=dtype)
+    T1 = torch.linspace(0, 1, n1 // spacing_psf, device=device, dtype=dtype)
     yy, xx = torch.meshgrid(T0, T1)
-    X = torch.stack((yy.flatten(), xx.flatten()),dim=1)
-    C = mu[None,:] + torch.randn(X.shape[0], q, device=device) * sigma[None,:]
+    X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
+    C = mu[None, :] + torch.randn(X.shape[0], q, device=device) * sigma[None, :]
     tps = ThinPlateSpline(0.0, device)
     tps.fit(X, C)
     T0 = torch.linspace(0, 1, n0, device=device, dtype=dtype)
     T1 = torch.linspace(0, 1, n1, device=device, dtype=dtype)
     yy, xx = torch.meshgrid(T0, T1)
-    w = tps.transform(torch.stack((yy.flatten(), xx.flatten()),dim=1)).T
+    w = tps.transform(torch.stack((yy.flatten(), xx.flatten()), dim=1)).T
     w = w.reshape(q, n0, n1)[:, None, None]
-    plot(w[:,0])
+    plot(w[:, 0])
 
-    #%% 
-    params_blur = {'h': eigen_psf, 'w': w, 'padding': 'reflect'}
-    svb = SpaceVaryingBlur(method='product_convolution', params=params_blur)
-        
-    #%% 
+    # %%
+    params_blur = {"h": eigen_psf, "w": w, "padding": "reflect"}
+    svb = SpaceVaryingBlur(method="product_convolution", params=params_blur)
+
+    # %%
     y = svb(x)
-    plot([x,y], titles=['original', 'blurred image'])
+    plot([x, y], titles=["original", "blurred image"])
 
     dc = torch.zeros_like(x)
-    dc[:,:,psf_size//2:-psf_size//2:2*psf_size,psf_size//2:-psf_size//2:2*psf_size] = 1
+    dc[
+        :,
+        :,
+        psf_size // 2 : -psf_size // 2 : 2 * psf_size,
+        psf_size // 2 : -psf_size // 2 : 2 * psf_size,
+    ] = 1
     y = svb(dc)
-    plot([dc, y], titles=['Dirac grid', 'blurred Dirac grid'])
+    plot([dc, y], titles=["Dirac grid", "blurred Dirac grid"])
 
     # #%%
     # w = torch.ones((1, 1, 2, 2)) / 4

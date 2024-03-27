@@ -2,6 +2,7 @@ from deepinv.utils import zeros_like
 import torch
 from tqdm import tqdm
 import torch.nn as nn
+from typing import Callable
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -27,7 +28,18 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
         return False
 
 
-def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
+def dot(a, b):
+    dot = torch.sum(a.conj() * b, dim=(-1, -2, -3), keepdim=True)
+    return dot
+
+
+def conjugate_gradient(
+    A: Callable,
+    b: torch.Tensor,
+    max_iter: float = 1e2,
+    tol: float = 1e-5,
+    eps: float = 1e-8,
+):
     """
     Standard conjugate gradient algorithm.
 
@@ -39,30 +51,27 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
     :param torch.Tensor b: input tensor
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
+    :param float eps: a small value for numerical stability
     :return: torch.Tensor :math:`x` verifying :math:`Ax=b`.
 
     """
 
-    def dot(s1, s2):
-        dot = (s1.conj() * s2).flatten().sum()
-        return dot
-
     x = zeros_like(b)
 
-    r = b
+    r = b - A(x)
     p = r
     rsold = dot(r, r)
 
-    for i in range(int(max_iter)):
+    for _ in range(int(max_iter)):
         Ap = A(p)
-        alpha = rsold / dot(p, Ap)
+        alpha = rsold / (dot(p, Ap) + eps)
         x = x + p * alpha
-        r = r + Ap * (-alpha)
+        r = r - Ap * alpha
         rsnew = torch.real(dot(r, r))
-        # print(rsnew.sqrt())
-        if rsnew.sqrt() < tol:
+
+        if torch.any(rsnew < tol**2):
             break
-        p = r + p * (rsnew / rsold)
+        p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
 
     return x

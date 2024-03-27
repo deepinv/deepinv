@@ -23,23 +23,25 @@ class SigmaGenerator(PhysicsGenerator):
 
     """
 
-    def __init__(self, sigma_min=0.01, sigma_max=.5, device: str = "cpu"):
+    def __init__(self, sigma_min=0.01, sigma_max=0.5, device: str = "cpu"):
         super().__init__(shape=(1,), device=device)
         self.device = device
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
 
     def step(self, batch_size=1):
-        r"""
-
-        """
-        sigma = torch.rand(batch_size, device=self.device) * (self.sigma_max - self.sigma_min) + self.sigma_min
-        return {'sigma': sigma}
+        r""" """
+        sigma = (
+            torch.rand(batch_size, device=self.device)
+            * (self.sigma_max - self.sigma_min)
+            + self.sigma_min
+        )
+        return {"sigma": sigma}
 
 
 if __name__ == "__main__":
     import deepinv as dinv
     from deepinv.physics.generator import AccelerationMaskGenerator
+
     mask_generator = SigmaGenerator() + AccelerationMaskGenerator((32, 32))
     sigmas = mask_generator.step(4)
-    print(sigmas)

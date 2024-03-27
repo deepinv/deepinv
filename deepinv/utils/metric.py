@@ -1,15 +1,19 @@
 import torch
+import numpy as np
 
 
 def norm(a):
-    return a.pow(2).sum(dim=3).sum(dim=2).sqrt().unsqueeze(2).unsqueeze(3)
+    return a.pow(2).sum(dim=(-1, -2), keepdim=True).sqrt()
 
 
 def cal_angle(a, b):
-    norm_a = (a * a).flatten().sum().sqrt()
-    norm_b = (b * b).flatten().sum().sqrt()
-    angle = (a * b).flatten().sum() / (norm_a * norm_b)
-    angle = angle.acos() / 3.14159265359
+    # norm_a = (a * a).flatten().sum().sqrt()
+    norm_a = norm(a)
+    # norm_b = (b * b).flatten().sum().sqrt()
+    norm_b = norm(b)
+    # angle = (a * b).flatten().sum() / (norm_a * norm_b)
+    angle = angle.acos() / np.pi
+
     return angle.detach().cpu().numpy()
 
 
@@ -23,7 +27,9 @@ class PSNR(torch.nn.Module):
         return cal_psnr(x_net, x, self.max_pixel, self.normalize)
 
 
-def cal_psnr(a, b, max_pixel=1, normalize=False):
+def cal_psnr(
+    a: torch.Tensor, b: torch.Tensor, max_pixel: float = 1.0, normalize: bool = False
+):
     r"""
     Computes the peak signal-to-noise ratio (PSNR)
 
@@ -50,11 +56,12 @@ def cal_psnr(a, b, max_pixel=1, normalize=False):
         else:
             an = a
 
-        mse = (an - b).abs().pow(2).reshape(an.shape[0], -1).mean(dim=1)
-        mse[mse == 0] = 1e-10
-        psnr = 20 * torch.log10(max_pixel / mse.sqrt())
+        mse = (an - b).pow(2).mean(dim=tuple(range(1, an.ndim)), keepdim=False)
+        # mse[mse == 0] = 1e-10
+        # psnr = 20 * torch.log10(max_pixel / mse.sqrt())
+        psnr = -10.0 * torch.log10(mse / max_pixel**2 + 1e-8)
 
-    return psnr.mean().detach().cpu().item()
+    return psnr.mean().item()
 
 
 def cal_mse(a, b):

@@ -54,7 +54,7 @@ class ThinPlateSpline:
         self.parameters = torch.tensor([], dtype=torch.float32)
         self.control_points = torch.tensor([], dtype=torch.float32)
 
-    def fit(self, X: torch.Tensor, Y: torch.Tensor) :
+    def fit(self, X: torch.Tensor, Y: torch.Tensor):
         """Learn f that matches Y given X
 
         Args:
@@ -82,8 +82,12 @@ class ThinPlateSpline:
 
         A = torch.vstack(
             [
-                torch.hstack([phi + self.alpha * torch.eye(n_c, device=self.device), X_p]),
-                torch.hstack([X_p.T, torch.zeros((d_s + 1, d_s + 1), device=self.device)]),
+                torch.hstack(
+                    [phi + self.alpha * torch.eye(n_c, device=self.device), X_p]
+                ),
+                torch.hstack(
+                    [X_p.T, torch.zeros((d_s + 1, d_s + 1), device=self.device)]
+                ),
             ]
         )
 
@@ -113,7 +117,9 @@ class ThinPlateSpline:
 
         phi = self._radial_distance(X)  # n x n_c
 
-        X = torch.hstack([phi, torch.ones((X.shape[0], 1), device=self.device), X])  # n x (n_c + 1 + d_s)
+        X = torch.hstack(
+            [phi, torch.ones((X.shape[0], 1), device=self.device), X]
+        )  # n x (n_c + 1 + d_s)
         return X @ self.parameters
 
     def _radial_distance(self, X: torch.Tensor) -> torch.Tensor:
@@ -130,7 +136,9 @@ class ThinPlateSpline:
                 Shape: (n, n_c)
         """
         # Don't use mm for euclid dist, lots of imprecision comes from it (Will be a bit slower)
-        dist = torch.cdist(X, self.control_points, compute_mode="donot_use_mm_for_euclid_dist")
+        dist = torch.cdist(
+            X, self.control_points, compute_mode="donot_use_mm_for_euclid_dist"
+        )
         dist[dist == 0] = 1  # phi(r) = r^2 log(r) ->  (phi(0) = 0)
         return dist**2 * torch.log(dist)
 

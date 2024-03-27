@@ -15,7 +15,7 @@ class PhysicsGenerator(nn.Module):
     """
 
     def __init__(
-        self, step= lambda **kwargs: {}, device="cpu", dtype=torch.float32, **kwargs
+        self, step=lambda **kwargs: {}, device="cpu", dtype=torch.float32, **kwargs
     ) -> None:
         super().__init__()
         self.step_func = step
@@ -31,7 +31,7 @@ class PhysicsGenerator(nn.Module):
         """
         if not kwargs:
             self.kwargs = kwargs
-        
+
         return self.step_func(**kwargs)
 
     def __add__(self, other):
@@ -40,6 +40,7 @@ class PhysicsGenerator(nn.Module):
             y = other.step(**kwargs)
             d = {k: x.get(k, 0) + y.get(k, 0) for k in set(x) | set(y)}
             return d
+
         return PhysicsGenerator(step=step)
 
 
@@ -53,17 +54,18 @@ class GeneratorMixture(PhysicsGenerator):
 
     def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
         super().__init__()
+        probs = torch.tensor(probs)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
-        self.cum_probs = torch.cumsum(probs)
+        self.cum_probs = torch.cumsum(probs, dim=0)
 
     def step(self, batch_size):
         r"""
         Updates the parameter of the physic
         """
-        #self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
-        p = torch.rand(1).item() #np.random.uniform()
+        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        p = torch.rand(1).item()  # np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(batch_size)
 

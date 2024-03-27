@@ -197,15 +197,13 @@ class DRUNet(nn.Module):
             else:
                 sigma = sigma.item()
                 noise_level_map = (
-                    torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
-                    .fill_(sigma)
-                    .to(x.device)
+                    torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
+                    * sigma
                 )
         else:
             noise_level_map = (
-                torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
-                .fill_(sigma)
-                .to(x.device)
+                torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
+                * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
         if self.training or (
