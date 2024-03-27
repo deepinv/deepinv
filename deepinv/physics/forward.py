@@ -192,7 +192,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :param torch.Tensor x:  clean measurements
         :param None, float noise_level: optional noise level parameter
         :return torch.Tensor: noisy measurements
-        
+
         """
         return self.noise_model(x, **kwargs)
 
@@ -361,7 +361,9 @@ class LinearPhysics(Physics):
 
         """
         A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, **kwargs: other.A_adjoint(self.A_adjoint(x, **kwargs), **kwargs)
+        A_adjoint = lambda x, **kwargs: other.A_adjoint(
+            self.A_adjoint(x, **kwargs), **kwargs
+        )
         noise = self.noise_model
         sensor = self.sensor_model
         return LinearPhysics(

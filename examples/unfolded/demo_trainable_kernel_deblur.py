@@ -155,8 +155,7 @@ physics = Blur(
 physics.filter = physics.filter.requires_grad_(True).to(device)
 
 # %% Optimization parameters
-# num_epochs = 1000
-num_epochs = 10
+num_epochs = 10 if torch.cuda.is_available() else 1
 learning_rate = 1e-4
 optimizer = torch.optim.Adam(
     [{"params": model.parameters()}, {"params": physics.parameters()}], lr=learning_rate

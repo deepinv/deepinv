@@ -78,7 +78,7 @@ noise_level_img = 0.03
 
 # Generate the gaussian blur downsampling operator.
 physics = dinv.physics.Downsampling(
-    filter='gaussian',
+    filter="gaussian",
     img_size=(n_channels, img_size, img_size),
     factor=factor,
     device=device,
