@@ -663,7 +663,7 @@ if __name__ == "__main__":
         dtype=dtype,
     )
     pc_blur = pc_generator.step()
-    svb = SpaceVaryingBlur(method="product_convolution", params=pc_blur)
+    svb = SpaceVaryingBlur(method="product_convolution", **pc_blur)
 
     # %% Applying to a Dirac comb
     delta = Delta // 2

@@ -438,26 +438,29 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, method, params=None, **kwargs):
+    def __init__(self, method, **kwargs):
         super().__init__(**kwargs)
         self.method = method
         if self.method == "product_convolution":
-            if params is not None:
-                if "w" in params:
-                    self.w = params["w"]
-                if "h" in params:
-                    self.h = params["h"]
-                if "padding" in params:
-                    self.padding = params["padding"]
+            keylist = ["w", "h"]
+            for key in keylist:
+                if key not in kwargs.keys():
+                    raise ValueError(
+                        "product_convolution blur expects 'w' (weights), 'h' (eigenpsfs)"
+                    )
 
-    def A(self, x: Tensor, h=None, w=None, padding=None) -> Tensor:
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    # h=None, w=None, padding="valid"
+    def A(self, x: Tensor, **kwargs) -> Tensor:
         if self.method == "product_convolution":
-            if w is not None:
-                self.w = w
-            if h is not None:
-                self.h = h
-            if padding is not None:
-                self.padding = padding
+            if "w" in kwargs.keys():
+                self.w = kwargs["w"]
+            if "h" in kwargs.keys():
+                self.h = kwargs["h"]
+            if "padding" in kwargs.keys():
+                self.padding = kwargs["padding"]
 
             return product_convolution(x, self.w, self.h, self.padding)
         else:
@@ -465,14 +468,15 @@ class SpaceVaryingBlur(LinearPhysics):
                 "Method not implemented in product-convolution"
             )
 
-    def A_adjoint(self, y: Tensor, h=None, w=None, padding=None) -> Tensor:
+    # h=None, w=None, padding="valid"
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         if self.method == "product_convolution":
-            if w is not None:
-                self.w = w
-            if h is not None:
-                self.h = h
-            if padding is not None:
-                self.padding = padding
+            if "w" in kwargs.keys():
+                self.w = kwargs["w"]
+            if "h" in kwargs.keys():
+                self.h = kwargs["h"]
+            if "padding" in kwargs.keys():
+                self.padding = kwargs["padding"]
 
             return product_convolution_adjoint(y, self.w, self.h, self.padding)
         else:
@@ -496,118 +500,3 @@ if __name__ == "__main__":
 
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     dtype = torch.float32
-
-    # %%
-    url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url, grayscale=False).to(device)
-    x = torch.tensor(x, device=device, dtype=torch.float)
-    n0, n1 = x.shape[-2:]
-
-    # %%
-    n_psfs = 1024
-    psf_size = 41
-    generator = DiffractionBlurGenerator(
-        (1, psf_size, psf_size), fc=0.25, device=device
-    )
-    psfs = generator.step(n_psfs)
-    plot(psfs)
-
-    # %%
-    q = 10
-    psfs_reshape = psfs.reshape(n_psfs, psf_size * psf_size)
-    U, S, V = torch.svd_lowrank(psfs_reshape, q=q)
-    eigen_psf = (V.T).reshape(q, psf_size, psf_size)[:, None, None]
-    coeffs = psfs_reshape @ V
-    mu = torch.mean(coeffs, 0)
-    sigma = torch.std(coeffs, 0)
-
-    plot(eigen_psf[:, 0])
-
-    # %%
-    spacing_psf = 2 * psf_size
-    T0 = torch.linspace(0, 1, n0 // spacing_psf, device=device, dtype=dtype)
-    T1 = torch.linspace(0, 1, n1 // spacing_psf, device=device, dtype=dtype)
-    yy, xx = torch.meshgrid(T0, T1)
-    X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
-    C = (
-        mu[None, :]
-        + torch.randn(X.shape[0], q, device=device) * sigma[None, :]
-    )
-    tps = ThinPlateSpline(0.0, device)
-    tps.fit(X, C)
-    T0 = torch.linspace(0, 1, n0, device=device, dtype=dtype)
-    T1 = torch.linspace(0, 1, n1, device=device, dtype=dtype)
-    yy, xx = torch.meshgrid(T0, T1)
-    w = tps.transform(torch.stack((yy.flatten(), xx.flatten()), dim=1)).T
-    w = w.reshape(q, n0, n1)[:, None, None]
-    plot(w[:, 0])
-
-    # %%
-    params_blur = {"h": eigen_psf, "w": w, "padding": "reflect"}
-    svb = SpaceVaryingBlur(method="product_convolution", params=params_blur)
-
-    # %%
-    y = svb(x)
-    plot([x, y], titles=["original", "blurred image"])
-
-    dc = torch.zeros_like(x)
-    dc[
-        :,
-        :,
-        psf_size // 2 : -psf_size // 2 : 2 * psf_size,
-        psf_size // 2 : -psf_size // 2 : 2 * psf_size,
-    ] = 1
-    y = svb(dc)
-    plot([dc, y], titles=["Dirac grid", "blurred Dirac grid"])
-
-    # #%%
-    # w = torch.ones((1, 1, 2, 2)) / 4
-    # physics = BlurFFT(filter=w, img_size=(1, 1, 16, 16), noise_model=dinv.physics.GaussianNoise(.01))
-
-# if __name__ == "__main__":
-#     device = "cuda:0"
-#
-#     import matplotlib.pyplot as plt
-#
-#     device = "cuda:0"
-#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-#     x = x.unsqueeze(0).float().to(device) / 255
-#     x = torchvision.transforms.Resize((160, 180))(x)
-#
-#     sigma_noise = 0.0
-#     kernel = torch.zeros((1, 1, 15, 15), device=device)
-#     kernel[:, :, 7, :] = 1 / 15
-#     physics = Downsampling(image_size=x.shape[1:], filter="bilinear", device=device)
-#     physics2 = Blur(image_size=x.shape[1:], filter=kernel, device=device)
-#
-#     y = physics(x)
-#     y2 = physics2(x)
-#
-#     xhat = physics.V(physics.U_adjoint(y) / physics.mask)
-#     xhat2 = physics2.A_dagger(y2)
-#
-#     print(xhat.shape)
-#     # print(physics.adjointness_test(x))
-#     print(torch.sum((y - y2).pow(2)))
-#     print(torch.sum((xhat - xhat2).pow(2)))
-#
-#     print(torch.sum((x - xhat).pow(2)))
-#     print(torch.sum((x - xhat2).pow(2)))
-#
-#     print(physics.compute_norm(x))
-#     print(physics.adjointness_test(x))
-#     xhat = physics.prox_l2(y, y, gamma=1.0)
-#
-#     xhat = physics.A_dagger(y)
-#
-#     plt.imshow(x.squeeze(0).permute(1, 2, 0).cpu().numpy())
-#     plt.show()
-#     plt.imshow(y.squeeze(0).permute(1, 2, 0).cpu().numpy())
-#     plt.show()
-#     plt.imshow(xhat.squeeze(0).permute(1, 2, 0).cpu().numpy())
-#     plt.show()
-#     plt.imshow(xhat2.squeeze(0).permute(1, 2, 0).cpu().numpy())
-#     plt.show()
-#
-#     plt.imshow(physics.A(xhat).squeeze(0).permute(1, 2, 0).cpu().numpy())
-#     plt.show()
