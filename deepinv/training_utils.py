@@ -311,7 +311,6 @@ class Trainer:
 
         return x, y, physics
 
-
     def get_samples_offline(self, iterators, g):
         r"""
         Get the samples for the offline measurements.
@@ -335,9 +334,9 @@ class Trainer:
                 x = x.to(self.device)
 
         y = y.to(self.device)
-        physics_cur = self.physics[g]
+        physics = self.physics[g]
 
-        return x, y, physics_cur
+        return x, y, physics
 
     def get_samples(self, iterators, g):
         r"""

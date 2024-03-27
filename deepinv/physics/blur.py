@@ -354,13 +354,13 @@ class BlurFFT(DecomposablePhysics):
     def set_mask(self, filter):
         if self.img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, self.img_size[0], 1, 1)
-        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
 
-        self.mask = filter_fft_2d(filter, self.img_size).to(self.device)
-        self.angle = torch.angle(self.mask)
+        mask = filter_fft_2d(filter, self.img_size).to(self.device)
+        self.angle = torch.angle(mask)
         self.angle = torch.exp(-1.0j * self.angle).to(self.device)
-        self.mask = torch.abs(self.mask).unsqueeze(-1)
-        self.mask = torch.cat([self.mask, self.mask], dim=-1)
+        mask = torch.abs(mask).unsqueeze(-1)
+        mask = torch.cat([mask, mask], dim=-1)
+        self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
     def A(self, x, filter=None, **kwargs):
         if filter is not None:

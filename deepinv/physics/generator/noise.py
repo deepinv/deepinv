@@ -42,4 +42,3 @@ if __name__ == "__main__":
     from deepinv.physics.generator import AccelerationMaskGenerator
     mask_generator = SigmaGenerator() + AccelerationMaskGenerator((32, 32))
     sigmas = mask_generator.step(4)
-    print(sigmas)

@@ -205,7 +205,7 @@ def test_pseudo_inverse(name, device):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0).repeat(2, 1, 1, 1)
 
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
