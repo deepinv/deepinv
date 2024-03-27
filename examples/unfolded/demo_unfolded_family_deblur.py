@@ -152,7 +152,7 @@ motion_gen = MotionBlurGenerator(
 diffraction_gen = DiffractionBlurGenerator(
     shape=(batch_size, 3, kernel_size, kernel_size), device=device
 )
-generator = GeneratorMixture([motion_gen, diffraction_gen], probs=c)
+generator = GeneratorMixture([motion_gen, diffraction_gen], probs=[0.5, 0.5])
 generator.step()
 
 # dinv.utils.plot(physic.params)

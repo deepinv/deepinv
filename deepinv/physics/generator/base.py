@@ -74,10 +74,11 @@ class GeneratorMixture(PhysicsGenerator):
 
     def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
         super().__init__()
+        probs = torch.tensor(probs)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
-        self.cum_probs = torch.cumsum(probs)
+        self.cum_probs = torch.cumsum(probs, dim=0)
 
     def step(self, batch_size):
         r"""
