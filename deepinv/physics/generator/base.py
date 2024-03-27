@@ -1,15 +1,14 @@
-# %%
 import torch
 import torch.nn as nn
 from typing import List
-import numpy as np
-import warnings
 
 
 class PhysicsGenerator(nn.Module):
     r"""
-    Base class for parameter generation of physics.
+    Base class for parameter generation of physics parameters.
 
+    PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.Generator.__add__`),
+     or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
 
     :param torch.Tensor params: parameters to be fed to a physics from :meth:`deepinv.physics.Physics`,
         e.g., a blur filter to be used in :meth:`deepinv.physics.Blur()`.
@@ -24,6 +23,13 @@ class PhysicsGenerator(nn.Module):
         >>> generator = MotionBlurGenerator((1, 1, 3, 3)) + SigmaGenerator()
         >>> params_dict = generator.step(batch_size=1)
 
+        Mixing two types of blur
+
+        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
+        >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
+        >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
+        >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
+        >>> params_dict = generator.step(batch_size=1)
 
     """
 
@@ -77,7 +83,7 @@ class GeneratorMixture(PhysicsGenerator):
 
     :Examples:
 
-        Generating two types of blur
+        Mixing two types of blur
 
         >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
         >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
@@ -99,6 +105,9 @@ class GeneratorMixture(PhysicsGenerator):
     def step(self, batch_size=1, **kwargs):
         r"""
         Updates the parameter of the physics
+
+        :param int batch_size: the number of samples to generate.
+        :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
         # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = torch.rand(1).item()  # np.random.uniform()
