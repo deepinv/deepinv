@@ -7,24 +7,14 @@ def norm(a):
 
 
 def cal_angle(a, b):
-    # norm_a = (a * a).flatten().sum().sqrt()
     norm_a = norm(a)
-    # norm_b = (b * b).flatten().sum().sqrt()
     norm_b = norm(b)
-    # angle = (a * b).flatten().sum() / (norm_a * norm_b)
+    angle = (a * b).flatten().sum() / (norm_a * norm_b)
     angle = angle.acos() / np.pi
 
     return angle.detach().cpu().numpy()
 
 
-class PSNR(torch.nn.Module):
-    def __init__(self, max_pixel=1, normalize=False):
-        super(PSNR, self).__init__()
-        self.max_pixel = max_pixel
-        self.normalize = normalize
-
-    def forward(self, x_net, x, **kwargs):
-        return cal_psnr(x_net, x, self.max_pixel, self.normalize)
 
 
 def cal_psnr(
@@ -36,9 +26,9 @@ def cal_psnr(
     If the tensors have size (N, C, H, W), then the PSNR is computed as
 
     .. math::
-        \text{PSNR} = \frac{20}{N} \log_{10} \frac{MAX_I}{\sqrt{\|a- b\|^2_2 / (CHW) }}
+        \text{PSNR} = \frac{20}{N} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|a- b\|^2_2 / (CHW) }}
 
-    where :math:`MAX_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
+    where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
     normalized image), and :math:`a` and :math:`b` are the estimate and reference images.
 
     :param torch.Tensor a: tensor estimate
@@ -102,3 +92,8 @@ def norm_psnr(a, b, complex=False):
         (b - b.min()) / (b.max() - b.min()),
         complex=complex,
     )
+
+if __name__ == "__main__":
+    a = torch.randn(1, 3, 100, 100)
+    metric = NIQE()
+    print(metric(a))

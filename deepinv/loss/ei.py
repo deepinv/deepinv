@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
+from deepinv.loss.loss import Loss
 
-
-class EILoss(nn.Module):
+class EILoss(Loss):
     r"""
     Equivariant imaging self-supervised loss.
 

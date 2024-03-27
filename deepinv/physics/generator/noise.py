@@ -4,20 +4,19 @@ from deepinv.physics.generator import PhysicsGenerator
 
 class SigmaGenerator(PhysicsGenerator):
     r"""
-    Generator for MRI cartesian acceleration masks.
+    Generator for the noise level :math:`\sigma` in the Gaussian noise model.
 
-    It generates a mask of vertical lines for MRI acceleration using fixed sampling in the low frequencies (center of k-space),
-    and random uniform sampling in the high frequencies.
+    The noise level is sampled uniformly from the interval :math:`[\text{sigma_min}, \text{sigma_max}]`.
 
-    :param tuple img_size: image size.
-    :param int acceleration: acceleration factor.
-    :param str device: cpu or gpu.
+    :param float sigma_min: minimum noise level
+    :param float sigma_max: maximum noise level
+    :param str device: device where the tensor is stored
 
     |sep|
 
     :Examples:
 
-    >>> generator = PhysicsGenerator((32, 32))
+    >>> generator = SigmaGenerator()
     >>> sigma = generator.step()
     >>> print(sigma)
 
@@ -29,8 +28,12 @@ class SigmaGenerator(PhysicsGenerator):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
 
-    def step(self, batch_size=1):
-        r""" """
+    def step(self, batch_size=1, **kwargs):
+        r"""
+        Generates a batch of noise levels.
+
+        :param int batch_size: batch size
+        """
         sigma = (
             torch.rand(batch_size, device=self.device)
             * (self.sigma_max - self.sigma_min)

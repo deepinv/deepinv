@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-
+from deepinv.loss.loss import Loss
 
 def hutch_div(y, physics, f, mc_iter=1):
     r"""
@@ -69,7 +69,7 @@ def mc_div(y1, y, f, physics, tau):
     return out
 
 
-class SureGaussianLoss(nn.Module):
+class SureGaussianLoss(Loss):
     r"""
     SURE loss for Gaussian noise
 
@@ -132,7 +132,7 @@ class SureGaussianLoss(nn.Module):
         return loss_sure
 
 
-class SurePoissonLoss(nn.Module):
+class SurePoissonLoss(Loss):
     r"""
     SURE loss for Poisson noise
 
@@ -203,7 +203,7 @@ class SurePoissonLoss(nn.Module):
         return loss_sure
 
 
-class SurePGLoss(nn.Module):
+class SurePGLoss(Loss):
     r"""
     SURE loss for Poisson-Gaussian noise
 

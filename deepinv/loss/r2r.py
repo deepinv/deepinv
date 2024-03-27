@@ -1,10 +1,8 @@
 import torch
-import torch.nn as nn
-
-from deepinv.loss.mc import MCLoss
+from deepinv.loss.loss import Loss
 
 
-class R2RLoss(nn.Module):
+class R2RLoss(Loss):
     r"""
     Recorrupted-to-Recorrupted (R2R) Loss
 

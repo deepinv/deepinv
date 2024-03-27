@@ -9,3 +9,5 @@ from deepinv.loss.sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.measplit import SplittingLoss, Neighbor2Neighbor
 from deepinv.loss.metric import LpNorm, CharbonnierLoss
+from deepinv.loss.loss import Loss
+from .metric import PSNR, SSIM, LPIPS, NIQE

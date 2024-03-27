@@ -2,9 +2,102 @@ import math
 import torch
 import torch.nn as nn
 from torch import autograd as autograd
+from deepinv.loss.loss import Loss
+from deepinv.utils import cal_psnr
 
 
-class LpNorm(torch.nn.Module):
+try:
+    import pyiqa
+except:
+    pyiqa = ImportError("The pyiqa package is not installed.")
+
+
+
+def check_pyiqa():
+    if isinstance(pyiqa, ImportError):
+        raise ImportError(
+            "Metric not available. Please install the pyiqa package with `pip install pyiqa`."
+        ) from pyiqa
+
+
+class NIQE(Loss):
+    r"""
+    Natural Image Quality Evaluator (NIQE) metric.
+
+    It is a no-reference image quality metric that estimates the quality of images.
+
+    :param str device: device to use for the metric computation. Default: 'cpu'.
+    """
+    def __init__(self, device='cpu'):
+        super().__init__()
+        check_pyiqa()
+        self.metric = pyiqa.create_metric('niqe').to(device)
+
+    def forward(self, x_net, **kwargs):
+        return self.metric(x_net)
+
+
+class LPIPS(Loss):
+    r"""
+    Learned Perceptual Image Patch Similarity (LPIPS) metric.
+
+    Computes the perceptual similarity between two images, based on a pre-trained deep neural network.
+
+    :param str device: device to use for the metric computation. Default: 'cpu'.
+    """
+    def __init__(self, device='cpu'):
+        super().__init__()
+        check_pyiqa()
+        self.metric = pyiqa.create_metric('lpips').to(device)
+
+    def forward(self, x, x_net, **kwargs):
+        return self.metric(x, x_net)
+
+
+class SSIM(Loss):
+    r"""
+    Structural Similarity Index (SSIM) metric.
+
+    See https://en.wikipedia.org/wiki/Structural_similarity for more information.
+
+    :param str device: device to use for the metric computation. Default: 'cpu'.
+    """
+    def __init__(self, multiscale=False, device='cpu'):
+        super().__init__()
+        check_pyiqa()
+        if multiscale:
+            self.metric = pyiqa.create_metric('ms-ssim').to(device)
+        else:
+            self.metric = pyiqa.create_metric('ssim').to(device)
+
+    def forward(self, x, x_net, **kwargs):
+        return self.metric(x, x_net)
+
+
+class PSNR(Loss):
+    r"""
+    Peak Signal-to-Noise Ratio (PSNR) metric.
+
+    If the tensors have size (N, C, H, W), then the PSNR is computed as
+
+    .. math::
+        \text{PSNR} = \frac{20}{N} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|a- b\|^2_2 / (CHW) }}
+
+    where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
+    normalized image), and :math:`a` and :math:`b` are the estimate and reference images.
+
+    :param float max_pixel: maximum pixel value
+    :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
+    """
+    def __init__(self, max_pixel=1, normalize=False):
+        super(PSNR, self).__init__()
+        self.max_pixel = max_pixel
+        self.normalize = normalize
+
+    def forward(self, x_net, x, **kwargs):
+        return cal_psnr(x_net, x, self.max_pixel, self.normalize)
+
+class LpNorm(Loss):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.
 
@@ -37,7 +130,7 @@ def l1():
     return nn.L1Loss()
 
 
-class CharbonnierLoss(nn.Module):
+class CharbonnierLoss(Loss):
     r"""
     Charbonnier Loss
 
@@ -47,8 +140,8 @@ class CharbonnierLoss(nn.Module):
         super(CharbonnierLoss, self).__init__()
         self.eps = eps
 
-    def forward(self, x, y):
-        diff = x - y
+    def forward(self, x, x_net, **kwargs):
+        diff = x - x_net
         loss = torch.mean(torch.sqrt((diff * diff) + self.eps))
         return loss
 

@@ -30,7 +30,8 @@ using a base dataset (in this case MNIST). For example, here we generate a compr
     >>>
     >>> # define base train dataset
     >>> transform_data = transforms.Compose([transforms.ToTensor()])
-    >>> data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
+    >>> data_train = datasets.MNIST(root='../datasets/', train=True,
+    ...                             transform=transform_data, download=True)
     >>> data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
     >>>
     >>> # define forward operator
@@ -45,12 +46,13 @@ using a base dataset (in this case MNIST). For example, here we generate a compr
 The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard
 :class:`torch.utils.data.DataLoader`:
 
-::
 
-    from torch.utils.data import DataLoader
+.. doctest::
 
-    dataset = dinv.datasets.HDF5Dataset(path=f'{save_dir}/dinv_dataset.h5', train=True)
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+    >>> from torch.utils.data import DataLoader
+    >>>
+    >>> dataset = dinv.datasets.HDF5Dataset(path=f'{save_dir}/dinv_dataset.h5', train=True)
+    >>> dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
 PatchDataset
 ------------

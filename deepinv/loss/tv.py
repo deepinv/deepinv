@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from deepinv.loss.loss import Loss
 
 
-class TVLoss(nn.Module):
+class TVLoss(Loss):
     r"""
     Total variation loss (:math:`\ell_2` norm).
 

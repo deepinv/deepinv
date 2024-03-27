@@ -16,7 +16,7 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.utils import PSNR
+from deepinv.loss import PSNR
 
 
 @dataclass
@@ -84,12 +84,12 @@ class Trainer:
 
     :param torch.utils.data.DataLoader train_dataloader: Train dataloader.
     :param int epochs: Number of training epochs.
-    :param torch.nn.Module, list of torch.nn.Module losses: Loss or list of losses used for training the model.
+    :param deepinv.loss.Loss, list[deepinv.Loss]: Loss or list of losses used for training the model.
     :param torch.utils.data.DataLoader eval_dataloader: Evaluation dataloader.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at train time.
     :param torch.nn.optim optimizer: Torch optimizer for training the network.
-    :param torch.nn.Module, list[torch.nn.Module] metrics: Metric or list of metrics used for evaluating the model.
+    :param deepinv.loss.Loss, list[deepinv.Loss] metrics: Metric or list of metrics used for evaluating the model.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
     :param torch.device device: gpu or cpu.
@@ -808,7 +808,7 @@ def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwar
     .. warning::
 
         This function is deprecated and will be removed in future versions. Please use
-        :class:`deepinv.training_utils.Trainer` instead.
+        :class:`deepinv.Trainer` instead.
 
     :param args: Positional arguments to pass to Trainer constructor.
     :param kwargs: Keyword arguments to pass to Trainer constructor.
