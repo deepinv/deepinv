@@ -634,6 +634,10 @@ if __name__ == "__main__":
     import deepinv as dinv
     from deepinv.utils.plotting import plot
     from deepinv.physics.blur import SpaceVaryingBlur
+    from deepinv.utils.demo import load_url_image, get_image_url
+
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    dtype = torch.float32
 
     img_size = (256, 256)
     n_eigen_psf = 10
@@ -641,7 +645,10 @@ if __name__ == "__main__":
     spacing = (Delta, Delta)
 
     # %% First a PSF generator
-    psf_generator = DiffractionBlurGenerator((31, 31))
+    psf_generator = DiffractionBlurGenerator(
+        (31, 31), device=device, dtype=dtype
+    )
+    # psf_generator = MotionBlurGenerator((31, 31))
     psf = psf_generator.step()
     print(psf["filter"].shape)
     dinv.utils.plot(psf["filter"])
@@ -652,18 +659,22 @@ if __name__ == "__main__":
         img_size=img_size,
         n_eigen_psf=n_eigen_psf,
         spacing=spacing,
+        device=device,
+        dtype=dtype,
     )
     pc_blur = pc_generator.step()
-
-    # %% Ready to instantiate
     svb = SpaceVaryingBlur(method="product_convolution", params=pc_blur)
+
+    # %% Applying to a Dirac comb
     delta = Delta // 2
     x = torch.zeros(
         (
             1,
             1,
         )
-        + img_size
+        + img_size,
+        device=device,
+        dtype=dtype,
     )
     x[
         :,
@@ -673,3 +684,22 @@ if __name__ == "__main__":
     ] = 1
     y = svb(x)
     plot([x, y], titles=["Dirac grid", "blurred Dirac grid"])
+
+    # %% Applying to a good image
+    url = "https://www.thefamouspeople.com/profiles/thumbs/lionel-messi-2.jpg"
+    x = load_url_image(url=url, img_size=(img_size), resize_mode="resize").to(
+        device
+    )
+    x = torch.tensor(x, device=device, dtype=dtype)
+    y = svb(x)
+    plot(
+        [
+            x[
+                :,
+                :,
+                :,
+            ],
+            y,
+        ],
+        titles=["Messi", "Messier"],
+    )

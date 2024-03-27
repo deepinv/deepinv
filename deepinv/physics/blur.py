@@ -136,13 +136,17 @@ class Downsampling(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.factor = factor
-        assert isinstance(factor, int), "downsampling factor should be an integer"
+        assert isinstance(
+            factor, int
+        ), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(device)
         if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                device
+            )
         elif filter is None:
             self.filter = filter
         elif filter == "gaussian":
@@ -161,7 +165,9 @@ class Downsampling(LinearPhysics):
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
+            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(
+                device
+            )
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
@@ -227,8 +233,12 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
-            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            below = (
+                torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
+            )
+            rc = self.Fhc * (top / below).repeat(
+                1, 1, self.factor, self.factor
+            )
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
@@ -362,7 +372,9 @@ class BlurFFT(DecomposablePhysics):
     def set_mask(self, filter):
         if self.img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, self.img_size[0], 1, 1)
-        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
+        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+            self.device
+        )
 
         mask = filter_fft_2d(filter, self.img_size).to(self.device)
         self.angle = torch.angle(mask)
@@ -388,7 +400,9 @@ class BlurFFT(DecomposablePhysics):
 
     def U(self, x):
         return fft.irfft2(
-            torch.view_as_complex(x) * self.angle, norm="ortho", s=self.img_size[-2:]
+            torch.view_as_complex(x) * self.angle,
+            norm="ortho",
+            s=self.img_size[-2:],
         )
 
     def U_adjoint(self, x):
@@ -397,7 +411,9 @@ class BlurFFT(DecomposablePhysics):
         )  # make it a true SVD (see J. Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
+        return fft.irfft2(
+            torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:]
+        )
 
 
 class SpaceVaryingBlur(LinearPhysics):
@@ -445,7 +461,9 @@ class SpaceVaryingBlur(LinearPhysics):
 
             return product_convolution(x, self.w, self.h, self.padding)
         else:
-            raise NotImplementedError("Method not implemented in product-convolution")
+            raise NotImplementedError(
+                "Method not implemented in product-convolution"
+            )
 
     def A_adjoint(self, y: Tensor, h=None, w=None, padding=None) -> Tensor:
         if self.method == "product_convolution":
@@ -458,7 +476,9 @@ class SpaceVaryingBlur(LinearPhysics):
 
             return product_convolution_adjoint(y, self.w, self.h, self.padding)
         else:
-            raise NotImplementedError("Method not implemented in product-convolution")
+            raise NotImplementedError(
+                "Method not implemented in product-convolution"
+            )
 
 
 # # test code
@@ -509,7 +529,10 @@ if __name__ == "__main__":
     T1 = torch.linspace(0, 1, n1 // spacing_psf, device=device, dtype=dtype)
     yy, xx = torch.meshgrid(T0, T1)
     X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
-    C = mu[None, :] + torch.randn(X.shape[0], q, device=device) * sigma[None, :]
+    C = (
+        mu[None, :]
+        + torch.randn(X.shape[0], q, device=device) * sigma[None, :]
+    )
     tps = ThinPlateSpline(0.0, device)
     tps.fit(X, C)
     T0 = torch.linspace(0, 1, n0, device=device, dtype=dtype)
