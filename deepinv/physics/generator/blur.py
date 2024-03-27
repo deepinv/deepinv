@@ -25,27 +25,26 @@ class PSFGenerator(PhysicsGenerator):
         self.dirac_mass[..., kernel_size[0] // 2, kernel_size[1] // 2] = 1.0
 
 
-class ProductConvolutionBlurGenerator(PSFGenerator):
+class ProductConvolutionBlurGenerator(PhysicsGenerator):
     r"""
     Generates a dictionary {'h', 'w'} of parameters to be used within :meth:`deepinv.physics.blur.SpaceVaryingBlur`
 
-    :param tuple shape: 
-    :param list[str] list_param: list of activated Zernike coefficients, defaults to `["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]`
-    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
-    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
-            If a int is given, a square pupil is considered.
-
-    :return: a DiffractionBlurGenerator object
+    :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator (e.g. generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25))
+    :param int n_eigen_psf: number of eigen_psf used to expand each individual psf
+    :param tuple img_size: image size WxH
+    :param tuple steps: steps between the psfs used for interpolation (e.g. (W//8, H//8))
+        
+    :return: a ProductConvolutionBlurGenerator function
 
     |sep|
 
     :Examples:
 
-    >>> generator = DiffractionBlurGenerator((16, 16))
-    >>> filter = generator.step()
-    >>> dinv.utils.plot(filter)
-    >>> print(filter.shape)
-    torch.Size([1, 1, 16, 16])
+    >>> psf_size = 41
+    >>> n_eigenpsf = 8
+    >>> step = []
+    >>> psf_generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)
+    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, 8)
 
     """
     
@@ -54,9 +53,7 @@ class ProductConvolutionBlurGenerator(PSFGenerator):
         shape: tuple,
         device: str = "cpu",
         dtype: type = torch.float32,
-        l: float = 0.3,
-        sigma: float = 0.25,
-        n_steps: int = 1000,
+        
     ) -> None:
         kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
         super().__init__(shape=shape, device=device, dtype=dtype, **kwargs)
@@ -97,8 +94,6 @@ class ProductConvolutionBlurGenerator(PSFGenerator):
 
     #%% 
     params_blur = {'h': eigen_psf, 'w': w, 'padding': 'reflect'}
-    
-    
 
 class MotionBlurGenerator(PSFGenerator):
     r"""

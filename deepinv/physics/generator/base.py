@@ -18,25 +18,6 @@ class PhysicsGenerator(nn.Module):
         self, step= lambda **kwargs: {}, device="cpu", dtype=torch.float32, **kwargs
     ) -> None:
         super().__init__()
-        #if type(shape) == int :
-        #    self.shape = (1, shape, shape)
-        #elif type(shape) == float:
-        #    self.shape = (1, int(shape), int(shape))
-        #elif type(shape) == tuple:
-        #    if len(shape) == 1:
-        #        self.shape = (1, shape[0], shape[0])
-        #    elif len(shape) == 2:
-        #        self.shape = (1, shape[0], shape[1])
-        #    elif len(shape) == 3:
-        #        self.shape = shape
-        #    elif len(shape) == 4:
-        #        self.shape = shape[1:]
-        #        warnings.warn('Batch_size should be called when using the .step() method. Trimming it out.')
-        #    else:
-        #        raise ValueError('Wrong shape. Should (B, C, W, H), (C, W, H), (W, H), (W,) or W')
-        #else:
-        #    raise ValueError('Wrong shape argument')
-
         self.step_func = step
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
@@ -85,8 +66,6 @@ class GeneratorMixture(PhysicsGenerator):
         p = torch.rand(1).item() #np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(batch_size)
-
-
 
 if __name__ == "__main__":
     # %%
