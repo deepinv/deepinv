@@ -15,7 +15,7 @@ where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are t
 :math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
 and :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
 
-Operators are :meth:`torch.nn.Module`s can be called with the ``forward`` method, for example
+Operators are :meth:`torch.nn.Module` which can be called with the ``forward`` method, for example
 
 .. doctest::
 
@@ -23,7 +23,8 @@ Operators are :meth:`torch.nn.Module`s can be called with the ``forward`` method
     >>> import deepinv as dinv
     >>>
     >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28),
+    >>>                                          noise_model=dinv.physics.GaussianNoise(sigma=.05))
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
 
@@ -111,8 +112,8 @@ operator might change from image to image in a known way, eg MRI with varying ac
     >>> y2 = physics(x) # motion kernel is stored in the physics object as default kernel
     >>> assert torch.allclose(y1, y2)
 
-Applications
-------------
+Forward operators
+--------------------
 
 Various popular forward operators are provided with state-of-the-art implementations.
 
@@ -164,6 +165,7 @@ deblurring networks.
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
 
@@ -289,13 +291,21 @@ which is useful for training and evaluating methods under various noise conditio
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.SigmaGenerator
+   deepinv.physics.generator.SigmaGenerator
 
 
 Defining new operators
 --------------------------------
 
-When defining a new linear operator, you can define the adjoint automatically using autograd with
+Defining a new forward operator is relatively simple. You need to create a new class that inherits from the right
+physics class, that is :meth:`deepinv.physics.Physics` for non-linear operators,
+:meth:`deepinv.physics.LinearPhysics` for linear operators and :meth:`deepinv.physics.DecomposablePhysics`
+for linear operators with a closed-form singular value decomposition. The only requirement is to define
+a :class:`deepinv.physics.Physics.A` method that computes the forward operator. See the
+example :ref:`sphx_glr_auto_examples_basics_demo_physics.py` for more details.
+
+Defining a new linear operator requires the definition of :class:`deepinv.physics.LinearPhysics.A_adjoint`,
+you can define the adjoint automatically using autograd with
 
 .. autosummary::
    :toctree: stubs
@@ -303,3 +313,5 @@ When defining a new linear operator, you can define the adjoint automatically us
    :nosignatures:
 
     deepinv.physics.adjoint_function
+
+Note however that coding a closed form adjoint is generally more efficient.

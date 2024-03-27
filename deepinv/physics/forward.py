@@ -2,7 +2,7 @@ import torch
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
-
+from typing import Callable
 
 def adjoint_function(A, input_size, device="cpu"):
     r"""
@@ -26,7 +26,7 @@ def adjoint_function(A, input_size, device="cpu"):
         The first dimension, i.e. batch size, should be equal or lower than the batch size B
         of the input tensor to the adjoint operator.
     :param str device: device where the adjoint operator is computed.
-    :return: (callable) function that computes the adjoint of :math:`A`.
+    :return: (Callable) function that computes the adjoint of :math:`A`.
 
     """
     x = torch.ones(input_size, device=device)
@@ -61,10 +61,10 @@ class Physics(torch.nn.Module):  # parent class for forward models
     and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
-    :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
-    :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
+    :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
+    :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
-    :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
+    :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
         such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
         :math:`y=\eta\left(N(A(x))\right)`. By default, the sensor_model is set to the identity :math:`\eta(z)=z`.
     :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
@@ -242,18 +242,18 @@ class LinearPhysics(Physics):
     and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
-    :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
+    :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
         It is recommended to normalize it to have unit norm.
-    :param callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+    :param Callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
 
         .. note::
 
             A_adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function`
             method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
 
-    :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
+    :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
-    :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
+    :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
         such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
         :math:`y=\eta\left(N(A(x))\right)`. By default, the sensor_model is set to the identity :math:`\eta(z)=z`.
     :param int max_iter: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
@@ -515,7 +515,7 @@ class LinearPhysics(Physics):
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
-    def A_dagger(self, y, x_init=None):
+    def A_dagger(self, y, **kwargs):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
         `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
@@ -563,10 +563,10 @@ class DecomposablePhysics(LinearPhysics):
     where :math:`U\in\mathbb{C}^{n\times n}` and :math:`V\in\mathbb{C}^{m\times m}`
     are orthonormal linear transformations and :math:`s\in\mathbb{R}_{+}^{n}` are the singular values.
 
-    :param callable U: orthonormal transformation
-    :param callable U_adjoint: transpose of U
-    :param callable V: orthonormal transformation
-    :param callable V_adjoint: transpose of V
+    :param Callable U: orthonormal transformation
+    :param Callable U_adjoint: transpose of U
+    :param Callable V: orthonormal transformation
+    :param Callable V_adjoint: transpose of V
     :param torch.nn.Parameter, float params: Singular values of the transform
 
     |sep|

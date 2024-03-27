@@ -26,48 +26,48 @@ class Trainer:
 
     This class trains a reconstruction network using a set of losses, a forward operator, and a dataset.
     The class provides a flexible training loop that can be customized by the user. In particular, the user can
-    rewrite the ``compute_loss``  method to define their custom training step without having to write all the training code
-    from scratch:
+    rewrite the :meth:`deepinv.Trainer.compute_loss`  method to define their custom training step without having
+    to write all the training code from scratch:
 
 
-    ::
+    .. doctest::
 
-        def compute_loss(self, physics, x, y, train=True):
-            logs = {}
-
-            self.optimizer.zero_grad()
-
-            # Evaluate reconstruction network
-            x_net = self.model_inference(y=y, physics=physics)
-
-            # Compute the losses
-            loss_total = 0
-            for k, l in enumerate(self.losses):
-                loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
-                loss_total += self.fact_losses[k] * loss
-                if len(self.losses) > 1 and self.verbose_individual_losses:
-                    current_log = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
-                    )
-                    current_log.update(loss.item())
-                    cur_loss = current_log.avg
-                    logs[l.__class__.__name__] = cur_loss
-
-            current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
-            current_log.update(loss_total.item())
-            logs[f"TotalLoss"] = current_log.avg
-
-            if train:
-                loss_total.backward()  # Backward the total loss
-
-                norm = self.check_clip_grad()  # Optional gradient clipping
-                if norm is not None:
-                    logs["gradient_norm"] = self.check_grad_val.avg
-
-                # Optimizer step
-                self.optimizer.step()
-
-            return x_net, logs
+        >>> def compute_loss(self, physics, x, y, train=True):
+        >>>     logs = {}
+        >>>
+        >>>     self.optimizer.zero_grad()
+        >>>
+        >>>     # Evaluate reconstruction network
+        >>>     x_net = self.model_inference(y=y, physics=physics)
+        >>>
+        >>>     # Compute the losses
+        >>>     loss_total = 0
+        >>>     for k, l in enumerate(self.losses):
+        >>>         loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+        >>>         loss_total += self.fact_losses[k] * loss
+        >>>         if len(self.losses) > 1 and self.verbose_individual_losses:
+        >>>             current_log = (
+        >>>                 self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+        >>>             )
+        >>>             current_log.update(loss.item())
+        >>>             cur_loss = current_log.avg
+        >>>             logs[l.__class__.__name__] = cur_loss
+        >>>
+        >>>     current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
+        >>>     current_log.update(loss_total.item())
+        >>>     logs[f"TotalLoss"] = current_log.avg
+        >>>
+        >>>     if train:
+        >>>         loss_total.backward()  # Backward the total loss
+        >>>
+        >>>        norm = self.check_clip_grad()  # Optional gradient clipping
+        >>>         if norm is not None:
+        >>>             logs["gradient_norm"] = self.check_grad_val.avg
+        >>>
+        >>>         # Optimizer step
+        >>>         self.optimizer.step()
+        >>>
+        >>>     return x_net, logs
 
 
     If the user wants to change the way the metrics are computed, they can rewrite the ``compute_metrics`` method.

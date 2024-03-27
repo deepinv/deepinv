@@ -78,7 +78,7 @@ class Inpainting(DecomposablePhysics):
             device
         )
 
-    def noise(self, x, noise_level=None):
+    def noise(self, x, **kwargs):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -87,7 +87,7 @@ class Inpainting(DecomposablePhysics):
         """
         noise = self.U(
             self.V_adjoint(
-                self.V(self.U_adjoint(self.noise_model(x, noise_level)) * self.mask)
+                self.V(self.U_adjoint(self.noise_model(x, **kwargs)) * self.mask)
             )
         )
         return noise
