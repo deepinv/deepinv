@@ -167,10 +167,21 @@ class TensorList:
         return all([xi.all() for xi in self.x])
     
     def __gt__(self, other):
+        r"""
+
+        Returns a TensorList of True if the elements of the input TensorList are greater than other.
+
+        """
 
         return TensorList([xi > other for xi in self.x])
     
     def __lt__(self, other):
+
+        r"""
+
+        Returns a TensorList of True if the elements of the TensorList are smaller than other.
+
+        """
             
         return TensorList([xi < other for xi in self.x])
     
