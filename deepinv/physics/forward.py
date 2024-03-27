@@ -515,7 +515,7 @@ class LinearPhysics(Physics):
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
-    def A_dagger(self, y, x_init=None):
+    def A_dagger(self, y, **kwargs):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
         `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,

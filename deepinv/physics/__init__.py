@@ -30,4 +30,5 @@ from .generator import (
     GeneratorMixture,
     MotionBlurGenerator,
     DiffractionBlurGenerator,
+    SigmaGenerator
 )

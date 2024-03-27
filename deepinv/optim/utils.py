@@ -29,7 +29,7 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
 
 
 def dot(a, b):
-    dot = torch.sum(a.conj() * b, dim=(-1, -2, -3), keepdim=True)
+    dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=True)
     return dot
 
 
@@ -67,9 +67,8 @@ def conjugate_gradient(
         alpha = rsold / (dot(p, Ap) + eps)
         x = x + p * alpha
         r = r - Ap * alpha
-        rsnew = torch.real(dot(r, r))
-
-        if torch.any(rsnew < tol**2):
+        rsnew = dot(r, r)
+        if all(rsnew < tol**2):
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
