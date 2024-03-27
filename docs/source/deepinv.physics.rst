@@ -164,6 +164,7 @@ deblurring networks.
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
 
@@ -294,6 +295,13 @@ which is useful for training and evaluating methods under various noise conditio
 
 Defining new operators
 --------------------------------
+
+Defining a new forward operator is relatively simple. You need to create a new class that inherits from the right class,
+that is :meth:`deepinv.physics.Physics` for non-linear operators,
+:meth:`deepinv.physics.LinearPhysics` for linear operators and :meth:`deepinv.physics.DecomposablePhysics`
+for linear operators with a closed-form singular value decomposition. The only requirement is to define
+a :class:`deepinv.physics.Physics.A` method that computes the forward operator. See the example
+ :ref:`sphx_glr_auto_examples_basics_demo_physics.py` for more details.
 
 When defining a new linear operator, you can define the adjoint automatically using autograd with
 

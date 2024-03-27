@@ -8,6 +8,13 @@ from deepinv.physics.functional import histogramdd
 
 
 class PSFGenerator(PhysicsGenerator):
+    r"""
+    Base class for generating Point Spread Functions (PSFs).
+
+
+    :param tuple shape: the shape of the generated PSF, should be `(channels, kernel_size, kernel_size)` or
+        `(1, channels, kernel_size, kernel_size)`.
+    """
     def __init__(
         self,
         shape: tuple,
@@ -37,8 +44,6 @@ class DiffractionBlurGenerator(PSFGenerator):
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
             If a int is given, a square pupil is considered.
     :param float max_zernike_amplitude: range for the Zernike coefficient linear combination, defaults to 0.2.
-
-    :return: a DiffractionBlurGenerator object
 
     |sep|
 
