@@ -21,25 +21,25 @@ HD5Dataset
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base dataset (in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
 
-::
+.. doctest::
 
-    import deepinv as dinv
-    from torchvision import datasets, transforms
-
-    dir = '../datasets/MNIST/' # directory where the dataset will be saved.
-
-    # define base train dataset
-    transform_data = transforms.Compose([transforms.ToTensor()])
-    data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
-    data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
-
-    # define forward operator
-    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
-    physics.noise_model = dinv.physics.GaussianNoise(sigma=.05)
-
-    # generate paired dataset
-    dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
-                                   physics=physics, device=dinv.device, save_dir=dir)
+    >>> import deepinv as dinv
+    >>> from torchvision import datasets, transforms
+    >>>
+    >>> dir = '../datasets/MNIST/' # directory where the dataset will be saved.
+    >>>
+    >>> # define base train dataset
+    >>> transform_data = transforms.Compose([transforms.ToTensor()])
+    >>> data_train = datasets.MNIST(root='../datasets/', train=True, transform=transform_data, download=True)
+    >>> data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
+    >>>
+    >>> # define forward operator
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), device=dinv.device)
+    >>> physics.noise_model = dinv.physics.GaussianNoise(sigma=.05)
+    >>>
+    >>> # generate paired dataset
+    >>> dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
+    >>>                                physics=physics, device=dinv.device, save_dir=dir)
 
 
 The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard

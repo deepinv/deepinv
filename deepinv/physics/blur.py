@@ -55,6 +55,11 @@ def gaussian_blur(sigma=(1, 1), angle=0):
 
 
 def bilinear_filter(factor=2):
+    r"""
+    Bilinear filter.
+
+    :param int factor: downsampling factor
+    """
     x = np.arange(start=-factor + 0.5, stop=factor, step=1) / factor
     w = 1 - np.abs(x)
     w = np.outer(w, w)
@@ -63,6 +68,11 @@ def bilinear_filter(factor=2):
 
 
 def bicubic_filter(factor=2):
+    r"""
+    Bicubic filter.
+
+    :param int factor: downsampling factor
+    """
     x = np.arange(start=-2 * factor + 0.5, stop=2 * factor, step=1) / factor
     a = -0.5
     x = np.abs(x)
