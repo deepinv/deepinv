@@ -60,21 +60,19 @@ class Inpainting(DecomposablePhysics):
 
     def __init__(self, tensor_size, mask, pixelwise=True, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
-            self.mask = mask
         if type(mask) == float:
             print(
                 "For demo puprposes only. Will create random mask. In training, use a Generator instead"
             )
             mask_rate = mask
-            self.mask = torch.ones(tensor_size, device=device)
-            aux = torch.rand_like(self.mask)
+            mask = torch.ones(tensor_size, device=device)
+            aux = torch.rand_like(mask)
             if not pixelwise:
-                self.mask[aux > mask_rate] = 0
+                mask[aux > mask_rate] = 0
             else:
-                self.mask[:, aux[0, :, :] > mask_rate] = 0
+                mask[:, aux[0, :, :] > mask_rate] = 0
 
-        self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False).to(
+        self.mask = torch.nn.Parameter(mask.unsqueeze(0), requires_grad=False).to(
             device
         )
 
