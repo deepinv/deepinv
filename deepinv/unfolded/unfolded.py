@@ -61,7 +61,6 @@ class BaseUnfold(BaseOptim):
         super().__init__(
             iterator,
             max_iter=max_iter,
-            has_cost=iterator.has_cost,
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -76,7 +75,7 @@ class BaseUnfold(BaseOptim):
                 )
         self.init_params_algo = nn.ParameterDict(self.init_params_algo)
         self.params_algo = self.init_params_algo.copy()
-        # The prior (list of instances of :class:`deepinv.optim.Prior) is converted to a `nn.ModuleList` to be trainable.
+        # The prior (list of instances of :class:`deepinv.optim.Prior`) is converted to a `nn.ModuleList` to be trainable.
         self.prior = nn.ModuleList(self.prior)
         self.data_fidelity = nn.ModuleList(self.data_fidelity)
 
