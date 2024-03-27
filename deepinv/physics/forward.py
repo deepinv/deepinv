@@ -76,8 +76,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def __init__(
         self,
-        A=lambda x: x,
-        noise_model=lambda x: x,
+        A=lambda x, **kwargs: x,
+        noise_model=lambda x, **kwargs: x,
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-3,
@@ -131,8 +131,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
                 self.noise1 = noise1
                 self.noise2 = noise2
 
-            def forward(self, x):
-                return TensorList(self.noise1(x[:-1])).append(self.noise2(x[-1]))
+            def forward(self, x, **kwargs):
+                return TensorList(self.noise1(x[:-1], **kwargs)).append(self.noise2(x[-1], **kwargs))
 
         class sensor(torch.nn.Module):
             def __init__(self, sensor1, sensor2):
@@ -194,6 +194,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return torch.Tensor: noisy measurements
 
         """
+
         return self.noise_model(x, **kwargs)
 
     def A_dagger(self, y, x_init=None):
@@ -315,9 +316,9 @@ class LinearPhysics(Physics):
 
     def __init__(
         self,
-        A=lambda x: x,
-        A_adjoint=lambda x: x,
-        noise_model=lambda x: x,
+        A=lambda x, **kwargs: x,
+        A_adjoint=lambda x, **kwargs: x,
+        noise_model=lambda x, **kwargs: x,
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-3,

@@ -28,7 +28,7 @@ class GaussianNoise(torch.nn.Module):
         super().__init__()
         self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
@@ -127,7 +127,7 @@ class PoissonNoise(torch.nn.Module):
         self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
         self.clip_positive = clip_positive
 
-    def forward(self, x, gain=None):
+    def forward(self, x, gain=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
@@ -176,7 +176,7 @@ class PoissonGaussianNoise(torch.nn.Module):
         self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
         self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
 
-    def forward(self, x, gain=None, sigma=None):
+    def forward(self, x, gain=None, sigma=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
@@ -223,7 +223,7 @@ class UniformNoise(torch.nn.Module):
         super().__init__()
         self.a = torch.nn.Parameter(torch.tensor(a), requires_grad=False)
 
-    def forward(self, x, a=None):
+    def forward(self, x, a=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
@@ -274,7 +274,7 @@ class LogPoissonNoise(torch.nn.Module):
         self.mu = torch.nn.Parameter(torch.tensor(mu))
         self.N0 = torch.nn.Parameter(torch.tensor(N0))
 
-    def forward(self, x, mu=None, N0=None):
+    def forward(self, x, mu=None, N0=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
