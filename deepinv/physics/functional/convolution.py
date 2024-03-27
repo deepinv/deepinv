@@ -14,7 +14,7 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
 
     If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
+    :param padding: (options = `valid`, `circular`, `replicate`, `reflect`) If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
     :return torch.Tensor : the output
     """

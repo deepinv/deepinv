@@ -46,10 +46,11 @@ class ThinPlateSpline:
         control_points (Tensor): Control points fitted (X_c). Shape: (n_c, d_s)
     """
 
-    def __init__(self, alpha=0.0, device="cpu") -> None:
+    def __init__(self, alpha=0.0, device="cpu", dtype=torch.float32) -> None:
         self._fitted = False
         self.alpha = alpha
         self.device = torch.device(device)
+        self.dtype = dtype
 
         self.parameters = torch.tensor([], dtype=torch.float32)
         self.control_points = torch.tensor([], dtype=torch.float32)
@@ -83,17 +84,27 @@ class ThinPlateSpline:
         A = torch.vstack(
             [
                 torch.hstack(
-                    [phi + self.alpha * torch.eye(n_c, device=self.device), X_p]
+                    [
+                        phi + self.alpha * torch.eye(n_c, device=self.device),
+                        X_p,
+                    ]
                 ),
                 torch.hstack(
-                    [X_p.T, torch.zeros((d_s + 1, d_s + 1), device=self.device)]
+                    [
+                        X_p.T,
+                        torch.zeros((d_s + 1, d_s + 1), device=self.device),
+                    ]
                 ),
             ]
         )
 
-        Y = torch.vstack([Y, torch.zeros((d_s + 1, Y.shape[1]), device=self.device)])
+        Y = torch.vstack(
+            [Y, torch.zeros((d_s + 1, Y.shape[1]), device=self.device)]
+        )
 
-        self.parameters = torch.linalg.solve(A, Y)  # pylint: disable=not-callable
+        self.parameters = torch.linalg.solve(
+            A, Y
+        )  # pylint: disable=not-callable
         self._fitted = True
 
         return self
