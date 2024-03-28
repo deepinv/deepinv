@@ -18,7 +18,8 @@ def cal_angle(a, b):
 
 
 def cal_psnr(
-    a: torch.Tensor, b: torch.Tensor, max_pixel: float = 1.0, normalize: bool = False
+    a: torch.Tensor, b: torch.Tensor, max_pixel: float = 1.0, normalize: bool = False,
+        mean_batch: bool = True, to_numpy: bool = True
 ):
     r"""
     Computes the peak signal-to-noise ratio (PSNR)
@@ -35,6 +36,8 @@ def cal_psnr(
     :param torch.Tensor b: tensor reference
     :param float max_pixel: maximum pixel value
     :param bool normalize: if ``True``, a is normalized to have the same norm as b.
+    :param bool mean_batch: if ``True``, the PSNR is averaged over the batch dimension.
+    :param bool to_numpy: if ``True``, the output is converted to a numpy array.
     """
     with torch.no_grad():
         if type(a) is list or type(a) is tuple:
@@ -51,13 +54,18 @@ def cal_psnr(
         # psnr = 20 * torch.log10(max_pixel / mse.sqrt())
         psnr = -10.0 * torch.log10(mse / max_pixel**2 + 1e-8)
 
-    return psnr.mean().item()
+    if mean_batch:
+        psnr = psnr.mean()
+
+    if to_numpy:
+        return psnr.detach().cpu().numpy()
+    else:
+        return psnr
 
 
 def cal_mse(a, b):
     """Computes the mean squared error (MSE)"""
-    with torch.no_grad():
-        mse = torch.mean((a - b) ** 2)
+    mse = torch.mean((a - b) ** 2)
     return mse
 
 

@@ -142,7 +142,7 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
 
         physics = dinv.physics.BlurFFT(
             img_size=(n_channels, img_size_w, img_size_h),
-            filter=dinv.physics.blur.blur.gaussian_blur(),
+            filter=dinv.physics.blur.gaussian_blur(),
             device=device,
             noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
         )

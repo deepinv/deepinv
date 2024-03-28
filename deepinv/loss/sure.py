@@ -21,7 +21,7 @@ def hutch_div(y, physics, f, mc_iter=1):
         x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[
             0
         ]
-        out += (b * x).mean()
+        out += (b * x).reshape(y.size(0), -1).mean(1)
 
     return out / mc_iter
 
@@ -65,13 +65,13 @@ def mc_div(y1, y, f, physics, tau):
     """
     b = torch.randn_like(y)
     y2 = physics.A(f(y + b * tau, physics))
-    out = (b * (y2 - y1) / tau).mean()
+    out = (b * (y2 - y1) / tau).reshape(y.size(0), -1).mean(1)
     return out
 
 
 class SureGaussianLoss(Loss):
     r"""
-    SURE loss for Gaussian noise
+    SURESURE loss for Gaussian noise
 
     The loss is designed for the following noise model:
 
@@ -122,12 +122,12 @@ class SureGaussianLoss(Loss):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction network.
-        :return: (float) SURE loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
         y1 = physics.A(x_net)
         div = 2 * self.sigma2 * mc_div(y1, y, model, physics, self.tau)
-        mse = (y1 - y).pow(2).mean()
+        mse = (y1 - y).pow(2).reshape(y.size(0), -1).mean(1)
         loss_sure = mse + div - self.sigma2
         return loss_sure
 
@@ -181,7 +181,7 @@ class SurePoissonLoss(Loss):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module model: Reconstruction network
-        :return: (float) SURE loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
         # generate a random vector b
@@ -195,10 +195,11 @@ class SurePoissonLoss(Loss):
         # m = y.numel() #(torch.abs(y) > 1e-5).flatten().sum()
 
         loss_sure = (
-            (y1 - y).pow(2).mean()
-            - self.gain * y.mean()
-            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1)).mean()
+            (y1 - y).pow(2)
+            - self.gain * y
+            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1))
         )
+        loss_sure = loss_sure.reshape(y.size(0), -1).mean(1)
 
         return loss_sure
 
@@ -261,7 +262,7 @@ class SurePGLoss(Loss):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module f: Reconstruction network
-        :return: (float) SURE loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
         b1 = torch.rand_like(y) > 0.5
@@ -280,22 +281,22 @@ class SurePGLoss(Loss):
         # compute m (size of y)
         # m = (torch.abs(y) > 1e-5).flatten().sum()
 
-        loss_mc = (meas1 - y).pow(2).mean()
+        loss_mc = (meas1 - y).pow(2).reshape(y.size(0), -1).mean(1)
 
         loss_div1 = (
             2
             / self.tau1
-            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).mean()
+            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).reshape(y.size(0), -1).mean(1)
         )
 
-        offset = -self.gain * y.mean() - self.sigma2
+        offset = -self.gain * y.reshape(y.size(0), -1).mean(1) - self.sigma2
 
         loss_div2 = (
             -2
             * self.sigma2
             * self.gain
             / (self.tau2**2)
-            * (b2 * (meas2p + meas2n - 2 * meas1)).mean()
+            * (b2 * (meas2p + meas2n - 2 * meas1)).reshape(y.size(0), -1).mean(1)
         )
 
         loss_sure = loss_mc + loss_div1 + loss_div2 + offset

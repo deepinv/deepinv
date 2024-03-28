@@ -44,11 +44,10 @@ class Trainer:
         >>>     loss_total = 0
         >>>     for k, l in enumerate(self.losses):
         >>>         loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
-        >>>         loss_total += self.fact_losses[k] * loss
-        >>>         if len(self.losses) > 1 and self.verbose_individual_losses:
-        >>>             current_log = (
-        >>>                 self.logs_losses_train[k] if train else self.logs_losses_eval[k]
-        >>>             )
+        >>>         loss_total += loss.mean()
+        >>>
+        >>>         if self.verbose_individual_losses and len(self.losses) > 1:
+        >>>             current_log = (self.logs_losses_train[k] if train else self.logs_losses_eval[k])
         >>>             current_log.update(loss.item())
         >>>             cur_loss = current_log.avg
         >>>             logs[l.__class__.__name__] = cur_loss
@@ -395,12 +394,12 @@ class Trainer:
             loss_total = 0
             for k, l in enumerate(self.losses):
                 loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
-                loss_total += self.fact_losses[k] * loss
+                loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     current_log = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
-                    current_log.update(loss.item())
+                    current_log.update(loss.detach().cpu().numpy())
                     cur_loss = current_log.avg
                     logs[l.__class__.__name__] = cur_loss
 
@@ -444,7 +443,7 @@ class Trainer:
                 current_log = (
                     self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
                 )
-                current_log.update(metric)
+                current_log.update(metric.detach().cpu().numpy())
                 logs[l.__class__.__name__] = current_log.avg
 
         return logs
@@ -645,6 +644,7 @@ def test(
     model,
     test_dataloader,
     physics,
+    metrics=PSNR(),
     device="cpu",
     plot_images=False,
     save_folder="results",
@@ -670,6 +670,7 @@ def test(
         See :ref:`datasets <datasets>` for more details.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at test time.
+    :param deepinv.loss.Loss, list[deepinv.Loss] metrics: Metric or list of metrics used for evaluating the model.
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
@@ -686,9 +687,6 @@ def test(
     """
     save_folder = Path(save_folder)
 
-    psnr_init = []
-    psnr_net = []
-
     model.eval()
 
     if type(physics) is not list:
@@ -701,10 +699,23 @@ def test(
 
     show_operators = 5
 
+    if type(metrics) is not list:
+        metrics = [metrics]
+
+    logs_metrics = [
+        AverageMeter("Test " + l.__class__.__name__, ":.2e")
+        for l in metrics
+    ]
+
+    logs_metrics_init = [
+        AverageMeter("Test (no learning) " + l.__class__.__name__, ":.2e")
+        for l in metrics
+    ]
+
     for g in range(G):
         dataloader = test_dataloader[g]
         if verbose:
-            print(f"Processing data of operator {g + 1} out of {G}")
+            print(f"Processing test data of operator {g + 1} out of {G}")
         for i, batch in enumerate(tqdm(dataloader, disable=not verbose)):
             with torch.no_grad():
                 if online_measurements:
@@ -729,74 +740,74 @@ def test(
 
                     y = y.to(device)
 
-                if plot_metrics:
-                    x1, metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
+            if plot_metrics:
+                x_net, optim_metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
+            else:
+                x_net = model(y, physics[g])
+
+            if hasattr(physics_cur, "A_adjoint"):
+                if isinstance(physics_cur, torch.nn.DataParallel):
+                    x_init = physics_cur.module.A_adjoint(y)
                 else:
-                    x1 = model(y, physics[g])
-
-                if hasattr(physics_cur, "A_adjoint"):
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        x_init = physics_cur.module.A_adjoint(y)
-                    else:
-                        x_init = physics_cur.A_adjoint(y)
-                elif hasattr(physics_cur, "A_dagger"):
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        x_init = physics_cur.module.A_dagger(y)
-                    else:
-                        x_init = physics_cur.A_dagger(y)
+                    x_init = physics_cur.A_adjoint(y)
+            elif hasattr(physics_cur, "A_dagger"):
+                if isinstance(physics_cur, torch.nn.DataParallel):
+                    x_init = physics_cur.module.A_dagger(y)
                 else:
-                    x_init = zeros_like(x)
+                    x_init = physics_cur.A_dagger(y)
+            else:
+                x_init = zeros_like(x)
 
-                cur_psnr_init = cal_psnr(x_init, x)
-                cur_psnr = cal_psnr(x1, x)
-                psnr_init.append(cur_psnr_init)
-                psnr_net.append(cur_psnr)
+            # Compute the metrics over the batch
+            for k, l in enumerate(metrics):
+                loss = l(x=x, x_net=x_net, y=y, physics=physics)
+                logs_metrics[k].update(loss.detach().cpu().numpy())
+                loss = l(x=x, x_net=x_init, y=y, physics=physics)
+                logs_metrics_init[k].update(loss.detach().cpu().numpy())
 
-                if plot_images:
-                    save_folder_im = (
-                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                    ) / "images"
-                    save_folder_im.mkdir(parents=True, exist_ok=True)
-                else:
-                    save_folder_im = None
-                if plot_metrics:
-                    save_folder_curve = (
-                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                    ) / "curves"
-                    save_folder_curve.mkdir(parents=True, exist_ok=True)
+            if plot_images:
+                save_folder_im = (
+                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                ) / "images"
+                save_folder_im.mkdir(parents=True, exist_ok=True)
+            else:
+                save_folder_im = None
+            if plot_metrics:
+                save_folder_curve = (
+                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                ) / "curves"
+                save_folder_curve.mkdir(parents=True, exist_ok=True)
 
-                if plot_images and (step + 1) % img_interval == 0:
-                    if g < show_operators:
-                        if not plot_only_first_batch or (
-                            plot_only_first_batch and i == 0
-                        ):
-                            if plot_measurements and len(y.shape) == 4:
-                                imgs = [y, x_init, x1, x]
-                                name_imgs = ["Input", "No learning", "Recons.", "GT"]
-                            else:
-                                imgs = [x_init, x1, x]
-                                name_imgs = ["No learning", "Recons.", "GT"]
-                            plot(
-                                imgs,
-                                titles=name_imgs,
-                                save_dir=save_folder_im if plot_images else None,
-                                show=plot_images,
-                                return_fig=True,
-                            )
+            if plot_images and (step + 1) % img_interval == 0:
+                if g < show_operators:
+                    if not plot_only_first_batch or (
+                        plot_only_first_batch and i == 0
+                    ):
+                        if plot_measurements and len(y.shape) == 4:
+                            imgs = [y, x_init, x_net, x]
+                            name_imgs = ["Input", "No learning", "Recons.", "GT"]
+                        else:
+                            imgs = [x_init, x_net, x]
+                            name_imgs = ["No learning", "Recons.", "GT"]
+                        plot(
+                            imgs,
+                            titles=name_imgs,
+                            save_dir=save_folder_im if plot_images else None,
+                            show=plot_images,
+                            return_fig=True,
+                        )
 
                 if plot_metrics:
-                    plot_curves(metrics, save_dir=save_folder_curve, show=True)
+                    plot_curves(optim_metrics, save_dir=save_folder_curve, show=True)
 
-    test_psnr = np.mean(psnr_net)
-    test_std_psnr = np.std(psnr_net)
-    linear_psnr = np.mean(psnr_init)
-    linear_std_psnr = np.std(psnr_init)
     if verbose:
-        print(
-            f"Test PSNR: No learning rec.: {linear_psnr:.2f}+-{linear_std_psnr:.2f} dB | Model: {test_psnr:.2f}+-{test_std_psnr:.2f} dB. "
-        )
+        for k, l in enumerate(metrics):
+            print(
+                f"Test {l.__class__.__name__}: No learning rec.: {logs_metrics_init[k].avg:.3f}+-{logs_metrics_init[k].std:.3f} "
+                f"| Model: {logs_metrics[k].avg:.3f}+-{logs_metrics[k].std:.3f}. "
+            )
 
-    return test_psnr, test_std_psnr, linear_psnr, linear_std_psnr
+    return logs_metrics[0].avg, logs_metrics[0].std, logs_metrics_init[0].avg, logs_metrics_init[0].std
 
 
 def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwargs):

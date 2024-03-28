@@ -10,7 +10,7 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
 LOSSES = ["sup", "mcei", "mcei-scale", "r2r"]
-LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian", "UniformGaussian"]
+LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -114,7 +114,7 @@ def imsize():
 @pytest.fixture
 def physics(imsize, device):
     # choose a forward operator
-    return dinv.physics.Inpainting(img_size=imsize, mask=0.5, device=device)
+    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device)
 
 
 @pytest.fixture

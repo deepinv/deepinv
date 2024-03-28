@@ -249,9 +249,7 @@ def choose_noise(noise_type):
     elif noise_type == "Gaussian":
         noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "UniformGaussian":
-        noise_model = dinv.physics.UniformGaussianNoise(
-            sigma=sigma
-        )  # This is equivalent to GaussianNoise when sigma is fixed
+        noise_model = dinv.physics.UniformGaussianNoise()
     elif noise_type == "Uniform":
         noise_model = dinv.physics.UniformNoise(a=gain)
     elif noise_type == "Poisson":

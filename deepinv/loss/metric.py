@@ -12,7 +12,6 @@ except:
     pyiqa = ImportError("The pyiqa package is not installed.")
 
 
-
 def check_pyiqa():
     if isinstance(pyiqa, ImportError):
         raise ImportError(
@@ -34,6 +33,12 @@ class NIQE(Loss):
         self.metric = pyiqa.create_metric('niqe').to(device)
 
     def forward(self, x_net, **kwargs):
+        r"""
+        Computes the NIQE metric (no reference).
+
+        :param torch.Tensor x_net: input tensor.
+        :return: torch.Tensor size (batch_size,).
+        """
         return self.metric(x_net)
 
 
@@ -43,15 +48,25 @@ class LPIPS(Loss):
 
     Computes the perceptual similarity between two images, based on a pre-trained deep neural network.
 
+    :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param str device: device to use for the metric computation. Default: 'cpu'.
     """
-    def __init__(self, device='cpu'):
+    def __init__(self, train=False, device='cpu'):
         super().__init__()
         check_pyiqa()
         self.metric = pyiqa.create_metric('lpips').to(device)
+        self.train = train
 
     def forward(self, x, x_net, **kwargs):
-        return self.metric(x, x_net)
+        r"""
+        Computes the LPIPS metric.
+
+        :param torch.Tensor x: reference image.
+        :param torch.Tensor x_net: reconstructed image.
+        :return: torch.Tensor size (batch_size,).
+        """
+        loss = self.metric(x, x_net)
+        return (1-loss) if self.train else loss
 
 
 class SSIM(Loss):
@@ -60,18 +75,29 @@ class SSIM(Loss):
 
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
+    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
+    :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param str device: device to use for the metric computation. Default: 'cpu'.
     """
-    def __init__(self, multiscale=False, device='cpu'):
+    def __init__(self, multiscale=False, train=False, device='cpu'):
         super().__init__()
         check_pyiqa()
         if multiscale:
             self.metric = pyiqa.create_metric('ms-ssim').to(device)
         else:
             self.metric = pyiqa.create_metric('ssim').to(device)
+        self.train = train
 
     def forward(self, x, x_net, **kwargs):
-        return self.metric(x, x_net)
+        r"""
+        Computes the SSIM metric.
+
+        :param torch.Tensor x: reference image.
+        :param torch.Tensor x_net: reconstructed image.
+        :return: torch.Tensor size (batch_size,).
+        """
+        loss = self.metric(x, x_net)
+        return (1-loss) if self.train else loss
 
 
 class PSNR(Loss):
@@ -95,7 +121,15 @@ class PSNR(Loss):
         self.normalize = normalize
 
     def forward(self, x_net, x, **kwargs):
-        return cal_psnr(x_net, x, self.max_pixel, self.normalize)
+        r"""
+        Computes the PSNR metric.
+
+        :param torch.Tensor x: reference image.
+        :param torch.Tensor x_net: reconstructed image.
+        :return: torch.Tensor size (batch_size,).
+        """
+        return cal_psnr(x_net, x, self.max_pixel, self.normalize, mean_batch=False, to_numpy=False)
+
 
 class LpNorm(Loss):
     r"""
@@ -115,11 +149,11 @@ class LpNorm(Loss):
         self.p = p
         self.onesided = onesided
 
-    def forward(self, x, y):
+    def forward(self, x_net, x, **kwargs):
         if self.onesided:
-            return torch.nn.functional.relu(-x * y).flatten().pow(self.p).mean()
+            return torch.nn.functional.relu(-x * x).flatten().pow(self.p).mean()
         else:
-            return (x - y).flatten().abs().pow(self.p).mean()
+            return (x - x).flatten().abs().pow(self.p).mean()
 
 
 def mse():
@@ -216,3 +250,11 @@ def gradient_penalty_loss(discriminator, real_data, fake_data, weight=None):
         gradients_penalty /= torch.mean(weight)
 
     return gradients_penalty
+
+
+if __name__ == "__main__":
+    x = torch.rand(8, 3, 32, 32, device='cuda')
+    x_net = torch.rand(8, 3, 32, 32, device='cuda')
+
+    loss = LPIPS(device=x.device)
+    print(loss(x, x_net))
