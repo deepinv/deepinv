@@ -6,8 +6,8 @@ Utils
 
 Training and Testing
 --------------------
-Functions to train and test the model, and save the model and the results.
-
+Training a reconstruction model can be done using the Trainer class, which can be easily customized
+to fit your needs.
 
 .. autosummary::
    :toctree: stubs
@@ -15,6 +15,8 @@ Functions to train and test the model, and save the model and the results.
    :nosignatures:
 
         deepinv.Trainer
+
+We also provide train and test functions that can be used to train and test a model with a single call.
 
 .. autosummary::
    :toctree: stubs

@@ -4,11 +4,9 @@ from deepinv.utils import (
     save_model,
     AverageMeter,
     get_timestamp,
-    cal_psnr,
 )
 from deepinv.utils import plot, plot_curves, rescale_img, zeros_like
 from deepinv.physics import Physics
-from deepinv.physics.generator import PhysicsGenerator
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -74,7 +72,8 @@ class Trainer:
 
     .. note::
 
-        The losses can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
+        The losses and evaluation metrics
+         can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
         as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
         reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
@@ -83,12 +82,16 @@ class Trainer:
 
     :param torch.utils.data.DataLoader train_dataloader: Train dataloader.
     :param int epochs: Number of training epochs.
-    :param deepinv.loss.Loss, list[deepinv.Loss]: Loss or list of losses used for training the model.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
     :param torch.utils.data.DataLoader eval_dataloader: Evaluation dataloader.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at train time.
-    :param torch.nn.optim optimizer: Torch optimizer for training the network.
-    :param deepinv.loss.Loss, list[deepinv.Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
+        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
+        parameters of the forward operator or noise realizations, can change between each sample; these are updated
+        with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
+    :param torch.nn.optim.lr_scheduler optimizer: Torch optimizer for training the network.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param torch.nn.optim scheduler: Torch scheduler for changing the learning rate across iterations.
     :param torch.device device: gpu or cpu.
@@ -100,16 +103,14 @@ class Trainer:
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
-    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
-        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
-        parameters of the forward operator or noise realizations, can change between each sample; these are updated
-        with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool check_grad: Check the gradient norm at each iteration.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.
     :param list fact_losses: List of factors to multiply the losses. If None, all losses are multiplied by 1.
-    :param int freq_plot: Frequency of plotting images to wandb during train evaluation (at the end of each epoch). If 1, plots at each epoch.
-    :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training. Otherwise, only the total loss is printed.
+    :param int freq_plot: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
+        If ``1``, plots at each epoch.
+    :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
+        Otherwise, only the total loss is printed.
     """
 
     epochs: int
@@ -117,8 +118,8 @@ class Trainer:
     physics: Physics = None
     optimizer: torch.optim.Optimizer = None
     metrics: Union[torch.nn.Module, List[torch.nn.Module]] = PSNR()
+    online_measurements: bool = False
     grad_clip: float = None
-    physics_generator: PhysicsGenerator = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
@@ -130,7 +131,6 @@ class Trainer:
     plot_metrics: bool = False
     wandb_vis: bool = False
     wandb_setup: dict = field(default_factory=dict)
-    online_measurements: bool = False
     plot_measurements: bool = True
     check_grad: bool = False
     ckpt_pretrained: Union[str, None] = None
@@ -645,6 +645,7 @@ def test(
     test_dataloader,
     physics,
     metrics=PSNR(),
+    online_measurements=False,
     device="cpu",
     plot_images=False,
     save_folder="results",
@@ -652,7 +653,6 @@ def test(
     verbose=True,
     plot_only_first_batch=True,
     step=0,
-    online_measurements=False,
     plot_measurements=True,
     img_interval=1,
     **kwargs,
@@ -671,6 +671,8 @@ def test(
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at test time.
     :param deepinv.loss.Loss, list[deepinv.Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
+        ``physics(x)``.
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
@@ -678,8 +680,6 @@ def test(
     :param bool verbose: Output training progress information in the console.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param int step: Step number.
-    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
-        ``physics(x)``.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param int img_interval: how many steps between plotting images
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
@@ -703,8 +703,7 @@ def test(
         metrics = [metrics]
 
     logs_metrics = [
-        AverageMeter("Test " + l.__class__.__name__, ":.2e")
-        for l in metrics
+        AverageMeter("Test " + l.__class__.__name__, ":.2e") for l in metrics
     ]
 
     logs_metrics_init = [
@@ -741,7 +740,9 @@ def test(
                     y = y.to(device)
 
             if plot_metrics:
-                x_net, optim_metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
+                x_net, optim_metrics = model(
+                    y, physics_cur, x_gt=x, compute_metrics=True
+                )
             else:
                 x_net = model(y, physics[g])
 
@@ -780,9 +781,7 @@ def test(
 
             if plot_images and (step + 1) % img_interval == 0:
                 if g < show_operators:
-                    if not plot_only_first_batch or (
-                        plot_only_first_batch and i == 0
-                    ):
+                    if not plot_only_first_batch or (plot_only_first_batch and i == 0):
                         if plot_measurements and len(y.shape) == 4:
                             imgs = [y, x_init, x_net, x]
                             name_imgs = ["Input", "No learning", "Recons.", "GT"]
@@ -807,7 +806,12 @@ def test(
                 f"| Model: {logs_metrics[k].avg:.3f}+-{logs_metrics[k].std:.3f}. "
             )
 
-    return logs_metrics[0].avg, logs_metrics[0].std, logs_metrics_init[0].avg, logs_metrics_init[0].std
+    return (
+        logs_metrics[0].avg,
+        logs_metrics[0].std,
+        logs_metrics_init[0].avg,
+        logs_metrics_init[0].std,
+    )
 
 
 def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwargs):

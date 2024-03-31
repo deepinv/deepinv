@@ -16,7 +16,7 @@ from pathlib import Path
 from torchvision import transforms
 from deepinv.optim.prior import PnP
 from deepinv.utils.demo import load_dataset, load_degradation
-from deepinv.training_utils import train, test
+from deepinv.training_utils import Trainer
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -202,20 +202,22 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+trainer = Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
     physics=physics,
     optimizer=optimizer,
+    plot_images=True,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
     ckp_interval=10,
+)
+
+model = trainer.train(
+    model, train_dataloader=train_dataloader, eval_dataloader=test_dataloader
 )
 
 # %%
@@ -224,16 +226,4 @@ train(
 #
 #
 
-plot_images = True
-method = "equivariant_imaging"
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(model, test_dataloader)
