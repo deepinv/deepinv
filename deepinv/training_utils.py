@@ -16,7 +16,7 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.loss import PSNR
+from deepinv.loss import PSNR, Loss
 
 
 @dataclass
@@ -113,9 +113,9 @@ class Trainer:
     """
 
     epochs: int
-    losses: list
-    physics: Physics = None
-    optimizer: torch.optim.Optimizer = None
+    losses: Union[Loss, list[Loss]]
+    physics: Physics
+    optimizer: torch.optim.Optimizer
     metrics: Union[torch.nn.Module, List[torch.nn.Module]] = PSNR()
     grad_clip: float = None
     physics_generator: PhysicsGenerator = None
@@ -124,7 +124,7 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
-    verbose: bool = False
+    verbose: bool = True
     unsupervised: bool = False
     plot_images: bool = False
     plot_metrics: bool = False
