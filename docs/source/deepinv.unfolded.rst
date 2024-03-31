@@ -46,6 +46,31 @@ The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.Bas
    deepinv.unfolded.BaseUnfold
 
 
+In the following example, we create an unfolded architecture of 5 proximal gradient steps
+using a DnCNN plug-and-play prior a standard L2 data-fidelity term. The network can be trained end-to-end, and
+evaluated with any forward model (e.g., denoising, deconvolution, inpainting, etc.).
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>>
+    >>> # Create a trainable unfolded architecture
+    >>> model = dinv.unfolded.unfolded_builder(
+    ...     iteration="PGD",
+    ...     data_fidelity=dinv.optim.L2(),
+    ...     prior=dinv.optim.PnP(dinv.models.DnCNN(train=True)),
+    ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
+    ...     trainable_params=["stepsize", "g_param"]
+    ... )
+    >>> # Forward pass
+    >>> x = torch.randn(1, 1, 16, 16)
+    >>> physics = dinv.physics.Denoising()
+    >>> y = physics(x)
+    >>> x_hat = model(y, physics)
+
+
+
 Deep Equilibrium
 ----------------
 Deep Equilibrium models (DEQ) are a particular class of unfolded architectures where the backward pass

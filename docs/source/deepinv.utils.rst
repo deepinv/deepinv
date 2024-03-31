@@ -8,6 +8,14 @@ Training and Testing
 --------------------
 Functions to train and test the model, and save the model and the results.
 
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.Trainer
+
 .. autosummary::
    :toctree: stubs
    :template: myfunc_template.rst
@@ -16,6 +24,7 @@ Functions to train and test the model, and save the model and the results.
         deepinv.train
         deepinv.test
         deepinv.training_utils.train_normalizing_flow
+
 
 
 Plotting
@@ -72,4 +81,3 @@ Other
         deepinv.utils.cal_psnr
         deepinv.utils.get_freer_gpu
         deepinv.utils.load_url_image
-
