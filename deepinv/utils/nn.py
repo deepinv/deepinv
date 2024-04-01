@@ -175,7 +175,6 @@ class TensorList:
         return TensorList([xi > other for xi in self.x])
 
     def __lt__(self, other):
-
         r"""
 
         Returns a TensorList of True if the elements of the TensorList are smaller than other.
@@ -252,7 +251,7 @@ def get_freer_gpu():
 
 
 def save_model(
-        epoch, model, optimizer, ckp_interval, epochs, loss, save_path, eval_psnr=None
+    epoch, model, optimizer, ckp_interval, epochs, loss, save_path, eval_psnr=None
 ):
     if (epoch > 0 and epoch % ckp_interval == 0) or epoch + 1 == epochs:
         os.makedirs(save_path, exist_ok=True)
