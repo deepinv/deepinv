@@ -59,13 +59,3 @@ from deepinv.training_utils import train, test, Trainer
 
 # GLOBAL PROPERTY
 dtype = torch.float
-
-# if torch.cuda.is_available():
-#    try:
-#        free_gpu_id = get_freer_gpu()
-#        device = torch.device(f"cuda:{free_gpu_id}")
-#    except:
-#        device = torch.device("cuda")
-#        print("unable to get GPU info")
-# else:
-#    device = "cpu"
