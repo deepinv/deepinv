@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+from deepinv.loss.loss import Loss
 
 
-class SupLoss(nn.Module):
+class SupLoss(Loss):
     r"""
     Standard supervised loss
 

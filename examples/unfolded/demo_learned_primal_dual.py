@@ -18,8 +18,6 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
-from torchvision import transforms
 from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
@@ -240,20 +238,29 @@ test_dataloader = DataLoader(
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+method = "learned primal-dual"
+save_folder = RESULTS_DIR / method / operation
+plot_images = True  # plot images. Images are saved in save_folder.
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR and shown in wandb.
+
+
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
+    online_measurements=True,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
-    online_measurements=True,
+)
+
+model = trainer.train(
+    model,
+    physics=physics,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
 )
 
 # %%
@@ -262,20 +269,4 @@ train(
 #
 #
 
-method = "learned primal-dual"
-save_folder = RESULTS_DIR / method / operation
-plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR and shown in wandb.
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=save_folder,
-    verbose=verbose,
-    plot_metrics=plot_metrics,
-    wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
-    online_measurements=True,
-)
+trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)

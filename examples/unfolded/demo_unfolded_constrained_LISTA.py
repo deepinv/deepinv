@@ -31,7 +31,6 @@ from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
 
 # %%
 # Setup paths for data loading and results.
@@ -232,19 +231,18 @@ losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
 )
+
+model = trainer.train(model, physics=physics, train_dataloader=train_dataloader)
 
 # %%
 # Test the network
@@ -256,15 +254,10 @@ train(
 plot_images = True
 method = "artifact_removal"
 
-test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
+trainer.test(
     model=model,
     test_dataloader=test_dataloader,
     physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / test_dataset_name,
-    verbose=verbose,
-    wandb_vis=wandb_vis,  # training vialisations can be done in Weight&Bias
 )
 
 # %%
@@ -325,13 +318,4 @@ model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
 
 # Test the model and check that the results are the same as before saving
-test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
-    model=model_new,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / test_dataset_name,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(model_new, test_dataloader=test_dataloader, physics=physics)

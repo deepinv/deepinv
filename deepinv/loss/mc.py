@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from deepinv.loss.loss import Loss
 
 
-class MCLoss(nn.Module):
+class MCLoss(Loss):
     r"""
     Measurement consistency loss
 

@@ -25,7 +25,6 @@ from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
 from torchvision import transforms, datasets
-from deepinv.training_utils import train, test
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -164,14 +163,11 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+# Initialize the trainer
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=loss,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
@@ -179,21 +175,19 @@ train(
     wandb_vis=wandb_vis,
 )
 
+# Train the network
+model = trainer.train(
+    model,
+    physics=physics,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+)
+
+
 # %%
 # Test the network
 # --------------------------------------------
 #
 #
 
-plot_images = True
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / "sure" / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(model=model, physics=physics, test_dataloader=test_dataloader)

@@ -16,7 +16,6 @@ from pathlib import Path
 from torchvision import transforms
 from deepinv.optim.prior import PnP
 from deepinv.utils.demo import load_dataset, load_degradation
-from deepinv.training_utils import Trainer
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -202,11 +201,11 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-trainer = Trainer(
+# Initialize the trainer
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     plot_images=True,
     device=device,
@@ -217,7 +216,7 @@ trainer = Trainer(
 )
 
 model = trainer.train(
-    model, train_dataloader=train_dataloader, eval_dataloader=test_dataloader
+    model, physics, train_dataloader=train_dataloader, eval_dataloader=test_dataloader
 )
 
 # %%
@@ -226,4 +225,4 @@ model = trainer.train(
 #
 #
 
-trainer.test(model, test_dataloader)
+trainer.test(model, physics, test_dataloader)

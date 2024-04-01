@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
@@ -182,14 +181,10 @@ test_dataloader = DataLoader(
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
@@ -197,34 +192,26 @@ train(
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
+model = trainer.train(
+    model,
+    physics=physics,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+)
+
+
 # %%
 # Test the network
 # --------------------------------------------
 #
 #
 
-method = "unfolded_drs"
-save_folder = RESULTS_DIR / method / operation
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=save_folder,
-    verbose=verbose,
-    plot_metrics=plot_metrics,
-    wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
-)
+trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
 
 # %%
 # Plotting the trained parameters.
 # ------------------------------------
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_drs" / operation
 )

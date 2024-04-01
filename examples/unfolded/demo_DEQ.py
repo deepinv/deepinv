@@ -194,19 +194,22 @@ test_dataloader = DataLoader(
 # -----------------
 # We train the network using the library's train function.
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
+)
+
+model = trainer.train(
+    model,
+    physics=physics,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
 )
 
 # %%
@@ -215,19 +218,4 @@ train(
 #
 #
 
-method = "DEQ_HQS"
-save_folder = RESULTS_DIR / method / operation
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = True  # plot images. Images are saved in save_folder.
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_metrics=True,
-    plot_images=plot_images,
-    save_folder=save_folder,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)

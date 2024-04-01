@@ -13,7 +13,6 @@ import torch
 from pathlib import Path
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
-from deepinv.training_utils import train, test
 
 # %%
 # Setup paths for data loading and results.
@@ -154,20 +153,24 @@ losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
 )
+
+model = trainer.train(
+    model,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    physics=physics,
+)
+
 # %%
 # Test the network
 # --------------------------------------------
@@ -175,16 +178,4 @@ train(
 #
 # The testing function will compute test_psnr metrics and plot and save the results.
 
-plot_images = True
-method = "artifact_removal"
-
-test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / test_dataset_name,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
