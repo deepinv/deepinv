@@ -123,7 +123,7 @@ class Trainer:
     verbose_individual_losses: bool = True
     display_losses_eval: bool = False
 
-    def setup_train(self, eval=False):
+    def setup_train(self):
         r"""
         Set up the training process.
 
@@ -153,22 +153,22 @@ class Trainer:
         self.logs_losses_train = [
             AverageMeter("Training loss " + l.name, ":.2e") for l in self.losses
         ]
-        if eval:
-            self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
-            self.logs_losses_eval = [
-                AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
-            ]
+
+        self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
+        self.logs_losses_eval = [
+            AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
+        ]
 
         # metrics
         self.logs_metrics_train = [
             AverageMeter("Training metric " + l.__class__.__name__, ":.2e")
             for l in self.metrics
         ]
-        if eval:
-            self.logs_metrics_eval = [
-                AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
-                for l in self.metrics
-            ]
+
+        self.logs_metrics_eval = [
+            AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
+            for l in self.metrics
+        ]
 
         # gradient clipping
         if self.check_grad:
@@ -516,7 +516,7 @@ class Trainer:
 
         self.G = len(train_dataloader)
 
-        self.setup_train(eval=eval_dataloader is not None)
+        self.setup_train()
         for epoch in range(self.epoch_start, self.epochs):
             ## Evaluation
             perform_eval = eval_dataloader and (
