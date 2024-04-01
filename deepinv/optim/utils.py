@@ -43,8 +43,8 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
 
     """
 
-    def dot(s1, s2):
-        dot = (s1.conj() * s2).flatten().sum()
+    def dot(a, b):
+        dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=True)
         return dot
 
     x = zeros_like(b)
