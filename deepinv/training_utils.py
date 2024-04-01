@@ -28,31 +28,31 @@ class Trainer:
     to write all the training code from scratch:
 
 
-    .. code-block:: python
+    ::
 
-        >>> def compute_loss(self, physics, x, y, train=True):
-        >>>     logs = {}
-        >>>
-        >>>     self.optimizer.zero_grad() # Zero the gradients
-        >>>
-        >>>     # Evaluate reconstruction network
-        >>>     x_net = self.model_inference(y=y, physics=physics)
-        >>>
-        >>>     # Compute the losses
-        >>>     loss_total = 0
-        >>>     for k, l in enumerate(self.losses):
-        >>>         loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
-        >>>         loss_total += loss.mean()
-        >>>
-        >>>     current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
-        >>>     current_log.update(loss_total.item())
-        >>>     logs[f"TotalLoss"] = current_log.avg
-        >>>
-        >>>     if train:
-        >>>         loss_total.backward()  # Backward the total loss
-        >>>         self.optimizer.step() # Optimizer step
-        >>>
-        >>>     return x_net, logs
+        def compute_loss(self, physics, x, y, train=True):
+            logs = {}
+
+            self.optimizer.zero_grad() # Zero the gradients
+
+            # Evaluate reconstruction network
+            x_net = self.model_inference(y=y, physics=physics)
+
+            # Compute the losses
+            loss_total = 0
+            for k, l in enumerate(self.losses):
+                loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+                loss_total += loss.mean()
+
+            current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            current_log.update(loss_total.item())
+            logs[f"TotalLoss"] = current_log.avg
+
+            if train:
+                loss_total.backward()  # Backward the total loss
+                self.optimizer.step() # Optimizer step
+
+            return x_net, logs
 
 
     If the user wants to change the way the metrics are computed, they can rewrite the
