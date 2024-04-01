@@ -107,6 +107,18 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
    deepinv.physics.Haze
    deepinv.physics.SinglePhotonLidar
 
+Phase retrieval operators
+-------------------------
+Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2` with :math:`B` a linear operator.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.PhaseRetrieval
+   deepinv.physics.RandomPhaseRetrieval
+
 Noise distributions
 -------------------
 Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.
