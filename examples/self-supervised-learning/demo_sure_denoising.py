@@ -170,6 +170,7 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     device=device,
+    plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
 from deepinv.loss import PSNR
+from deepinv.loss import Loss
 
 
 @dataclass
@@ -27,7 +28,7 @@ class Trainer:
     to write all the training code from scratch:
 
 
-    ::
+    .. code-block:: python
 
         >>> def compute_loss(self, physics, x, y, train=True):
         >>>     logs = {}
@@ -101,9 +102,9 @@ class Trainer:
     """
 
     epochs: int
-    losses: list
+    losses: Union[Loss, List[Loss]]
     optimizer: torch.optim.Optimizer = None
-    metrics: Union[torch.nn.Module, List[torch.nn.Module]] = PSNR()
+    metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
     grad_clip: float = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
@@ -189,7 +190,6 @@ class Trainer:
         self.epoch_start = 0
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
-            self.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer"])
             self.epoch_start = checkpoint["epoch"]
 
@@ -476,6 +476,7 @@ class Trainer:
                 titles=titles,
                 show=self.plot_images,
                 return_fig=True,
+                rescale_mode="clip",
             )
 
             if self.wandb_vis:

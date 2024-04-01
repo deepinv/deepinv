@@ -164,6 +164,7 @@ trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     losses=loss,
+    plot_images=True,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
