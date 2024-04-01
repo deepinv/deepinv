@@ -170,9 +170,6 @@ class Trainer:
                 for l in self.metrics
             ]
 
-        if type(self.physics_generator) is not list:
-            self.physics_generator = [self.physics_generator]
-
         # gradient clipping
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
@@ -284,11 +281,7 @@ class Trainer:
 
         physics = self.physics[g]
 
-        if self.physics_generator[g] is not None:
-            params = self.physics_generator[g].step(x.size(0))
-            y = physics(x, **params)
-        else:
-            y = physics(x)
+        y = physics(x)
 
         return x, y, physics
 
@@ -797,7 +790,7 @@ def test(
     )
 
 
-def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwargs):
+def train(model, physics, train_dataloader, eval_dataloader=None, *args, **kwargs):
     """
     Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
 
@@ -808,13 +801,20 @@ def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwar
         This function is deprecated and will be removed in future versions. Please use
         :class:`deepinv.Trainer` instead.
 
-    :param args: Positional arguments to pass to Trainer constructor.
-    :param kwargs: Keyword arguments to pass to Trainer constructor.
+    :param torch.nn.Module model: Reconstruction network.
+    :param deepinv.physics.Physics physics: Forward operator.
+    :param torch.utils.data.DataLoader train_dataloader: Train data loader.
+    :param torch.utils.data.DataLoader eval_dataloader: Train data loader.
+    :param args: Other positional arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
+    :param kwargs: Keyword arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
     :return: Trained model.
     """
     trainer = Trainer(*args, **kwargs)
     trained_model = trainer.train(
-        model=model, train_dataloader=train_dataloader, eval_dataloader=eval_dataloader
+        model,
+        physics=physics,
+        train_dataloader=train_dataloader,
+        eval_dataloader=eval_dataloader,
     )
     return trained_model
 
