@@ -27,7 +27,7 @@ class Trainer:
     to write all the training code from scratch:
 
 
-    .. doctest::
+    ::
 
         >>> def compute_loss(self, physics, x, y, train=True):
         >>>     logs = {}
