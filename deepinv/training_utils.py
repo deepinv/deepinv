@@ -504,12 +504,15 @@ class Trainer:
         """
 
         self.model = model
-        self.physics = physics
 
         if type(train_dataloader) is not list:
             train_dataloader = [train_dataloader]
         if eval_dataloader and type(eval_dataloader) is not list:
             eval_dataloader = [eval_dataloader]
+        if not isinstance(physics, list):
+            physics = [physics]
+
+        self.physics = physics
 
         self.G = len(train_dataloader)
 
@@ -592,10 +595,13 @@ class Trainer:
         """
 
         self.model = model
-        self.physics = physics
 
+        if not isinstance(physics, list):
+            physics = [physics]
         if type(test_dataloader) is not list:
             test_dataloader = [test_dataloader]
+
+        self.physics = physics
 
         self.current_iterators = [iter(loader) for loader in test_dataloader]
 
