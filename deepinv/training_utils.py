@@ -13,8 +13,7 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.loss import PSNR
-from deepinv.loss import Loss
+from deepinv.loss import PSNR, Loss
 
 
 @dataclass
