@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- PhaseRetrieval class (:gh:`176` by `Zhiyuan Hu`_) - 20/03/2024
 - Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
 
@@ -109,3 +110,4 @@ Authors
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
+.. _Zhiyuan Hu: https://github.com/zhiyhu1605
