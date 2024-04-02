@@ -33,7 +33,7 @@ class Restormer(nn.Module):
     :param float ffn_expansion_factor: 
     :param bool bias:
     :param str LayerNorm_type: 'BiasFree' or 'WithBias' default to WithBias
-    :param bool dual_pixel_task:
+    :param bool dual_pixel_task: true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring
     :param str device: gpu or cpu.
     :param str pretrained: None deraining / denoising_gray / denoising_color / denoising_real / defocus_deblurring pretrained model or a local path. 
     """
