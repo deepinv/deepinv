@@ -305,6 +305,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param show bool: whether to show the plot. Defaults to ``True``.
     """
 
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 
     fig, ax = plt.subplots(figsize=(7, 7))

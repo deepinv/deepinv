@@ -776,6 +776,7 @@ def test(
                             save_dir=save_folder_im if plot_images else None,
                             show=plot_images,
                             return_fig=True,
+                            rescale_mode='clip',
                         )
 
                 if plot_metrics:

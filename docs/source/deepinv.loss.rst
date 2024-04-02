@@ -106,9 +106,9 @@ These losses can be used to regularize the learned function, e.g., controlling i
     deepinv.loss.FNEJacobianSpectralNorm
 
 
-Metrics
+Utils
 -------
-A set of popular metrics that can be used by the supervised and self-supervised losses.
+A set of popular distances that can be used by the supervised and self-supervised losses.
 
 .. autosummary::
    :toctree: stubs
