@@ -11,7 +11,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
-
+from .utils import get_weights_url
+import os
 
 class Restormer(nn.Module):
     r"""
@@ -31,9 +32,10 @@ class Restormer(nn.Module):
     :param list heads:
     :param float ffn_expansion_factor: 
     :param bool bias:
-    :param str LayerNorm_type: 
+    :param str LayerNorm_type: 'BiasFree' or 'WithBias' default to WithBias
     :param bool dual_pixel_task:
     :param str device: gpu or cpu.
+    :param str pretrained: None deraining / denoising_gray / denoising_color / denoising_real / defocus_deblurring pretrained model or a local path. 
     """
     
     def __init__(self, 
@@ -45,13 +47,33 @@ class Restormer(nn.Module):
         heads = [1,2,4,8],
         ffn_expansion_factor = 2.66,
         bias = False,
-        LayerNorm_type = 'WithBias',   ## Other option 'BiasFree'
+        LayerNorm_type = None,    # 'BiasFree' or 'WithBias' default to WithBias 
         dual_pixel_task = False,       ## True for dual-pixel defocus deblurring only. Also set inp_channels=6
-        device = None
+        device = None,
+        pretrained = None,
     ):
 
         super(Restormer, self).__init__()
+        
+        if pretrained == "denoising_real":
+            model_name = "real_denoising.pth"
+            LayerNorm_type =  LayerNorm_type if LayerNorm_type is not None else "BiasFree"
+        elif pretrained == "denoising_gray":
+            model_name = "gaussian_gray_denoising_blind.pth"
+            LayerNorm_type = "BiasFree"
+        elif pretrained == "denoising_color":
+            model_name = "gaussian_color_denoising_blind.pth"
+            LayerNorm_type = "BiasFree"
+        elif pretrained == "deraining":
+            model_name = "deraining.pth"
+        elif pretrained == "defocus_deblurring":
+            if dual_pixel_task:
+                model_name = "dual_pixel_defocus_deblurring.pth"
+            else:
+                model_name = "single_image_defocus_deblurring.pth"
 
+        LayerNorm_type = "WithBias" if LayerNorm_type is None else LayerNorm_type
+        
         self.patch_embed = OverlapPatchEmbed(inp_channels, dim)
 
         self.encoder_level1 = nn.Sequential(*[TransformerBlock(dim=dim, num_heads=heads[0], ffn_expansion_factor=ffn_expansion_factor, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(num_blocks[0])])
@@ -88,6 +110,18 @@ class Restormer(nn.Module):
             
         self.output = nn.Conv2d(int(dim*2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
         
+        if pretrained.endswith(".pth") and os.path.exists(pretrained) :
+            ckpt_restormer = torch.load(
+                pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt_restormer, strict=True)
+        elif model_name is not None: 
+            url = get_weights_url(model_name="restormer",
+                                        file_name=model_name)
+            ckpt_restormer = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=self.model_name
+                )
+            self.load_state_dict(ckpt_restormer, strict=True)
+
         if device is not None:
             self.to(device)
         
