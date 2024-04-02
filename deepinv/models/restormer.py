@@ -120,7 +120,7 @@ class Restormer(nn.Module):
             ckpt_restormer = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=model_name
                 )
-            self.load_state_dict(ckpt_restormer, strict=True)
+            self.load_state_dict(ckpt_restormer['params'], strict=True)
 
         if device is not None:
             self.to(device)
