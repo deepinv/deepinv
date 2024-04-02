@@ -1,4 +1,4 @@
-r"""Define the neural network architecture of the Restormer used as a denoiser.
+"""Define the neural network architecture of the Restormer used as a denoiser.
 
 Restormer: Efficient Transformer for High-Resolution Image Restoration
 Authors : Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
@@ -110,7 +110,7 @@ class Restormer(nn.Module):
             
         self.output = nn.Conv2d(int(dim*2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
         
-        if pretrained.endswith(".pth") and os.path.exists(pretrained) :
+        if pretrained and pretrained.endswith(".pth") and os.path.exists(pretrained) :
             ckpt_restormer = torch.load(
                 pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt_restormer, strict=True)
@@ -118,7 +118,7 @@ class Restormer(nn.Module):
             url = get_weights_url(model_name="restormer",
                                         file_name=model_name)
             ckpt_restormer = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=self.model_name
+                    url, map_location=lambda storage, loc: storage, file_name=model_name
                 )
             self.load_state_dict(ckpt_restormer, strict=True)
 
