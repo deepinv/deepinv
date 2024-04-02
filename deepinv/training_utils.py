@@ -76,8 +76,8 @@ class Trainer:
     :param torch.utils.data.DataLoader eval_dataloader: Evaluation dataloader.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
-        parameters of the forward operator or noise realizations, can change between each sample; these are updated
-        with the ``physics.reset()`` method. If ``online_measurements=False``, the measurements are loaded from the training dataset
+        parameters of the forward operator or noise realizations, can change between each sample;
+        the measurements are loaded from the training dataset.
     :param torch.nn.optim.lr_scheduler optimizer: Torch optimizer for training the network.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
