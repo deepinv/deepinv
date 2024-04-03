@@ -85,7 +85,7 @@ have additional methods.
 
 Generators
 ^^^^^^^^^^^
-Physics generators are used to sample new parameters for the forward operator. They are useful in inverse problems
+Physics generators are used to sample new parameters for the forward operator (:math:`N(\cdot)` or :math:`A(\cdot)`). They are useful in inverse problems
 where the forward operator is unknown or partially known, eg as in blind deconvolution, or in problems where the forward
 operator might change from image to image in a known way, eg MRI with varying acceleration masks.
 
@@ -94,9 +94,13 @@ operator might change from image to image in a known way, eg MRI with varying ac
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.PhysicsGenerator
-   deepinv.physics.GeneratorMixture
+   deepinv.physics.generator.PhysicsGenerator
+   deepinv.physics.generator.MotionBlurGenerator
+   deepinv.physics.generator.DiffractionBlurGenerator
+   deepinv.physics.generator.AccelerationMaskGenerator
+   deepinv.physics.generator.SigmaGenerator
 
+   
 .. doctest::
 
     >>> import torch
@@ -111,6 +115,82 @@ operator might change from image to image in a known way, eg MRI with varying ac
     >>> assert not torch.allclose(y, y1)
     >>> y2 = physics(x) # motion kernel is stored in the physics object as default kernel
     >>> assert torch.allclose(y1, y2)
+
+
+If at each iteration ones wants to generate both a new physics parameter and noise parameters,
+one can add the physics and noise generators as follows to sample new parameters for 
+the full forward operator :math:` N(A(x))`
+    
+.. doctest::  
+
+    >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
+    >>>    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
+    >>> params = mask_generator.step(4)
+    >>> print(params)
+
+    
+
+For blind inverse problems where it can be useful to train on multiple families of operators, generators can be
+mixed through the GeneratorMixture class that samples randomly from one of the mixed :class:`deepinv.physics.PhysicsGenerator`
+object passed as input with probabilities :param:`probs`
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.GeneratorMixture
+
+.. doctest::
+
+    >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
+    >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
+    >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
+    >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
+    >>> params_dict = generator.step(batch_size=1)
+        
+    
+    
+Functionals
+^^^^^^^^^^^
+For each :class:`deepinv.physics.Physics` object, the forward operation is performed under the hood 
+using the functions from :module: `deepinv.physics.functional`
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.functional.conv2d
+   deepinv.physics.functional.conv_transpose2d
+   deepinv.physics.functional.Radon
+   deepinv.physics.functional.IRadon
+   deepinv.physics.functional.histogramdd
+   deepinv.physics.functional.ThinPlateSpline
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    
+    >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
+    >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+    >>> filter = torch.ones((1, 1, 3, 3)) / 4
+    >>>
+    >>> padding = "circular"
+    >>> Ax = dinv.physics.functional.conv2d(x, filter, padding)
+    >>> print(Ax[:, :, 7:10, 7:10])
+    tensor([[[[0.2500, 0.2500, 0.0000],
+          [0.2500, 0.2500, 0.0000],
+          [0.0000, 0.0000, 0.0000]]]])
+    >>>      
+    >>> torch.manual_seed(0)
+    >>> y = torch.randn_like(Ax)
+    >>> z = dinv.physics.functional.conv_transpose2d(y, filter, padding)
+    >>> print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))
+    tensor([5.9605e-08])
+
+    
 
 Forward operators
 --------------------
