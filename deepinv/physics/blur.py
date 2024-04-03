@@ -283,9 +283,9 @@ class Blur(LinearPhysics):
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
-        tensor([[[[0.0000, 0.0000, 0.0000],
-                  [0.0000, 0.2500, 0.2500],
-                  [0.0000, 0.2500, 0.2500]]]])
+        tensor([[[[0.2500, 0.2500, 0.0000],
+                  [0.2500, 0.2500, 0.0000],
+                  [0.0000, 0.0000, 0.0000]]]])
 
     """
 

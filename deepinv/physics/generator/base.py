@@ -9,9 +9,7 @@ class PhysicsGenerator(nn.Module):
 
     PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.Generator.__add__`),
      or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
-
-    :param torch.Tensor params: parameters to be fed to a physics from :meth:`deepinv.physics.Physics`,
-        e.g., a blur filter to be used in :meth:`deepinv.physics.Blur()`.
+     
 
     |sep|
 
@@ -38,7 +36,7 @@ class PhysicsGenerator(nn.Module):
         step=lambda **kwargs: {},
         device="cpu",
         dtype=torch.float32,
-        **kwargs
+        
     ) -> None:
         super().__init__()
 

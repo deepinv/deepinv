@@ -107,7 +107,7 @@ def histogramdd(
         also includes the upper bound.
 
 
-    :param torch.Tensor x: A tensor, (*, D).
+    :param torch.Tensor x: A tensor, (\*, D).
     :param int sequence[int] bins: The number of bins in each dimension, scalar or (D,).
     :param float sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is `None`,
             the min of `x` is used instead.
@@ -115,7 +115,7 @@ def histogramdd(
             the max of `x` is used instead.
     :param bool bounded: Whether `x` is bounded by `low` and `upp`, included.
             If `False`, out-of-bounds values are filtered out.
-    :param torch.Tensor weights: A tensor of weights, (*,). Each sample of `x` contributes
+    :param torch.Tensor weights: A tensor of weights, (\*,). Each sample of `x` contributes
             its associated weight towards the bin count (instead of 1).
     :param bool sparse: Whether the histogram is returned as a sparse tensor or not.
     :param torch.Tensor sequence[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.

@@ -7,7 +7,7 @@ import torch.fft as fft
 
 def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
     r"""
-    A helper function performing the 2d convolution of images :math:`x` and `filter`. The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed2d()`
+    A helper function performing the 2d convolution of images :math:`x` and `filter`. The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed2d`
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
@@ -64,7 +64,7 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
 
 def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
     r"""
-    A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of this operation is :meth:`deepinv.physics.functional.conv2d()`
+    A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of this operation is :meth:`deepinv.physics.functional.conv2d`
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` ) where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
@@ -78,13 +78,18 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
+
     # Get dimensions of the input and the filter
     B, C, H, W = y.size()
     b, c, h, w = filter.size()
 
     ph = (h - 1) // 2
     pw = (w - 1) // 2
-
+    
+    if padding != "valid":
+        if ph == 0 or pw == 0:
+            raise ValueError("Both dimensions of the filter must be striclty greater than 2 if padding != 'valid'")
+    
     if c != C:
         assert c == 1
         filter = filter.expand(-1, C, -1, -1)
@@ -104,8 +109,6 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
 
     if padding == "valid":
         out = x
-    elif padding == "zero":
-        out = x[:, :, ph:-ph, pw:-pw]
     elif padding == "circular":
         out = x[:, :, ph:-ph, pw:-pw]
         # sides
@@ -229,15 +232,6 @@ def filter_fft_2d(filter, img_size, real_fft=True):
 def conv3d(x: Tensor, filter: Tensor, padding: str = "valid"):
     r"""
     A helper function to perform 3D convolution of images :math:`x` and `filter`.  The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed3d()`
-
-    :param torch.Tensor x: Image of size `(B, C, D, W, H)`.
-    :param torch.Tensor filter: Filter of size `(b, c, d, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
-
-    If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
-
-    :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
-
-    :return torch.Tensor : the output
     """
     pass
 
@@ -334,23 +328,23 @@ if __name__ == "__main__":
 
     print((Ax - Ax_fft).abs().sum())
 
-    # %% Benchmark
-    from torch.utils.benchmark import Timer
+    # # %% Benchmark
+    # from torch.utils.benchmark import Timer
 
-    for kernel_size in range(33, H // 2 - 1, 10):
-        filter = torch.randn(
-            (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
-        )
-        print("Kernel size: ", kernel_size * 2 + 1)
-        conv_timer = Timer(
-            stmt="conv2d(x, filter, padding)",
-            globals=globals(),
-            num_threads=1,
-        )
-        print("Conv: ", conv_timer.blocked_autorange(min_run_time=10).median)
-        fft_timer = Timer(
-            stmt="conv2d_fft(x, filter)",
-            globals=globals(),
-            num_threads=1,
-        )
-        print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)
+    # for kernel_size in range(33, H // 2 - 1, 10):
+    #     filter = torch.randn(
+    #         (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
+    #     )
+    #     print("Kernel size: ", kernel_size * 2 + 1)
+    #     conv_timer = Timer(
+    #         stmt="conv2d(x, filter, padding)",
+    #         globals=globals(),
+    #         num_threads=1,
+    #     )
+    #     print("Conv: ", conv_timer.blocked_autorange(min_run_time=10).median)
+    #     fft_timer = Timer(
+    #         stmt="conv2d_fft(x, filter)",
+    #         globals=globals(),
+    #         num_threads=1,
+    #     )
+    #     print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)
