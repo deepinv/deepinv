@@ -58,6 +58,7 @@ class Restormer(nn.Module):
     ):
         super(Restormer, self).__init__()
         
+        model_name = None
         if pretrained == "denoising_real":
             model_name = "real_denoising.pth"
             LayerNorm_type =  LayerNorm_type if LayerNorm_type is not None else "BiasFree"
@@ -190,7 +191,7 @@ class BiasFree_LayerNorm(nn.Module):
         super(BiasFree_LayerNorm, self).__init__()
         if isinstance(normalized_shape, numbers.Integral):
             normalized_shape = (normalized_shape,)
-        normalized_shape = torch.Size(normalized_shape)
+        normalized_shape = torch.Size(normalized_shape) # type: ignore
 
         assert len(normalized_shape) == 1
 
@@ -206,7 +207,7 @@ class WithBias_LayerNorm(nn.Module):
         super(WithBias_LayerNorm, self).__init__()
         if isinstance(normalized_shape, numbers.Integral):
             normalized_shape = (normalized_shape,)
-        normalized_shape = torch.Size(normalized_shape)
+        normalized_shape = torch.Size(normalized_shape) # type: ignore
 
         assert len(normalized_shape) == 1
 
