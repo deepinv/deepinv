@@ -24,7 +24,7 @@ class Restormer(nn.Module):
     Restormer denoiser network.
 
     The network architecture is based on the paper :
-    `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`
+    `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
     The network does not take into account the noise level of the input image.
 
