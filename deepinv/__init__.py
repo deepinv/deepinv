@@ -55,6 +55,10 @@ from deepinv import unfolded
 
 __all__ += ["unfolded"]
 
+from deepinv import training
+
+__all__ += ["training"]
+
 from deepinv.training_utils import train, test, Trainer
 
 # GLOBAL PROPERTY
