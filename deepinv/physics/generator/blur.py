@@ -13,8 +13,9 @@ class PSFGenerator(PhysicsGenerator):
     Base class for generating Point Spread Functions (PSFs).
 
 
-    :param tuple shape: the shape of the generated PSF, should be `(channels, kernel_size, kernel_size)` or
-        `(1, channels, kernel_size, kernel_size)`.
+    :param tuple psf_size: the shape of the generated PSF in 2D
+        `(kernel_size, kernel_size)`.
+    :param int num_channels: number of images channels. Defaults to 1.
     """
 
     def __init__(
@@ -48,29 +49,23 @@ class MotionBlurGenerator(PSFGenerator):
 
         k(t, s) = \sigma^2 \left( 1 + \frac{\sqrt{5} |t -s|}{l} + \frac{5 (t-s)^2}{3 l^2} \right) \exp \left(-\frac{\sqrt{5} |t-s|}{l}\right)
 
+    :param tuple psf_size: the shape of the generated PSF in 2D, should be `(kernel_size, kernel_size)`
+    :param int num_channels: number of images channels. Defaults to 1.
     :param float l: the length scale of the trajectory, defaults to 0.3
     :param float sigma: the standard deviation of the Gaussian Process, defaults to 0.25
     :param int n_steps: the number of points in the trajectory, defaults to 1000
-    :param torch.device device: the device on which the kernel is generated, defaults to cpu
-    :param torch.dtype dtype: the data type of the generated kernel, defaults to torch.float32
 
     |sep|
 
     :Examples:
-
-    >>> generator = MotionBlurGenerator((1, 16, 16))
+        
+    >>> from deepinv.physics.generator import MotionBlurGenerator
+    >>> generator = MotionBlurGenerator((5, 5), num_channels=1)
     >>> blur = generator.step()
-    >>> blur = generator.step()
-    >>> print(blur.shape)
-    torch.Size([1, 1, 16, 16])
-
-
-    :Examples:
-
-    To generate new kernel, one can also call:
-
-    >>> kernel = generator()
-    >>> dinv.utils.plot(kernel)
+    >>> print(blur.keys())
+    dict_keys(['filter'])
+    >>> print(blur['filter'].shape)
+    torch.Size([1, 1, 5, 5])
     """
 
     def __init__(
@@ -89,7 +84,8 @@ class MotionBlurGenerator(PSFGenerator):
                 "psf_size must 2D. Add channels via num_channels parameter"
             )
         super().__init__(
-            psf_size=psf_size, device=device, dtype=dtype, **kwargs
+            psf_size=psf_size, num_channels=num_channels, 
+            device=device, dtype=dtype, **kwargs
         )
 
     def matern_kernel(self, diff, sigma: float = None, l: float = None):
@@ -120,13 +116,14 @@ class MotionBlurGenerator(PSFGenerator):
 
     def step(self, batch_size: int = 1, sigma: float = None, l: float = None):
         r"""
-        Generate a random motion blur PSF with parameters :math: '\sigma' and :math: `l`
+        Generate a random motion blur PSF with parameters :math:`\sigma` and :math:`l`
 
+        :param int batch_size: batch_size.
         :param float sigma: the standard deviation of the Gaussian Process
         :param float l: the length scale of the trajectory
 
-        :return: the generated PSF of shape `(batch_size, 1, psf_size, psf_size)`
-        :rtype: torch.Tensor
+        :return: dictionary with key **'filter'**: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
+        :rtype: dict
         """
         ## add batch size to the shape. We can have a different batch size at each call of step()
         ## We enforce only one channel as the underlying generator code only works for one channel at the time
@@ -154,33 +151,35 @@ class MotionBlurGenerator(PSFGenerator):
         kernel = torch.cat(kernels, dim=0)
         kernel = kernel / torch.sum(kernel, dim=(-2, -1), keepdim=True)
 
-        return {"filter": kernel}
+        return {"filter": kernel.expand(batch_size, self.num_channels, self.psf_size[0], self.psf_size[1])}
 
 
 class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
 
-    Generates 2D or 3D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory)
+    Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory)
 
-    :param tuple shape:
+    :param tuple psf_size: the shape of the generated PSF in 2D
+    :param int num_channels: number of images channels. Defaults to 1.
     :param list[str] list_param: list of activated Zernike coefficients, defaults to `["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]`
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
 
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
             If a int is given, a square pupil is considered.
 
-    :return: a DiffractionBlurGenerator object
-
     |sep|
 
     :Examples:
-
-    >>> generator = DiffractionBlurGenerator((16, 16))
-    >>> filter = generator.step()
-    >>> dinv.utils.plot(filter)
-    >>> print(filter.shape)
-    torch.Size([1, 1, 16, 16])
+    
+    >>> from deepinv.physics.generator import DiffractionBlurGenerator
+    >>> generator = DiffractionBlurGenerator((5, 5), num_channels=3)
+    >>> blur = generator.step()
+    >>> print(blur.keys())
+    dict_keys(['filter', 'coeff', 'pupil'])
+    >>> print(blur['filter'].shape)
+    torch.Size([1, 3, 5, 5])
+    
 
     """
 
@@ -281,9 +280,12 @@ class DiffractionBlurGenerator(PSFGenerator):
     def step(self, batch_size: int = 1):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
+        
+        :param int batch_size: batch_size.
 
-        :return: tensor B x psf_size x psf_size batch of psfs
-        :rtype: torch.Tensor
+        :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs, 
+            **'coeff'**: list of sampled Zernike coefficients in this realisation, **'pupil'**: the pupil function
+        :rtype: dict
         """
         self.__update__()
 

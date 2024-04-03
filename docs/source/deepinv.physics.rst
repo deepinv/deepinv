@@ -119,7 +119,7 @@ operator might change from image to image in a known way, eg MRI with varying ac
 
 If at each iteration ones wants to generate both a new physics parameter and noise parameters,
 one can add the physics and noise generators as follows to sample new parameters for 
-the full forward operator :math:` N(A(x))`
+the full forward operator :math:`N(A(x))`
     
 .. doctest::  
 
@@ -131,8 +131,8 @@ the full forward operator :math:` N(A(x))`
     
 
 For blind inverse problems where it can be useful to train on multiple families of operators, generators can be
-mixed through the GeneratorMixture class that samples randomly from one of the mixed :class:`deepinv.physics.PhysicsGenerator`
-object passed as input with probabilities :param:`probs`
+mixed through the GeneratorMixture class that samples randomly from one of the mixed :class:`deepinv.physics.generator.PhysicsGenerator`
+object passed as input with probabilities probs
 
 .. autosummary::
    :toctree: stubs

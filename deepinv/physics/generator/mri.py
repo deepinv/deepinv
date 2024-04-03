@@ -18,11 +18,14 @@ class AccelerationMaskGenerator(PhysicsGenerator):
 
     :Examples:
 
-    >>> mask_generator = AccelerationMaskGenerator((32, 32))
-    >>> mask = mask_generator.step()
-    >>> dinv.utils.plot(mask.unsqueeze(0))
-    >>> print(mask.shape)
-    torch.Size([1, 1, 32, 32])
+    >>> from deepinv.physics.generator import AccelerationMaskGenerator
+    >>> mask_generator = AccelerationMaskGenerator((8, 8))
+    >>> mask_dict = mask_generator.step()
+    >>> print(mask_dict.keys())
+    dict_keys(['mask'])
+    >>> dinv.utils.plot(mask_dict['mask'].squeeze(1))
+    >>> print(mask_dict['mask'].shape)
+    torch.Size([1, 1, 8, 8])
 
     """
 
@@ -36,9 +39,9 @@ class AccelerationMaskGenerator(PhysicsGenerator):
         r"""
         Create a mask of vertical lines.
 
-        :param tuple img_size: image size (H, W).
-        :param int acceleration_factor: acceleration factor.
-        :return: mask of size (H, W) with values in {0, 1}.
+        :param int batch_size: batch_size.
+        :return: dictionary with key **'mask'**: tensor of size (batch_size, 1, H, W) with values in {0, 1}.
+        :rtype: dict
         """
         img_size = self.img_size
         acceleration_factor = self.acceleration
@@ -68,7 +71,9 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             )
             mask[i, :, random_line_indices] = 1
 
-        return {"mask": torch.cat([mask.float().unsqueeze(1)] * 2, dim=1)}
+        #return {"mask": torch.cat([mask.float().unsqueeze(1)] * 2, dim=1)}
+        return {"mask": mask.float().unsqueeze(1)}
+
 
 
 if __name__ == "__main__":

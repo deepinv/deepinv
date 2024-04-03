@@ -6,9 +6,9 @@ from typing import List
 class PhysicsGenerator(nn.Module):
     r"""
     Base class for parameter generation of physics parameters.
-
-    PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.Generator.__add__`),
-     or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
+    
+    PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.PhysicsGenerator.__add__`),
+    or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
      
 
     |sep|
@@ -21,14 +21,6 @@ class PhysicsGenerator(nn.Module):
         >>> generator = MotionBlurGenerator((1, 1, 3, 3)) + SigmaGenerator()
         >>> params_dict = generator.step(batch_size=1)
 
-        Mixing two types of blur
-
-        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
-        >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
-        >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
-        >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
-        >>> params_dict = generator.step(batch_size=1)
-
     """
 
     def __init__(
@@ -36,7 +28,7 @@ class PhysicsGenerator(nn.Module):
         step=lambda **kwargs: {},
         device="cpu",
         dtype=torch.float32,
-        
+        **kwargs
     ) -> None:
         super().__init__()
 
@@ -77,9 +69,9 @@ class PhysicsGenerator(nn.Module):
 
 class GeneratorMixture(PhysicsGenerator):
     r"""
-    Base class for mixing multiple generators.
-
-    :param list[Generator] generators: the generators instantiated from :meth:`deepinv.physics.Generator`.
+    Base class for mixing multiple generators of type :class:`PhysicsGenerator`.
+    
+    :param list[PhysicsGenerator] generators: the generators instantiated from :meth:`deepinv.physics.generator.PhysicsGenerator`.
     :param list[float] probs: the probability of each generator to be used at each step
 
     |sep|
@@ -88,12 +80,11 @@ class GeneratorMixture(PhysicsGenerator):
 
         Mixing two types of blur
 
-        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
+        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator, GeneratorMixture
         >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
         >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
         >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
         >>> params_dict = generator.step(batch_size=1)
-
 
     """
 
@@ -125,7 +116,7 @@ if __name__ == "__main__":
 
     from deepinv.physics.generator import (
         MotionBlurGenerator,
-        DiffractionBlurGenerator,
+        DiffractionBlurGenerator, GeneratorMixture
     )
 
     g1 = MotionBlurGenerator((1, 1, 3, 3))

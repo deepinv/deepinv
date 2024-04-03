@@ -15,10 +15,15 @@ class SigmaGenerator(PhysicsGenerator):
     |sep|
 
     :Examples:
-
+    
+    >>> from deepinv.physics.generator import SigmaGenerator
     >>> generator = SigmaGenerator()
-    >>> sigma = generator.step()
-    >>> print(sigma)
+    >>> torch.manual_seed(0)
+    >>> sigma_dict = generator.step()
+    >>> print(sigma_dict.keys())
+    dict_keys(['sigma'])
+    >>> print(sigma_dict['sigma'])
+    tensor([0.2532])
 
     """
 
@@ -33,6 +38,10 @@ class SigmaGenerator(PhysicsGenerator):
         Generates a batch of noise levels.
 
         :param int batch_size: batch size
+        
+        :return: dictionary with key **'sigma'**: tensor of size (batch_size,).
+        :rtype: dict
+        
         """
         sigma = (
             torch.rand(batch_size, device=self.device)
