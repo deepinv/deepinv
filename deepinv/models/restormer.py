@@ -1,41 +1,45 @@
-"""Define the neural network architecture of the Restormer used as a denoiser.
+r"""Define the neural network architecture of the Restormer.
+
+Model specialized in restoration tasks including deraining, single-image motion deblurring,
+defocus deblurring and image denoising for high-resolution images.
 
 Restormer: Efficient Transformer for High-Resolution Image Restoration
 Authors : Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
 Paper : https://arxiv.org/abs/2111.09881
 Code : https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py
 """
+import os
 import numbers
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+
 from .utils import get_weights_url
-import os
+
 
 class Restormer(nn.Module):
     r"""
-    Restormer denoiser (only tested on denoising) network.
+    Restormer denoiser network.
 
-    The network architecture is based on the paper
-    `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_,
+    The network architecture is based on the paper :
+    `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`
 
-    The network does not take into account the noise level of the input image, 
-    which is encoded as an additional input channel.
+    The network does not take into account the noise level of the input image.
 
     :param int inp_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
-    :param int dim:
-    :param list num_blocks:
-    :param int num_refinement_blocks: 
-    :param list heads:
-    :param float ffn_expansion_factor: 
-    :param bool bias:
-    :param str LayerNorm_type: 'BiasFree' or 'WithBias' default to WithBias
-    :param bool dual_pixel_task: true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring
-    :param str device: gpu or cpu.
-    :param str pretrained: None deraining / denoising_gray / denoising_color / denoising_real / defocus_deblurring pretrained model or a local path. 
+    :param int dim: number of channels after the first conv operation (inp_channels, H, W) -> (dim, H, W).
+    :param list num_blocks: number of `TransformerBlock` for each level of scale in the encoder-decoder stage, 4-level of scales, [L1, L2, L3, L4] with L1 < L2 < L3 < L4 (cf. Fig 2 in paper).
+    :param int num_refinement_blocks: number of `TransformerBlock` in the refinement stage after the decoder stage.
+    :param list heads: number of heads in `TransformerBlock` for each level of scale in the encoder-decoder stage (at same scale, all `TransformerBlock` have the same number of heads) and in the refinement stage.
+    :param float ffn_expansion_factor: involved in the GDFN (cf. Fig 2).
+    :param bool bias: Add bias or not in each of the `TransformerBlock`.
+    :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the `TransformerBlock`. LayerNorm_type = 'BiasFree' / 'WithBias'. If LayerNorm_type=None, default to WithBias. 
+    :param bool dual_pixel_task: should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.
+    :param torch.device device: Can be None. Instruct our module to be either on cpu or on gpu.
+    :param str pretrained: Can be None. If pretrained = "deraining" / "denoising_gray" / "denoising_color" / "denoising_real" / "defocus_deblurring", will download weights from the HuggingFace Hub. If pretrained = "*.pth", will load weights from a local file.
     """
     
     def __init__(self, 
@@ -47,12 +51,11 @@ class Restormer(nn.Module):
         heads = [1,2,4,8],
         ffn_expansion_factor = 2.66,
         bias = False,
-        LayerNorm_type = None,    # 'BiasFree' or 'WithBias' default to WithBias 
-        dual_pixel_task = False,       ## True for dual-pixel defocus deblurring only. Also set inp_channels=6
+        LayerNorm_type = None,
+        dual_pixel_task = False,
         device = None,
         pretrained = None,
     ):
-
         super(Restormer, self).__init__()
         
         if pretrained == "denoising_real":
@@ -71,7 +74,7 @@ class Restormer(nn.Module):
                 model_name = "dual_pixel_defocus_deblurring.pth"
             else:
                 model_name = "single_image_defocus_deblurring.pth"
-
+        
         LayerNorm_type = "WithBias" if LayerNorm_type is None else LayerNorm_type
         
         self.patch_embed = OverlapPatchEmbed(inp_channels, dim)
