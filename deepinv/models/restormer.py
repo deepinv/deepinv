@@ -4,9 +4,9 @@ Model specialized in restoration tasks including deraining, single-image motion 
 defocus deblurring and image denoising for high-resolution images.
 
 Restormer: Efficient Transformer for High-Resolution Image Restoration
-Authors : Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
-Paper : https://arxiv.org/abs/2111.09881
-Code : https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py
+Authors: Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
+Paper: https://arxiv.org/abs/2111.09881
+Code: https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py
 """
 import os
 import numbers
@@ -23,62 +23,101 @@ class Restormer(nn.Module):
     r"""
     Restormer denoiser network.
 
-    The network architecture is based on the paper :
+    The network architecture is based on the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
-    The network does not take into account the noise level of the input image.
+    .. image:: ../figures/restormer_architecture.png
+       :width: 600
+       :alt: Overview of the Restormer architecture / Fig 2 in paper
 
-    :param int inp_channels: number of channels of the input.
+    |
+    |  By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
+    |  Usage :
+    |       model = Restormer()
+    |       output = model(input)
+
+    :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
-    :param int dim: number of channels after the first conv operation (inp_channels, H, W) -> (dim, H, W).
-    :param list num_blocks: number of `TransformerBlock` for each level of scale in the encoder-decoder stage, 4-level of scales, [L1, L2, L3, L4] with L1 < L2 < L3 < L4 (cf. Fig 2 in paper).
-    :param int num_refinement_blocks: number of `TransformerBlock` in the refinement stage after the decoder stage.
-    :param list heads: number of heads in `TransformerBlock` for each level of scale in the encoder-decoder stage (at same scale, all `TransformerBlock` have the same number of heads) and in the refinement stage.
-    :param float ffn_expansion_factor: involved in the GDFN (cf. Fig 2).
-    :param bool bias: Add bias or not in each of the `TransformerBlock`.
-    :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the `TransformerBlock`. LayerNorm_type = 'BiasFree' / 'WithBias'. If LayerNorm_type=None, default to WithBias. 
-    :param bool dual_pixel_task: should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.
-    :param torch.device device: Can be None. Instruct our module to be either on cpu or on gpu.
-    :param str pretrained: Can be None. If pretrained = "deraining" / "denoising_gray" / "denoising_color" / "denoising_real" / "defocus_deblurring", will download weights from the HuggingFace Hub. If pretrained = "*.pth", will load weights from a local file.
+    :param int dim: number of channels after the first conv operation (``in_channel``, H, W) -> (``dim``, H, W). 
+        ``dim`` corresponds to ``C`` in the figure.
+    :param list num_blocks: number of ``TransformerBlock`` for each level of scale in the encoder-decoder stage with a total of 4-level of scales. 
+        ``num_blocks = [L1, L2, L3, L4]`` with L1 ≤ L2 ≤ L3 ≤ L4.
+    :param int num_refinement_blocks: number of ``TransformerBlock`` in the refinement stage after the decoder stage. 
+        Corresponds to ``Lr`` in the figure.
+    :param list heads: number of heads in ``TransformerBlock`` for each level of scale in the encoder-decoder stage and in the refinement stage. 
+        At same scale, all `TransformerBlock` have the same number of heads. The number of heads for the refinement block is ``heads[0]``.
+    :param float ffn_expansion_factor: corresponds to :math:`\eta` in GDFN.
+    :param bool bias: Add bias or not in each of the Attention and Feedforward layers inside of the ``TransformerBlock``.
+    :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the ``TransformerBlock``. 
+        ``LayerNorm_type = 'BiasFree' / 'WithBias'``.
+    :param bool dual_pixel_task: Should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.
+    :param None, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param None, str pretrained: Default to ``'denoising'``.
+        ``if pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``, will download weights from the HuggingFace Hub. 
+        ``if pretrained = '\*.pth'``, will load weights from a local pth file.
+
+    .. note::  
+        To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
+        ``LayerNorm_type='BiasFree'`` and ``bias=False``
+        (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
     """
     
     def __init__(self, 
-        inp_channels=3, 
-        out_channels=3, 
+        in_channels = 3, 
+        out_channels = 3, 
         dim = 48,
         num_blocks = [4,6,6,8], 
         num_refinement_blocks = 4,
         heads = [1,2,4,8],
         ffn_expansion_factor = 2.66,
         bias = False,
-        LayerNorm_type = None,
+        LayerNorm_type = 'BiasFree',
         dual_pixel_task = False,
+        pretrained = 'denoising',
         device = None,
-        pretrained = None,
     ):
         super(Restormer, self).__init__()
         
-        model_name = None
-        if pretrained == "denoising_real":
-            model_name = "real_denoising.pth"
-            LayerNorm_type =  LayerNorm_type if LayerNorm_type is not None else "BiasFree"
+        # stores the filename of pretrained weights, used later in the code to download the pth file from the HuggingFace Hub 
+        weights_pth_filename = None
+        # When loading pretrained weights from HuggingFace Hub, we check if our model is compatible with the weights.
+        if pretrained == 'denoising':
+            self.is_standard_denoising_network(in_channels, out_channels, dim, num_blocks, num_refinement_blocks,
+                                               heads, ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task)
+            if in_channels == 1:
+                weights_pth_filename = 'gaussian_gray_denoising_blind.pth'
+            elif in_channels == 3:
+                weights_pth_filename = 'gaussian_color_denoising_blind.pth'
+        elif pretrained == 'denoising_real':
+            self.is_standard_denoising_network(in_channels, out_channels, dim, num_blocks, num_refinement_blocks,
+                                               heads, ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task)
+            assert in_channels == 3, f"Real denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+            weights_pth_filename = "real_denoising.pth"
         elif pretrained == "denoising_gray":
-            model_name = "gaussian_gray_denoising_blind.pth"
-            LayerNorm_type = "BiasFree"
+            self.is_standard_denoising_network(in_channels, out_channels, dim, num_blocks, num_refinement_blocks,
+                                               heads, ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task)
+            assert in_channels == 1, f"Real denoising / EXPECTED in_channels == 1, INSTEAD of {in_channels}"
+            weights_pth_filename = "gaussian_gray_denoising_blind.pth"
         elif pretrained == "denoising_color":
-            model_name = "gaussian_color_denoising_blind.pth"
-            LayerNorm_type = "BiasFree"
+            self.is_standard_denoising_network(in_channels, out_channels, dim, num_blocks, num_refinement_blocks,
+                                               heads, ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task)
+            assert in_channels == 3, f"Color denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+            weights_pth_filename = "gaussian_color_denoising_blind.pth"
         elif pretrained == "deraining":
-            model_name = "deraining.pth"
+            self.is_standard_deraining_network(in_channels, out_channels, dim, num_blocks, num_refinement_blocks,
+                                               heads, ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task)
+            weights_pth_filename = "deraining.pth"
         elif pretrained == "defocus_deblurring":
+            self.is_standard_deblurring_network(in_channels, out_channels, dim, num_blocks, num_refinement_blocks,
+                                                heads, ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task)
             if dual_pixel_task:
-                model_name = "dual_pixel_defocus_deblurring.pth"
+                assert in_channels == 6, f"Dual defocus deblurring / EXPECTED in_channels == 6, INSTEAD of {in_channels}"
+                weights_pth_filename = "dual_pixel_defocus_deblurring.pth"
             else:
-                model_name = "single_image_defocus_deblurring.pth"
+                assert in_channels == 3, f"Single defocus deblurring / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                weights_pth_filename = "single_image_defocus_deblurring.pth"
         
-        LayerNorm_type = "WithBias" if LayerNorm_type is None else LayerNorm_type
-        
-        self.patch_embed = OverlapPatchEmbed(inp_channels, dim)
+        self.patch_embed = OverlapPatchEmbed(in_channels, dim)
 
         self.encoder_level1 = nn.Sequential(*[TransformerBlock(dim=dim, num_heads=heads[0], ffn_expansion_factor=ffn_expansion_factor, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(num_blocks[0])])
         
@@ -114,17 +153,22 @@ class Restormer(nn.Module):
             
         self.output = nn.Conv2d(int(dim*2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
         
-        if pretrained and pretrained.endswith(".pth") and os.path.exists(pretrained) :
+        # we don't check if our model is a good fit for the weights from the .pth file
+        if pretrained and pretrained.endswith(".pth") and os.path.exists(pretrained):
+            print(f"Loading from local file {pretrained}")
             ckpt_restormer = torch.load(
                 pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt_restormer, strict=True)
-        elif model_name is not None: 
+        elif weights_pth_filename is not None: 
+            print(f"Loading from {weights_pth_filename}")
             url = get_weights_url(model_name="restormer",
-                                        file_name=model_name)
+                                  file_name=weights_pth_filename)
             ckpt_restormer = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=model_name
+                    url, map_location=lambda storage, loc: storage, file_name=weights_pth_filename
                 )
             self.load_state_dict(ckpt_restormer['params'], strict=True)
+        elif pretrained is not None:
+            raise ValueError(f"pretrained value error, {pretrained}")
 
         if device is not None:
             self.to(device)
@@ -176,6 +220,44 @@ class Restormer(nn.Module):
 
         return out_dec_level1
 
+    def is_standard_denoising_network(self, in_channels, out_channels, dim, num_blocks, num_refinement_blocks, heads,
+                                      ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task):
+        """Check if model params are the params used to pre-trained the standard network for denoising."""
+        assert in_channels == 1 or in_channels == 3, f"Standard denoising / EXPECTED in_channels == 1 or 3, INSTEAD of {in_channels}"
+        assert out_channels == in_channels, f"Standard denoising / EXPECTED out_channels == in_channels, INSTEAD of {out_channels}"
+        self._is_standard_network(dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias)
+        assert LayerNorm_type == 'BiasFree', f"Standard denoising / EXPECTED LayerNorm_type == 'BiasFree', INSTEAD of {LayerNorm_type}"
+        assert dual_pixel_task == False, f"Standard denoising / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
+
+
+    def is_standard_deraining_network(self, in_channels, out_channels, dim, num_blocks, num_refinement_blocks, heads,
+                                      ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task):
+        """Check if model params are the params used to pre-trained the standard network for deraining."""
+        assert in_channels == 3, f"Standard deraining / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+        assert out_channels == 3, f"Standard deraining / EXPECTED out_channels == 3, INSTEAD of {out_channels}"
+        self._is_standard_network(dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias)
+        assert LayerNorm_type == 'WithBias', f"Standard deraining / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
+        assert dual_pixel_task == False, f"Standard deraining / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
+
+    def is_standard_deblurring_network(self, in_channels, out_channels, dim, num_blocks, num_refinement_blocks, heads,
+                                       ffn_expansion_factor, bias, LayerNorm_type, dual_pixel_task):
+        """Check if model params are the params used to pre-trained the standard network for deblurring."""
+        assert in_channels == 3 or in_channels == 6, f"Standard deblurring / EXPECTED in_channels == 3 or 6, INSTEAD of {in_channels}"
+        assert out_channels == 3, f"Standard deblurring / EXPECTED out_channels == 3, INSTEAD of {out_channels}"
+        self._is_standard_network(dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias)
+        assert LayerNorm_type == 'WithBias', f"Standard deblurring / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
+
+    def _is_standard_network(self, dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias):
+        """The pre-trained networks for denoising, for deraining, and for deblurring have some params with same values, 
+        so when trying to load the pre-trained weights from one of these networks, we check first that our model params 
+        have these values to avoid mismatch between our model and the weights.
+        """
+        assert dim == 48, f"Standard restormer architecture / EXPECTED dim == 48, INSTEAD of {dim}"
+        assert num_blocks == [4,6,6,8], f"Standard restormer architecture / EXPECTED num_blocks == [4,6,6,8], INSTEAD of {num_blocks}"
+        assert num_refinement_blocks == 4, f"Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of {num_refinement_blocks}"
+        assert heads == [1,2,4,8], f"Standard restormer architecture / EXPECTED heads == [1,2,4,8], INSTEAD of {heads}"
+        assert ffn_expansion_factor == 2.66, f"Standard restormer architecture / EXPECTED ffn_expansion_factor == 2.66, INSTEAD of {ffn_expansion_factor}"
+        assert bias == False, f"Standard restormer architecture / EXPECTED bias == False, INSTEAD of {bias}"
 
 ##########################################################################
 ## Layer Norm
