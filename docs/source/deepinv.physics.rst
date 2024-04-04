@@ -151,7 +151,7 @@ object passed as input with probabilities probs
         
     
     
-Functionals
+functional
 ^^^^^^^^^^^
 For each :class:`deepinv.physics.Physics` object, the forward operation is performed under the hood 
 using the functions from :module: `deepinv.physics.functional`

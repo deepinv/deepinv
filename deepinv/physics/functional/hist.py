@@ -100,7 +100,7 @@ def histogramdd(
 ) -> Tensor:
     r"""Computes the multidimensional histogram of a tensor.
 
-    This is a `torch` implementation of `numpy.histogramdd`.
+    This is a `torch` implementation of `numpy.histogramdd`. This function is borrowed from `torchist <https://github.com/francois-rozet/torchist/>`_.
 
     Note:
         Similar to `numpy.histogram`, all bins are half-open except the last bin which
@@ -108,21 +108,20 @@ def histogramdd(
 
 
     :param torch.Tensor x: A tensor, (\*, D).
-    :param int sequence[int] bins: The number of bins in each dimension, scalar or (D,).
-    :param float sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is `None`,
+    :param int, sequence[int] bins: The number of bins in each dimension, scalar or (D,).
+    :param float, sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is `None`,
             the min of `x` is used instead.
-    :param float sequence[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is `None`,
+    :param float, sequence[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is `None`,
             the max of `x` is used instead.
     :param bool bounded: Whether `x` is bounded by `low` and `upp`, included.
             If `False`, out-of-bounds values are filtered out.
     :param torch.Tensor weights: A tensor of weights, (\*,). Each sample of `x` contributes
             its associated weight towards the bin count (instead of 1).
     :param bool sparse: Whether the histogram is returned as a sparse tensor or not.
-    :param torch.Tensor sequence[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
+    :param torch.Tensor, sequence[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
             If provided, `bins`, `low` and `upp` are inferred from `edges`.
 
-
-    :return torch.Tensor: The histogram
+    :return: (torch.Tensor) : the histogram
     """
 
     # Preprocess

@@ -16,7 +16,7 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
 
     :param padding: (options = `valid`, `circular`, `replicate`, `reflect`) If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
-    :return torch.Tensor : the output
+    :return: (torch.Tensor) : the output
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
@@ -74,10 +74,11 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
+
+    :return: (torch.Tensor) : the output
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
-
 
     # Get dimensions of the input and the filter
     B, C, H, W = y.size()
@@ -85,11 +86,13 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
 
     ph = (h - 1) // 2
     pw = (w - 1) // 2
-    
+
     if padding != "valid":
         if ph == 0 or pw == 0:
-            raise ValueError("Both dimensions of the filter must be striclty greater than 2 if padding != 'valid'")
-    
+            raise ValueError(
+                "Both dimensions of the filter must be striclty greater than 2 if padding != 'valid'"
+            )
+
     if c != C:
         assert c == 1
         filter = filter.expand(-1, C, -1, -1)
