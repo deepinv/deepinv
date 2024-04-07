@@ -673,7 +673,17 @@ class Trainer:
         )
 
 
-def train(model, physics, train_dataloader, eval_dataloader=None, *args, **kwargs):
+def train(
+    model: torch.nn.Module,
+    physics: Physics,
+    optimizer: torch.optim.Optimizer,
+    train_dataloader: torch.utils.data.DataLoader,
+    epochs: int = 100,
+    losses: Union[Loss, List[Loss]] = SupLoss(),
+    eval_dataloader: torch.utils.data.DataLoader = None,
+    *args,
+    **kwargs,
+):
     """
     Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
 
@@ -684,10 +694,17 @@ def train(model, physics, train_dataloader, eval_dataloader=None, *args, **kwarg
         This function is deprecated and will be removed in future versions. Please use
         :class:`deepinv.Trainer` instead.
 
-    :param torch.nn.Module model: Reconstruction network.
-    :param deepinv.physics.Physics physics: Forward operator.
-    :param torch.utils.data.DataLoader train_dataloader: Train data loader.
-    :param torch.utils.data.DataLoader eval_dataloader: Train data loader.
+    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network.
+    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
+    :param int epochs: Number of training epochs. Default is 100.
+    :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
+        a signal x or a tuple of (x, y) signal/measurement pairs.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
+        :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
+        should provide a signal x or a tuple of (x, y) signal/measurement pairs.
     :param args: Other positional arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
     :return: Trained model.
@@ -696,6 +713,9 @@ def train(model, physics, train_dataloader, eval_dataloader=None, *args, **kwarg
     trained_model = trainer.train(
         model,
         physics=physics,
+        optimizer=optimizer,
+        epochs=epochs,
+        losses=losses,
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
     )
