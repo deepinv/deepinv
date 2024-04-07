@@ -28,13 +28,8 @@ class Trainer:
 
         save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
 
-    where ``.pth.tar`` file contains a dictionary with the following keys:
-
-    - ``epoch``: Current epoch.
-    - ``state_dict``: The state dictionary of the model.
-    - ``loss``: The loss history.
-    - ``optimizer``: The state dictionary of the optimizer.
-
+    where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
+    dictionary of the model, ``loss`` the loss history, and ``optimizer`` the state dictionary of the optimizer.
 
     The class provides a flexible training loop that can be customized by the user. In particular, the user can
     rewrite the :meth:`deepinv.Trainer.compute_loss` method to define their custom training step without having
@@ -83,7 +78,7 @@ class Trainer:
     .. note::
 
         The losses and evaluation metrics
-         can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
+        can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
         as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
         reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
@@ -208,6 +203,17 @@ class Trainer:
             self.epoch_start = checkpoint["epoch"]
 
     def prepare_images(self, physics_cur, x, y, x_net):
+        r"""
+        Prepare the images for plotting.
+
+        It prepares the images for plotting by rescaling them and concatenating them in a grid.
+
+        :param deepinv.physics.Physics physics_cur: Current physics operator.
+        :param torch.Tensor x: Ground truth.
+        :param torch.Tensor y: Measurement.
+        :param torch.Tensor x_net: Reconstruction network output.
+        :returns: The images, the titles, the grid image, and the caption.
+        """
         with torch.no_grad():
             if (
                 self.plot_measurements
