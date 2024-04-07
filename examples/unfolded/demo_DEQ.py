@@ -195,10 +195,6 @@ test_dataloader = DataLoader(
 # We train the network using the library's train function.
 
 trainer = dinv.Trainer(
-    epochs=epochs,
-    scheduler=scheduler,
-    losses=losses,
-    optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
@@ -208,6 +204,10 @@ trainer = dinv.Trainer(
 model = trainer.train(
     model,
     physics=physics,
+    epochs=epochs,
+    scheduler=scheduler,
+    losses=losses,
+    optimizer=optimizer,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )

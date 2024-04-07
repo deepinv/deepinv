@@ -161,11 +161,7 @@ test_dataloader = DataLoader(
 
 # Initialize the trainer
 trainer = dinv.Trainer(
-    epochs=epochs,
-    scheduler=scheduler,
-    losses=loss,
     plot_images=True,
-    optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
@@ -175,6 +171,10 @@ trainer = dinv.Trainer(
 model = trainer.train(
     model,
     physics=physics,
+    epochs=epochs,
+    scheduler=scheduler,
+    losses=loss,
+    optimizer=optimizer,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )

@@ -25,8 +25,6 @@ We also provide train and test functions that can be used to train and test a mo
 
         deepinv.train
         deepinv.test
-        deepinv.training_utils.train_normalizing_flow
-
 
 
 Plotting

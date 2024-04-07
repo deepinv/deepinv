@@ -140,11 +140,19 @@ model = dinv.models.ArtifactRemoval(backbone)
 #       For a good reconstruction quality, we recommend to train for at least 100 epochs.
 #
 
-epochs = 4  # choose training epochs
-learning_rate = 5e-4
 
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
+
+trainer = dinv.Trainer(
+    device=device,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    wandb_vis=wandb_vis,
+)
+
+epochs = 4  # choose training epochs
+learning_rate = 5e-4
 
 # choose training losses
 losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
@@ -153,22 +161,15 @@ losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
-trainer = dinv.Trainer(
+model = trainer.train(
+    model,
+    physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
-    device=device,
-    save_path=str(CKPT_DIR / operation),
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
-
-model = trainer.train(
-    model,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    physics=physics,
 )
 
 # %%

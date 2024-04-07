@@ -34,7 +34,8 @@ class AverageMeter(object):
             self.count += n * val
 
         self.avg = self.sum / self.count
-        self.std = (self.sum2 / self.count - self.avg**2) ** 0.5
+        var = self.sum2 / self.count - self.avg**2
+        self.std = np.sqrt(var) if var > 0 else 0
 
     def __str__(self):
         fmtstr = "{name}={avg" + self.fmt + "}"

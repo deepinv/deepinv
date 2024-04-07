@@ -245,11 +245,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 
 trainer = dinv.Trainer(
-    epochs=epochs,
-    scheduler=scheduler,
     online_measurements=True,
-    losses=losses,
-    optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
@@ -259,6 +255,10 @@ trainer = dinv.Trainer(
 model = trainer.train(
     model,
     physics=physics,
+    losses=losses,
+    optimizer=optimizer,
+    epochs=epochs,
+    scheduler=scheduler,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )
