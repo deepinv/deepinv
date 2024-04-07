@@ -116,4 +116,3 @@ A set of popular distances that can be used by the supervised and self-supervise
    :nosignatures:
 
     deepinv.loss.LpNorm
-    deepinv.loss.CharbonnierLoss

@@ -137,7 +137,7 @@ class PSNR(Loss):
         )
 
 
-class LpNorm(Loss):
+class LpNorm(torch.nn.Module):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.
 
@@ -145,7 +145,7 @@ class LpNorm(Loss):
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
 
-    otherwise it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
+    Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
     """
@@ -168,22 +168,6 @@ def mse():
 
 def l1():
     return nn.L1Loss()
-
-
-class CharbonnierLoss(Loss):
-    r"""
-    Charbonnier Loss
-
-    """
-
-    def __init__(self, eps=1e-9):
-        super(CharbonnierLoss, self).__init__()
-        self.eps = eps
-
-    def forward(self, x, x_net, **kwargs):
-        diff = x - x_net
-        loss = torch.mean(torch.sqrt((diff * diff) + self.eps))
-        return loss
 
 
 def r1_penalty(real_pred, real_img):
