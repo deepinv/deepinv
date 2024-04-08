@@ -2,50 +2,78 @@ import torch
 
 
 class ThinPlateSpline:
-    r"""Solve the Thin Plate Spline interpolation
-
-    Given a set of control points X_c \\ in R^{n_c \\times d_s} and target points X_t \\in R^{n_c \\times d_t}
-    it learns a transformation f that maps X_c on X_t with some regularization.
-
-    More formally:
-    f = min_f E_{ext}(f) + \\alpha E_{int}(f)      (1)
-
-    with E_{ext}(f) = \\sum_{i=1}^n ||X_{ti} - f(X_{ci})||_2^2
-    and E_{int}(f) = \\iint \\left[\\left({\\frac{\\partial^2 f}{\\partial x_1^2}}\\right)^2
-                                + 2\\left({\\frac{\\partial^2 f}{\\partial x_1\\partial x_2}}\\right)^2
-                                +  \\left({\\frac{\\partial^2 f}{\\partial x_2^2}}\\right)^2 \\right]{dx_1\\,dx_2
-
-
-    Let X \\in R^{n \\times d_s} be n point from the source space. Then \\Phi(X) is the radial distance of those point
-    to the control points \\in R^{n \\times n_c}:
-    with d_{ij} = ||X_i - X_{cj}||_2, \\Phi(X)_{ij} = d_{ij}^2 \\log d_ij
-
-    Then f(X) = A + X.B + \\Phi(X).C
-    with A \\ in R^{d_t}, B \\in R^{d_s \\times d_t}, C \\ in R^{n_c \\times d_t} the parameters to learn.
-
-    Learning A, B, C is done by solving a linear system so that f minimizes the energy (1) to transform X_c in X_t.
-
+    r"""Solve the Thin Plate Spline interpolation problem
+    
+    Given a set of control points :math:`X_c` in :math:`\mathbb{R}^{n_c \times d_s}` and target points :math:`X_t` in :math:`\mathbb{R}^{n_c \times d_t}`,
+    it learns a transformation :math:`f` that maps :math:`X_c` to :math:`X_t` with some regularization.
+    
+    The mapping is defined by:
+    
+    .. math:: 
+        :label: formula
+        
+        f = \min_f E_{\text{ext}}(f) + \alpha E_{\text{int}}(f)
+        
+    
+    with
+    
+    .. math::
+        
+        E_{\text{ext}}(f) = \frac{1}{2}\sum_{i=1}^n \|X_{t_i} - f(X_{c_i})\|_2^2
+        
+    .. math::
+        
+        E_{\text{int}}(f) = \iint \left[\left({\frac{\partial^2 f}{\partial x_1^2}}\right)^2
+                                + 2\left({\frac{\partial^2 f}{\partial x_1\partial x_2}}\right)^2
+                                +  \left({\frac{\partial^2 f}{\partial x_2^2}}\right)^2 \right]{dx_1\,dx_2}
+    
+    Let :math:`X \in \mathbb{R}^{n \times d_s}` be :math:`n` point from the source space. Then :math:`\Phi(X)` is the radial distance of those points
+    to the control points in :math:`\mathbb{R}^{n \times n_c}`:
+    with :math:`d_{ij} = ||X_{t_i} - X_{c_j}||_2, \Phi(X)_{ij} = d_{ij}^2 \log d_{ij}`
+    
+    Then :math:`f(X) = A + X \cdot B + \Phi(X) \cdot C`
+    with :math:`A \in \mathbb{R}^{d_t}`, :math:`B \in \mathbb{R}^{d_s \times d_t}`, :math:`C \in \mathbb{R}^{n_c \times d_t}` the parameters to learn.
+    
+    Learning :math:`A`, :math:`B`, :math:`C` is done by solving a linear system so that :math:`f` minimizes the energy :eq:`formula` to transform :math:`X_c` in :math:`X_t`.
+    
     The equation to solve is:
+    
+    .. math::
+        
+        \begin{equation*}
+            A      \cdot   P =   Y
+        \end{equation*}
 
-           A      .   P   =   Y
-                         <=>
-    |  K   , X'_c|  | C |   |X_t|
-    |            |  |   | = |   |
-    |X'_c^T,   0 |  | B'|   | 0 |
+    .. math::
 
-    with X'_c = |1_{n_c}, X_c|  \\in R^{n_c \\times 1+d_s}, B'.T = |A, B.T|  \\in R^{d_t \\times 1+d_s}
-    and K = \\Phi(X_c) + \\alpha I_{n_c}
-
-    A \\in R^{(n_c + d_s + 1)\\times(n_c + d_s + 1)},
-    P \\in R^{(n_c + d_s + 1)\\times d_t},
-    Y \\in R^{(n_c + d_s + 1)\\times d_t},
-
+        \begin{align*}
+            \begin{bmatrix}
+                K   & X'_c \\
+                X_{c}^{'T} &   0
+            \end{bmatrix} 
+            \begin{bmatrix}
+                C \\
+                B'
+            \end{bmatrix}   
+            = 
+            \begin{bmatrix}
+                X_t \\
+                0
+            \end{bmatrix}
+        \end{align*}
+    
+    with :math:`X'_c = [1_{n_c}, X_c]  \in \mathbb{R}^{n_c \times (1+d_s)}`, :math:`B'` = :math:`[A, B^T]`  in :math:`\mathbb{R}^{d_t \times (1+d_s)}`
+    and :math:`K = \Phi(X_c) + \alpha I_{n_c}`
+    
+    :math:`A \in \mathbb{R}^{(n_c + d_s + 1)\times(n_c + d_s + 1)}`,
+    :math:`P \in \mathbb{R}^{(n_c + d_s + 1)\times d_t}`,
+    :math:`Y \in \mathbb{R}^{(n_c + d_s + 1)\times d_t}`,
+    
     Attrs:
         alpha (float): Regularization parameter
-        parameters (Tensor): All the parameters (P). Shape: (n_c + d_s + 1, d_t)
-        control_points (Tensor): Control points fitted (X_c). Shape: (n_c, d_s)
+        parameters (Tensor): All the parameters (P). Shape: :math:`(n_c + d_s + 1, d_t)`
+        control_points (Tensor): Control points fitted (X_c). Shape: :math:`(n_c, d_s)`
     """
-
     def __init__(self, alpha=0.0, device="cpu", dtype=torch.float32) -> None:
         self._fitted = False
         self.alpha = alpha

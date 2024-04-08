@@ -5,14 +5,14 @@ Physics
 
 This package contains a large collection of forward operators appearing in imaging applications.
 
-The operators and are of the form
+The acquisition models are of the form
 
 .. math::
 
     y = \noise{\forw{x}}
 
 where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are the measurements of size :math:`m`,
-:math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
+:math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) opetrator capturing the physics of the acquisition
 and :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
 
 Operators are :meth:`torch.nn.Module` which can be called with the ``forward`` method, for example
@@ -33,6 +33,9 @@ Introduction
 ------------
 
 All forward operators inherit the structure of the :class:`Physics` class.
+
+Physics
+^^^^^^^^^^^
 
 .. autosummary::
    :toctree: stubs
@@ -154,7 +157,7 @@ object passed as input with probabilities probs
 functional
 ^^^^^^^^^^^
 For each :class:`deepinv.physics.Physics` object, the forward operation is performed under the hood 
-using the functions from :module: `deepinv.physics.functional`
+using the functions from :py:mod:`deepinv.physics.functional`
 
 .. autosummary::
    :toctree: stubs
@@ -228,7 +231,6 @@ They can be stationary (convolutions) or space-varying. Also, we integrated supe
 We provide the implementation of typical blur kernels such as Gaussian, bilinear, bicubic, etc.
 
 .. autosummary::
-   :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
 
@@ -333,6 +335,11 @@ Haze operators are used to capture the physics of light scattering in the atmosp
    :nosignatures:
 
    deepinv.physics.Haze
+
+
+Physics generators
+--------------------------------
+
 
 
 Noise distributions

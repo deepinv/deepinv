@@ -15,10 +15,17 @@ _ _ _
 **Comment (Flo)** : Need to refactorize the doc, as right now individual physics generators appear both under the *Introduction/Generators/* section and in each *Forward operators/* section. I think Julian chose the second option, that we did not see with Hai on Tuesday.
 
 _ _ _ 
+- [ ] Refactor doc physics
+- [ ] A tour of blur operators
+- [ ] Check multiGPU class generator
+
 
 - [ ] Coding unit test using pytest
-
-
+  - [ ] Check output types for generator (dict, device, dtype)
+  - [ ] Check all boundary conditions + colour + non square images for physics (adjoint)
+  - [ ] Check that generators return the right stuff
+  - [ ] Check GeneratorMixture (ce qu'a déjà fait Flo)
+  - [ ] Check SpaceVaryingBlur
+  - [ ] Check ProductConvolution
 _ _ _ 
 
-- [ ] Master example on deblurring to illustrate the different added functionalities
