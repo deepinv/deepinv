@@ -26,6 +26,9 @@ _ _ _
   - [ ] Check GeneratorMixture (ce qu'a déjà fait Flo)
   - [ ] Check SpaceVaryingBlur
   - [ ] Check ProductConvolution
-  - [ ] Move rotate, scale, ... to functional? -> would be better
 _ _ _ 
+- [ ] Discussions
+  - [ ] Move rotate, scale, ... to functional? -> would be better
+  - [ ] Restructure the doc (in particular self-supervised, ...)
+  - [ ] Add functions to Physics such as jvp, ... This would make it possible to play easily with nonlinear operators, tangent maps,...
 
