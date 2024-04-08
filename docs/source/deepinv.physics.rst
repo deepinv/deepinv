@@ -3,19 +3,28 @@
 Physics
 =========
 
-This package contains a large collection of forward operators appearing in imaging applications.
+Introduction
+------------
 
+This package contains a large collection of forward operators appearing in imaging applications.
 The acquisition models are of the form
 
 .. math::
 
     y = \noise{\forw{x}}
 
-where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are the measurements of size :math:`m`,
-:math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) opetrator capturing the physics of the acquisition
-and :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
+where 
 
-Operators are :meth:`torch.nn.Module` which can be called with the ``forward`` method, for example
+* :math:`x\in\xset` is an image
+* :math:`y\in\yset` are the measurements
+* :math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) operator capturing the physics of the acquisition
+* :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
+
+Operators: general concepts
+----------------------------
+
+All forward operators inherit the structure of the :class:`Physics` class. 
+They are :meth:`torch.nn.Module` which can be called with the ``forward`` method, for example
 
 .. doctest::
 
@@ -28,44 +37,20 @@ Operators are :meth:`torch.nn.Module` which can be called with the ``forward`` m
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
 
-
-Introduction
-------------
-
-All forward operators inherit the structure of the :class:`Physics` class.
-
-Physics
-^^^^^^^^^^^
-
 .. autosummary::
-   :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
    deepinv.physics.Physics
 
-Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
-All linear operators inherit the structure of the :class:`LinearPhysics` class.
+Linear operators
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.LinearPhysics
-
+Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :class:`LinearPhysics` class.
+They have important specific properties such as the existence of an adjoint :math:`A^*:\yset\mapsto \xset`. 
 Linear operators with a closed-form singular value decomposition are defined via :class:`DecomposablePhysics`,
-which enables the efficient computation of their pseudo-inverse and proximal operators.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.DecomposablePhysics
-
-
-All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
+which enables the efficient computation of their pseudo-inverse and regularized inverse.
+Composition and linear combinations of linear operators is still a linear operator.
 
 .. doctest::
 
@@ -79,11 +64,37 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
     >>> y2 = physics.A(x) # compute the linear operator (no noise)
     >>> x_adj = physics.A_adjoint(y) # compute the adjoint operator
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
-    >>> x_prox = physics.prox_l2(x, y, .1) # compute the prox operator
+    >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
 
-Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
-have additional methods.
+More details below.
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.LinearPhysics
+   deepinv.physics.DecomposablePhysics
+
+Non-linear operators
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Basic blocks (functional)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The toolbox is based on efficient PyTorch implementations of basic operations such as diagonal multipliers, Fourier transforms, convolutions, product-convolutions, Radon transform, interpolation mappings.
+Similar to the PyTorch structure, they are available within :py:mod:`deepinv.physics.functional`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.functional.convolution
+   deepinv.physics.functional.multiplier
+   deepinv.physics.functional.interp
+   deepinv.physics.functional.radon
+   deepinv.physics.functional.hist   
 
 
 Generators
@@ -335,12 +346,6 @@ Haze operators are used to capture the physics of light scattering in the atmosp
    :nosignatures:
 
    deepinv.physics.Haze
-
-
-Physics generators
---------------------------------
-
-
 
 Noise distributions
 --------------------------------

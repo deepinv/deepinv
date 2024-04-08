@@ -19,7 +19,6 @@ _ _ _
 - [ ] A tour of blur operators
 - [ ] Check multiGPU class generator
 
-
 - [ ] Coding unit test using pytest
   - [ ] Check output types for generator (dict, device, dtype)
   - [ ] Check all boundary conditions + colour + non square images for physics (adjoint)
@@ -27,5 +26,6 @@ _ _ _
   - [ ] Check GeneratorMixture (ce qu'a déjà fait Flo)
   - [ ] Check SpaceVaryingBlur
   - [ ] Check ProductConvolution
+  - [ ] Move rotate, scale, ... to functional? -> would be better
 _ _ _ 
 
