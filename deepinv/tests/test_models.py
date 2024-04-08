@@ -82,7 +82,7 @@ def choose_denoiser(name, imsize):
     elif name == "epll":
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
-        out = dinv.models.Restormer(inp_channels=imsize[0], out_channels=imsize[0])
+        out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 
