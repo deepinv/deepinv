@@ -76,6 +76,8 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
    :template: myclass_template.rst
    :nosignatures:
 
+    deepinv.loss.adversarial.GeneratorLoss
+    deepinv.loss.adversarial.DiscriminatorLoss
     deepinv.loss.adversarial.AmbientGANGeneratorLoss
     deepinv.loss.adversarial.AmbientGANDiscriminatorLoss
     deepinv.loss.adversarial.DeblurGANGeneratorLoss

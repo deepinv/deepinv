@@ -81,17 +81,15 @@ equivariant denoiser.
 Adversarial Networks
 --------------------
 
-Generator and discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
+Discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.models.DCGANGenerator
-   deepinv.models.DCGANDiscriminator
-   deepinv.models.DCGANGenerator
-   deepinv.models.DCGANDiscriminator   
+   deepinv.models.PatchGANDiscriminator
+   deepinv.models.ESRGANDiscriminator
 
 .. _pretrained-weights:
 Pretrained Weights
