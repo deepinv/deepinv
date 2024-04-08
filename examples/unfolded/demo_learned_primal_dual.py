@@ -245,23 +245,21 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 
 trainer = dinv.Trainer(
-    epochs=epochs,
-    scheduler=scheduler,
-    online_measurements=True,
+    model,
+    physics=physics,
     losses=losses,
     optimizer=optimizer,
-    device=device,
+    epochs=epochs,
+    scheduler=scheduler,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
-model = trainer.train(
-    model,
-    physics=physics,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-)
+model = trainer.train()
 
 # %%
 # Test the network
@@ -269,4 +267,4 @@ model = trainer.train(
 #
 #
 
-trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
+trainer.test(test_dataloader)

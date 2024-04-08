@@ -188,7 +188,6 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # Train the network
 # --------------------------------------------
 #
-#
 
 
 verbose = True  # print training information
@@ -203,10 +202,13 @@ test_dataloader = DataLoader(
 
 # Initialize the trainer
 trainer = dinv.Trainer(
+    model,
+    physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
+    train_dataloader=train_dataloader,
     plot_images=True,
     device=device,
     save_path=str(CKPT_DIR / operation),
@@ -215,9 +217,7 @@ trainer = dinv.Trainer(
     ckp_interval=10,
 )
 
-model = trainer.train(
-    model, physics, train_dataloader=train_dataloader, eval_dataloader=test_dataloader
-)
+model = trainer.train()
 
 # %%
 # Test the network
@@ -225,4 +225,4 @@ model = trainer.train(
 #
 #
 
-trainer.test(model, physics, test_dataloader)
+trainer.test(test_dataloader)

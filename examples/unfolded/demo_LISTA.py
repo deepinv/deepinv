@@ -186,7 +186,6 @@ model = unfolded_builder(
 # number of epochs, optimizer (Adam) and its hyperparameters, and the train and test batch sizes.
 #
 
-
 # Training parameters
 epochs = 5 if torch.cuda.is_available() else 3
 learning_rate = 0.01
@@ -220,21 +219,19 @@ test_dataloader = DataLoader(
 #
 
 trainer = dinv.Trainer(
+    model,
+    physics=physics,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
     epochs=epochs,
     losses=losses,
     optimizer=optimizer,
-    device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
-model = trainer.train(
-    model,
-    physics=physics,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-)
+model = trainer.train()
 
 # %%
 # Test the network.
@@ -246,11 +243,7 @@ model = trainer.train(
 #
 
 
-trainer.test(
-    model,
-    physics=physics,
-    test_dataloader=test_dataloader,
-)
+trainer.test(test_dataloader)
 
 
 # %%
