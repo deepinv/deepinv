@@ -8,24 +8,20 @@ from deepinv.physics import Physics
 class AmbientGANGeneratorLoss(GeneratorLoss):
     """Reimplementation of AmbientGAN generator's adversarial loss. See :class:`deepinv.loss.adversarial.GeneratorLoss` for how adversarial loss is calculated.
 
-    :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
-    :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
-    :param nn.Module metric: metric for measurement consistency, defaults to nn.MSELoss
+    :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"
     """
 
     def __init__(
         self,
-        weight_adv: float = 0.5,
+        weight_adv: float = 1.0,
         device="cpu",
     ):
         super().__init__(weight_adv=weight_adv, device=device)
         self.name = "AmbientGANGenerator"
 
-    def forward(
-        self, y: Tensor, y_hat: Tensor, physics: Physics, model: nn.Module, D: nn.Module, **kwargs
-    ):
-       return self.adversarial_loss(y, y_hat, D)
+    def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module, **kwargs):
+        return self.adversarial_loss(y, y_hat, D)
 
 
 class AmbientGANDiscriminatorLoss(DiscriminatorLoss):
@@ -41,4 +37,3 @@ class AmbientGANDiscriminatorLoss(DiscriminatorLoss):
 
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module, **kwargs):
         return self.adversarial_loss(y, y_hat, D)
-

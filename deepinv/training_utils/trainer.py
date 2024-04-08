@@ -119,6 +119,7 @@ class Trainer:
         If ``1``, plots at each epoch.
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed.
+    :param torch.device, str device: gpu or cpu.
     """
 
     model: torch.nn.Module
@@ -146,6 +147,7 @@ class Trainer:
     freq_plot: int = 1
     verbose_individual_losses: bool = True
     display_losses_eval: bool = False
+    device: Union[str, torch.device] = "cpu"
 
     def setup_train(self):
         r"""
@@ -161,9 +163,7 @@ class Trainer:
         if self.eval_dataloader and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
 
-        self.save_path = Path(self.save_path)
-
-        self.device = self.model.device
+        self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
 
@@ -209,7 +209,9 @@ class Trainer:
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = f"{self.save_path}/{get_timestamp()}"
+        self.save_path = (
+            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
+        )
 
         # count the overall training parameters
         params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
@@ -555,6 +557,9 @@ class Trainer:
         :param int epoch: Current epoch.
         :param None, float eval_psnr: Evaluation PSNR.
         """
+        if not self.save_path:
+            return
+
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
             state = {

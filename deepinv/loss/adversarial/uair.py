@@ -18,7 +18,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
         self,
         weight_adv: float = 0.5,
         weight_mc: float = 1,
-        metric: nn.Module = nn.MSELoss,
+        metric: nn.Module = nn.MSELoss(),
         device="cpu",
     ):
         super().__init__(weight_adv=weight_adv, device=device)
@@ -27,7 +27,13 @@ class UAIRGeneratorLoss(GeneratorLoss):
         self.weight_mc = weight_mc
 
     def forward(
-        self, y: Tensor, y_hat: Tensor, physics: Physics, model: nn.Module, D: nn.Module, **kwargs
+        self,
+        y: Tensor,
+        y_hat: Tensor,
+        physics: Physics,
+        model: nn.Module,
+        D: nn.Module,
+        **kwargs,
     ):
         adv_loss = self.adversarial_loss(y, y_hat, D)
 

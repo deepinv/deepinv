@@ -90,6 +90,8 @@ Discriminator networks used in networks trained with adversarial learning using 
 
    deepinv.models.PatchGANDiscriminator
    deepinv.models.ESRGANDiscriminator
+   deepinv.models.AmbientDCGANGenerator
+   deepinv.models.DCGANDiscriminator
 
 .. _pretrained-weights:
 Pretrained Weights

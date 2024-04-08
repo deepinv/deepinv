@@ -3,9 +3,10 @@ from typing import Union, List
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import Module
-from deepinv.training_utils import Trainer
+from .trainer import Trainer
 from deepinv.loss import Loss
 from deepinv.utils import AverageMeter
+
 
 class AdversarialOptimizer:
     def __init__(
@@ -49,6 +50,7 @@ class AdversarialScheduler:
         self.G.step()
         self.D.step()
 
+
 @dataclass
 class AdversarialTrainer(Trainer):
     """
@@ -57,8 +59,9 @@ class AdversarialTrainer(Trainer):
     - Forward pass remains same
     - Computes y_hat ahead of time (to avoid having to compute it in both G and D's losses) but not all adversarial losses may need this
     """
+
+    optimizer: AdversarialOptimizer
     losses_d: Union[Loss, List[Loss]] = None
-    optimizer: AdversarialOptimizer = None
     D: Module = None
 
     def setup_train(self):
@@ -71,11 +74,13 @@ class AdversarialTrainer(Trainer):
             self.losses_d = [self.losses_d]
 
         self.logs_losses_train += [
-            AverageMeter("Training discrim loss " + l.name, ":.2e") for l in self.losses_d
+            AverageMeter("Training discrim loss " + l.name, ":.2e")
+            for l in self.losses_d
         ]
 
         self.logs_losses_eval += [
-            AverageMeter("Validation discrim loss " + l.name, ":.2e") for l in self.losses_d
+            AverageMeter("Validation discrim loss " + l.name, ":.2e")
+            for l in self.losses_d
         ]
 
     def compute_loss(self, physics, x, y, train=True):
@@ -106,7 +111,15 @@ class AdversarialTrainer(Trainer):
         if train or self.display_losses_eval:
             loss_total = 0
             for k, l in enumerate(self.losses):
-                loss = l(x=x, x_net=x_net, y=y, y_hat=y_hat, physics=physics, model=self.model, D=self.D)
+                loss = l(
+                    x=x,
+                    x_net=x_net,
+                    y=y,
+                    y_hat=y_hat,
+                    physics=physics,
+                    model=self.model,
+                    D=self.D,
+                )
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     current_log = (
@@ -131,7 +144,7 @@ class AdversarialTrainer(Trainer):
 
             # Generator optimizer step
             self.optimizer.G.step()
-        
+
         # Compute discriminator losses
         if train or self.display_losses_eval:
 
@@ -139,11 +152,21 @@ class AdversarialTrainer(Trainer):
 
             loss_total_d = 0
             for k, l in enumerate(self.losses_d):
-                loss = l(x=x, x_net=x_net, y=y, y_hat=y_hat, physics=physics, model=self.model, D=self.D)
+                loss = l(
+                    x=x,
+                    x_net=x_net,
+                    y=y,
+                    y_hat=y_hat,
+                    physics=physics,
+                    model=self.model,
+                    D=self.D,
+                )
                 loss_total_d += loss.mean()
                 if len(self.losses_d) > 1 and self.verbose_individual_losses:
                     current_log = (
-                        self.logs_losses_train[k + len(self.losses)] if train else self.logs_losses_eval[k + len(self.losses)]
+                        self.logs_losses_train[k + len(self.losses)]
+                        if train
+                        else self.logs_losses_eval[k + len(self.losses)]
                     )
                     current_log.update(loss.detach().cpu().numpy())
                     cur_loss = current_log.avg
@@ -152,10 +175,9 @@ class AdversarialTrainer(Trainer):
         if train:
             loss_total_d.backward()  # Backward the total discriminator loss
 
-            #TODO discriminator gradient clipping
+            # TODO discriminator gradient clipping
 
             # Discriminator optimizer step
             self.optimizer.D.step()
 
         return x_net, logs
-    

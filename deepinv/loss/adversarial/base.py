@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from deepinv.loss.loss import Loss
 
+
 class DiscriminatorMetric:
     """Generic GAN discriminator metric building block. Compares discriminator output
     with labels depending on if the image should be real or not.
@@ -40,8 +41,9 @@ class DiscriminatorMetric:
         with torch.no_grad() if self.no_grad else nullcontext():
             return self.metric(pred, target)
 
+
 class GeneratorLoss(Loss):
-    """Base generator adversarial loss. Override the forward function to 
+    """Base generator adversarial loss. Override the forward function to
     call `adversarial_loss` with quantities depending on your specific GAN model.
     For examples, see :class:`deepinv.loss.adversarial.DeblurGANGeneratorLoss`,
     :class:`deepinv.loss.adversarial.UAIRGeneratorLoss`, :class:`deepinv.loss.adversarial.AmbientGANGeneratorLoss`.
@@ -50,7 +52,7 @@ class GeneratorLoss(Loss):
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1., device="cpu", **kwargs):
+    def __init__(self, weight_adv: float = 1.0, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.metric_gan = DiscriminatorMetric(device=device)
         self.weight_adv = weight_adv
@@ -65,13 +67,13 @@ class GeneratorLoss(Loss):
         """
         pred_fake = D(fake)
         return self.metric_gan(pred_fake, real=True) * self.weight_adv
-    
+
     def forward(self, *args, **kwargs) -> Tensor:
         return NotImplementedError()
 
 
 class DiscriminatorLoss(Loss):
-    """Base discriminator adversarial loss. Override the forward function to 
+    """Base discriminator adversarial loss. Override the forward function to
     call `adversarial_loss` with quantities depending on your specific GAN model.
     For examples, see :class:`deepinv.loss.adversarial.DeblurGANDiscriminatorLoss`,
     :class:`deepinv.loss.adversarial.UAIRDiscriminatorLoss`, :class:`deepinv.loss.adversarial.AmbientGANDiscriminatorLoss`.

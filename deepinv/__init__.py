@@ -55,9 +55,9 @@ from deepinv import unfolded
 
 __all__ += ["unfolded"]
 
-from deepinv import training
+from deepinv import training_utils
 
-__all__ += ["training"]
+__all__ += ["training_utils"]
 
 from deepinv.training_utils import train, test, Trainer
 

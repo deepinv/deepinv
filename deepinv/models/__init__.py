@@ -16,4 +16,9 @@ from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
 from .bm3d import BM3D
 from .equivariant import EquivariantDenoiser
 from .epll import EPLLDenoiser
-from .gan import PatchGANDiscriminator, ESRGANDiscriminator
+from .gan import (
+    PatchGANDiscriminator,
+    ESRGANDiscriminator,
+    AmbientDCGANGenerator,
+    DCGANDiscriminator,
+)
