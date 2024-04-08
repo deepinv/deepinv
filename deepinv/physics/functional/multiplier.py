@@ -1,4 +1,9 @@
 # %%
+r"""
+Basic multiplication and its adjoint
+"""
+
+# %%
 import torch
 from torch import Tensor
 

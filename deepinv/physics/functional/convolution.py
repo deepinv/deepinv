@@ -1,4 +1,9 @@
 # %%
+r"""
+Efficient implementation of grayscale or colour convolutions with diverse boundary conditions
+"""
+
+# %%
 import torch
 import torch.nn.functional as F
 from torch import Tensor
