@@ -25,6 +25,7 @@ from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
 
 from . import functional
+from . import generator
 
 # from .generator import (
 #     PhysicsGenerator,

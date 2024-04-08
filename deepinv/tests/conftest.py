@@ -8,7 +8,9 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
 @pytest.fixture
 def device():
-    return dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    return (
+        dinv.utils.get_freer_gpu() if torch.cuda.is_available() else torch.device("cpu")
+    )
 
 
 @pytest.fixture
