@@ -56,7 +56,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             num_lines_center = int(central_lines_percent * img_size[-1])
             side_lines_percent = 0.125 - central_lines_percent
             num_lines_side = int(side_lines_percent * img_size[-1])
-        mask = torch.zeros((batch_size,) + img_size, device=self.device)
+        mask = torch.zeros((batch_size,) + img_size, **self.factory_kwargs)
         center_line_indices = torch.linspace(
             img_size[0] // 2 - num_lines_center // 2,
             img_size[0] // 2 + num_lines_center // 2 + 1,
@@ -71,9 +71,14 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             )
             mask[i, :, random_line_indices] = 1
 
-        #return {"mask": torch.cat([mask.float().unsqueeze(1)] * 2, dim=1)}
-        return {"mask": mask.float().unsqueeze(1)}
-
+        # for i in range(batch_size):
+        #     random_line_indices = torch.multinomial(
+        #         torch.arange(img_size[0], **self.factory_kwargs),
+        #         num_samples=num_lines_side // 2,
+        #         replacement=False,
+        #     )
+        #     mask[i, :, random_line_indices] = 1
+        return {"mask": torch.cat([mask.float().unsqueeze(1)] * 2, dim=1)}
 
 
 if __name__ == "__main__":
