@@ -199,6 +199,7 @@ trainer = dinv.Trainer(
     physics=physics,
     epochs=epochs,
     scheduler=scheduler,
+    device=device,
     losses=losses,
     optimizer=optimizer,
     train_dataloader=train_dataloader,

@@ -171,6 +171,7 @@ trainer = dinv.Trainer(
     scheduler=scheduler,
     losses=loss,
     optimizer=optimizer,
+    device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     plot_images=True,

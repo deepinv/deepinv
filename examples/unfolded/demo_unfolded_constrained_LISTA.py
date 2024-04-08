@@ -233,15 +233,16 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 
 trainer = dinv.Trainer(
     model=model,
+    scheduler=scheduler,
+    losses=losses,
+    device=device,
+    optimizer=optimizer,
+    physics=physics,
+    train_dataloader=train_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
     epochs=epochs,
-    scheduler=scheduler,
-    losses=losses,
-    optimizer=optimizer,
-    physics=physics,
-    train_dataloader=train_dataloader,
 )
 
 model = trainer.train()

@@ -226,6 +226,7 @@ trainer = dinv.Trainer(
     epochs=epochs,
     losses=losses,
     optimizer=optimizer,
+    device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias

@@ -148,6 +148,7 @@ if retrain:
         physics=Denoising(UniformNoise(1.0 / 255.0)),
         optimizer=optimizer,
         train_dataloader=patchnr_dataloader,
+        device=device,
         losses=[],
         epochs=patchnr_epochs,
         online_measurements=True,

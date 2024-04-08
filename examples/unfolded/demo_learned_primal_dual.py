@@ -253,6 +253,7 @@ trainer = dinv.Trainer(
     scheduler=scheduler,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    device=device,
     online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,

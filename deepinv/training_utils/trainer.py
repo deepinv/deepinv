@@ -108,6 +108,7 @@ class Trainer:
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
     :param str save_path: Directory in which to save the trained model.
+    :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu').
     :param bool verbose: Output training progress information in the console.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
@@ -133,6 +134,7 @@ class Trainer:
     online_measurements: bool = False
     grad_clip: float = None
     ckp_interval: int = 1
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
     verbose: bool = True
@@ -162,8 +164,6 @@ class Trainer:
             self.eval_dataloader = [self.eval_dataloader]
 
         self.save_path = Path(self.save_path)
-
-        self.device = self.model.device
 
         self.G = len(self.train_dataloader)
 

@@ -185,6 +185,7 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     physics=physics,
+    device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
