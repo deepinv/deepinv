@@ -51,15 +51,17 @@ The following example shows how operators and their parameter can be instantiate
    >>>
    >>> from deepinv.physics import Blur
    >>> x = torch.rand((1, 1, 16, 16))
-   >>> # %% A first example
-   >>> physics = Blur(filter=w) # we instantiate a blur operator with its convolution filter
+   >>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
+   >>> # %% A first possibility
+   >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
    >>> y = physics(x)
-   >>>>
+   >>> 
    >>> # %% A second possibilty
    >>> physics = Blur() # a blur operator without convolution filter
-   >>> w = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
-   >>> y = physics(x, filter=w) # we define the blur by specifying its filter 
+   >>> y = physics(x, filter=theta) # we define the blur by specifying its filter 
    >>> y = physics(x) # now, the filter is well defined and this line does the same as above 
+   >>> y = physics(x, filter=torch.rand((1,1,2,2))) # we set and apply a random blur filter 
+   >>> y = physics(x) # the convolution is filter is now random 
 
 Linear operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
