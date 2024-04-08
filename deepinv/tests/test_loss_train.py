@@ -183,7 +183,6 @@ def test_optim_algo(name_algo, imsize, device):
     )
 
 
-
 def test_epll_parameter_estimation(imsize, dummy_dataset, device):
     from deepinv.datasets import PatchDataset
 
