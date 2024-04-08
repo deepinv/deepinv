@@ -161,15 +161,7 @@ test_dataloader = DataLoader(
 
 # Initialize the trainer
 trainer = dinv.Trainer(
-    plot_images=True,
-    device=device,
-    save_path=str(CKPT_DIR / operation),
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
-
-model = trainer.train(
-    model,
+    model=model,
     physics=physics,
     epochs=epochs,
     scheduler=scheduler,
@@ -177,7 +169,13 @@ model = trainer.train(
     optimizer=optimizer,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    plot_images=True,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    wandb_vis=wandb_vis,
 )
+
+model = trainer.train()
 
 # %%
 # Test the network
@@ -185,4 +183,4 @@ model = trainer.train(
 #
 #
 
-trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
+trainer.test(test_dataloader)

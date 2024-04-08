@@ -182,13 +182,6 @@ test_dataloader = DataLoader(
 # We train the network using the library's train function.
 
 trainer = dinv.Trainer(
-    device=device,
-    save_path=str(CKPT_DIR / operation),
-    verbose=verbose,
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
-)
-
-model = trainer.train(
     model,
     physics=physics,
     train_dataloader=train_dataloader,
@@ -197,7 +190,12 @@ model = trainer.train(
     scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
+
+model = trainer.train()
 
 
 # %%
@@ -206,7 +204,7 @@ model = trainer.train(
 #
 #
 
-trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
+trainer.test(test_dataloader)
 
 # %%
 # Plotting the trained parameters.

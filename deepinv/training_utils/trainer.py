@@ -85,6 +85,19 @@ class Trainer:
         and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
 
+
+    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network.
+    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
+    :param int epochs: Number of training epochs. Default is 100.
+    :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
+        a signal x or a tuple of (x, y) signal/measurement pairs.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
+        :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
+        should provide a signal x or a tuple of (x, y) signal/measurement pairs.
+    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
         parameters of the forward operator or noise realizations, can change between each sample;
@@ -92,7 +105,6 @@ class Trainer:
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
-    :param torch.device device: gpu or cpu.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
     :param str save_path: Directory in which to save the trained model.
@@ -109,10 +121,17 @@ class Trainer:
         Otherwise, only the total loss is printed.
     """
 
+    model: torch.nn.Module
+    physics: Union[Physics, List[Physics]]
+    optimizer: torch.optim.Optimizer
+    train_dataloader: torch.utils.data.DataLoader
+    epochs: int = 100
+    losses: Union[Loss, List[Loss]] = SupLoss()
+    eval_dataloader: torch.utils.data.DataLoader = None
+    scheduler: torch.optim.lr_scheduler.LRScheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
     grad_clip: float = None
-    device: Union[str, torch.device] = "cpu"
     ckp_interval: int = 1
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
@@ -128,7 +147,7 @@ class Trainer:
     verbose_individual_losses: bool = True
     display_losses_eval: bool = False
 
-    def setup_train(self, losses, physics):
+    def setup_train(self):
         r"""
         Set up the training process.
 
@@ -136,7 +155,17 @@ class Trainer:
         and the pretrained checkpoint if given.
         """
 
+        if type(self.train_dataloader) is not list:
+            self.train_dataloader = [self.train_dataloader]
+
+        if self.eval_dataloader and type(self.eval_dataloader) is not list:
+            self.eval_dataloader = [self.eval_dataloader]
+
         self.save_path = Path(self.save_path)
+
+        self.device = self.model.device
+
+        self.G = len(self.train_dataloader)
 
         if self.wandb_setup is not None and not self.wandb_vis:
             warnings.warn(
@@ -148,10 +177,8 @@ class Trainer:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
-        if not isinstance(losses, list) or isinstance(losses, tuple):
-            self.losses = [losses]
-        else:
-            self.losses = losses
+        if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
+            self.losses = [self.losses]
 
         if not isinstance(self.metrics, list) or isinstance(self.metrics, tuple):
             self.metrics = [self.metrics]
@@ -189,10 +216,8 @@ class Trainer:
         print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
-        if type(physics) is not list:
-            self.physics = [physics]
-        else:
-            self.physics = physics
+        if type(self.physics) is not list:
+            self.physics = [self.physics]
 
         self.loss_history = []
 
@@ -546,14 +571,6 @@ class Trainer:
 
     def train(
         self,
-        model: torch.nn.Module,
-        physics: Physics,
-        optimizer: torch.optim.Optimizer,
-        train_dataloader: torch.utils.data.DataLoader,
-        epochs: int = 100,
-        losses: Union[Loss, List[Loss]] = SupLoss(),
-        eval_dataloader=None,
-        scheduler: torch.optim.lr_scheduler.LRScheduler = None,
     ):
         r"""
         Train the model.
@@ -561,43 +578,22 @@ class Trainer:
         It performs the training process, including the setup, the evaluation, the forward and backward passes,
         and the visualization.
 
-        :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
-            or any other custom reconstruction network.
-        :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-        :param int epochs: Number of training epochs. Default is 100.
-        :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
-            a signal x or a tuple of (x, y) signal/measurement pairs.
-        :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-            :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
-        :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
-            should provide a signal x or a tuple of (x, y) signal/measurement pairs.
-        :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
         :returns: The trained model.
         """
 
-        self.epochs = epochs
-        self.model = model
-        self.scheduler = scheduler
-        self.optimizer = optimizer
+        self.setup_train()
 
-        if type(train_dataloader) is not list:
-            train_dataloader = [train_dataloader]
-        if eval_dataloader and type(eval_dataloader) is not list:
-            eval_dataloader = [eval_dataloader]
-
-        self.G = len(train_dataloader)
-
-        self.setup_train(losses=losses, physics=physics)
         for epoch in range(self.epoch_start, self.epochs):
             ## Evaluation
-            perform_eval = eval_dataloader and (
+            perform_eval = self.eval_dataloader and (
                 (epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs
             )
             if perform_eval:
-                self.current_iterators = [iter(loader) for loader in eval_dataloader]
-                batches = len(eval_dataloader[self.G - 1]) - int(
-                    eval_dataloader[self.G - 1].drop_last
+                self.current_iterators = [
+                    iter(loader) for loader in self.eval_dataloader
+                ]
+                batches = len(self.eval_dataloader[self.G - 1]) - int(
+                    self.eval_dataloader[self.G - 1].drop_last
                 )
 
                 self.model.eval()
@@ -614,9 +610,9 @@ class Trainer:
                 self.eval_psnr = self.logs_metrics_eval[0].avg
 
             ## Training
-            self.current_iterators = [iter(loader) for loader in train_dataloader]
-            batches = len(train_dataloader[self.G - 1]) - int(
-                train_dataloader[self.G - 1].drop_last
+            self.current_iterators = [iter(loader) for loader in self.train_dataloader]
+            batches = len(self.train_dataloader[self.G - 1]) - int(
+                self.train_dataloader[self.G - 1].drop_last
             )
 
             self.model.train()
@@ -643,25 +639,19 @@ class Trainer:
 
         return self.model
 
-    def test(self, model, physics, test_dataloader):
+    def test(self, test_dataloader):
         r"""
         Test the model.
 
         It computes the quality metrics of the reconstruction network on the test set, and it
         compares the performance of a simple reconstruction that does not learn.
 
-        :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP,
-            unrolled, artifact removal or any other custom reconstruction network.
-        :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics:
-            Forward operator(s) used by the reconstruction network.
         :param torch.utils.data.DataLoader test_dataloader: Test data loader, which should provide a tuple of (x, y) pairs.
-        :returns tuple[float]: The PSNR of the model, the standard deviation of the PSNR of the model,
-            the PSNR of the model without learning, and the standard deviation of the PSNR of the model without learning.
         """
 
         return test(
-            model,
-            physics=physics,
+            self.model,
+            physics=self.physics,
             test_dataloader=test_dataloader,
             online_measurements=self.online_measurements,
             plot_images=self.plot_images,
@@ -709,14 +699,16 @@ def train(
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
     :return: Trained model.
     """
-    trainer = Trainer(*args, **kwargs)
-    trained_model = trainer.train(
-        model,
+    trainer = Trainer(
+        model=model,
         physics=physics,
         optimizer=optimizer,
         epochs=epochs,
         losses=losses,
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
+        *args,
+        **kwargs,
     )
+    trained_model = trainer.train()
     return trained_model

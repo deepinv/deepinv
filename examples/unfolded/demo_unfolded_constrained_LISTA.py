@@ -232,14 +232,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
 trainer = dinv.Trainer(
-    device=device,
+    model=model,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
-)
-
-model = trainer.train(
-    model,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
@@ -247,6 +243,8 @@ model = trainer.train(
     physics=physics,
     train_dataloader=train_dataloader,
 )
+
+model = trainer.train()
 
 # %%
 # Test the network

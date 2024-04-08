@@ -214,14 +214,6 @@ test_dataloader = DataLoader(
 #
 
 trainer = dinv.Trainer(
-    device=device,
-    save_path=str(CKPT_DIR / operation),
-    verbose=verbose,
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
-)
-
-
-model = trainer.train(
     model,
     physics=physics,
     train_dataloader=train_dataloader,
@@ -229,7 +221,13 @@ model = trainer.train(
     epochs=epochs,
     losses=losses,
     optimizer=optimizer,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
+
+
+model = trainer.train()
 
 # %%
 # Test the network.

@@ -44,7 +44,6 @@ import torch
 from deepinv.datasets import PatchDataset
 from torch.utils.data import DataLoader
 from deepinv import Trainer
-from deepinv.training_utils import train_normalizing_flow
 from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.utils import cal_psnr, plot
@@ -144,15 +143,18 @@ if retrain:
     optimizer = torch.optim.Adam(
         model_patchnr.normalizing_flow.parameters(), lr=patchnr_learning_rate
     )
-    trainer = NFTrainer(online_measurements=True, device=device, verbose=verbose)
-    trainer.train(
+    trainer = NFTrainer(
         model=model_patchnr.normalizing_flow,
         physics=Denoising(UniformNoise(1.0 / 255.0)),
         optimizer=optimizer,
         train_dataloader=patchnr_dataloader,
         losses=[],
         epochs=patchnr_epochs,
+        online_measurements=True,
+        verbose=verbose,
     )
+
+    trainer.train()
 
     model_epll = EPLL(
         pretrained=None,
