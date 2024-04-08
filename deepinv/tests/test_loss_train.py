@@ -154,6 +154,7 @@ def test_optim_algo(name_algo, imsize, device):
         save_path=str(CKPT_DIR),
         verbose=True,
         wandb_vis=False,
+        online_measurements=True,
     )
 
     results = feature_test(
@@ -164,22 +165,6 @@ def test_optim_algo(name_algo, imsize, device):
         plot_images=False,
         verbose=True,
         wandb_vis=False,
-    )
-
-    # Now check that training with online measurements works as well
-    train(
-        model=model_unfolded,
-        train_dataloader=train_dataloader,
-        eval_dataloader=test_dataloader,
-        epochs=epochs,
-        losses=losses,
-        physics=physics,
-        optimizer=optimizer,
-        device=device,
-        save_path=str(CKPT_DIR),
-        verbose=True,
-        wandb_vis=False,
-        online_measurements=True,
     )
 
 

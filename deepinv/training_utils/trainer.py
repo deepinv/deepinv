@@ -351,7 +351,7 @@ class Trainer:
         data = next(iterators[g])
         if (type(data) is not tuple and type(data) is not list) or len(data) != 2:
             raise ValueError(
-                "If online_measurements=True, the dataloader should output a tuple (x, y)"
+                "If online_measurements=False, the dataloader should output a tuple (x, y)"
             )
 
         x, y = data
