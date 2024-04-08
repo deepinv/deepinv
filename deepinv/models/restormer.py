@@ -8,8 +8,9 @@ Authors: Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahb
 Paper: https://arxiv.org/abs/2111.09881
 Code: https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py
 """
-import os
 import numbers
+import os
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -51,8 +52,8 @@ class Restormer(nn.Module):
     :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the ``TransformerBlock``. 
         ``LayerNorm_type = 'BiasFree' / 'WithBias'``.
     :param bool dual_pixel_task: Should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.
-    :param None, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
-    :param None, str pretrained: Default to ``'denoising'``.
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param NoneType, str pretrained: Default to ``'denoising'``.
         ``if pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``, will download weights from the HuggingFace Hub. 
         ``if pretrained = '\*.pth'``, will load weights from a local pth file.
 
@@ -62,20 +63,20 @@ class Restormer(nn.Module):
         (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
     """
     
-    def __init__(self, 
-        in_channels = 3, 
-        out_channels = 3, 
-        dim = 48,
-        num_blocks = [4,6,6,8], 
-        num_refinement_blocks = 4,
-        heads = [1,2,4,8],
-        ffn_expansion_factor = 2.66,
-        bias = False,
-        LayerNorm_type = 'BiasFree',
-        dual_pixel_task = False,
-        pretrained = 'denoising',
-        device = None,
-    ):
+    def __init__(self,
+        in_channels: int = 3,
+        out_channels: int = 3,
+        dim: int = 48,
+        num_blocks: List[int] = [4,6,6,8],
+        num_refinement_blocks: int = 4,
+        heads: List[int] = [1,2,4,8],
+        ffn_expansion_factor: float = 2.66,
+        bias: bool = False,
+        LayerNorm_type: str = 'BiasFree',
+        dual_pixel_task: bool = False,
+        pretrained: Optional[str] = 'denoising',
+        device: Optional[torch.device] = None,
+    ) -> None:
         super(Restormer, self).__init__()
         
         # stores the filename of pretrained weights, used later in the code to download the pth file from the HuggingFace Hub 
