@@ -34,7 +34,7 @@ class SMIteration(OptimIterator):
         self,
         lamb=10,
         n_iter=50,
-        preprocessing=lambda x: torch.max(1 - 1 / x, -5),
+        preprocessing=lambda x: torch.max(1 - 1 / x, torch.tensor(-5.0)),
         **kwargs,
     ):
         super(SMIteration, self).__init__()
@@ -70,7 +70,10 @@ class fStepSM(fStep):
     """
 
     def __init__(
-        self, lamb=10, preprocessing=lambda x: torch.max(1 - 1 / x, -5), **kwargs
+        self,
+        lamb=10,
+        preprocessing=lambda x: torch.max(1 - 1 / x, torch.tensor(-5.0)),
+        **kwargs,
     ):
         super(fStepSM, self).__init__(**kwargs)
         self.preprocessing = preprocessing

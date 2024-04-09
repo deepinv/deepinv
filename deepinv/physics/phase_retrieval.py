@@ -1,5 +1,6 @@
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.physics.compressed_sensing import CompressedSensing
+from deepinv.optim.phase_retrieval import spectral_methods
 import torch
 import numpy as np
 
@@ -40,8 +41,13 @@ class PhaseRetrieval(Physics):
         return self.B(x).abs().square()
 
     def A_dagger(self, y: torch.Tensor) -> torch.Tensor:
-        x_init = self.B.A_adjoint(y)
-        return super().A_dagger(y, x_init)
+        r"""
+        Computes a initial reconstruction for the image :math:`x` from the measurements :math:`y`.
+
+        :param torch.Tensor y: measurements.
+        :return: (torch.Tensor) an initial reconstruction for image :math:`x`. 
+        """
+        return spectral_methods(50, torch.rand((y.shape[0],)+self.img_shape), y, self)
 
     def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         return self.B.A_adjoint(y)
@@ -50,7 +56,7 @@ class PhaseRetrieval(Physics):
         r"""
         Computes the linear pseudo-inverse of :math:`B`.
 
-        :param torch.Tensor y: signal/image.
+        :param torch.Tensor y: measurements.
         :return: (torch.Tensor) the reconstruction image :math:`x`.
         """
         return self.B.A_dagger(y)
@@ -135,3 +141,69 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         )
         super().__init__(B)
         self.name = f"RPR_m{self.m}"
+
+
+class PseudoRandomPhaseRetrieval(PhaseRetrieval):
+    r"""
+    Pseudo-random Phase Retrieval class corresponding to the operator
+
+    .. math::
+
+        A(x) = |F \prod_{i=1}^N (D_i F) x|^2,
+
+    where :math:`F` is the Discrete Fourier Transform (DFT) matrix, and :math:`D_i` are diagonal matrices with elements of unit norm and random phases, and :math:`N` is the number of layers.
+
+    The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
+
+    :param int n_layers: number of layers.
+    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param torch.type dtype: Signals are processed in dtype. Default is torch.cfloat.
+    :param str device: Device for computation.
+    """
+
+    def __init__(
+        self,
+        n_layers,
+        img_shape,
+        zero_padding=0,
+        dtype=torch.cfloat,
+        device="cpu",
+        **kwargs,
+    ):
+        self.n_layers = n_layers
+        self.zero_padding = zero_padding
+
+        self.img_shape = img_shape
+        self.img_shape_padding = (img_shape[0], img_shape[1] + 2 * zero_padding, img_shape[2] + 2 * zero_padding)
+
+        self.n = torch.prod(torch.tensor(self.img_shape))
+        self.m = torch.prod(torch.tensor(self.img_shape_padding))
+
+        self.dtype = dtype
+        self.device = device
+        self.diagonals = []
+        for _ in range(self.n_layers):
+            diagonal = torch.rand(self.img_shape_padding)
+            diagonal = 2 * torch.pi * diagonal
+            diagonal = torch.exp(1j * diagonal)
+            self.diagonals.append(diagonal)
+        def A(x):
+            x = torch.nn.ZeroPad2d(self.zero_padding)(x)
+            for i in range(self.n_layers):
+                diagonal = self.diagonals[i]
+                x = torch.fft.fft2(x, norm="ortho")
+                x = diagonal * x
+            x = torch.fft.fft2(x, norm="ortho")
+            return x
+        def A_adjoint(y):
+            for i in range(self.n_layers):
+                diagonal = self.diagonals[-i - 1]
+                y = torch.fft.ifft2(y, norm="ortho")
+                y = torch.conj(diagonal) * y
+            y = torch.fft.ifft2(y, norm="ortho")
+            return y[:, :, self.zero_padding : -self.zero_padding, self.zero_padding : -self.zero_padding]
+        super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint))
+        self.name = f"PRPR_m{self.m}"
+
+    def B_dagger(self, y):
+        return self.B.A_adjoint(y)
