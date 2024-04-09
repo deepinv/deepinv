@@ -68,7 +68,7 @@ def conjugate_gradient(
         x = x + p * alpha
         r = r - Ap * alpha
         rsnew = dot(r, r)
-        if torch.all(rsnew < tol**2):
+        if all(rsnew < tol**2):
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew

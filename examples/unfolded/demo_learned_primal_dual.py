@@ -25,6 +25,8 @@ from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
 
+torch.set_grad_enabled(False)
+
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
