@@ -257,11 +257,7 @@ model = trainer.train()
 plot_images = True
 method = "artifact_removal"
 
-trainer.test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-)
+trainer.test(test_dataloader)
 
 # %%
 # Saving the model

@@ -203,4 +203,4 @@ model = trainer.train()
 # --------------------------------------------
 #
 
-trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
+trainer.test(test_dataloader)

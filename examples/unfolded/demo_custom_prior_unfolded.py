@@ -239,11 +239,7 @@ model = trainer.train()
 # and `GT` shows the ground truth.
 #
 
-trainer.test(
-    model=model,
-    physics=physics,
-    test_dataloader=test_dataloader,
-)
+trainer.test(test_dataloader)
 
 
 # %%
