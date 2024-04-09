@@ -66,9 +66,9 @@ The following example shows how operators and their parameter can be instantiate
 Linear operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :class:`LinearPhysics` class.
+Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :meth:`deepinv.physics.LinearPhysics` class.
 They have important specific properties such as the existence of an adjoint :math:`A^*:\yset\mapsto \xset`. 
-Linear operators with a closed-form singular value decomposition are defined via :class:`DecomposablePhysics`,
+Linear operators with a closed-form singular value decomposition are defined via :meth:`deepinv.physics.DecomposablePhysics`,
 which enables the efficient computation of their pseudo-inverse and regularized inverse.
 Composition and linear combinations of linear operators is still a linear operator.
 
@@ -99,7 +99,7 @@ More details below.
 Non-linear operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Nonlinear operators :math:`A:x\mapsto A(x)` inherit the structure of the :class:`LinearPhysics` class.
+Nonlinear operators :math:`A:x\mapsto A(x)` are just elements from the :meth:`deepinv.physics.LinearPhysics` class.
 Examples of non-linear operators include 
 
 .. autosummary::
@@ -121,18 +121,18 @@ Similar to the PyTorch structure, they are available within :py:mod:`deepinv.phy
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.functional.convolution.conv2d
-   deepinv.physics.functional.convolution.conv_transpose2d
-   deepinv.physics.functional.convolution.conv2d_fft
-   deepinv.physics.functional.convolution.conv_transpose2d_fft
-   deepinv.physics.functional.convolution.conv3d
-   deepinv.physics.functional.convolution.conv_transpose3d
-   deepinv.physics.functional.multiplier.multiplier
-   deepinv.physics.functional.interp.multiplier_adjoint
-   deepinv.physics.functional.radon.Radon
-   deepinv.physics.functional.radon.IRadon
-   deepinv.physics.functional.hist.histogramdd   
-   deepinv.physics.functional.hist.histogram
+   deepinv.physics.functional.conv2d
+   deepinv.physics.functional.conv_transpose2d
+   deepinv.physics.functional.conv2d_fft
+   deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d
+   deepinv.physics.functional.conv_transpose3d
+   deepinv.physics.functional.multiplier
+   deepinv.physics.functional.multiplier_adjoint
+   deepinv.physics.functional.Radon
+   deepinv.physics.functional.IRadon
+   deepinv.physics.functional.histogramdd   
+   deepinv.physics.functional.histogram
 
 .. doctest::
 

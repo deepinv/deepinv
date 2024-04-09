@@ -14,53 +14,39 @@ class FixedPoint(nn.Module):
     .. math::
         \qquad (x_{k+1}, u_{k+1}) = \operatorname{FixedPoint}(x_k, u_k, f, g, A, y, ...) \hspace{2cm} (1)
 
+    where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the data.
 
-    where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the
-    data.
+    :Examples:
 
-
-    ::
-
-        # This example shows how to use the FixedPoint class to solve the problem
-        #                min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1
-        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
-
-        # Create the measurement operator A
-        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define the measurement y
-        y = torch.tensor([2, 2], dtype=torch.float64)
-
-        # Define the data fidelity term
-        data_fidelity = L2()
-
-        # Define the proximity operator of the prior and store it in a dictionary
-        def prox_g(x, g_param=0.1):
-            return torch.sign(x) * torch.maximum(x.abs() - g_param, torch.tensor([0]))
-
-        prior = {"prox_g": prox_g}
-
-        # Define the parameters of the algorithm
-        params = {"g_param": 1.0, "stepsize": 1.0, "lambda": 1.0}
-
-        # Choose the iterator associated to the PGD algorithm
-        iterator = PGDIteration(data_fidelity=data_fidelity)
-
-        # Iterate the iterator
-        x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
-        X = {"est": (x_init ,), "cost": []}                 # Iterates are stored in a dictionary of the form {'est': (x,z), 'cost': F}
-
-        max_iter = 50
-        for it in range(max_iter):
-            X = iterator(X,  prior, params, y, physics)
-
-        # Return the solution
-        sol = X["est"][0]  # sol = [1, 1]
+        >>> # This example shows how to use the FixedPoint class to solve the problem
+        >>> #                min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1
+        >>> # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
+        >>> # Create the measurement operator A
+        >>> A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>> # Define the physics model associated to this operator
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>> # Define the measurement y
+        >>> y = torch.tensor([2, 2], dtype=torch.float64)
+        >>> # Define the data fidelity term
+        >>> data_fidelity = L2()
+        >>> # Define the proximity operator of the prior and store it in a dictionary
+        >>> def prox_g(x, g_param=0.1):
+        >>>     return torch.sign(x) * torch.maximum(x.abs() - g_param, torch.tensor([0]))
+        >>> prior = {"prox_g": prox_g}
+        >>> # Define the parameters of the algorithm
+        >>> params = {"g_param": 1.0, "stepsize": 1.0, "lambda": 1.0}
+        >>> # Choose the iterator associated to the PGD algorithm
+        >>> iterator = PGDIteration(data_fidelity=data_fidelity)
+        >>> # Iterate the iterator
+        >>> x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
+        >>> X = {"est": (x_init ,), "cost": []}                 # Iterates are stored in a dictionary of the form {'est': (x,z), 'cost': F}
+        >>> max_iter = 50
+        >>> for it in range(max_iter):
+        >>> X = iterator(X,  prior, params, y, physics)
+        >>> # Return the solution
+        >>> sol = X["est"][0]  # sol = [1, 1]
 
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as

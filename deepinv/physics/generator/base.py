@@ -110,18 +110,3 @@ class GeneratorMixture(PhysicsGenerator):
         idx = torch.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(batch_size, **kwargs)
 
-
-if __name__ == "__main__":
-    # %%
-
-    from deepinv.physics.generator import (
-        MotionBlurGenerator,
-        DiffractionBlurGenerator,
-        GeneratorMixture,
-    )
-
-    g1 = MotionBlurGenerator(psf_size=(3, 3), num_channels=1)
-    g2 = DiffractionBlurGenerator(psf_size=(3, 3), num_channels=1)
-    generator = GeneratorMixture([g1, g2], [0.5, 0.5])
-    params_dict = generator.step(batch_size=1)
-    print(params_dict)
