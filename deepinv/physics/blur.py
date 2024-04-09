@@ -260,7 +260,7 @@ class Blur(LinearPhysics):
 
     :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image.
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``)
     :param str device: cpu or cuda.
 
 
@@ -289,7 +289,7 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter, padding="circular", device="cpu", **kwargs):
+    def __init__(self, filter, padding="valid", device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
         self.filter = filter.to(device)
@@ -339,7 +339,7 @@ class BlurFFT(DecomposablePhysics):
 
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
+    :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str device: cpu or cuda
 

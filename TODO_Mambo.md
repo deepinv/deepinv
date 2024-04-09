@@ -20,22 +20,16 @@ _ _ _
 - [ ] Check multiGPU class generator
 
 - [ ] Coding unit test using pytest
-  - [ ] Check output types for generator (dict, device, dtype)
-  - [ ] Check all boundary conditions + colour + non square images for physics (adjoint)
-  - [ ] Check that generators return the right stuff
-  - [ ] Check GeneratorMixture (ce qu'a déjà fait Flo)
+  - [x] Check output types for generator (dict, device, dtype)
+  - [x] Check all boundary conditions + colour + non square images for physics (adjoint)
+  - [x] Check that generators return the right stuff
+  - [x] Check GeneratorMixture (ce qu'a déjà fait Flo)
   - [ ] Check SpaceVaryingBlur
   - [ ] Check ProductConvolution
 _ _ _ 
 - [ ] Discussions
   - [ ] Move rotate, scale, ... to functional? -> would be better
+  - [ ] Operator norm is different from 1 
   - [ ] Restructure the doc (in particular self-supervised, ...)
   - [ ] Add functions to Physics such as jvp, ... This would make it possible to play easily with nonlinear operators, tangent maps,...
 
-
-WARNING: Cannot resolve import of deepinv.utils.plotting.make_grid in deepinv.utils
-WARNING: Cannot resolve cyclic import: deepinv.training_utils, deepinv.physics.generator, deepinv.physics.generator.blur, deepinv.physics.generator
-WARNING: Cannot resolve cyclic import: deepinv.training_utils, deepinv.physics.generator, deepinv.physics.generator.mri, deepinv.physics.generator
-WARNING: Cannot resolve cyclic import: deepinv.training_utils, deepinv.physics.generator, deepinv.physics.generator.noise, deepinv.physics.generator
-WARNING: Cannot resolve cyclic import: deepinv.models.tgv, deepinv.models, deepinv.models.tgv
-WARNING: Cannot resolve cyclic import: deepinv.optim.dpir, deepinv.optim, deepinv.optim.dpir
