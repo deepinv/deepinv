@@ -40,8 +40,9 @@ All forward operators inherit the structure of the :class:`Physics` class.
 
    deepinv.physics.Physics
 
-They are :meth:`torch.nn.Module` which can be called with the ``forward`` method, for example
-If the operator :math:`A` is parameterized, it can be called with a dictionary of parameters as an extra input.
+They are :class:`torch.nn.Module` which can be called with the ``forward`` method. 
+If the operator :math:`A` is parameterized as :math:`A(\theta)`, 
+the ``forward`` method can be called with a dictionary of parameters as an extra input.
 The following example shows how operators and their parameter can be instantiated and called
 
 .. doctest::
@@ -61,7 +62,12 @@ The following example shows how operators and their parameter can be instantiate
    >>> y = physics(x, filter=theta) # we define the blur by specifying its filter 
    >>> y = physics(x) # now, the filter is well defined and this line does the same as above 
    >>> y = physics(x, filter=torch.rand((1,1,2,2))) # we set and apply a random blur filter 
-   >>> y = physics(x) # the convolution is filter is now random 
+   >>> y = physics(x) # the convolution filter is now random 
+   >>> 
+   >>> # %% The same can be done by passign in a dictionary including 'filter' as a key 
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> dict_params = {'filter': theta, 'dummy': None}
+   >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary 
 
 Linear operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -86,7 +92,7 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
     >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
 
-More details below.
+More details can be found in the doc of each class:
 
 .. autosummary::
    :toctree: stubs
@@ -99,7 +105,7 @@ More details below.
 Non-linear operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Nonlinear operators :math:`A:x\mapsto A(x)` are just elements from the :meth:`deepinv.physics.LinearPhysics` class.
+Nonlinear operators :math:`A:x\mapsto A(x)` are just elements from the :meth:`deepinv.physics.Physics` class.
 Examples of non-linear operators include 
 
 .. autosummary::
@@ -193,7 +199,7 @@ Generators currently include:
     >>> x = torch.rand((1, 1, 8, 8))
     >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(1))
     >>> y = physics(x) # compute with Gaussian blur
-    >>> generator = dinv.physics.generator.MotionBlurGenerator((1, 3, 3))
+    >>> generator = dinv.physics.generator.MotionBlurGenerator(psf_size=(3, 3))
     >>> kernel = generator.step(x.size(0)) # generate a motion blur kernel at random
     >>> y1 = physics(x, **kernel) # compute with motion blur
     >>> assert not torch.allclose(y, y1)
@@ -208,7 +214,7 @@ the full forward operator :math:`N(A(x))`
 
     >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
     >>>    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
-    >>> params = mask_generator.step(4)
+    >>> params = mask_generator.step(batch_size=4)
     >>> print(params)
 
 When training robust inverse problems solvers, it can be useful to train on multiple families of operators.
@@ -224,10 +230,10 @@ object passed as input with probabilities probs
 
 .. doctest::
 
-    >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
-    >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
-    >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
-    >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
+    >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator, GeneratorMixture
+    >>> g1 = MotionBlurGenerator(psf_size=(3, 3))
+    >>> g2 = DiffractionBlurGenerator(psf_size=(3, 3))
+    >>> generator = GeneratorMixture(generators=[g1, g2], probs=[0.5, 0.5])
     >>> params_dict = generator.step(batch_size=1)    
 
 Forward operators
@@ -282,7 +288,6 @@ deblurring networks.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
 

@@ -289,10 +289,15 @@ class Blur(LinearPhysics):
 
     """
 
+<<<<<<< HEAD
     def __init__(self, filter, padding="valid", device="cpu", **kwargs):
+=======
+    def __init__(self, filter=None, padding="circular", device="cpu", **kwargs):
+>>>>>>> eb5824bd5c3d4ed54cf4f74e9310ad0713f981ea
         super().__init__(**kwargs)
         self.padding = padding
-        self.filter = filter.to(device)
+        if filter is not None:
+            self.filter = filter.to(device)
 
     def A(self, x, filter=None, **kwargs):
         r"""

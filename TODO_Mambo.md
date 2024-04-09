@@ -15,7 +15,7 @@ _ _ _
 **Comment (Flo)** : Need to refactorize the doc, as right now individual physics generators appear both under the *Introduction/Generators/* section and in each *Forward operators/* section. I think Julian chose the second option, that we did not see with Hai on Tuesday.
 
 _ _ _ 
-- [x] Refactor doc physics
+- [x] Refactor doc physics (double check done)
 - [ ] A tour of blur operators
 - [ ] Check multiGPU class generator
 
