@@ -1,12 +1,13 @@
 r"""Define the neural network architecture of the Restormer.
 
 Model specialized in restoration tasks including deraining, single-image motion deblurring,
-defocus deblurring and image denoising for high-resolution images.
+defocus deblurring and image denoising for high-resolution images. Code adapted form
+https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
 
 Restormer: Efficient Transformer for High-Resolution Image Restoration
 Authors: Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
 Paper: https://arxiv.org/abs/2111.09881
-Code: https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py
+Code: https://github.com/swz30/Restormer
 """
 
 import numbers
@@ -18,14 +19,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-from .utils import get_weights_url
+from .utils import get_weights_url, test_onesplit, test_pad
 
 
 class Restormer(nn.Module):
     r"""
     Restormer denoiser network.
 
-    The network architecture is based on the paper:
+    This network architecture was proposed in the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
     .. image:: ../figures/restormer_architecture.png
@@ -78,6 +79,7 @@ class Restormer(nn.Module):
         dual_pixel_task: bool = False,
         pretrained: Optional[str] = "denoising",
         device: Optional[torch.device] = None,
+        train=False,
     ) -> None:
         super(Restormer, self).__init__()
 
@@ -342,15 +344,18 @@ class Restormer(nn.Module):
         elif pretrained is not None:
             raise ValueError(f"pretrained value error, {pretrained}")
 
+        self.training = train
+
         if device is not None:
             self.to(device)
 
-    def forward(self, x, sigma=None):
+    def forward_restormer(self, x):
         r"""
-        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+        Run the Restormer network on the input image.
 
-        :param torch.Tensor x: noisy image
-        :param float sigma: noise level (not used)
+        The input shape is expected to be divisible by 8.
+
+        :param torch.Tensor x: input image
         """
         # expected : x.shape = (B, C, H, W)
         assert (
@@ -394,6 +399,26 @@ class Restormer(nn.Module):
             out_dec_level1 = self.output(out_dec_level1) + x
 
         return out_dec_level1
+
+    def forward(self, x, sigma=None):
+        r"""
+        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+
+        :param torch.Tensor x: noisy image
+        :param float sigma: noise level (not used)
+        """
+        if self.training or (
+            x.size(2) % 8 == 0
+            and x.size(3) % 8 == 0
+            and x.size(2) > 31
+            and x.size(3) > 31
+        ):
+            out = self.forward_restormer(x)
+        elif x.size(2) < 32 or x.size(3) < 32:
+            out = test_pad(self.forward_restormer, x, modulo=16)
+        else:
+            out = test_onesplit(self.forward_restormer, x, refield=64)
+        return out
 
     def is_standard_denoising_network(
         self,
@@ -517,8 +542,6 @@ class Restormer(nn.Module):
 
 ##########################################################################
 ## Layer Norm
-
-
 def to_3d(x):
     return rearrange(x, "b c h w -> b (h w) c")
 
