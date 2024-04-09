@@ -51,6 +51,7 @@ from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+dtype = torch.float32
 
 # %%
 # Load training and test images
@@ -66,7 +67,9 @@ img_size = train_imgs.shape[-1]
 
 patch_size = 3
 verbose = True
-train_dataset = PatchDataset(train_imgs, patch_size=patch_size, transforms=None)
+train_dataset = PatchDataset(
+    train_imgs, patch_size=patch_size, transforms=None
+)
 
 # %%
 # Set parameters for EPLL and PatchNR
@@ -99,7 +102,10 @@ if retrain:
         patch_size=patch_size,
     )
     patchnr_dataloader = DataLoader(
-        train_dataset, batch_size=patchnr_batch_size, shuffle=True, drop_last=True
+        train_dataset,
+        batch_size=patchnr_batch_size,
+        shuffle=True,
+        drop_last=True,
     )
     train_normalizing_flow(
         model_patchnr.normalizing_flow,
@@ -117,9 +123,14 @@ if retrain:
         device=device,
     )
     epll_dataloader = DataLoader(
-        train_dataset, batch_size=epll_batch_size, shuffle=True, drop_last=False
+        train_dataset,
+        batch_size=epll_batch_size,
+        shuffle=True,
+        drop_last=False,
     )
-    model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
+    model_epll.GMM.fit(
+        epll_dataloader, verbose=verbose, max_iters=epll_max_iter
+    )
 else:
     model_patchnr = PatchNR(
         pretrained="PatchNR_lodopab_small2",
@@ -135,7 +146,9 @@ else:
     )
 
 patchnr_prior = PatchPrior(model_patchnr, patch_size=patch_size)
-epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_size)
+epll_prior = PatchPrior(
+    model_epll.negative_log_likelihood, patch_size=patch_size
+)
 
 # %%
 # Definition of forward operator and noise model
@@ -146,7 +159,7 @@ epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_siz
 # Then, we generate an observation by applying the physics and compute the filtered backprojection.
 
 mu = 1 / 50.0 * (362.0 / img_size)
-N0 = 2**10
+N0 = 1024.
 num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
@@ -202,6 +215,11 @@ print("EPLL: {0:.2f}".format(psnr_epll))
 print("PatchNR: {0:.2f}".format(psnr_patchnr))
 
 plot(
-    [test_imgs, fbp.clip(0, 1), recon_epll.clip(0, 1), recon_patchnr.clip(0, 1)],
+    [
+        test_imgs,
+        fbp.clip(0, 1),
+        recon_epll.clip(0, 1),
+        recon_patchnr.clip(0, 1),
+    ],
     ["Ground truth", "Filtered Backprojection", "EPLL", "PatchNR"],
 )
