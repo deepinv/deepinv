@@ -14,12 +14,12 @@ class AverageMeter(object):
         self.reset()
 
     def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-        self.std = 0
-        self.sum2 = 0
+        self.val = 0.
+        self.avg = 0.
+        self.sum = 0.
+        self.count = 0.
+        self.std = 0.
+        self.sum2 = 0.
 
     def update(self, val, n=1):
         if isinstance(val, np.ndarray):
@@ -31,7 +31,7 @@ class AverageMeter(object):
             self.val = val
             self.sum += val * n
             self.sum2 += val**2 * n
-            self.count += n * val
+            self.count += n
 
         self.avg = self.sum / self.count
         var = self.sum2 / self.count - self.avg**2

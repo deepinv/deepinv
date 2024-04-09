@@ -323,8 +323,8 @@ class Trainer:
             iterators[g]
         )  # In this case the dataloader outputs also a class label
 
-        if type(data) is tuple and len(data) == 2:
-            x, _ = data
+        if type(data) is tuple or type(data) is list:
+            x = data[0]
         else:
             x = data
 
