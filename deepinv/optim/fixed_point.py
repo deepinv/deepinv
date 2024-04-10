@@ -16,8 +16,8 @@ class FixedPoint(nn.Module):
 
     where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the data.
 
-    :Examples: This example shows how to use the FixedPoint class to solve the problem 
-    min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1 with the PGD algorithm, where A is the identity operator, 
+    :Examples: This example shows how to use the FixedPoint class to solve the problem
+    min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1 with the PGD algorithm, where A is the identity operator,
     lambda = 1 and y = [2, 2].
 
 

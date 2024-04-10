@@ -87,9 +87,9 @@ class DDRM(nn.Module):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu' 
+        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU   
+        >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
