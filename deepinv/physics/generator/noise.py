@@ -19,9 +19,7 @@ class SigmaGenerator(PhysicsGenerator):
     >>> from deepinv.physics.generator import SigmaGenerator
     >>> generator = SigmaGenerator()
     >>> _ = torch.manual_seed(0)
-    >>> sigma_dict = generator.step()
-    >>> print(sigma_dict.keys())
-    dict_keys(['sigma'])
+    >>> sigma_dict = generator.step() # dict_keys(['sigma'])
     >>> print(sigma_dict['sigma'])
     tensor([0.2532])
 

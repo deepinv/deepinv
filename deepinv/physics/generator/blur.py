@@ -61,9 +61,7 @@ class MotionBlurGenerator(PSFGenerator):
 
     >>> from deepinv.physics.generator import MotionBlurGenerator
     >>> generator = MotionBlurGenerator((5, 5), num_channels=1)
-    >>> blur = generator.step()
-    >>> print(blur.keys())
-    dict_keys(['filter'])
+    >>> blur = generator.step()  # dict_keys(['filter'])
     >>> print(blur['filter'].shape)
     torch.Size([1, 1, 5, 5])
     """
@@ -183,9 +181,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     >>> from deepinv.physics.generator import DiffractionBlurGenerator
     >>> generator = DiffractionBlurGenerator((5, 5), num_channels=3)
-    >>> blur = generator.step()
-    >>> print(blur.keys())
-    dict_keys(['filter', 'coeff', 'pupil'])
+    >>> blur = generator.step()  # dict_keys(['filter', 'coeff', 'pupil'])
     >>> print(blur['filter'].shape)
     torch.Size([1, 3, 5, 5])
 

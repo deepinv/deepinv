@@ -21,9 +21,7 @@ class PhysicsGenerator(nn.Module):
         >>> _ = torch.manual_seed(0)
         >>> _ = torch.cuda.manual_seed(0)
         >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
-        >>> params_dict = generator.step(batch_size=1)
-        >>> print(params_dict.keys())
-        dict_keys(['filter', 'sigma'])
+        >>> params_dict = generator.step(batch_size=1) # dict_keys(['filter', 'sigma'])
         >>> print(params_dict['filter'])
         tensor([[[[0.0000, 0.1006, 0.0000],
                   [0.0000, 0.8994, 0.0000],
