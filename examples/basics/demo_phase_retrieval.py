@@ -43,7 +43,7 @@ plot(x, title="Original image")
 # Signal Construction
 # ---------------------------------------
 # We use the original image as the phase information for the complex signal. The original value range is [0, 1], so we scale it to cover the full phase range[0, 2*pi].
-x_phase = torch.exp(1j*2*torch.pi*x)
+x_phase = torch.exp(1j * 2 * torch.pi * x)
 
 # For phase retrieval, the signal should be complex-valued.
 print(x_phase.dtype)
@@ -109,7 +109,7 @@ torch.mean(x_est - x_phase)
 # -----------------------------------------------------------
 # Reconstruct the image using the estimated phase.
 # We can use `torch.angle` to extract the phase information. With the range of the returned value being [-pi, pi], we first normalize it to be [0, 1].
-x_recon = torch.angle(x_est) / (2*torch.pi) + 0.5
+x_recon = torch.angle(x_est) / (2 * torch.pi) + 0.5
 # A good reconstruction should be only a global phase shift away from the original signal, i.e., `x_recon - x` is constant. We first make sure all reconstruction values are above the corresponding original values
 x_recon = torch.where(x_recon < x, x_recon + 1, x_recon)
 # Subtract the global phase shift
@@ -166,7 +166,7 @@ torch.mean(x_est - x_phase)
 # ------------------------------------------------------------
 # Reconstruct the image using the estimated phase.
 # We can use `torch.angle` to extract the phase information. With the range of the returned value being [-pi, pi], we first normalize it to be [0, 1].
-x_recon = torch.angle(x_est) / (2*torch.pi) + 0.5
+x_recon = torch.angle(x_est) / (2 * torch.pi) + 0.5
 # A good reconstruction should be only a global phase shift away from the original signal, i.e., `x_recon - x` is constant. We first make sure all reconstruction values are above the corresponding original values
 x_recon = torch.where(x_recon < x, x_recon + 1, x_recon)
 # Subtract the global phase shift

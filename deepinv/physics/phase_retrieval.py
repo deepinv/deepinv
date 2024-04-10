@@ -45,9 +45,9 @@ class PhaseRetrieval(Physics):
         Computes a initial reconstruction for the image :math:`x` from the measurements :math:`y`.
 
         :param torch.Tensor y: measurements.
-        :return: (torch.Tensor) an initial reconstruction for image :math:`x`. 
+        :return: (torch.Tensor) an initial reconstruction for image :math:`x`.
         """
-        return spectral_methods(50, torch.rand((y.shape[0],)+self.img_shape), y, self)
+        return spectral_methods(50, torch.rand((y.shape[0],) + self.img_shape), y, self)
 
     def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         return self.B.A_adjoint(y)
@@ -174,7 +174,11 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         self.zero_padding = zero_padding
 
         self.img_shape = img_shape
-        self.img_shape_padding = (img_shape[0], img_shape[1] + 2 * zero_padding, img_shape[2] + 2 * zero_padding)
+        self.img_shape_padding = (
+            img_shape[0],
+            img_shape[1] + 2 * zero_padding,
+            img_shape[2] + 2 * zero_padding,
+        )
 
         self.n = torch.prod(torch.tensor(self.img_shape))
         self.m = torch.prod(torch.tensor(self.img_shape_padding))
@@ -187,6 +191,7 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
             diagonal = 2 * torch.pi * diagonal
             diagonal = torch.exp(1j * diagonal)
             self.diagonals.append(diagonal)
+
         def A(x):
             x = torch.nn.ZeroPad2d(self.zero_padding)(x)
             for i in range(self.n_layers):
@@ -195,13 +200,20 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
                 x = diagonal * x
             x = torch.fft.fft2(x, norm="ortho")
             return x
+
         def A_adjoint(y):
             for i in range(self.n_layers):
                 diagonal = self.diagonals[-i - 1]
                 y = torch.fft.ifft2(y, norm="ortho")
                 y = torch.conj(diagonal) * y
             y = torch.fft.ifft2(y, norm="ortho")
-            return y[:, :, self.zero_padding : -self.zero_padding, self.zero_padding : -self.zero_padding]
+            return y[
+                :,
+                :,
+                self.zero_padding : -self.zero_padding,
+                self.zero_padding : -self.zero_padding,
+            ]
+
         super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint))
         self.name = f"PRPR_m{self.m}"
 
