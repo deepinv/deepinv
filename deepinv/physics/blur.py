@@ -469,17 +469,17 @@ class SpaceVaryingBlur(LinearPhysics):
 
 
 # # test code
-if __name__ == "__main__":
-    # %%
-    import deepinv as dinv
-    from deepinv.utils.plotting import plot
-    from deepinv.utils.demo import load_url_image, get_image_url
-    from deepinv.physics.generator.blur import (
-        DiffractionBlurGenerator,
-        MotionBlurGenerator,
-    )
-    from deepinv.physics.functional.interp import ThinPlateSpline
-    from deepinv.physics.blur import SpaceVaryingBlur
-
-    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    dtype = torch.float32
+# if __name__ == "__main__":
+#     # %%
+#     import deepinv as dinv
+#     from deepinv.utils.plotting import plot
+#     from deepinv.utils.demo import load_url_image, get_image_url
+#     from deepinv.physics.generator.blur import (
+#         DiffractionBlurGenerator,
+#         MotionBlurGenerator,
+#     )
+#     from deepinv.physics.functional.interp import ThinPlateSpline
+#     from deepinv.physics.blur import SpaceVaryingBlur
+#
+#     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+#     dtype = torch.float32
