@@ -227,18 +227,25 @@ class L2(DataFidelity):
         >>> fidelity = dinv.optim.L2()
         >>>
         >>> x = torch.ones(1, 1, 3, 3)
-        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 1, 3, 3), mask = 0.2)
+        >>> mask = torch.ones_like(x)
+        >>> mask[0, 0, 1, 1] = 0
+        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 1, 3, 3), mask = mask)
         >>> y = physics(x)
         >>>
         >>> # Compute the data fidelity f(Ax, y)
-        >>> f = fidelity(x, y, physics)  # print f gives 1.0
-        >>>
+        >>> f = fidelity(x, y, physics)
+        >>> print(f)
+        tensor([0.])
         >>> # Compute the gradient of f
-        >>> grad_dA = data_fidelity.grad(x, y, physics)  # print grad_d gives [2.0000, 0.5000]
-        >>>
+        >>> fidelity.grad(x, y, physics)
+        tensor([[[[[0., 0., 0.],
+                   [0., 0., 0.],
+                   [0., 0., 0.]]]]])
         >>> # Compute the proximity operator of f
-        >>> prox_dA = data_fidelity.prox(x, y, physics, gamma=1.0)
-
+        >>> fidelity.prox(x, y, physics, gamma=1.0)
+        tensor([[[[[1., 1., 1.],
+                   [1., 1., 1.],
+                   [1., 1., 1.]]]]])
     """
 
     def __init__(self, sigma=1.0):

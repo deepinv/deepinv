@@ -43,8 +43,8 @@ class Pansharpen(LinearPhysics):
         >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
         >>> physics(x)[0][:, :, 0, :3] # Display first pixels of RGB image
         tensor([[[-1.1258,  0.8487,  0.3223],
-                [-1.0841,  0.6603,  0.2750],
-                [ 0.6657, -0.4409, -0.3198]]])
+                 [-1.0841,  0.6603,  0.2750],
+                 [ 0.6657, -0.4409, -0.3198]]])
         >>> physics(x)[1][:, :, 0, :3] # Display first pixels of grayscale image
         tensor([[[-0.9084, -0.2966, -0.4015]]])
 
