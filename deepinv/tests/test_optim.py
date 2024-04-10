@@ -348,7 +348,9 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        padding="circular",
     )
     y = physics(test_sample)
     max_iter = 1000
@@ -416,6 +418,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
             dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            padding="circular",
             device=device,
         )
         y = physics(test_sample)
@@ -531,6 +534,7 @@ def test_dpir(imsize, dummy_dataset, device):
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.GaussianNoise(0.1),
+        padding="circular",
     )
     y = physics(test_sample)
     model = dinv.optim.DPIR(0.1, device=device)
@@ -720,15 +724,18 @@ def test_patch_prior(imsize, dummy_dataset, device):
         reason="This test requires FrEIA. It should be "
         "installed with `pip install FrEIA",
     )
-    torch.set_grad_enabled(True)
     torch.manual_seed(0)
+    torch.set_grad_enabled(True)
+
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
     # gray-valued
     test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
 
-    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
+    physics = dinv.physics.Denoising(
+        noise_model=dinv.physics.GaussianNoise(0.1)
+    )  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
 
     epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
@@ -740,14 +747,13 @@ def test_patch_prior(imsize, dummy_dataset, device):
     lam = 1.0
     x_out = []
     for prior in [prior1, prior2]:
-        x = y.clone()
-        x.requires_grad_(True)
+        x = y.detach().clone().requires_grad_(True)
         optimizer = torch.optim.Adam([x], lr=0.01)
         for i in range(10):
             optimizer.zero_grad()
             loss = data_fidelity(x, y, physics) + prior(x, lam)
             loss.backward()
             optimizer.step()
-        x_out.append(x)
+        x_out.append(x.detach())
 
     assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)

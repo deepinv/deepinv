@@ -7,16 +7,15 @@ from deepinv.optim.data_fidelity import L2
 import itertools
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
+# We do not include operators for which padding is involved, they are tested separately
 OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
     "denoising",
     "deblur_fft",
-    # "deblur",
     "singlepixel",
     "fast_singlepixel",
-    # "super_resolution",
     "MRI",
     "pansharpen",
     "complex_compressed_sensing",
@@ -34,6 +33,7 @@ NOISES = [
     "LogPoisson",
 ]
 
+# Operators depending on padding and boundary conditions
 PADDING_OPERATORS = ["deblur", "super_resolution"]
 BOUNDARY = ["valid", "circular", "reflect", "replicate"]
 OPERATORS_AND_PADDING = itertools.product(PADDING_OPERATORS, BOUNDARY)
@@ -74,7 +74,7 @@ def find_operator(name, device, padding=None):
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name == "pansharpen":
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(img_size=img_size, device=device, padding=padding)
+        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter="gaussian")
         norm = 0.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
@@ -244,7 +244,7 @@ def test_nonlinear_operators(name, device):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_pseudo_inverse(name, device):
     r"""
-    Tests if a linear physics operator has a well defined pseudoinverse.
+    Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
 
     :param name: operator name (see find_operator)
