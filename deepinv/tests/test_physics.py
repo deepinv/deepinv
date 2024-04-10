@@ -105,7 +105,7 @@ def find_operator(name, device, padding=None):
     elif name == "super_resolution":
         img_size = (1, 32, 32)
         factor = 2
-        norm = 1.0 # old was norm = 1 / factor**2, but this is flawed
+        norm = 1.0  # old was norm = 1 / factor**2, but this is flawed
         p = dinv.physics.Downsampling(
             img_size=img_size, factor=factor, padding=padding, device=device
         )
@@ -439,12 +439,14 @@ def test_blur(device):
         img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
+        padding="circular",
     )
 
     physics_blurfft = dinv.physics.BlurFFT(
         img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
+        padding="circular",
     )
 
     y1 = physics_blur(x)

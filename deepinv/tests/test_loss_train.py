@@ -19,7 +19,7 @@ def test_generate_dataset(tmp_path, imsize, device):
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = dinv.physics.Inpainting(mask=0.5, img_size=imsize, device=device)
+    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
 
     dinv.datasets.generate_dataset(
         train_dataset,
