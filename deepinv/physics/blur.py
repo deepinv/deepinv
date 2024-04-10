@@ -347,11 +347,11 @@ class BlurFFT(DecomposablePhysics):
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
         >>> physics = BlurFFT(filter=filter, img_size=(1, 1, 16, 16))
         >>> y = physics(x)
+        >>> y[y<1e-5] = 0.
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
-        tensor([[[[2.5000e-01, 2.5000e-01, 1.1138e-09],
-                  [2.5000e-01, 2.5000e-01, 1.4256e-09],
-                  [5.1411e-10, 1.8521e-09, 7.7345e-11]]]])
-
+        tensor([[[[0.2500, 0.2500, 0.0000],
+                  [0.2500, 0.2500, 0.0000],
+                  [0.0000, 0.0000, 0.0000]]]])
     """
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
