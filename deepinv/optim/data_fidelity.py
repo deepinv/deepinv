@@ -227,7 +227,8 @@ class L2(DataFidelity):
         >>> fidelity = dinv.optim.L2()
         >>>
         >>> x = torch.ones(1, 1, 3, 3)
-        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 1, 3, 3))
+        >>> mask =
+        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 1, 3, 3), mask = 0.2)
         >>> y = physics(x)
         >>>
         >>> # Compute the data fidelity f(Ax, y)

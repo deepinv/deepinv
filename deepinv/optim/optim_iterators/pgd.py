@@ -6,7 +6,7 @@ class PGDIteration(OptimIterator):
     r"""
     Iterator for proximal gradient descent.
 
-    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimising :math:` f(x) + \lambda g(x)`.
+    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimizing :math:` f(x) + \lambda g(x)`.
 
     The iteration is given by
 
