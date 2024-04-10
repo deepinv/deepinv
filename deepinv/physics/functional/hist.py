@@ -1,4 +1,3 @@
-# %%
 r"""
 NumPy-style histograms in PyTorch
 

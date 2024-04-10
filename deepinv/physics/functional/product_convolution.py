@@ -1,8 +1,3 @@
-# %%
-r"""
-Product-convolution operators are efficient implementation of slowly varying integral operators
-"""
-
 from torch import Tensor
 from deepinv.physics.functional.multiplier import (
     multiplier,

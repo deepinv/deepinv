@@ -1,8 +1,3 @@
-# %%
-r"""
-Interpolation functions (scattered or regular)
-"""
-
 import torch
 
 
