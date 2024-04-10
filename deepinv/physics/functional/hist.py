@@ -228,71 +228,67 @@ def histogram(
 
     return histogramdd(x.unsqueeze(-1), bins, low, upp, **kwargs)
 
-
-# %%
-if __name__ == "__main__":  # bad practice
-    import numpy as np
-    import timeit
-
-    print("CPU")
-    print("---")
-
-    x = np.random.rand(1000000)
-    xdd = np.random.rand(1000000, 5)
-    edges10 = np.linspace(0.0, 1.0, 11) ** 1.5
-    edges100 = np.linspace(0.0, 1.0, 101) ** 1.5
-
-    x_t = torch.from_numpy(x)
-    xdd_t = torch.from_numpy(xdd)
-    edges10_t = torch.from_numpy(edges10)
-    edges100_t = torch.from_numpy(edges100)
-
-    for key, f in {
-        "np.histogram": lambda: np.histogram(x, bins=100),
-        "np.histogramdd": lambda: np.histogramdd(xdd, bins=10),
-        "np.histogram (non-uniform)": lambda: np.histogram(x, bins=edges100),
-        "np.histogramdd (non-uniform)": lambda: np.histogramdd(xdd, bins=[edges10] * 5),
-        "torchist.histogram": lambda: histogram(x_t, bins=100),
-        "torchist.histogramdd": lambda: histogramdd(xdd_t, bins=10),
-        "torchist.histogram (non-uniform)": lambda: histogram(x_t, edges=edges100_t),
-        "torchist.histogramdd (non-uniform)": lambda: histogramdd(
-            xdd_t, edges=[edges10_t] * 5
-        ),
-    }.items():
-        time = timeit.timeit(f, number=100)
-        print(key, ":", "{:.04f}".format(time), "s")
-
-    if not torch.cuda.is_available():
-        exit()
-
-    print()
-    print("CUDA")
-    print("----")
-
-    x_t = x_t.cuda()
-    xdd_t = xdd_t.cuda()
-    edges10_t = edges10_t.cuda()
-    edges100_t = edges100_t.cuda()
-
-    for key, f in {
-        "torchist.histogram": lambda: histogram(x_t, bins=100),
-        "torchist.histogramdd": lambda: histogramdd(xdd_t, bins=10),
-        "torchist.histogram (non-uniform)": lambda: histogram(x_t, edges=edges100_t),
-        "torchist.histogramdd (non-uniform)": lambda: histogramdd(
-            xdd_t, edges=[edges10_t] * 5
-        ),
-    }.items():
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
-
-        start.record()
-        for _ in range(100):
-            f()
-        end.record()
-
-        torch.cuda.synchronize()
-        time = start.elapsed_time(end) / 1000  # ms -> s
-
-        print(key, ":", "{:.04f}".format(time), "s")
-
-# %%
+# if __name__ == "__main__":  # bad practice
+#     import numpy as np
+#     import timeit
+#
+#     print("CPU")
+#     print("---")
+#
+#     x = np.random.rand(1000000)
+#     xdd = np.random.rand(1000000, 5)
+#     edges10 = np.linspace(0.0, 1.0, 11) ** 1.5
+#     edges100 = np.linspace(0.0, 1.0, 101) ** 1.5
+#
+#     x_t = torch.from_numpy(x)
+#     xdd_t = torch.from_numpy(xdd)
+#     edges10_t = torch.from_numpy(edges10)
+#     edges100_t = torch.from_numpy(edges100)
+#
+#     for key, f in {
+#         "np.histogram": lambda: np.histogram(x, bins=100),
+#         "np.histogramdd": lambda: np.histogramdd(xdd, bins=10),
+#         "np.histogram (non-uniform)": lambda: np.histogram(x, bins=edges100),
+#         "np.histogramdd (non-uniform)": lambda: np.histogramdd(xdd, bins=[edges10] * 5),
+#         "torchist.histogram": lambda: histogram(x_t, bins=100),
+#         "torchist.histogramdd": lambda: histogramdd(xdd_t, bins=10),
+#         "torchist.histogram (non-uniform)": lambda: histogram(x_t, edges=edges100_t),
+#         "torchist.histogramdd (non-uniform)": lambda: histogramdd(
+#             xdd_t, edges=[edges10_t] * 5
+#         ),
+#     }.items():
+#         time = timeit.timeit(f, number=100)
+#         print(key, ":", "{:.04f}".format(time), "s")
+#
+#     if not torch.cuda.is_available():
+#         exit()
+#
+#     print()
+#     print("CUDA")
+#     print("----")
+#
+#     x_t = x_t.cuda()
+#     xdd_t = xdd_t.cuda()
+#     edges10_t = edges10_t.cuda()
+#     edges100_t = edges100_t.cuda()
+#
+#     for key, f in {
+#         "torchist.histogram": lambda: histogram(x_t, bins=100),
+#         "torchist.histogramdd": lambda: histogramdd(xdd_t, bins=10),
+#         "torchist.histogram (non-uniform)": lambda: histogram(x_t, edges=edges100_t),
+#         "torchist.histogramdd (non-uniform)": lambda: histogramdd(
+#             xdd_t, edges=[edges10_t] * 5
+#         ),
+#     }.items():
+#         start = torch.cuda.Event(enable_timing=True)
+#         end = torch.cuda.Event(enable_timing=True)
+#
+#         start.record()
+#         for _ in range(100):
+#             f()
+#         end.record()
+#
+#         torch.cuda.synchronize()
+#         time = start.elapsed_time(end) / 1000  # ms -> s
+#
+#         print(key, ":", "{:.04f}".format(time), "s")
