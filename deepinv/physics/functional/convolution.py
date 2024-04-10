@@ -252,107 +252,107 @@ def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
 
 
 # %%
-if __name__ == "__main__":
-    from torchvision.transforms.functional import rotate
-    import torchvision
-    from skimage.data import astronaut
-    from skimage.transform import resize
-    import matplotlib.pyplot as plt
-    import deepinv as dinv
-
-    def gaussian_filter(sigma=(1, 1), angle=0):
-        r"""
-        Gaussian blur filter.
-
-        :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
-            if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
-        :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
-        """
-        if isinstance(sigma, (int, float)):
-            sigma = (sigma, sigma)
-
-        s = max(sigma)
-        c = int(s / 0.3 + 1)
-        k_size = 2 * c + 1
-
-        delta = torch.arange(k_size)
-
-        x, y = torch.meshgrid(delta, delta, indexing="ij")
-        x = x - c
-        y = y - c
-        filt = (x / sigma[0]).pow(2)
-        filt += (y / sigma[1]).pow(2)
-        filt = torch.exp(-filt / 2.0)
-
-        filt = (
-            rotate(
-                filt.unsqueeze(0).unsqueeze(0),
-                angle,
-                interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
-            )
-            .squeeze(0)
-            .squeeze(0)
-        )
-
-        filt = filt / filt.flatten().sum()
-
-        return filt.unsqueeze(0).unsqueeze(0)
-
-    B = 4
-    C = 3
-    H = 1024
-    W = 1024
-
-    img = resize(astronaut(), (H, W))
-
-    device = "cuda"
-    dtype = torch.float32
-
-    x = torch.from_numpy(img).permute(2, 0, 1)[None].to(device=device, dtype=dtype)
-    x = x.expand(B, -1, -1, -1)
-
-    filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
-    # filter = gaussian_filter(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
-
-    # filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
-    # 'valid', 'circular', 'replicate', 'reflect'
-    padding = "circular"
-
-    filter = filter[:, 0:1, ...]
-
-    Ax = conv2d(x, filter.flip(-1).flip(-2), padding)
-    dinv.utils.plot(Ax[0])
-
-    y = torch.randn_like(Ax)
-    z = conv_transpose2d(y, filter.flip(-1).flip(-2), padding)
-    print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))
-
-    Ax_fft = conv2d_fft(x, filter)
-    dinv.utils.plot(Ax_fft[0])
-
-    y_fft = torch.randn_like(Ax_fft)
-    z_fft = conv_transpose2d_fft(y_fft, filter)
-    print((Ax_fft * y_fft).sum(dim=(1, 2, 3)) - (x * z_fft).sum(dim=(1, 2, 3)))
-
-    print((Ax - Ax_fft).abs().sum())
-
-    # # %% Benchmark
-    # from torch.utils.benchmark import Timer
-
-    # for kernel_size in range(33, H // 2 - 1, 10):
-    #     filter = torch.randn(
-    #         (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
-    #     )
-    #     print("Kernel size: ", kernel_size * 2 + 1)
-    #     conv_timer = Timer(
-    #         stmt="conv2d(x, filter, padding)",
-    #         globals=globals(),
-    #         num_threads=1,
-    #     )
-    #     print("Conv: ", conv_timer.blocked_autorange(min_run_time=10).median)
-    #     fft_timer = Timer(
-    #         stmt="conv2d_fft(x, filter)",
-    #         globals=globals(),
-    #         num_threads=1,
-    #     )
-    #     print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)
+# if __name__ == "__main__":
+#     from torchvision.transforms.functional import rotate
+#     import torchvision
+#     from skimage.data import astronaut
+#     from skimage.transform import resize
+#     import matplotlib.pyplot as plt
+#     import deepinv as dinv
+#
+#     def gaussian_filter(sigma=(1, 1), angle=0):
+#         r"""
+#         Gaussian blur filter.
+#
+#         :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
+#             if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
+#         :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
+#         """
+#         if isinstance(sigma, (int, float)):
+#             sigma = (sigma, sigma)
+#
+#         s = max(sigma)
+#         c = int(s / 0.3 + 1)
+#         k_size = 2 * c + 1
+#
+#         delta = torch.arange(k_size)
+#
+#         x, y = torch.meshgrid(delta, delta, indexing="ij")
+#         x = x - c
+#         y = y - c
+#         filt = (x / sigma[0]).pow(2)
+#         filt += (y / sigma[1]).pow(2)
+#         filt = torch.exp(-filt / 2.0)
+#
+#         filt = (
+#             rotate(
+#                 filt.unsqueeze(0).unsqueeze(0),
+#                 angle,
+#                 interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+#             )
+#             .squeeze(0)
+#             .squeeze(0)
+#         )
+#
+#         filt = filt / filt.flatten().sum()
+#
+#         return filt.unsqueeze(0).unsqueeze(0)
+#
+#     B = 4
+#     C = 3
+#     H = 1024
+#     W = 1024
+#
+#     img = resize(astronaut(), (H, W))
+#
+#     device = "cuda"
+#     dtype = torch.float32
+#
+#     x = torch.from_numpy(img).permute(2, 0, 1)[None].to(device=device, dtype=dtype)
+#     x = x.expand(B, -1, -1, -1)
+#
+#     filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
+#     # filter = gaussian_filter(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
+#
+#     # filter = torch.randn((B, C, H // 2 + 1, W // 2 + 1), device=device, dtype=dtype)
+#     # 'valid', 'circular', 'replicate', 'reflect'
+#     padding = "circular"
+#
+#     filter = filter[:, 0:1, ...]
+#
+#     Ax = conv2d(x, filter.flip(-1).flip(-2), padding)
+#     dinv.utils.plot(Ax[0])
+#
+#     y = torch.randn_like(Ax)
+#     z = conv_transpose2d(y, filter.flip(-1).flip(-2), padding)
+#     print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))
+#
+#     Ax_fft = conv2d_fft(x, filter)
+#     dinv.utils.plot(Ax_fft[0])
+#
+#     y_fft = torch.randn_like(Ax_fft)
+#     z_fft = conv_transpose2d_fft(y_fft, filter)
+#     print((Ax_fft * y_fft).sum(dim=(1, 2, 3)) - (x * z_fft).sum(dim=(1, 2, 3)))
+#
+#     print((Ax - Ax_fft).abs().sum())
+#
+#     # # %% Benchmark
+#     # from torch.utils.benchmark import Timer
+#
+#     # for kernel_size in range(33, H // 2 - 1, 10):
+#     #     filter = torch.randn(
+#     #         (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
+#     #     )
+#     #     print("Kernel size: ", kernel_size * 2 + 1)
+#     #     conv_timer = Timer(
+#     #         stmt="conv2d(x, filter, padding)",
+#     #         globals=globals(),
+#     #         num_threads=1,
+#     #     )
+#     #     print("Conv: ", conv_timer.blocked_autorange(min_run_time=10).median)
+#     #     fft_timer = Timer(
+#     #         stmt="conv2d_fft(x, filter)",
+#     #         globals=globals(),
+#     #         num_threads=1,
+#     #     )
+#     #     print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)
