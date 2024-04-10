@@ -16,11 +16,11 @@ class FixedPoint(nn.Module):
 
     where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the data.
 
-    :Examples: This example shows how to use the FixedPoint class to solve the problem
-    min_x 0.5*||Ax-y||_2^2 + lamba*||x||_1 with the PGD algorithm, where A is the identity operator,
-    lambda = 1 and y = [2, 2].
+    :Examples: This example shows how to use the :class:`FixedPoint` class to solve the problem
+        :math:`\min_x 0.5*||Ax-y||_2^2 + \lambda*||x||_1` with the PGD algorithm, where A is the identity operator,
+        :math:`\lambda = 1` and :math:`y = [2, 2]`.
 
-
+        >>> import deepinv as dinv
         >>> # Create the measurement operator A
         >>> A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
         >>> A_forward = lambda v: A @ v
@@ -30,21 +30,19 @@ class FixedPoint(nn.Module):
         >>> # Define the measurement y
         >>> y = torch.tensor([2, 2], dtype=torch.float64)
         >>> # Define the data fidelity term
-        >>> data_fidelity = L2()
-        >>> # Define the proximity operator of the prior and store it in a dictionary
-        >>> def prox_g(x, g_param=0.1):
-        ...     return torch.sign(x) * torch.maximum(x.abs() - g_param, torch.tensor([0]))
-        >>> prior = {"prox_g": prox_g}
+        >>> data_fidelity = dinv.optim.data_fidelity.L2()
+        >>> # Define the prior term
+        >>> prior = dinv.optim.prior.L1Prior()
         >>> # Define the parameters of the algorithm
-        >>> params = {"g_param": 1.0, "stepsize": 1.0, "lambda": 1.0}
+        >>> params_algo = {"g_param": 1.0, "stepsize": 1.0, "lambda": 1.0, "beta": 1.0}
         >>> # Choose the iterator associated to the PGD algorithm
-        >>> iterator = PGDIteration(data_fidelity=data_fidelity)
+        >>> iterator = dinv.optim.optim_iterators.PGDIteration()
         >>> # Iterate the iterator
         >>> x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
         >>> X = {"est": (x_init ,), "cost": []}                 # Iterates are stored in a dictionary of the form {'est': (x,z), 'cost': F}
         >>> max_iter = 50
         >>> for it in range(max_iter):
-        >>> X = iterator(X,  prior, params, y, physics)
+        ...     X = iterator(X, data_fidelity, prior, params_algo, y, physics)
         >>> # Return the solution
         >>> sol = X["est"][0]  # sol = [1, 1]
 
