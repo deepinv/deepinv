@@ -175,7 +175,7 @@ lr_variational_problem = 0.02
 
 
 def minimize_variational_problem(prior, lam):
-    imgs = fbp.clone()
+    imgs = fbp.detach().clone()
     imgs.requires_grad_(True)
     optimizer = torch.optim.Adam([imgs], lr=lr_variational_problem)
     for i in (progress_bar := tqdm(range(optim_steps))):
