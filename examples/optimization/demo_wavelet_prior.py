@@ -154,7 +154,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 lamb = 0.1  # wavelet regularisation parameter
-stepsize = 1. # stepsize for the PGD algorithm
+stepsize = 1.0  # stepsize for the PGD algorithm
 params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
@@ -169,7 +169,7 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    backtracking = backtracking
+    backtracking=backtracking,
 )
 
 # %%
