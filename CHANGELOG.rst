@@ -3,6 +3,45 @@ Change Log
 =================
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
+
+v0.2.0
+----------------
+
+This PR is the result of the Hackhathon organized by Idris. 
+
+New Features
+^^^^^^^^^^^^
+ - Refactored the documentation completely for the physics
+ - Added API reference in the doc
+ - Added a parameterization of the operators and noiselevels for the physics class (physics(x, theta, noiselevel))
+ - Refactored the structure by adding a physics.functional submodule
+ - Modified the Blur class to handle color, grayscale, single and multi-batch images
+ - Added a PhyisicsGenerator class to synthetize parameters for the forward operators
+ - Added the possibility to sum generators
+ - Added a MotionBlur generator
+ - Added a DiffractionBlur generator
+ - Added a MaskGenerator for MRI
+ - Added a SigmaGenerator for the Gaussian noise
+ - Added a tour of blur operators
+ - Added ProductConvolution expansions
+ - Added a ThinPlateSpline interpolation function
+ - Added d-dimensional histograms 
+ - Added GeneratorMixture to mix physics generators
+ - Added the SpaceVarying blur class
+ - Added the SpaceVarying blur generators
+ - Added pytests and examples for all the new features
+ - A few speed ups by carefully profiling the training codes
+ - made sigma in drunet trainable
+
+Fixed
+^^^^^
+ - Fixed the conjugate gradient torch.nograd for teh demos, accelerated)
+ - Fixed torch.nograd in demos for faster generation of the doc 
+ - Fixed the DRUNet
+ - Corrected the padding for the convolution
+ - Solved pan-sharpening issues
+ - Many docstring fixes
+
 Current
 ----------------
 
@@ -109,3 +148,6 @@ Authors
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
+.. _Minh Hai Nguyen: https://fr.linkedin.com/in/minh-hai-nguyen-7120
+.. _Florian Sarron: https://fsarron.github.io/
+.. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
