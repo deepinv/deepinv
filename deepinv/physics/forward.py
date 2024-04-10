@@ -293,16 +293,16 @@ class LinearPhysics(Physics):
         >>> from deepinv.physics.blur import Blur, Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
-        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-        >>> physics = Blur(params=w)
+        >>> w = torch.ones((1, 1, 3, 3)) / 9 # Basic 3x3 averaging filter
+        >>> physics = Blur(filter=w)
         >>> y = physics(x)
 
         Linear operators can also be added. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator:
 
-        >>> physics1 = Blur(params=w)
-        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), params="gaussian", factor=4)
+        >>> physics1 = Blur(filter=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
         >>> physics = physics1 + physics2
         >>> y = physics(x)
 
@@ -315,7 +315,7 @@ class LinearPhysics(Physics):
 
         >>> from deepinv.utils import cal_psnr
         >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
-        >>> physics = Blur(params=w)
+        >>> physics = Blur(filter=w, padding='circular)
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
@@ -625,7 +625,8 @@ class DecomposablePhysics(LinearPhysics):
         Apply the operator to a random tensor:
 
         >>> x = torch.randn(tensor_size)
-        >>> physics.A(x)  # Apply the masking
+        >>> with torch.no_grad():
+        >>>     physics.A(x)  # Apply the masking
         tensor([[[[ 1.5410, -0.0000, -2.1788],
                   [ 0.5684, -0.0000, -1.3986],
                   [ 0.4033,  0.0000, -0.7193]]]])
@@ -646,7 +647,7 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = torch.nn.Parameter(torch.tensor(mask))
+        self.mask = torch.nn.Parameter(torch.tensor(mask), requires_grad=False)
 
     def A(self, x, mask=None, **kwargs):
         r"""
@@ -661,7 +662,7 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(mask)
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -758,7 +759,8 @@ class Denoising(DecomposablePhysics):
         >>> x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise(sigma=0.1)
-        >>> physics(x)
+        >>> with torch.no_grad():
+        >>>     physics(x)
         tensor([[[[ 0.7302, -0.2064, -1.0712],
                   [ 0.1985, -0.4322, -0.8064],
                   [ 0.2139,  0.3624, -0.3223]]]])
