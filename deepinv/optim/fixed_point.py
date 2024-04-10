@@ -16,8 +16,8 @@ class FixedPoint(nn.Module):
 
     where :math:`f` is the data-fidelity term, :math:`g` is the prior, :math:`A` is the physics model, :math:`y` is the data.
 
-    :Examples: This example shows how to use the :class:`FixedPoint` class to solve the problem 
-        :math:`\min_x 0.5*||Ax-y||_2^2 + \lambda*||x||_1` with the PGD algorithm, where A is the identity operator, 
+    :Examples: This example shows how to use the :class:`FixedPoint` class to solve the problem
+        :math:`\min_x 0.5*||Ax-y||_2^2 + \lambda*||x||_1` with the PGD algorithm, where A is the identity operator,
         :math:`\lambda = 1` and :math:`y = [2, 2]`.
 
         >>> import deepinv as dinv
