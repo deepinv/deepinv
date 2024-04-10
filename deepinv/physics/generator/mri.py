@@ -19,6 +19,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
     :Examples:
 
     >>> from deepinv.physics.generator import AccelerationMaskGenerator
+    >>> import deepinv
     >>> mask_generator = AccelerationMaskGenerator((8, 8))
     >>> mask_dict = mask_generator.step()
     >>> print(mask_dict.keys())

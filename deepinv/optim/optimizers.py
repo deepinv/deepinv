@@ -96,9 +96,9 @@ class BaseOptim(nn.Module):
         >>>
         >>> # Define the optimization algorithm
         >>> optimalgo = dinv.optim.BaseOptim(iterator,
-        >>>                     data_fidelity=data_fidelity,
-        >>>                     params_algo=params_algo,
-        >>>                     prior=prior)
+        ...                     data_fidelity=data_fidelity,
+        ...                     params_algo=params_algo,
+        ...                     prior=prior)
         >>>
         >>> # Run the optimization algorithm
         >>> xhat = optimalgo(y, physics)

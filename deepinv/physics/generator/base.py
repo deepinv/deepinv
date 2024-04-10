@@ -23,9 +23,9 @@ class PhysicsGenerator(nn.Module):
         >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
         >>> params_dict = generator.step(batch_size=1)
         >>> print(params_dict)
-        {'sigma': tensor([0.1577]), 'filter': tensor([[[[0.0000, 0.1006, 0.0000],
-                [0.0000, 0.8994, 0.0000],
-                [0.0000, 0.0000, 0.0000]]]])}
+        {'filter': tensor([[[[0.0000, 0.1006, 0.0000],
+                            [0.0000, 0.8994, 0.0000],
+                            [0.0000, 0.0000, 0.0000]]]]), 'sigma': tensor([0.1577])}
 
     """
 

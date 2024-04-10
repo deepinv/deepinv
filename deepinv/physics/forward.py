@@ -315,7 +315,7 @@ class LinearPhysics(Physics):
 
         >>> from deepinv.utils import cal_psnr
         >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
-        >>> physics = Blur(filter=w, padding='circular)
+        >>> physics = Blur(filter=w, padding='circular')
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
@@ -626,7 +626,7 @@ class DecomposablePhysics(LinearPhysics):
 
         >>> x = torch.randn(tensor_size)
         >>> with torch.no_grad():
-        >>>     physics.A(x)  # Apply the masking
+        ...     physics.A(x)  # Apply the masking
         tensor([[[[ 1.5410, -0.0000, -2.1788],
                   [ 0.5684, -0.0000, -1.3986],
                   [ 0.4033,  0.0000, -0.7193]]]])
@@ -760,7 +760,7 @@ class Denoising(DecomposablePhysics):
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise(sigma=0.1)
         >>> with torch.no_grad():
-        >>>     physics(x)
+        ...     physics(x)
         tensor([[[[ 0.7302, -0.2064, -1.0712],
                   [ 0.1985, -0.4322, -0.8064],
                   [ 0.2139,  0.3624, -0.3223]]]])
