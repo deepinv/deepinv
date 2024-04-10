@@ -4,6 +4,7 @@ from .data_fidelity import (
     L1,
     IndicatorL2,
     PoissonLikelihood,
+    AmplitudeLoss,
     LogPoissonLikelihood,
 )
 from .optimizers import BaseOptim, optim_builder
@@ -19,6 +20,7 @@ from .prior import (
     PatchPrior,
     WaveletPrior,
     PatchNR,
+    Zero,
 )
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL

@@ -48,6 +48,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- PhaseRetrieval class (:gh:`176` by `Zhiyuan Hu`_) - 20/03/2024
 - Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
 
@@ -151,3 +152,4 @@ Authors
 .. _Minh Hai Nguyen: https://fr.linkedin.com/in/minh-hai-nguyen-7120
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
+.. _Zhiyuan Hu: https://github.com/zhiyhu1605

@@ -87,6 +87,7 @@ mathjax3_config = {
             "group": r"\mathcal{G}",
             "metric": [r"{d\left({#1},{#2}\right)}", 2],
             "loss": [r"{\mathcal\left({#1}\right)}", 1],
+            "conj": [r"{\overline{#1}^{\top}}", 1],
         },
     }
 }

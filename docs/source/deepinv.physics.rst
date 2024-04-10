@@ -376,6 +376,18 @@ Haze operators are used to capture the physics of light scattering in the atmosp
 
    deepinv.physics.Haze
 
+Phase retrieval operators
+-------------------------
+Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2` with :math:`B` a linear operator.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.PhaseRetrieval
+   deepinv.physics.RandomPhaseRetrieval
+
 Noise distributions
 --------------------------------
 Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.

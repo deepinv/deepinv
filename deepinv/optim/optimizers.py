@@ -6,6 +6,7 @@ from deepinv.optim.fixed_point import FixedPoint
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
+from deepinv.optim.prior import Zero
 
 
 class BaseOptim(nn.Module):
@@ -219,8 +220,10 @@ class BaseOptim(nn.Module):
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
 
-        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration.
-        if not isinstance(prior, Iterable):
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
+        if prior is None:
+            self.prior = [Zero()]
+        elif not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
             self.prior = prior
