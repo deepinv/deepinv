@@ -509,6 +509,7 @@ def bump_function(x, a=1.0, b=1.0):
 
     :Examples:
 
+    >>> import deepinv as dinv
     >>> x = torch.linspace(-15, 15, 31)
     >>> X, Y = torch.meshgrid(x, x)
     >>> R = torch.sqrt(X**2 + Y**2)

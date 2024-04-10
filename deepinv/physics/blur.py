@@ -176,7 +176,7 @@ class Downsampling(LinearPhysics):
             If not ``None``, it uses this filter and stores it as the current filter.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(filter))
+            self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -194,7 +194,7 @@ class Downsampling(LinearPhysics):
             If not ``None``, it uses this filter and stores it as the current filter.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(filter))
+            self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
 
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample

@@ -23,7 +23,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
     >>> mask_dict = mask_generator.step()
     >>> print(mask_dict.keys())
     dict_keys(['mask'])
-    >>> dinv.utils.plot(mask_dict['mask'].squeeze(1))
+    >>> deepinv.utils.plot(mask_dict['mask'].squeeze(1))
     >>> print(mask_dict['mask'].shape)
     torch.Size([1, 1, 8, 8])
 

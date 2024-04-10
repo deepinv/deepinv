@@ -56,7 +56,7 @@ class Tomography(LinearPhysics):
         >>> from deepinv.physics import Tomography
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
-        >>> physics = Tomography(angles=3, image_width=4, circle=True)
+        >>> physics = Tomography(angles=3, img_width=4, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.9493,  1.9897],
                   [-0.4860,  0.7137, -1.6536],
