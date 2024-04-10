@@ -227,6 +227,7 @@ def histogram(
 
     return histogramdd(x.unsqueeze(-1), bins, low, upp, **kwargs)
 
+
 # if __name__ == "__main__":  # bad practice
 #     import numpy as np
 #     import timeit

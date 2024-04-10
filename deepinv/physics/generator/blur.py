@@ -1,4 +1,3 @@
-# %%
 import torch
 import numpy as np
 from typing import List, Tuple
@@ -570,7 +569,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         :rtype: torch.Tensor
         """
 
-        # %% Generating psfs on a grid
+        # Generating psfs on a grid
         n0, n1 = self.img_size
         s0, s1 = self.spacing
 
@@ -578,13 +577,13 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         psfs = psf_generator.step(n_psf)["filter"]
         psf_size = psfs.shape[-1]
 
-        # %% Computing the eigen-psfs
+        # Computing the eigen-psfs
         psfs_reshape = psfs.reshape(n_psf, psf_size * psf_size)
         U, S, V = torch.svd_lowrank(psfs_reshape, q=self.n_eigen_psf)
         eigen_psf = (V.T).reshape(self.n_eigen_psf, psf_size, psf_size)[:, None, None]
         coeffs = psfs_reshape @ V
 
-        # %% Interpolating the psfs coefficients with Thinplate splines
+        # Interpolating the psfs coefficients with Thinplate splines
         T0 = torch.linspace(0, 1, n0 // s0, **self.factory_kwargs)
         T1 = torch.linspace(0, 1, n1 // s1, **self.factory_kwargs)
         yy, xx = torch.meshgrid(T0, T1)
@@ -597,78 +596,78 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         w = tps.transform(torch.stack((yy.flatten(), xx.flatten()), dim=1)).T
         w = w.reshape(self.n_eigen_psf, n0, n1)[:, None, None]
 
-        # %% Ending
+        # Ending
         params_blur = {"h": eigen_psf, "w": w, "padding": self.padding}
         return params_blur
 
 
-# %%
-if __name__ == "__main__":
-    import deepinv as dinv
-    from deepinv.utils.plotting import plot
-    from deepinv.physics.blur import SpaceVaryingBlur
-    from deepinv.utils.demo import load_url_image, get_image_url
-
-    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    dtype = torch.float32
-
-    img_size = (256, 256)
-    n_eigen_psf = 10
-    Delta = 64
-    spacing = (Delta, Delta)
-
-    # %% First a PSF generator
-    psf_generator = DiffractionBlurGenerator((31, 31), device=device, dtype=dtype)
-    # psf_generator = MotionBlurGenerator((31, 31))
-    psf = psf_generator.step()
-    print(psf["filter"].shape)
-    dinv.utils.plot(psf["filter"])
-
-    # %% Now we instantiate a product-convolution operator
-    pc_generator = ProductConvolutionBlurGenerator(
-        psf_generator,
-        img_size=img_size,
-        n_eigen_psf=n_eigen_psf,
-        spacing=spacing,
-        device=device,
-        dtype=dtype,
-    )
-    pc_blur = pc_generator.step()
-    svb = SpaceVaryingBlur(method="product_convolution", **pc_blur)
-
-    # %% Applying to a Dirac comb
-    delta = Delta // 2
-    x = torch.zeros(
-        (
-            1,
-            1,
-        )
-        + img_size,
-        device=device,
-        dtype=dtype,
-    )
-    x[
-        :,
-        :,
-        delta // 2 :: delta,
-        delta // 2 :: delta,
-    ] = 1
-    y = svb(x)
-    plot([x, y], titles=["Dirac grid", "blurred Dirac grid"])
-
-    # %% Applying to a good image
-    url = "https://www.thefamouspeople.com/profiles/thumbs/lionel-messi-2.jpg"
-    x = load_url_image(url=url, img_size=(img_size), resize_mode="resize").to(device)
-    x = torch.tensor(x, device=device, dtype=dtype)
-    y = svb(x)
-    plot(
-        [
-            x[
-                :,
-                :,
-                :,
-            ],
-            y,
-        ],
-        titles=["Messi", "Messier"],
-    )
+# # %%
+# if __name__ == "__main__":
+#     import deepinv as dinv
+#     from deepinv.utils.plotting import plot
+#     from deepinv.physics.blur import SpaceVaryingBlur
+#     from deepinv.utils.demo import load_url_image, get_image_url
+#
+#     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+#     dtype = torch.float32
+#
+#     img_size = (256, 256)
+#     n_eigen_psf = 10
+#     Delta = 64
+#     spacing = (Delta, Delta)
+#
+#     # %% First a PSF generator
+#     psf_generator = DiffractionBlurGenerator((31, 31), device=device, dtype=dtype)
+#     # psf_generator = MotionBlurGenerator((31, 31))
+#     psf = psf_generator.step()
+#     print(psf["filter"].shape)
+#     dinv.utils.plot(psf["filter"])
+#
+#     # %% Now we instantiate a product-convolution operator
+#     pc_generator = ProductConvolutionBlurGenerator(
+#         psf_generator,
+#         img_size=img_size,
+#         n_eigen_psf=n_eigen_psf,
+#         spacing=spacing,
+#         device=device,
+#         dtype=dtype,
+#     )
+#     pc_blur = pc_generator.step()
+#     svb = SpaceVaryingBlur(method="product_convolution", **pc_blur)
+#
+#     # %% Applying to a Dirac comb
+#     delta = Delta // 2
+#     x = torch.zeros(
+#         (
+#             1,
+#             1,
+#         )
+#         + img_size,
+#         device=device,
+#         dtype=dtype,
+#     )
+#     x[
+#         :,
+#         :,
+#         delta // 2 :: delta,
+#         delta // 2 :: delta,
+#     ] = 1
+#     y = svb(x)
+#     plot([x, y], titles=["Dirac grid", "blurred Dirac grid"])
+#
+#     # %% Applying to a good image
+#     url = "https://www.thefamouspeople.com/profiles/thumbs/lionel-messi-2.jpg"
+#     x = load_url_image(url=url, img_size=(img_size), resize_mode="resize").to(device)
+#     x = torch.tensor(x, device=device, dtype=dtype)
+#     y = svb(x)
+#     plot(
+#         [
+#             x[
+#                 :,
+#                 :,
+#                 :,
+#             ],
+#             y,
+#         ],
+#         titles=["Messi", "Messier"],
+#     )
