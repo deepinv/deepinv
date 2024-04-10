@@ -3,6 +3,7 @@ from deepinv.physics import Inpainting
 import numpy as np
 from deepinv.loss.loss import Loss
 
+
 class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.

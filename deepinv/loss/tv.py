@@ -30,8 +30,16 @@ class TVLoss(Loss):
         w_x = x_net.size()[3]
         count_h = self.tensor_size(x_net[:, :, 1:, :])
         count_w = self.tensor_size(x_net[:, :, :, 1:])
-        h_tv = torch.pow((x_net[:, :, 1:, :] - x_net[:, :, : h_x - 1, :]), 2).reshape(x_net.size(0), -1).sum(1)
-        w_tv = torch.pow((x_net[:, :, :, 1:] - x_net[:, :, :, : w_x - 1]), 2).reshape(x_net.size(0), -1).sum(1)
+        h_tv = (
+            torch.pow((x_net[:, :, 1:, :] - x_net[:, :, : h_x - 1, :]), 2)
+            .reshape(x_net.size(0), -1)
+            .sum(1)
+        )
+        w_tv = (
+            torch.pow((x_net[:, :, :, 1:] - x_net[:, :, :, : w_x - 1]), 2)
+            .reshape(x_net.size(0), -1)
+            .sum(1)
+        )
         return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w)
 
     @staticmethod

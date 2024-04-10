@@ -1,6 +1,7 @@
 import torch
 from deepinv.loss.loss import Loss
 
+
 class JacobianSpectralNorm(Loss):
     r"""
     Computes the spectral norm of the Jacobian.

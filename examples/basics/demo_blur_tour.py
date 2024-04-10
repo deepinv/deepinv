@@ -73,9 +73,7 @@ plot(
 
 # For circular boundary conditions, an FFT implementation is also available. It is slower that :meth:`deepinv.physics.Blur`,
 # but inherits from :meth:`deepinv.physics.DecomposablePhysics`, so that the pseudo-inverse and regularized inverse are computed faster and more accurately
-physics = dinv.physics.BlurFFT(
-    img_size=x_rgb[0].shape, filter=filter_0, device=device
-)
+physics = dinv.physics.BlurFFT(img_size=x_rgb[0].shape, filter=filter_0, device=device)
 y = physics(x_rgb)
 plot(
     [x_rgb, filter_0, y],
@@ -107,9 +105,7 @@ psf_size = 9
 filter_rgb = torch.zeros((1, 3, psf_size, psf_size), **factory_kwargs)
 filter_rgb[:, 0, :, psf_size // 2 : psf_size // 2 + 1] = 1.0 / psf_size
 filter_rgb[:, 1, psf_size // 2 : psf_size // 2 + 1, :] = 1.0 / psf_size
-filter_rgb[:, 2, ...] = (
-    torch.diag(torch.ones(psf_size, **factory_kwargs)) / psf_size
-)
+filter_rgb[:, 2, ...] = torch.diag(torch.ones(psf_size, **factory_kwargs)) / psf_size
 y = physics(x_rgb, filter=filter_rgb)
 plot(
     [x_rgb, filter_rgb, y],
@@ -144,9 +140,7 @@ motion_generator = MotionBlurGenerator(
     (psf_size, psf_size), l=0.6, sigma=1, **factory_kwargs
 )
 filters = motion_generator.step(batch_size=3)
-plot(
-    [f for f in filters["filter"]], suptitle="Different length and regularity"
-)
+plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 
 # %%
 # Motion blur generators
@@ -156,9 +150,7 @@ plot(
 
 from deepinv.physics.generator import DiffractionBlurGenerator
 
-diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), **factory_kwargs
-)
+diffraction_generator = DiffractionBlurGenerator((psf_size, psf_size), **factory_kwargs)
 # To generate new filters:
 filters = diffraction_generator.step(batch_size=3)
 # the `step()` function returns a dictionary containing the filters, their pupil function and Zernike coefficients:

@@ -703,8 +703,7 @@ def test(
         metrics = [metrics]
 
     logs_metrics = [
-        AverageMeter("Test " + l.__class__.__name__, ":.2e")
-        for l in metrics
+        AverageMeter("Test " + l.__class__.__name__, ":.2e") for l in metrics
     ]
 
     logs_metrics_init = [
@@ -741,7 +740,9 @@ def test(
                     y = y.to(device)
 
             if plot_metrics:
-                x_net, optim_metrics = model(y, physics_cur, x_gt=x, compute_metrics=True)
+                x_net, optim_metrics = model(
+                    y, physics_cur, x_gt=x, compute_metrics=True
+                )
             else:
                 x_net = model(y, physics[g])
 
@@ -780,9 +781,7 @@ def test(
 
             if plot_images and (step + 1) % img_interval == 0:
                 if g < show_operators:
-                    if not plot_only_first_batch or (
-                        plot_only_first_batch and i == 0
-                    ):
+                    if not plot_only_first_batch or (plot_only_first_batch and i == 0):
                         if plot_measurements and len(y.shape) == 4:
                             imgs = [y, x_init, x_net, x]
                             name_imgs = ["Input", "No learning", "Recons.", "GT"]
@@ -807,7 +806,12 @@ def test(
                 f"| Model: {logs_metrics[k].avg:.3f}+-{logs_metrics[k].std:.3f}. "
             )
 
-    return logs_metrics[0].avg, logs_metrics[0].std, logs_metrics_init[0].avg, logs_metrics_init[0].std
+    return (
+        logs_metrics[0].avg,
+        logs_metrics[0].std,
+        logs_metrics_init[0].avg,
+        logs_metrics_init[0].std,
+    )
 
 
 def train(*args, model=None, train_dataloader=None, eval_dataloader=None, **kwargs):

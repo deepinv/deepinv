@@ -27,11 +27,11 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    'sphinx_copybutton',
-    'autoapi.extension'
+    "sphinx_copybutton",
+    "autoapi.extension",
 ]
 
-autoapi_dirs = ['../../deepinv']
+autoapi_dirs = ["../../deepinv"]
 
 
 intersphinx_mapping = {

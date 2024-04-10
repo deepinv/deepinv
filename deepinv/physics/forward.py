@@ -4,6 +4,7 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 from typing import Callable
 
+
 def adjoint_function(A, input_size, device="cpu"):
     r"""
     Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
@@ -132,7 +133,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
                 self.noise2 = noise2
 
             def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(self.noise2(x[-1], **kwargs))
+                return TensorList(self.noise1(x[:-1], **kwargs)).append(
+                    self.noise2(x[-1], **kwargs)
+                )
 
         class sensor(torch.nn.Module):
             def __init__(self, sensor1, sensor2):

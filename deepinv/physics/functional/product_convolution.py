@@ -4,7 +4,10 @@ Product-convolution operators are efficient implementation of slowly varying int
 """
 
 from torch import Tensor
-from deepinv.physics.functional.multiplier import multiplier, multiplier_adjoint
+from deepinv.physics.functional.multiplier import (
+    multiplier,
+    multiplier_adjoint,
+)
 from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
 
 
@@ -18,7 +21,9 @@ def product_convolution(
 
     This forward operator performs
 
-    .. math:: y = \sum_{k=1}^K h_k \star (w_k \odot x)
+    .. math::
+
+        y = \sum_{k=1}^K h_k \star (w_k \odot x)
 
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
 
@@ -27,6 +32,8 @@ def product_convolution(
     :param torch.Tensor h: Tensor of size (K, b, c, ...)
     :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
+    :return: torch.Tensor (rho, phi) of torch.Tensor with radius and angle
+    :rtype: tuple
     """
 
     K = w.shape[0]

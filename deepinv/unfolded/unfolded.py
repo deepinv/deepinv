@@ -47,17 +47,18 @@ class BaseUnfold(BaseOptim):
     :param kwargs: Keyword arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
     """
 
-    def __init__(self,
-                iterator,
-                params_algo={"lambda": 1.0, "stepsize": 1.0},
-                data_fidelity=None,
-                prior=None,
-                max_iter=5,
-                trainable_params=["lambda", "stepsize"],
-                device=torch.device("cpu"),
-                *args,
-                **kwargs):
-
+    def __init__(
+        self,
+        iterator,
+        params_algo={"lambda": 1.0, "stepsize": 1.0},
+        data_fidelity=None,
+        prior=None,
+        max_iter=5,
+        trainable_params=["lambda", "stepsize"],
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):
         super().__init__(
             iterator,
             max_iter=max_iter,
@@ -65,7 +66,7 @@ class BaseUnfold(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             **kwargs,
-            )
+        )
         # Each parameter in `init_params_algo` is a list, which is converted to a `nn.ParameterList` if they should be trained.
         for param_key in trainable_params:
             if param_key in self.init_params_algo.keys():

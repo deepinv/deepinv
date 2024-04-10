@@ -109,4 +109,3 @@ class GeneratorMixture(PhysicsGenerator):
         p = torch.rand(1).item()  # np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(batch_size, **kwargs)
-

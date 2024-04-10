@@ -79,6 +79,7 @@ class ThinPlateSpline:
         parameters (Tensor): All the parameters (P). Shape: :math:`(n_c + d_s + 1, d_t)`
         control_points (Tensor): Control points fitted (X_c). Shape: :math:`(n_c, d_s)`
     """
+
     def __init__(self, alpha=0.0, device="cpu", dtype=torch.float32) -> None:
         self._fitted = False
         self.alpha = alpha
@@ -131,13 +132,9 @@ class ThinPlateSpline:
             ]
         )
 
-        Y = torch.vstack(
-            [Y, torch.zeros((d_s + 1, Y.shape[1]), device=self.device)]
-        )
+        Y = torch.vstack([Y, torch.zeros((d_s + 1, Y.shape[1]), device=self.device)])
 
-        self.parameters = torch.linalg.solve(
-            A, Y
-        )  # pylint: disable=not-callable
+        self.parameters = torch.linalg.solve(A, Y)  # pylint: disable=not-callable
         self._fitted = True
 
         return self

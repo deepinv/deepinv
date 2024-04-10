@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from deepinv.loss.loss import Loss
 
+
 class MOILoss(Loss):
     r"""
     Multi-operator imaging loss

@@ -40,7 +40,6 @@ class TensorList:
         """
         return self.x[item]
 
-
     def flatten(self):
         r"""
         Returns a :class:`torch.Tensor` with a flattened version of the list of tensors.
@@ -125,7 +124,7 @@ class TensorList:
             return TensorList([xi - other for xi in self.x])
         else:
             return TensorList([xi - otheri for xi, otheri in zip(self.x, other)])
-        
+
     def conj(self):
         r"""
 
@@ -133,7 +132,7 @@ class TensorList:
 
         """
         return TensorList([xi.conj() for xi in self.x])
-    
+
     def sum(self, dim, keepdim=False):
         r"""
 
@@ -157,7 +156,7 @@ class TensorList:
 
         """
         return any([xi.any() for xi in self.x])
-    
+
     def __all__(self):
         r"""
 
@@ -165,7 +164,7 @@ class TensorList:
 
         """
         return all([xi.all() for xi in self.x])
-    
+
     def __gt__(self, other):
         r"""
 
@@ -174,17 +173,16 @@ class TensorList:
         """
 
         return TensorList([xi > other for xi in self.x])
-    
-    def __lt__(self, other):
 
+    def __lt__(self, other):
         r"""
 
         Returns a TensorList of True if the elements of the TensorList are smaller than other.
 
         """
-            
+
         return TensorList([xi < other for xi in self.x])
-    
+
 
 def randn_like(x):
     r"""

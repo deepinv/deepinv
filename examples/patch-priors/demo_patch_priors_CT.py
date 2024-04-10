@@ -67,9 +67,7 @@ img_size = train_imgs.shape[-1]
 
 patch_size = 3
 verbose = True
-train_dataset = PatchDataset(
-    train_imgs, patch_size=patch_size, transforms=None
-)
+train_dataset = PatchDataset(train_imgs, patch_size=patch_size, transforms=None)
 
 # %%
 # Set parameters for EPLL and PatchNR
@@ -128,9 +126,7 @@ if retrain:
         shuffle=True,
         drop_last=False,
     )
-    model_epll.GMM.fit(
-        epll_dataloader, verbose=verbose, max_iters=epll_max_iter
-    )
+    model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
         pretrained="PatchNR_lodopab_small2",
@@ -146,9 +142,7 @@ else:
     )
 
 patchnr_prior = PatchPrior(model_patchnr, patch_size=patch_size)
-epll_prior = PatchPrior(
-    model_epll.negative_log_likelihood, patch_size=patch_size
-)
+epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_size)
 
 # %%
 # Definition of forward operator and noise model
@@ -159,7 +153,7 @@ epll_prior = PatchPrior(
 # Then, we generate an observation by applying the physics and compute the filtered backprojection.
 
 mu = 1 / 50.0 * (362.0 / img_size)
-N0 = 1024.
+N0 = 1024.0
 num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)

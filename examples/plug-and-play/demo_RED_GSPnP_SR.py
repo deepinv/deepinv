@@ -52,9 +52,7 @@ dataset_path = ORIGINAL_DATA_DIR / dataset_name
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
-dataset = load_dataset(
-    dataset_name, ORIGINAL_DATA_DIR, transform=val_transform
-)
+dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 
 # Generate the degradation operator.
 kernel_index = 1
@@ -103,15 +101,11 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True  # use backtracking to automatically adjust the stepsize
-use_bicubic_init = (
-    False  # Use bicubic interpolation to initialize the algorithm
-)
+use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
-    operation, noise_level_img
-)
+lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
 
 params_algo = {
     "stepsize": stepsize,
@@ -148,9 +142,7 @@ method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
 prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(
-        device
-    )
+    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
 )
 
 
