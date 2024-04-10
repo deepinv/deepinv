@@ -371,7 +371,7 @@ class LinearPhysics(Physics):
 
         .. math::
 
-            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.

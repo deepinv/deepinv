@@ -588,15 +588,15 @@ class L1(DataFidelity):
 
 class AmplitudeLoss(DataFidelity):
     r"""
-    Amplitude loss as the data fidelity term for phase retrieval reconstrunction.
+    Amplitude loss as the data fidelity term for :meth:`deepinv.physics.PhaseRetrieval` reconstrunction.
 
     In this case, the data fidelity term is defined as
 
     .. math::
 
-        f(x) = \sum_{i=1}^{m}{(\sqrt{|a_i x|^2}-\sqrt{y_i})^2},
+        f(x) = \sum_{i=1}^{m}{(\sqrt{|b_i x|^2}-\sqrt{y_i})^2},
 
-    where :math:`a_i` is the i-th row of the measurement matrix :math:`A` and :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
+    where :math:`b_i` is the i-th row of the linear operator :math:`B` of the phase retrieval class and :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
 
     """
 
