@@ -236,7 +236,7 @@ def ones_like(x):
         return TensorList([torch.ones_like(xi) for xi in x])
 
 
-def get_freer_gpu():
+def get_freer_gpu(verbose=True):
     """
     Returns the GPU device with the most free memory.
 
@@ -250,7 +250,8 @@ def get_freer_gpu():
             memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
         idx = np.argmax(memory_available)
         device = torch.device(f"cuda:{idx}")
-        print(f"Selected GPU {idx} with {np.max(memory_available)} MB free memory ")
+        if verbose:
+            print(f"Selected GPU {idx} with {np.max(memory_available)} MB free memory ")
     except:
         device = torch.device(f"cuda")
         print("Couldn't find free GPU")
