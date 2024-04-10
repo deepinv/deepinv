@@ -98,7 +98,7 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = True  # use backtracking to automatically adjust the stepsize
+backtracking = False
 use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
