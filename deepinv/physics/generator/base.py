@@ -25,7 +25,7 @@ class PhysicsGenerator(nn.Module):
         >>> print(params_dict.keys())
         dict_keys(['filter', 'sigma'])
         >>> print(params_dict['filter'])
-        tensor([[[[0.0000, 0.1006, 0.0000]
+        tensor([[[[0.0000, 0.1006, 0.0000],
                   [0.0000, 0.8994, 0.0000],
                   [0.0000, 0.0000, 0.0000]]]])
         >>> print(params_dict['sigma'])
