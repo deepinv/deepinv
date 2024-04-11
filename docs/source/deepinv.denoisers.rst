@@ -125,5 +125,10 @@ associated reference and relevant details. All pretrained weights are hosted on
      - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
    * - 
      - Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo
+   * - :meth:`deepinv.models.Restormer`
+     - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_. 
+   * - 
+     - Also available on `Deepinv Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+
 
 
