@@ -470,7 +470,6 @@ class SpaceVaryingBlur(LinearPhysics):
 
 # # test code
 # if __name__ == "__main__":
-#     # %%
 #     import deepinv as dinv
 #     from deepinv.utils.plotting import plot
 #     from deepinv.utils.demo import load_url_image, get_image_url
