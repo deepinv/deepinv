@@ -15,10 +15,10 @@ from deepinv.utils.demo import load_url_image, get_image_url
 
 
 # %%
-# Load image from the internet
-# ----------------------------
+# Load test images
+# ----------------
 #
-# Loading test images.
+# First, let's load some test images.
 
 dtype = torch.float32
 device = "cpu"
@@ -34,17 +34,19 @@ x_gray = load_url_image(
     url, grayscale=True, device=device, dtype=dtype, img_size=img_size
 )
 
-# Set the global random seed from pytorch to ensure reproducibility of the example.
+# Next, set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
 # %%
+# We are now ready to explore the different blur operators.
+#
 # Blur
-# ---------------------------------------
+# ----
 #
 # The class :class:`deepinv.physics.Blur` implements convolution operations with kernels.
-
-# %% Convolution of a grayscale image with a grayscale filter
+#
+# For instance, here is the convolution of a grayscale image with a grayscale filter:
 filter_0 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=0.0)
 physics = dinv.physics.Blur(filter_0, device=device)
 y = physics(x_gray)
@@ -54,7 +56,10 @@ plot(
     suptitle="Grayscale convolution",
 )
 
-# %% When a single channel filter is used, all channels are convolved with the same filter
+# %%
+# When a single channel filter is used, all channels are convolved with the same filter:
+#
+
 physics = dinv.physics.Blur(filter_0, device=device)
 y = physics(x_rgb)
 plot(
@@ -63,7 +68,10 @@ plot(
     suptitle="RGB image + grayscale filter convolution",
 )
 
-# %% By default, the boundary conditions are ``'valid'``, but other options among (``'circular'``, ``'reflect'``, ``'replicate'``) are possible
+# %%
+# By default, the boundary conditions are ``'valid'``, but other options among (``'circular'``, ``'reflect'``, ``'replicate'``) are possible:
+#
+
 physics = dinv.physics.Blur(filter_0, padding="reflect", device=device)
 y = physics(x_rgb)
 plot(
@@ -72,8 +80,10 @@ plot(
     suptitle="Reflection boundary conditions",
 )
 
+# %%
 # For circular boundary conditions, an FFT implementation is also available. It is slower that :meth:`deepinv.physics.Blur`,
-# but inherits from :meth:`deepinv.physics.DecomposablePhysics`, so that the pseudo-inverse and regularized inverse are computed faster and more accurately
+# but inherits from :meth:`deepinv.physics.DecomposablePhysics`, so that the pseudo-inverse and regularized inverse are computed faster and more accurately.
+#
 physics = dinv.physics.BlurFFT(img_size=x_rgb[0].shape, filter=filter_0, device=device)
 y = physics(x_rgb)
 plot(
@@ -82,7 +92,8 @@ plot(
     suptitle="FFT convolution with circular boundary conditions",
 )
 
-# %% One can also change the blur filter in the forward pass as follow:
+# %%
+# One can also change the blur filter in the forward pass as follows:
 filter_90 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=90.0).to(
     device=device, dtype=dtype
 )
@@ -93,7 +104,8 @@ plot(
     suptitle="Changing the filter on the fly",
 )
 
-# %% When applied to a new image, the last filter is used
+# %%
+# When applied to a new image, the last filter is used:
 y = physics(x_gray, filter=filter_90)
 plot(
     [x_gray, filter_90, y],
@@ -101,7 +113,8 @@ plot(
     suptitle="Effect of on the fly change is persistent",
 )
 
-# %% We can also define color filters. In that situation, each channel is convolved with the corresponding channel of the filter
+# %%
+# We can also define color filters. In that situation, each channel is convolved with the corresponding channel of the filter:
 psf_size = 9
 filter_rgb = torch.zeros((1, 3, psf_size, psf_size), device=device, dtype=dtype)
 filter_rgb[:, 0, :, psf_size // 2 : psf_size // 2 + 1] = 1.0 / psf_size
@@ -118,27 +131,32 @@ plot(
 
 # %%
 # Motion blur generators
-# ---------------------------------------
+# ----------------------
 #
-# More advanced kernel generation methods are provided with the toolbox thanks to the  :class:`deepinv.physics.generator.PSFGenerator`
-
-# In particular, we implemented motion blurs
+# More advanced kernel generation methods are provided with the toolbox thanks to
+# the  :class:`deepinv.physics.generator.PSFGenerator`. In particular, motion blurs generators are implemented.
 
 from deepinv.physics.generator import MotionBlurGenerator
 
-# %% By default, we just need to specify the psf size
+# %%
+# In order to generate motion blur kernels, we just need to instantiate a generator with specific the psf size.
+# In turn, motion blurs can be generated on the fly by calling the ``step()`` method. Let's illustrate this now and
+# generate 3 motion blurs. First, we instantiate the generator:
+#
 psf_size = 31
 motion_generator = MotionBlurGenerator((psf_size, psf_size), device=device, dtype=dtype)
-# To generate new filters, we can call the step() function
+# %%
+# To generate new filters, we call the step() function:
 filters = motion_generator.step(batch_size=3)
-# the `step()` fucntion returns a dictionary:
+# the `step()` function returns a dictionary:
 print(filters.keys())
 plot(
     [f for f in filters["filter"]],
     suptitle="Examples of randomly generated motion blurs",
 )
 
-# %% Other options, such as the regularity and length of the blur trajectory can be specified
+# %%
+# Other options, such as the regularity and length of the blur trajectory can also be specified:
 motion_generator = MotionBlurGenerator(
     (psf_size, psf_size), l=0.6, sigma=1, device=device, dtype=dtype
 )
@@ -149,17 +167,25 @@ plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 # Motion blur generators
 # ---------------------------------------
 #
-# We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil plane expanded in Zernike polynomials
+# We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil
+# plane expanded in Zernike polynomials
 
 from deepinv.physics.generator import DiffractionBlurGenerator
 
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size), device=device, dtype=dtype
 )
-# To generate new filters:
+
+# %%
+# Then, to generate new filters, it suffices to call the step() function as follows:
+
 filters = diffraction_generator.step(batch_size=3)
-# the `step()` function returns a dictionary containing the filters, their pupil function and Zernike coefficients:
+
+# %%
+# In this case, the `step()` function returns a dictionary containing the filters,
+# their pupil function and Zernike coefficients:
 print(filters.keys())
+
 # Note that we use **0.2 to increase the image dynamics
 plot(
     [f for f in filters["filter"] ** 0.5],
@@ -176,7 +202,8 @@ plot(
 print("Coefficients of the decomposition on Zernike polynomials")
 print(filters["coeff"])
 
-# %% We can change the cutoff frequency (below 1/4 to respect Shannon's sampling theorem)
+# %%
+# We can change the cutoff frequency (below 1/4 to respect Shannon's sampling theorem)
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size), fc=1 / 8, device=device, dtype=dtype
 )
@@ -186,7 +213,9 @@ plot(
     suptitle="A different cutoff frequency",
 )
 
-# %% It is also possible to directly specify the Zernike decomposition. For instance, if the pupil is null, the PSF is the Airy pattern
+# %%
+# It is also possible to directly specify the Zernike decomposition.
+# For instance, if the pupil is null, the PSF is the Airy pattern
 n_zernike = len(
     diffraction_generator.list_param
 )  # number of Zernike coefficients in the decomposition
@@ -196,7 +225,9 @@ plot(
     suptitle="Airy pattern",
 )
 
-# %% Finally, notice that you can activate the aberrations you want in the ANSI nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
+# %%
+# Finally, notice that you can activate the aberrations you want in the ANSI
+# nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size), fc=1 / 8, list_param=["Z5", "Z6"], device=device, dtype=dtype
 )
@@ -207,10 +238,10 @@ plot(
 )
 
 # %% Generator Mixture
-# ---------------------------------------------
+# --------------------
 #
 # During training, it's more robust to train on multiple family of operators. This can be done
-# seamlessly with the :class:`deepinv.physics.generator.GeneratorMixture`
+# seamlessly with the :class:`deepinv.physics.generator.GeneratorMixture`.
 
 from deepinv.physics.generator import GeneratorMixture
 
