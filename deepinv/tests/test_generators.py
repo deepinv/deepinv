@@ -16,20 +16,6 @@ SIZES = [(5, 5), (6, 6)]
 NUM_CHANNELS = [1, 3]
 
 
-# list_2d = [
-#     [(GENERATORS[i], SIZES[j]) for j in range(len(SIZES))]
-#     for i in range(len(GENERATORS))
-# ]
-# list_names_shape = [item for row in list_2d for item in row]
-
-# list_2d = [
-#     [(MIXTURES[i], SIZES[j]) for j in range(len(SIZES))] for i in range(len(MIXTURES))
-# ]
-# list_names_shape_mix = [item for row in list_2d for item in row]
-
-## I want to test that the shapes work properly for all user input
-
-
 def find_generator(name, size, num_channels, device):
     r"""
     Chooses operator

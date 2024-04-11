@@ -77,9 +77,6 @@ class Tomography(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        ## I think the best would be to remove the linspace out of the function
-        ## and put it in an example. If you want fixed angles given by a number of sampling
-        ## angles between 0 and 360, just do the linspace before calling the function
         if isinstance(angles, int) or isinstance(angles, float):
             theta = torch.nn.Parameter(
                 torch.linspace(0, 180, steps=angles + 1, device=device)[:-1],
