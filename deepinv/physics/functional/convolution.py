@@ -234,9 +234,6 @@ def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
     """
     pass
 
-    # %%
-
-
 # if __name__ == "__main__":
 #     from skimage.data import astronaut
 #     from skimage.transform import resize
@@ -273,7 +270,7 @@ def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
 #     print((Ax_fft * y_fft).sum(dim=(1, 2, 3)) - (x * z_fft).sum(dim=(1, 2, 3)))
 #     print((Ax - Ax_fft).abs().sum())
 
-#     # # %% Benchmark
+#     # Benchmark
 #     # from torch.utils.benchmark import Timer
 
 #     # for kernel_size in range(33, H // 2 - 1, 10):
