@@ -85,7 +85,7 @@ class ThinPlateSpline:
         self.control_points = torch.tensor([], dtype=torch.float32)
 
     def fit(self, X: torch.Tensor, Y: torch.Tensor):
-        """Learn f that matches Y given X
+        r"""Learn f that matches Y given X
 
         Args:
             X (Tensor): Control point at source space (X_c)
@@ -135,7 +135,7 @@ class ThinPlateSpline:
         return self
 
     def transform(self, X: torch.Tensor) -> torch.Tensor:
-        """Map source space to target space
+        r"""Map source space to target space
 
         Args:
             X (Tensor): Points in the source space
@@ -159,7 +159,7 @@ class ThinPlateSpline:
         return X @ self.parameters
 
     def _radial_distance(self, X: torch.Tensor) -> torch.Tensor:
-        """Compute the pairwise radial distances of the given points to the control points
+        r"""Compute the pairwise radial distances of the given points to the control points
 
         Input dimensions are not checked.
 
@@ -180,7 +180,7 @@ class ThinPlateSpline:
 
 
 def _ensure_2d(tensor: torch.Tensor) -> torch.Tensor:
-    """Ensure that tensor is a 2d tensor
+    r"""Ensure that tensor is a 2d tensor
 
     In case of 1d tensor, let's expand the last dim
     """

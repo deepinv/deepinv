@@ -238,8 +238,6 @@ def test_sure_losses(device):
     error_mc /= num_it
     error_h /= num_it
 
-    # print(f"error_h: {error_h}")
-    # print(f"error_mc: {error_mc}")
     assert error_h < 5e-2
     assert error_mc < 5e-2
 

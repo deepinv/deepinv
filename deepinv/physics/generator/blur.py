@@ -89,6 +89,12 @@ class MotionBlurGenerator(PSFGenerator):
         )
 
     def matern_kernel(self, diff, sigma: float = None, l: float = None):
+        r"""
+        Compute the Matérn 3/2 covariance.
+        :param torch.Tensor diff: the difference `t - s`
+        :param float sigma: the standard deviation of the Gaussian Process
+        :param float l: the length scale of the trajectory
+        """
         if sigma is None:
             sigma = self.sigma
         if l is None:
@@ -96,8 +102,10 @@ class MotionBlurGenerator(PSFGenerator):
         fraction = 5**0.5 * diff.abs() / l
         return sigma**2 * (1 + fraction + fraction**2 / 3) * torch.exp(-fraction)
 
-    # @torch.compile
     def f_matern(self, batch_size: int = 1, sigma: float = None, l: float = None):
+        r"""
+        Generates the trajectory.
+        """
         vec = torch.randn(batch_size, self.n_steps, **self.factory_kwargs)
         time = torch.linspace(-torch.pi, torch.pi, self.n_steps, **self.factory_kwargs)[
             None
@@ -124,12 +132,6 @@ class MotionBlurGenerator(PSFGenerator):
         :return: dictionary with key **'filter'**: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
         :rtype: dict
         """
-        ## add batch size to the shape. We can have a different batch size at each call of step()
-        ## We enforce only one channel as the underlying generator code only works for one channel at the time
-        # if self.shape[0] != 1:
-        #    self.shape = (batch_size, 1, self.shape[-2], self.shape[-1])
-        # else:
-        #    self.shape = (batch_size, self.shape[-3], self.shape[-2], self.shape[-1])
 
         f_x = self.f_matern(batch_size, sigma, l)[..., None]
         f_y = self.f_matern(batch_size, sigma, l)[..., None]
@@ -152,10 +154,10 @@ class MotionBlurGenerator(PSFGenerator):
 
         return {
             "filter": kernel.expand(
-                batch_size,
+                -1,
                 self.num_channels,
-                self.psf_size[0],
-                self.psf_size[1],
+                -1,
+                -1,
             )
         }
 
@@ -164,7 +166,7 @@ class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
 
-    Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory)
+    Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
 
     :param tuple psf_size: the shape of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
@@ -271,7 +273,9 @@ class DiffractionBlurGenerator(PSFGenerator):
             )  # defining the k-th Zernike polynomial
 
     def __update__(self):
-        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        r"""
+        Update the device and dtype of Zernike polynomials and the coordinates
+        """
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
@@ -283,7 +287,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         :param torch.Tensor coeff: batch_size x len(list_param) coefficients of the Zernike decomposition (defaults is None)
 
         :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
-            **'coeff'**: list of sampled Zernike coefficients in this realisation, **'pupil'**: the pupil function
+            **'coeff'**: list of sampled Zernike coefficients in this realization, **'pupil'**: the pupil function
         :rtype: dict
         """
         self.__update__()
@@ -312,6 +316,13 @@ class DiffractionBlurGenerator(PSFGenerator):
         }
 
     def generate_coeff(self, batch_size):
+        r"""Generates random coefficients of the decomposition in the Zernike polynomials.
+
+        :param int batch_size: batch_size.
+
+        :return: a tensor of shape `(batch_size, len(list_param))` coefficients in the Zernike decomposition.
+
+        """
         coeff = torch.rand((batch_size, len(self.list_param)), **self.factory_kwargs)
         coeff = (coeff - 0.5) * self.max_zernike_amplitude
         return coeff
@@ -319,9 +330,9 @@ class DiffractionBlurGenerator(PSFGenerator):
 
 def define_zernike():
     r"""
-    Returns a list of Zernike polynomials lambda functions in Cartesian coordinates
+    Returns a list of Zernike polynomials lambda functions in Cartesian coordinates.
 
-    :param list[func]: list of 37 lambda functions with the Zernike Polynomials. They are ordered as follows
+    :param list[func]: list of 37 lambda functions with the Zernike Polynomials. They are ordered as follows:
 
         Z1:Z00 Piston or Bias
         Z2:Z11 x Tilt
@@ -478,13 +489,12 @@ def cart2pol(x, y):
     :param torch.Tensor x: x coordinates
     :param torch.Tensor y: y coordinates
 
-    :return: tuple (rho, phi) of torch.Tensor with radius and angle
+    :return: rho of torch.Tensor of radius
     :rtype: tuple
     """
 
     rho = torch.sqrt(x**2 + y**2)
-    # phi = torch.arctan2(y, x)
-    return rho  # , phi
+    return rho
 
 
 def bump_function(x, a=1.0, b=1.0):
@@ -574,7 +584,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         s0, s1 = self.spacing
 
         n_psf = (n0 // s0) * (n1 // s1)
-        psfs = psf_generator.step(n_psf)["filter"]
+        psfs = self.psf_generator.step(n_psf)["filter"]
         psf_size = psfs.shape[-1]
 
         # Computing the eigen-psfs
@@ -599,75 +609,3 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         # Ending
         params_blur = {"h": eigen_psf, "w": w, "padding": self.padding}
         return params_blur
-
-
-# # %%
-# if __name__ == "__main__":
-#     import deepinv as dinv
-#     from deepinv.utils.plotting import plot
-#     from deepinv.physics.blur import SpaceVaryingBlur
-#     from deepinv.utils.demo import load_url_image, get_image_url
-#
-#     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-#     dtype = torch.float32
-#
-#     img_size = (256, 256)
-#     n_eigen_psf = 10
-#     Delta = 64
-#     spacing = (Delta, Delta)
-#
-#     # %% First a PSF generator
-#     psf_generator = DiffractionBlurGenerator((31, 31), device=device, dtype=dtype)
-#     # psf_generator = MotionBlurGenerator((31, 31))
-#     psf = psf_generator.step()
-#     print(psf["filter"].shape)
-#     dinv.utils.plot(psf["filter"])
-#
-#     # %% Now we instantiate a product-convolution operator
-#     pc_generator = ProductConvolutionBlurGenerator(
-#         psf_generator,
-#         img_size=img_size,
-#         n_eigen_psf=n_eigen_psf,
-#         spacing=spacing,
-#         device=device,
-#         dtype=dtype,
-#     )
-#     pc_blur = pc_generator.step()
-#     svb = SpaceVaryingBlur(method="product_convolution", **pc_blur)
-#
-#     # %% Applying to a Dirac comb
-#     delta = Delta // 2
-#     x = torch.zeros(
-#         (
-#             1,
-#             1,
-#         )
-#         + img_size,
-#         device=device,
-#         dtype=dtype,
-#     )
-#     x[
-#         :,
-#         :,
-#         delta // 2 :: delta,
-#         delta // 2 :: delta,
-#     ] = 1
-#     y = svb(x)
-#     plot([x, y], titles=["Dirac grid", "blurred Dirac grid"])
-#
-#     # %% Applying to a good image
-#     url = "https://www.thefamouspeople.com/profiles/thumbs/lionel-messi-2.jpg"
-#     x = load_url_image(url=url, img_size=(img_size), resize_mode="resize").to(device)
-#     x = torch.tensor(x, device=device, dtype=dtype)
-#     y = svb(x)
-#     plot(
-#         [
-#             x[
-#                 :,
-#                 :,
-#                 :,
-#             ],
-#             y,
-#         ],
-#         titles=["Messi", "Messier"],
-#     )
