@@ -1,7 +1,7 @@
 r"""Define the neural network architecture of the Restormer.
 
 Model specialized in restoration tasks including deraining, single-image motion deblurring,
-defocus deblurring and image denoising for high-resolution images. Code adapted form
+defocus deblurring and image denoising for high-resolution images. Code adapted from
 https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
 
 Restormer: Efficient Transformer for High-Resolution Image Restoration
@@ -19,7 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-from .utils import get_weights_url, test_onesplit, test_pad
+from .utils import get_weights_url, test_pad
 
 
 class Restormer(nn.Module):
@@ -58,6 +58,7 @@ class Restormer(nn.Module):
     :param NoneType, str pretrained: Default to ``'denoising'``.
         ``if pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``, will download weights from the HuggingFace Hub.
         ``if pretrained = '\*.pth'``, will load weights from a local pth file.
+    :param bool train: training or testing mode.
 
     .. note::
         To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
@@ -407,17 +408,10 @@ class Restormer(nn.Module):
         :param torch.Tensor x: noisy image
         :param float sigma: noise level (not used)
         """
-        if self.training or (
-            x.size(2) % 8 == 0
-            and x.size(3) % 8 == 0
-            and x.size(2) > 31
-            and x.size(3) > 31
-        ):
+        if self.training:
             out = self.forward_restormer(x)
-        elif x.size(2) < 32 or x.size(3) < 32:
-            out = test_pad(self.forward_restormer, x, modulo=16)
         else:
-            out = test_onesplit(self.forward_restormer, x, refield=64)
+            out = test_pad(self.forward_restormer, x, modulo=16)
         return out
 
     def is_standard_denoising_network(
