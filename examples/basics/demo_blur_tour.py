@@ -22,15 +22,14 @@ from deepinv.utils.demo import load_url_image, get_image_url
 
 dtype = torch.float32
 device = "cpu"
-factory_kwargs = {"device": device, "dtype": dtype}
 img_size = (128, 125)
 
 url = get_image_url("CBSD_0010.png")
-x_rgb = load_url_image(url, grayscale=False).to(**factory_kwargs)
+x_rgb = load_url_image(url, grayscale=False, device=device, dtype=dtype)
 x_rgb = torch.nn.functional.interpolate(x_rgb, size=img_size)
 
 url = get_image_url("barbara.jpeg")
-x_gray = load_url_image(url, grayscale=True).to(**factory_kwargs)
+x_gray = load_url_image(url, grayscale=True, device=device, dtype=dtype)
 x_gray = torch.nn.functional.interpolate(x_gray, size=img_size)
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -83,7 +82,7 @@ plot(
 
 # %% One can also change the blur filter in the forward pass as follow:
 filter_90 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=90.0).to(
-    **factory_kwargs
+    device=device, dtype=dtype
 )
 y = physics(x_rgb, filter=filter_90)
 plot(
@@ -102,10 +101,12 @@ plot(
 
 # %% We can also define color filters. In that situation, each channel is convolved with the corresponding channel of the filter
 psf_size = 9
-filter_rgb = torch.zeros((1, 3, psf_size, psf_size), **factory_kwargs)
+filter_rgb = torch.zeros((1, 3, psf_size, psf_size), device=device, dtype=dtype)
 filter_rgb[:, 0, :, psf_size // 2 : psf_size // 2 + 1] = 1.0 / psf_size
 filter_rgb[:, 1, psf_size // 2 : psf_size // 2 + 1, :] = 1.0 / psf_size
-filter_rgb[:, 2, ...] = torch.diag(torch.ones(psf_size, **factory_kwargs)) / psf_size
+filter_rgb[:, 2, ...] = (
+    torch.diag(torch.ones(psf_size, device=device, dtype=dtype)) / psf_size
+)
 y = physics(x_rgb, filter=filter_rgb)
 plot(
     [x_rgb, filter_rgb, y],
@@ -125,7 +126,7 @@ from deepinv.physics.generator import MotionBlurGenerator
 
 # %% By default, we just need to specify the psf size
 psf_size = 31
-motion_generator = MotionBlurGenerator((psf_size, psf_size), **factory_kwargs)
+motion_generator = MotionBlurGenerator((psf_size, psf_size), device=device, dtype=dtype)
 # To generate new filters, we can call the step() function
 filters = motion_generator.step(batch_size=3)
 # the `step()` fucntion returns a dictionary:
@@ -137,7 +138,7 @@ plot(
 
 # %% Other options, such as the regularity and length of the blur trajectory can be specified
 motion_generator = MotionBlurGenerator(
-    (psf_size, psf_size), l=0.6, sigma=1, **factory_kwargs
+    (psf_size, psf_size), l=0.6, sigma=1, device=device, dtype=dtype
 )
 filters = motion_generator.step(batch_size=3)
 plot([f for f in filters["filter"]], suptitle="Different length and regularity")
@@ -150,7 +151,9 @@ plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 
 from deepinv.physics.generator import DiffractionBlurGenerator
 
-diffraction_generator = DiffractionBlurGenerator((psf_size, psf_size), **factory_kwargs)
+diffraction_generator = DiffractionBlurGenerator(
+    (psf_size, psf_size), device=device, dtype=dtype
+)
 # To generate new filters:
 filters = diffraction_generator.step(batch_size=3)
 # the `step()` function returns a dictionary containing the filters, their pupil function and Zernike coefficients:
@@ -173,7 +176,7 @@ print(filters["coeff"])
 
 # %% We can change the cutoff frequency (below 1/4 to respect Shannon's sampling theorem)
 diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, **factory_kwargs
+    (psf_size, psf_size), fc=1 / 8, device=device, dtype=dtype
 )
 filters = diffraction_generator.step(batch_size=3)
 plot(
@@ -193,7 +196,7 @@ plot(
 
 # %% Finally, notice that you can activate the aberrations you want in the ANSI nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, list_param=["Z5", "Z6"], **factory_kwargs
+    (psf_size, psf_size), fc=1 / 8, list_param=["Z5", "Z6"], device=device, dtype=dtype
 )
 filters = diffraction_generator.step(batch_size=3)
 plot(
