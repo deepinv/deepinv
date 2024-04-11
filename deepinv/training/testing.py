@@ -27,12 +27,12 @@ def test(
     r"""
     Tests a reconstruction model (algorithm or network).
 
-    This function computes the PSNR of the reconstruction network on the test set,
+    This function computes the chosen metrics of the reconstruction network on the test set,
     and optionally plots the reconstructions as well as the metrics computed along the iterations.
     Note that by default only the first batch is plotted.
 
-    :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
-        or any other custom reconstruction network.
+    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network (unfolded, plug-and-play, etc).
     :param torch.utils.data.DataLoader test_dataloader: Test data loader, which should provide a tuple of (x, y) pairs.
         See :ref:`datasets <datasets>` for more details.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
@@ -44,6 +44,7 @@ def test(
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
+        Images are saved in the ``save_folder/images`` directory
     :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.

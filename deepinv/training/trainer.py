@@ -30,7 +30,7 @@ class Trainer:
 
     where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
-    and ``eval_metrics` the state dictionary of the scheduler.
+    and ``eval_metrics` the evaluation metrics history.
 
     The class provides a flexible training loop that can be customized by the user. In particular, the user can
     rewrite the :meth:`deepinv.Trainer.compute_loss` method to define their custom training step without having
