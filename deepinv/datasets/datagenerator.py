@@ -57,7 +57,7 @@ def generate_dataset(
     num_workers=0,
     supervised=True,
     verbose=True,
-    show_progress_bar=True,
+    show_progress_bar=False,
 ):
     r"""
     Generates dataset of signal/measurement pairs from base dataset.

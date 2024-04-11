@@ -140,7 +140,7 @@ class Trainer:
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
     verbose: bool = True
-    progress_bar: bool = True
+    show_progress_bar: bool = True
     plot_images: bool = False
     plot_metrics: bool = False
     wandb_vis: bool = False
@@ -510,11 +510,16 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if last_batch:
-            if self.verbose and not self.progress_bar:
-                print(
-                    f"{'Train' if train else 'Eval'} epoch {epoch}:"
-                    f" {' '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
-                )
+            if self.verbose and not self.show_progress_bar:
+                if self.verbose_individual_losses:
+                    print(
+                        f"{'Train' if train else 'Eval'} epoch {epoch}:"
+                        f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                    )
+                else:
+                    print(
+                        f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
+                    )
             logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
@@ -614,7 +619,7 @@ class Trainer:
                     progress_bar := tqdm(
                         range(batches),
                         ncols=150,
-                        disable=(not self.verbose or not self.progress_bar),
+                        disable=(not self.verbose or not self.show_progress_bar),
                     )
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
@@ -636,7 +641,7 @@ class Trainer:
                 progress_bar := tqdm(
                     range(batches),
                     ncols=150,
-                    disable=(not self.verbose or not self.progress_bar),
+                    disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
@@ -678,7 +683,7 @@ class Trainer:
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
-            progress_bar=self.progress_bar,
+            show_progress_bar=self.show_progress_bar,
         )
 
 

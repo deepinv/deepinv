@@ -214,6 +214,7 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     ckp_interval=10,
 )
 

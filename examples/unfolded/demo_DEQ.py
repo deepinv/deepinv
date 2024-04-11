@@ -206,6 +206,7 @@ trainer = dinv.Trainer(
     eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
