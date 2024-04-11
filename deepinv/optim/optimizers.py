@@ -101,7 +101,9 @@ class BaseOptim(nn.Module):
         ...                     prior=prior)
         >>>
         >>> # Run the optimization algorithm
-        >>> xhat = optimalgo(y, physics)
+        >>>  with torch.no_grad(): xhat = optimalgo(y, physics)
+        >>> print(xhat)
+        tensor([1., 1.], dtype=torch.float64)
 
 
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.

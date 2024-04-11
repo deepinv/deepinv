@@ -9,7 +9,9 @@ class PhysicsGenerator(nn.Module):
 
     PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.PhysicsGenerator.__add__`),
     or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
-
+    :param Callable step: a function that generates the parameters of the physics, e.g., the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with the corresponding key and value pairs.
+    :param str device: cpu or cuda
+    :param torch.dtype dtype: the data type of the generated parameters
 
     |sep|
 
@@ -20,7 +22,11 @@ class PhysicsGenerator(nn.Module):
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
         >>> _ = torch.manual_seed(0)
         >>> _ = torch.cuda.manual_seed(0)
+
+        We will combine two different PhysicsGenerator:
         >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
+
+        When two PhysicsGenerator are combined using `.__add__` method, the output of the `step` function will be a dictionary which contains the merge of the two separate dictionaries:
         >>> params_dict = generator.step(batch_size=1) # dict_keys(['filter', 'sigma'])
         >>> print(params_dict['filter'])
         tensor([[[[0.0000, 0.1006, 0.0000],
@@ -28,7 +34,6 @@ class PhysicsGenerator(nn.Module):
                   [0.0000, 0.0000, 0.0000]]]])
         >>> print(params_dict['sigma'])
         tensor([0.1577])
-
     """
 
     def __init__(

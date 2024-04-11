@@ -32,8 +32,8 @@ class DataFidelity(nn.Module):
         >>> y = torch.Tensor([[1], [1]]).unsqueeze(0)
         >>>
         >>> # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
-        >>> f_x = data_fidelity(x, y, physics)  # print(f_x) gives tensor([1.0000])
-        >>>
+        >>> data_fidelity(x, y, physics)
+        tensor([1.0000])
         >>> # Compute the gradient of :math:`f`
         >>> grad = data_fidelity.grad(x, y, physics)  # print(grad) gives tensor([[[2.0000], [0.5000]]])
         >>>
@@ -233,8 +233,7 @@ class L2(DataFidelity):
         >>> y = physics(x)
         >>>
         >>> # Compute the data fidelity f(Ax, y)
-        >>> f = fidelity(x, y, physics)
-        >>> print(f)
+        >>> fidelity(x, y, physics)
         tensor([0.])
         >>> # Compute the gradient of f
         >>> fidelity.grad(x, y, physics)
