@@ -110,6 +110,7 @@ class Trainer:
     :param str save_path: Directory in which to save the trained model.
     :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu').
     :param bool verbose: Output training progress information in the console.
+    :param bool progress_bar: Show a progress bar during training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
@@ -138,6 +139,7 @@ class Trainer:
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
     verbose: bool = True
+    progress_bar: bool = True
     plot_images: bool = False
     plot_metrics: bool = False
     wandb_vis: bool = False
@@ -167,7 +169,7 @@ class Trainer:
 
         self.G = len(self.train_dataloader)
 
-        if self.wandb_setup is not None and not self.wandb_vis:
+        if (self.wandb_setup is not None or self.wandb_setup != {}) and not self.wandb_vis:
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
@@ -225,6 +227,7 @@ class Trainer:
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
             self.optimizer.load_state_dict(checkpoint["optimizer"])
+            self.model.load_state_dict(checkpoint["state_dict"])
             self.epoch_start = checkpoint["epoch"]
 
     def prepare_images(self, physics_cur, x, y, x_net):
@@ -505,6 +508,10 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if last_batch:
+            if self.verbose and not self.progress_bar:
+                print(
+                    f"{'Train' if train else 'Eval'} epoch {epoch}:"
+                    f" {' '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}")
             logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # Plot images
@@ -566,7 +573,7 @@ class Trainer:
             if eval_psnr is not None:
                 state["eval_psnr"] = eval_psnr
             torch.save(
-                state, os.path.join(str(self.save_path), "ckp_{}.pth.tar".format(epoch))
+                state, os.path.join(Path(self.save_path), Path("ckp_{}.pth.tar".format(epoch)))
             )
 
     def train(
@@ -599,7 +606,7 @@ class Trainer:
                 self.model.eval()
                 for i in (
                     progress_bar := tqdm(
-                        range(batches), ncols=150, disable=not self.verbose
+                        range(batches), ncols=150, disable=(not self.verbose or not self.progress_bar)
                     )
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
@@ -618,7 +625,7 @@ class Trainer:
             self.model.train()
             for i in (
                 progress_bar := tqdm(
-                    range(batches), ncols=150, disable=not self.verbose
+                    range(batches), ncols=150, disable=(not self.verbose or not self.progress_bar)
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
@@ -660,6 +667,7 @@ class Trainer:
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
+            progress_bar=self.progress_bar
         )
 
 

@@ -9,8 +9,8 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train
-from deepinv.training_utils import test as feature_test
+from deepinv.training import train
+from deepinv.training import test as feature_test
 
 
 def test_generate_dataset(tmp_path, imsize, device):

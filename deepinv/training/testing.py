@@ -21,6 +21,7 @@ def test(
     verbose=True,
     plot_only_first_batch=True,
     plot_measurements=True,
+    show_progress_bar=True,
     **kwargs,
 ):
     r"""
@@ -47,6 +48,7 @@ def test(
     :param bool verbose: Output training progress information in the console.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool plot_measurements: Plot the measurements y. default=True.
+    :param bool show_progress_bar: Show progress bar.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
@@ -81,8 +83,8 @@ def test(
 
         batches = len(dataloader) - int(dataloader.drop_last)
         iterator = iter(dataloader)
-        for i in (progress_bar := tqdm(range(batches), ncols=150, disable=not verbose)):
-            desc = f"Test operator {g + 1} out of {G}" if G > 1 else "Test "
+        for i in (progress_bar := tqdm(range(batches), ncols=150, disable=(not verbose or not show_progress_bar))):
+            desc = f"Test operator {g + 1}" if G > 1 else "Test "
             progress_bar.set_description(desc)
             with torch.no_grad():
                 if online_measurements:

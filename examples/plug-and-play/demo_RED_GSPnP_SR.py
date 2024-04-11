@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
+from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import load_dataset, load_degradation

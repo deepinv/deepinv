@@ -56,6 +56,8 @@ def generate_dataset(
     batch_size=4,
     num_workers=0,
     supervised=True,
+    verbose=True,
+    show_progress_bar=True,
 ):
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
@@ -88,6 +90,9 @@ def generate_dataset(
     :param bool supervised: Generates supervised pairs (x,y) of measurements and signals.
         If set to ``False``, it will generate a training dataset with measurements only (y)
         and a test dataset with pairs (x,y)
+    :param bool verbose: Output progress information in the console.
+    :param bool show_progress_bar: Show progress bar during the generation
+        of the dataset (if verbose is set to True).
 
     """
     if os.path.exists(os.path.join(save_dir, dataset_filename)):
@@ -152,13 +157,6 @@ def generate_dataset(
             if supervised:
                 hf.create_dataset("x_train", (n_train_g,) + x.shape[1:], dtype="float")
 
-            if G > 1:
-                print(
-                    f"Computing train measurement vectors from base dataset of operator {g + 1} out of {G}..."
-                )
-            else:
-                print("Computing train measurement vectors from base dataset...")
-
             index = 0
 
             epochs = int(n_train_g / len(train_dataset)) + 1
@@ -173,7 +171,13 @@ def generate_dataset(
                     pin_memory=False if device == "cpu" else True,
                 )
 
-                for i, x in enumerate(train_dataloader):
+                for i, x in (progress_bar := tqdm(train_dataloader,
+                                                  ncols=150,
+                                                  disable=(not verbose or not show_progress_bar))):
+
+                    desc = f"Generating train dataset operator {g + 1}" if G > 1 else "Generating train dataset "
+                    progress_bar.set_description(desc)
+
                     x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                     x = x.to(device)
 
@@ -204,14 +208,13 @@ def generate_dataset(
                 pin_memory=True,
             )
 
-            if G > 1:
-                print(
-                    f"Computing test measurement vectors from base dataset of operator {g + 1} out of {G}..."
-                )
-            else:
-                print("Computing test measurement vectors from base dataset...")
+            for i, x in (progress_bar := tqdm(test_dataloader,
+                                              ncols=150,
+                                              disable=(not verbose or not show_progress_bar))):
 
-            for i, x in enumerate(tqdm(test_dataloader)):
+                desc = f"Generating test dataset operator {g + 1}" if G > 1 else "Generating test dataset "
+                progress_bar.set_description(desc)
+
                 x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                 x = x.to(device)
 

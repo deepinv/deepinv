@@ -7,7 +7,6 @@ __all__ = [
     "__url__",
     "__version__",
     "__author__",
-    "__email__",
     "__license__",
 ]
 
@@ -55,7 +54,9 @@ from deepinv import unfolded
 
 __all__ += ["unfolded"]
 
-from deepinv.training_utils import train, test, Trainer
+from deepinv.training import train, test, Trainer
+
+__all__ += ["training"]
 
 # GLOBAL PROPERTY
 dtype = torch.float
