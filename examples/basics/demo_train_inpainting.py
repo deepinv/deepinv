@@ -144,7 +144,6 @@ model = dinv.models.ArtifactRemoval(backbone)
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
-
 epochs = 4  # choose training epochs
 learning_rate = 5e-4
 

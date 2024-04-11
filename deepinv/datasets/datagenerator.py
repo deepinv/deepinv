@@ -160,7 +160,11 @@ def generate_dataset(
             index = 0
 
             epochs = int(n_train_g / len(train_dataset)) + 1
-            for e in tqdm(range(epochs)):
+            for e in (progress_bar := tqdm(range(epochs), ncols=150, disable=(not verbose or not show_progress_bar))):
+
+                desc = f"Generating dataset operator {g + 1}" if G > 1 else "Generating train dataset"
+                progress_bar.set_description(desc)
+
                 train_dataloader = DataLoader(
                     Subset(
                         train_dataset,
@@ -171,13 +175,11 @@ def generate_dataset(
                     pin_memory=False if device == "cpu" else True,
                 )
 
-                for i, x in (progress_bar := tqdm(train_dataloader,
-                                                  ncols=150,
-                                                  disable=(not verbose or not show_progress_bar))):
+                batches = len(train_dataloader) - int(train_dataloader.drop_last)
+                iterator = iter(train_dataloader)
+                for _ in range(batches):
 
-                    desc = f"Generating train dataset operator {g + 1}" if G > 1 else "Generating train dataset "
-                    progress_bar.set_description(desc)
-
+                    x = next(iterator)
                     x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                     x = x.to(device)
 
@@ -190,9 +192,9 @@ def generate_dataset(
                     if bsize + index > n_train_g:
                         bsize = n_train_g - index
 
-                    hf["y_train"][index : index + bsize] = y[:bsize, :].to("cpu").numpy()
+                    hf["y_train"][index: index + bsize] = y[:bsize, :].to("cpu").numpy()
                     if supervised:
-                        hf["x_train"][index : index + bsize] = (
+                        hf["x_train"][index: index + bsize] = (
                             x[:bsize, :, :, :].to("cpu").numpy()
                         )
                     index = index + bsize
@@ -208,13 +210,11 @@ def generate_dataset(
                 pin_memory=True,
             )
 
-            for i, x in (progress_bar := tqdm(test_dataloader,
-                                              ncols=150,
-                                              disable=(not verbose or not show_progress_bar))):
+            batches = len(test_dataloader) - int(test_dataloader.drop_last)
+            iterator = iter(test_dataloader)
+            for i in range(batches):
 
-                desc = f"Generating test dataset operator {g + 1}" if G > 1 else "Generating test dataset "
-                progress_bar.set_description(desc)
-
+                x = next(iterator)
                 x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                 x = x.to(device)
 
@@ -231,8 +231,8 @@ def generate_dataset(
 
                 # Add new data to it
                 bsize = x.size()[0]
-                hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
-                hf["y_test"][index : index + bsize] = y.to("cpu").numpy()
+                hf["x_test"][index: index + bsize] = x.to("cpu").numpy()
+                hf["y_test"][index: index + bsize] = y.to("cpu").numpy()
                 index = index + bsize
         hf.close()
 

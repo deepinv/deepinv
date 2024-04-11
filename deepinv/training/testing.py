@@ -83,7 +83,13 @@ def test(
 
         batches = len(dataloader) - int(dataloader.drop_last)
         iterator = iter(dataloader)
-        for i in (progress_bar := tqdm(range(batches), ncols=150, disable=(not verbose or not show_progress_bar))):
+        for i in (
+            progress_bar := tqdm(
+                range(batches),
+                ncols=150,
+                disable=(not verbose or not show_progress_bar),
+            )
+        ):
             desc = f"Test operator {g + 1}" if G > 1 else "Test "
             progress_bar.set_description(desc)
             with torch.no_grad():

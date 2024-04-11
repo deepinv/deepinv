@@ -29,7 +29,8 @@ class Trainer:
         save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
 
     where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
-    dictionary of the model, ``loss`` the loss history, and ``optimizer`` the state dictionary of the optimizer.
+    dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
+    and ``eval_metrics` the state dictionary of the scheduler.
 
     The class provides a flexible training loop that can be customized by the user. In particular, the user can
     rewrite the :meth:`deepinv.Trainer.compute_loss` method to define their custom training step without having
@@ -167,9 +168,10 @@ class Trainer:
 
         self.save_path = Path(self.save_path)
 
+        self.eval_metrics_history = {}
         self.G = len(self.train_dataloader)
 
-        if (self.wandb_setup is not None or self.wandb_setup != {}) and not self.wandb_vis:
+        if (self.wandb_setup is not None or self.wandb_setup != {}) and self.wandb_vis:
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
@@ -511,10 +513,11 @@ class Trainer:
             if self.verbose and not self.progress_bar:
                 print(
                     f"{'Train' if train else 'Eval'} epoch {epoch}:"
-                    f" {' '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}")
+                    f" {' '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                )
             logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
-            self.plot(epoch, physics_cur, x, y, x_net, train=train)  # Plot images
+            self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
@@ -553,14 +556,14 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
-    def save_model(self, epoch, eval_psnr=None):
+    def save_model(self, epoch, eval_metrics=None):
         r"""
         Save the model.
 
         It saves the model every ``ckp_interval`` epochs.
 
         :param int epoch: Current epoch.
-        :param None, float eval_psnr: Evaluation PSNR.
+        :param None, float eval_metrics: Evaluation metrics across epochs.
         """
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
@@ -570,10 +573,13 @@ class Trainer:
                 "loss": self.loss_history,
                 "optimizer": self.optimizer.state_dict(),
             }
-            if eval_psnr is not None:
-                state["eval_psnr"] = eval_psnr
+            if eval_metrics is not None:
+                state["eval_metrics"] = eval_metrics
             torch.save(
-                state, os.path.join(Path(self.save_path), Path("ckp_{}.pth.tar".format(epoch)))
+                state,
+                os.path.join(
+                    Path(self.save_path), Path("ckp_{}.pth.tar".format(epoch))
+                ),
             )
 
     def train(
@@ -606,7 +612,9 @@ class Trainer:
                 self.model.eval()
                 for i in (
                     progress_bar := tqdm(
-                        range(batches), ncols=150, disable=(not self.verbose or not self.progress_bar)
+                        range(batches),
+                        ncols=150,
+                        disable=(not self.verbose or not self.progress_bar),
                     )
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
@@ -614,7 +622,8 @@ class Trainer:
                         epoch, progress_bar, train=False, last_batch=(i == batches - 1)
                     )
 
-                self.eval_psnr = self.logs_metrics_eval[0].avg
+                for l in self.logs_losses_eval:
+                    self.eval_metrics_history[l.name] = l.avg
 
             ## Training
             self.current_iterators = [iter(loader) for loader in self.train_dataloader]
@@ -625,7 +634,9 @@ class Trainer:
             self.model.train()
             for i in (
                 progress_bar := tqdm(
-                    range(batches), ncols=150, disable=(not self.verbose or not self.progress_bar)
+                    range(batches),
+                    ncols=150,
+                    disable=(not self.verbose or not self.progress_bar),
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
@@ -639,7 +650,7 @@ class Trainer:
                 self.scheduler.step()
 
             # Saving the model
-            self.save_model(epoch, eval_psnr=self.eval_psnr if perform_eval else None)
+            self.save_model(epoch, self.eval_metrics_history if perform_eval else None)
 
         if self.wandb_vis:
             wandb.save("model.h5")
@@ -667,7 +678,7 @@ class Trainer:
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
-            progress_bar=self.progress_bar
+            progress_bar=self.progress_bar,
         )
 
 
