@@ -411,7 +411,7 @@ class Restormer(nn.Module):
         if self.training:
             out = self.forward_restormer(x)
         else:
-            out = test_pad(self.forward_restormer, x, modulo=16)
+            out = test_pad(self.forward_restormer, x, modulo=8)
         return out
 
     def is_standard_denoising_network(
