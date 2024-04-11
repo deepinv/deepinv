@@ -45,7 +45,7 @@ class FixedPoint(nn.Module):
         ...     X = iterator(X, data_fidelity, prior, params_algo, y, physics)
         >>> # Return the solution
         >>> X["est"][0]
-        tensor([1, 1])
+        tensor([1., 1.], dtype=torch.float64)
 
 
     :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as

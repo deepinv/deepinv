@@ -101,7 +101,7 @@ class BaseOptim(nn.Module):
         ...                     prior=prior)
         >>>
         >>> # Run the optimization algorithm
-        >>>  with torch.no_grad(): xhat = optimalgo(y, physics)
+        >>> with torch.no_grad(): xhat = optimalgo(y, physics)
         >>> print(xhat)
         tensor([1., 1.], dtype=torch.float64)
 
