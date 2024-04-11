@@ -405,8 +405,8 @@ class BaseOptim(nn.Module):
         :param dict X: dictionary containing the current primal and dual iterates.
         """
         if self.backtracking and self.has_cost and X_prev is not None:
-            x_prev = self.get_output(X_prev)
-            x = self.get_output(X)
+            x_prev = X_prev["est"][0]
+            x = X["est"][0]
             x_prev = x_prev.reshape((x_prev.shape[0], -1))
             x = x.reshape((x.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
