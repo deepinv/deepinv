@@ -243,7 +243,7 @@ def plot_curves(metrics, save_dir=None, show=True):
                 log_scale = False
             elif metric_name == "cost":
                 label = r"$F(x_k)$" if plt.rcParams["text.usetex"] else "F"
-                log_scale = True
+                log_scale = False
             else:
                 label = metric_name
                 log_scale = False
