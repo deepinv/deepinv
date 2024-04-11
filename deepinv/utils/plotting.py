@@ -18,7 +18,7 @@ def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
-
+    # plt.rcParams['axes.titlepad'] = 0
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
@@ -184,7 +184,8 @@ def plot(
     )
 
     if suptitle:
-        plt.suptitle(suptitle)
+        plt.suptitle(suptitle, size=12)
+        fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
