@@ -20,11 +20,11 @@ class AccelerationMaskGenerator(PhysicsGenerator):
 
     >>> from deepinv.physics.generator import AccelerationMaskGenerator
     >>> import deepinv
-    >>> mask_generator = AccelerationMaskGenerator((8, 8))
+    >>> mask_generator = AccelerationMaskGenerator((16, 16))
     >>> mask_dict = mask_generator.step() # dict_keys(['mask'])
     >>> deepinv.utils.plot(mask_dict['mask'].squeeze(1))
     >>> print(mask_dict['mask'].shape)
-    torch.Size([1, 2, 8, 8])
+    torch.Size([1, 2, 16, 16])
 
     """
 

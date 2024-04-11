@@ -193,10 +193,6 @@ def test_operator_with_boundary(name, device, padding):
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
     assert error2 < 1e-3
 
-    # Test operator norm
-    # norm = physics.compute_norm(x)
-    # assert torch.abs(norm - norm_ref) < 0.2
-
     # Test pseudo-inverse
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
@@ -446,7 +442,6 @@ def test_blur(device):
         img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
-        padding="circular",
     )
 
     y1 = physics_blur(x)
