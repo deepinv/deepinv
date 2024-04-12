@@ -35,7 +35,7 @@ class DataFidelity(nn.Module):
         >>> data_fidelity(x, y, physics)
         tensor([1.0000])
         >>> # Compute the gradient of :math:`f`
-        >>> grad = data_fidelity.grad(x, y, physics) )
+        >>> grad = data_fidelity.grad(x, y, physics)
         >>>
         >>> # Compute the proximity operator of :math:`f`
         >>> prox = data_fidelity.prox(x, y, physics, gamma=1.0)

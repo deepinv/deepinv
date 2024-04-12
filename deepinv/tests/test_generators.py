@@ -76,7 +76,7 @@ def test_generation_newparams(name, device):
     r"""
     Tests generators shape.
     """
-    size = (16, 16)
+    size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device)
     batch_size = 1
     torch.manual_seed(0)
