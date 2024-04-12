@@ -18,7 +18,6 @@ def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
-    # plt.rcParams['axes.titlepad'] = 0
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
