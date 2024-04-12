@@ -39,7 +39,7 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 
 class CVIteration(OptimIterator):
     r"""
-    Single iteration of Condat-Vu Primal-Dual...
+    Single iteration of Condat-Vu Primal-Dual....
     """
 
     def __init__(self, **kwargs):
