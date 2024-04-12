@@ -230,9 +230,11 @@ class Trainer:
         self.epoch_start = 0
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
             self.model.load_state_dict(checkpoint["state_dict"])
-            self.epoch_start = checkpoint["epoch"]
+            if "optimizer" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if "epoch" in checkpoint:
+                self.epoch_start = checkpoint["epoch"]
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
