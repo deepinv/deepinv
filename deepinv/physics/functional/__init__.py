@@ -8,7 +8,7 @@ from .convolution import (
     conv_transpose3d,
 )
 
-from .product_convolution import product_convolution, product_convolution_adjoint
+from .product_convolution import product_convolution2d, product_convolution2d_adjoint
 
 from .multiplier import (
     multiplier,

@@ -534,8 +534,8 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     Generates a dictionary {'h', 'w'} of parameters to be used within :meth:`deepinv.physics.blur.SpaceVaryingBlur`
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator (e.g. generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25))
-    :param int n_eigen_psf: number of eigen_psf used to expand each individual psf
-    :param tuple img_size: image size WxH (defaults (512, 512))
+    :param int n_eigen_psf: each psf in the field of view will be a linear combination of n_eigen_psf eigen psfs 
+    :param tuple img_size: image size HxW (defaults (512, 512))
     :param tuple spacing: steps between the psfs used for interpolation (defaults (H//8, W//8))
     :param str padding: boundary conditions in (options = `valid`, `circular`, `replicate`, `reflect`), defaults `valid`
 
