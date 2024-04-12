@@ -26,8 +26,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 url = get_image_url("CBSD_0010.png")
 test_img = load_url_image(url, grayscale=False).to(device)
 patch_size = 6
-with torch.no_grad():
-    model = EPLL(channels=test_img.shape[1], patch_size=patch_size, device=device)
+model = EPLL(channels=test_img.shape[1], patch_size=patch_size, device=device)
 
 # %%
 # Denoising

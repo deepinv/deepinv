@@ -722,10 +722,6 @@ def test(
                     ) = batch  # In this case the dataloader outputs also a class label
                     x = x.to(device)
                     physics_cur = physics[g]
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        physics_cur.module.noise_model.__init__()
-                    else:
-                        physics_cur.reset()
                     y = physics_cur(x)
                 else:
                     x, y = batch
