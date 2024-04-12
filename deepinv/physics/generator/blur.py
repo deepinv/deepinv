@@ -407,16 +407,22 @@ def define_zernike():
     Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
     Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
     Z[20] = (
-        lambda x, y: sq12 * x * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12
+        * x
+        * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[21] = (
-        lambda x, y: sq12 * y * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12
+        * y
+        * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[22] = lambda x, y: sq7 * (
         20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
     )
     Z[23] = lambda x, y: 2 * sq14 * x * y * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    Z[24] = (
+        lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    )
     Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
     Z[26] = (
         lambda x, y: sq14
@@ -430,7 +436,10 @@ def define_zernike():
         * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
     )
     Z[28] = lambda x, y: sq14 * (
-        32 * x**6 - 48 * x**4 * r2(x, y) + 18 * x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
+        32 * x**6
+        - 48 * x**4 * r2(x, y)
+        + 18 * x**2 * r2(x, y) ** 2
+        - r2(x, y) ** 3
     )
     Z[29] = (
         lambda x, y: 4
@@ -457,12 +466,18 @@ def define_zernike():
     Z[33] = (
         lambda x, y: 4
         * (7 * r2(x, y) - 6)
-        * (4 * x**2 * y * (x**2 - y**2) + y * (r2(x, y) ** 2 - 8 * x**2 * y**2))
+        * (
+            4 * x**2 * y * (x**2 - y**2)
+            + y * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+        )
     )
     Z[34] = lambda x, y: (
         4
         * (7 * r2(x, y) - 6)
-        * (x * (r2(x, y) ** 2 - 8 * x**2 * y**2) - 4 * x * y**2 * (x**2 - y**2))
+        * (
+            x * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+            - 4 * x * y**2 * (x**2 - y**2)
+        )
     )
     Z[35] = lambda x, y: (
         8 * x**2 * y * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
@@ -534,7 +549,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     Generates a dictionary {'h', 'w'} of parameters to be used within :meth:`deepinv.physics.blur.SpaceVaryingBlur`
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator (e.g. generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25))
-    :param int n_eigen_psf: each psf in the field of view will be a linear combination of n_eigen_psf eigen psfs 
+    :param int n_eigen_psf: each psf in the field of view will be a linear combination of n_eigen_psf eigen psfs
     :param tuple img_size: image size HxW (defaults (512, 512))
     :param tuple spacing: steps between the psfs used for interpolation (defaults (H//8, W//8))
     :param str padding: boundary conditions in (options = `valid`, `circular`, `replicate`, `reflect`), defaults `valid`

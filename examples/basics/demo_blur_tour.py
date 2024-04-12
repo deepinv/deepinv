@@ -263,7 +263,10 @@ for i in range(4):
 #
 # Space varying blurs are also available using :class:`deepinv.physics.Blur.SpaceVaryingBlur`
 
-from deepinv.physics.generator import DiffractionBlurGenerator, ProductConvolutionBlurGenerator
+from deepinv.physics.generator import (
+    DiffractionBlurGenerator,
+    ProductConvolutionBlurGenerator,
+)
 from deepinv.physics.blur import SpaceVaryingBlur
 
 psf_size = 32
@@ -279,12 +282,18 @@ psf_generator = DiffractionBlurGenerator(
     (psf_size, psf_size), device=device, dtype=dtype
 )
 # Now, scattered random psfs are synthesized and interpolated spatially
-pc_generator = ProductConvolutionBlurGenerator(psf_generator=psf_generator, img_size=img_size, n_eigen_psf=n_eigenpsf, spacing=spacing, padding=padding)
+pc_generator = ProductConvolutionBlurGenerator(
+    psf_generator=psf_generator,
+    img_size=img_size,
+    n_eigen_psf=n_eigenpsf,
+    spacing=spacing,
+    padding=padding,
+)
 params_pc = pc_generator.step(batch_size)
 
-physics = SpaceVaryingBlur(method='product_convolution2d', **params_pc)
+physics = SpaceVaryingBlur(method="product_convolution2d", **params_pc)
 
 dirac_comb = torch.zeros(img_size)[None, None]
-dirac_comb[0,0,::delta,::delta] = 1
+dirac_comb[0, 0, ::delta, ::delta] = 1
 psf_grid = physics(dirac_comb)
 plot(psf_grid, titles="Space varying impulse responses")
