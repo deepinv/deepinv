@@ -35,10 +35,10 @@ class DataFidelity(nn.Module):
         >>> data_fidelity(x, y, physics)
         tensor([1.0000])
         >>> # Compute the gradient of :math:`f`
-        >>> grad = data_fidelity.grad(x, y, physics)  # print(grad) gives tensor([[[2.0000], [0.5000]]])
+        >>> grad = data_fidelity.grad(x, y, physics) )
         >>>
         >>> # Compute the proximity operator of :math:`f`
-        >>> prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print(prox) gives tensor([[[0.6000], [3.6000]]])
+        >>> prox = data_fidelity.prox(x, y, physics, gamma=1.0)
 
     .. warning::
         All variables have a batch dimension as first dimension.
