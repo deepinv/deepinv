@@ -30,6 +30,7 @@ We provide some basic plotting functions that are adapted to inverse problems.
         deepinv.utils.plot
         deepinv.utils.plot_curves
         deepinv.utils.plot_parameters
+        deepinv.utils.plot_inset
 
 
 TensorList
