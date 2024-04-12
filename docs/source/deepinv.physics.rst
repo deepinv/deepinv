@@ -28,7 +28,7 @@ All forward operators inherit the structure of the ``Physics`` class.
 
 Operators can be called with the ``forward`` method, for example
 
-.. exec_code::
+.. doctest::
 
     import torch
     import deepinv as dinv
@@ -66,7 +66,7 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
-.. exec_code::
+.. doctest::
 
     import torch
     import deepinv as dinv
@@ -125,7 +125,7 @@ Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.
 The noise of a forward operator can be set in its construction
 or simply as
 
-.. exec_code::
+.. doctest::
 
     import torch
     import deepinv as dinv

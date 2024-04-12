@@ -17,7 +17,7 @@ from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
+from deepinv.training import test
 from torchvision import transforms
 from deepinv.optim.dpir import get_DPIR_params
 from deepinv.utils.demo import load_dataset, load_degradation

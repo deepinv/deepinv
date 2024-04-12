@@ -18,7 +18,7 @@ from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import DEQ_builder
-from deepinv.training_utils import train, test
+from deepinv.training import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
@@ -194,20 +194,23 @@ test_dataloader = DataLoader(
 # -----------------
 # We train the network using the library's train function.
 
-train(
+trainer = dinv.Trainer(
     model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    physics=physics,
     epochs=epochs,
     scheduler=scheduler,
-    losses=losses,
-    physics=physics,
-    optimizer=optimizer,
     device=device,
+    losses=losses,
+    optimizer=optimizer,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
+
+model = trainer.train()
 
 # %%
 # Test the network
@@ -215,19 +218,4 @@ train(
 #
 #
 
-method = "DEQ_HQS"
-save_folder = RESULTS_DIR / method / operation
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = True  # plot images. Images are saved in save_folder.
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_metrics=True,
-    plot_images=plot_images,
-    save_folder=save_folder,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(test_dataloader)

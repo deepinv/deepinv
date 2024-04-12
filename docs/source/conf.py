@@ -24,12 +24,12 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.doctest",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    "sphinx_exec_code",
+    "sphinx_copybutton",
 ]
 
-exec_code_working_dir = "../.."
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),

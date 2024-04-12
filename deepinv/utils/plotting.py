@@ -114,7 +114,8 @@ def plot(
 
     Example usage:
 
-    ::
+    .. doctest::
+
         import torch
         from deepinv.utils import plot
         img = torch.rand(4, 3, 256, 256)
@@ -122,7 +123,7 @@ def plot(
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param str save_dir: path to save the plot.
+    :param None, str, Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
@@ -306,6 +307,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param str, Path save_dir: the directory where to save the plot. Defaults to ``None``.
     :param show bool: whether to show the plot. Defaults to ``True``.
     """
+
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
 
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 

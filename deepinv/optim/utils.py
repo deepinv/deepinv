@@ -1,3 +1,4 @@
+import deepinv.utils
 from deepinv.utils import zeros_like
 import torch
 from tqdm import tqdm
@@ -43,8 +44,13 @@ def conjugate_gradient(A, b, max_iter=1e2, tol=1e-5):
 
     """
 
-    def dot(s1, s2):
-        dot = (s1.conj() * s2).flatten().sum()
+    def dot(a, b):
+        dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=False)
+        if isinstance(dot, deepinv.utils.TensorList):
+            aux = 0
+            for d in dot:
+                aux += d
+            dot = aux
         return dot
 
     x = zeros_like(b)

@@ -6,6 +6,28 @@ Loss
 This package contains popular training losses for supervised and self-supervised learning,
 which are especially designed for inverse problems.
 
+Introduction
+--------------------
+All losses inherit from the base class :meth:`deepinv.loss.Loss`, which is a meth:`torch.nn.Module`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.Loss
+
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> loss = dinv.loss.SureGaussianLoss(.1)
+    >>> physics = dinv.physics.Denoising()
+    >>> x = torch.ones(1, 3, 16, 16)
+    >>> y = physics(x)
+    >>> model = dinv.models.DnCNN()
+    >>> loss(x_net=model(y), y=y, physics=physics) # self-supervised loss, doesn't require ground truth x
 
 Supervised Learning
 --------------------
@@ -42,6 +64,21 @@ about the forward measurement process.
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
 
+Metrics
+--------
+Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.loss.PSNR
+        deepinv.loss.SSIM
+        deepinv.loss.LPIPS
+        deepinv.loss.NIQE
+
+
 Transforms
 ^^^^^^^^^^
 
@@ -69,9 +106,9 @@ These losses can be used to regularize the learned function, e.g., controlling i
     deepinv.loss.FNEJacobianSpectralNorm
 
 
-Metrics
+Utils
 -------
-A set of popular metrics that can be used by the supervised and self-supervised losses.
+A set of popular distances that can be used by the supervised and self-supervised losses.
 
 .. autosummary::
    :toctree: stubs
@@ -79,4 +116,3 @@ A set of popular metrics that can be used by the supervised and self-supervised 
    :nosignatures:
 
     deepinv.loss.LpNorm
-    deepinv.loss.CharbonnierLoss

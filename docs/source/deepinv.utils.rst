@@ -6,7 +6,17 @@ Utils
 
 Training and Testing
 --------------------
-Functions to train and test the model, and save the model and the results.
+Training a reconstruction model can be done using the Trainer class, which can be easily customized
+to fit your needs.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.Trainer
+
+We also provide train and test functions that can be used to train and test a model with a single call.
 
 .. autosummary::
    :toctree: stubs
@@ -15,7 +25,6 @@ Functions to train and test the model, and save the model and the results.
 
         deepinv.train
         deepinv.test
-        deepinv.training_utils.train_normalizing_flow
 
 
 Plotting
@@ -73,4 +82,3 @@ Other
         deepinv.utils.cal_psnr
         deepinv.utils.get_freer_gpu
         deepinv.utils.load_url_image
-
