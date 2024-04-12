@@ -59,7 +59,6 @@ class BaseUnfold(BaseOptim):
         *args,
         **kwargs,
     ):
-
         super().__init__(
             iterator,
             max_iter=max_iter,

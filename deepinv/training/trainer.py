@@ -171,7 +171,9 @@ class Trainer:
         self.eval_metrics_history = {}
         self.G = len(self.train_dataloader)
 
-        if (self.wandb_setup is not None or self.wandb_setup != {}) and not self.wandb_vis:
+        if (
+            self.wandb_setup is not None or self.wandb_setup != {}
+        ) and not self.wandb_vis:
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
