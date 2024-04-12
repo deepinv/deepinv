@@ -9,7 +9,6 @@ from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
     filter_fft_2d,
-    downsample,
     product_convolution2d,
     product_convolution2d_adjoint,
 )
@@ -404,7 +403,7 @@ class BlurFFT(DecomposablePhysics):
 
 
 class SpaceVaryingBlur(LinearPhysics):
-    """
+    r"""
 
     Implements a space varying blur, that is an integral operator of the form:
 
@@ -427,6 +426,8 @@ class SpaceVaryingBlur(LinearPhysics):
 
         >>> from deepinv.physics.generator import DiffractionBlurGenerator, ProductConvolutionBlurGenerator
         >>> from deepinv.physics.blur import SpaceVaryingBlur
+        >>> from deepinv.utils.plotting import plot
+
         >>> psf_size = 32
         >>> img_size = (256, 256)
         >>> delta = 16
@@ -456,7 +457,6 @@ class SpaceVaryingBlur(LinearPhysics):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    # h=None, w=None, padding="valid"
     def A(self, x: Tensor, **kwargs) -> Tensor:
         if self.method == "product_convolution2d":
             if "w" in kwargs.keys():
@@ -470,7 +470,6 @@ class SpaceVaryingBlur(LinearPhysics):
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    # h=None, w=None, padding="valid"
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         if self.method == "product_convolution2d":
             if "w" in kwargs.keys():
