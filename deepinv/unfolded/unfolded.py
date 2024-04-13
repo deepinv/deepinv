@@ -17,7 +17,7 @@ class BaseUnfold(BaseOptim):
         x_{k+1} &= \operatorname{step}_g(x_k, z_k, y, A, \lambda, \sigma, ...)
         \end{aligned}
 
-    where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are learnable modules. 
+    where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are learnable modules.
     These modules encompass trainable parameters of the algorithm (e.g. stepsize :math:`\gamma`, regularization parameter :math:`\lambda`, prior parameter (`g_param`) :math:`\sigma` ...)
     as well as trainable priors (e.g. a deep denoiser).
 
@@ -136,12 +136,12 @@ def unfolded_builder(
         >>> model = dinv.unfolded.unfolded_builder(
         ...     iteration="PGD",
         ...     data_fidelity=dinv.optim.L2(),
-        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(train=True)),
+        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1, train=True)),
         ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
         ...     trainable_params=["stepsize", "g_param"]
         ... )
         >>> # Forward pass
-        >>> x = torch.randn(1, 3, 16, 16)
+        >>> x = torch.randn(1, 1, 16, 16)
         >>> physics = dinv.physics.Denoising()
         >>> y = physics(x)
         >>> x_hat = model(y, physics)

@@ -33,7 +33,6 @@ extensions = [
 
 autoapi_dirs = ["../../deepinv"]
 
-
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
     "torch": ("https://docs.pytorch.org/2.0/", None),

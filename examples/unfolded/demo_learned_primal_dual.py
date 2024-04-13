@@ -18,8 +18,6 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
-from torchvision import transforms
 from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
@@ -175,7 +173,7 @@ learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
 test_batch_size = 1
-n_iter_training = int(1e5) if torch.cuda.is_available() else 1000
+n_iter_training = int(1e4) if torch.cuda.is_available() else 100
 n_data = 1  # number of channels in the input
 n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space
@@ -240,21 +238,30 @@ test_dataloader = DataLoader(
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+method = "learned primal-dual"
+save_folder = RESULTS_DIR / method / operation
+plot_images = True  # plot images. Images are saved in save_folder.
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR and shown in wandb.
+
+
+trainer = dinv.Trainer(
+    model,
+    physics=physics,
+    losses=losses,
+    optimizer=optimizer,
     epochs=epochs,
     scheduler=scheduler,
-    losses=losses,
-    physics=physics,
-    optimizer=optimizer,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
     device=device,
+    online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
-    online_measurements=True,
 )
+
+model = trainer.train()
 
 # %%
 # Test the network
@@ -262,20 +269,4 @@ train(
 #
 #
 
-method = "learned primal-dual"
-save_folder = RESULTS_DIR / method / operation
-plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR and shown in wandb.
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=save_folder,
-    verbose=verbose,
-    plot_metrics=plot_metrics,
-    wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
-    online_measurements=True,
-)
+trainer.test(test_dataloader)

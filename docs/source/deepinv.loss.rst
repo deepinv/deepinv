@@ -66,6 +66,7 @@ about the forward measurement process.
 
 Metrics
 --------
+Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.
 
 .. autosummary::
    :toctree: stubs
@@ -105,9 +106,9 @@ These losses can be used to regularize the learned function, e.g., controlling i
     deepinv.loss.FNEJacobianSpectralNorm
 
 
-Metrics
+Utils
 -------
-A set of popular metrics that can be used by the supervised and self-supervised losses.
+A set of popular distances that can be used by the supervised and self-supervised losses.
 
 .. autosummary::
    :toctree: stubs
@@ -115,4 +116,3 @@ A set of popular metrics that can be used by the supervised and self-supervised 
    :nosignatures:
 
     deepinv.loss.LpNorm
-    deepinv.loss.CharbonnierLoss

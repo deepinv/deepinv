@@ -17,7 +17,6 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
 
 # %%
 # Setup paths for data loading and results.
@@ -187,7 +186,6 @@ model = unfolded_builder(
 # number of epochs, optimizer (Adam) and its hyperparameters, and the train and test batch sizes.
 #
 
-
 # Training parameters
 epochs = 5 if torch.cuda.is_available() else 3
 learning_rate = 0.01
@@ -220,19 +218,22 @@ test_dataloader = DataLoader(
 # We train the network using the library's train function.
 #
 
-train(
-    model=model,
+trainer = dinv.Trainer(
+    model,
+    physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
+
+model = trainer.train()
 
 # %%
 # Test the network.
@@ -243,24 +244,13 @@ train(
 # and `GT` shows the ground truth.
 #
 
-plot_images = True
-method = "unfolded_pgd"
 
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(test_dataloader)
 
 
 # %%
 # Plotting the learned parameters.
 # ------------------------------------
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )
