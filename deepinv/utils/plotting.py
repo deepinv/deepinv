@@ -18,7 +18,6 @@ def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
-
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
@@ -184,7 +183,8 @@ def plot(
     )
 
     if suptitle:
-        plt.suptitle(suptitle)
+        plt.suptitle(suptitle, size=12)
+        fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
@@ -243,7 +243,7 @@ def plot_curves(metrics, save_dir=None, show=True):
                 log_scale = False
             elif metric_name == "cost":
                 label = r"$F(x_k)$" if plt.rcParams["text.usetex"] else "F"
-                log_scale = True
+                log_scale = False
             else:
                 label = metric_name
                 log_scale = False
