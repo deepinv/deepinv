@@ -19,7 +19,7 @@ term :math:`\regname:\xset\mapsto \mathbb{R}_{+}` acts as a regularization and
 between the data :math:`y` and the forward operator :math:`A` applied to the variable :math:`x`, as
 
 .. math::
-    \datafid{x}{y} = \distance{Ax}{y}
+    \datafid{x}{y} = \distance{A(x)}{y}
 
 where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
 operator (see :meth:`deepinv.physics.Physics`)
@@ -66,7 +66,7 @@ for all optimization algorithms.
 
 Data Fidelity
 -------------
-This is the base class for the data fidelity term :math:`\distance{Ax}{y}` where :math:`A` is a linear operator,
+This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
 :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a convex function.
 
 This class comes with methods, such as :math:`\operatorname{prox}_{\distancename\circ A}` and
@@ -83,6 +83,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
    deepinv.optim.LogPoissonLikelihood
+   deepinv.optim.AmplitudeLoss
 
 
 .. _priors:
@@ -207,6 +208,7 @@ The following files contain the base classes for implementing generic optimizers
    deepinv.optim.optim_iterators.ADMMIteration
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
+   deepinv.optim.optim_iterators.SMIteration
 
 
 Utils

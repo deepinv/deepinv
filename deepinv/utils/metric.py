@@ -15,11 +15,13 @@ def cal_angle(a, b):
     return angle.detach().cpu().numpy()
 
 
-
-
 def cal_psnr(
-    a: torch.Tensor, b: torch.Tensor, max_pixel: float = 1.0, normalize: bool = False,
-        mean_batch: bool = True, to_numpy: bool = True
+    a: torch.Tensor,
+    b: torch.Tensor,
+    max_pixel: float = 1.0,
+    normalize: bool = False,
+    mean_batch: bool = True,
+    to_numpy: bool = True,
 ):
     r"""
     Computes the peak signal-to-noise ratio (PSNR)
@@ -50,8 +52,6 @@ def cal_psnr(
             an = a
 
         mse = (an - b).pow(2).mean(dim=tuple(range(1, an.ndim)), keepdim=False)
-        # mse[mse == 0] = 1e-10
-        # psnr = 20 * torch.log10(max_pixel / mse.sqrt())
         psnr = -10.0 * torch.log10(mse / max_pixel**2 + 1e-8)
 
     if mean_batch:

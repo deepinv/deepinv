@@ -271,8 +271,8 @@ class LogPoissonNoise(torch.nn.Module):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0):
         super().__init__()
-        self.mu = torch.nn.Parameter(torch.tensor(mu))
-        self.N0 = torch.nn.Parameter(torch.tensor(N0))
+        self.mu = torch.nn.Parameter(torch.tensor(mu), requires_grad=False)
+        self.N0 = torch.nn.Parameter(torch.tensor(N0), requires_grad=False)
 
     def forward(self, x, mu=None, N0=None, **kwargs):
         r"""

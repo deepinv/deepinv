@@ -9,9 +9,8 @@ from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
     filter_fft_2d,
-    downsample,
-    product_convolution,
-    product_convolution_adjoint,
+    product_convolution2d,
+    product_convolution2d_adjoint,
 )
 
 
@@ -136,17 +135,13 @@ class Downsampling(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.factor = factor
-        assert isinstance(
-            factor, int
-        ), "downsampling factor should be an integer"
+        assert isinstance(factor, int), "downsampling factor should be an integer"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(device)
         if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
-                device
-            )
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
         elif filter is None:
             self.filter = filter
         elif filter == "gaussian":
@@ -165,9 +160,7 @@ class Downsampling(LinearPhysics):
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(
-                device
-            )
+            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
@@ -182,7 +175,7 @@ class Downsampling(LinearPhysics):
             If not ``None``, it uses this filter and stores it as the current filter.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(filter))
+            self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -200,7 +193,7 @@ class Downsampling(LinearPhysics):
             If not ``None``, it uses this filter and stores it as the current filter.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(filter))
+            self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
 
         x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
@@ -233,12 +226,8 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = (
-                torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
-            )
-            rc = self.Fhc * (top / below).repeat(
-                1, 1, self.factor, self.factor
-            )
+            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
+            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
@@ -260,7 +249,7 @@ class Blur(LinearPhysics):
 
     :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image.
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``)
     :param str device: cpu or cuda.
 
 
@@ -283,16 +272,17 @@ class Blur(LinearPhysics):
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
-        tensor([[[[0.0000, 0.0000, 0.0000],
-                  [0.0000, 0.2500, 0.2500],
-                  [0.0000, 0.2500, 0.2500]]]])
+        tensor([[[[0.2500, 0.2500, 0.0000],
+                  [0.2500, 0.2500, 0.0000],
+                  [0.0000, 0.0000, 0.0000]]]])
 
     """
 
-    def __init__(self, filter, padding="circular", device="cpu", **kwargs):
+    def __init__(self, filter=None, padding="valid", device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
-        self.filter = filter.to(device)
+        if filter is not None:
+            self.filter = filter.to(device)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -339,7 +329,7 @@ class BlurFFT(DecomposablePhysics):
 
 
     :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.Tensor filter: torch.Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g.,
+    :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str device: cpu or cuda
 
@@ -356,11 +346,11 @@ class BlurFFT(DecomposablePhysics):
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
         >>> physics = BlurFFT(filter=filter, img_size=(1, 1, 16, 16))
         >>> y = physics(x)
+        >>> y[y<1e-5] = 0.
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
-        tensor([[[[ 2.5000e-01,  2.5000e-01, -3.1177e-10],
-                  [ 2.5000e-01,  2.5000e-01, -7.1280e-10],
-                  [-7.5937e-10, -5.4986e-10,  3.9221e-10]]]])
-
+        tensor([[[[0.2500, 0.2500, 0.0000],
+                  [0.2500, 0.2500, 0.0000],
+                  [0.0000, 0.0000, 0.0000]]]])
     """
 
     def __init__(self, img_size, filter, device="cpu", **kwargs):
@@ -372,9 +362,7 @@ class BlurFFT(DecomposablePhysics):
     def set_mask(self, filter):
         if self.img_size[0] > filter.shape[1]:
             filter = filter.repeat(1, self.img_size[0], 1, 1)
-        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
-            self.device
-        )
+        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
 
         mask = filter_fft_2d(filter, self.img_size).to(self.device)
         self.angle = torch.angle(mask)
@@ -411,37 +399,54 @@ class BlurFFT(DecomposablePhysics):
         )  # make it a true SVD (see J. Romberg notes)
 
     def V(self, x):
-        return fft.irfft2(
-            torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:]
-        )
+        return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
 
 
 class SpaceVaryingBlur(LinearPhysics):
-    """
+    r"""
 
-    Implements a space varying blur
-    It implements general integral operator of the form
+    Implements a space varying blur, that is an integral operator of the form:
 
     .. math:: y(s) = \int k(s,t) x(t) \,dt
 
-    where :math:`k` is an integral kernel. Expressed as above, this is an arbitrary operator which cannot be computed efficiently.
-    Efficient methods are available if :math:`k` is sufficiently smooth.
+    where :math:`k` is an integral kernel.
+    Expressed as above, this is an arbitrary linear operator which cannot be computed efficiently.
+    Efficient methods including product-convolution expansions and hierarchical matrices are available if :math:`k` is sufficiently smooth and concentrated around the diagonal.
 
     :param str method: method 'product_convolution'
     :param list params: list of parameters describing the method.
-        'product_convolution': params is a list [w, h, params], see deepinv.physics.functional.product_convolution
+        'product_convolution2d': params is a list [w, h, params], see deepinv.physics.functional.product_convolution
     :param str device: cpu or cuda
 
     |sep|
 
     :Examples:
 
+        We show how to instantiate a spatially varying blur operator.
+
+        >>> from deepinv.physics.generator import DiffractionBlurGenerator, ProductConvolutionBlurGenerator
+        >>> from deepinv.physics.blur import SpaceVaryingBlur
+        >>> from deepinv.utils.plotting import plot
+
+        >>> psf_size = 32
+        >>> img_size = (256, 256)
+        >>> delta = 16
+        >>> psf_generator = DiffractionBlurGenerator((psf_size, psf_size))
+        >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator=psf_generator, img_size=img_size)
+        >>> params_pc = pc_generator.step(1)
+        >>> physics = SpaceVaryingBlur(method='product_convolution2d', **params_pc)
+
+        >>> dirac_comb = torch.zeros(img_size)[None, None]
+        >>> dirac_comb[0,0,::delta,::delta] = 1
+        >>> psf_grid = physics(dirac_comb)
+        >>> plot(psf_grid, titles="Space varying impulse responses")
+
     """
 
     def __init__(self, method, **kwargs):
         super().__init__(**kwargs)
         self.method = method
-        if self.method == "product_convolution":
+        if self.method == "product_convolution2d":
             keylist = ["w", "h"]
             for key in keylist:
                 if key not in kwargs.keys():
@@ -452,9 +457,8 @@ class SpaceVaryingBlur(LinearPhysics):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    # h=None, w=None, padding="valid"
     def A(self, x: Tensor, **kwargs) -> Tensor:
-        if self.method == "product_convolution":
+        if self.method == "product_convolution2d":
             if "w" in kwargs.keys():
                 self.w = kwargs["w"]
             if "h" in kwargs.keys():
@@ -462,15 +466,12 @@ class SpaceVaryingBlur(LinearPhysics):
             if "padding" in kwargs.keys():
                 self.padding = kwargs["padding"]
 
-            return product_convolution(x, self.w, self.h, self.padding)
+            return product_convolution2d(x, self.w, self.h, self.padding)
         else:
-            raise NotImplementedError(
-                "Method not implemented in product-convolution"
-            )
+            raise NotImplementedError("Method not implemented in product-convolution")
 
-    # h=None, w=None, padding="valid"
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
-        if self.method == "product_convolution":
+        if self.method == "product_convolution2d":
             if "w" in kwargs.keys():
                 self.w = kwargs["w"]
             if "h" in kwargs.keys():
@@ -478,25 +479,6 @@ class SpaceVaryingBlur(LinearPhysics):
             if "padding" in kwargs.keys():
                 self.padding = kwargs["padding"]
 
-            return product_convolution_adjoint(y, self.w, self.h, self.padding)
+            return product_convolution2d_adjoint(y, self.w, self.h, self.padding)
         else:
-            raise NotImplementedError(
-                "Method not implemented in product-convolution"
-            )
-
-
-# # test code
-if __name__ == "__main__":
-    # %%
-    import deepinv as dinv
-    from deepinv.utils.plotting import plot
-    from deepinv.utils.demo import load_url_image, get_image_url
-    from deepinv.physics.generator.blur import (
-        DiffractionBlurGenerator,
-        MotionBlurGenerator,
-    )
-    from deepinv.physics.functional.interp import ThinPlateSpline
-    from deepinv.physics.blur import SpaceVaryingBlur
-
-    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    dtype = torch.float32
+            raise NotImplementedError("Method not implemented in product-convolution")

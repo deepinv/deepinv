@@ -3,6 +3,7 @@ import csv
 from datetime import datetime
 import numpy as np
 
+
 # utils
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -24,16 +25,16 @@ class AverageMeter(object):
         if isinstance(val, np.ndarray):
             self.val = np.mean(val)
             self.sum += np.sum(val) * n
-            self.sum2 += np.sum(val ** 2) * n
+            self.sum2 += np.sum(val**2) * n
             self.count += n * np.prod(val.shape)
         else:
             self.val = val
             self.sum += val * n
-            self.sum2 += val ** 2 * n
+            self.sum2 += val**2 * n
             self.count += n * val
 
         self.avg = self.sum / self.count
-        self.std = (self.sum2 / self.count - self.avg ** 2) ** 0.5
+        self.std = (self.sum2 / self.count - self.avg**2) ** 0.5
 
     def __str__(self):
         fmtstr = "{name}={avg" + self.fmt + "}"

@@ -39,7 +39,7 @@ class OptimIterator(nn.Module):
     :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
      """
 
-    def __init__(self, g_first=False, F_fn=None, has_cost=False):
+    def __init__(self, g_first=False, F_fn=None, has_cost=False, **kwargs):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
         self.F_fn = F_fn

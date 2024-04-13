@@ -4,7 +4,8 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 from typing import Callable
 
-def adjoint_function(A, input_size, device="cpu"):
+
+def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     r"""
     Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
 
@@ -29,13 +30,13 @@ def adjoint_function(A, input_size, device="cpu"):
     :return: (Callable) function that computes the adjoint of :math:`A`.
 
     """
-    x = torch.ones(input_size, device=device)
+    x = torch.ones(input_size, device=device, dtype=dtype)
     (_, vjpfunc) = torch.func.vjp(A, x)
     batches = x.size()[0]
 
     def adjoint(y):
         if y.size()[0] < batches:
-            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device)
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
             y2[: y.size()[0], ...] = y
             return vjpfunc(y2)[0][: y.size()[0], ...]
         elif y.size()[0] > batches:
@@ -132,7 +133,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
                 self.noise2 = noise2
 
             def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(self.noise2(x[-1], **kwargs))
+                return TensorList(self.noise1(x[:-1], **kwargs)).append(
+                    self.noise2(x[-1], **kwargs)
+                )
 
         class sensor(torch.nn.Module):
             def __init__(self, sensor1, sensor2):
@@ -199,9 +202,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def A_dagger(self, y, x_init=None):
         r"""
-        Computes an inverse of :math:`y = Ax` via gradient descent.
+        Computes an inverse as:
 
-        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
+        .. math::
+
+            x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
+
+        This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
         :param torch.Tensor x_init: initial guess for the reconstruction.
@@ -212,19 +219,34 @@ class Physics(torch.nn.Module):  # parent class for forward models
         if x_init is None:
             x_init = self.A_adjoint(y)
 
-        x = torch.nn.Parameter(x_init, requires_grad=True)
+        x = x_init
 
-        optimizer = torch.optim.SGD([x], lr=1e-1)
+        lr = 1e-1
         loss = torch.nn.MSELoss()
-        for i in range(self.max_iter):
+        for _ in range(self.max_iter):
+            x = x - lr * self.A_vjp(x, self.A(x) - y)
             err = loss(self.A(x), y)
-            optimizer.zero_grad()
-            err.backward(retain_graph=True)
-            optimizer.step()
             if err < self.tol:
                 break
 
         return x.clone()
+
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
+
+        .. math::
+
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
+
+        By default, the Jacobian is computed using automatic differentiation.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
+        """
+        _, vjpfunc = torch.func.vjp(self.A, x)
+        return vjpfunc(v)[0]
 
 
 class LinearPhysics(Physics):
@@ -271,16 +293,16 @@ class LinearPhysics(Physics):
         >>> from deepinv.physics.blur import Blur, Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
-        >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-        >>> physics = Blur(params=w)
+        >>> w = torch.ones((1, 1, 3, 3)) / 9 # Basic 3x3 averaging filter
+        >>> physics = Blur(filter=w)
         >>> y = physics(x)
 
         Linear operators can also be added. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator:
 
-        >>> physics1 = Blur(params=w)
-        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), params="gaussian", factor=4)
+        >>> physics1 = Blur(filter=w)
+        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
         >>> physics = physics1 + physics2
         >>> y = physics(x)
 
@@ -293,7 +315,7 @@ class LinearPhysics(Physics):
 
         >>> from deepinv.utils import cal_psnr
         >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
-        >>> physics = Blur(params=w)
+        >>> physics = Blur(filter=w, padding='circular')
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
@@ -350,6 +372,20 @@ class LinearPhysics(Physics):
         """
 
         return self.A_adj(y, **kwargs)
+
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
+
+        .. math::
+
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
+        """
+        return self.A_adjoint(v)
 
     def __mul__(self, other):
         r"""
@@ -446,7 +482,7 @@ class LinearPhysics(Physics):
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
 
-        :returns z: (float) spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
+        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.
         """
         x = torch.randn_like(x0)
         x /= torch.norm(x)
@@ -454,7 +490,7 @@ class LinearPhysics(Physics):
         for it in range(max_iter):
             y = self.A(x)
             y = self.A_adjoint(y)
-            z = torch.matmul(x.reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
             if rel_var < tol and verbose:
@@ -465,7 +501,7 @@ class LinearPhysics(Physics):
             zold = z
             x = y / torch.norm(y)
 
-        return z
+        return z.real
 
     def adjointness_test(self, u):
         r"""
@@ -484,17 +520,17 @@ class LinearPhysics(Physics):
             Atv = self.A_adjoint(V)
             s1 = 0
             for au, v in zip(Au, V):
-                s1 += (v * au).flatten().sum()
+                s1 += (v.conj() * au).flatten().sum()
 
         else:
             v = randn_like(Au)
             Atv = self.A_adjoint(v)
 
-            s1 = (v * Au).flatten().sum()
+            s1 = (v.conj() * Au).flatten().sum()
 
-        s2 = (Atv * u_in).flatten().sum()
+        s2 = (Atv * u_in.conj()).flatten().sum()
 
-        return s1 - s2
+        return s1.conj() - s2
 
     def prox_l2(self, z, y, gamma):
         r"""
@@ -589,7 +625,8 @@ class DecomposablePhysics(LinearPhysics):
         Apply the operator to a random tensor:
 
         >>> x = torch.randn(tensor_size)
-        >>> physics.A(x)  # Apply the masking
+        >>> with torch.no_grad():
+        ...     physics.A(x)  # Apply the masking
         tensor([[[[ 1.5410, -0.0000, -2.1788],
                   [ 0.5684, -0.0000, -1.3986],
                   [ 0.4033,  0.0000, -0.7193]]]])
@@ -610,7 +647,10 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = torch.nn.Parameter(torch.tensor(mask))
+        self.mask = torch.nn.Parameter(
+            torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask,
+            requires_grad=False,
+        )
 
     def A(self, x, mask=None, **kwargs):
         r"""
@@ -625,7 +665,7 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(mask)
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -722,7 +762,8 @@ class Denoising(DecomposablePhysics):
         >>> x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise(sigma=0.1)
-        >>> physics(x)
+        >>> with torch.no_grad():
+        ...     physics(x)
         tensor([[[[ 0.7302, -0.2064, -1.0712],
                   [ 0.1985, -0.4322, -0.8064],
                   [ 0.2139,  0.3624, -0.3223]]]])

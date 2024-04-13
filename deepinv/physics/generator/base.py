@@ -7,38 +7,37 @@ class PhysicsGenerator(nn.Module):
     r"""
     Base class for parameter generation of physics parameters.
 
-    PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.Generator.__add__`),
-     or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
-
-    :param torch.Tensor params: parameters to be fed to a physics from :meth:`deepinv.physics.Physics`,
-        e.g., a blur filter to be used in :meth:`deepinv.physics.Blur()`.
+    PhysicsGenerators can be summed to create larger generators (see :meth:`deepinv.physics.generator.PhysicsGenerator.__add__`),
+    or mixed to create a generator that randomly selects (see :meth:`deepinv.physics.generator.GeneratorMixture`).
+    :param Callable step: a function that generates the parameters of the physics, e.g., the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with the corresponding key and value pairs.
+    :param str device: cpu or cuda
+    :param torch.dtype dtype: the data type of the generated parameters
 
     |sep|
 
     :Examples:
 
         Generating blur and noise levels:
-
+        >>> import torch
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
-        >>> generator = MotionBlurGenerator((1, 1, 3, 3)) + SigmaGenerator()
-        >>> params_dict = generator.step(batch_size=1)
+        >>> _ = torch.manual_seed(0)
+        >>> _ = torch.cuda.manual_seed(0)
 
-        Mixing two types of blur
+        We will combine two different PhysicsGenerator:
+        >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
 
-        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
-        >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
-        >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
-        >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
-        >>> params_dict = generator.step(batch_size=1)
-
+        When two PhysicsGenerator are combined using `.__add__` method, the output of the `step` function will be a dictionary which contains the merge of the two separate dictionaries:
+        >>> params_dict = generator.step(batch_size=1) # dict_keys(['filter', 'sigma'])
+        >>> print(params_dict['filter'])
+        tensor([[[[0.0000, 0.1006, 0.0000],
+                  [0.0000, 0.8994, 0.0000],
+                  [0.0000, 0.0000, 0.0000]]]])
+        >>> print(params_dict['sigma'])
+        tensor([0.1577])
     """
 
     def __init__(
-        self,
-        step=lambda **kwargs: {},
-        device="cpu",
-        dtype=torch.float32,
-        **kwargs
+        self, step=lambda **kwargs: {}, device="cpu", dtype=torch.float32, **kwargs
     ) -> None:
         super().__init__()
 
@@ -79,9 +78,9 @@ class PhysicsGenerator(nn.Module):
 
 class GeneratorMixture(PhysicsGenerator):
     r"""
-    Base class for mixing multiple generators.
+    Base class for mixing multiple generators of type :class:`PhysicsGenerator`.
 
-    :param list[Generator] generators: the generators instantiated from :meth:`deepinv.physics.Generator`.
+    :param list[PhysicsGenerator] generators: the generators instantiated from :meth:`deepinv.physics.generator.PhysicsGenerator`.
     :param list[float] probs: the probability of each generator to be used at each step
 
     |sep|
@@ -90,18 +89,15 @@ class GeneratorMixture(PhysicsGenerator):
 
         Mixing two types of blur
 
-        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
-        >>> g1 = MotionBlurGenerator((1, 1, 3, 3))
-        >>> g2 = DiffractionBlurGenerator((1, 1, 3, 3))
+        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator, GeneratorMixture
+        >>> g1 = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1)
+        >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3), num_channels = 1)
         >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
         >>> params_dict = generator.step(batch_size=1)
 
-
     """
 
-    def __init__(
-        self, generators: List[PhysicsGenerator], probs: List[float]
-    ) -> None:
+    def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
         super().__init__()
         probs = torch.tensor(probs)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
@@ -120,17 +116,3 @@ class GeneratorMixture(PhysicsGenerator):
         p = torch.rand(1).item()  # np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(batch_size, **kwargs)
-
-
-if __name__ == "__main__":
-    # %%
-
-    from deepinv.physics.generator import (
-        MotionBlurGenerator,
-        DiffractionBlurGenerator,
-    )
-
-    g1 = MotionBlurGenerator((1, 1, 3, 3))
-    g2 = DiffractionBlurGenerator((1, 1, 3, 3))
-    generator = GeneratorMixture([g1, g2], [0.5, 0.5])
-    params_dict = generator.step(batch_size=1)

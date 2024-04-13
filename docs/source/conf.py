@@ -27,8 +27,11 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    'sphinx_copybutton',
+    "sphinx_copybutton",
+    "autoapi.extension",
 ]
+
+autoapi_dirs = ["../../deepinv"]
 
 
 intersphinx_mapping = {
@@ -84,6 +87,7 @@ mathjax3_config = {
             "group": r"\mathcal{G}",
             "metric": [r"{d\left({#1},{#2}\right)}", 2],
             "loss": [r"{\mathcal\left({#1}\right)}", 1],
+            "conj": [r"{\overline{#1}^{\top}}", 1],
         },
     }
 }

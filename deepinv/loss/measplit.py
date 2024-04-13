@@ -3,6 +3,7 @@ from deepinv.physics import Inpainting
 import numpy as np
 from deepinv.loss.loss import Loss
 
+
 class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
@@ -55,8 +56,8 @@ class SplittingLoss(Loss):
             mask[..., start::stride, start::stride] = 0.0
 
         # create inpainting masks
-        inp = Inpainting(tsize, mask)
-        inp2 = Inpainting(tsize, 1 - mask)
+        inp = Inpainting(tsize, mask, device=y.device)
+        inp2 = Inpainting(tsize, 1 - mask, device=y.device)
 
         # concatenate operators
         physics1 = inp * physics  # A_1 = P*A

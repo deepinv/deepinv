@@ -29,6 +29,13 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
 
 
 def dot(a, b):
+    r"""
+    Computes the dot product between tensors `a` and `b`.
+
+    :param torch.Tensor a: tensor of shape (B, C, W, H)
+    :param torch.Tensor b: tensor of shape (B, C, W, H)
+    :return: torch.Tensor: tensor of shape (B,) containing the dot product between `a` and `b`.
+    """
     dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=True)
     return dot
 
@@ -48,11 +55,11 @@ def conjugate_gradient(
     For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
     :param (callable) A: Linear operator as a callable function, has to be square!
-    :param torch.Tensor b: input tensor
+    :param torch.Tensor b: input tensor of shape (B, C, H, W)
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
-    :return: torch.Tensor :math:`x` verifying :math:`Ax=b`.
+    :return: torch.Tensor :math:`x` of shape (B, C, H, W) verifying :math:`Ax=b`.
 
     """
 

@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from deepinv.loss.loss import Loss
 
+
 def hutch_div(y, physics, f, mc_iter=1):
     r"""
     Hutch divergence for A(f(x)).
@@ -71,7 +72,8 @@ def mc_div(y1, y, f, physics, tau):
 
 class SureGaussianLoss(Loss):
     r"""
-    SURESURE loss for Gaussian noise
+    SURE loss for Gaussian noise
+
 
     The loss is designed for the following noise model:
 
@@ -286,7 +288,9 @@ class SurePGLoss(Loss):
         loss_div1 = (
             2
             / self.tau1
-            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).reshape(y.size(0), -1).mean(1)
+            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1))
+            .reshape(y.size(0), -1)
+            .mean(1)
         )
 
         offset = -self.gain * y.reshape(y.size(0), -1).mean(1) - self.sigma2

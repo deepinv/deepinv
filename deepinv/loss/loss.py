@@ -8,6 +8,7 @@ class Loss(torch.nn.Module):
     Sets a template for the loss functions, whose forward method must follow the input parameters in
     :meth:`deepinv.loss.Loss.forward`.
     """
+
     def __init__(self):
         super(Loss, self).__init__()
 
@@ -23,4 +24,6 @@ class Loss(torch.nn.Module):
 
         :return: (torch.Tensor) loss, the tensor size might be (1,) or (batch size,).
         """
-        raise NotImplementedError("The method 'forward' must be implemented in the subclass.")
+        raise NotImplementedError(
+            "The method 'forward' must be implemented in the subclass."
+        )

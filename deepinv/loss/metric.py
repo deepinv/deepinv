@@ -27,10 +27,11 @@ class NIQE(Loss):
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     """
-    def __init__(self, device='cpu'):
+
+    def __init__(self, device="cpu"):
         super().__init__()
         check_pyiqa()
-        self.metric = pyiqa.create_metric('niqe').to(device)
+        self.metric = pyiqa.create_metric("niqe").to(device)
 
     def forward(self, x_net, **kwargs):
         r"""
@@ -51,10 +52,11 @@ class LPIPS(Loss):
     :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param str device: device to use for the metric computation. Default: 'cpu'.
     """
-    def __init__(self, train=False, device='cpu'):
+
+    def __init__(self, train=False, device="cpu"):
         super().__init__()
         check_pyiqa()
-        self.metric = pyiqa.create_metric('lpips').to(device)
+        self.metric = pyiqa.create_metric("lpips").to(device)
         self.train = train
 
     def forward(self, x, x_net, **kwargs):
@@ -66,7 +68,7 @@ class LPIPS(Loss):
         :return: torch.Tensor size (batch_size,).
         """
         loss = self.metric(x, x_net)
-        return (1-loss) if self.train else loss
+        return (1 - loss) if self.train else loss
 
 
 class SSIM(Loss):
@@ -79,13 +81,14 @@ class SSIM(Loss):
     :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param str device: device to use for the metric computation. Default: 'cpu'.
     """
-    def __init__(self, multiscale=False, train=False, device='cpu'):
+
+    def __init__(self, multiscale=False, train=False, device="cpu"):
         super().__init__()
         check_pyiqa()
         if multiscale:
-            self.metric = pyiqa.create_metric('ms-ssim').to(device)
+            self.metric = pyiqa.create_metric("ms-ssim").to(device)
         else:
-            self.metric = pyiqa.create_metric('ssim').to(device)
+            self.metric = pyiqa.create_metric("ssim").to(device)
         self.train = train
 
     def forward(self, x, x_net, **kwargs):
@@ -97,7 +100,7 @@ class SSIM(Loss):
         :return: torch.Tensor size (batch_size,).
         """
         loss = self.metric(x, x_net)
-        return (1-loss) if self.train else loss
+        return (1 - loss) if self.train else loss
 
 
 class PSNR(Loss):
@@ -115,6 +118,7 @@ class PSNR(Loss):
     :param float max_pixel: maximum pixel value
     :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
     """
+
     def __init__(self, max_pixel=1, normalize=False):
         super(PSNR, self).__init__()
         self.max_pixel = max_pixel
@@ -128,7 +132,9 @@ class PSNR(Loss):
         :param torch.Tensor x_net: reconstructed image.
         :return: torch.Tensor size (batch_size,).
         """
-        return cal_psnr(x_net, x, self.max_pixel, self.normalize, mean_batch=False, to_numpy=False)
+        return cal_psnr(
+            x_net, x, self.max_pixel, self.normalize, mean_batch=False, to_numpy=False
+        )
 
 
 class LpNorm(Loss):
@@ -253,8 +259,8 @@ def gradient_penalty_loss(discriminator, real_data, fake_data, weight=None):
 
 
 if __name__ == "__main__":
-    x = torch.rand(8, 3, 32, 32, device='cuda')
-    x_net = torch.rand(8, 3, 32, 32, device='cuda')
+    x = torch.rand(8, 3, 32, 32, device="cuda")
+    x_net = torch.rand(8, 3, 32, 32, device="cuda")
 
     loss = LPIPS(device=x.device)
     print(loss(x, x_net))

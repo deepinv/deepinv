@@ -8,7 +8,6 @@ To this end, we consider the inverse problem :math:`y = Ax+\epsilon`, where :mat
 or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sigma^2 I)` is white Gaussian noise with standard deviation :math:`\sigma`.
 """
 
-from deepinv.models import EPLLDenoiser
 from deepinv.optim import EPLL
 from deepinv.physics import GaussianNoise, Denoising, Inpainting
 from deepinv.utils import cal_psnr, plot
@@ -47,7 +46,8 @@ observation = physics(test_img)
 #
 
 # Reconstruction
-x_out = model(observation, physics, batch_size=5000)
+with torch.no_grad():
+    x_out = model(observation, physics, batch_size=5000)
 
 # PSNR computation and plots.
 psnr_obs = cal_psnr(observation, test_img)
@@ -84,7 +84,8 @@ observation = physics(test_img)
 betas = [1.0, 5.0, 10.0, 40.0, 80.0, 160.0, 320.0]
 
 # Reconstruction
-x_out = model(observation, physics, betas=betas, batch_size=5000)
+with torch.no_grad():
+    x_out = model(observation, physics, betas=betas, batch_size=5000)
 
 # PSNR computation and plots
 psnr_obs = cal_psnr(observation, test_img)

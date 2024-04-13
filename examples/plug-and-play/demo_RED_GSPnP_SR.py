@@ -21,6 +21,7 @@ from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import load_dataset, load_degradation
 
+
 # %%
 # Setup paths for data loading and results.
 # --------------------------------------------------------
@@ -105,7 +106,11 @@ batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
 
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+params_algo = {
+    "stepsize": stepsize,
+    "g_param": sigma_denoiser,
+    "lambda": lamb,
+}
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -174,15 +179,16 @@ plot_images = True  # plot images. Images are saved in save_folder.
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
-test(
-    model=model,
-    test_dataloader=dataloader,
-    physics=p,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
-    plot_metrics=plot_metrics,
-    verbose=True,
-    wandb_vis=wandb_vis,
-    plot_only_first_batch=False,  # By default only the first batch is plotted.
-)
+with torch.no_grad():
+    test(
+        model=model,
+        test_dataloader=dataloader,
+        physics=p,
+        device=device,
+        plot_images=plot_images,
+        save_folder=RESULTS_DIR / method / operation / dataset_name,
+        plot_metrics=plot_metrics,
+        verbose=True,
+        wandb_vis=wandb_vis,
+        plot_only_first_batch=False,  # By default only the first batch is plotted.
+    )

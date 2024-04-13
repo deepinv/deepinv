@@ -56,7 +56,7 @@ class Tomography(LinearPhysics):
         >>> from deepinv.physics import Tomography
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
-        >>> physics = Tomography(angles=3, image_width=4, circle=True)
+        >>> physics = Tomography(angles=3, img_width=4, circle=True)
         >>> physics(x)
         tensor([[[[ 0.1650,  1.9493,  1.9897],
                   [-0.4860,  0.7137, -1.6536],
@@ -77,9 +77,6 @@ class Tomography(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        ## I think the best would be to remove the linspace out of the function
-        ## and put it in an example. If you want fixed angles given by a number of sampling
-        ## angles between 0 and 360, just do the linspace before calling the function
         if isinstance(angles, int) or isinstance(angles, float):
             theta = torch.nn.Parameter(
                 torch.linspace(0, 180, steps=angles + 1, device=device)[:-1],

@@ -1,68 +1,82 @@
 .. _physics:
 
 Physics
-=========
-
-This package contains a large collection of forward operators appearing in imaging applications.
-
-The operators and are of the form
-
-.. math::
-
-    y = \noise{\forw{x}}
-
-where :math:`x\in\xset` is an image of :math:`n` pixels, :math:`y\in\yset` are the measurements of size :math:`m`,
-:math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) mapping capturing the physics of the acquisition
-and :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
-
-Operators are :meth:`torch.nn.Module` which can be called with the ``forward`` method, for example
-
-.. doctest::
-
-    >>> import torch
-    >>> import deepinv as dinv
-    >>>
-    >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28),
-    >>>                                          noise_model=dinv.physics.GaussianNoise(sigma=.05))
-    >>> x = torch.rand(1, 1, 28, 28) # create a random image
-    >>> y = physics(x) # compute noisy measurements
-
+=======
 
 Introduction
 ------------
 
+This package contains a large collection of forward operators appearing in imaging applications.
+The acquisition models are of the form
+
+.. math::
+
+    y = \noise{\forw{x, \theta}}
+
+where:
+
+* :math:`x\in\xset` is an image
+* :math:`y\in\yset` are the measurements
+* :math:`\theta` is an optional parameter describing the acquisition system (e.g. point spread function in optics, sampling locations in tomography or MRI)
+* :math:`A:\xset\mapsto \yset` is a deterministic (linear or non-linear) operator capturing the physics of the acquisition
+* :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
+
+This makes it possible to consider various problems including:  
+
+* Regular inverse problems: recovering :math:`x` from :math:`y` and :math:`A` 
+* Calibration problems: recovering :math:`\theta` from :math:`x` and :math:`y`
+* Blind inverse problems: recovering :math:`x` and :math:`\theta` from :math:`y`
+* Computational imaging: optimizing :math:`\theta` and the parameters of a reconstruction mapping jointly
+
+
+Operators: general concepts
+----------------------------
+
 All forward operators inherit the structure of the :class:`Physics` class.
 
 .. autosummary::
-   :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
    deepinv.physics.Physics
 
-Operators where :math:`A:\xset\mapsto \yset` is a linear mapping.
-All linear operators inherit the structure of the :class:`LinearPhysics` class.
+They are :class:`torch.nn.Module` which can be called with the ``forward`` method. 
+If the operator :math:`A` is parameterized as :math:`A(\theta)`, 
+the ``forward`` method can be called with a dictionary of parameters as an extra input.
+The following example shows how operators and their parameter can be instantiated and called
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. doctest::
 
-   deepinv.physics.LinearPhysics
+   >>> import torch
+   >>> import deepinv as dinv
+   >>>
+   >>> from deepinv.physics import Blur
+   >>> x = torch.rand((1, 1, 16, 16))
+   >>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
+   >>> # A first possibility
+   >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
+   >>> y = physics.A(x)
+   >>> 
+   >>> # A second possibilty
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> y = physics.A(x, filter=theta) # we define the blur by specifying its filter 
+   >>> y = physics.A(x) # now, the filter is well defined and this line does the same as above 
+   >>> y = physics.A(x, filter=torch.rand((1,1,2,2))) # we set and apply a random blur filter 
+   >>> y = physics.A(x) # the convolution filter is now random 
+   >>> 
+   >>> # The same can be done by passign in a dictionary including 'filter' as a key 
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> dict_params = {'filter': theta, 'dummy': None}
+   >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary 
 
-Linear operators with a closed-form singular value decomposition are defined via :class:`DecomposablePhysics`,
-which enables the efficient computation of their pseudo-inverse and proximal operators.
+Linear operators
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.DecomposablePhysics
-
-
-All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
+Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :meth:`deepinv.physics.LinearPhysics` class.
+They have important specific properties such as the existence of an adjoint :math:`A^*:\yset\mapsto \xset`. 
+Linear operators with a closed-form singular value decomposition are defined via :meth:`deepinv.physics.DecomposablePhysics`,
+which enables the efficient computation of their pseudo-inverse and regularized inverse.
+Composition and linear combinations of linear operators is still a linear operator.
 
 .. doctest::
 
@@ -76,26 +90,106 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
     >>> y2 = physics.A(x) # compute the linear operator (no noise)
     >>> x_adj = physics.A_adjoint(y) # compute the adjoint operator
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
-    >>> x_prox = physics.prox_l2(x, y, .1) # compute the prox operator
+    >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
 
-Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
-have additional methods.
-
-
-
-Generators
-^^^^^^^^^^^
-Physics generators are used to sample new parameters for the forward operator. They are useful in inverse problems
-where the forward operator is unknown or partially known, eg as in blind deconvolution, or in problems where the forward
-operator might change from image to image in a known way, eg MRI with varying acceleration masks.
+More details can be found in the doc of each class:
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.PhysicsGenerator
-   deepinv.physics.GeneratorMixture
+   deepinv.physics.LinearPhysics
+   deepinv.physics.DecomposablePhysics
+
+Non-linear operators
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Nonlinear operators :math:`A:x\mapsto A(x)` are just elements from the :meth:`deepinv.physics.Physics` class.
+Examples of non-linear operators include 
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.lidar.SinglePhotonLidar
+   deepinv.physics.haze.Haze
+
+Basic blocks (functional)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The toolbox is based on efficient PyTorch implementations of basic operations such as diagonal multipliers, Fourier transforms, convolutions, product-convolutions, Radon transform, interpolation mappings.
+Similar to the PyTorch structure, they are available within :py:mod:`deepinv.physics.functional`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.functional.conv2d
+   deepinv.physics.functional.conv_transpose2d
+   deepinv.physics.functional.conv2d_fft
+   deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d
+   deepinv.physics.functional.conv_transpose3d
+   deepinv.physics.functional.multiplier
+   deepinv.physics.functional.multiplier_adjoint
+   deepinv.physics.functional.Radon
+   deepinv.physics.functional.IRadon
+   deepinv.physics.functional.histogramdd   
+   deepinv.physics.functional.histogram
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    
+    >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
+    >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+    >>> filter = torch.ones((1, 1, 3, 3)) / 4
+    >>>
+    >>> padding = "circular"
+    >>> Ax = dinv.physics.functional.conv2d(x, filter, padding)
+    >>> print(Ax[:, :, 7:10, 7:10])
+    tensor([[[[0.2500, 0.2500, 0.0000],
+          [0.2500, 0.2500, 0.0000],
+          [0.0000, 0.0000, 0.0000]]]])
+    >>>      
+    >>> torch.manual_seed(0)
+    >>> y = torch.randn_like(Ax)
+    >>> z = dinv.physics.functional.conv_transpose2d(y, filter, padding)
+    >>> print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))
+    tensor([5.9605e-08])
+
+
+Physics Generators
+^^^^^^^^^^^^^^^^^^^
+Forward operators usually depend on parameters :math:`\theta` that describe the imaging system.
+It can represent a convolution filter for image deblurring, the Fourier sampling locations and coil sensitivities in MRI, the beam geometry in tomography,...
+Generating realistic parameters can be complex. We provide some more or less advanced parameters generation methods. 
+They can be used to describe the operator :math:`A`, but also to sample it at random during training. 
+Similary, generators can be used to change the noise distribution parameters :math:`N(\cdot)` during training.
+
+Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGenerator` class.
+
+.. autosummary::
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.PhysicsGenerator
+
+Generators currently include:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.MotionBlurGenerator
+   deepinv.physics.generator.DiffractionBlurGenerator
+   deepinv.physics.generator.AccelerationMaskGenerator
+   deepinv.physics.generator.SigmaGenerator
 
 .. doctest::
 
@@ -105,17 +199,47 @@ operator might change from image to image in a known way, eg MRI with varying ac
     >>> x = torch.rand((1, 1, 8, 8))
     >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(1))
     >>> y = physics(x) # compute with Gaussian blur
-    >>> generator = dinv.physics.generator.MotionBlurGenerator((1, 3, 3))
-    >>> kernel = generator.step(x.size(0)) # generate a motion blur kernel
+    >>> generator = dinv.physics.generator.MotionBlurGenerator(psf_size=(3, 3))
+    >>> kernel = generator.step(x.size(0)) # generate a motion blur kernel at random
     >>> y1 = physics(x, **kernel) # compute with motion blur
     >>> assert not torch.allclose(y, y1)
     >>> y2 = physics(x) # motion kernel is stored in the physics object as default kernel
     >>> assert torch.allclose(y1, y2)
 
+If at each iteration ones wants to generate both a new physics parameter and noise parameters,
+one can add the physics and noise generators as follows to sample new parameters for 
+the full forward operator :math:`N(A(x))`
+    
+.. doctest::  
+
+    >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
+    >>>    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
+    >>> params = mask_generator.step(batch_size=4)
+    >>> print(params)
+
+When training robust inverse problems solvers, it can be useful to train on multiple families of operators.
+For this case, generators can be mixed through the GeneratorMixture class that samples randomly from one of the mixed :class:`deepinv.physics.generator.PhysicsGenerator`
+object passed as input with probabilities probs
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.GeneratorMixture
+
+.. doctest::
+
+    >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator, GeneratorMixture
+    >>> g1 = MotionBlurGenerator(psf_size=(3, 3))
+    >>> g2 = DiffractionBlurGenerator(psf_size=(3, 3))
+    >>> generator = GeneratorMixture(generators=[g1, g2], probs=[0.5, 0.5])
+    >>> params_dict = generator.step(batch_size=1)    
+
 Forward operators
 --------------------
 
-Various popular forward operators are provided with state-of-the-art implementations.
+Various popular forward operators are provided with efficient implementation.
 
 Diagonal operators
 ^^^^^^^^^^^^^^^^^^
@@ -148,7 +272,6 @@ They can be stationary (convolutions) or space-varying. Also, we integrated supe
 We provide the implementation of typical blur kernels such as Gaussian, bilinear, bicubic, etc.
 
 .. autosummary::
-   :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
 
@@ -165,7 +288,6 @@ deblurring networks.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
 
@@ -254,6 +376,17 @@ Haze operators are used to capture the physics of light scattering in the atmosp
 
    deepinv.physics.Haze
 
+Phase retrieval operators
+-------------------------
+Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2` with :math:`B` a linear operator.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.PhaseRetrieval
+   deepinv.physics.RandomPhaseRetrieval
 
 Noise distributions
 --------------------------------

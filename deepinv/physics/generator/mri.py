@@ -18,11 +18,13 @@ class AccelerationMaskGenerator(PhysicsGenerator):
 
     :Examples:
 
-    >>> mask_generator = AccelerationMaskGenerator((32, 32))
-    >>> mask = mask_generator.step()
-    >>> dinv.utils.plot(mask.unsqueeze(0))
-    >>> print(mask.shape)
-    torch.Size([1, 1, 32, 32])
+    >>> from deepinv.physics.generator import AccelerationMaskGenerator
+    >>> import deepinv
+    >>> mask_generator = AccelerationMaskGenerator((16, 16))
+    >>> mask_dict = mask_generator.step() # dict_keys(['mask'])
+    >>> deepinv.utils.plot(mask_dict['mask'].squeeze(1))
+    >>> print(mask_dict['mask'].shape)
+    torch.Size([1, 2, 16, 16])
 
     """
 
@@ -36,9 +38,9 @@ class AccelerationMaskGenerator(PhysicsGenerator):
         r"""
         Create a mask of vertical lines.
 
-        :param tuple img_size: image size (H, W).
-        :param int acceleration_factor: acceleration factor.
-        :return: mask of size (H, W) with values in {0, 1}.
+        :param int batch_size: batch_size.
+        :return: dictionary with key **'mask'**: tensor of size (batch_size, 1, H, W) with values in {0, 1}.
+        :rtype: dict
         """
         img_size = self.img_size
         acceleration_factor = self.acceleration
@@ -53,7 +55,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             num_lines_center = int(central_lines_percent * img_size[-1])
             side_lines_percent = 0.125 - central_lines_percent
             num_lines_side = int(side_lines_percent * img_size[-1])
-        mask = torch.zeros((batch_size,) + img_size, device=self.device)
+        mask = torch.zeros((batch_size,) + img_size, **self.factory_kwargs)
         center_line_indices = torch.linspace(
             img_size[0] // 2 - num_lines_center // 2,
             img_size[0] // 2 + num_lines_center // 2 + 1,
@@ -69,12 +71,3 @@ class AccelerationMaskGenerator(PhysicsGenerator):
             mask[i, :, random_line_indices] = 1
 
         return {"mask": torch.cat([mask.float().unsqueeze(1)] * 2, dim=1)}
-
-
-if __name__ == "__main__":
-    import deepinv as dinv
-
-    mask_generator = AccelerationMaskGenerator((32, 32))
-    params = mask_generator.step(4)
-    dinv.utils.plot(params["mask"])
-    print(params["mask"].shape)
