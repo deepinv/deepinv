@@ -84,7 +84,7 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
         optimizer=optimizer,
         scheduler=scheduler,
         verbose=False,
-        progress_bar=False,
+        show_progress_bar=False,
         save_path=None,
         device=device,
     )
