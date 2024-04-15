@@ -72,7 +72,8 @@ def mc_div(y1, y, f, physics, tau):
 
 class SureGaussianLoss(Loss):
     r"""
-    SURESURE loss for Gaussian noise
+    SURE loss for Gaussian noise
+
 
 
     The loss is designed for the following noise model:
