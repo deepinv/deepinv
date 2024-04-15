@@ -1,21 +1,37 @@
+import numpy as np
+from tqdm import tqdm
+
 import torch.nn as nn
 from torch import Tensor
 from torch import rand
-import numpy as np
+from torch.optim import Adam
+from deepinv.physics import Physics
+from deepinv.loss import MCLoss
 
 
-# TODO all docstrings
 class PatchGANDiscriminator(nn.Module):
-    # Implementation taken from Kupyn et al., DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf
-    # Originally from pix2pix: Isola et al., Image-to-Image Translation with Conditional Adversarial Networks https://arxiv.org/abs/1611.07004
+    """PatchGAN Discriminator model originally from pix2pix: Isola et al., Image-to-Image Translation with Conditional Adversarial Networks https://arxiv.org/abs/1611.07004.
+
+    Implementation taken from Kupyn et al., DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf
+
+    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+
+    :param int input_nc: number of input channels, defaults to 3
+    :param int ndf: hidden layer size, defaults to 64
+    :param int n_layers: number of hidden conv layers, defaults to 3
+    :param bool use_sigmoid: use sigmoid activation at end, defaults to False
+    :param bool batch_norm: whether to use batch norm layers, defaults to True
+    :param bool bias: whether to use bias in conv layers, defaults to True
+    """
+
     def __init__(
         self,
-        input_nc=3,
-        ndf=64,
-        n_layers=3,
-        use_sigmoid=False,
-        batch_norm=True,
-        bias=True,
+        input_nc: int = 3,
+        ndf: int = 64,
+        n_layers: int = 3,
+        use_sigmoid: bool = False,
+        batch_norm: bool = True,
+        bias: bool = True,
     ):
         super().__init__()
 
@@ -73,9 +89,16 @@ class PatchGANDiscriminator(nn.Module):
 
 
 class ESRGANDiscriminator(nn.Module):
-    # Implementation taken from https://github.com/edongdongchen/EI/blob/main/models/discriminator.py
-    # Originally from Wang et al., ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks https://arxiv.org/abs/1809.00219
-    def __init__(self, input_shape):
+    """ESRGAN Discriminator originally from Wang et al., ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks https://arxiv.org/abs/1809.00219
+
+    Implementation taken from https://github.com/edongdongchen/EI/blob/main/models/discriminator.py
+
+    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+
+    :param tuple input_shape: shape of input image
+    """
+
+    def __init__(self, input_shape: tuple):
         super().__init__()
         self.input_shape = input_shape
         in_channels, in_height, in_width = self.input_shape
@@ -113,11 +136,58 @@ class ESRGANDiscriminator(nn.Module):
         return self.model(img)
 
 
+class DCGANDiscriminator(nn.Module):
+    """DCGAN Discriminator from Radford et al. Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks https://arxiv.org/abs/1511.06434
+    Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+
+    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+
+    :param int ndf: hidden layer size, defaults to 64
+    :param int nc: number of input channels, defaults to 3
+    """
+
+    def __init__(self, ndf: int = 64, nc: int = 3):
+        super().__init__()
+        self.model = nn.Sequential(
+            # input is ``(nc) x 64 x 64``
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. ``(ndf) x 32 x 32``
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. ``(ndf*2) x 16 x 16``
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. ``(ndf*4) x 8 x 8``
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. ``(ndf*8) x 4 x 4``
+            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, input):
+        return self.model(input)
+
+
 class DCGANGenerator(nn.Module):
-    # nz = latent dimension
-    # Radford et al. Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks https://arxiv.org/abs/1511.06434
-    # Code from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
-    def __init__(self, nz=100, ngf=64, nc=3):
+    """DCGAN Generator from Radford et al. Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks https://arxiv.org/abs/1511.06434
+
+    Unconditional generator model which takes latent samples as input.
+
+    Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+
+    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+
+    :param int nz: latent dimension, defaults to 100
+    :param int ngf: hidden layer size, defaults to 64
+    :param int nc: number of input channels, defaults to 3
+    """
+
+    def __init__(self, nz: int = 100, ngf: int = 64, nc: int = 3):
         super().__init__()
         self.nz = nz
         self.model = nn.Sequential(
@@ -143,51 +213,97 @@ class DCGANGenerator(nn.Module):
             # state size. ``(nc) x 64 x 64``
         )
 
-    def forward(self, input):
-        return self.model(input)
+    def forward(self, input, *args, **kwargs):
+        return self.model(input, *args, **kwargs)
 
 
-class AmbientDCGANGenerator(DCGANGenerator):
+class CSGMGenerator(nn.Module):
     """
-    AmbientGAN generator model using DCGAN backbone.
+    Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN:
 
-    At train time, this samples latent vector from Unif[-1, 1] and passes through DCGAN. Note this generator discards the input.
+    Bora et al., "Compressed Sensing using Generative Models", "AmbientGAN: Generative models from lossy measurements"
 
-    At test time, AmbientGAN runs an optimisation to find the best latent vector that fits the input y, then outputs the corresponding reconstruction. Note this means that test PSNR will be correct but train PSNR will be meaningless.
+    At train time, this samples latent vector from Unif[-1, 1] and passes through backbone. Note this generator discards the input.
+
+    At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input y, then outputs the corresponding reconstruction. Note this means that test PSNR will be correct but train PSNR will be meaningless.
+
+    This generator can be overridden for more advanced optimisation algorithms by overriding ``optimize_z``.
+
+    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+
+    :param nn.Module backbone_generator: any neural network that maps a latent vector of length ``nz`` to an image, must have ``nz`` attribute. Defaults to DCGANGenerator()
+    :param int inf_max_iter: maximum iterations at inference-time optimisation, defaults to 2500
+    :param float inf_tol: tolerance of inference-time optimisation, defaults to 1e-2
+    :param float inf_lr: learning rate of inference-time optimisation, defaults to 1e-2
+    :param bool inf_progress_bar: whether to display progress bar for inference-time optimisation, defaults to False
     """
 
-    def forward(self, y: Tensor, *args) -> Tensor:
-        if self.training:
-            z = rand(1, self.nz, 1, 1, device=y.device) * 2 - 1
-            return super().forward(z)
-        else:
-            z = rand(1, self.nz, 1, 1, device=y.device) * 2 - 1
-            return super().forward(z)
-
-
-class DCGANDiscriminator(nn.Module):
-    def __init__(self, ndf=64, nc=3):
+    def __init__(
+        self,
+        backbone_generator: nn.Module = DCGANGenerator(),
+        inf_max_iter: int = 2500,
+        inf_tol: float = 1e-4,
+        inf_lr: float = 1e-2,
+        inf_progress_bar: bool = False,
+    ):
         super().__init__()
-        self.model = nn.Sequential(
-            # input is ``(nc) x 64 x 64``
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf) x 32 x 32``
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf*2) x 16 x 16``
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf*4) x 8 x 8``
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf*8) x 4 x 4``
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid(),
+        self.backbone_generator = backbone_generator
+        self.inf_loss = MCLoss()
+        self.inf_max_iter = inf_max_iter
+        self.inf_tol = inf_tol
+        self.inf_lr = inf_lr
+        self.inf_progress_bar = inf_progress_bar
+
+    def random_latent(self, device, requires_grad=True) -> Tensor:
+        """Generate a latent sample to feed into generative model. The model must have an attribute `nz` which is the latent dimension."""
+        return (
+            rand(
+                1,
+                self.backbone_generator.nz,
+                1,
+                1,
+                device=device,
+                requires_grad=requires_grad,
+            )
+            * 2
+            - 1
         )
 
-    def forward(self, input):
-        return self.model(input)
+    def optimize_z(self, z: Tensor, y: Tensor, physics: Physics) -> Tensor:
+        """Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.
+
+        The optimisation is defined with simple stopping criteria. Override this function for more advanced optimisation.
+
+        :param Tensor z: initial latent variable guess
+        :param Tensor y: measurement with which to compare reconstructed image
+        :param Physics physics: forward model
+        :return Tensor: optimized z
+        """
+        z = nn.Parameter(z)
+        optimizer = Adam([z], lr=self.inf_lr)
+        err_prev = 999
+
+        for i in (
+            pbar := tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
+        ):
+            x_hat = self.backbone_generator(z)
+            error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+            optimizer.zero_grad()
+            error.backward()
+            optimizer.step()
+
+            err_curr = error.item()
+            err_perc = abs(err_curr - err_prev) / err_curr
+            err_prev = err_curr
+            pbar.set_postfix({"err_curr": err_curr, "err_perc": err_perc})
+            if err_perc < self.inf_tol:
+                break
+        return z
+
+    def forward(self, y: Tensor, physics: Physics, *args, **kwargs) -> Tensor:
+        z = self.random_latent(y.device)
+
+        if not self.training:
+            z = self.optimize_z(z, y, physics)
+
+        return self.backbone_generator(z)

@@ -48,6 +48,8 @@ class GeneratorLoss(Loss):
     For examples, see :class:`deepinv.loss.adversarial.DeblurGANGeneratorLoss`,
     :class:`deepinv.loss.adversarial.UAIRGeneratorLoss`, :class:`deepinv.loss.adversarial.AmbientGANGeneratorLoss`.
 
+    See ``deepinv.examples.adversarial_learning`` for formulae.
+
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"
     """
@@ -77,6 +79,8 @@ class DiscriminatorLoss(Loss):
     call `adversarial_loss` with quantities depending on your specific GAN model.
     For examples, see :class:`deepinv.loss.adversarial.DeblurGANDiscriminatorLoss`,
     :class:`deepinv.loss.adversarial.UAIRDiscriminatorLoss`, :class:`deepinv.loss.adversarial.AmbientGANDiscriminatorLoss`.
+
+    See ``deepinv.examples.adversarial_learning`` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"

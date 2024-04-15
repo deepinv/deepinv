@@ -19,6 +19,7 @@ from .epll import EPLLDenoiser
 from .gan import (
     PatchGANDiscriminator,
     ESRGANDiscriminator,
-    AmbientDCGANGenerator,
+    CSGMGenerator,
+    DCGANGenerator,
     DCGANDiscriminator,
 )

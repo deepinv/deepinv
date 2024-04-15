@@ -19,6 +19,7 @@ def test(
     save_folder="results",
     plot_metrics=False,
     verbose=True,
+    show_progress_bar=True,
     plot_only_first_batch=True,
     plot_measurements=True,
     **kwargs,
@@ -45,11 +46,16 @@ def test(
     :param str save_folder: Directory in which to save plotted reconstructions.
     :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
+    :param bool show_progress_bar: display progress bar when running inference.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
+    if save_folder is None:
+        plot_metrics = plot_images = False
+        save_folder = "."
+
     save_folder = Path(save_folder)
 
     model.eval()
@@ -81,7 +87,11 @@ def test(
 
         batches = len(dataloader) - int(dataloader.drop_last)
         iterator = iter(dataloader)
-        for i in (progress_bar := tqdm(range(batches), ncols=150, disable=not verbose)):
+        for i in (
+            progress_bar := tqdm(
+                range(batches), ncols=150, disable=not show_progress_bar
+            )
+        ):
             desc = f"Test operator {g + 1} out of {G}" if G > 1 else "Test "
             progress_bar.set_description(desc)
             with torch.no_grad():

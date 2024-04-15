@@ -1,20 +1,31 @@
 from dataclasses import dataclass
 from typing import Union, List
+
+import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import Module
+
 from .trainer import Trainer
 from deepinv.loss import Loss
 from deepinv.utils import AverageMeter
 
 
 class AdversarialOptimizer:
+    """Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
+
+    :param Optimizer optimizer_g: generator's torch optimizer
+    :param Optimizer optimizer_d: discriminator's torch optimizer
+    :param bool zero_grad_g_only: whether to only zero_grad generator, defaults to False
+    :param bool zero_grad_d_only: whether to only zero_grad discriminator, defaults to False
+    """
+
     def __init__(
         self,
         optimizer_g: Optimizer,
         optimizer_d: Optimizer,
-        zero_grad_g_only=False,
-        zero_grad_d_only=False,
+        zero_grad_g_only: bool = False,
+        zero_grad_d_only: bool = False,
     ):
         self.G = optimizer_g
         self.D = optimizer_d
@@ -23,15 +34,17 @@ class AdversarialOptimizer:
         self.zero_grad_d_only = zero_grad_d_only
         self.zero_grad_g_only = zero_grad_g_only
 
-    def load_state_dict(self, state_dict):
-        # TODO need to implement for both G and D
-        # will need to also override the checkpoint loading and saving in Trainer
-        return NotImplementedError()
+    def state_dict(self, *args, **kwargs):
+        """Return both generator and discriminator's state_dicts with keys "G" and "D" """
+        return {"G": self.G.state_dict(), "D": self.D.state_dict()}
 
-    def state_dict(self):
-        return self.G.state_dict()
+    def load_state_dict(self, state_dict):
+        """Load state_dict which must have "G" and "D" keys for generator and discriminator respectively"""
+        self.G.load_state_dict(state_dict["G"])
+        self.D.load_state_dict(state_dict["D"])
 
     def zero_grad(self, set_to_none: bool = True):
+        """zero_grad generator and discriminator optimizers, optionally only zero_grad one of them."""
         if not self.zero_grad_d_only:
             self.G.zero_grad(set_to_none=set_to_none)
         if not self.zero_grad_g_only:
@@ -39,6 +52,12 @@ class AdversarialOptimizer:
 
 
 class AdversarialScheduler:
+    """Scheduler for adversarial training that encapsulates both generator and discriminator's schedulers.
+
+    :param LRScheduler scheduler_g: generator's torch scheduler
+    :param LRScheduler scheduler_d: discriminator's torch scheduler
+    """
+
     def __init__(self, scheduler_g: LRScheduler, scheduler_d: LRScheduler):
         self.G = scheduler_g
         self.D = scheduler_d
@@ -54,15 +73,27 @@ class AdversarialScheduler:
 @dataclass
 class AdversarialTrainer(Trainer):
     """
-    Notes
-    - usual reconstruction model corresponds to the generator model
-    - Forward pass remains same
-    - Computes y_hat ahead of time (to avoid having to compute it in both G and D's losses) but not all adversarial losses may need this
+    Trainer class for training a reconstruction network using adversarial learning.
+
+    It overrides the :class:`deepinv.Trainer` class to provide the same functionality, whilst supporting training using adversarial losses. Note that the forward pass remains the same.
+
+    The usual reconstruction model corresponds to the generator model in an adversarial framework, which is trained using losses specified in the ``losses`` argument.
+    Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``. The adversarial losses themselves are defined in the ``deepinv.loss.adversarial`` module.
+
+    See ``deepinv.examples.adversarial_learning`` for usage.
+
+    Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times, but this is completely optional.
+
+    :param AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
+    :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
+    :param Module D: discriminator/critic/classification model, which must take in an image and return a scalar
+    :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
     """
 
     optimizer: AdversarialOptimizer
     losses_d: Union[Loss, List[Loss]] = None
     D: Module = None
+    step_ratio_D: int = 1
 
     def setup_train(self):
         """
@@ -83,11 +114,13 @@ class AdversarialTrainer(Trainer):
             for l in self.losses_d
         ]
 
+        if self.ckpt_pretrained is not None:
+            checkpoint = torch.load(self.ckpt_pretrained)
+            self.D.load_state_dict(checkpoint["state_dict_D"])
+
     def compute_loss(self, physics, x, y, train=True):
         r"""
-        Compute the loss and perform the backward pass.
-
-        It evaluates the reconstruction network, computes the losses, and performs the backward pass.
+        Compute losses and perform backward passes for both generator and discriminator networks.
 
         :param deepinv.physics.Physics physics: Current physics operator.
         :param torch.Tensor x: Ground truth.
@@ -98,7 +131,6 @@ class AdversarialTrainer(Trainer):
         """
         logs = {}
 
-        # TODO is this right place?
         self.optimizer.G.zero_grad()
 
         # Evaluate reconstruction network
@@ -107,7 +139,7 @@ class AdversarialTrainer(Trainer):
         # Compute reconstructed measurement
         y_hat = physics.A(x_net)
 
-        # Compute generator losses
+        ### Train Generator
         if train or self.display_losses_eval:
             loss_total = 0
             for k, l in enumerate(self.losses):
@@ -133,6 +165,7 @@ class AdversarialTrainer(Trainer):
                 self.logs_total_loss_train if train else self.logs_total_loss_eval
             )
             current_log.update(loss_total.item())
+
             logs[f"TotalLoss"] = current_log.avg
 
         if train:
@@ -145,39 +178,47 @@ class AdversarialTrainer(Trainer):
             # Generator optimizer step
             self.optimizer.G.step()
 
-        # Compute discriminator losses
-        if train or self.display_losses_eval:
+        ### Train Discriminator
+        for _ in range(self.step_ratio_D):
+            if train or self.display_losses_eval:
+                self.optimizer.D.zero_grad()
 
-            self.optimizer.D.zero_grad()
-
-            loss_total_d = 0
-            for k, l in enumerate(self.losses_d):
-                loss = l(
-                    x=x,
-                    x_net=x_net,
-                    y=y,
-                    y_hat=y_hat,
-                    physics=physics,
-                    model=self.model,
-                    D=self.D,
-                )
-                loss_total_d += loss.mean()
-                if len(self.losses_d) > 1 and self.verbose_individual_losses:
-                    current_log = (
-                        self.logs_losses_train[k + len(self.losses)]
-                        if train
-                        else self.logs_losses_eval[k + len(self.losses)]
+                loss_total_d = 0
+                for k, l in enumerate(self.losses_d):
+                    loss = l(
+                        x=x,
+                        x_net=x_net,
+                        y=y,
+                        y_hat=y_hat,
+                        physics=physics,
+                        model=self.model,
+                        D=self.D,
                     )
-                    current_log.update(loss.detach().cpu().numpy())
-                    cur_loss = current_log.avg
-                    logs[l.__class__.__name__] = cur_loss
+                    loss_total_d += loss.mean()
+                    if len(self.losses_d) > 1 and self.verbose_individual_losses:
+                        current_log = (
+                            self.logs_losses_train[k + len(self.losses)]
+                            if train
+                            else self.logs_losses_eval[k + len(self.losses)]
+                        )
+                        current_log.update(loss.detach().cpu().numpy())
+                        cur_loss = current_log.avg
+                        logs[l.__class__.__name__] = cur_loss
 
-        if train:
-            loss_total_d.backward()  # Backward the total discriminator loss
+            if train:
+                loss_total_d.backward()
 
-            # TODO discriminator gradient clipping
+                self.clip_grad_D()
 
-            # Discriminator optimizer step
-            self.optimizer.D.step()
+                self.optimizer.D.step()
 
         return x_net, logs
+
+    def clip_grad_D(self):
+        """Clip discriminator gradient, like how generator gradient is clipped"""
+        if self.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
+
+    def save_model(self, epoch, eval_psnr=None):
+        """Save discriminator model parameters alongside other models"""
+        super().save_model(epoch, eval_psnr, {"state_dict_D": self.D.state_dict()})

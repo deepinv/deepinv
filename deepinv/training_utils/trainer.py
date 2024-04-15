@@ -137,6 +137,7 @@ class Trainer:
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
     verbose: bool = True
+    progress_bar: bool = True
     plot_images: bool = False
     plot_metrics: bool = False
     wandb_vis: bool = False
@@ -167,7 +168,11 @@ class Trainer:
 
         self.G = len(self.train_dataloader)
 
-        if self.wandb_setup is not None and not self.wandb_vis:
+        if (
+            self.wandb_setup != {}
+            and self.wandb_setup is not None
+            and not self.wandb_vis
+        ):
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
@@ -226,6 +231,7 @@ class Trainer:
         self.epoch_start = 0
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
+            self.model.load_state_dict(checkpoint["state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer"])
             self.epoch_start = checkpoint["epoch"]
 
@@ -507,6 +513,10 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if last_batch:
+            if self.verbose and not self.progress_bar:
+                print(
+                    f"{'Train' if train else 'Eval'} epoch {epoch}: {' '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                )
             logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # Plot images
@@ -548,7 +558,7 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
-    def save_model(self, epoch, eval_psnr=None):
+    def save_model(self, epoch, eval_psnr=None, state={}):
         r"""
         Save the model.
 
@@ -556,13 +566,14 @@ class Trainer:
 
         :param int epoch: Current epoch.
         :param None, float eval_psnr: Evaluation PSNR.
+        :param dict state: custom objects to save with model
         """
         if not self.save_path:
             return
 
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
-            state = {
+            state = state | {
                 "epoch": epoch,
                 "state_dict": self.model.state_dict(),
                 "loss": self.loss_history,
@@ -604,7 +615,9 @@ class Trainer:
                 self.model.eval()
                 for i in (
                     progress_bar := tqdm(
-                        range(batches), ncols=150, disable=not self.verbose
+                        range(batches),
+                        ncols=150,
+                        disable=not self.progress_bar,
                     )
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
@@ -623,7 +636,9 @@ class Trainer:
             self.model.train()
             for i in (
                 progress_bar := tqdm(
-                    range(batches), ncols=150, disable=not self.verbose
+                    range(batches),
+                    ncols=150,
+                    disable=not self.progress_bar,
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
@@ -661,10 +676,11 @@ class Trainer:
             online_measurements=self.online_measurements,
             plot_images=self.plot_images,
             plot_metrics=self.plot_metrics,
-            save_folder=self.save_path + "/test",
+            save_folder=self.save_path + "/test" if self.save_path else None,
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
+            show_progress_bar=self.progress_bar,
         )
 
 

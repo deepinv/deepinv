@@ -69,7 +69,7 @@ Adversarial Learning
 --------------------
 Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game. 
 We implement various popular adversarial training frameworks below. Generator and discriminator networks are provided in :ref:`adversarial models <adversarial-networks>`.
-Training is implemented using :class:`deepinv.training.AdversarialTrainer` which overrides the standard :class:`deepinv.Trainer`. See examples for usage.
+Training is implemented using :class:`deepinv.training.AdversarialTrainer` which overrides the standard :class:`deepinv.Trainer`. See ``deepinv.examples.adversarial_learning`` for usage.
 
 .. autosummary::
    :toctree: stubs
@@ -78,10 +78,10 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
 
     deepinv.loss.adversarial.GeneratorLoss
     deepinv.loss.adversarial.DiscriminatorLoss
-    deepinv.loss.adversarial.AmbientGANGeneratorLoss
-    deepinv.loss.adversarial.AmbientGANDiscriminatorLoss
-    deepinv.loss.adversarial.DeblurGANGeneratorLoss
-    deepinv.loss.adversarial.DeblurGANDiscriminatorLoss
+    deepinv.loss.adversarial.SupAdversarialGeneratorLoss
+    deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss
+    deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss
+    deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
     deepinv.loss.adversarial.UAIRGeneratorLoss
     deepinv.loss.adversarial.UAIRDiscriminatorLoss
 
