@@ -200,7 +200,7 @@ def test_operators_adjointness(name, device):
     assert error < 1e-3
 
     if (
-        name == "pansharpen"
+        "pansharpen" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         return
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
