@@ -53,6 +53,10 @@ def test(
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
+    if not save_folder:
+        plot_images = plot_metrics = False
+        save_folder = "."
+
     save_folder = Path(save_folder)
 
     model.eval()

@@ -582,7 +582,7 @@ class Trainer:
 
         if not self.save_path:
             return
-        
+
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
             state = state | {
