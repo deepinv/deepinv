@@ -11,6 +11,7 @@ from typing import Union, List
 from dataclasses import dataclass, field
 from deepinv.loss import PSNR, Loss, SupLoss
 from deepinv.physics import Physics
+from deepinv.physics.generator import PhysicsGenerator
 from .testing import test
 
 
@@ -103,6 +104,9 @@ class Trainer:
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
         parameters of the forward operator or noise realizations, can change between each sample;
         the measurements are loaded from the training dataset.
+    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
+        the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
+        Should be used in conjunction with ``online_measurements=True``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
@@ -134,6 +138,7 @@ class Trainer:
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
+    physics_generator: PhysicsGenerator = None
     grad_clip: float = None
     ckp_interval: int = 1
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -176,6 +181,11 @@ class Trainer:
         ) and not self.wandb_vis:
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
+            )
+
+        if self.physics_generator is not None and not self.online_measurements:
+            warnings.warn(
+                "Physics generator is provided but online_measurements is False. Physics generator will not be used."
             )
 
         # wandb initialization
@@ -338,10 +348,13 @@ class Trainer:
             x = data
 
         x = x.to(self.device)
-
         physics = self.physics[g]
 
-        y = physics(x)
+        if self.physics_generator is not None:
+            params = self.physics_generator.step()
+            y = physics(x, **params)
+        else:
+            y = physics(x)
 
         return x, y, physics
 
