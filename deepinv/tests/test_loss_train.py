@@ -9,8 +9,8 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train
-from deepinv.training_utils import test as feature_test
+from deepinv.training import train
+from deepinv.training import test as feature_test
 
 
 def test_generate_dataset(tmp_path, imsize, device):
@@ -184,7 +184,7 @@ def test_optim_algo(name_algo, imsize, device):
 
 
 def test_train_patchnr(imsize, dummy_dataset, device):
-    from deepinv.training_utils import train_normalizing_flow
+    from deepinv.training import train_normalizing_flow
     from deepinv.datasets import PatchDataset
 
     pytest.importorskip(

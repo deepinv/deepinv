@@ -55,11 +55,11 @@ from deepinv import unfolded
 
 __all__ += ["unfolded"]
 
-from deepinv import training_utils
+from deepinv import training
 
-__all__ += ["training_utils"]
+__all__ += ["training"]
 
-from deepinv.training_utils import train, test, Trainer
+from deepinv.training import train, test, Trainer
 
 # GLOBAL PROPERTY
 dtype = torch.float

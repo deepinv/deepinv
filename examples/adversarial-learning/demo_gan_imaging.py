@@ -86,7 +86,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # example we use the Urban100 dataset resized to 64x64. For simplicity we
 # apply an isotropic Gaussian blur for demonstration, although the
 # original papers deal with inverse problems with unknown blurs.
-#
+# 
 
 physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(5, 5)))
 
@@ -94,26 +94,26 @@ download_and_extract_archive(
     "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz?download=true",
     "Urban100",
     filename="Urban100_HR.tar.gz",
-    md5="65d9d84a34b72c6f7ca1e26a12df1e4c",
+    md5="65d9d84a34b72c6f7ca1e26a12df1e4c"
 )
 
-train_dataset, test_dataset = random_split(
-    ImageFolder("Urban100", transform=Compose([ToTensor(), CenterCrop(64)])), (0.8, 0.2)
-)
+train_dataset, test_dataset = random_split(ImageFolder("Urban100", transform=Compose([ToTensor(), CenterCrop(64)])), (0.8, 0.2))
 
 dataset_path = dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
+    train_dataset= train_dataset,
+    test_dataset = test_dataset,
     physics=physics,
     device=device,
     save_dir=f"Urban100",
-)
-
+    )
+    
 train_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(dataset_path, train=True), 
+    shuffle=True
 )
 test_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(dataset_path, train=False),
+    shuffle=False
 )
 
 
@@ -124,38 +124,40 @@ test_dataloader = DataLoader(
 # discriminator from `PatchGAN <https://arxiv.org/abs/1611.07004>`__, but
 # these can be replaced with any architecture e.g transformers, unrolled
 # etc. Further discriminator models are in ``deepinv.models.gan``.
-#
-
+# 
 
 def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4):
     if model is None:
         model = dinv.models.UNet(
-            in_channels=3,
+            in_channels=3, 
             out_channels=3,
             scales=2,
             circular_padding=True,
-            batch_norm=False,
-        )
+            batch_norm=False
+            )
 
     if D is None:
-        D = dinv.models.PatchGANDiscriminator(n_layers=2, batch_norm=False)
+        D = dinv.models.PatchGANDiscriminator(
+            n_layers=2,
+            batch_norm=False
+        )
 
-    optimizer = dinv.training_utils.adversarial.AdversarialOptimizer(
+    optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=lr_g, weight_decay=1e-8),
-        torch.optim.Adam(D.parameters(), lr=lr_d, weight_decay=1e-8),
+        torch.optim.Adam(D.parameters(),     lr=lr_d, weight_decay=1e-8),
     )
-    scheduler = dinv.training_utils.adversarial.AdversarialScheduler(
+    scheduler = dinv.training.adversarial.AdversarialScheduler(
         torch.optim.lr_scheduler.StepLR(optimizer.G, step_size=5, gamma=0.9),
-        torch.optim.lr_scheduler.StepLR(optimizer.D, step_size=5, gamma=0.9),
+        torch.optim.lr_scheduler.StepLR(optimizer.D, step_size=5, gamma=0.9)
     )
-
+    
     return model, D, optimizer, scheduler
 
 
 # %%
 # Conditional GAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~
-#
+# 
 
 model, D, optimizer, scheduler = get_models()
 
@@ -164,20 +166,20 @@ model, D, optimizer, scheduler = get_models()
 # Construct pixel-wise and adversarial losses as defined above. We use the
 # MSE for the supervised pixel-wise metric for simplicity but this can be
 # easily replaced with a perceptual loss if desired.
-#
+# 
 
 loss_g = [
     dinv.loss.SupLoss(metric=torch.nn.MSELoss()),
-    adversarial.SupAdversarialGeneratorLoss(device=device),
+    adversarial.SupAdversarialGeneratorLoss(device=device)
 ]
 loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
 # Train the networks using ``AdversarialTrainer``
-#
+# 
 
-model = dinv.training_utils.AdversarialTrainer(
+model = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
@@ -191,23 +193,21 @@ model = dinv.training_utils.AdversarialTrainer(
     verbose=True,
     progress_bar=False,
     save_path=None,
-    device=device,
+    device=device
 ).train()
 
 
 # %%
 # UAIR training
 # ~~~~~~~~~~~~~
-#
+# 
 
-model, D, optimizer, scheduler = get_models(
-    lr_g=1e-4, lr_d=4e-4
-)  # learning rates from original paper
+model, D, optimizer, scheduler = get_models(lr_g=1e-4, lr_d=4e-4) # learning rates from original paper
 
 
 # %%
 # Construct losses as defined above
-#
+# 
 
 loss_g = adversarial.UAIRGeneratorLoss(device=device)
 loss_d = adversarial.UAIRDiscriminatorLoss(device=device)
@@ -215,9 +215,9 @@ loss_d = adversarial.UAIRDiscriminatorLoss(device=device)
 
 # %%
 # Train the networks using ``AdversarialTrainer``
-#
+# 
 
-model = dinv.training_utils.AdversarialTrainer(
+model = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
@@ -231,29 +231,25 @@ model = dinv.training_utils.AdversarialTrainer(
     verbose=True,
     progress_bar=False,
     save_path=None,
-    device=device,
+    device=device
 ).train()
 
 
 # %%
 # CSGM / AmbientGAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
+# 
 
-model = dinv.models.CSGMGenerator(
-    dinv.models.DCGANGenerator(nz=100, ngf=32), inf_tol=1e-2
-)
+model = dinv.models.CSGMGenerator(dinv.models.DCGANGenerator(nz=100, ngf=32), inf_tol=1e-2)
 D = dinv.models.DCGANDiscriminator(ndf=32)
-_, _, optimizer, scheduler = get_models(
-    model=model, D=D, lr_g=2e-4, lr_d=2e-4
-)  # learning rates from original paper
+_, _, optimizer, scheduler = get_models(model=model, D=D, lr_g=2e-4, lr_d=2e-4) # learning rates from original paper
 
 
 # %%
 # Construct losses as defined above. We are free to choose between
 # supervised and unsupervised adversarial losses, where supervised gives
 # CSGM and unsupervised gives AmbientGAN.
-#
+# 
 
 loss_g = adversarial.SupAdversarialGeneratorLoss(device=device)
 loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
@@ -264,9 +260,9 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 # slow for CSGM/AmbientGAN as it requires an optimisation, we only do one
 # evaluation at the end. Note the train PSNR is meaningless as this
 # generative model is trained on random latents.
-#
+# 
 
-trainer = dinv.training_utils.AdversarialTrainer(
+trainer = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
@@ -279,7 +275,7 @@ trainer = dinv.training_utils.AdversarialTrainer(
     verbose=True,
     progress_bar=False,
     save_path=None,
-    device=device,
+    device=device
 )
 model = trainer.train()
 
@@ -289,7 +285,7 @@ model = trainer.train()
 # using test measurements. Note that we do not get great results as CSGM /
 # AmbientGAN relies on large datasets of diverse samples, and we run the
 # optimisation to a relatively high tolerance for speed.
-#
+# 
 
 psnr = trainer.test(test_dataloader)[0]
 print("Test PSNR", psnr)

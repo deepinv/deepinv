@@ -61,11 +61,11 @@ def choose_adversarial_combo(combo_name, imsize, device):
 def test_adversarial_training(combo_name, imsize, device, physics, dataset):
     model, D, gen_loss, dis_loss = choose_adversarial_combo(combo_name, imsize, device)
 
-    optimizer = dinv.training_utils.adversarial.AdversarialOptimizer(
+    optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-8),
         torch.optim.Adam(D.parameters(), lr=1e-4, weight_decay=1e-8),
     )
-    scheduler = dinv.training_utils.adversarial.AdversarialScheduler(
+    scheduler = dinv.training.adversarial.AdversarialScheduler(
         torch.optim.lr_scheduler.StepLR(optimizer.G, step_size=5, gamma=0.9),
         torch.optim.lr_scheduler.StepLR(optimizer.D, step_size=5, gamma=0.9),
     )
@@ -73,7 +73,7 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
     train_dataloader = DataLoader(dataset[0], batch_size=1, shuffle=True)
     test_dataloader = DataLoader(dataset[1], batch_size=1, shuffle=False)
 
-    trainer = dinv.training_utils.AdversarialTrainer(
+    trainer = dinv.training.AdversarialTrainer(
         model=model,
         D=D,
         physics=physics,
