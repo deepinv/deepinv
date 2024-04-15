@@ -22,8 +22,8 @@ def test_data_fidelity_l2(device):
 
     # 1. Testing value of the loss for a simple case
     # Define two points
-    x = torch.Tensor([[1], [4]]).unsqueeze(0).unsqueeze(0).to(device)
-    y = torch.Tensor([[1], [1]]).unsqueeze(0).unsqueeze(0).to(device)
+    x = torch.Tensor([[1], [4]]).unsqueeze(0).to(device)
+    y = torch.Tensor([[1], [1]]).unsqueeze(0).to(device)
 
     # Create a measurement operator
     A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
@@ -37,12 +37,12 @@ def test_data_fidelity_l2(device):
     # Compute the gradient of f
     grad_dA = data_fidelity.grad(
         x, y, physics
-    )  # print(grad_dA) gives [[[[2.0000], [0.5000]]]]
+    )  # print(grad_dA) gives [[[2.0000], [0.5000]]]
 
     # Compute the proximity operator of f
     prox_dA = data_fidelity.prox(
         x, y, physics, gamma=1.0
-    )  # print(prox_dA) gives [[[[0.6000], [3.6000]]]]
+    )  # print(prox_dA) gives [[[0.6000], [3.6000]]]
 
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
@@ -223,7 +223,7 @@ def test_data_fidelity_amplitude_loss(device):
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
-        x = torch.tensor([[[[10], [10]]]], dtype=torch.float64)
+        x = torch.tensor([[[10], [10]]], dtype=torch.float64)
 
         # Create a measurement operator
         B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
@@ -563,7 +563,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
     for g_first in [True, False]:
         # Define two points
-        x = torch.tensor([[[[10], [10]]]], dtype=torch.float64).to(device)
+        x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
 
         # Create a measurement operator
         Id_forward = lambda v: v

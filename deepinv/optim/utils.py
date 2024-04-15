@@ -55,7 +55,10 @@ def conjugate_gradient(
     x = zeros_like(b)
 
     def dot(a, b):
-        dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=False)
+        ndim = a[0].ndim if isinstance(a, TensorList) else a.ndim
+        dot = (a.conj() * b).sum(
+            dim=tuple(range(1, ndim)), keepdim=False
+        )  # performs batched dot product
         if isinstance(dot, TensorList):
             aux = 0
             for d in dot:
