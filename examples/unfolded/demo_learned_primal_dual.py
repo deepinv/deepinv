@@ -173,7 +173,7 @@ learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
 test_batch_size = 1
-n_iter_training = int(1e5) if torch.cuda.is_available() else 1000
+n_iter_training = int(1e4) if torch.cuda.is_available() else 100
 n_data = 1  # number of channels in the input
 n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space
@@ -253,9 +253,11 @@ trainer = dinv.Trainer(
     scheduler=scheduler,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    device=device,
     online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 

@@ -233,15 +233,17 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 
 trainer = dinv.Trainer(
     model=model,
-    save_path=str(CKPT_DIR / operation),
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-    epochs=epochs,
     scheduler=scheduler,
     losses=losses,
+    device=device,
     optimizer=optimizer,
     physics=physics,
     train_dataloader=train_dataloader,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    wandb_vis=wandb_vis,
+    epochs=epochs,
 )
 
 model = trainer.train()
@@ -256,11 +258,7 @@ model = trainer.train()
 plot_images = True
 method = "artifact_removal"
 
-trainer.test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-)
+trainer.test(test_dataloader)
 
 # %%
 # Saving the model
@@ -320,4 +318,6 @@ model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
 
 # Test the model and check that the results are the same as before saving
-trainer.test(model_new, test_dataloader=test_dataloader, physics=physics)
+dinv.training.test(
+    model_new, test_dataloader, physics=physics, device=device, show_progress_bar=False
+)

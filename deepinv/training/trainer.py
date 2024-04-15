@@ -29,7 +29,8 @@ class Trainer:
         save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
 
     where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
-    dictionary of the model, ``loss`` the loss history, and ``optimizer`` the state dictionary of the optimizer.
+    dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
+    and ``eval_metrics` the evaluation metrics history.
 
     The class provides a flexible training loop that can be customized by the user. In particular, the user can
     rewrite the :meth:`deepinv.Trainer.compute_loss` method to define their custom training step without having
@@ -108,7 +109,9 @@ class Trainer:
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.
     :param str save_path: Directory in which to save the trained model.
+    :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu').
     :param bool verbose: Output training progress information in the console.
+    :param bool show_progress_bar: Show a progress bar during training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
@@ -119,7 +122,6 @@ class Trainer:
         If ``1``, plots at each epoch.
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed.
-    :param torch.device, str device: gpu or cpu.
     """
 
     model: torch.nn.Module
@@ -134,10 +136,11 @@ class Trainer:
     online_measurements: bool = False
     grad_clip: float = None
     ckp_interval: int = 1
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
     eval_interval: int = 1
     save_path: Union[str, Path] = "."
     verbose: bool = True
-    progress_bar: bool = True
+    show_progress_bar: bool = True
     plot_images: bool = False
     plot_metrics: bool = False
     wandb_vis: bool = False
@@ -148,7 +151,6 @@ class Trainer:
     freq_plot: int = 1
     verbose_individual_losses: bool = True
     display_losses_eval: bool = False
-    device: Union[str, torch.device] = "cpu"
 
     def setup_train(self):
         r"""
@@ -166,6 +168,7 @@ class Trainer:
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
+        self.eval_metrics_history = {}
         self.G = len(self.train_dataloader)
 
         if (
@@ -232,8 +235,10 @@ class Trainer:
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
             self.model.load_state_dict(checkpoint["state_dict"])
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.epoch_start = checkpoint["epoch"]
+            if "optimizer" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if "epoch" in checkpoint:
+                self.epoch_start = checkpoint["epoch"]
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
@@ -331,8 +336,8 @@ class Trainer:
             iterators[g]
         )  # In this case the dataloader outputs also a class label
 
-        if type(data) is tuple and len(data) == 2:
-            x, _ = data
+        if type(data) is tuple or type(data) is list:
+            x = data[0]
         else:
             x = data
 
@@ -359,7 +364,7 @@ class Trainer:
         data = next(iterators[g])
         if (type(data) is not tuple and type(data) is not list) or len(data) != 2:
             raise ValueError(
-                "If online_measurements=True, the dataloader should output a tuple (x, y)"
+                "If online_measurements=False, the dataloader should output a tuple (x, y)"
             )
 
         x, y = data
@@ -513,13 +518,19 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if last_batch:
-            if self.verbose and not self.progress_bar:
-                print(
-                    f"{'Train' if train else 'Eval'} epoch {epoch}: {' '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
-                )
+            if self.verbose and not self.show_progress_bar:
+                if self.verbose_individual_losses:
+                    print(
+                        f"{'Train' if train else 'Eval'} epoch {epoch}:"
+                        f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                    )
+                else:
+                    print(
+                        f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
+                    )
             logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
-            self.plot(epoch, physics_cur, x, y, x_net, train=train)  # Plot images
+            self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
@@ -558,19 +569,20 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
-    def save_model(self, epoch, eval_psnr=None, state={}):
+    def save_model(self, epoch, eval_metrics=None, state={}):
         r"""
         Save the model.
 
         It saves the model every ``ckp_interval`` epochs.
 
         :param int epoch: Current epoch.
-        :param None, float eval_psnr: Evaluation PSNR.
+        :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
+
         if not self.save_path:
             return
-
+        
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
             state = state | {
@@ -579,10 +591,13 @@ class Trainer:
                 "loss": self.loss_history,
                 "optimizer": self.optimizer.state_dict(),
             }
-            if eval_psnr is not None:
-                state["eval_psnr"] = eval_psnr
+            if eval_metrics is not None:
+                state["eval_metrics"] = eval_metrics
             torch.save(
-                state, os.path.join(str(self.save_path), "ckp_{}.pth.tar".format(epoch))
+                state,
+                os.path.join(
+                    Path(self.save_path), Path("ckp_{}.pth.tar".format(epoch))
+                ),
             )
 
     def train(
@@ -617,7 +632,7 @@ class Trainer:
                     progress_bar := tqdm(
                         range(batches),
                         ncols=150,
-                        disable=not self.progress_bar,
+                        disable=(not self.verbose or not self.show_progress_bar),
                     )
                 ):
                     progress_bar.set_description(f"Eval epoch {epoch + 1}")
@@ -625,7 +640,8 @@ class Trainer:
                         epoch, progress_bar, train=False, last_batch=(i == batches - 1)
                     )
 
-                self.eval_psnr = self.logs_metrics_eval[0].avg
+                for l in self.logs_losses_eval:
+                    self.eval_metrics_history[l.name] = l.avg
 
             ## Training
             self.current_iterators = [iter(loader) for loader in self.train_dataloader]
@@ -638,7 +654,7 @@ class Trainer:
                 progress_bar := tqdm(
                     range(batches),
                     ncols=150,
-                    disable=not self.progress_bar,
+                    disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}")
@@ -652,7 +668,7 @@ class Trainer:
                 self.scheduler.step()
 
             # Saving the model
-            self.save_model(epoch, eval_psnr=self.eval_psnr if perform_eval else None)
+            self.save_model(epoch, self.eval_metrics_history if perform_eval else None)
 
         if self.wandb_vis:
             wandb.save("model.h5")
@@ -680,7 +696,7 @@ class Trainer:
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
-            show_progress_bar=self.progress_bar,
+            show_progress_bar=self.show_progress_bar,
         )
 
 

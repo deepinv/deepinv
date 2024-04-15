@@ -19,20 +19,20 @@ def test(
     save_folder="results",
     plot_metrics=False,
     verbose=True,
-    show_progress_bar=True,
     plot_only_first_batch=True,
     plot_measurements=True,
+    show_progress_bar=True,
     **kwargs,
 ):
     r"""
     Tests a reconstruction model (algorithm or network).
 
-    This function computes the PSNR of the reconstruction network on the test set,
+    This function computes the chosen metrics of the reconstruction network on the test set,
     and optionally plots the reconstructions as well as the metrics computed along the iterations.
     Note that by default only the first batch is plotted.
 
-    :param torch.nn.Module, deepinv.models.ArtifactRemoval model: Reconstruction network, which can be PnP, unrolled, artifact removal
-        or any other custom reconstruction network.
+    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network (unfolded, plug-and-play, etc).
     :param torch.utils.data.DataLoader test_dataloader: Test data loader, which should provide a tuple of (x, y) pairs.
         See :ref:`datasets <datasets>` for more details.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
@@ -44,18 +44,15 @@ def test(
     :param torch.device device: gpu or cpu.
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
+        Images are saved in the ``save_folder/images`` directory
     :param bool plot_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
-    :param bool show_progress_bar: display progress bar when running inference.
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool plot_measurements: Plot the measurements y. default=True.
+    :param bool show_progress_bar: Show progress bar.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
-    if save_folder is None:
-        plot_metrics = plot_images = False
-        save_folder = "."
-
     save_folder = Path(save_folder)
 
     model.eval()
@@ -89,10 +86,12 @@ def test(
         iterator = iter(dataloader)
         for i in (
             progress_bar := tqdm(
-                range(batches), ncols=150, disable=not show_progress_bar
+                range(batches),
+                ncols=150,
+                disable=(not verbose or not show_progress_bar),
             )
         ):
-            desc = f"Test operator {g + 1} out of {G}" if G > 1 else "Test "
+            desc = f"Test operator {g + 1}" if G > 1 else "Test "
             progress_bar.set_description(desc)
             with torch.no_grad():
                 if online_measurements:
@@ -100,8 +99,8 @@ def test(
                         iterator
                     )  # In this case the dataloader outputs also a class label
 
-                    if type(data) is tuple and len(data) == 2:
-                        x, _ = data
+                    if type(data) is tuple or type(data) is list:
+                        x = data[0]
                     else:
                         x = data
 

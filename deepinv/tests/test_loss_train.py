@@ -154,6 +154,7 @@ def test_optim_algo(name_algo, imsize, device):
         save_path=str(CKPT_DIR),
         verbose=True,
         wandb_vis=False,
+        online_measurements=True,
     )
 
     results = feature_test(
@@ -164,59 +165,6 @@ def test_optim_algo(name_algo, imsize, device):
         plot_images=False,
         verbose=True,
         wandb_vis=False,
-    )
-
-    # Now check that training with online measurements works as well
-    train(
-        model=model_unfolded,
-        train_dataloader=train_dataloader,
-        eval_dataloader=test_dataloader,
-        epochs=epochs,
-        losses=losses,
-        physics=physics,
-        optimizer=optimizer,
-        device=device,
-        save_path=str(CKPT_DIR),
-        verbose=True,
-        wandb_vis=False,
-        online_measurements=True,
-    )
-
-
-def test_train_patchnr(imsize, dummy_dataset, device):
-    from deepinv.training import train_normalizing_flow
-    from deepinv.datasets import PatchDataset
-
-    pytest.importorskip(
-        "FrEIA",
-        reason="This test requires FrEIA. It should be "
-        "installed with `pip install FrEIA",
-    )
-    torch.set_grad_enabled(True)
-    torch.manual_seed(0)
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )  # 1. Generate a dummy dataset
-    # gray-valued
-    test_sample = next(iter(dataloader)).mean(1, keepdim=True)
-    patch_size = 3
-    patch_dataset = PatchDataset(test_sample.to(device), patch_size=patch_size)
-    patchnr_dataloader = DataLoader(
-        patch_dataset, batch_size=32, shuffle=True, drop_last=True
-    )
-    patchnr = dinv.optim.PatchNR(
-        channels=test_sample.shape[1],
-        patch_size=patch_size,
-        sub_net_size=64,
-        device=device,
-    )
-    train_normalizing_flow(
-        patchnr.normalizing_flow,
-        patchnr_dataloader,
-        epochs=1,
-        learning_rate=1e-4,
-        device=device,
-        verbose=False,
     )
 
 

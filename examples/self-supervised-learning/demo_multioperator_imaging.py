@@ -185,11 +185,13 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     physics=physics,
+    device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     plot_images=True,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,
     ckp_interval=10,
 )
@@ -202,4 +204,4 @@ model = trainer.train()
 # --------------------------------------------
 #
 
-trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
+trainer.test(test_dataloader)

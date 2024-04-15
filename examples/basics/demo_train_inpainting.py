@@ -144,13 +144,6 @@ model = dinv.models.ArtifactRemoval(backbone)
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
-trainer = dinv.Trainer(
-    device=device,
-    save_path=str(CKPT_DIR / operation),
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
-
 epochs = 4  # choose training epochs
 learning_rate = 5e-4
 
@@ -160,17 +153,22 @@ losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
-
-model = trainer.train(
+trainer = dinv.Trainer(
     model,
+    device=device,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    wandb_vis=wandb_vis,
     physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )
+model = trainer.train()
 
 # %%
 # Test the network
@@ -179,4 +177,4 @@ model = trainer.train(
 #
 # The testing function will compute test_psnr metrics and plot and save the results.
 
-trainer.test(model=model, test_dataloader=test_dataloader, physics=physics)
+trainer.test(test_dataloader)

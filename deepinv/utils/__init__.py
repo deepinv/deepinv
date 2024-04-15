@@ -7,6 +7,7 @@ from .plotting import (
     torch2cpu,
     plot_curves,
     plot_parameters,
+    plot_inset,
     make_grid,
     wandb_imgs,
     wandb_plot_curves,

@@ -7,7 +7,6 @@ __all__ = [
     "__url__",
     "__version__",
     "__author__",
-    "__email__",
     "__license__",
 ]
 
