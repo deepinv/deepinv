@@ -3,6 +3,7 @@ import torch
 from tqdm import tqdm
 import torch.nn as nn
 from typing import Callable
+from deepinv.utils import TensorList
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -26,18 +27,6 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
         return True
     else:
         return False
-
-
-def dot(a, b):
-    r"""
-    Computes the dot product between tensors `a` and `b`.
-
-    :param torch.Tensor a: tensor of shape (B, C, W, H)
-    :param torch.Tensor b: tensor of shape (B, C, W, H)
-    :return: torch.Tensor: tensor of shape (B,) containing the dot product between `a` and `b`.
-    """
-    dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=True)
-    return dot
 
 
 def conjugate_gradient(
@@ -64,6 +53,15 @@ def conjugate_gradient(
     """
 
     x = zeros_like(b)
+
+    def dot(a, b):
+        dot = (a.conj() * b).sum(dim=(-1, -2, -3), keepdim=False)
+        if isinstance(dot, TensorList):
+            aux = 0
+            for d in dot:
+                aux += d
+            dot = aux
+        return dot
 
     r = b - A(x)
     p = r

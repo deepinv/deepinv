@@ -79,7 +79,7 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
     if padding != "valid":
         if ph == 0 or pw == 0:
             raise ValueError(
-                "Both dimensions of the filter must be striclty greater than 2 if padding != 'valid'"
+                "Both dimensions of the filter must be strictly greater than 2 if padding != 'valid'"
             )
 
     if c != C:

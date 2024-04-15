@@ -23,8 +23,10 @@ OPERATORS = [
     "super_resolution_circular",
     "super_resolution_reflect",
     "super_resolution_replicate",
+    "aliased_super_resolution",
     "fast_singlepixel",
     "MRI",
+    "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
     "pansharpen_reflect",
@@ -87,9 +89,14 @@ def find_operator(name, device):
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(img_size=img_size, device=device, padding=padding,
-                                    filter="gaussian")
+        p = dinv.physics.Pansharpen(
+            img_size=img_size, device=device, padding=padding, filter="bilinear"
+        )
         norm = 0.4
+    elif name == "aliased_pansharpen":
+        img_size = (3, 30, 32)
+        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter=None)
+        norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_shape=img_size, device=device
@@ -105,7 +112,7 @@ def find_operator(name, device):
     elif name.startswith("deblur"):
         img_size = (3, 17, 19)
         p = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.5, 0.1), angle=45.0),
             padding=padding,
             device=device,
         )
@@ -113,15 +120,30 @@ def find_operator(name, device):
         img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
-            filter=dinv.physics.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(sigma=(2, 0.5), angle=45.0),
             device=device,
+        )
+    elif name == "aliased_super_resolution":
+        img_size = (1, 32, 32)
+        factor = 2
+        norm = 1.0
+        p = dinv.physics.Downsampling(
+            img_size=img_size,
+            factor=factor,
+            padding=padding,
+            device=device,
+            filter=None,
         )
     elif name.startswith("super_resolution"):
         img_size = (1, 32, 32)
         factor = 2
-        norm = 1.0  # old was norm = 1 / factor**2, but this is flawed
+        norm = 1.0 / factor**2
         p = dinv.physics.Downsampling(
-            img_size=img_size, factor=factor, padding=padding, device=device, filter="gaussian",
+            img_size=img_size,
+            factor=factor,
+            padding=padding,
+            device=device,
+            filter="bilinear",
         )
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8)

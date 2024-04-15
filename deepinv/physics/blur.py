@@ -136,6 +136,7 @@ class Downsampling(LinearPhysics):
         super().__init__(**kwargs)
         self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
+        assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.nn.Parameter):
@@ -194,7 +195,22 @@ class Downsampling(LinearPhysics):
         if filter is not None:
             self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
 
-        x = torch.zeros((y.shape[0],) + self.imsize, device=y.device)
+        imsize = self.imsize
+        if self.filter is not None:
+            if self.padding == "valid":
+                imsize = (
+                    self.imsize[0],
+                    self.imsize[1] - self.filter.shape[-2] + 1,
+                    self.imsize[2] - self.filter.shape[-1] + 1,
+                )
+            else:
+                imsize = (
+                    self.imsize[0],
+                    self.imsize[1] - (self.filter.shape[-2] + 1) % 2,
+                    self.imsize[2] - (self.filter.shape[-1] + 1) % 2,
+                )
+
+        x = torch.zeros((y.shape[0],) + imsize, device=y.device)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
             x = conv_transpose2d(x, self.filter, padding=self.padding)
