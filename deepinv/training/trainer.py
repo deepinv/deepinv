@@ -696,6 +696,7 @@ class Trainer:
             online_measurements=self.online_measurements,
             plot_images=self.plot_images,
             plot_metrics=self.plot_metrics,
+            physics_generator=self.physics_generator,
             save_folder=self.save_path + "/test",
             metrics=self.metrics,
             device=self.device,

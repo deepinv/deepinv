@@ -13,11 +13,22 @@ OPERATORS = [
     "fastCS",
     "inpainting",
     "denoising",
-    "deblur_fft",
+    "fftdeblur",
     "singlepixel",
+    "deblur_valid",
+    "deblur_circular",
+    "deblur_reflect",
+    "deblur_replicate",
+    "super_resolution_valid",
+    "super_resolution_circular",
+    "super_resolution_reflect",
+    "super_resolution_replicate",
     "fast_singlepixel",
     "MRI",
-    "pansharpen",
+    "pansharpen_valid",
+    "pansharpen_circular",
+    "pansharpen_reflect",
+    "pansharpen_replicate",
     "complex_compressed_sensing",
 ]
 
@@ -33,13 +44,8 @@ NOISES = [
     "LogPoisson",
 ]
 
-# Operators depending on padding and boundary conditions
-PADDING_OPERATORS = ["deblur", "super_resolution"]
-BOUNDARY = ["valid", "circular", "reflect", "replicate"]
-OPERATORS_AND_PADDING = itertools.product(PADDING_OPERATORS, BOUNDARY)
 
-
-def find_operator(name, device, padding=None):
+def find_operator(name, device):
     r"""
     Chooses operator
 
@@ -50,6 +56,13 @@ def find_operator(name, device, padding=None):
     img_size = (3, 16, 8)
     norm = 1
     dtype = torch.float
+    padding = None
+    paddings = ["valid", "circular", "reflect", "replicate"]
+    for p in paddings:
+        if p in name:
+            padding = p
+            break
+
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
@@ -72,9 +85,10 @@ def find_operator(name, device, padding=None):
         )
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
-    elif name == "pansharpen":
+    elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter="gaussian")
+        p = dinv.physics.Pansharpen(img_size=img_size, device=device, padding=padding,
+                                    filter="gaussian")
         norm = 0.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
@@ -88,26 +102,26 @@ def find_operator(name, device, padding=None):
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
-    elif name == "deblur":
+    elif name.startswith("deblur"):
         img_size = (3, 17, 19)
         p = dinv.physics.Blur(
             filter=dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
             padding=padding,
             device=device,
         )
-    elif name == "deblur_fft":
+    elif name == "fftdeblur":
         img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.1, 0.5), angle=45.0),
             device=device,
         )
-    elif name == "super_resolution":
+    elif name.startswith("super_resolution"):
         img_size = (1, 32, 32)
         factor = 2
         norm = 1.0  # old was norm = 1 / factor**2, but this is flawed
         p = dinv.physics.Downsampling(
-            img_size=img_size, factor=factor, padding=padding, device=device
+            img_size=img_size, factor=factor, padding=padding, device=device, filter="gaussian",
         )
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8)
@@ -173,31 +187,6 @@ def test_operators_adjointness(name, device):
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
 
     assert error2 < 1e-3
-
-
-@pytest.mark.parametrize("name", PADDING_OPERATORS)
-@pytest.mark.parametrize("padding", BOUNDARY)
-def test_operator_with_boundary(name, device, padding):
-    torch.manual_seed(0)
-
-    physics, imsize, norm_ref, dtype = find_operator(name, device, padding=padding)
-
-    # Test adjointess of the implemented adjoint function
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-    error = physics.adjointness_test(x).abs()
-    assert error < 1e-3
-
-    # Test adjointess of the adjoint function given by auto diff
-    f = adjoint_function(physics.A, x.shape, x.device)
-    y = physics.A(x)
-    error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
-    assert error2 < 1e-3
-
-    # Test pseudo-inverse
-    r = physics.A_adjoint(physics.A(x))
-    y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    assert error < 0.01
 
 
 @pytest.mark.parametrize("name", OPERATORS)
