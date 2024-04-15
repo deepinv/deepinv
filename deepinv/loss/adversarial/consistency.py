@@ -59,7 +59,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
         device="cpu",
     ):
         super().__init__(weight_adv=weight_adv, device=device)
-        self.name = "AmbientGANGenerator"
+        self.name = "UnsupAdversarialGenerator"
 
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module, **kwargs):
         return self.adversarial_loss(y, y_hat, D)
@@ -78,7 +78,7 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     def __init__(self, weight_adv: float = 1.0, device="cpu"):
         super().__init__(weight_adv=weight_adv, device=device)
-        self.name = "AmbientGANDiscriminator"
+        self.name = "UnsupAdversarialDiscriminator"
 
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module, **kwargs):
         return self.adversarial_loss(y, y_hat, D)

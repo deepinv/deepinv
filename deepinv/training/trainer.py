@@ -712,7 +712,7 @@ def train(
     **kwargs,
 ):
     """
-    Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
+    Alias function for training a model using :class:`deepinv.training.Trainer` class.
 
     This function creates a Trainer instance and returns the trained model.
 

@@ -207,7 +207,7 @@ model = unfolded_builder(
 # %%
 # Train the model
 # ---------------
-# We train the model using the :meth:`dinv.training_utils.train` function.
+# We train the model using the :meth:`dinv.training.train` function.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
 # :class:`dinv.loss.SupLoss` class.
@@ -251,7 +251,7 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-# We can now test the trained network using the :meth:`dinv.training_utils.test` function.
+# We can now test the trained network using the :meth:`dinv.training.test` function.
 #
 # The testing function will compute test_psnr metrics and plot and save the results.
 

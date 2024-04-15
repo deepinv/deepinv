@@ -45,8 +45,7 @@ class DiscriminatorMetric:
 class GeneratorLoss(Loss):
     """Base generator adversarial loss. Override the forward function to
     call `adversarial_loss` with quantities depending on your specific GAN model.
-    For examples, see :class:`deepinv.loss.adversarial.DeblurGANGeneratorLoss`,
-    :class:`deepinv.loss.adversarial.UAIRGeneratorLoss`, :class:`deepinv.loss.adversarial.AmbientGANGeneratorLoss`.
+    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialGeneratorLoss`, :class:`deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss`
 
     See ``deepinv.examples.adversarial_learning`` for formulae.
 
@@ -77,8 +76,7 @@ class GeneratorLoss(Loss):
 class DiscriminatorLoss(Loss):
     """Base discriminator adversarial loss. Override the forward function to
     call `adversarial_loss` with quantities depending on your specific GAN model.
-    For examples, see :class:`deepinv.loss.adversarial.DeblurGANDiscriminatorLoss`,
-    :class:`deepinv.loss.adversarial.UAIRDiscriminatorLoss`, :class:`deepinv.loss.adversarial.AmbientGANDiscriminatorLoss`.
+    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`, :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`.
 
     See ``deepinv.examples.adversarial_learning`` for formulae.
 

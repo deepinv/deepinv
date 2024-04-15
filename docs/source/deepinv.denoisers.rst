@@ -89,7 +89,7 @@ Discriminator networks used in networks trained with adversarial learning using 
    :nosignatures:
 
    deepinv.models.PatchGANDiscriminator
-   deepinv.models.ESRGANDiscrimingaator
+   deepinv.models.ESRGANDiscriminator
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator

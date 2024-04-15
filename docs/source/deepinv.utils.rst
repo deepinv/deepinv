@@ -15,7 +15,7 @@ to fit your needs.
    :nosignatures:
 
         deepinv.Trainer
-        deepinv.training_utils.AdversarialTrainer
+        deepinv.training.AdversarialTrainer
 
 We also provide train and test functions that can be used to train and test a model with a single call.
 
