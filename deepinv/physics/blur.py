@@ -115,7 +115,7 @@ class Downsampling(LinearPhysics):
         >>> from deepinv.physics import Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
         >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
-        >>> physics = Downsampling(filter = "gaussian", img_size=(1, 1, 32, 32), factor=2)
+        >>> physics = Downsampling(filter = "gaussian", img_size=(1, 32, 32), factor=2)
         >>> y = physics(x)
         >>> y[:, :, 7:10, 7:10] # Display the center of the downsampled image
         tensor([[[[0.0146, 0.0241, 0.0146],

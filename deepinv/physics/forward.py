@@ -302,7 +302,7 @@ class LinearPhysics(Physics):
         measurements of the corresponding operator:
 
         >>> physics1 = Blur(filter=w)
-        >>> physics2 = Downsampling(img_size=((1, 1, 32, 32)), filter="gaussian", factor=4)
+        >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
         >>> physics = physics1 + physics2
         >>> y = physics(x)
 
