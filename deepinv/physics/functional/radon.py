@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from deepinv.physics.forward import LinearPhysics
 
 if torch.__version__ > "1.2.0":
     affine_grid = lambda theta, size: F.affine_grid(theta, size, align_corners=True)
@@ -89,6 +88,17 @@ class RampFilter(AbstractFilter):
 
 
 class Radon(nn.Module):
+    r"""
+    Sparse Radon transform operator.
+
+
+    :param int in_size: the size of the input image. If None, the size is inferred from the input image.
+    :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is torch.arange(180).
+    :param bool circle: if True, the input image is assumed to be a circle. Default is False.
+    :param torch.dtype dtype: the data type of the output. Default is torch.float.
+    :param str, torch.device device: the device of the output. Default is torch.device('cpu').
+    """
+
     def __init__(
         self,
         in_size=None,
@@ -151,6 +161,19 @@ class Radon(nn.Module):
 
 
 class IRadon(nn.Module):
+    r"""
+    Inverse sparse Radon transform operator.
+
+
+    :param int in_size: the size of the input image. If None, the size is inferred from the input image.
+    :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is torch.arange(180).
+    :param bool circle: if True, the input image is assumed to be a circle. Default is False.
+    :param use_filter: if True, the ramp filter is applied to the input image. Default is True.
+    :param int out_size: the size of the output image. If None, the size is the same as the input image.
+    :param torch.dtype dtype: the data type of the output. Default is torch.float.
+    :param str, torch.device device: the device of the output. Default is torch.device('cpu').
+    """
+
     def __init__(
         self,
         in_size=None,

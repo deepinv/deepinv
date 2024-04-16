@@ -21,13 +21,6 @@ We also provide train and test functions that can be used to train and test a mo
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-        deepinv.Trainer
-
-.. autosummary::
-   :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
 

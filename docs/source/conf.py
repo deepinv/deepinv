@@ -28,10 +28,8 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
-    "autoapi.extension",
 ]
 
-autoapi_dirs = ["../../deepinv"]
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
