@@ -75,7 +75,6 @@ class SureGaussianLoss(Loss):
     SURE loss for Gaussian noise
 
 
-
     The loss is designed for the following noise model:
 
     .. math::
