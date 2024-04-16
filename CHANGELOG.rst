@@ -12,7 +12,6 @@ This PR is the result of the Hackhathon organized by Idris.
 New Features
 ^^^^^^^^^^^^
  - Refactored the documentation completely for the physics
- - Added API reference in the doc
  - Added a parameterization of the operators and noiselevels for the physics class (physics(x, theta, noiselevel))
  - Refactored the structure by adding a physics.functional submodule
  - Modified the Blur class to handle color, grayscale, single and multi-batch images
