@@ -5,6 +5,7 @@ Vanilla PnP for computed tomography (CT).
 This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography.
 
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -69,14 +70,11 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # The algorithm alternates between a denoising step and a gradient descent step.
 # The denoising step is performed by a DNCNN pretrained denoiser :class:`deepinv.models.DnCNN`.
 #
-# Set up the PnP algorithm parameters : the ``stepsize``, ``g_param`` the noise level of the denoiser
-# and ``lambda`` the regularization parameter. The following parameters have been chosen manually.
-
-# Logging parameters
-verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
-params_algo = {"stepsize": 1.0, "g_param": noise_level_img, "lambda": 0.01}
+# Set up the PnP algorithm parameters : the ``stepsize``, ``g_param`` the noise level of the denoiser.
+# Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
+# Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
+# The following parameters have been chosen manually.
+params_algo = {"stepsize": 0.01, "g_param": noise_level_img}
 max_iter = 100
 early_stop = True
 
@@ -92,6 +90,10 @@ denoiser = DnCNN(
     device=device,
 )
 prior = PnP(denoiser=denoiser)
+
+# Logging parameters
+verbose = True
+plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
@@ -109,7 +111,7 @@ model = optim_builder(
 # --------------------------------------------------------------------
 #
 # The model returns the output and the metrics computed along the iterations.
-# For cumputing PSNR, the ground truth image ``x_gt`` must be provided.
+# For computing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)
 x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator

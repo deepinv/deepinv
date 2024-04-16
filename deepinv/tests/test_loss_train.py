@@ -9,8 +9,8 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train
-from deepinv.training_utils import test as feature_test
+from deepinv.training import train
+from deepinv.training import test as feature_test
 
 
 def test_generate_dataset(tmp_path, imsize, device):
@@ -52,9 +52,9 @@ optim_algos = ["PGD"]
 
 @pytest.mark.parametrize("name_algo", optim_algos)
 def test_optim_algo(name_algo, imsize, device):
-    # This test uses WaveletPrior, which requires pytorch_wavelets
+    # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
-    pytest.importorskip("pytorch_wavelets")
+    pytest.importorskip("ptwt")
 
     # pths
     BASE_DIR = Path(".")
@@ -70,7 +70,7 @@ def test_optim_algo(name_algo, imsize, device):
     max_iter = 30 if torch.cuda.is_available() else 3  # Number of unrolled iterations
     level = 3
     prior = [
-        PnP(denoiser=dinv.models.WaveletPrior(wv="db8", level=level, device=device))
+        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
         for i in range(max_iter)
     ]
 
@@ -82,8 +82,12 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [0.01 * torch.ones(level, 1)] * max_iter
-    # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
+    sigma_denoiser = [
+        0.01
+        * torch.ones(
+            level,
+        )
+    ] * max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,
@@ -150,6 +154,7 @@ def test_optim_algo(name_algo, imsize, device):
         save_path=str(CKPT_DIR),
         verbose=True,
         wandb_vis=False,
+        online_measurements=True,
     )
 
     results = feature_test(
@@ -162,18 +167,18 @@ def test_optim_algo(name_algo, imsize, device):
         wandb_vis=False,
     )
 
-    # Now check that training with online measurements works as well
-    train(
-        model=model_unfolded,
-        train_dataloader=train_dataloader,
-        eval_dataloader=test_dataloader,
-        epochs=epochs,
-        losses=losses,
-        physics=physics,
-        optimizer=optimizer,
-        device=device,
-        save_path=str(CKPT_DIR),
-        verbose=True,
-        wandb_vis=False,
-        online_measurements=True,
+
+def test_epll_parameter_estimation(imsize, dummy_dataset, device):
+    from deepinv.datasets import PatchDataset
+
+    imgs = dummy_dataset.x
+    patch_dataset = PatchDataset(imgs)
+    patch_dataloader = torch.utils.data.DataLoader(
+        patch_dataset, batch_size=2, shuffle=True, drop_last=False
     )
+    epll = dinv.optim.EPLL(channels=imsize[0], pretrained=None, n_components=3)
+    epll.GMM.fit(patch_dataloader, max_iters=10)
+
+    assert not torch.any(torch.isnan(epll.GMM.mu))
+    assert not torch.any(torch.isnan(epll.GMM.get_cov()))
+    assert not torch.any(torch.isnan(epll.GMM.get_weights()))

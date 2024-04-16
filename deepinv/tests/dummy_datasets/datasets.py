@@ -52,6 +52,9 @@ if __name__ == "__main__":
     x = dataset[0]
 
     import matplotlib.pyplot as plt
+    from deepinv.utils.plotting import config_matplotlib
+
+    config_matplotlib()
 
     plt.imshow(x.permute(1, 2, 0).cpu().numpy())
     plt.show()

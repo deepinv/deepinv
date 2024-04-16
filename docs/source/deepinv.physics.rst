@@ -28,7 +28,7 @@ All forward operators inherit the structure of the ``Physics`` class.
 
 Operators can be called with the ``forward`` method, for example
 
-.. exec_code::
+.. doctest::
 
     import torch
     import deepinv as dinv
@@ -66,7 +66,7 @@ which enables the efficient computation of their pseudo-inverse and proximal ope
 
 All linear operators have adjoint, pseudo-inverse and prox functions (and more) which can be called as
 
-.. exec_code::
+.. doctest::
 
     import torch
     import deepinv as dinv
@@ -83,6 +83,17 @@ All linear operators have adjoint, pseudo-inverse and prox functions (and more) 
 Some operators have singular value decompositions (see :class:`deepinv.physics.DecomposablePhysics`) which
 have additional methods.
 
+When defining a new linear operator, you can define the adjoint automatically using
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.physics.adjoint_function
+
+
 Non-linear operators
 --------------------
 Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bilinear).
@@ -96,13 +107,25 @@ Operators where :math:`A:\xset\mapsto \yset` is a non-linear mapping (e.g., bili
    deepinv.physics.Haze
    deepinv.physics.SinglePhotonLidar
 
+Phase retrieval operators
+-------------------------
+Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2` with :math:`B` a linear operator.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.PhaseRetrieval
+   deepinv.physics.RandomPhaseRetrieval
+
 Noise distributions
 -------------------
 Noise mappings :math:`N:\yset\mapsto \yset` are simple :class:`torch.nn.Module`.
 The noise of a forward operator can be set in its construction
 or simply as
 
-.. exec_code::
+.. doctest::
 
     import torch
     import deepinv as dinv
@@ -118,6 +141,7 @@ or simply as
    :nosignatures:
 
    deepinv.physics.GaussianNoise
+   deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
@@ -133,3 +157,4 @@ This module also contains some utilities for physics operators.
    :nosignatures:
 
    deepinv.physics.blur.gaussian_blur
+   deepinv.physics.forward.adjoint_function

@@ -19,16 +19,16 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.8"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
     "numpy",
     "matplotlib",
     "hdf5storage",
+    "tqdm",
     "torch",
     "torchvision",
     "einops",
     "wandb",
-    "fastmri",
 ]
 
 [tool.setuptools]
@@ -55,13 +55,16 @@ doc = [
     "sphinx_gallery",
     "sphinx_rtd_theme",
     "sphinxemoji",
-    "sphinx_exec_code"
+    "sphinx_copybutton",
 ]
 
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
-    "timm"
+    "timm",
+    "PyWavelets",
+    "ptwt",
+    "FrEIA"
 ]
 
 

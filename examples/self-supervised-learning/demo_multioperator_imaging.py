@@ -27,7 +27,6 @@ import torch
 from pathlib import Path
 from torchvision import transforms
 from deepinv.models.utils import get_weights_url
-from deepinv.training_utils import train, test
 from torchvision import datasets
 
 # %%
@@ -178,38 +177,31 @@ test_dataloader = [
     for dataset in test_dataset
 ]
 
-train(
+# Initialize the trainer
+trainer = dinv.Trainer(
     model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
+    physics=physics,
     device=device,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    plot_images=True,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,
     ckp_interval=10,
 )
+
+# Train the network
+model = trainer.train()
 
 # %%
 # Test the network
 # --------------------------------------------
 #
-#
 
-plot_images = True
-method = "multioperator_imaging"
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(test_dataloader)

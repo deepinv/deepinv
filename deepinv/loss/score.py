@@ -1,9 +1,9 @@
 import torch
-import torch.nn as nn
 import numpy as np
+from deepinv.loss.loss import Loss
 
 
-class ScoreLoss(nn.Module):
+class ScoreLoss(Loss):
     r"""
     Approximates score of a distribution.
 

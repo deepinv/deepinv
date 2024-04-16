@@ -217,3 +217,52 @@ class UniformNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         return x + (torch.rand_like(x) - 0.5) * 2 * self.a
+
+
+class LogPoissonNoise(torch.nn.Module):
+    r"""
+    Log-Poisson noise :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.
+
+    This noise model is mostly used for modelling the noise for (low dose) computed tomography measurements.
+    Here, N0 describes the average number of measured photons. It acts as a noise-level parameter, where a
+    larger value of N0 corresponds to a lower strength of the noise.
+    The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.
+
+    For more details on the interpretation of the parameters for CT measurements, we refer to the paper
+    `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://www.nature.com/articles/s41597-021-00893-z>`_.
+
+    :param float N0: number of photons
+
+        |sep|
+
+    :Examples:
+
+        Adding LogPoisson noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, LogPoissonNoise
+        >>> import torch
+        >>> physics = Denoising()
+        >>> physics.noise_model = LogPoissonNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
+
+
+    :param float mu: normalization constant
+    """
+
+    def __init__(self, N0=1024.0, mu=1 / 50.0):
+        super().__init__()
+        self.mu = mu
+        self.N0 = N0
+
+    def forward(self, x):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :returns: noisy measurements
+        """
+        N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu))
+        y = -torch.log(N1_tilde / self.N0) / self.mu
+        return y

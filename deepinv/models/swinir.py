@@ -500,9 +500,9 @@ class BasicLayer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i]
-                    if isinstance(drop_path, list)
-                    else drop_path,
+                    drop_path=(
+                        drop_path[i] if isinstance(drop_path, list) else drop_path
+                    ),
                     norm_layer=norm_layer,
                 )
                 for i in range(depth)
@@ -793,8 +793,8 @@ class SwinIR(nn.Module):
     Transformer <https://arxiv.org/abs/2108.10257>`_. This code is adapted from the official implementation by the
     authors.
 
-    :param int|tuple img_size: Input image size. Default 128.
-    :param int|tuple patch_size: Patch size. Default: 1.
+    :param int, tuple img_size: Input image size. Default 128.
+    :param int, tuple patch_size: Patch size. Default: 1.
     :param int in_chans: Number of input image channels. Default: 3.
     :param int embed_dim: Patch embedding dimension. Default: 180.
     :param tuple depths: Depth of each Swin Transformer layer.
@@ -806,17 +806,17 @@ class SwinIR(nn.Module):
     :param float drop_rate: Dropout rate. Default: 0.
     :param float attn_drop_rate: Attention dropout rate. Default: 0.
     :param float drop_path_rate: Stochastic depth rate. Default: 0.1.
-    :param nn.Module norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param torch.nn.Module norm_layer: Normalization layer. Default: nn.LayerNorm.
     :param bool ape: If True, add absolute position embedding to the patch embedding. Default: False.
     :param bool patch_norm: If True, add normalization after patch embedding. Default: True.
     :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
     :param int upscale: Upscale factor. 2/3/4/8 for image SR, 1 for denoising and compress artifact reduction
     :param float img_range: Image range. 1. or 255. Default: 1.
-    :param str|None upsampler: The reconstruction module. ''/'pixelshuffle'/'pixelshuffledirect'/'nearest+conv'/None.
+    :param str, None upsampler: The reconstruction module. ''/'pixelshuffle'/'pixelshuffledirect'/'nearest+conv'/None.
         Default: ''.
     :param str resi_connection: The convolutional block before residual connection. Should be either '1conv' or '3conv'.
         Default: '1conv'.
-    :param str|None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
+    :param str, None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
         the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
         default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.

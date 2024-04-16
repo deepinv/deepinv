@@ -55,7 +55,7 @@ class Haze(Physics):
             This trivial inverse can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
 
 
-        :param torch.tensor y: Hazy image.
+        :param torch.Tensor y: Hazy image.
         :return: (deepinv.utils.ListTensor) trivial inverse.
 
         """

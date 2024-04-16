@@ -7,6 +7,7 @@ In this example, we show how to solve a deblurring inverse problem using an expl
 Here we use the simple L2 prior that penalizes the squared norm of the reconstruction, with an ADMM algorithm.
 
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -14,7 +15,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
+from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
@@ -109,10 +110,10 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 #
 # .. math::
 #
-#   \min_{x} \frac{1}{2} \|y - Ax\|_2^2 + \rho \|x\|_2^2
+#   \min_{x} \frac{1}{2} \|y - Ax\|_2^2 + \lambda \|x\|_2^2
 #
 # where :math:`A` is the forward blurring operator, :math:`y` is the measurement
-# and :math:`\rho` is a regularization parameter.
+# and :math:`\lambda` is a regularization parameter.
 #
 
 

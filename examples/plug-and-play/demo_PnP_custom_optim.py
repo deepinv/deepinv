@@ -6,6 +6,7 @@ This example shows how to define your own optimization algorithm.
 For example, here, we implement the Condat-Vu Primal-Dual algorithm,
 and apply it for Single Pixel Camera reconstruction.
 """
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -27,7 +28,7 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 #
 # .. math::
 #         \begin{align*}
-#         v_k = x_k-\tau A^\top z_k
+#         v_k &= x_k-\tau A^\top z_k \\
 #         x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
 #         u_k &= z_k + \sigma A(2x_{k+1}-x_k) \\
 #         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
@@ -87,11 +88,11 @@ class CVIteration(OptimIterator):
 # where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
 # The proximal operator of :math:`f^*` is computed using the proximal operator
 # of :math:`f` via Moreau's identity,
-# and the gStep module is a simple proximal step on the prior term :math:`g`:
+# and the gStep module is a simple proximal step on the prior term :math:`\lambda g`:
 #
 # .. math::
 #
-#     x_{k+1} = \operatorname{prox}_{\tau g}(v_k)
+#     x_{k+1} = \operatorname{prox}_{\tau \lambda g}(v_k)
 #
 
 
@@ -113,9 +114,7 @@ class fStepCV(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_data_fidelity.prox_d_conjugate(
-            u, y, gamma=cur_params["sigma"], lamb=cur_params["lambda"]
-        )
+        return cur_data_fidelity.prox_d_conjugate(u, y, gamma=cur_params["sigma"])
 
 
 class gStepCV(gStep):
@@ -128,14 +127,18 @@ class gStepCV(gStep):
 
     def forward(self, v, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`g`.
+        Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x: Current iterate :math:`v_k = x_k-\tau A^\top u_k`.
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters
             (keys `"stepsize"` and `"g_param"`).
         """
-        return cur_prior.prox(v, cur_params["g_param"], gamma=cur_params["stepsize"])
+        return cur_prior.prox(
+            v,
+            cur_params["g_param"],
+            gamma=cur_params["lambda"] * cur_params["stepsize"],
+        )
 
 
 # %%
@@ -196,12 +199,14 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # We build the PnP model using the :func:`deepinv.optim.optim_builder` function,
 # and setting the iterator to our custom CondatVu algorithm.
 #
-# The primal dual stepsizes :math:`\tau` as ``stepsize`` and :math:`\sigma` as ``sigma``,
-# ``g_param`` the noise level of the denoiser and `lambda` the regularization parameter.
-
+# The primal dual stepsizes :math:`\tau` corresponds to the ``stepsize`` key and :math:`\sigma` to the ``sigma`` key.
+# The ``g_param`` key corresponds to the noise level of the denoiser.
+#
+# For the denoiser, we choose the 1-Lipschitz grayscale DnCNN model (see the :ref:`pretrained-weights <pretrained-weights>`).
+#
 
 # Set up the PnP algorithm parameters :
-params_algo = {"stepsize": 1.0, "g_param": 0.01, "lambda": 0.5, "sigma": 1.0}
+params_algo = {"stepsize": 0.99, "g_param": 0.01, "sigma": 0.99}
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
@@ -212,7 +217,7 @@ data_fidelity = L2()
 denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
-    pretrained="download",
+    pretrained="download_lipschitz",
     train=False,
     device=device,
 )

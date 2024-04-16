@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "deepinverse"
-copyright = "2023, DeepInv"
+copyright = "2024, DeepInv"
 author = "Julian Tachella, Matthieu Terris, Samuel Hurault and Dongdong Chen"
 release = "0.1"
 
@@ -24,12 +24,12 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.doctest",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    "sphinx_exec_code",
+    "sphinx_copybutton",
 ]
 
-exec_code_working_dir = "../.."
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
@@ -41,7 +41,7 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 sphinx_gallery_conf = {
-    "examples_dirs": ["../../examples"],
+    "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "filename_pattern": "/demo_",
     "run_stale_examples": True,
@@ -70,20 +70,21 @@ mathjax3_config = {
             "noise": [r"{N\left({#1}\right)}", 1],
             "inverse": [r"{R\left({#1}\right)}", 1],
             "inversef": [r"{R\left({#1},{#2}\right)}", 2],
-            "reg": [r"{g\left({#1}\right)}", 1],
-            "regname": r"g",
+            "reg": [r"{g_\sigma\left({#1}\right)}", 1],
+            "regname": r"g_\sigma",
             "sensor": [r"{\eta\left({#1}\right)}", 1],
             "datafid": [r"{f\left({#1},{#2}\right)}", 2],
             "datafidname": r"f",
             "distance": [r"{d\left({#1},{#2}\right)}", 2],
             "distancename": r"d",
             "denoiser": [r"{\operatorname{D}_{{#2}}\left({#1}\right)}", 2],
-            "denoisername": r"\operatorname{D}",
+            "denoisername": r"\operatorname{D}_{\sigma}",
             "xset": r"\mathcal{X}",
             "yset": r"\mathcal{Y}",
             "group": r"\mathcal{G}",
             "metric": [r"{d\left({#1},{#2}\right)}", 2],
             "loss": [r"{\mathcal\left({#1}\right)}", 1],
+            "conj": [r"{\overline{#1}^{\top}}", 1],
         },
     }
 }

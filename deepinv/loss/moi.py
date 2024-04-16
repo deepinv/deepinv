@@ -1,9 +1,9 @@
 import torch
-import torch.nn as nn
 import numpy as np
+from deepinv.loss.loss import Loss
 
 
-class MOILoss(nn.Module):
+class MOILoss(Loss):
     r"""
     Multi-operator imaging loss
 

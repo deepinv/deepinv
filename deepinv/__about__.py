@@ -4,14 +4,12 @@ __all__ = [
     "__url__",
     "__version__",
     "__author__",
-    "__email__",
     "__license__",
 ]
 
 __title__ = "deepinv"
 __summary__ = "Deep Learning for Inverse Problems Library for PyTorch"
-__url__ = "https://github.com/edongdongchen/deepinv"
 __version__ = "0.0.1"
-__author__ = "Dongdong Chen, Julian Tachella"
-__email__ = "echendongdong@gmail.com"
+__author__ = "Julian Tachella, Samuel Hurault, Matthieu Terris, Dongdong Chen"
 __license__ = "BSD 3-Clause Clear"
+__url__ = "https://deepinv.github.io/"

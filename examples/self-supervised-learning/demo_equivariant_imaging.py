@@ -16,7 +16,6 @@ from pathlib import Path
 from torchvision import transforms
 from deepinv.optim.prior import PnP
 from deepinv.utils.demo import load_dataset, load_degradation
-from deepinv.training_utils import train, test
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -189,7 +188,6 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # Train the network
 # --------------------------------------------
 #
-#
 
 
 verbose = True  # print training information
@@ -202,21 +200,25 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-train(
-    model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+# Initialize the trainer
+trainer = dinv.Trainer(
+    model,
+    physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
+    train_dataloader=train_dataloader,
+    plot_images=True,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     wandb_vis=wandb_vis,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     ckp_interval=10,
 )
+
+model = trainer.train()
 
 # %%
 # Test the network
@@ -224,16 +226,4 @@ train(
 #
 #
 
-plot_images = True
-method = "equivariant_imaging"
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(test_dataloader)

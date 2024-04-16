@@ -1,9 +1,10 @@
-import warnings
 import torch
 import torch.nn as nn
 
+from deepinv.models import TVDenoiser
 
-class TGV(nn.Module):
+
+class TGVDenoiser(nn.Module):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.
 
@@ -26,18 +27,24 @@ class TGV(nn.Module):
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
 
+
+    .. note::
+        The regularization term :math:`\|r\|_{1,2} + \|J(Dx-r)\|_{1,F}` is implicitly normalized by its Lipschitz
+        constant, i.e. :math:`\sqrt{72}`, see e.g. K. Bredies et al., "Total generalized variation," SIAM J. Imaging
+        Sci., 3(3), 492-526, 2010.
+
     :param bool verbose: Whether to print computation details or not. Default: False.
     :param int n_it_max: Maximum number of iterations. Default: 1000.
     :param float crit: Convergence criterion. Default: 1e-5.
-    :param torch.tensor, None x2: Primary variable. Default: None.
-    :param torch.tensor, None u2: Dual variable. Default: None.
-    :param torch.tensor, None r2: Auxiliary variable. Default: None.
+    :param torch.Tensor, None x2: Primary variable. Default: None.
+    :param torch.Tensor, None u2: Dual variable. Default: None.
+    :param torch.Tensor, None r2: Auxiliary variable. Default: None.
     """
 
     def __init__(
         self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
     ):
-        super(TGV, self).__init__()
+        super(TGVDenoiser, self).__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
@@ -76,6 +83,13 @@ class TGV(nn.Module):
         )
 
     def forward(self, y, ths=None):
+        r"""
+        Computes the proximity operator of the TGV norm.
+
+        :param torch.Tensor y: Noisy image.
+        :param float, torch.Tensor ths: Regularization parameter.
+        :return: Denoised image.
+        """
         restart = (
             True
             if (self.restart or self.x2 is None or self.x2.shape != y.shape)
@@ -101,12 +115,13 @@ class TGV(nn.Module):
 
         for _ in range(self.n_it_max):
             x_prev = self.x2.clone()
-            tmp = self.tau * epsilonT(self.u2)
-            x = self.prox_tau_fx(self.x2 - nablaT(tmp), y)
+            tmp = self.tau * self.epsilon_adjoint(self.u2)
+            x = self.prox_tau_fx(self.x2 - self.nabla_adjoint(tmp), y)
             r = self.prox_tau_fr(self.r2 + tmp, lambda1)
             u = self.prox_sigma_g_conj(
                 self.u2
-                + self.sigma * epsilon(nabla(2 * x - self.x2) - (2 * r - self.r2)),
+                + self.sigma
+                * self.epsilon(self.nabla(2 * x - self.x2) - (2 * r - self.r2)),
                 lambda2,
             )
             self.x2 = self.x2 + self.rho * (x - self.x2)
@@ -129,18 +144,22 @@ class TGV(nn.Module):
                     + lambda1 * torch.sum(torch.sqrt(torch.sum(r**2, axis=-1)))
                     + lambda2
                     * torch.sum(
-                        torch.sqrt(torch.sum(epsilon(nabla(x) - r) ** 2, axis=-1))
+                        torch.sqrt(
+                            torch.sum(self.epsilon(self.nabla(x) - r) ** 2, axis=-1)
+                        )
                     )
                 )
                 # dualcost = cy - ((y - nablaT(epsilonT(u))) ** 2).sum() / 2.0
                 tmp = torch.max(
-                    torch.sqrt(torch.sum(epsilonT(u) ** 2, axis=-1))
+                    torch.sqrt(torch.sum(self.epsilon_adjoint(u) ** 2, axis=-1))
                 )  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
                 u3 = u / torch.maximum(
                     tmp / lambda1, torch.tensor([1], device=tmp.device).type(tmp.dtype)
                 )  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = (
-                    cy - torch.sum((y - nablaT(epsilonT(u3))) ** 2) / 2.0
+                    cy
+                    - torch.sum((y - self.nabla_adjoint(self.epsilon_adjoint(u3))) ** 2)
+                    / 2.0
                 )  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
                 if self.verbose:
@@ -163,70 +182,50 @@ class TGV(nn.Module):
 
         return self.x2
 
+    @staticmethod
+    def nabla(x):
+        r"""
+        Applies the finite differences operator associated with tensors of the same shape as x.
+        """
+        return TVDenoiser.nabla(x)
 
-def nabla(I):
-    b, c, h, w = I.shape
-    G = torch.zeros((b, c, h, w, 2), device=I.device).type(I.dtype)
-    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
-    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
-    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
-    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
-    return G
+    @staticmethod
+    def nabla_adjoint(x):
+        r"""
+        Applies the adjoint of the finite difference operator.
+        """
+        return TVDenoiser.nabla_adjoint(x)
 
+    @staticmethod
+    def epsilon(I):  # Simplified
+        r"""
+        Applies the jacobian of a vector field.
+        """
+        b, c, h, w, _ = I.shape
+        G = torch.zeros((b, c, h, w, 4), device=I.device).type(I.dtype)
+        G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
+        G[..., 0] = G[..., 0] + I[..., 0]
+        G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
+        G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
+        G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # xdx
+        G[..., 2] = G[..., 2] + I[..., 1]
+        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # xdy
+        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
+        return G
 
-def nablaT(G):
-    b, c, h, w = G.shape[:-1]
-    I = torch.zeros((b, c, h, w), device=G.device).type(
-        G.dtype
-    )  # note that we just reversed left and right sides of each line to obtain the transposed operator
-    I[:, :, :-1] = I[:, :, :-1] - G[:, :, :-1, :, 0]
-    I[:, :, 1:] = I[:, :, 1:] + G[:, :, :-1, :, 0]
-    I[..., :-1] = I[..., :-1] - G[..., :-1, 1]
-    I[..., 1:] = I[..., 1:] + G[..., :-1, 1]
-    return I
-
-
-# # ADJOINTNESS TEST
-# u = torch.randn((4, 3, 100,100)).type(torch.DoubleTensor)
-# Au = nabla(u)
-# v = torch.randn(*Au.shape).type(Au.dtype)
-# Atv = nablaT(v)
-# e = v.flatten()@Au.flatten()-Atv.flatten()@u.flatten()
-# print('Adjointness test (should be small): ', e)
-
-
-def epsilon(I):  # Simplified
-    b, c, h, w, _ = I.shape
-    G = torch.zeros((b, c, h, w, 4), device=I.device).type(I.dtype)
-    G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
-    G[..., 0] = G[..., 0] + I[..., 0]
-    G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
-    G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
-    G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # xdx
-    G[..., 2] = G[..., 2] + I[..., 1]
-    G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # xdy
-    G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
-    return G
-
-
-def epsilonT(G):
-    b, c, h, w, _ = G.shape
-    I = torch.zeros((b, c, h, w, 2), device=G.device).type(G.dtype)
-    I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
-    I[..., 0] = I[..., 0] + G[..., 0]
-    I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
-    I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
-    I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
-    I[..., 1] = I[..., 1] + G[..., 2]
-    I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
-    I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
-    return I
-
-
-# # ADJOINTNESS TEST
-# u = torch.randn((2, 3,100,100,2)).type(torch.DoubleTensor)
-# Au = epsilon(u)
-# v = torch.randn(*Au.shape).type(Au.dtype)
-# Atv = epsilonT(v)
-# e = v.flatten()@Au.flatten()-Atv.flatten()@u.flatten()
-# print('Adjointness test (should be small): ', e)
+    @staticmethod
+    def epsilon_adjoint(G):
+        r"""
+        Applies the adjoint of the jacobian of a vector field.
+        """
+        b, c, h, w, _ = G.shape
+        I = torch.zeros((b, c, h, w, 2), device=G.device).type(G.dtype)
+        I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
+        I[..., 0] = I[..., 0] + G[..., 0]
+        I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
+        I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
+        I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
+        I[..., 1] = I[..., 1] + G[..., 2]
+        I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
+        I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
+        return I

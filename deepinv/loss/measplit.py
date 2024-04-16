@@ -1,9 +1,10 @@
 import torch
 from deepinv.physics import Inpainting
 import numpy as np
+from deepinv.loss.loss import Loss
 
 
-class SplittingLoss(torch.nn.Module):
+class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
 
@@ -13,7 +14,7 @@ class SplittingLoss(torch.nn.Module):
 
     .. math::
 
-        \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1,A_1}\|^2
+        \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2
 
     where :math:`R` is the trainable network. See https://pubmed.ncbi.nlm.nih.gov/32614100/.
 
@@ -72,7 +73,7 @@ class SplittingLoss(torch.nn.Module):
         return loss_ms
 
 
-class Neighbor2Neighbor(torch.nn.Module):
+class Neighbor2Neighbor(Loss):
     r"""
     Neighbor2Neighbor loss.
 

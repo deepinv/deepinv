@@ -6,6 +6,7 @@ In this tutorial, we revisit the implementation of the DiffPIR diffusion algorit
 `Zhou et al. <https://arxiv.org/abs/2305.08995>`_. The full algorithm is implemented in
 :class:`deepinv.sampling.DiffPIR`.
 """
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -15,11 +16,15 @@ from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image, get_image_url
 
+# Use matplotlib config from deepinv to get nice plots
+from deepinv.utils.plotting import config_matplotlib
+
+config_matplotlib()
+
 # %%
 # Generate an inverse problem
 # ---------------------------
 #
-
 # We first generate a deblurring problem with the butterfly image. We use a square blur kernel of size 5x5 and
 # Gaussian noise with standard deviation 12.75/255.0.
 #
@@ -223,7 +228,7 @@ plot(
 
 # %%
 # Putting it all together: the DiffPIR algorithm
-# ---------------------------------------------
+# ------------------------------------------------
 #
 # We can now put all the steps together and implement the DiffPIR algorithm. The only remaining step is to set the
 # noise schedule (i.e. the sequence of noise powers and regularization parameters) appropriately. This is done with the
@@ -317,7 +322,7 @@ plot(
 
 # %%
 # Using the DiffPIR algorithm in your inverse problem
-# ---------------------------------------------
+# ------------------------------------------------------
 # You can readily use this algorithm via the :meth:`deepinv.sampling.DiffPIR` class.
 #
 # ::

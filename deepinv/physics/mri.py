@@ -22,7 +22,7 @@ class MRI(DecomposablePhysics):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    :param torch.tensor mask: the mask values should be binary.
+    :param torch.Tensor mask: the mask values should be binary.
         The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
 
@@ -145,7 +145,7 @@ class MRI(DecomposablePhysics):
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
     r"""
     Apply centered 2 dimensional Fast Fourier Transform.
-    :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
+    :param torch.Tensor data: Complex valued input data containing at least 3 dimensions:
         dimensions -2 & -1 are spatial dimensions and dimension -3 has size
         2. All other dimensions are assumed to be batch dimensions.
     :param bool norm: Normalization mode. See ``torch.fft.fft``.

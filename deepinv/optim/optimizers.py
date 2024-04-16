@@ -6,6 +6,7 @@ from deepinv.optim.fixed_point import FixedPoint
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
+from deepinv.optim.prior import Zero
 
 
 class BaseOptim(nn.Module):
@@ -18,7 +19,7 @@ class BaseOptim(nn.Module):
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
-        \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
         \end{equation}
 
 
@@ -45,7 +46,7 @@ class BaseOptim(nn.Module):
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
-    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
+    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
     Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
@@ -53,7 +54,7 @@ class BaseOptim(nn.Module):
     the following update rule is applied at each iteration :math:`k`:
 
     .. math::
-        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
+        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau
 
     The variable ``params_algo`` is a dictionary containing all the relevant parameters for running the algorithm.
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
@@ -66,7 +67,7 @@ class BaseOptim(nn.Module):
     ::
 
         # This minimal example shows how to use the BaseOptim class to solve the problem
-        #                min_x 0.5 \lambda ||Ax-y||_2^2 + ||x||_1
+        #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
         # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
 
         # Create the measurement operator A
@@ -179,6 +180,10 @@ class BaseOptim(nn.Module):
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
 
+        # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
+        if "lambda" not in params_algo.keys():
+            params_algo["lambda"] = 1.0
+
         # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
         if "beta" not in params_algo.keys():
             params_algo["beta"] = 1.0
@@ -214,8 +219,10 @@ class BaseOptim(nn.Module):
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
 
-        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration.
-        if not isinstance(prior, Iterable):
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
+        if prior is None:
+            self.prior = [Zero()]
+        elif not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
             self.prior = prior
@@ -398,8 +405,8 @@ class BaseOptim(nn.Module):
         :param dict X: dictionary containing the current primal and dual iterates.
         """
         if self.backtracking and self.has_cost and X_prev is not None:
-            x_prev = self.get_output(X_prev)
-            x = self.get_output(X)
+            x_prev = X_prev["est"][0]
+            x = X["est"][0]
             x_prev = x_prev.reshape((x_prev.shape[0], -1))
             x = x.reshape((x.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
@@ -497,9 +504,17 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     if F_fn is None and explicit_prior:
 
         def F_fn(x, data_fidelity, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior(
-                x, cur_params["g_param"]
-            )
+            prior_value = prior(x, cur_params["g_param"], reduce=False)
+            if prior_value.dim() == 0:
+                reg_value = cur_params["lambda"] * prior_value
+            else:
+                if isinstance(cur_params["lambda"], float):
+                    reg_value = (cur_params["lambda"] * prior_value).sum()
+                else:
+                    reg_value = (
+                        cur_params["lambda"].flatten() * prior_value.flatten()
+                    ).sum()
+            return data_fidelity(x, y, physics) + reg_value
 
         has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
@@ -517,7 +532,8 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
 
 def optim_builder(
     iteration,
-    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    max_iter=100,
+    params_algo={"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05},
     data_fidelity=None,
     prior=None,
     F_fn=None,
@@ -529,8 +545,10 @@ def optim_builder(
 
     :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
-        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        If an algorithm name (string), should be either ``"GD"`` (gradient descent),
+        ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
@@ -555,6 +573,7 @@ def optim_builder(
         data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
+        max_iter=max_iter,
         **kwargs,
     )
 

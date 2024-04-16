@@ -4,6 +4,48 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 
 
+def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
+    r"""
+    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
+
+
+    The generated function can be simply called as ``A_adjoint(y)``, for example:
+
+    >>> import torch
+    >>> from deepinv.physics.forward import adjoint_function
+    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
+    >>> x = torch.randn((4, 1, 5, 5))
+    >>> y = A(x)
+    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
+    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
+    True
+
+
+    :param callable A: linear operator :math:`A`.
+    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
+        The first dimension, i.e. batch size, should be equal or lower than the batch size B
+        of the input tensor to the adjoint operator.
+    :param str device: device where the adjoint operator is computed.
+    :return: (callable) function that computes the adjoint of :math:`A`.
+
+    """
+    x = torch.ones(input_size, device=device, dtype=dtype)
+    (_, vjpfunc) = torch.func.vjp(A, x)
+    batches = x.size()[0]
+
+    def adjoint(y):
+        if y.size()[0] < batches:
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
+            y2[: y.size()[0], ...] = y
+            return vjpfunc(y2)[0][: y.size()[0], ...]
+        elif y.size()[0] > batches:
+            raise ValueError("Batch size of A_adjoint input is larger than expected")
+        else:
+            return vjpfunc(y)[0]
+
+    return adjoint
+
+
 class Physics(torch.nn.Module):  # parent class for forward models
     r"""
     Parent class for forward operators
@@ -154,9 +196,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def A_dagger(self, y, x_init=None):
         r"""
-        Computes an inverse of :math:`y = Ax` via gradient descent.
+        Computes an inverse as:
 
-        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
+        .. math::
+
+            x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
+
+        This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
         :param torch.Tensor x_init: initial guess for the reconstruction.
@@ -167,19 +213,34 @@ class Physics(torch.nn.Module):  # parent class for forward models
         if x_init is None:
             x_init = self.A_adjoint(y)
 
-        x = torch.nn.Parameter(x_init, requires_grad=True)
+        x = x_init
 
-        optimizer = torch.optim.SGD([x], lr=1e-1)
+        lr = 1e-1
         loss = torch.nn.MSELoss()
-        for i in range(self.max_iter):
+        for _ in range(self.max_iter):
+            x = x - lr * self.A_vjp(x, self.A(x) - y)
             err = loss(self.A(x), y)
-            optimizer.zero_grad()
-            err.backward(retain_graph=True)
-            optimizer.step()
             if err < self.tol:
                 break
 
         return x.clone()
+
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
+
+        .. math::
+
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
+
+        By default, the Jacobian is computed using automatic differentiation.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
+        """
+        _, vjpfunc = torch.func.vjp(self.A, x)
+        return vjpfunc(v)[0]
 
 
 class LinearPhysics(Physics):
@@ -200,6 +261,12 @@ class LinearPhysics(Physics):
     :param callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
         It is recommended to normalize it to have unit norm.
     :param callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+
+        .. note::
+
+            A_adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function`
+            method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
+
     :param callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
     :param callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
@@ -241,12 +308,23 @@ class LinearPhysics(Physics):
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
         >>> from deepinv.utils import cal_psnr
-        >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
+        >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
         >>> physics = Blur(filter=w)
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
         >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
+        True
+
+        The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
+        which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
+
+        >>> from deepinv.utils import cal_psnr
+        >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
+        >>> physics = LinearPhysics(A=A, A_adjoint=adjoint_function(A, (4, 1, 5, 5)))
+        >>> x = torch.randn((4, 1, 5, 5))
+        >>> y = physics(x)
+        >>> torch.allclose(physics.A_adjoint(y), x) # We have A^T(A(x)) = x
         True
 
     """
@@ -268,8 +346,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             tol=tol,
         )
-
-        self.adjoint = A_adjoint
+        self.A_adj = A_adjoint
 
     def A_adjoint(self, y):
         r"""
@@ -285,7 +362,22 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-        return self.adjoint(y)
+
+        return self.A_adj(y)
+
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
+
+        .. math::
+
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
+        """
+        return self.A_adjoint(v)
 
     def __mul__(self, other):
         r"""
@@ -372,7 +464,7 @@ class LinearPhysics(Physics):
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
 
-        :returns z: (float) spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
+        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.
         """
         x = torch.randn_like(x0)
         x /= torch.norm(x)
@@ -380,7 +472,7 @@ class LinearPhysics(Physics):
         for it in range(max_iter):
             y = self.A(x)
             y = self.A_adjoint(y)
-            z = torch.matmul(x.reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
             if rel_var < tol and verbose:
@@ -391,7 +483,7 @@ class LinearPhysics(Physics):
             zold = z
             x = y / torch.norm(y)
 
-        return z
+        return z.real
 
     def adjointness_test(self, u):
         r"""
@@ -410,17 +502,17 @@ class LinearPhysics(Physics):
             Atv = self.A_adjoint(V)
             s1 = 0
             for au, v in zip(Au, V):
-                s1 += (v * au).flatten().sum()
+                s1 += (v.conj() * au).flatten().sum()
 
         else:
             v = randn_like(Au)
             Atv = self.A_adjoint(v)
 
-            s1 = (v * Au).flatten().sum()
+            s1 = (v.conj() * Au).flatten().sum()
 
-        s2 = (Atv * u_in).flatten().sum()
+        s2 = (Atv * u_in.conj()).flatten().sum()
 
-        return s1 - s2
+        return s1.conj() - s2
 
     def prox_l2(self, z, y, gamma):
         r"""
@@ -444,7 +536,8 @@ class LinearPhysics(Physics):
     def A_dagger(self, y):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
-        ` conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
+        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
+        see :meth:`deepinv.optim.utils.conjugate_gradient`.
 
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
         otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
@@ -558,21 +651,6 @@ class DecomposablePhysics(LinearPhysics):
             mask = torch.conj(self.mask)
 
         return self.V(mask * self.U_adjoint(y))
-
-    def noise(self, x):
-        r"""
-        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
-
-        :param torch.Tensor x:  clean measurements
-        :return torch.Tensor: noisy measurements
-        """
-        if not isinstance(self.mask, float):
-            noise = self.U(
-                self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
-            )
-        else:
-            noise = self.noise_model(x)
-        return noise
 
     def prox_l2(self, z, y, gamma):
         r"""

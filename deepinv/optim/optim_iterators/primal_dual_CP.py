@@ -8,7 +8,7 @@ class CPIteration(OptimIterator):
     Iterator for Chambolle-Pock.
 
     Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
-    algorithm for minimising :math:`\lambda F(Kx) + G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
+    algorithm for minimising :math:`F(Kx) + \lambda G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
     Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
     If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
@@ -16,13 +16,13 @@ class CPIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k+1} &= \operatorname{prox}_{\sigma (\lambda F)^*}(u_k + \sigma K z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\tau G}(x_k-\tau K^\top u_{k+1}) \\
+        u_{k+1} &= \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1}) \\
         z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
         \end{equation*}
 
-    where :math:`(\lambda F)^*` is the Fenchel-Legendre conjugate of :math:`\lambda F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
+    where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
 
     If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
@@ -32,7 +32,7 @@ class CPIteration(OptimIterator):
     .. math::
 
         \begin{equation*}
-        \underset{x}{\operatorname{min}} \,\, \lambda \distancename(Ax, y) + \regname(x)
+        \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
         \end{equation*}
 
 
@@ -61,10 +61,8 @@ class CPIteration(OptimIterator):
         """
         x_prev, z_prev, u_prev = X["est"]  # x : primal, z : relaxed primal, u : dual
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
-        K_adjoint = (
-            lambda x: cur_params["K_adjoint"](x)
-            if "K_adjoint" in cur_params.keys()
-            else x
+        K_adjoint = lambda x: (
+            cur_params["K_adjoint"](x) if "K_adjoint" in cur_params.keys() else x
         )
         if self.g_first:
             u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
@@ -95,7 +93,7 @@ class fStepCP(fStep):
 
     def forward(self, x, w, cur_data_fidelity, y, physics, cur_params):
         r"""
-        Single Chambolle-Pock iteration step on the data-fidelity term :math:`\lambda f`.
+        Single Chambolle-Pock iteration step on the data-fidelity term :math:`f`.
 
         :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
         :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
@@ -106,13 +104,11 @@ class fStepCP(fStep):
         """
         if self.g_first:
             p = x - cur_params["stepsize"] * w
-            return cur_data_fidelity.prox(
-                p, y, physics, gamma=cur_params["stepsize"] * cur_params["lambda"]
-            )
+            return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
         else:
             p = x + cur_params["stepsize_dual"] * w
             return cur_data_fidelity.prox_d_conjugate(
-                p, y, gamma=cur_params["stepsize_dual"], lamb=cur_params["lambda"]
+                p, y, gamma=cur_params["stepsize_dual"]
             )
 
 
@@ -126,7 +122,7 @@ class gStepCP(gStep):
 
     def forward(self, x, w, cur_prior, cur_params):
         r"""
-        Single Chambolle-Pock iteration step on the prior term :math:`g`.
+        Single Chambolle-Pock iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x: Current first variable :math:`u` if `"g_first"` and :math:`x` otherwise.
         :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
@@ -136,10 +132,15 @@ class gStepCP(gStep):
         if self.g_first:
             p = x + cur_params["stepsize_dual"] * w
             return cur_prior.prox_conjugate(
-                p, cur_params["g_param"], gamma=cur_params["stepsize_dual"]
+                p,
+                cur_params["g_param"],
+                gamma=cur_params["lambda"] * cur_params["stepsize_dual"],
+                lamb=cur_params["lambda"],
             )
         else:
             p = x - cur_params["stepsize"] * w
             return cur_prior.prox(
-                p, cur_params["g_param"], gamma=cur_params["stepsize"]
+                p,
+                cur_params["g_param"],
+                gamma=cur_params["stepsize"] * cur_params["lambda"],
             )

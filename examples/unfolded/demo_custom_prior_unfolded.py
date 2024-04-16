@@ -6,6 +6,7 @@ This example shows how to implement a learned unrolled proximal gradient descent
 The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.
 
 """
+
 from pathlib import Path
 import torch
 from torchvision import datasets
@@ -15,7 +16,6 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
 
 # %%
 # Setup paths for data loading and results.
@@ -98,13 +98,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 #
 # .. math::
 #
-#          \min_x \frac{\lambda}{2} \|y - Ax\|_2^2 + \operatorname{TV}_{\text{smooth}}(x)
+#          \min_x \frac{1}{2} \|y - Ax\|_2^2 + \lambda\operatorname{TV}_{\text{smooth}}(x)
 #
 # where :math:`\operatorname{TV}_{\text{smooth}}` is a smooth approximation of TV.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
 #
 #   .. math::
-#           x_{k+1} = \text{prox}_{\gamma \operatorname{TV}_{\text{smooth}}}(x_k - \gamma \lambda A^T (Ax_k - y))
+#           x_{k+1} = \text{prox}_{\gamma \lambda \operatorname{TV}_{\text{smooth}}}(x_k - \gamma A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) =\operatorname{TV}_{\text{smooth}}(x)`.
 #
@@ -126,7 +126,7 @@ def nabla(I):
 
 
 # Define the smooth TV prior as the mse of the image finite difference.
-def g(x, *args):
+def g(x, *args, **kwargs):
     dx = nabla(x)
     tv_smooth = torch.nn.functional.mse_loss(
         dx, torch.zeros_like(dx), reduction="sum"
@@ -213,19 +213,23 @@ test_dataloader = DataLoader(
 # We train the network using the library's train function.
 #
 
-train(
-    model=model,
+trainer = dinv.Trainer(
+    model,
+    physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
-    losses=losses,
-    physics=physics,
-    optimizer=optimizer,
     device=device,
+    losses=losses,
+    optimizer=optimizer,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
+
+
+model = trainer.train()
 
 # %%
 # Test the network.
@@ -236,19 +240,7 @@ train(
 # and `GT` shows the ground truth.
 #
 
-plot_images = True
-method = "unfolded_pgd"
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(test_dataloader)
 
 
 # %%
@@ -256,9 +248,9 @@ test(
 # ------------------------------------
 #
 # We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`1/\lambda` in the proximal gradient algorithm.
+# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
 #
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )
