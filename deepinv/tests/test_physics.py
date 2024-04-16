@@ -112,7 +112,7 @@ def find_operator(name, device):
     elif name.startswith("deblur"):
         img_size = (3, 17, 19)
         p = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(sigma=(0.5, 0.1), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.25, 0.1), angle=45.0),
             padding=padding,
             device=device,
         )
@@ -228,8 +228,15 @@ def test_operators_norm(name, device):
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-    norm = physics.compute_norm(x)
-    assert torch.abs(norm - norm_ref) < 0.2
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
+    bound = 1e-2
+    # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
+    if (
+        name in ["singlepixel", "CS", "complex_compressed_sensing"]
+        or "pansharpen" in name
+    ):
+        bound = 0.2
+    assert torch.abs(norm - norm_ref) < bound
 
 
 @pytest.mark.parametrize("name", NONLINEAR_OPERATORS)
