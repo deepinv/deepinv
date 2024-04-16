@@ -44,11 +44,11 @@ def conjugate_gradient(
     For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
     :param (callable) A: Linear operator as a callable function, has to be square!
-    :param torch.Tensor b: input tensor of shape (B, C, H, W)
+    :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
-    :return: torch.Tensor :math:`x` of shape (B, C, H, W) verifying :math:`Ax=b`.
+    :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
 
     """
 
