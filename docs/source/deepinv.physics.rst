@@ -191,6 +191,7 @@ Different types of blur operators are available, from simple stationary kernels 
 We provide the implementation of typical blur kernels such as Gaussian, bilinear, bicubic, etc.
 
 .. autosummary::
+   :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
 
