@@ -97,12 +97,13 @@ class GeneratorMixture(PhysicsGenerator):
 
         >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
         >>> from deepinv.physics.generator import GeneratorMixture
+        >>> _ = torch.manual_seed(0)
         >>> g1 = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1)
         >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3), num_channels = 1)
         >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
         >>> params_dict = generator.step(batch_size=1)
         >>> print(params_dict.keys())
-        dict_keys(['filter', 'coeff', 'pupil'])
+        dict_keys(['filter'])
 
     """
 
