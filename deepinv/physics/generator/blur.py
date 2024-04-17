@@ -40,9 +40,9 @@ class MotionBlurGenerator(PSFGenerator):
 
     .. math::
 
-        f_x(t), f_y(s) \sim \mathcal{GP}(0, k(t, s))
+        f_x(t), f_y(t) \sim \mathcal{GP}(0, k(t, t'))
 
-    where :math:`k(t,s)` is defined as
+    where :math:`k` is defined as
 
     .. math::
 
