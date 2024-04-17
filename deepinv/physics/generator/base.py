@@ -102,7 +102,7 @@ class GeneratorMixture(PhysicsGenerator):
         >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
         >>> params_dict = generator.step(batch_size=1)
         >>> print(params_dict.keys())
-        dict_keys(['filter'])
+        dict_keys(['filter', 'coeff', 'pupil'])
 
     """
 
