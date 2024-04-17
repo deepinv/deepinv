@@ -175,12 +175,11 @@ class DiffractionBlurGenerator(PSFGenerator):
     (Fresnel/Fraunhoffer diffraction theory).
 
     Zernike polynomials are ordered following the
-    `OSA/ANSI convention <https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices>`_ (see
-    https://opticsthewebsite.com/Zernike for more details).
+    Noll's sequential indices convention (https://en.wikipedia.org/wiki/Zernike_polynomials#Noll's_sequential_indices for more details).
 
     :param tuple psf_size: the shape of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
-    :param list[str] list_param: list of activated Zernike coefficients in ANSI convention,
+    :param list[str] list_param: list of activated Zernike coefficients in Noll's convention,
         defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in ``[0, 0.25]``
         to respect the Shannon-Nyquist sampling theorem, defaults to ``0.2``.
@@ -347,43 +346,43 @@ def define_zernike():
 
     :param list[func]: list of 37 lambda functions with the Zernike Polynomials. They are ordered as follows:
 
-        Z1:Z00 Piston or Bias
-        Z2:Z11 x Tilt
-        Z3:Z11 y Tilt
-        Z4:Z20 Defocus
-        Z5:Z22 Primary Astigmatism at 45
-        Z6:Z22 Primary Astigmatism at 0
-        Z7:Z31 Primary y Coma
-        Z8:Z31 Primary x Coma
-        Z9:Z33 y Trefoil
-        Z10:Z33 x Trefoil
-        Z11:Z40 Primary Spherical
-        Z12:Z42 Secondary Astigmatism at 0
-        Z13:Z42 Secondary Astigmatism at 45
-        Z14:Z44 x Tetrafoil
-        Z15:Z44 y Tetrafoil
-        Z16:Z51 Secondary x Coma
-        Z17:Z51 Secondary y Coma
-        Z18:Z53 Secondary x Trefoil
-        Z19:Z53 Secondary y Trefoil
-        Z20:Z55 x Pentafoil
-        Z21:Z55 y Pentafoil
-        Z22:Z60 Secondary Spherical
-        Z23:Z62 Tertiary Astigmatism at 45
-        Z24:Z62 Tertiary Astigmatism at 0
-        Z25:Z64 Secondary x Trefoil
-        Z26:Z64 Secondary y Trefoil
-        Z27:Z66 Hexafoil Y
-        Z28:Z66 Hexafoil X
-        Z29:Z71 Tertiary y Coma
-        Z30:Z71 Tertiary x Coma
-        Z31:Z73 Tertiary y Trefoil
-        Z32:Z73 Tertiary x Trefoil
-        Z33:Z75 Secondary Pentafoil Y
-        Z34:Z75 Secondary Pentafoil X
-        Z35:Z77 Heptafoil Y
-        Z36:Z77 Heptafoil X
-        Z37:Z80 Tertiary Spherical
+        Z1: Z0,0 Piston or Bias
+        Z2: Z1,1 x Tilt
+        Z3: Z1,-1 y Tilt
+        Z4: Z2,0 Defocus
+        Z5: Z2,-2 Primary Astigmatism at 45
+        Z6: Z2,2 Primary Astigmatism at 0
+        Z7: Z3,-1 Primary y Coma
+        Z8: Z3,1 Primary x Coma
+        Z9: Z3,-3 y Trefoil
+        Z10: Z3,3 x Trefoil
+        Z11: Z4,0 Primary Spherical
+        Z12: Z4,2 Secondary Astigmatism at 0
+        Z13: Z4,-2 Secondary Astigmatism at 45
+        Z14: Z4,4 x Tetrafoil
+        Z15: Z4,-4 y Tetrafoil
+        Z16: Z5,1 Secondary x Coma
+        Z17: Z5,-1 Secondary y Coma
+        Z18: Z5,3 Secondary x Trefoil
+        Z19: Z5,-3 Secondary y Trefoil
+        Z20: Z5,5 x Pentafoil
+        Z21: Z5,-5 y Pentafoil
+        Z22: Z6,0 Secondary Spherical
+        Z23: Z6,-2 Tertiary Astigmatism at 45
+        Z24: Z6,2 Tertiary Astigmatism at 0
+        Z25: Z6,-4 Secondary x Trefoil
+        Z26: Z6,4 Secondary y Trefoil
+        Z27: Z6-,6 Hexafoil Y
+        Z28: Z6,6 Hexafoil X
+        Z29: Z7,-1 Tertiary y Coma
+        Z30: Z7,1 Tertiary x Coma
+        Z31: Z7,-3 Tertiary y Trefoil
+        Z32: Z7,3 Tertiary x Trefoil
+        Z33: Z7,-5 Secondary Pentafoil Y
+        Z34: Z7,5 Secondary Pentafoil X
+        Z35: Z7,-7 Heptafoil Y
+        Z36: Z7,7 Heptafoil X
+        Z37: Z8,0 Tertiary Spherical
     """
     Z = [None for k in range(38)]
 
