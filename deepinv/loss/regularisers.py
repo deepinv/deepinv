@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from deepinv.loss.loss import Loss
 
 
-class JacobianSpectralNorm(nn.Module):
+class JacobianSpectralNorm(Loss):
     r"""
     Computes the spectral norm of the Jacobian.
 
@@ -100,7 +100,7 @@ class JacobianSpectralNorm(nn.Module):
         return z.view(-1).sqrt()
 
 
-class FNEJacobianSpectralNorm(nn.Module):
+class FNEJacobianSpectralNorm(Loss):
     r"""
     Computes the Firm-Nonexpansiveness Jacobian spectral norm.
 

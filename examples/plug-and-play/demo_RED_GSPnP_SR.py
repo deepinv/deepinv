@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
+from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import load_dataset, load_degradation
@@ -98,7 +98,7 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = True  # use backtracking to automatically adjust the stepsize
+backtracking = True
 use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 

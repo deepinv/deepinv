@@ -1,2 +1,2 @@
-from .langevin import MonteCarlo, ULA, SKRock
+from .langevin import ULA, MonteCarlo, SKRock
 from .diffusion import DDRM, DiffusionSampler, DiffPIR, DPS

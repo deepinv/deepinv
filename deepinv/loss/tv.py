@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from deepinv.loss.loss import Loss
 
 
-class TVLoss(nn.Module):
+class TVLoss(Loss):
     r"""
     Total variation loss (:math:`\ell_2` norm).
 
@@ -23,16 +23,24 @@ class TVLoss(nn.Module):
         Computes the TV loss.
 
         :param torch.Tensor x_net: reconstructed image.
-        :return: (torch.Tensor) loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
         batch_size = x_net.size()[0]
         h_x = x_net.size()[2]
         w_x = x_net.size()[3]
         count_h = self.tensor_size(x_net[:, :, 1:, :])
         count_w = self.tensor_size(x_net[:, :, :, 1:])
-        h_tv = torch.pow((x_net[:, :, 1:, :] - x_net[:, :, : h_x - 1, :]), 2).sum()
-        w_tv = torch.pow((x_net[:, :, :, 1:] - x_net[:, :, :, : w_x - 1]), 2).sum()
-        return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w) / batch_size
+        h_tv = (
+            torch.pow((x_net[:, :, 1:, :] - x_net[:, :, : h_x - 1, :]), 2)
+            .reshape(x_net.size(0), -1)
+            .sum(1)
+        )
+        w_tv = (
+            torch.pow((x_net[:, :, :, 1:] - x_net[:, :, :, : w_x - 1]), 2)
+            .reshape(x_net.size(0), -1)
+            .sum(1)
+        )
+        return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w)
 
     @staticmethod
     def tensor_size(t):

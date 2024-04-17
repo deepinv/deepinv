@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added Trainer, Loss class and eval metric (LPIPS, NIQE, SSIM) (:gh:`181` by `Julian Tachella`_) - 02/04/2024
 - PhaseRetrieval class (:gh:`176` by `Zhiyuan Hu`_) - 20/03/2024
 - Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
@@ -16,10 +17,12 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed slow drunet sigma and batched conjugate gradient  (:gh:`181` by `Minh Hai Nguyen`_) - 02/04/2024
 - Fixed g dependence on sigma in optim docs (:gh:`165` by `Julian Tachella`_) - 28/02/2024
 
 Changed
 ^^^^^^^
+- Refactor unfolded docs (:gh:`181` by `Julian Tachella`_) - 02/04/2024
 - Refactor model docs (:gh:`172` by `Julian Tachella`_) - 12/03/2024
 - Changed WaveletPrior to WaveletDenoiser (:gh:`165` by `Julian Tachella`_) - 28/02/2024
 - Move from torchwavelets to ptwt (:gh:`162` by `Matthieu Terris`_) - 22/02/2024
@@ -111,3 +114,4 @@ Authors
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
+.. _Minh Hai Nguyen: https://github.com/minh-hai-nguyen-712

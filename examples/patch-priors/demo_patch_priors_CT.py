@@ -43,8 +43,8 @@ We consider the following two choices of :math:`h`:
 import torch
 from deepinv.datasets import PatchDataset
 from torch.utils.data import DataLoader
-from deepinv.training_utils import train_normalizing_flow
-from deepinv.physics import LogPoissonNoise, Tomography
+from deepinv import Trainer
+from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.utils import cal_psnr, plot
 from deepinv.utils.demo import load_torch_url
@@ -89,8 +89,20 @@ epll_batch_size = 10000
 # If the parameter retrain is False, we just load pretrained weights. Set the parameter to True for retraining.
 # On the cpu, this takes up to a couple of minutes.
 # After training, we define the corresponding patch priors
+#
+# .. note::
+#
+#          The normalizing flow training minimizes the forward Kullback-Leibler (maximum likelihood) loss function given by
+#
+#            .. math::
+#                       \mathcal{L}(\theta)=\mathrm{KL}(P_X,{\mathcal{T}_\theta}_\#P_Z)=
+#                       \mathbb{E}_{x\sim P_X}[p_{{\mathcal{T}_\theta}_\#P_Z}(x)]+\mathrm{const},
+#
+#            where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution
+#            :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
 
-retrain = False
+
+retrain = True
 if retrain:
     model_patchnr = PatchNR(
         pretrained=None,
@@ -101,14 +113,49 @@ if retrain:
     patchnr_dataloader = DataLoader(
         train_dataset, batch_size=patchnr_batch_size, shuffle=True, drop_last=True
     )
-    train_normalizing_flow(
-        model_patchnr.normalizing_flow,
-        patchnr_dataloader,
-        epochs=patchnr_epochs,
-        learning_rate=patchnr_learning_rate,
+
+    class NFTrainer(Trainer):
+        def compute_loss(self, physics, x, y, train=True):
+            logs = {}
+
+            self.optimizer.zero_grad()  # Zero the gradients
+
+            # Evaluate reconstruction network
+            invs, jac_inv = self.model(y)
+
+            # Compute the Kullback Leibler loss
+            loss_total = torch.mean(
+                0.5 * torch.sum(invs.view(invs.shape[0], -1) ** 2, -1)
+                - jac_inv.view(invs.shape[0])
+            )
+            current_log = (
+                self.logs_total_loss_train if train else self.logs_total_loss_eval
+            )
+            current_log.update(loss_total.item())
+            logs[f"TotalLoss"] = current_log.avg
+
+            if train:
+                loss_total.backward()  # Backward the total loss
+                self.optimizer.step()  # Optimizer step
+
+            return invs, logs
+
+    optimizer = torch.optim.Adam(
+        model_patchnr.normalizing_flow.parameters(), lr=patchnr_learning_rate
+    )
+    trainer = NFTrainer(
+        model=model_patchnr.normalizing_flow,
+        physics=Denoising(UniformNoise(1.0 / 255.0)),
+        optimizer=optimizer,
+        train_dataloader=patchnr_dataloader,
         device=device,
+        losses=[],
+        epochs=patchnr_epochs,
+        online_measurements=True,
         verbose=verbose,
     )
+
+    trainer.train()
 
     model_epll = EPLL(
         pretrained=None,
