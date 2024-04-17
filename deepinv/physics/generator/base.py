@@ -26,7 +26,7 @@ class PhysicsGenerator(nn.Module):
 
         >>> import torch
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
-        >>> torch.manual_seed(0)
+        >>> _ = torch.manual_seed(0)
         >>> # combine a PhysicsGenerator for blur and noise level parameters
         >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
         >>> params_dict = generator.step(batch_size=1) # dict_keys(['filter', 'sigma'])
