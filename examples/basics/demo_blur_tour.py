@@ -261,7 +261,7 @@ for i in range(4):
 # %% Space varying blurs
 # --------------------
 #
-# Space varying blurs are also available using :class:`deepinv.physics.Blur.SpaceVaryingBlur`
+# Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`
 
 from deepinv.physics.generator import (
     DiffractionBlurGenerator,

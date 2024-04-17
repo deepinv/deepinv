@@ -91,6 +91,7 @@ class MotionBlurGenerator(PSFGenerator):
     def matern_kernel(self, diff, sigma: float = None, l: float = None):
         r"""
         Compute the Matérn 3/2 covariance.
+
         :param torch.Tensor diff: the difference `t - s`
         :param float sigma: the standard deviation of the Gaussian Process
         :param float l: the length scale of the trajectory
@@ -105,6 +106,11 @@ class MotionBlurGenerator(PSFGenerator):
     def f_matern(self, batch_size: int = 1, sigma: float = None, l: float = None):
         r"""
         Generates the trajectory.
+
+        :param int batch_size: batch_size.
+        :param float sigma: the standard deviation of the Gaussian Process.
+        :param float l: the length scale of the trajectory.
+        :return: the trajectory of shape `(batch_size, n_steps)`
         """
         vec = torch.randn(batch_size, self.n_steps, **self.factory_kwargs)
         time = torch.linspace(-torch.pi, torch.pi, self.n_steps, **self.factory_kwargs)[
@@ -130,7 +136,6 @@ class MotionBlurGenerator(PSFGenerator):
         :param float l: the length scale of the trajectory
 
         :return: dictionary with key **'filter'**: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
-        :rtype: dict
         """
 
         f_x = self.f_matern(batch_size, sigma, l)[..., None]
@@ -166,15 +171,23 @@ class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
 
-    Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
+    Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask
+    (Fresnel/Fraunhoffer diffraction theory).
+
+    Zernike polynomials are ordered following the
+    `OSA/ANSI convention <https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices>`_ (see
+    https://opticsthewebsite.com/Zernike for more details).
 
     :param tuple psf_size: the shape of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
-    :param list[str] list_param: list of activated Zernike coefficients, defaults to `["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]`
-    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
+    :param list[str] list_param: list of activated Zernike coefficients in ANSI convention,
+        defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
+    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in ``[0, 0.25]``
+        to respect the Shannon-Nyquist sampling theorem, defaults to ``0.2``.
 
-    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
-            If a int is given, a square pupil is considered.
+    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil.
+        The higher the more precise, defaults to ``(256, 256)``.
+        If a single ``int`` is given, a square pupil is considered.
 
     |sep|
 

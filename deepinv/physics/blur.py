@@ -18,6 +18,26 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     r"""
     Gaussian blur filter.
 
+    Defined as
+
+    .. math::
+        \begin{equation*}
+            G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
+        \end{equation*}
+
+    where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
+    by an angle :math:`\theta`:
+
+    .. math::
+
+        \begin{align*}
+            x' &= x \cos(\theta) - y \sin(\theta) \\
+            y' &= x \sin(\theta) + y \cos(\theta)
+        \end{align*}
+
+    with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
+
+
     :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
         if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
     :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
@@ -57,6 +77,19 @@ def bilinear_filter(factor=2):
     r"""
     Bilinear filter.
 
+    It has size (2*factor, 2*factor) and is defined as
+
+    .. math::
+
+        \begin{equation*}
+            w(x, y) = \begin{cases}
+                (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
+                0 & \text{otherwise}
+            \end{cases}
+        \end{equation*}
+
+    for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
+
     :param int factor: downsampling factor
     """
     x = np.arange(start=-factor + 0.5, stop=factor, step=1) / factor
@@ -69,6 +102,20 @@ def bilinear_filter(factor=2):
 def bicubic_filter(factor=2):
     r"""
     Bicubic filter.
+
+    It has size (4*factor, 4*factor) and is defined as
+
+    .. math::
+
+        \begin{equation*}
+            w(x, y) = \begin{cases}
+                (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
+                a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
+                0 & \text{otherwise}
+            \end{cases}
+        \end{equation*}
+
+    for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
 
     :param int factor: downsampling factor
     """
@@ -420,17 +467,21 @@ class BlurFFT(DecomposablePhysics):
 class SpaceVaryingBlur(LinearPhysics):
     r"""
 
-    Implements a space varying blur, that is an integral operator of the form:
+    Implements a space varying blur via product-convolution.
 
-    .. math:: y(s) = \int k(s,t) x(t) \,dt
+    This operator performs
 
-    where :math:`k` is an integral kernel.
-    Expressed as above, this is an arbitrary linear operator which cannot be computed efficiently.
-    Efficient methods including product-convolution expansions and hierarchical matrices are available if :math:`k` is sufficiently smooth and concentrated around the diagonal.
+    .. math::
 
-    :param str method: method 'product_convolution'
-    :param list params: list of parameters describing the method.
-        'product_convolution2d': params is a list [w, h, params], see deepinv.physics.functional.product_convolution
+        y = \sum_{k=1}^K h_k \star (w_k \odot x)
+
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
+
+    :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+        If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
+        otherwise the blurred output has the same size as the image.
     :param str device: cpu or cuda
 
     |sep|
@@ -442,25 +493,23 @@ class SpaceVaryingBlur(LinearPhysics):
         >>> from deepinv.physics.generator import DiffractionBlurGenerator, ProductConvolutionBlurGenerator
         >>> from deepinv.physics.blur import SpaceVaryingBlur
         >>> from deepinv.utils.plotting import plot
-
         >>> psf_size = 32
         >>> img_size = (256, 256)
         >>> delta = 16
         >>> psf_generator = DiffractionBlurGenerator((psf_size, psf_size))
         >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator=psf_generator, img_size=img_size)
         >>> params_pc = pc_generator.step(1)
-        >>> physics = SpaceVaryingBlur(method='product_convolution2d', **params_pc)
-
-        >>> dirac_comb = torch.zeros(img_size)[None, None]
+        >>> physics = SpaceVaryingBlur(**params_pc)
+        >>> dirac_comb = torch.zeros(img_size).unsqueeze(0).unsqueeze(0)
         >>> dirac_comb[0,0,::delta,::delta] = 1
         >>> psf_grid = physics(dirac_comb)
         >>> plot(psf_grid, titles="Space varying impulse responses")
 
     """
 
-    def __init__(self, method, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = method
+        self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
             keylist = ["w", "h"]
             for key in keylist:
@@ -472,27 +521,53 @@ class SpaceVaryingBlur(LinearPhysics):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def A(self, x: Tensor, **kwargs) -> Tensor:
+    def A(self, x: Tensor, w=None, h=None, padding=None, **kwargs) -> Tensor:
+        r"""
+        Applies the space varying blur operator to the input image.
+
+        It can receive new parameters  :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
+        as the current parameters.
+
+        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+            If `padding = 'valid'` the blurred output is smaller than the image (no padding),
+            otherwise the blurred output has the same size as the image.
+        :param str device: cpu or cuda
+        """
         if self.method == "product_convolution2d":
-            if "w" in kwargs.keys():
-                self.w = kwargs["w"]
-            if "h" in kwargs.keys():
-                self.h = kwargs["h"]
-            if "padding" in kwargs.keys():
-                self.padding = kwargs["padding"]
+            if w is not None:
+                self.w = w
+            if h is not None:
+                self.h = h
+            if padding is not None:
+                self.padding = padding
 
             return product_convolution2d(x, self.w, self.h, self.padding)
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
+    def A_adjoint(self, y: Tensor, w=None, h=None, padding=None, **kwargs) -> Tensor:
+        r"""
+        Applies the adjoint operator.
+
+        It can receive new parameters :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
+        as the current parameters.
+
+        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+            If `padding = 'valid'` the blurred output is smaller than the image (no padding),
+            otherwise the blurred output has the same size as the image.
+        :param str device: cpu or cuda
+        """
         if self.method == "product_convolution2d":
-            if "w" in kwargs.keys():
-                self.w = kwargs["w"]
-            if "h" in kwargs.keys():
-                self.h = kwargs["h"]
-            if "padding" in kwargs.keys():
-                self.padding = kwargs["padding"]
+            if w is not None:
+                self.w = w
+            if h is not None:
+                self.h = h
+            if padding is not None:
+                self.padding = padding
 
             return product_convolution2d_adjoint(y, self.w, self.h, self.padding)
         else:

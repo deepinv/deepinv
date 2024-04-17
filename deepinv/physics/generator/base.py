@@ -7,6 +7,8 @@ class PhysicsGenerator(nn.Module):
     r"""
     Base class for parameter generation of physics parameters.
 
+    Physics generators are used to generate the parameters :math:`\theta` of (parameter-dependent) forward operators.
+
     Generators can be summed to create larger generators via :meth:`deepinv.physics.generator.PhysicsGenerator.__add__`,
     or mixed to create a generator that randomly selects them via :meth:`deepinv.physics.generator.GeneratorMixture`.
 
@@ -21,6 +23,7 @@ class PhysicsGenerator(nn.Module):
     :Examples:
 
         Generating blur and noise levels:
+
         >>> import torch
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
         >>> torch.manual_seed(0)

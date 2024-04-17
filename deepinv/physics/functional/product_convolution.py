@@ -13,7 +13,8 @@ def product_convolution2d(
 
     Product-convolution operator in 2d. Details available in the following paper:
 
-    Escande, P., & Weiss, P. (2017). `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
+    Escande, P., & Weiss, P. (2017).
+    `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
     Journal of Mathematical Imaging and Vision, 58, 333-348.
 
     This forward operator performs
@@ -53,7 +54,9 @@ def product_convolution2d_adjoint(
     :param torch.Tensor x: Tensor of size (B, C, ...)
     :param torch.Tensor w: Tensor of size (K, b, c, ...)
     :param torch.Tensor h: Tensor of size (K, b, c, ...)
-    :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
+    :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+        If `padding = 'valid'` the blurred output is smaller than the image (no padding),
+        otherwise the blurred output has the same size as the image.
     """
 
     K = w.shape[0]
