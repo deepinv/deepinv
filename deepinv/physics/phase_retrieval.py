@@ -47,7 +47,10 @@ class PhaseRetrieval(Physics):
         :param torch.Tensor y: measurements.
         :return: (torch.Tensor) an initial reconstruction for image :math:`x`.
         """
-        return spectral_methods(50, torch.rand((y.shape[0],) + self.img_shape), y, self)
+        return spectral_methods(y, self, n_iter=2)
+
+    def A_adjoint(self, y: torch.Tensor) -> torch.Tensor:
+        return self.A_dagger(y)
 
     def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         return self.B.A_adjoint(y)
@@ -174,20 +177,20 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         self.zero_padding = zero_padding
 
         self.img_shape = img_shape
-        self.img_shape_padding = (
+        self.img_shape_padded = (
             img_shape[0],
             img_shape[1] + 2 * zero_padding,
             img_shape[2] + 2 * zero_padding,
         )
 
         self.n = torch.prod(torch.tensor(self.img_shape))
-        self.m = torch.prod(torch.tensor(self.img_shape_padding))
+        self.m = torch.prod(torch.tensor(self.img_shape_padded))
 
         self.dtype = dtype
         self.device = device
         self.diagonals = []
         for _ in range(self.n_layers):
-            diagonal = torch.rand(self.img_shape_padding)
+            diagonal = torch.rand(self.img_shape_padded)
             diagonal = 2 * torch.pi * diagonal
             diagonal = torch.exp(1j * diagonal)
             self.diagonals.append(diagonal)

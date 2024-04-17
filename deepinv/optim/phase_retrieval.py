@@ -4,11 +4,11 @@ import deepinv as dinv
 
 
 def spectral_methods(
-    n_iter,
-    x: torch.Tensor,
     y: torch.Tensor,
     physics,
-    preprocessing=lambda x: torch.max(1 - 1 / x, torch.tensor(-5.0)),
+    x=None,
+    n_iter=50,
+    preprocessing=lambda y: torch.max(1 - 1 / y, torch.tensor(-5.0)),
     lamb=10.0,
 ):
     r"""
@@ -23,7 +23,11 @@ def spectral_methods(
 
     :return: The estimated signals :math:`x`.
     """
+    if x is None:
+        x = torch.rand((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
     x = x.to(torch.cfloat)
+    x = x / torch.linalg.norm(x)
+
     diag_T = preprocessing(y)
     diag_T = diag_T.to(torch.cfloat)
     for _ in range(n_iter):
@@ -54,11 +58,12 @@ def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor) -> torch.Tensor
 
     for i in range(n_imgs):
         for j in range(n_channels):
-            e_minus_phi = x_recon[i, j].conj() * x[i, j] / (x[i, j].abs() ** 2)
+            e_minus_phi = (x_recon[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
             if e_minus_phi.var() < 1e-3:
                 print(f"Image {i}, channel {j} has a constant global phase shift.")
-                x_recon[i, j] = x_recon[i, j] * e_minus_phi
             else:
                 print(f"Image {i}, channel {j} does not have a global phase shift.")
+            e_minus_phi = e_minus_phi.mean()
+            x_recon[i, j] = x_recon[i, j] * e_minus_phi
 
     return x_recon
