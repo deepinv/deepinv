@@ -4,7 +4,6 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-import itertools
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -19,6 +18,10 @@ OPERATORS = [
     "deblur_circular",
     "deblur_reflect",
     "deblur_replicate",
+    "space_deblur_valid",
+    "space_deblur_circular",
+    "space_deblur_reflect",
+    "space_deblur_replicate",
     "super_resolution_valid",
     "super_resolution_circular",
     "super_resolution_reflect",
@@ -120,8 +123,25 @@ def find_operator(name, device):
         img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
-            filter=dinv.physics.blur.gaussian_blur(sigma=(2, 0.5), angle=45.0),
+            filter=dinv.physics.blur.bicubic_filter(),
             device=device,
+        )
+    elif name.startswith("space_deblur"):
+        img_size = (3, 20, 13)
+        h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
+        h = torch.cat([h, h], dim=0)
+        p = dinv.physics.SpaceVaryingBlur(
+            filters=h,
+            multipliers=torch.ones(
+                (
+                    2,
+                    1,
+                )
+                + img_size,
+                device=device,
+            )
+            * 0.5,
+            padding=padding,
         )
     elif name == "aliased_super_resolution":
         img_size = (1, 32, 32)
@@ -234,6 +254,7 @@ def test_operators_norm(name, device):
     if (
         name in ["singlepixel", "CS", "complex_compressed_sensing"]
         or "pansharpen" in name
+        or "space_deblur"
     ):
         bound = 0.2
     assert torch.abs(norm - norm_ref) < bound

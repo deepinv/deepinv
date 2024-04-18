@@ -13,7 +13,7 @@ class PSFGenerator(PhysicsGenerator):
 
 
     :param tuple psf_size: the shape of the generated PSF in 2D
-        `(kernel_size, kernel_size)`.
+        ``(kernel_size, kernel_size)``.
     :param int num_channels: number of images channels. Defaults to 1.
     """
 
@@ -24,6 +24,9 @@ class PSFGenerator(PhysicsGenerator):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        assert (
+            len(psf_size) == 2
+        ), "The psf size should be a tuple with two elements, height x width"
         self.shape = (num_channels,) + psf_size
         self.psf_size = psf_size
         self.num_channels = num_channels
@@ -177,7 +180,7 @@ class DiffractionBlurGenerator(PSFGenerator):
     Zernike polynomials are ordered following the
     Noll's sequential indices convention (https://en.wikipedia.org/wiki/Zernike_polynomials#Noll's_sequential_indices for more details).
 
-    :param tuple psf_size: the shape of the generated PSF in 2D
+    :param tuple psf_size: the shape ``H x W`` of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
     :param list[str] list_param: list of activated Zernike coefficients in Noll's convention,
         defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
@@ -543,33 +546,41 @@ def bump_function(x, a=1.0, b=1.0):
 
 class ProductConvolutionBlurGenerator(PhysicsGenerator):
     r"""
-    Generates a dictionary {'h', 'w'} of parameters to be used within :meth:`deepinv.physics.blur.SpaceVaryingBlur`
+    Generates parameters of space-varying blurs.
 
-    :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator (e.g. generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25))
-    :param int n_eigen_psf: each psf in the field of view will be a linear combination of n_eigen_psf eigen psfs
-    :param tuple img_size: image size HxW (defaults (512, 512))
-    :param tuple spacing: steps between the psfs used for interpolation (defaults (H//8, W//8))
-    :param str padding: boundary conditions in (options = `valid`, `circular`, `replicate`, `reflect`), defaults `valid`
+    The parameters generated are  ``{'filters' : torch.tensor(...), 'multipliers': torch.tensor(...), 'padding': str}``
+    see :meth:`deepinv.physics.SpaceVaryingBlur` for more details.
 
-    :return: a ProductConvolutionBlurGenerator function
+    :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator
+        (e.g. ``generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)``)
+    :param tuple img_size: image size ``H x W``.
+    :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psfs.
+        Defaults to 10.
+    :param tuple spacing: steps between the psfs used for interpolation (defaults ``(H//8, W//8)``).
+    :param str padding: boundary conditions in (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``).
+        Defaults to ``'valid'``.
 
     |sep|
 
     :Examples:
 
+    >>> from deepinv.physics.generator import DiffractionBlurGenerator
+    >>> from deepinv.physics.generator import ProductConvolutionBlurGenerator
     >>> psf_size = 41
-    >>> step = []
     >>> psf_generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)
-    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, 8)
+    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, n_eigen_psf=8)
+    >>> params = pc_generator.step(0)
+    >>> print(params.keys())
+    dict_keys(['filters', 'multipliers', 'padding'])
 
     """
 
     def __init__(
         self,
-        psf_generator=None,
-        img_size: tuple = (512, 512),
+        psf_generator,
+        img_size: tuple,
         n_eigen_psf: int = 10,
-        spacing: tuple = (64, 64),
+        spacing: tuple = None,
         padding: str = "valid",
         **kwargs,
     ) -> None:
@@ -577,18 +588,17 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         self.psf_generator = psf_generator
         self.img_size = img_size
         self.n_eigen_psf = n_eigen_psf
-        self.spacing = spacing
+        self.spacing = (
+            spacing if spacing is not None else (img_size[0] // 8, img_size[1] // 8)
+        )
         self.padding = padding
 
-    def step(self, batch_size: int = 1, sigma: float = None, l: float = None):
+    def step(self, batch_size: int = 1, **kwargs):
         r"""
-        Generate a random motion blur PSF with parameters :math: '\sigma' and :math: `l`
+        Generates a random set of filters and multipliers for space-varying blurs.
 
-        :param float sigma: the standard deviation of the Gaussian Process
-        :param float l: the length scale of the trajectory
-
-        :return: the generated PSF of shape `(batch_size, 1, kernel_size, kernel_size)`
-        :rtype: torch.Tensor
+        :param int batch_size: number of space-varying blur parameters to generate.
+        :returns: a dictionary containing filters, multipliers and paddings.
         """
 
         # Generating psfs on a grid
@@ -619,5 +629,5 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         w = w.reshape(self.n_eigen_psf, n0, n1)[:, None, None]
 
         # Ending
-        params_blur = {"h": eigen_psf, "w": w, "padding": self.padding}
+        params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
         return params_blur

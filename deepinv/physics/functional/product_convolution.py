@@ -63,11 +63,11 @@ def product_convolution2d_adjoint(
     for k in range(K):
         if k == 0:
             result = multiplier_adjoint(
-                conv_transpose2d(y, h[k]), w[k], padding=padding
+                conv_transpose2d(y, h[k], padding=padding), w[k]
             )
         else:
             result += multiplier_adjoint(
-                conv_transpose2d(y, h[k]), w[k], padding=padding
+                conv_transpose2d(y, h[k], padding=padding), w[k]
             )
 
     return result

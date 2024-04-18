@@ -480,7 +480,7 @@ class SpaceVaryingBlur(LinearPhysics):
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
 
     :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
@@ -509,65 +509,66 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, w=None, h=None, padding=None, **kwargs):
+    def __init__(self, filters=None, multipliers=None, padding=None, **kwargs):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
-            if w is not None:
-                self.w = torch.nn.Parameter(w, requires_grad=False)
-            if h is not None:
-                self.h = torch.nn.Parameter(h, requires_grad=False)
-            if padding is not None:
-                self.padding = padding
+            self.set_params(filters, multipliers, padding)
 
-    def A(self, x: Tensor, w=None, h=None, padding=None, **kwargs) -> Tensor:
+    def set_params(self, filters, multipliers, padding):
+        if filters is not None:
+            self.filters = torch.nn.Parameter(filters, requires_grad=False)
+        if multipliers is not None:
+            self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
+        if padding is not None:
+            self.padding = padding
+
+    def A(
+        self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
+    ) -> Tensor:
         r"""
         Applies the space varying blur operator to the input image.
 
         It can receive new parameters  :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            if w is not None:
-                self.w = torch.nn.Parameter(w, requires_grad=False)
-            if h is not None:
-                self.h = torch.nn.Parameter(h, requires_grad=False)
-            if padding is not None:
-                self.padding = padding
+            self.set_params(filters, multipliers, padding)
 
-            return product_convolution2d(x, self.w, self.h, self.padding)
+            return product_convolution2d(
+                x, self.multipliers, self.filters, self.padding
+            )
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    def A_adjoint(self, y: Tensor, w=None, h=None, padding=None, **kwargs) -> Tensor:
+    def A_adjoint(
+        self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
+    ) -> Tensor:
         r"""
         Applies the adjoint operator.
 
         It can receive new parameters :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
         :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            if w is not None:
-                self.w = torch.nn.Parameter(w, requires_grad=False)
-            if h is not None:
-                self.h = torch.nn.Parameter(h, requires_grad=False)
-            if padding is not None:
-                self.padding = padding
+            self.set_params(filters, multipliers, padding)
 
-            return product_convolution2d_adjoint(y, self.w, self.h, self.padding)
+            return product_convolution2d_adjoint(
+                y, self.multipliers, self.filters, self.padding
+            )
         else:
             raise NotImplementedError("Method not implemented in product-convolution")

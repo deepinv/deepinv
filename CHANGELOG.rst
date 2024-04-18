@@ -155,4 +155,3 @@ Authors
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
-.. _Minh Hai Nguyen: https://github.com/minh-hai-nguyen-712
