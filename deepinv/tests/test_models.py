@@ -14,6 +14,7 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdenoiser",
     "waveletdict",
     "epll",
+    "restormer",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -80,6 +81,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.SwinIR(in_chans=imsize[0])
     elif name == "epll":
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
+    elif name == "restormer":
+        out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 
