@@ -134,12 +134,12 @@ def unfolded_builder(
         >>>
         >>> # Create a trainable unfolded architecture
         >>> model = dinv.unfolded.unfolded_builder(
-        ...     iteration="PGD",
-        ...     data_fidelity=dinv.optim.L2(),
-        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1, train=True)),
-        ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
-        ...     trainable_params=["stepsize", "g_param"]
-        ... )
+        >>>     iteration="PGD",
+        >>>     data_fidelity=dinv.optim.L2(),
+        >>>     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1, train=True)),
+        >>>     params_algo={"stepsize": 1.0, "g_param": 1.0},
+        >>>     trainable_params=["stepsize", "g_param"]
+        >>> )
         >>> # Forward pass
         >>> x = torch.randn(1, 1, 16, 16)
         >>> physics = dinv.physics.Denoising()

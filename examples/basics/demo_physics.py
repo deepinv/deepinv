@@ -143,7 +143,7 @@ import time
 
 start = time.time()
 for i in range(10):
-    xlin = physics.A_dagger(x)
+    xlin = physics.A_dagger(y)
     xprox = physics.prox_l2(x, y, 0.1)
 
 end = time.time()
@@ -151,7 +151,7 @@ print(f"Elapsed time for LinearPhysics: {end - start:.2f} seconds")
 
 start = time.time()
 for i in range(10):
-    xlin2 = physics2.A_dagger(x)
+    xlin2 = physics2.A_dagger(y)
     xprox2 = physics2.prox_l2(x, y2, 0.1)
 
 end = time.time()

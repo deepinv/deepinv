@@ -30,6 +30,7 @@ extensions = [
     "sphinx_copybutton",
 ]
 
+copybutton_prompt_text = ">>> "
 
 intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),

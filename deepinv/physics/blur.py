@@ -223,7 +223,7 @@ class Downsampling(LinearPhysics):
             If not ``None``, it uses this filter and stores it as the current filter.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -240,7 +240,7 @@ class Downsampling(LinearPhysics):
             If not ``None``, it uses this filter and stores it as the current filter.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(torch.tensor(filter), requires_grad=False)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False)
 
         imsize = self.imsize
         if self.filter is not None:
@@ -344,7 +344,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.padding = padding
         if filter is not None:
-            self.filter = filter.to(device)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -356,7 +356,8 @@ class Blur(LinearPhysics):
             the provided filter is stored as the current filter.
         """
         if filter is not None:
-            self.filter = filter
+            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+
         return conv2d(x, self.filter, self.padding)
 
     def A_adjoint(self, y, filter=None, **kwargs):
@@ -370,7 +371,8 @@ class Blur(LinearPhysics):
         """
 
         if filter is not None:
-            self.filter = filter
+            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+
         return conv_transpose2d(y, self.filter, self.padding)
 
 
@@ -507,19 +509,16 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, w=None, h=None, padding=None, **kwargs):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
-            keylist = ["w", "h"]
-            for key in keylist:
-                if key not in kwargs.keys():
-                    raise ValueError(
-                        "product_convolution blur expects 'w' (weights), 'h' (eigenpsfs)"
-                    )
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+            if w is not None:
+                self.w = torch.nn.Parameter(w, requires_grad=False)
+            if h is not None:
+                self.h = torch.nn.Parameter(h, requires_grad=False)
+            if padding is not None:
+                self.padding = padding
 
     def A(self, x: Tensor, w=None, h=None, padding=None, **kwargs) -> Tensor:
         r"""
@@ -537,9 +536,9 @@ class SpaceVaryingBlur(LinearPhysics):
         """
         if self.method == "product_convolution2d":
             if w is not None:
-                self.w = w
+                self.w = torch.nn.Parameter(w, requires_grad=False)
             if h is not None:
-                self.h = h
+                self.h = torch.nn.Parameter(h, requires_grad=False)
             if padding is not None:
                 self.padding = padding
 
@@ -563,9 +562,9 @@ class SpaceVaryingBlur(LinearPhysics):
         """
         if self.method == "product_convolution2d":
             if w is not None:
-                self.w = w
+                self.w = torch.nn.Parameter(w, requires_grad=False)
             if h is not None:
-                self.h = h
+                self.h = torch.nn.Parameter(h, requires_grad=False)
             if padding is not None:
                 self.padding = padding
 

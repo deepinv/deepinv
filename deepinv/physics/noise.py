@@ -1,6 +1,13 @@
 import torch
 
 
+def to_nn_parameter(x):
+    if isinstance(x, torch.Tensor):
+        return torch.nn.Parameter(x, requires_grad=False)
+    else:
+        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)
+
+
 class GaussianNoise(torch.nn.Module):
     r"""
 
@@ -26,7 +33,7 @@ class GaussianNoise(torch.nn.Module):
 
     def __init__(self, sigma=0.1):
         super().__init__()
-        self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
+        self.sigma = to_nn_parameter(sigma)
 
     def forward(self, x, sigma=None, **kwargs):
         r"""
@@ -38,7 +45,7 @@ class GaussianNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if sigma is not None:
-            self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
+            self.sigma = to_nn_parameter(sigma)
 
         return x + torch.randn_like(x) * self.sigma
 
@@ -121,10 +128,8 @@ class PoissonNoise(torch.nn.Module):
 
     def __init__(self, gain=1.0, normalize=True, clip_positive=False):
         super().__init__()
-        self.normalize = torch.nn.Parameter(
-            torch.tensor(normalize), requires_grad=False
-        )
-        self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
+        self.normalize = to_nn_parameter(normalize)
+        self.gain = to_nn_parameter(gain)
         self.clip_positive = clip_positive
 
     def forward(self, x, gain=None, **kwargs):
@@ -137,7 +142,7 @@ class PoissonNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if gain is not None:
-            self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
+            self.gain = to_nn_parameter(gain)
 
         y = torch.poisson(
             torch.clip(x / self.gain, min=0.0) if self.clip_positive else x / self.gain
@@ -173,8 +178,8 @@ class PoissonGaussianNoise(torch.nn.Module):
 
     def __init__(self, gain=1.0, sigma=0.1):
         super().__init__()
-        self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
-        self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
+        self.gain = to_nn_parameter(gain)
+        self.sigma = to_nn_parameter(sigma)
 
     def forward(self, x, gain=None, sigma=None, **kwargs):
         r"""
@@ -187,10 +192,10 @@ class PoissonGaussianNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if gain is not None:
-            self.gain = torch.nn.Parameter(torch.tensor(gain), requires_grad=False)
+            self.gain = to_nn_parameter(gain)
 
         if sigma is not None:
-            self.sigma = torch.nn.Parameter(torch.tensor(sigma), requires_grad=False)
+            self.sigma = to_nn_parameter(sigma)
 
         y = torch.poisson(x / self.gain) * self.gain
 
@@ -221,7 +226,7 @@ class UniformNoise(torch.nn.Module):
 
     def __init__(self, a=0.1):
         super().__init__()
-        self.a = torch.nn.Parameter(torch.tensor(a), requires_grad=False)
+        self.a = to_nn_parameter(a)
 
     def forward(self, x, a=None, **kwargs):
         r"""
@@ -232,7 +237,7 @@ class UniformNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if a is not None:
-            self.a = torch.nn.Parameter(a, requires_grad=False)
+            self.a = to_nn_parameter(a)
 
         return x + (torch.rand_like(x) - 0.5) * 2 * self.a
 
@@ -271,8 +276,8 @@ class LogPoissonNoise(torch.nn.Module):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0):
         super().__init__()
-        self.mu = torch.nn.Parameter(torch.tensor(mu), requires_grad=False)
-        self.N0 = torch.nn.Parameter(torch.tensor(N0), requires_grad=False)
+        self.mu = to_nn_parameter(mu)
+        self.N0 = to_nn_parameter(N0)
 
     def forward(self, x, mu=None, N0=None, **kwargs):
         r"""
@@ -286,10 +291,10 @@ class LogPoissonNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         if N0 is not None:
-            self.N0 = torch.nn.Parameter(torch.tensor(N0), requires_grad=False)
+            self.N0 = to_nn_parameter(N0)
 
         if mu is not None:
-            self.mu = torch.nn.Parameter(torch.tensor(mu), requires_grad=False)
+            self.mu = to_nn_parameter(mu)
 
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu))
         y = -torch.log(N1_tilde / self.N0) / self.mu

@@ -57,12 +57,12 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     >>>
     >>> # Create a trainable unfolded architecture
     >>> model = dinv.unfolded.unfolded_builder(
-    ...     iteration="PGD",
-    ...     data_fidelity=dinv.optim.L2(),
-    ...     prior=dinv.optim.PnP(dinv.models.DnCNN(train=True)),
-    ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
-    ...     trainable_params=["stepsize", "g_param"]
-    ... )
+    >>>     iteration="PGD",
+    >>>     data_fidelity=dinv.optim.L2(),
+    >>>     prior=dinv.optim.PnP(dinv.models.DnCNN(train=True)),
+    >>>     params_algo={"stepsize": 1.0, "g_param": 1.0},
+    >>>     trainable_params=["stepsize", "g_param"]
+    >>> )
     >>> # Forward pass
     >>> x = torch.randn(1, 1, 16, 16)
     >>> physics = dinv.physics.Denoising()
