@@ -91,7 +91,7 @@ probability_mask = 0.5  # probability to mask pixel
 
 # Generate inpainting operator
 physics = dinv.physics.Inpainting(
-    (n_channels, img_size, img_size), mask=probability_mask, device=device
+    tensor_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
 )
 
 

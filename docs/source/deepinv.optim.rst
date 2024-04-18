@@ -63,6 +63,7 @@ for all optimization algorithms.
    deepinv.optim.BaseOptim
 
 .. _data-fidelity:
+
 Data Fidelity
 -------------
 This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
@@ -86,6 +87,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
 
 
 .. _priors:
+
 Priors
 ------
 This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and

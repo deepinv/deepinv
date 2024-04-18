@@ -204,15 +204,17 @@ def test_data_fidelity_amplitude_loss(device):
     :return: assertion error if the relative difference between the two gradients is more than 1e-5
     """
     # essential to enable autograd
-    torch.set_grad_enabled(True)
-    x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
-    physics = dinv.physics.RandomPhaseRetrieval(
-        m=10, img_shape=(1, 3, 3), device=device
-    )
-    loss = AmplitudeLoss()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
-    grad_value = torch.func.grad(func)(x)
-    jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
+    with torch.enable_grad():
+        x = torch.randn(
+            (1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True
+        )
+        physics = dinv.physics.RandomPhaseRetrieval(
+            m=10, img_shape=(1, 3, 3), device=device
+        )
+        loss = AmplitudeLoss()
+        func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+        grad_value = torch.func.grad(func)(x)
+        jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
@@ -348,7 +350,9 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        padding="circular",
     )
     y = physics(test_sample)
     max_iter = 1000
@@ -415,7 +419,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
-            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            padding="circular",
+            device=device,
         )
         y = physics(test_sample)
         max_iter = 1000
@@ -488,7 +494,8 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
     )
     y = physics(test_sample)
     max_iter = 1000
@@ -529,6 +536,7 @@ def test_dpir(imsize, dummy_dataset, device):
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.GaussianNoise(0.1),
+        padding="circular",
     )
     y = physics(test_sample)
     model = dinv.optim.DPIR(0.1, device=device)
@@ -718,34 +726,36 @@ def test_patch_prior(imsize, dummy_dataset, device):
         reason="This test requires FrEIA. It should be "
         "installed with `pip install FrEIA",
     )
-    torch.set_grad_enabled(True)
     torch.manual_seed(0)
+
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
     # gray-valued
     test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
 
-    physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
-    y = physics(test_sample).type(test_sample.dtype).to(device)
+    with torch.enable_grad():
+        physics = dinv.physics.Denoising(
+            noise_model=dinv.physics.GaussianNoise(0.1)
+        )  # 2. Set a physical experiment (here, denoising)
+        y = physics(test_sample).type(test_sample.dtype).to(device)
 
-    epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
-    patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
-    prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
-    prior2 = dinv.optim.PatchPrior(patchnr)
-    data_fidelity = L2()
+        epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
+        patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
+        prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
+        prior2 = dinv.optim.PatchPrior(patchnr)
+        data_fidelity = L2()
 
-    lam = 1.0
-    x_out = []
-    for prior in [prior1, prior2]:
-        x = y.clone()
-        x.requires_grad_(True)
-        optimizer = torch.optim.Adam([x], lr=0.01)
-        for i in range(10):
-            optimizer.zero_grad()
-            loss = data_fidelity(x, y, physics) + prior(x, lam)
-            loss.backward()
-            optimizer.step()
-        x_out.append(x)
+        lam = 1.0
+        x_out = []
+        for prior in [prior1, prior2]:
+            x = y.detach().clone().requires_grad_(True)
+            optimizer = torch.optim.Adam([x], lr=0.01)
+            for i in range(10):
+                optimizer.zero_grad()
+                loss = data_fidelity(x, y, physics) + prior(x, lam)
+                loss.backward()
+                optimizer.step()
+            x_out.append(x.detach())
 
     assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)

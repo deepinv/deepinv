@@ -64,43 +64,46 @@ class BaseOptim(nn.Module):
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
     The same holds for the variable ``prior`` which is a list of instances of :meth:`deepinv.optim.Prior` (or a single instance).
 
-    ::
+    .. doctest::
 
-        # This minimal example shows how to use the BaseOptim class to solve the problem
-        #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
-        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
-
-        # Create the measurement operator A
-        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define the measurement y
-        y = torch.tensor([2, 2], dtype=torch.float64)
-
-        # Define the data fidelity term
-        data_fidelity = dinv.optim.data_fidelity.L2()
-
-        # Define the prior
-        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
-
-        # Define the parameters of the algorithm
-        params_algo = {"stepsize": 0.5, "lambda": 1.0}
-
-        # Define the fixed-point iterator
-        iterator = dinv.optim.optim_iterators.PGDIteration()
-
-        # Define the optimization algorithm
-        optimalgo = dinv.optim.BaseOptim(iterator,
-                            data_fidelity=data_fidelity,
-                            params_algo=params_algo,
-                            prior=prior)
-
-        # Run the optimization algorithm
-        xhat = optimalgo(y, physics)
+        >>> import deepinv as dinv
+        >>> # This minimal example shows how to use the BaseOptim class to solve the problem
+        >>> #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
+        >>> # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
+        >>>
+        >>> # Create the measurement operator A
+        >>> A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>>
+        >>> # Define the physics model associated to this operator
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>>
+        >>> # Define the measurement y
+        >>> y = torch.tensor([2, 2], dtype=torch.float64)
+        >>>
+        >>> # Define the data fidelity term
+        >>> data_fidelity = dinv.optim.data_fidelity.L2()
+        >>>
+        >>> # Define the prior
+        >>> prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
+        >>>
+        >>> # Define the parameters of the algorithm
+        >>> params_algo = {"stepsize": 0.5, "lambda": 1.0}
+        >>>
+        >>> # Define the fixed-point iterator
+        >>> iterator = dinv.optim.optim_iterators.PGDIteration()
+        >>>
+        >>> # Define the optimization algorithm
+        >>> optimalgo = dinv.optim.BaseOptim(iterator,
+        ...                     data_fidelity=data_fidelity,
+        ...                     params_algo=params_algo,
+        ...                     prior=prior)
+        >>>
+        >>> # Run the optimization algorithm
+        >>> with torch.no_grad(): xhat = optimalgo(y, physics)
+        >>> print(xhat)
+        tensor([1., 1.], dtype=torch.float64)
 
 
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.

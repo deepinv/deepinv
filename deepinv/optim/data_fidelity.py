@@ -12,32 +12,33 @@ class DataFidelity(nn.Module):
     linear or nonlinear operator, :math:`x\in\xset` is a variable , :math:`y\in\yset` is the observation and
     :math:`\distancename` is a distance function.
 
-    ::
+    .. doctest::
 
-        # define a loss function
-        data_fidelity = L2()
-
-        # Create a measurement operator
-        A = torch.Tensor([[2, 0], [0, 0.5]])
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define two points
-        x = torch.Tensor([[1], [4]]).unsqueeze(0)
-        y = torch.Tensor([[1], [1]]).unsqueeze(0)
-
-        # Compute the loss :math:`f(x) = \datafid{\forw(x)}{y}`
-        f_x = data_fidelity(x, y, physics)  # print(f_x) gives tensor([1.0000])
-
-        # Compute the gradient of :math:`f`
-        grad = data_fidelity.grad(x, y, physics)  # print(grad) gives tensor([[[2.0000], [0.5000]]])
-
-        # Compute the proximity operator of :math:`f`
-        prox = data_fidelity.prox(x, y, physics, gamma=1.0)  # print(prox) gives tensor([[[0.6000], [3.6000]]])
-
+        >>> import torch
+        >>> import deepinv as dinv
+        >>> # define a loss function
+        >>> data_fidelity = dinv.optim.L2()
+        >>>
+        >>> # Create a measurement operator
+        >>> A = torch.Tensor([[2, 0], [0, 0.5]])
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>>
+        >>> # Define the physics model associated to this operator
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>>
+        >>> # Define two points
+        >>> x = torch.Tensor([[1], [4]]).unsqueeze(0)
+        >>> y = torch.Tensor([[1], [1]]).unsqueeze(0)
+        >>>
+        >>> # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
+        >>> data_fidelity(x, y, physics)
+        tensor([1.0000])
+        >>> # Compute the gradient of :math:`f`
+        >>> grad = data_fidelity.grad(x, y, physics)
+        >>>
+        >>> # Compute the proximity operator of :math:`f`
+        >>> prox = data_fidelity.prox(x, y, physics, gamma=1.0)
 
     .. warning::
         All variables have a batch dimension as first dimension.
@@ -218,31 +219,32 @@ class L2(DataFidelity):
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
 
 
-    ::
+    .. doctest::
 
-        # define a loss function
-        loss = L2()
-
-        # create a measurement operator
-        A = torch.Tensor([[2, 0], [0, 0.5]])
-        A_forward = lambda v:A@v
-        A_adjoint = lambda v: A.transpose(0,1)@v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define two points
-        x = torch.Tensor([1, 4])
-        y = torch.Tensor([1, 1])
-
-        # Compute the loss f(Ax, y)
-        f = loss(x, y, physics)  # print f gives 1.0
-
-        # Compute the gradient of f
-        grad_dA = data_fidelity.grad(x, y, physics)  # print grad_d gives [2.0000, 0.5000]
-
-        # Compute the proximity operator of f
-        prox_dA = data_fidelity.prox(x, y, physics, gamma=1.0)  # print prox_dA gives [0.6000, 3.6000]
+        >>> import torch
+        >>> import deepinv as dinv
+        >>> # define a loss function
+        >>> fidelity = dinv.optim.L2()
+        >>>
+        >>> x = torch.ones(1, 1, 3, 3)
+        >>> mask = torch.ones_like(x)
+        >>> mask[0, 0, 1, 1] = 0
+        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 1, 3, 3), mask = mask)
+        >>> y = physics(x)
+        >>>
+        >>> # Compute the data fidelity f(Ax, y)
+        >>> fidelity(x, y, physics)
+        tensor([0.])
+        >>> # Compute the gradient of f
+        >>> fidelity.grad(x, y, physics)
+        tensor([[[[[0., 0., 0.],
+                   [0., 0., 0.],
+                   [0., 0., 0.]]]]])
+        >>> # Compute the proximity operator of f
+        >>> fidelity.prox(x, y, physics, gamma=1.0)
+        tensor([[[[[1., 1., 1.],
+                   [1., 1., 1.],
+                   [1., 1., 1.]]]]])
     """
 
     def __init__(self, sigma=1.0):

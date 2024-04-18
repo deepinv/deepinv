@@ -1,7 +1,6 @@
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.physics.compressed_sensing import CompressedSensing
 import torch
-import numpy as np
 
 
 class PhaseRetrieval(Physics):
@@ -10,7 +9,7 @@ class PhaseRetrieval(Physics):
 
     .. math::
 
-        A(x) = |Bx|^2.
+        \forw{x} = |Bx|^2.
 
     The linear operator :math:`B` is defined by a :meth:`deepinv.physics.LinearPhysics` object.
 
@@ -29,7 +28,7 @@ class PhaseRetrieval(Physics):
 
         self.B = B
 
-    def A(self, x: torch.Tensor) -> torch.Tensor:
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the forward operator to the input x.
 
@@ -37,14 +36,14 @@ class PhaseRetrieval(Physics):
 
         :param torch.Tensor x: signal/image.
         """
-        return self.B(x).abs().square()
+        return self.B(x, **kwargs).abs().square()
 
-    def A_dagger(self, y: torch.Tensor) -> torch.Tensor:
+    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         x_init = self.B.A_adjoint(y)
         return super().A_dagger(y, x_init)
 
-    def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
-        return self.B.A_adjoint(y)
+    def B_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+        return self.B.A_adjoint(y, **kwargs)
 
     def B_dagger(self, y):
         r"""
@@ -55,14 +54,14 @@ class PhaseRetrieval(Physics):
         """
         return self.B.A_dagger(y)
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         r"""
-        Applies the phase retrieval measurement operator, i.e. :math:`y = N(|Bx|^2)` (with noise :math:`N` and/or sensor non-linearities).
+        Applies the phase retrieval measurement operator, i.e. :math:`y = \noise{|Bx|^2}` (with noise :math:`N` and/or sensor non-linearities).
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
         :return: (torch.Tensor) noisy measurements
         """
-        return self.sensor(self.noise(self.A(x)))
+        return self.sensor(self.noise(self.A(x, **kwargs)))
 
     def A_vjp(self, x, v):
         r"""
@@ -70,7 +69,7 @@ class PhaseRetrieval(Physics):
 
         .. math::
 
-            A_{vjp}(x, v) = 2 \overline{B}^{\top} diag(Bx) v.
+            A_{vjp}(x, v) = 2 \overline{B}^{\top} \text{diag}(Bx) v.
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.

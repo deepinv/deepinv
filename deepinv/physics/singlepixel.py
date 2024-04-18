@@ -55,7 +55,7 @@ class SinglePixelCamera(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :meth:`torch.nn.Module`.
 
-    :param int m: number of single pixel measurements per acquisition.
+    :param int m: number of single pixel measurements per acquisition (m).
     :param tuple img_shape: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
     :param str device: Device to store the forward matrix.
@@ -66,6 +66,7 @@ class SinglePixelCamera(DecomposablePhysics):
 
         SinglePixelCamera operators with 16 binary patterns for 32x32 image:
 
+        >>> from deepinv.physics import SinglePixelCamera
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
         >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
@@ -104,7 +105,6 @@ class SinglePixelCamera(DecomposablePhysics):
                     mask[0, :, revi[i], revj[j]] = 1
 
             mask = mask.to(device)
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
         else:
             n = int(np.prod(img_shape[1:]))
@@ -113,13 +113,14 @@ class SinglePixelCamera(DecomposablePhysics):
             A /= np.sqrt(m)  # normalize
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
-            self.mask = mask.to(device).unsqueeze(0).type(dtype)
+            mask = mask.to(device).unsqueeze(0).type(dtype)
             self.vh = vh.to(device).type(dtype)
             self.u = u.to(device).type(dtype)
 
             self.u = torch.nn.Parameter(self.u, requires_grad=False)
             self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
-            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
+
+        self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
     def V_adjoint(self, x):
         if self.fast:
