@@ -22,8 +22,11 @@ def apply_homography(
     interpolation: str = "bilinear",
     verbose: bool = False,
     device="cpu",
+    **kwargs
 ) -> torch.Tensor | Image.Image:
     """Perform homography (projective transformation).
+
+    Choice of kornia or PIL.
 
     :param torch.Tensor | Image.Image im: Input image of shape (B,C,H,W)
     :param float theta_x: tilt angle in degrees, defaults to 0.
@@ -36,14 +39,17 @@ def apply_homography(
     :param float x_t: relative x pixel translation, defaults to 0.
     :param float y_t: relative y pixel translation, defaults to 0.
     :param str padding: kornia padding mode, defaults to "reflection"
-    :param str interpolation: kornia interpolation mode, defaults to "bilinear"
+    :param str interpolation: kornia interpolation mode, choose from "bilinear", "nearest" or "bicubic". Defaults to "bilinear"
     :param bool verbose: if True, print homography matrix, defaults to False
     :param str device: torch device, defaults to "cpu"
     :return torch.Tensor | Image.Image: transformed image.
     """
 
+    assert interpolation in ("bilinear", "bicubic", "nearest")
+
     # Assumptions: principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
-    u0, v0 = int(im.shape[2] / 2), int(im.shape[3] / 2)
+    w, h = (im.shape[2], im.shape[3]) if isinstance(im, torch.Tensor) else im.size
+    u0, v0 = int(w / 2), int(h / 2)
     f = 100
     s = 0
     m_x = m_y = 1
@@ -83,13 +89,21 @@ def apply_homography(
             padding_mode=padding,
         )
     else:
+
+        if interpolation == "bilinear":
+            pil_interp = Image.Resampling.BILINEAR
+        elif interpolation == "bicubic":
+            pil_interp = Image.Resampling.BICUBIC
+        elif interpolation == "nearest":
+            pil_interp = Image.Resampling.NEAREST
+
         H = K_dash @ R_dash @ np.linalg.inv(K)
 
         return im.transform(
             size=(im.size[0], im.size[1]),
             method=Image.Transform.PERSPECTIVE,
             data=H.flatten(),
-            resample=Image.Resampling.BILINEAR,
+            resample=pil_interp,
         )
 
 
