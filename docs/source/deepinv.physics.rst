@@ -86,7 +86,6 @@ The following example shows how operators and their parameter can be instantiate
 .. doctest::
 
    >>> import torch
-   >>> import deepinv as dinv
    >>> from deepinv.physics import Blur
    >>> x = torch.rand((1, 1, 16, 16))
    >>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
