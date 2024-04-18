@@ -177,7 +177,7 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 # Train the networks using ``AdversarialTrainer``
 #
 
-model = dinv.training.AdversarialTrainer(
+trainer = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
@@ -192,7 +192,18 @@ model = dinv.training.AdversarialTrainer(
     show_progress_bar=False,
     save_path=None,
     device=device,
-).train()
+)
+
+model = trainer.train()
+
+# Select the first image from the dataset
+x = test_dataset[0][0].unsqueeze(0).to(device)
+y = physics(x)
+
+# Apply the trained model to the measurement
+out = model(y, physics)
+
+dinv.utils.plot([x, y, out], titles=["GT", "Input", "Recons."])
 
 
 # %%
@@ -217,7 +228,7 @@ loss_d = adversarial.UAIRDiscriminatorLoss(device=device)
 # Train the networks using ``AdversarialTrainer``
 #
 
-model = dinv.training.AdversarialTrainer(
+trainer = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
@@ -232,7 +243,9 @@ model = dinv.training.AdversarialTrainer(
     show_progress_bar=False,
     save_path=None,
     device=device,
-).train()
+)
+
+model = trainer.train()
 
 
 # %%

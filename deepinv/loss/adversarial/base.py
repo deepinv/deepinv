@@ -7,8 +7,9 @@ from deepinv.loss.loss import Loss
 
 
 class DiscriminatorMetric:
-    """Generic GAN discriminator metric building block. Compares discriminator output
-    with labels depending on if the image should be real or not.
+    r"""Generic GAN discriminator metric building block.
+
+    Compares discriminator output with labels depending on if the image should be real or not.
 
     :param nn.Module metric: loss with which to compare outputs, defaults to nn.MSELoss()
     :param float real_label: value for ideal real image, defaults to 1.
@@ -31,7 +32,7 @@ class DiscriminatorMetric:
         self.metric = metric
 
     def __call__(self, pred: Tensor, real: bool = None) -> Tensor:
-        """Call discriminator loss.
+        r"""Call discriminator loss.
 
         :param torch.Tensor pred: discriminator classification output
         :param bool real: whether image should be real or not, defaults to None
@@ -43,7 +44,7 @@ class DiscriminatorMetric:
 
 
 class GeneratorLoss(Loss):
-    """Base generator adversarial loss. Override the forward function to
+    r"""Base generator adversarial loss. Override the forward function to
     call `adversarial_loss` with quantities depending on your specific GAN model.
     For examples, see :class:`deepinv.loss.adversarial.SupAdversarialGeneratorLoss`, :class:`deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss`
 
@@ -59,7 +60,7 @@ class GeneratorLoss(Loss):
         self.weight_adv = weight_adv
 
     def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module) -> Tensor:
-        """Typical adversarial loss in GAN generators.
+        r"""Typical adversarial loss in GAN generators.
 
         :param Tensor real: image labelled as real, typically one originating from training set
         :param Tensor fake: image labelled as fake, typically a reconstructed image
@@ -74,7 +75,7 @@ class GeneratorLoss(Loss):
 
 
 class DiscriminatorLoss(Loss):
-    """Base discriminator adversarial loss. Override the forward function to
+    r"""Base discriminator adversarial loss. Override the forward function to
     call `adversarial_loss` with quantities depending on your specific GAN model.
     For examples, see :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`, :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`.
 
@@ -90,7 +91,7 @@ class DiscriminatorLoss(Loss):
         self.weight_adv = weight_adv
 
     def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module):
-        """Typical adversarial loss in GAN discriminators.
+        r"""Typical adversarial loss in GAN discriminators.
 
         :param Tensor real: image labelled as real, typically one originating from training set
         :param Tensor fake: image labelled as fake, typically a reconstructed image

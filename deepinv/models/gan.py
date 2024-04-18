@@ -10,9 +10,15 @@ from deepinv.loss import MCLoss
 
 
 class PatchGANDiscriminator(nn.Module):
-    """PatchGAN Discriminator model originally from pix2pix: Isola et al., Image-to-Image Translation with Conditional Adversarial Networks https://arxiv.org/abs/1611.07004.
+    r"""PatchGAN Discriminator model.
 
-    Implementation taken from Kupyn et al., DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf
+     This discriminator model was originally proposed in `Image-to-Image Translation with Conditional Adversarial
+     Networks <https://arxiv.org/abs/1611.07004>`_ (Isola et al.) and classifies whether each patch of an image is real
+     or fake.
+
+    Implementation taken from `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks
+    <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_
+    (Kupyn et al.).
 
     See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
 
@@ -85,13 +91,20 @@ class PatchGANDiscriminator(nn.Module):
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):
+        r"""
+        Forward pass of discriminator model.
+
+        :param Tensor input: input image
+        """
         return self.model(input)
 
 
 class ESRGANDiscriminator(nn.Module):
-    """ESRGAN Discriminator originally from Wang et al., ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks https://arxiv.org/abs/1809.00219
+    r"""ESRGAN Discriminator.
 
-    Implementation taken from https://github.com/edongdongchen/EI/blob/main/models/discriminator.py
+    The ESRGAN discriminator model was originally proposed in `ESRGAN: Enhanced Super-Resolution Generative Adversarial
+    Networks <https://arxiv.org/abs/1809.00219>`_ (Wang et al.). Implementation taken from
+    https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
     See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
 
@@ -133,12 +146,20 @@ class ESRGANDiscriminator(nn.Module):
         self.model = nn.Sequential(*layers)
 
     def forward(self, img):
+        r"""
+        Forward pass of discriminator model.
+
+        :param Tensor img: input image
+        """
         return self.model(img)
 
 
 class DCGANDiscriminator(nn.Module):
-    """DCGAN Discriminator from Radford et al. Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks https://arxiv.org/abs/1511.06434
-    Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+    r"""DCGAN Discriminator.
+
+    The DCGAN discriminator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional
+    Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.). Implementation taken from
+    https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
     See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
 
@@ -170,13 +191,19 @@ class DCGANDiscriminator(nn.Module):
         )
 
     def forward(self, input):
+        r"""Forward pass of discriminator model.
+
+        :param Tensor input: input image
+        """
         return self.model(input)
 
 
 class DCGANGenerator(nn.Module):
-    """DCGAN Generator from Radford et al. Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks https://arxiv.org/abs/1511.06434
+    r"""DCGAN Generator.
 
-    Unconditional generator model which takes latent samples as input.
+    The DCGAN generator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional
+    Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.)
+    and takes a latent sample as input.
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
@@ -218,18 +245,26 @@ class DCGANGenerator(nn.Module):
 
 
 class CSGMGenerator(nn.Module):
-    """
-    Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN:
+    r"""
+    Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 
-    Bora et al., "Compressed Sensing using Generative Models", "AmbientGAN: Generative models from lossy measurements"
+    This approach was proposed in `Compressed Sensing using Generative Models <https://arxiv.org/abs/1703.03208>`_ and
+    `AmbientGAN: Generative models from lossy measurements <https://openreview.net/forum?id=Hy7fDog0b>`_ (Bora et al.).
 
-    At train time, this samples latent vector from Unif[-1, 1] and passes through backbone. Note this generator discards the input.
+    At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.
 
-    At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input y, then outputs the corresponding reconstruction. Note this means that test PSNR will be correct but train PSNR will be meaningless.
+    At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input
+    measurements y, then outputs the corresponding reconstruction.
 
     This generator can be overridden for more advanced optimisation algorithms by overriding ``optimize_z``.
 
     See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+
+    .. note::
+
+        At train time, this generator discards the measurements ``y``, but these measurements are used at test time.
+        This means that train PSNR will be meaningless but test PSNR will be correct.
+
 
     :param nn.Module backbone_generator: any neural network that maps a latent vector of length ``nz`` to an image, must have ``nz`` attribute. Defaults to DCGANGenerator()
     :param int inf_max_iter: maximum iterations at inference-time optimisation, defaults to 2500
@@ -255,7 +290,13 @@ class CSGMGenerator(nn.Module):
         self.inf_progress_bar = inf_progress_bar
 
     def random_latent(self, device, requires_grad=True) -> Tensor:
-        """Generate a latent sample to feed into generative model. The model must have an attribute `nz` which is the latent dimension."""
+        r"""Generate a latent sample to feed into generative model.
+
+        The model must have an attribute `nz` which is the latent dimension.
+
+        :param torch.device device: torch device
+        :param bool requires_grad: whether to require gradient, defaults to True.
+        """
         return (
             rand(
                 1,
@@ -270,7 +311,7 @@ class CSGMGenerator(nn.Module):
         )
 
     def optimize_z(self, z: Tensor, y: Tensor, physics: Physics) -> Tensor:
-        """Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.
+        r"""Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.
 
         The optimisation is defined with simple stopping criteria. Override this function for more advanced optimisation.
 
@@ -301,6 +342,16 @@ class CSGMGenerator(nn.Module):
         return z
 
     def forward(self, y: Tensor, physics: Physics, *args, **kwargs) -> Tensor:
+        r"""Forward pass of generator model.
+
+        At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.
+
+        At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input
+        measurements y, then outputs the corresponding reconstruction.
+
+        :param Tensor y: measurement to reconstruct
+        :param Physics physics: forward model
+        """
         z = self.random_latent(y.device)
 
         if not self.training:

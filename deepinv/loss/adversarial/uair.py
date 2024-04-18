@@ -1,14 +1,13 @@
 import torch.nn as nn
 from torch import Tensor
-from deepinv.loss.loss import Loss
 from .base import GeneratorLoss, DiscriminatorLoss
 from deepinv.physics import Physics
 
 
 class UAIRGeneratorLoss(GeneratorLoss):
-    """Reimplementation of UAIR generator's adversarial loss. See ``deepinv.examples.adversarial_learning`` for formulae.
+    r"""Reimplementation of UAIR generator's adversarial loss.
 
-    Pajot et al., "Unsupervised Adversarial Image Reconstruction"
+    Pajot et al., "Unsupervised Adversarial Image Reconstruction". See ``deepinv.examples.adversarial_learning`` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
@@ -47,9 +46,9 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
 
 class UAIRDiscriminatorLoss(DiscriminatorLoss):
-    """Reimplementation of UAIR discriminator's adversarial loss. See ``deepinv.examples.adversarial_learning`` for formulae.
+    r"""Reimplementation of UAIR discriminator's adversarial loss.
 
-    Pajot et al., "Unsupervised Adversarial Image Reconstruction"
+    Pajot et al., "Unsupervised Adversarial Image Reconstruction". See ``deepinv.examples.adversarial_learning`` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"
