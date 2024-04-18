@@ -25,6 +25,8 @@ def get_weights_url(model_name, file_name):
 def test_pad(model, L, modulo=16):
     """
     Pads the image to fit the model's expected image size.
+
+    Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
     """
     h, w = L.size()[-2:]
     padding_bottom = int(np.ceil(h / modulo) * modulo - h)
@@ -38,6 +40,8 @@ def test_pad(model, L, modulo=16):
 def test_onesplit(model, L, refield=32, sf=1):
     """
     Changes the size of the image to fit the model's expected image size.
+
+    Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models.
 
     :param model: model.
     :param L: input Low-quality image.

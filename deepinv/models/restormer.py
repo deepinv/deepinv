@@ -31,7 +31,7 @@ class Restormer(nn.Module):
 
     .. image:: ../figures/restormer_architecture.png
        :width: 600
-       :alt: Overview of the Restormer architecture / Fig 2 in paper
+       :alt: Overview of the Restormer architecture / Fig 2 in paper by Zamir et al.
 
     |
     |  By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
