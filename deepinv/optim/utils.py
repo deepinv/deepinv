@@ -409,6 +409,8 @@ def init_anderson_acceleration(x, history_size):
     r"""
     Initialize the Anderson acceleration algorithm.
 
+    Code inspired from <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_
+
     :param x: initial iterate.
     :param history_size: size of the histoiry for the Anderson acceleration algorithm.
     :param dtype: dtype of the update.
@@ -456,7 +458,9 @@ def anderson_acceleration_step(
     *args,
 ):
     r"""
-    Anderson acceleration step.
+    Anderson acceleration step. 
+
+    Code inspired from <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_
 
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator.
     :param int it: current iteration.
