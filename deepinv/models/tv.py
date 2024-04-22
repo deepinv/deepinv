@@ -25,6 +25,8 @@ class TVDenoiser(nn.Module):
     between calls to the forward method. This speeds up the computation when using this class in an iterative algorithm.
 
     :param bool verbose: Whether to print computation details or not. Default: False.
+    :param float tau: Stepsize for the primal update. Default: 0.01.
+    :param float rho: Over-relaxation parameter. Default: 1.99.
     :param int n_it_max: Maximum number of iterations. Default: 1000.
     :param float crit: Convergence criterion. Default: 1e-5.
     :param torch.Tensor, None x2: Primary variable for warm restart. Default: None.
@@ -43,6 +45,8 @@ class TVDenoiser(nn.Module):
     def __init__(
         self,
         verbose=False,
+        tau=0.01,
+        rho=1.99,
         n_it_max=1000,
         crit=1e-5,
         x2=None,
@@ -55,9 +59,8 @@ class TVDenoiser(nn.Module):
         self.crit = crit
         self.restart = True
 
-        self.tau = 0.01  # > 0
-
-        self.rho = 1.99  # in 1,2
+        self.tau = tau
+        self.rho = rho
         self.sigma = 1 / self.tau / 8
 
         self.x2 = x2
@@ -78,7 +81,7 @@ class TVDenoiser(nn.Module):
                 torch.tensor([1], device=u.device).type(u.dtype),
             ).unsqueeze(-1)
         )
-    
+
     def forward(self, y, ths=None):
         r"""
         Computes the proximity operator of the TV norm.
@@ -87,10 +90,15 @@ class TVDenoiser(nn.Module):
         :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`.
         :return: Denoised image.
         """
-        
+
         restart = (
             True
-            if (self.restart or self.x2 is None or self.u2 is None or self.x2.shape != y.shape)
+            if (
+                self.restart
+                or self.x2 is None
+                or self.u2 is None
+                or self.x2.shape != y.shape
+            )
             else False
         )
 
@@ -101,11 +109,10 @@ class TVDenoiser(nn.Module):
         else:
             x2 = self.x2.clone()
             u2 = self.u2.clone()
-            
 
         if ths is not None:
             lambd = ths
-            
+
         for _ in range(self.n_it_max):
             x_prev = x2
 
@@ -125,7 +132,7 @@ class TVDenoiser(nn.Module):
 
         self.x2 = x2.detach()
         self.u2 = u2.detach()
-        
+
         return x2
 
     @staticmethod

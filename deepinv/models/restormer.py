@@ -321,7 +321,12 @@ class Restormer(nn.Module):
         ###########################
 
         self.output = nn.Conv2d(
-            int(dim * 2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias
+            int(dim * 2**1),
+            out_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=bias,
         )
 
         # we don't check if our model is a good fit for the weights from the .pth file
