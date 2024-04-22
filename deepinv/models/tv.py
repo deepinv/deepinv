@@ -66,6 +66,9 @@ class TVDenoiser(nn.Module):
         self.has_converged = False
 
     def prox_tau_fx(self, x, y):
+        r"""
+        Proximal operator of the function :math:`\frac{1}{2}\|x-y\|_2^2`.
+        """
         return (x + self.tau * y) / (1 + self.tau)
 
     def prox_sigma_g_conj(self, u, lambda2):
@@ -75,7 +78,7 @@ class TVDenoiser(nn.Module):
                 torch.tensor([1], device=u.device).type(u.dtype),
             ).unsqueeze(-1)
         )
-
+    
     def forward(self, y, ths=None):
         r"""
         Computes the proximity operator of the TV norm.
@@ -84,42 +87,46 @@ class TVDenoiser(nn.Module):
         :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`.
         :return: Denoised image.
         """
+        
         restart = (
             True
-            if (self.restart or self.x2 is None or self.x2.shape != y.shape)
+            if (self.restart or self.x2 is None or self.u2 is None or self.x2.shape != y.shape)
             else False
         )
 
         if restart:
-            self.x2 = y.clone()
-            self.u2 = torch.zeros((*self.x2.shape, 2), device=self.x2.device).type(
-                self.x2.dtype
-            )
+            x2 = y.clone()
+            u2 = torch.zeros((*y.shape, 2), device=y.device).type(y.dtype)
             self.restart = False
+        else:
+            x2 = self.x2.clone()
+            u2 = self.u2.clone()
+            
 
         if ths is not None:
             lambd = ths
-
+            
         for _ in range(self.n_it_max):
-            x_prev = self.x2.clone()
+            x_prev = x2
 
-            x = self.prox_tau_fx(self.x2 - self.tau * self.nabla_adjoint(self.u2), y)
-            u = self.prox_sigma_g_conj(
-                self.u2 + self.sigma * self.nabla(2 * x - self.x2), lambd
-            )
-            self.x2 = self.x2 + self.rho * (x - self.x2)
-            self.u2 = self.u2 + self.rho * (u - self.u2)
+            x = self.prox_tau_fx(x2 - self.tau * self.nabla_adjoint(u2), y)
+            u = self.prox_sigma_g_conj(u2 + self.sigma * self.nabla(2 * x - x2), lambd)
+            x2 = x2 + self.rho * (x - x2)
+            u2 = u2 + self.rho * (u - u2)
 
             rel_err = torch.linalg.norm(
-                x_prev.flatten() - self.x2.flatten()
-            ) / torch.linalg.norm(self.x2.flatten() + 1e-12)
+                x_prev.flatten() - x2.flatten()
+            ) / torch.linalg.norm(x2.flatten() + 1e-12)
 
             if _ > 1 and rel_err < self.crit:
                 if self.verbose:
                     print("TV prox reached convergence")
                 break
 
-        return self.x2
+        self.x2 = x2.detach()
+        self.u2 = u2.detach()
+        
+        return x2
 
     @staticmethod
     def nabla(x):
