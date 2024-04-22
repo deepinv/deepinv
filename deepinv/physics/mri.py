@@ -22,7 +22,7 @@ class MRI(DecomposablePhysics):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    :param torch.Tensor mask: the mask values should be binary.
+    :param torch.Tensor mask: binary mask.
         The mask size should be of the form (H,W) where H is the image height and W is the image width.
     :param torch.device device: cpu or gpu.
 
@@ -32,6 +32,7 @@ class MRI(DecomposablePhysics):
 
         Single-coil MRI operator with 4x acceleration:
 
+        >>> from deepinv.physics import MRI
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 2, 3, 3) # Define random 3x3 image
         >>> mask = torch.ones((3, 3))
@@ -44,48 +45,22 @@ class MRI(DecomposablePhysics):
 
     def __init__(
         self,
-        mask=None,
-        image_size=(320, 320),
-        acceleration_factor=4,
+        mask,
+        img_size=(320, 320),
         device="cpu",
-        seed=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.device = device
-        self.image_size = image_size
+        self.img_size = img_size
 
-        if mask is not None:
-            mask = mask.to(device).unsqueeze(0).unsqueeze(0)
-        else:
-            mask = (
-                self.sample_mask(
-                    image_size=image_size,
-                    acceleration_factor=acceleration_factor,
-                    seed=seed,
-                )
-                .unsqueeze(0)
-                .unsqueeze(0)
-            )
+        mask = mask.to(device)
+        if len(mask.shape) == 2:
+            mask = mask.unsqueeze(0).unsqueeze(0)
 
         self.mask = torch.nn.Parameter(
             torch.cat([mask, mask], dim=1), requires_grad=False
-        )
-
-    def reset(self, **kwargs):
-        r"""
-        Resets the physics, i.e. re-samples a new mask and new noise realization (if any).
-        """
-        super().reset(**kwargs)
-        mask = (
-            self.sample_mask(image_size=self.image_size, **kwargs)
-            .unsqueeze(0)
-            .unsqueeze(0)
-        )
-
-        self.mask = torch.nn.Parameter(
-            torch.cat([mask, mask], dim=1), requires_grad=False
-        )
+        ).to(device)
 
     def V_adjoint(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
@@ -104,48 +79,13 @@ class MRI(DecomposablePhysics):
         x = x.permute(0, 2, 3, 1)
         return ifft2c_new(x).permute(0, 3, 1, 2)
 
-    def sample_mask(self, image_size=(320, 320), acceleration_factor=4, seed=None):
-        r"""
-        Create a mask of vertical lines.
-
-        :param tuple image_size: image size.
-        :param int acceleration_factor: acceleration factor.
-        :param int seed: random seed.
-        :return: mask of size (H, W) with values in {0, 1}.
-        """
-        if seed is not None:
-            np.random.seed(seed)
-        if acceleration_factor == 4:
-            central_lines_percent = 0.08
-            num_lines_center = int(central_lines_percent * image_size[-1])
-            side_lines_percent = 0.25 - central_lines_percent
-            num_lines_side = int(side_lines_percent * image_size[-1])
-        if acceleration_factor == 8:
-            central_lines_percent = 0.04
-            num_lines_center = int(central_lines_percent * image_size[-1])
-            side_lines_percent = 0.125 - central_lines_percent
-            num_lines_side = int(side_lines_percent * image_size[-1])
-        mask = torch.zeros(image_size)
-        center_line_indices = torch.linspace(
-            image_size[0] // 2 - num_lines_center // 2,
-            image_size[0] // 2 + num_lines_center // 2 + 1,
-            steps=50,
-            dtype=torch.long,
-        )
-        mask[:, center_line_indices] = 1
-        random_line_indices = np.random.choice(
-            image_size[0], size=(num_lines_side // 2,), replace=False
-        )
-        mask[:, random_line_indices] = 1
-        return mask.float().to(self.device)
-
 
 #
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
     r"""
     Apply centered 2 dimensional Fast Fourier Transform.
-    :param torch.tensor data: Complex valued input data containing at least 3 dimensions:
+    :param torch.Tensor data: Complex valued input data containing at least 3 dimensions:
         dimensions -2 & -1 are spatial dimensions and dimension -3 has size
         2. All other dimensions are assumed to be batch dimensions.
     :param bool norm: Normalization mode. See ``torch.fft.fft``.
@@ -289,7 +229,7 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
 #
 #     imsize = (25, 32)
 #     # Create a mask function
-#     mask_func = subsample.RandomMaskFunc(center_fractions=[0.08], accelerations=[4])
+#     mask_func = subsample.RandommaskFunc(center_fractions=[0.08], accelerations=[4])
 #     m = mask_func.sample_mask((imsize[1], imsize[0]), offset=None)
 #
 #     # mask = torch.ones((imsize[0], 1)) * (m[0] + m[1]).permute(1, 0)

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from deepinv.loss.loss import Loss
 
 
 def hutch_div(y, physics, f, mc_iter=1):
@@ -21,7 +22,7 @@ def hutch_div(y, physics, f, mc_iter=1):
         x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[
             0
         ]
-        out += (b * x).mean()
+        out += (b * x).reshape(y.size(0), -1).mean(1)
 
     return out / mc_iter
 
@@ -65,13 +66,14 @@ def mc_div(y1, y, f, physics, tau):
     """
     b = torch.randn_like(y)
     y2 = physics.A(f(y + b * tau, physics))
-    out = (b * (y2 - y1) / tau).mean()
+    out = (b * (y2 - y1) / tau).reshape(y.size(0), -1).mean(1)
     return out
 
 
-class SureGaussianLoss(nn.Module):
+class SureGaussianLoss(Loss):
     r"""
     SURE loss for Gaussian noise
+
 
     The loss is designed for the following noise model:
 
@@ -122,17 +124,17 @@ class SureGaussianLoss(nn.Module):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction network.
-        :return: (float) SURE loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
         y1 = physics.A(x_net)
         div = 2 * self.sigma2 * mc_div(y1, y, model, physics, self.tau)
-        mse = (y1 - y).pow(2).mean()
+        mse = (y1 - y).pow(2).reshape(y.size(0), -1).mean(1)
         loss_sure = mse + div - self.sigma2
         return loss_sure
 
 
-class SurePoissonLoss(nn.Module):
+class SurePoissonLoss(Loss):
     r"""
     SURE loss for Poisson noise
 
@@ -181,7 +183,7 @@ class SurePoissonLoss(nn.Module):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module model: Reconstruction network
-        :return: (float) SURE loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
         # generate a random vector b
@@ -195,15 +197,16 @@ class SurePoissonLoss(nn.Module):
         # m = y.numel() #(torch.abs(y) > 1e-5).flatten().sum()
 
         loss_sure = (
-            (y1 - y).pow(2).mean()
-            - self.gain * y.mean()
-            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1)).mean()
+            (y1 - y).pow(2)
+            - self.gain * y
+            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1))
         )
+        loss_sure = loss_sure.reshape(y.size(0), -1).mean(1)
 
         return loss_sure
 
 
-class SurePGLoss(nn.Module):
+class SurePGLoss(Loss):
     r"""
     SURE loss for Poisson-Gaussian noise
 
@@ -261,7 +264,7 @@ class SurePGLoss(nn.Module):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module f: Reconstruction network
-        :return: (float) SURE loss.
+        :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
         b1 = torch.rand_like(y) > 0.5
@@ -280,59 +283,25 @@ class SurePGLoss(nn.Module):
         # compute m (size of y)
         # m = (torch.abs(y) > 1e-5).flatten().sum()
 
-        loss_mc = (meas1 - y).pow(2).mean()
+        loss_mc = (meas1 - y).pow(2).reshape(y.size(0), -1).mean(1)
 
         loss_div1 = (
             2
             / self.tau1
-            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1)).mean()
+            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1))
+            .reshape(y.size(0), -1)
+            .mean(1)
         )
 
-        offset = -self.gain * y.mean() - self.sigma2
+        offset = -self.gain * y.reshape(y.size(0), -1).mean(1) - self.sigma2
 
         loss_div2 = (
             -2
             * self.sigma2
             * self.gain
             / (self.tau2**2)
-            * (b2 * (meas2p + meas2n - 2 * meas1)).mean()
+            * (b2 * (meas2p + meas2n - 2 * meas1)).reshape(y.size(0), -1).mean(1)
         )
 
         loss_sure = loss_mc + loss_div1 + loss_div2 + offset
         return loss_sure
-
-
-# if __name__ == "__main__":
-#     from deepinv.models import Denoiser
-#     import deepinv as dinv
-#
-#     model_spec = {
-#         "name": "waveletprior",
-#         "args": {"wv": "db8", "level": 3, "device": dinv.device},
-#     }
-#     f = dinv.models.ArtifactRemoval(Denoiser(model_spec))
-#     # test divergence
-#
-#     x = torch.ones((1, 3, 16, 16), device=dinv.device) * 0.5
-#     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
-#     y = physics(x)
-#
-#     y1 = f(y, physics)
-#     tau = 1e-4
-#
-#     exact = exact_div(y, physics, f)
-#
-#     error_h = 0
-#     error_mc = 0
-#     for i in range(100):
-#         h = hutch_div(y, physics, f)
-#         mc = mc_div(y1, y, f, physics, tau)
-#
-#         error_h += torch.abs(h - exact)
-#         error_mc += torch.abs(mc - exact)
-#
-#     error_mc /= 100
-#     error_h /= 100
-#
-#     print(f"error_h: {error_h}")
-#     print(f"error_mc: {error_mc}")

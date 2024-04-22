@@ -2,6 +2,8 @@ import deepinv
 import torch
 import pytest
 
+import matplotlib.pyplot as plt
+
 
 @pytest.fixture
 def tensorlist():
@@ -77,6 +79,24 @@ def test_plot():
     for c in range(1, 5):
         x = torch.ones((1, c, 2, 2))
         imgs = [x, x]
-        deepinv.utils.plot(imgs, titles=["a", "b"])
-        deepinv.utils.plot(x, titles="a")
-        deepinv.utils.plot(imgs)
+        deepinv.utils.plot(imgs, titles=["a", "b"], show=False)
+        deepinv.utils.plot(x, titles="a", show=False)
+        deepinv.utils.plot(imgs, show=False)
+
+
+def test_plot_inset():
+    # Plots a batch of images with a checkboard pattern, with different inset locations
+    x = torch.ones(2, 1, 100, 100)
+
+    for i in range(0, 100, 10):
+        x[:, :, :, i : i + 5] = 0
+        x[:, :, i : i + 5, :] = 0
+
+    deepinv.utils.plot_inset(
+        [x],
+        titles=["a"],
+        labels=["a"],
+        inset_loc=((0, 0.5), (0.5, 0.5)),
+        show=False,
+        save_fn="temp.png",
+    )

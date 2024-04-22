@@ -17,9 +17,9 @@ from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
+from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils.parameters import get_DPIR_params
+from deepinv.optim.dpir import get_DPIR_params
 from deepinv.utils.demo import load_dataset, load_degradation
 
 # %%
@@ -106,10 +106,13 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 # This method is based on half-quadratic splitting (HQS).
 # The algorithm alternates between a denoising step and a data fidelity step, where
 # the denoising step is performed by a pretrained denoiser :class:`deepinv.models.DRUNet`.
+#
+# .. note::
+#    We provide a wrapper for rapidly creating the DPIR algorithm in :class:`deepinv.optim.DPIR`.
 
 # load specific parameters for DPIR
-lamb, sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
+params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
 early_stop = False  # Do not stop algorithm with convergence criteria
 
 # Select the data fidelity term
@@ -133,6 +136,7 @@ model = optim_builder(
 # Evaluate the model on the problem.
 # --------------------------------------------------------------------
 # The test function evaluates the model on the test dataset and computes the metrics.
+#
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
 wandb_vis = False  # plot curves and images in Weight&Bias.
@@ -147,6 +151,7 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
+    metrics=[dinv.loss.PSNR(), dinv.loss.LPIPS(device=device)],
     device=device,
     plot_images=plot_images,
     save_folder=save_folder,

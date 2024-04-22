@@ -25,6 +25,9 @@ class TensorList:
 
         self.shape = [xi.shape for xi in self.x]
 
+    def __repr__(self):
+        return f"TensorList({self.x})"
+
     def __len__(self):
         r"""
         Returns the number of tensors in the list.
@@ -93,14 +96,6 @@ class TensorList:
         else:
             return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
 
-    def conj(self):
-        r"""
-
-        Computes the conjugate of the elements of the TensorList.
-
-        """
-        return TensorList([xi.conj() for xi in self.x])
-
     def __truediv__(self, other):
         r"""
 
@@ -129,6 +124,64 @@ class TensorList:
             return TensorList([xi - other for xi in self.x])
         else:
             return TensorList([xi - otheri for xi, otheri in zip(self.x, other)])
+
+    def conj(self):
+        r"""
+
+        Computes the conjugate of the elements of the TensorList.
+
+        """
+        return TensorList([xi.conj() for xi in self.x])
+
+    def sum(self, dim, keepdim=False):
+        r"""
+
+        Computes the sum of each elements of the TensorList along the given dimension(s).
+
+        """
+        return TensorList([xi.sum(dim, keepdim) for xi in self.x])
+
+    def reshape(self, shape):
+        r"""
+
+        Reshape each tensor of the TensorList into the given list of shapes.
+
+        """
+        return TensorList([self.x[i].reshape(shape[i]) for i in range(len(self.x))])
+
+    def __any__(self):
+        r"""
+
+        Returns True if any of the elements of the TensorList is True.
+
+        """
+        return any([xi.any() for xi in self.x])
+
+    def __all__(self):
+        r"""
+
+        Returns True if all the elements of the TensorList are True.
+
+        """
+        return all([xi.all() for xi in self.x])
+
+    def __gt__(self, other):
+        r"""
+
+        Returns a TensorList of True if the elements of the input TensorList are greater than other.
+
+        """
+
+        return TensorList([xi > other for xi in self.x])
+
+    def __lt__(self, other):
+        r"""
+
+        Returns a TensorList of True if the elements of the TensorList are smaller than other.
+
+        """
+
+        return TensorList([xi < other for xi in self.x])
 
 
 def randn_like(x):
@@ -175,7 +228,7 @@ def ones_like(x):
         return TensorList([torch.ones_like(xi) for xi in x])
 
 
-def get_freer_gpu():
+def get_freer_gpu(verbose=True):
     """
     Returns the GPU device with the most free memory.
 
@@ -189,30 +242,13 @@ def get_freer_gpu():
             memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
         idx = np.argmax(memory_available)
         device = torch.device(f"cuda:{idx}")
-        print(f"Selected GPU {idx} with {np.max(memory_available)} MB free memory ")
+        if verbose:
+            print(f"Selected GPU {idx} with {np.max(memory_available)} MB free memory ")
     except:
         device = torch.device(f"cuda")
         print("Couldn't find free GPU")
 
     return device
-
-
-def save_model(
-    epoch, model, optimizer, ckp_interval, epochs, loss, save_path, eval_psnr=None
-):
-    if (epoch > 0 and epoch % ckp_interval == 0) or epoch + 1 == epochs:
-        os.makedirs(save_path, exist_ok=True)
-
-        state = {
-            "epoch": epoch,
-            "state_dict": model.state_dict(),
-            "loss": loss,
-            "optimizer": optimizer.state_dict(),
-        }
-        if eval_psnr is not None:
-            state["eval_psnr"] = eval_psnr
-        torch.save(state, os.path.join(save_path, "ckp_{}.pth.tar".format(epoch)))
-    pass
 
 
 def load_checkpoint(model, path_checkpoint, device):

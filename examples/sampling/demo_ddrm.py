@@ -7,12 +7,10 @@ uncertainty of a reconstruction from incomplete and noisy measurements.
 
 The paper can be found at https://arxiv.org/pdf/2209.11888.pdf.
 
-The DDRM method requires that
+The DDRM method requires that:
 
-* The operator has a singular value decomposition (i.e., the operator is a
-:class:`deepinv.physics.DecomposablePhysics`).
+* The operator has a singular value decomposition (i.e., the operator is a :class:`deepinv.physics.DecomposablePhysics`).
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
-
 
 """
 
@@ -57,7 +55,7 @@ physics = dinv.physics.Inpainting(
 # --------------------------------------------------------------
 #
 # The diffusion method requires an MMSE denoiser that can be evaluated a various noise levels.
-# Here we use a pretrained DRUNET denoiser from the :ref:`models <Models>` module.
+# Here we use a pretrained DRUNET denoiser from the :ref:`denoisers <denoisers>` module.
 
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
@@ -128,8 +126,20 @@ print(f"Posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, mean):.2f} dB")
 # plot results
 error = (mean - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
 std = var.sum(dim=1).unsqueeze(1).sqrt()  # per pixel average standard dev.
-imgs = [x_lin, x, mean, std / std.flatten().max(), error / error.flatten().max()]
+imgs = [
+    x_lin,
+    x,
+    mean,
+    std / std.flatten().max(),
+    error / error.flatten().max(),
+]
 plot(
     imgs,
-    titles=["measurement", "ground truth", "post. mean", "post. std", "abs. error"],
+    titles=[
+        "measurement",
+        "ground truth",
+        "post. mean",
+        "post. std",
+        "abs. error",
+    ],
 )

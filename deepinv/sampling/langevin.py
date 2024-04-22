@@ -102,7 +102,7 @@ class MonteCarlo(nn.Module):
         r"""
         Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
-        :param torch.tensor y: Measurements
+        :param torch.Tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
@@ -222,7 +222,7 @@ class ULAIterator(nn.Module):
     def forward(self, x, y, physics, likelihood, prior):
         noise = torch.randn_like(x) * self.noise_std
         lhood = -likelihood.grad(x, y, physics)
-        lprior = -prior(x, self.sigma) * self.alpha
+        lprior = -prior.grad(x, self.sigma) * self.alpha
         return x + self.step_size * (lhood + lprior) + noise
 
 
@@ -315,7 +315,7 @@ class SKRockIterator(nn.Module):
         self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
-        posterior = lambda u: likelihood.grad(u, y, physics) + self.alpha * prior(
+        posterior = lambda u: likelihood.grad(u, y, physics) + self.alpha * prior.grad(
             u, self.sigma
         )
 

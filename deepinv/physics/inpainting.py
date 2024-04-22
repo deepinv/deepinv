@@ -21,10 +21,10 @@ class Inpainting(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to ``torch.nn.Module``.
 
-    :param tuple tensor_size: size of the input images, e.g., (C, H, W).
-    :param torch.tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
+    :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
         distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,
         the mask will be set to this tensor.
+    :param tuple tensor_size: size of the input images, e.g., (C, H, W).
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
 
@@ -34,11 +34,12 @@ class Inpainting(DecomposablePhysics):
 
         Inpainting operator using defined mask, removing the second column of a 3x3 image:
 
+        >>> from deepinv.physics import Inpainting
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> m = torch.zeros(1, 3, 3) # Define empty mask
-        >>> m[:, 2, :] = 1 # Keeping last line only
-        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), mask=m)
+        >>> mask = torch.zeros(1, 3, 3) # Define empty mask
+        >>> mask[:, 2, :] = 1 # Keeping last line only
+        >>> physics = Inpainting(mask=mask, tensor_size=(1, 1, 3, 3))
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0000, -0.0000],
                   [ 0.0000, -0.0000, -0.0000],
@@ -46,9 +47,10 @@ class Inpainting(DecomposablePhysics):
 
         Inpainting operator using random mask, keeping 70% of the entries of a 3x3 image:
 
+        >>> from deepinv.physics import Inpainting
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(tensor_size=(1, 1, 3, 3), mask=0.7)
+        >>> physics = Inpainting(mask=0.7, tensor_size=(1, 1, 3, 3))
         >>> physics(x)
         tensor([[[[[ 1.5410, -0.0000, -2.1788],
                    [ 0.0000, -1.0845, -1.3986],
@@ -56,24 +58,22 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    def __init__(self, tensor_size, mask=0.3, pixelwise=True, device="cpu", **kwargs):
+    def __init__(self, tensor_size, mask, pixelwise=True, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.tensor_size = tensor_size
-
-        if isinstance(mask, torch.Tensor):  # check if the user created mask
-            self.mask = mask
-        else:  # otherwise create new random mask
+        if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
+            mask = mask.to(device)
+        elif type(mask) == float:
             mask_rate = mask
-            self.mask = torch.ones(tensor_size, device=device)
-            aux = torch.rand_like(self.mask)
+            mask = torch.ones(tensor_size, device=device)
+            aux = torch.rand_like(mask)
             if not pixelwise:
-                self.mask[aux > mask_rate] = 0
+                mask[aux > mask_rate] = 0
             else:
-                self.mask[:, aux[0, :, :] > mask_rate] = 0
+                mask[:, aux[0, :, :] > mask_rate] = 0
 
-        self.mask = torch.nn.Parameter(self.mask.unsqueeze(0), requires_grad=False)
+        self.mask = torch.nn.Parameter(mask.unsqueeze(0), requires_grad=False)
 
-    def noise(self, x):
+    def noise(self, x, **kwargs):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -81,6 +81,8 @@ class Inpainting(DecomposablePhysics):
         :return torch.Tensor: noisy measurements
         """
         noise = self.U(
-            self.V_adjoint(self.V(self.U_adjoint(self.noise_model(x)) * self.mask))
+            self.V_adjoint(
+                self.V(self.U_adjoint(self.noise_model(x, **kwargs)) * self.mask)
+            )
         )
         return noise

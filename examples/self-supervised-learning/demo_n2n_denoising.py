@@ -25,7 +25,6 @@ from torch.utils.data import DataLoader
 import torch
 from pathlib import Path
 from torchvision import transforms, datasets
-from deepinv.training_utils import train, test
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -160,20 +159,25 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
-train(
+# Initialize the trainer
+trainer = dinv.Trainer(
     model=model,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=loss,
-    physics=physics,
     optimizer=optimizer,
     device=device,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,
 )
+
+model = trainer.train()
 
 # %%
 # Test the network
@@ -181,16 +185,4 @@ train(
 #
 #
 
-plot_images = True
-method = "neighbor2neighbor"
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
-)
+trainer.test(test_dataloader)

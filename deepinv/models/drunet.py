@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from .utils import get_weights_url
+from .utils import get_weights_url, test_onesplit, test_pad
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -183,7 +183,7 @@ class DRUNet(nn.Module):
             If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
         if isinstance(sigma, torch.Tensor):
-            if len(sigma.size()) > 0:
+            if sigma.ndim > 0:
                 if x.get_device() > -1:
                     sigma = sigma[
                         int(x.get_device() * x.shape[0]) : int(
@@ -195,17 +195,13 @@ class DRUNet(nn.Module):
                     noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
                 noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
-                sigma = sigma.item()
-                noise_level_map = (
-                    torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
-                    .fill_(sigma)
-                    .to(x.device)
-                )
+                noise_level_map = torch.ones(
+                    (x.size(0), 1, x.size(2), x.size(3)), device=x.device
+                ) * sigma[None, None, None, None].to(x.device)
         else:
             noise_level_map = (
-                torch.FloatTensor(x.size(0), 1, x.size(2), x.size(3))
-                .fill_(sigma)
-                .to(x.device)
+                torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
+                * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
         if self.training or (
@@ -627,60 +623,6 @@ def downsample_avgpool(
         negative_slope=negative_slope,
     )
     return sequential(pool, pool_tail)
-
-
-"""
-Helpers for test time
-"""
-
-
-def test_onesplit(model, L, refield=32, sf=1):
-    """
-    Changes the size of the image to fit the model's expected image size.
-
-    :param model: model.
-    :param L: input Low-quality image.
-    :param refield: effective receptive field of the network, 32 is enough.
-    :param sf: scale factor for super-resolution, otherwise 1.
-    """
-    h, w = L.size()[-2:]
-    top = slice(0, (h // 2 // refield + 1) * refield)
-    bottom = slice(h - (h // 2 // refield + 1) * refield, h)
-    left = slice(0, (w // 2 // refield + 1) * refield)
-    right = slice(w - (w // 2 // refield + 1) * refield, w)
-    Ls = [
-        L[..., top, left],
-        L[..., top, right],
-        L[..., bottom, left],
-        L[..., bottom, right],
-    ]
-    Es = [model(Ls[i]) for i in range(4)]
-    b, c = Es[0].size()[:2]
-    E = torch.zeros(b, c, sf * h, sf * w).type_as(L)
-    E[..., : h // 2 * sf, : w // 2 * sf] = Es[0][..., : h // 2 * sf, : w // 2 * sf]
-    E[..., : h // 2 * sf, w // 2 * sf : w * sf] = Es[1][
-        ..., : h // 2 * sf, (-w + w // 2) * sf :
-    ]
-    E[..., h // 2 * sf : h * sf, : w // 2 * sf] = Es[2][
-        ..., (-h + h // 2) * sf :, : w // 2 * sf
-    ]
-    E[..., h // 2 * sf : h * sf, w // 2 * sf : w * sf] = Es[3][
-        ..., (-h + h // 2) * sf :, (-w + w // 2) * sf :
-    ]
-    return E
-
-
-def test_pad(model, L, modulo=16):
-    """
-    Pads the image to fit the model's expected image size.
-    """
-    h, w = L.size()[-2:]
-    padding_bottom = int(np.ceil(h / modulo) * modulo - h)
-    padding_right = int(np.ceil(w / modulo) * modulo - w)
-    L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
-    E = model(L)
-    E = E[..., :h, :w]
-    return E
 
 
 def weights_init_drunet(m):

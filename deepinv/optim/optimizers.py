@@ -6,6 +6,7 @@ from deepinv.optim.fixed_point import FixedPoint
 from collections.abc import Iterable
 from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
+from deepinv.optim.prior import Zero
 
 
 class BaseOptim(nn.Module):
@@ -18,7 +19,7 @@ class BaseOptim(nn.Module):
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
-        \underset{x}{\arg\min} \quad \lambda \datafid{x}{y} + \reg{x},
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
         \end{equation}
 
 
@@ -45,7 +46,7 @@ class BaseOptim(nn.Module):
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
-    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) = \lambda \datafid{x}{y} + \reg{x}`,
+    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
     Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
@@ -53,7 +54,7 @@ class BaseOptim(nn.Module):
     the following update rule is applied at each iteration :math:`k`:
 
     .. math::
-        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2 \text{ do } \tau \leftarrow \eta \tau
+        \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau
 
     The variable ``params_algo`` is a dictionary containing all the relevant parameters for running the algorithm.
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
@@ -63,43 +64,46 @@ class BaseOptim(nn.Module):
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
     The same holds for the variable ``prior`` which is a list of instances of :meth:`deepinv.optim.Prior` (or a single instance).
 
-    ::
+    .. doctest::
 
-        # This minimal example shows how to use the BaseOptim class to solve the problem
-        #                min_x 0.5 \lambda ||Ax-y||_2^2 + ||x||_1
-        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
-
-        # Create the measurement operator A
-        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define the measurement y
-        y = torch.tensor([2, 2], dtype=torch.float64)
-
-        # Define the data fidelity term
-        data_fidelity = dinv.optim.data_fidelity.L2()
-
-        # Define the prior
-        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
-
-        # Define the parameters of the algorithm
-        params_algo = {"stepsize": 0.5, "lambda": 1.0}
-
-        # Define the fixed-point iterator
-        iterator = dinv.optim.optim_iterators.PGDIteration()
-
-        # Define the optimization algorithm
-        optimalgo = dinv.optim.BaseOptim(iterator,
-                            data_fidelity=data_fidelity,
-                            params_algo=params_algo,
-                            prior=prior)
-
-        # Run the optimization algorithm
-        xhat = optimalgo(y, physics)
+        >>> import deepinv as dinv
+        >>> # This minimal example shows how to use the BaseOptim class to solve the problem
+        >>> #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
+        >>> # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
+        >>>
+        >>> # Create the measurement operator A
+        >>> A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>>
+        >>> # Define the physics model associated to this operator
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>>
+        >>> # Define the measurement y
+        >>> y = torch.tensor([2, 2], dtype=torch.float64)
+        >>>
+        >>> # Define the data fidelity term
+        >>> data_fidelity = dinv.optim.data_fidelity.L2()
+        >>>
+        >>> # Define the prior
+        >>> prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
+        >>>
+        >>> # Define the parameters of the algorithm
+        >>> params_algo = {"stepsize": 0.5, "lambda": 1.0}
+        >>>
+        >>> # Define the fixed-point iterator
+        >>> iterator = dinv.optim.optim_iterators.PGDIteration()
+        >>>
+        >>> # Define the optimization algorithm
+        >>> optimalgo = dinv.optim.BaseOptim(iterator,
+        ...                     data_fidelity=data_fidelity,
+        ...                     params_algo=params_algo,
+        ...                     prior=prior)
+        >>>
+        >>> # Run the optimization algorithm
+        >>> with torch.no_grad(): xhat = optimalgo(y, physics)
+        >>> print(xhat)
+        tensor([1., 1.], dtype=torch.float64)
 
 
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
@@ -179,6 +183,10 @@ class BaseOptim(nn.Module):
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
 
+        # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
+        if "lambda" not in params_algo.keys():
+            params_algo["lambda"] = 1.0
+
         # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
         if "beta" not in params_algo.keys():
             params_algo["beta"] = 1.0
@@ -214,8 +222,10 @@ class BaseOptim(nn.Module):
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
 
-        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration.
-        if not isinstance(prior, Iterable):
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
+        if prior is None:
+            self.prior = [Zero()]
+        elif not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
             self.prior = prior
@@ -509,9 +519,17 @@ def create_iterator(iteration, prior=None, cost_fn=None, g_first=False):
     if cost_fn is None and explicit_prior:
 
         def cost_fn(x, data_fidelity, prior, cur_params, y, physics):
-            return cur_params["lambda"] * data_fidelity(x, y, physics) + prior(
-                x, cur_params["g_param"]
-            )
+            prior_value = prior(x, cur_params["g_param"], reduce=False)
+            if prior_value.dim() == 0:
+                reg_value = cur_params["lambda"] * prior_value
+            else:
+                if isinstance(cur_params["lambda"], float):
+                    reg_value = (cur_params["lambda"] * prior_value).sum()
+                else:
+                    reg_value = (
+                        cur_params["lambda"].flatten() * prior_value.flatten()
+                    ).sum()
+            return data_fidelity(x, y, physics) + reg_value
 
         has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:

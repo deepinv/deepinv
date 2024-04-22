@@ -95,7 +95,7 @@ cost_tv = prior(y)
 print(f"Cost TV: g(y) = {cost_tv:.2f}")
 
 # Apply the proximal operator of the TV prior
-x_tv = prior.prox(y, ths=0.1)
+x_tv = prior.prox(y, gamma=0.1)
 cost_tv_prox = prior(x_tv)
 
 # %%
@@ -121,12 +121,12 @@ plot(
 # .. math::
 #
 #     \begin{equation*}
-#     \underset{x}{\operatorname{min}} \,\, \frac{\lambda}{2} \|Ax-y\|_2^2 + \tau \|Dx\|_{1,2}(x),
+#     \underset{x}{\operatorname{min}} \,\, \frac{1}{2} \|Ax-y\|_2^2 + \lambda \|Dx\|_{1,2}(x),
 #     \end{equation*}
 #
 #
-# where :math:`\lambda/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\|Dx\|_{2,1}(x)` is the total variation (TV)
-# norm of the image :math:`x`, and :math:`\lambda>0` and :math:`\tau>0` are regularisation parameters.
+# where :math:`1/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\lambda \|Dx\|_{2,1}(x)` is the total variation (TV)
+# norm of the image :math:`x`, and :math:`\lambda>0` is a regularisation parameters.
 #
 # We use a Proximal Gradient Descent (PGD) algorithm to solve the inverse problem.
 
@@ -142,8 +142,8 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 stepsize = 1.0
-tau = 1e-2  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "g_param": tau, "lambda": 1.0}
+lamb = 1e-2  # TV regularisation parameter
+params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
 

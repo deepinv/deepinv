@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.blur import Downsampling
@@ -20,12 +19,14 @@ class Pansharpen(LinearPhysics):
 
     It is possible to assign a different noise model to the RGB and grayscale images.
 
+
     :param tuple[int] img_size: size of the input image.
+    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
     :param torch.nn.Module noise_color: noise model for the RGB image.
     :param torch.nn.Module noise_gray: noise model for the grayscale image.
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -36,13 +37,14 @@ class Pansharpen(LinearPhysics):
 
         Pansharpen operator applied to a random 32x32 image:
 
+        >>> from deepinv.physics import Pansharpen
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 image
         >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
         >>> physics(x)[0][:, :, 0, :3] # Display first pixels of RGB image
-        tensor([[[-0.0009, -0.0251, -0.0411],
-                 [-0.1576, -0.1098, -0.0340],
-                 [ 0.0086, -0.0257, -0.0856]]])
+        tensor([[[-0.1291,  0.0594, -0.1425],
+                 [-0.3199, -0.2397,  0.1460],
+                 [ 0.0975, -0.0053, -0.0941]]])
         >>> physics(x)[1][:, :, 0, :3] # Display first pixels of grayscale image
         tensor([[[-0.9084, -0.2966, -0.4015]]])
 
@@ -51,10 +53,10 @@ class Pansharpen(LinearPhysics):
     def __init__(
         self,
         img_size,
+        filter="bilinear",
         factor=4,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
-        filter="gaussian",
         device="cpu",
         padding="circular",
         **kwargs,
@@ -73,15 +75,22 @@ class Pansharpen(LinearPhysics):
         self.noise_gray = noise_gray
         self.colorize = Decolorize()
 
-    def A(self, x):
-        return TensorList([self.downsampling.A(x), self.colorize.A(x)])
-
-    def A_adjoint(self, y):
-        return self.downsampling.A_adjoint(y[0]) + self.colorize.A_adjoint(y[1])
-
-    def forward(self, x):
+    def A(self, x, **kwargs):
         return TensorList(
-            [self.noise_color(self.downsampling(x)), self.noise_gray(self.colorize(x))]
+            [self.downsampling.A(x, **kwargs), self.colorize.A(x, **kwargs)]
+        )
+
+    def A_adjoint(self, y, **kwargs):
+        return self.downsampling.A_adjoint(y[0], **kwargs) + self.colorize.A_adjoint(
+            y[1], **kwargs
+        )
+
+    def forward(self, x, **kwargs):
+        return TensorList(
+            [
+                self.noise_color(self.downsampling(x, **kwargs)),
+                self.noise_gray(self.colorize(x, **kwargs)),
+            ]
         )
 
 

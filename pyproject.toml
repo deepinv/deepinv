@@ -55,7 +55,9 @@ doc = [
     "sphinx_gallery",
     "sphinx_rtd_theme",
     "sphinxemoji",
-    "sphinx_exec_code"
+    "sphinx_copybutton",
+    "sphinx_autoapi"
+
 ]
 
 # optional dependencies for specific denoisers
@@ -63,7 +65,9 @@ denoisers = [
     "bm3d",
     "timm",
     "PyWavelets",
-    "ptwt"
+    "ptwt",
+    "FrEIA",
+    "pyiqa"
 ]
 
 

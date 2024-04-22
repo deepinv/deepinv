@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from deepinv.loss.loss import Loss
 
 
-class JacobianSpectralNorm(nn.Module):
+class JacobianSpectralNorm(Loss):
     r"""
     Computes the spectral norm of the Jacobian.
 
@@ -19,22 +19,24 @@ class JacobianSpectralNorm(nn.Module):
     :param bool eval_mode: set to `False` if one does not want to backpropagate through the spectral norm (default), set to `True` otherwise.
     :param bool verbose: whether to print computation details or not.
 
+    |sep|
 
-    Example of usage:
+    :Examples:
 
-    ::
+    .. doctest::
 
-        import torch
-        from deepinv.loss.regularisers import JacobianSpectralNorm
-
-        reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=False, verbose=True)
-
-        A = torch.diag(torch.Tensor(range(1, 51)))  # creates a diagonal matrix with largest eigenvalue = 50
-        x = torch.randn_like(A).requires_grad_()
-        out = A @ x
-
-        regval = reg_l2(out, x)
-        print(regval) # >> returns approx 50
+        >>> import torch
+        >>> from deepinv.loss.regularisers import JacobianSpectralNorm
+        >>> _ = torch.manual_seed(0)
+        >>> _ = torch.cuda.manual_seed(0)
+        >>>
+        >>> reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=False, verbose=True)
+        >>> A = torch.diag(torch.Tensor(range(1, 51)))  # creates a diagonal matrix with largest eigenvalue = 50
+        >>> x = torch.randn_like(A).requires_grad_()
+        >>> out = A @ x
+        >>> regval = reg_l2(out, x)
+        >>> print(regval) # returns approx 50
+        tensor([49.0202])
     """
 
     def __init__(self, max_iter=10, tol=1e-3, eval_mode=False, verbose=False):
@@ -100,7 +102,7 @@ class JacobianSpectralNorm(nn.Module):
         return z.view(-1).sqrt()
 
 
-class FNEJacobianSpectralNorm(nn.Module):
+class FNEJacobianSpectralNorm(Loss):
     r"""
     Computes the Firm-Nonexpansiveness Jacobian spectral norm.
 

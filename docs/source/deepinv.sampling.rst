@@ -1,6 +1,6 @@
 .. _sampling:
 
-Diffusion algorithms
+Diffusion Algorithms
 ======================
 
 This package contains posterior sampling algorithms.
@@ -10,20 +10,20 @@ This package contains posterior sampling algorithms.
     - \log p(x|y,A) \propto d(Ax,y) + \reg{x},
 
 where :math:`x` is the image to be reconstructed, :math:`y` are the measurements,
-:math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p(x)`
+:math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p_{\sigma}(x)`
 is the negative log-prior.
 
 
 The negative log likelihood can be set using :meth:`deepinv.optim.DataFidelity`, which includes Gaussian noise,
 Poisson noise, etc. The negative log prior can be approximated using :meth:`deepinv.optim.ScorePrior` with a
-denoiser from :any:`models`, which leverages Tweedie's formula, i.e.,
+:ref:`pretrained denoiser <denoisers>`, which leverages Tweedie's formula, i.e.,
 
 .. math::
 
-    - \nabla \log p_{\sigma}(x) \propto \left(x-D(x,\sigma)\right)/\sigma^2
+    - \nabla \log p_{\sigma}(x) \propto \left(x-\denoiser{x}{\sigma}\right)/\sigma^2
 
 where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
-:math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
+:math:`\denoiser{\cdot}{\sigma}` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
 which is typically set to a low value.
 
 .. note::

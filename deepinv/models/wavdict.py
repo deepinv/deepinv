@@ -79,6 +79,21 @@ class WaveletDenoiser(nn.Module):
             )
         return flat
 
+    @staticmethod
+    def psi(x, wavelet="db2", level=2, dimension=2):
+        r"""
+        Returns a flattened list containing the wavelet coefficients.
+        """
+        if dimension == 2:
+            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode="zero", level=level)
+            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
+            vec = [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
+        elif dimension == 3:
+            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode="zero", level=level)
+            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
+            vec = [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
+        return vec
+
     def iwt(self, coeffs):
         r"""
         Applies the wavelet recomposition.
@@ -97,10 +112,11 @@ class WaveletDenoiser(nn.Module):
         :param torch.Tensor x: wavelet coefficients.
         :param float, torch.Tensor ths: threshold.
         """
-        ths_map = ths
         return torch.maximum(
-            torch.tensor([0], device=x.device).type(x.dtype), x - ths_map
-        ) + torch.minimum(torch.tensor([0], device=x.device).type(x.dtype), x + ths_map)
+            torch.tensor([0], device=x.device).type(x.dtype), x - abs(ths)
+        ) + torch.minimum(
+            torch.tensor([0], device=x.device).type(x.dtype), x + abs(ths)
+        )
 
     def prox_l0(self, x, ths=0.1):
         r"""

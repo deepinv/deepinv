@@ -13,6 +13,8 @@ MODEL_LIST_1_CHANNEL = [
     "tgv",
     "waveletdenoiser",
     "waveletdict",
+    "epll",
+    "restormer",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -77,6 +79,10 @@ def choose_denoiser(name, imsize):
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
+    elif name == "epll":
+        out = dinv.models.EPLLDenoiser(channels=imsize[0])
+    elif name == "restormer":
+        out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     else:
         raise Exception("Unknown denoiser")
 
@@ -181,7 +187,7 @@ def test_wavelet_models_identity():
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
 
-    # 1. Wavelet Prior & dictionary
+    # 1. Wavelet denoiser (single & dictionary)
     for dimension in ["2d", "3d"]:
         wvdim = 2 if dimension == "2d" else 3
         x = (
@@ -208,6 +214,24 @@ def test_wavelet_models_identity():
         x_hat = model(x, 0.0)
         assert x_hat.shape == x.shape
         assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
+
+    # 2. Wavelet Prior
+    for dimension in ["2d", "3d"]:
+        wvdim = 2 if dimension == "2d" else 3
+        x = (
+            torch.ones((4, 3, 31, 27))
+            if dimension == "2d"
+            else torch.ones((4, 3, 31, 27, 29))
+        )
+        level = 3
+        prior = dinv.optim.prior.WaveletPrior(wvdim=wvdim, p=1, level=level)
+        g_nonflat = prior.g(x, reduce=False)
+        g_flat = prior.g(x, reduce=True)
+        assert g_nonflat.dim() > 0
+        assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
+        assert g_flat.dim() == 0
+
+        assert torch.allclose(g_nonflat.abs().sum(), g_flat)
 
 
 def test_TV_models_identity():

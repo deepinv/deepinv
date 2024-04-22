@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
@@ -78,9 +77,9 @@ noise_level_img = 0.03
 
 # Generate the gaussian blur downsampling operator.
 physics = dinv.physics.Downsampling(
+    filter="gaussian",
     img_size=(n_channels, img_size, img_size),
     factor=factor,
-    mode="gauss",
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
@@ -123,20 +122,15 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-lamb = [
-    1.0
-] * max_iter  # regularization parameter (multiplier of the data fidelity term)
 stepsize = [1.0] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
-    "lambda": lamb,
     "g_param": sigma_denoiser,
     "beta": beta,
 }
 trainable_params = [
-    "lambda",
     "g_param",
     "stepsize",
     "beta",
@@ -187,20 +181,24 @@ test_dataloader = DataLoader(
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
 
-train(
-    model=model,
+trainer = dinv.Trainer(
+    model,
+    physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
     optimizer=optimizer,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
+
+model = trainer.train()
+
 
 # %%
 # Test the network
@@ -208,28 +206,12 @@ train(
 #
 #
 
-method = "unfolded_drs"
-save_folder = RESULTS_DIR / method / operation
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
-
-test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=save_folder,
-    verbose=verbose,
-    plot_metrics=plot_metrics,
-    wandb_vis=wandb_vis,  # test visualization can be done in Weight&Bias
-)
+trainer.test(test_dataloader)
 
 # %%
 # Plotting the trained parameters.
 # ------------------------------------
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / method / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_drs" / operation
 )

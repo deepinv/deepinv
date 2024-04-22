@@ -1,33 +1,30 @@
-.. _models:
+.. _denoisers:
 
-Models
-======
-This package provides vanilla signal reconstruction methods,
-which can be used for a quick evaluation of a learning setting.
-
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.ArtifactRemoval
-   deepinv.models.DeepImagePrior
 
 Denoisers
----------
+==================
+
 Denoisers are :class:`torch.nn.Module` that take a noisy image as input and return a denoised image.
 They can be used as a building block for plug-and-play restoration, for building unrolled architectures,
 or as a standalone denoiser. All denoisers have a ``forward`` method that takes a noisy image and a noise level
-(which generally corresponds to the standard deviation of the noise) as input and returns a denoised image.
+(which generally corresponds to the standard deviation of the noise) as input and returns a denoised image:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> denoiser = dinv.models.DRUNet()
+    >>> sigma = 0.1
+    >>> image = torch.ones(1, 3, 32, 32)*.5
+    >>> noisy_image =  image + torch.randn(1, 3, 32, 32) * sigma
+    >>> denoised_image = denoiser(noisy_image, sigma)
 
 .. note::
 
     Some denoisers (e.g., :class:`deepinv.models.DnCNN`) do not use the information about the noise level.
     In this case, the noise level is ignored.
 
+
 Classical Denoisers
-^^^^^^^^^^^^^^^^^^^^^
+-------------------
 
 .. autosummary::
    :toctree: stubs
@@ -40,10 +37,11 @@ Classical Denoisers
    deepinv.models.TGVDenoiser
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
+   deepinv.models.EPLLDenoiser
 
 
-Learnable Denoisers
-^^^^^^^^^^^^^^^^^^^^^
+Deep Denoisers
+-------------------
 
 .. autosummary::
    :toctree: stubs
@@ -51,7 +49,6 @@ Learnable Denoisers
    :nosignatures:
 
    deepinv.models.AutoEncoder
-   deepinv.models.ConvDecoder
    deepinv.models.UNet
    deepinv.models.DnCNN
    deepinv.models.DRUNet
@@ -59,10 +56,12 @@ Learnable Denoisers
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
+   deepinv.models.Restormer
 
 
-Equivariant denoisers
----------------------
+
+Equivariant Denoisers
+--------------------------
 The denoisers can be turned into equivariant denoisers by wrapping them with the
 :class:`deepinv.models.EquivariantDenoiser` class.
 The group of transformations available at the moment are vertical/horizontal flips, 90 degree rotations, or a
@@ -80,21 +79,9 @@ equivariant denoiser.
    deepinv.models.EquivariantDenoiser
 
 
-Unfolded architectures
-----------------------
-Some more specific unfolded architectures are also available.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.PDNet_PrimalBlock
-   deepinv.models.PDNet_DualBlock
-
 
 .. _pretrained-weights:
-Pretrained weights
+Pretrained Weights
 ------------------
 The following denoisers have **pretrained weights** available; we next briefly summarize the origin of the weights,
 associated reference and relevant details. All pretrained weights are hosted on
@@ -134,4 +121,14 @@ associated reference and relevant details. All pretrained weights are hosted on
    * -
      - from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer).
        `weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
+   * - :meth:`deepinv.models.EPLL`
+     - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
+   * - 
+     - Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo
+   * - :meth:`deepinv.models.Restormer`
+     - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_. 
+   * - 
+     - Also available on `Deepinv Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+
+
 

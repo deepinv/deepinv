@@ -87,12 +87,14 @@ class DDRM(nn.Module):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
+        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define plain gray 32x32 image
+        >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
+        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1)
+        ...   noise_model=dinv.physics.GaussianNoise(0.1),
+        ...   device=device,
         ... )
         >>> y = physics(x) # measurements
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
@@ -251,18 +253,18 @@ class DiffPIR(nn.Module):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else 'cpu'
-        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32) # Define a plain gray 32x32 image
+        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu' 
+        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1)
+        ...   noise_model=dinv.physics.GaussianNoise(0.1),
+        ...   device=device
         ... )
         >>> y = physics(x) # Measurements
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = DiffPIR(
         ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.L2(),
+        ...   data_fidelity=dinv.optim.L2()
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> dinv.utils.cal_psnr(xhat, x) > dinv.utils.cal_psnr(y, x) # Should be closer to the original

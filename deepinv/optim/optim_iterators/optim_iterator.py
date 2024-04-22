@@ -8,7 +8,7 @@ class OptimIterator(nn.Module):
     Base class for all :meth:`Optim` iterators.
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-    :math:`F = \lambda*f + g` where :math:`f` is a data-fidelity term that will be modeled by an instance of physics
+    :math:`F = f + \lambda g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
     and g is a regularizer. The fixed point iteration takes the form
 
     .. math::
@@ -36,7 +36,7 @@ class OptimIterator(nn.Module):
     :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
      """
 
-    def __init__(self, g_first=False, cost_fn=None, has_cost=False):
+    def __init__(self, g_first=False, cost_fn=None, has_cost=False, **kwargs):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
         self.cost_fn = cost_fn
@@ -85,7 +85,7 @@ class OptimIterator(nn.Module):
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
-        General form of a single iteration of splitting algorithms for minimizing :math:`F = \lambda f + g`, alternating
+        General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
         The fixed-point iterate, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
         $X$ of the form `{'iterate' : x,  'estimate': z , 'cost': F}`.
@@ -146,7 +146,7 @@ class fStep(nn.Module):
 
 class gStep(nn.Module):
     r"""
-    Module for the single iteration steps on the prior term :math:`g`.
+    Module for the single iteration steps on the prior term :math:` \lambda g`.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
     :param kwargs: Additional keyword arguments.

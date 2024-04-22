@@ -31,7 +31,6 @@ from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
-from deepinv.training_utils import train, test
 
 # %%
 # Setup paths for data loading and results.
@@ -92,7 +91,7 @@ probability_mask = 0.5  # probability to mask pixel
 
 # Generate inpainting operator
 physics = dinv.physics.Inpainting(
-    (n_channels, img_size, img_size), mask=probability_mask, device=device
+    tensor_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
 )
 
 
@@ -138,14 +137,14 @@ test_dataloader = DataLoader(
 #          \begin{equation*}
 #          \begin{aligned}
 #          u_{k+1} &= \operatorname{prox}_{\sigma d^*}(u_k + \sigma A z_k) \\
-#          x_{k+1} &= \operatorname{D_{\theta}}(x_k-\tau A^\top u_{k+1}) \\
+#          x_{k+1} &= \operatorname{D_{\sigma}}(x_k-\tau A^\top u_{k+1}) \\
 #          z_{k+1} &= 2x_{k+1} -x_k \\
 #          \end{aligned}
 #          \end{equation*}
 #
 # where :math:`\operatorname{D_{\sigma}}` is a wavelet denoiser with thresholding parameters :math:`\sigma`.
 #
-# The learnable parameters of our network are :math:`\tau` and :math:`\theta`.
+# The learnable parameters of our network are :math:`\tau` and :math:`\sigma`.
 
 # Select the data fidelity term
 data_fidelity = IndicatorL2(radius=0.0)
@@ -162,13 +161,12 @@ prior = [
 ]
 
 # Unrolled optimization algorithm parameters
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
+sigma_denoiser = [
+    0.01 * torch.ones(level, 3)
+] * max_iter  # thresholding parameters \sigma
 
 stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 
@@ -178,7 +176,6 @@ stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 params_algo = {
     "stepsize": stepsize,  # Stepsize for the primal update.
     "g_param": sigma_denoiser,  # prior parameter.
-    "lambda": lamb,  # Regularization parameter.
     "stepsize_dual": stepsize_dual,  # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
     "K": physics.A,
     "K_adjoint": physics.A_adjoint,
@@ -226,19 +223,22 @@ losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
-train(
+trainer = dinv.Trainer(
     model=model,
-    train_dataloader=train_dataloader,
-    epochs=epochs,
     scheduler=scheduler,
     losses=losses,
-    physics=physics,
-    optimizer=optimizer,
     device=device,
+    optimizer=optimizer,
+    physics=physics,
+    train_dataloader=train_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,
+    epochs=epochs,
 )
+
+model = trainer.train()
 
 # %%
 # Test the network
@@ -250,16 +250,7 @@ train(
 plot_images = True
 method = "artifact_removal"
 
-test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
-    model=model,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / test_dataset_name,
-    verbose=verbose,
-    wandb_vis=wandb_vis,  # training vialisations can be done in Weight&Bias
-)
+trainer.test(test_dataloader)
 
 # %%
 # Saving the model
@@ -291,20 +282,15 @@ prior_new = [
 ]
 
 # Unrolled optimization algorithm parameters
-lamb = [
-    1.0
-] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
-
 stepsize_dual = 1.0  # stepsize for Chambolle-Pock
 
 params_algo_new = {
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
-    "lambda": lamb,
     "stepsize_dual": stepsize_dual,
     "K": physics.A,
     "K_adjoint": physics.A_adjoint,
@@ -323,13 +309,6 @@ model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
 
 # Test the model and check that the results are the same as before saving
-test_psnr, test_std_psnr, init_psnr, init_std_psnr = test(
-    model=model_new,
-    test_dataloader=test_dataloader,
-    physics=physics,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / test_dataset_name,
-    verbose=verbose,
-    wandb_vis=wandb_vis,
+dinv.training.test(
+    model_new, test_dataloader, physics=physics, device=device, show_progress_bar=False
 )

@@ -1,24 +1,26 @@
 from .optim_iterator import OptimIterator, fStep, gStep
+from .utils import gradient_descent_step
+
 
 
 class PGDIteration(OptimIterator):
     r"""
     Iterator for proximal gradient descent.
 
-    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimising :math:`\lambda f(x) + g(x)`.
+    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimizing :math:` f(x) + \lambda g(x)`.
 
     The iteration is given by
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= x_k - \lambda \gamma \nabla f(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma g}(u_k),
+        u_{k} &= x_k -  \gamma \nabla f(x_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_k),
         \end{aligned}
         \end{equation*}
 
 
-    where :math:`\gamma` is a stepsize that should satisfy :math:`\lambda \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
+    where :math:`\gamma` is a stepsize that should satisfy :math:` \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
 
     """
 
@@ -51,18 +53,10 @@ class fStepPGD(fStep):
          :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
-            # if cur_params["lambda"] >= 2:
-            #     raise ValueError("lambda must be smaller than 2")
-            grad = (
-                cur_params["lambda"]
-                * cur_params["stepsize"]
-                * cur_data_fidelity.grad(x, y, physics)
-            )
-            return x - grad
+            grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
+            return gradient_descent_step(x, grad)
         else:
-            return cur_data_fidelity.prox(
-                x, y, physics, gamma=cur_params["lambda"] * cur_params["stepsize"]
-            )
+            return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
 
 
 class gStepPGD(gStep):
@@ -75,7 +69,7 @@ class gStepPGD(gStep):
 
     def forward(self, x, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`g`.
+        Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Dictionary containing the current prior.
@@ -83,8 +77,14 @@ class gStepPGD(gStep):
         """
         if not self.g_first:
             return cur_prior.prox(
-                x, cur_params["g_param"], gamma=cur_params["stepsize"]
+                x,
+                cur_params["g_param"],
+                gamma=cur_params["lambda"] * cur_params["stepsize"],
             )
         else:
-            grad = cur_params["stepsize"] * cur_prior.grad(x, cur_params["g_param"])
-            return x - grad
+            grad = (
+                cur_params["lambda"]
+                * cur_params["stepsize"]
+                * cur_prior.grad(x, cur_params["g_param"])
+            )
+            return gradient_descent_step(x, grad)

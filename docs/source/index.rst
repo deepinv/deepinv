@@ -13,7 +13,7 @@ Featuring
 
 * |:camera_with_flash:|  Large collection of :ref:`predefined imaging operators <physics>` (MRI, CT, deblurring, inpainting, etc.)
 * |:book:| :ref:`Training losses <loss>` for inverse problems (self-supervised learning, regularization, etc.).
-* |:boomerang:| Many :ref:`pretrained deep denoisers <models>` which can be used for :ref:`plug-and-play restoration <pnp>`.
+* |:boomerang:| Many :ref:`pretrained deep denoisers <denoisers>` which can be used for :ref:`plug-and-play restoration <iterative>`.
 * |:book:| Framework for :ref:`building datasets <datasets>` for inverse problems.
 * |:building_construction:| Easy-to-build :ref:`unfolded architectures <unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
 * |:microscope:| :ref:`Diffusion algorithms <sampling>` for image restoration and uncertainty quantification (Langevin, diffusion, etc.).
@@ -55,12 +55,13 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.physics
    deepinv.datasets
    deepinv.utils
-   deepinv.models
    deepinv.loss
+   deepinv.denoisers
    deepinv.optim
-   deepinv.pnp
+   deepinv.iterative
    deepinv.unfolded
    deepinv.sampling
+   deepinv.other_models
    auto_examples/index
    deepinv.multigpu
    deepinv.notation

@@ -16,11 +16,12 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
-from deepinv.training_utils import test
+from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.optim.optim_iterators import PGDIteration
+
 
 # %%
 # Setup paths for data loading and results.
@@ -100,14 +101,18 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = True  # use backtracking to automatically adjust the stepsize
+backtracking = True
 use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
 
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+params_algo = {
+    "stepsize": stepsize,
+    "g_param": sigma_denoiser,
+    "lambda": lamb,
+}
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -197,15 +202,16 @@ plot_images = True  # plot images. Images are saved in save_folder.
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
-test(
-    model=model,
-    test_dataloader=dataloader,
-    physics=p,
-    device=device,
-    plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
-    plot_metrics=plot_metrics,
-    verbose=True,
-    wandb_vis=wandb_vis,
-    plot_only_first_batch=False,  # By default only the first batch is plotted.
-)
+with torch.no_grad():
+    test(
+        model=model,
+        test_dataloader=dataloader,
+        physics=p,
+        device=device,
+        plot_images=plot_images,
+        save_folder=RESULTS_DIR / method / operation / dataset_name,
+        plot_metrics=plot_metrics,
+        verbose=True,
+        wandb_vis=wandb_vis,
+        plot_only_first_batch=False,  # By default only the first batch is plotted.
+    )
