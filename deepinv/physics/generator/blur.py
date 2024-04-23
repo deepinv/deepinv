@@ -422,22 +422,16 @@ def define_zernike():
     Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
     Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
     Z[20] = (
-        lambda x, y: sq12
-        * x
-        * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12 * x * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[21] = (
-        lambda x, y: sq12
-        * y
-        * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12 * y * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[22] = lambda x, y: sq7 * (
         20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
     )
     Z[23] = lambda x, y: 2 * sq14 * x * y * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[24] = (
-        lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    )
+    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
     Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
     Z[26] = (
         lambda x, y: sq14
@@ -451,10 +445,7 @@ def define_zernike():
         * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
     )
     Z[28] = lambda x, y: sq14 * (
-        32 * x**6
-        - 48 * x**4 * r2(x, y)
-        + 18 * x**2 * r2(x, y) ** 2
-        - r2(x, y) ** 3
+        32 * x**6 - 48 * x**4 * r2(x, y) + 18 * x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
     )
     Z[29] = (
         lambda x, y: 4
@@ -481,18 +472,12 @@ def define_zernike():
     Z[33] = (
         lambda x, y: 4
         * (7 * r2(x, y) - 6)
-        * (
-            4 * x**2 * y * (x**2 - y**2)
-            + y * (r2(x, y) ** 2 - 8 * x**2 * y**2)
-        )
+        * (4 * x**2 * y * (x**2 - y**2) + y * (r2(x, y) ** 2 - 8 * x**2 * y**2))
     )
     Z[34] = lambda x, y: (
         4
         * (7 * r2(x, y) - 6)
-        * (
-            x * (r2(x, y) ** 2 - 8 * x**2 * y**2)
-            - 4 * x * y**2 * (x**2 - y**2)
-        )
+        * (x * (r2(x, y) ** 2 - 8 * x**2 * y**2) - 4 * x * y**2 * (x**2 - y**2))
     )
     Z[35] = lambda x, y: (
         8 * x**2 * y * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
