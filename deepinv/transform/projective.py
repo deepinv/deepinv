@@ -6,6 +6,7 @@ from PIL import Image
 from scipy.spatial.transform import Rotation
 from kornia.geometry.transform import warp_perspective
 
+# TODO deprecate Pillow
 
 def apply_homography(
     im: torch.Tensor | Image.Image,
