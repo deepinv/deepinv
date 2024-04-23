@@ -30,7 +30,7 @@ jobs:
       - name: Run doctests
         run: |
           find . \( -name '*.py' -o -name '*.rst' \) | while read file; do
-              if [[ "$file" != *.datasets.rst ]]; then
+              if [[ "$file" != *.datasets.rst && "$file" != *.multigpu.rst ]]; then
                   echo "Running doctests in $file"
                   python -m doctest -v "$file"
               else

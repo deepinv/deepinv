@@ -195,7 +195,7 @@ def generate_dataset(
                     hf["y_train"][index: index + bsize] = y[:bsize, :].to("cpu").numpy()
                     if supervised:
                         hf["x_train"][index: index + bsize] = (
-                            x[:bsize, :, :, :].to("cpu").numpy()
+                            x[:bsize, ...].to("cpu").numpy()
                         )
                     index = index + bsize
 
