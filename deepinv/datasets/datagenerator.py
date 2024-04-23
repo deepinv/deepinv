@@ -236,6 +236,7 @@ def generate_dataset(
                 index = index + bsize
         hf.close()
 
-    print("Dataset has been saved in " + str(save_dir))
+    if verbose:
+        print("Dataset has been saved in " + str(save_dir))
 
     return hf_paths[0] if G == 1 else hf_paths
