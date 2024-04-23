@@ -4,42 +4,6 @@ Change Log
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
 
-v0.2.0
-----------------
-
-This PR is the result of the Hackhathon organized by Idris. 
-
-New Features
-^^^^^^^^^^^^
- - Refactored the documentation completely for the physics
- - Added a parameterization of the operators and noiselevels for the physics class (physics(x, theta, noiselevel))
- - Refactored the structure by adding a physics.functional submodule
- - Modified the Blur class to handle color, grayscale, single and multi-batch images
- - Added a PhyisicsGenerator class to synthetize parameters for the forward operators
- - Added the possibility to sum generators
- - Added a MotionBlur generator
- - Added a DiffractionBlur generator
- - Added a MaskGenerator for MRI
- - Added a SigmaGenerator for the Gaussian noise
- - Added a tour of blur operators
- - Added ProductConvolution expansions
- - Added a ThinPlateSpline interpolation function
- - Added d-dimensional histograms 
- - Added GeneratorMixture to mix physics generators
- - Added the SpaceVarying blur class
- - Added the SpaceVarying blur generators
- - Added pytests and examples for all the new features
- - A few speed ups by carefully profiling the training codes
- - made sigma in drunet trainable
-
-Fixed
-^^^^^
- - Fixed the conjugate gradient torch.nograd for teh demos, accelerated)
- - Fixed torch.nograd in demos for faster generation of the doc 
- - Fixed the DRUNet
- - Corrected the padding for the convolution
- - Solved pan-sharpening issues
- - Many docstring fixes
 
 Current
 ----------------
@@ -47,19 +11,63 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+
+Fixed
+^^^^^
+
+
+Changed
+^^^^^^^
+
+
+
+v0.2.0
+----------------
+Many of the features in this version were developed by `Minh Hai Nguyen`_,
+`Pierre Weiss`_, `Florian Sarron`_, `Julian Tachella`_ and `Matthieu Terris`_ during the IDRIS hackathon.
+
+New Features
+^^^^^^^^^^^^
+- Added a parameterization of the operators and noiselevels for the physics class
+- Added a physics.functional submodule
+- Modified the Blur class to handle color, grayscale, single and multi-batch images
+- Added a PhyisicsGenerator class to synthetize parameters for the forward operators
+- Added the possibility to sum generators
+- Added a MotionBlur generator
+- Added a DiffractionBlur generator
+- Added a MaskGenerator for MRI
+- Added a SigmaGenerator for the Gaussian noise
+- Added a tour of blur operators
+- Added ProductConvolution expansions
+- Added a ThinPlateSpline interpolation function
+- Added d-dimensional histograms
+- Added GeneratorMixture to mix physics generators
+- Added the SpaceVarying blur class
+- Added the SpaceVarying blur generators
+- Added pytests and examples for all the new features
+- A few speed ups by carefully profiling the training codes
+- made sigma in drunet trainable
 - Added Trainer, Loss class and eval metric (LPIPS, NIQE, SSIM) (:gh:`181` by `Julian Tachella`_) - 02/04/2024
 - PhaseRetrieval class (:gh:`176` by `Zhiyuan Hu`_) - 20/03/2024
 - Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
 
-
 Fixed
 ^^^^^
+- Fixed the conjugate gradient torch.nograd for teh demos, accelerated)
+- Fixed torch.nograd in demos for faster generation of the doc
+- Corrected the padding for the convolution
+- Solved pan-sharpening issues
+- Many docstring fixes
 - Fixed slow drunet sigma and batched conjugate gradient  (:gh:`181` by `Minh Hai Nguyen`_) - 02/04/2024
 - Fixed g dependence on sigma in optim docs (:gh:`165` by `Julian Tachella`_) - 28/02/2024
 
+
+
 Changed
 ^^^^^^^
+- Refactored the documentation completely for the physics
 - Refactor unfolded docs (:gh:`181` by `Julian Tachella`_) - 02/04/2024
 - Refactor model docs (:gh:`172` by `Julian Tachella`_) - 12/03/2024
 - Changed WaveletPrior to WaveletDenoiser (:gh:`165` by `Julian Tachella`_) - 28/02/2024
