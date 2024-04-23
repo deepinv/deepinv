@@ -42,6 +42,16 @@ using a base dataset (in this case MNIST). For example, here we generate a compr
     >>> dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
     >>>                                physics=physics, device=dinv.device, save_dir=dir)
 
+Similarly, we can generate a dataset from a local folder of images (other types of data can be loaded using the ``loader`` and ``is_valid_file`` arguments of ``ImageFolder``):
+
+.. doctest::
+
+    >>> # Note that ImageFolder requires file structure to be '.../dir/train/xxx/yyy.ext' where xxx is an arbitrary class label
+    >>> data_train = datasets.ImageFolder(f'{dir}/train', transform=transform_data)
+    >>> data_test  = datasets.ImageFolder(f'{dir}/test',  transform=transform_data)
+    >>> 
+    >>> dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
+    >>>                                physics=physics, device=dinv.device, save_dir=dir)
 
 The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard
 :class:`torch.utils.data.DataLoader`:
