@@ -51,6 +51,7 @@ from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+dtype = torch.float32
 
 # %%
 # Load training and test images
@@ -111,7 +112,10 @@ if retrain:
         patch_size=patch_size,
     )
     patchnr_dataloader = DataLoader(
-        train_dataset, batch_size=patchnr_batch_size, shuffle=True, drop_last=True
+        train_dataset,
+        batch_size=patchnr_batch_size,
+        shuffle=True,
+        drop_last=True,
     )
 
     class NFTrainer(Trainer):
@@ -164,7 +168,10 @@ if retrain:
         device=device,
     )
     epll_dataloader = DataLoader(
-        train_dataset, batch_size=epll_batch_size, shuffle=True, drop_last=False
+        train_dataset,
+        batch_size=epll_batch_size,
+        shuffle=True,
+        drop_last=False,
     )
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
@@ -193,7 +200,7 @@ epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_siz
 # Then, we generate an observation by applying the physics and compute the filtered backprojection.
 
 mu = 1 / 50.0 * (362.0 / img_size)
-N0 = 2**10
+N0 = 1024.0
 num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
@@ -215,7 +222,7 @@ lr_variational_problem = 0.02
 
 
 def minimize_variational_problem(prior, lam):
-    imgs = fbp.clone()
+    imgs = fbp.detach().clone()
     imgs.requires_grad_(True)
     optimizer = torch.optim.Adam([imgs], lr=lr_variational_problem)
     for i in (progress_bar := tqdm(range(optim_steps))):
@@ -249,6 +256,11 @@ print("EPLL: {0:.2f}".format(psnr_epll))
 print("PatchNR: {0:.2f}".format(psnr_patchnr))
 
 plot(
-    [test_imgs, fbp.clip(0, 1), recon_epll.clip(0, 1), recon_patchnr.clip(0, 1)],
+    [
+        test_imgs,
+        fbp.clip(0, 1),
+        recon_epll.clip(0, 1),
+        recon_patchnr.clip(0, 1),
+    ],
     ["Ground truth", "Filtered Backprojection", "EPLL", "PatchNR"],
 )

@@ -40,11 +40,11 @@ class Decolorize(dinv.physics.LinearPhysics):
         super().__init__(**kwargs)
         self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
-    def A(self, x):
+    def A(self, x, theta=None):  # theta is an optional parameter that is not used here
         y = x[:, 0, :, :] * 0.2989 + x[:, 1, :, :] * 0.5870 + x[:, 2, :, :] * 0.1140
         return y.unsqueeze(1)
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, theta=None):
         return torch.cat([y * 0.2989, y * 0.5870, y * 0.1140], dim=1)
 
 
@@ -102,8 +102,7 @@ class DecolorizeSVD(dinv.physics.DecomposablePhysics):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.mask = 0.447
+        super().__init__(mask=0.447, **kwargs)
         self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
     def V_adjoint(self, x):
@@ -144,7 +143,7 @@ import time
 
 start = time.time()
 for i in range(10):
-    xlin = physics.A_dagger(x)
+    xlin = physics.A_dagger(y)
     xprox = physics.prox_l2(x, y, 0.1)
 
 end = time.time()
@@ -152,7 +151,7 @@ print(f"Elapsed time for LinearPhysics: {end - start:.2f} seconds")
 
 start = time.time()
 for i in range(10):
-    xlin2 = physics2.A_dagger(x)
+    xlin2 = physics2.A_dagger(y)
     xprox2 = physics2.prox_l2(x, y2, 0.1)
 
 end = time.time()

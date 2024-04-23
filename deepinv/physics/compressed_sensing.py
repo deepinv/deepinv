@@ -79,9 +79,10 @@ class CompressedSensing(LinearPhysics):
 
         Compressed sensing operator with 100 measurements for a 3x3 image:
 
+        >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(img_shape=(1, 3, 3), m=10)
+        >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3))
         >>> physics(x)
         tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
                   0.7754, -0.0479]])
@@ -132,7 +133,7 @@ class CompressedSensing(LinearPhysics):
                 .to(device)
             )
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         N, C = x.shape[:2]
         if self.channelwise:
             x = x.reshape(N * C, -1)
@@ -149,7 +150,7 @@ class CompressedSensing(LinearPhysics):
 
         return y
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         y = y.type(self.dtype)
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
@@ -170,7 +171,7 @@ class CompressedSensing(LinearPhysics):
         x = x.view(N, C, H, W)
         return x
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, **kwargs):
         y = y.type(self.dtype)
         if self.fast:
             return self.A_adjoint(y)

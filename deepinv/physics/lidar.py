@@ -45,7 +45,7 @@ class SinglePhotonLidar(Physics):
         self.irf = h.unsqueeze(0).unsqueeze(0)  # set impulse response function
         self.grid = self.grid.unsqueeze(0).unsqueeze(2).unsqueeze(3)
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         r"""
         Applies the forward operator.
 
@@ -60,7 +60,7 @@ class SinglePhotonLidar(Physics):
         y = x[:, 1, :, :] * h + x[:, 2, :, :]
         return y
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, **kwargs):
         r"""
         Applies Matched filtering to find the peaks.
 

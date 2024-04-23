@@ -14,6 +14,7 @@ def test(
     physics,
     metrics=PSNR(),
     online_measurements=False,
+    physics_generator=None,
     device="cpu",
     plot_images=False,
     save_folder="results",
@@ -110,11 +111,12 @@ def test(
 
                     x = x.to(device)
                     physics_cur = physics[g]
-                    if isinstance(physics_cur, torch.nn.DataParallel):
-                        physics_cur.module.noise_model.__init__()
+
+                    if physics_generator is not None:
+                        params = physics_generator.step()
+                        y = physics_cur(x, **params)
                     else:
-                        physics_cur.reset()
-                    y = physics_cur(x)
+                        y = physics_cur(x)
                 else:
                     x, y = next(
                         iterator
@@ -133,7 +135,7 @@ def test(
                     y, physics_cur, x_gt=x, compute_metrics=True
                 )
             else:
-                x_net = model(y, physics[g])
+                x_net = model(y, physics_cur)
 
             if hasattr(physics_cur, "A_adjoint"):
                 if isinstance(physics_cur, torch.nn.DataParallel):
