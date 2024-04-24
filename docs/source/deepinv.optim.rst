@@ -30,7 +30,53 @@ operator (see :meth:`deepinv.physics.Physics`)
     or estimated. For example, if the regularization is implicitly defined by a denoiser,
     the hyperparameter is the noise level.
 
-Optimization algorithms for minimizing the problem above can be written as fixed point algorithms,
+A typical example of optimization problem is the l1-regularized least squares problem, where the data-fidelity term is
+the squared :math:`\ell_2`-norm and the regularization term is the :math:`\ell_1`-norm. In this case, a possible
+algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm writing as
+
+.. math::
+    \qquad x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname} \left( x_k - \gamma \nabla \datafidname(x_k, y) \right),
+
+where :math:`\operatorname{prox}_{\lambda \regname}` is the proximity operator of the regularization term, :math:`\gamma` is the
+step size of the algorithm, and :math:`\nabla \datafidname` is the gradient of the data-fidelity term.
+
+The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the l1-regularized
+least squares problem.
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> from deepinv.optim import L2, L1Prior
+    >>>
+    >>> y = torch.tensor([[[1], [0]]], dtype=torch.float64) # Data
+    >>>
+    >>> A = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64) # Forward operator
+    >>> A_forward = lambda v: A @ v
+    >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+    >>>
+    >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    >>> data_fidelity = L2()  # The data fidelity term
+    >>> prior = L1Prior()  # The prior term
+    >>> reg_param = 0.1  # Regularization parameter
+    >>>
+    >>> norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()  # Compute the squared norm of the operator A
+    >>> gamma = 1/norm_A2  # stepsize for the PGD algorithm
+    >>>
+    >>> # PGD algorithm
+    >>> max_iter = 100  # number of iterations
+    >>> x = torch.tensor([[[10], [10]]], dtype=torch.float64)  # initial guess
+    >>>
+    >>> for it in range(max_iter):
+    >>>     u = x - gamma*data_fidelity.grad(x, y, physics)  # Gradient step
+    >>>     x = prior.prox(u, gamma=gamma*reg_param)  # Proximal step
+    >>>     cost = data_fidelity(x, y, physics) + reg_param*prior(x)  # Compute the cost
+    >>>
+    >>> print('Final cost: ', cost.item())
+    >>> print('Estimated solution: ', x)
+
+
+Optimization algorithms such as the one above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
 
 .. math::
