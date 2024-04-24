@@ -29,7 +29,7 @@ jobs:
           python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
       - name: Run doctests
         run: |
-          find . \( -name '*.py' -o -name '*.rst' \) | while read file; do
+          find . \( -name '*.py' -o -name '*.rst' \) | xargs grep -l '>>>' | while read file; do
               if [[ "$file" != *.datasets.rst && "$file" != *.multigpu.rst ]]; then
                   echo "Running doctests in $file"
                   python -m doctest -v "$file"
