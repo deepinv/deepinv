@@ -79,10 +79,40 @@ class AdversarialTrainer(Trainer):
 
     The usual reconstruction model corresponds to the generator model in an adversarial framework, which is trained using losses specified in the ``losses`` argument.
     Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``. The adversarial losses themselves are defined in the ``deepinv.loss.adversarial`` module.
+    Examples of discriminators are in ``deepinv.models.gan``.
 
-    See ``deepinv.examples.adversarial_learning`` for usage.
+    See ``deepinv.examples.adversarial_learning`` for usage. A very basic example outline:
+
+    ::
+
+        generator = dinv.models.UNet()
+        discrimin = dinv.models.PatchGANDiscriminator()
+
+        loss_g = adversarial.SupAdversarialGeneratorLoss()
+        loss_d = adversarial.SupAdversarialDiscriminatorLoss()
+
+        optimizer = dinv.training.adversarial.AdversarialOptimizer(
+            torch.optim.Adam(generator.parameters()),
+            torch.optim.Adam(discrimin.parameters()),
+        )
+
+        trainer = dinv.training.AdversarialTrainer(
+            model=generator,
+            D=discrimin,
+            physics=physics,
+            train_dataloader=train_dataloader,
+            epochs=3,
+            losses=loss_g,
+            losses_d=loss_d,
+            optimizer=optimizer
+        )
+
+        generator = trainer.train()
+
 
     Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times, but this is completely optional.
+
+    See :class:`deepinv.Trainer` for additional parameters.
 
     :param AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
@@ -117,6 +147,11 @@ class AdversarialTrainer(Trainer):
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
             self.D.load_state_dict(checkpoint["state_dict_D"])
+
+        if self.check_grad:
+            self.check_grad_val_D = AverageMeter(
+                "Gradient norm for discriminator", ":.2e"
+            )
 
     def compute_loss(self, physics, x, y, train=True):
         r"""
@@ -208,16 +243,28 @@ class AdversarialTrainer(Trainer):
             if train:
                 loss_total_d.backward()
 
-                self.clip_grad_D()
+                norm = self.check_clip_grad_D()
+                if norm is not None:
+                    logs["gradient_norm_D"] = self.check_grad_val_D.avg
 
                 self.optimizer.D.step()
 
         return x_net, logs
 
-    def clip_grad_D(self):
-        """Clip discriminator gradient, like how generator gradient is clipped"""
+    def check_clip_grad_D(self):
+        """Check the discriminator's gradient norm and perform gradient clipping if necessary. Analogous to ``check_clip_grad`` for generator."""
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
+
+        if self.check_grad:
+            grads = [
+                param.grad.detach().flatten()
+                for param in self.D.parameters()
+                if param.grad is not None
+            ]
+            norm_grads = torch.cat(grads).norm()
+            self.check_grad_val_D.update(norm_grads.item())
+            return norm_grads.item()
 
     def save_model(self, epoch, eval_psnr=None):
         """Save discriminator model parameters alongside other models"""

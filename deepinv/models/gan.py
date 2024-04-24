@@ -209,36 +209,50 @@ class DCGANGenerator(nn.Module):
 
     See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
 
+    :param int output_size: desired square size of output image. Choose from 64 or 128, defaults to 64
     :param int nz: latent dimension, defaults to 100
     :param int ngf: hidden layer size, defaults to 64
-    :param int nc: number of input channels, defaults to 3
+    :param int nc: number of image output channels, defaults to 3
     """
 
-    def __init__(self, nz: int = 100, ngf: int = 64, nc: int = 3):
+    def __init__(
+        self, output_size: int = 64, nz: int = 100, ngf: int = 64, nc: int = 3
+    ):
         super().__init__()
         self.nz = nz
-        self.model = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 8),
-            nn.ReLU(True),
-            # state size. ``(ngf*8) x 4 x 4``
+        # input is (b, nz, 1, 1), output is (b, nc, output_size, output_size)
+        if output_size == 64:
+            layers = [
+                nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
+                nn.BatchNorm2d(ngf * 8),
+                nn.ReLU(True),
+            ]
+        elif output_size == 128:
+            layers = [
+                nn.ConvTranspose2d(nz, ngf * 16, 4, 1, 0, bias=False),
+                nn.BatchNorm2d(ngf * 16),
+                nn.ReLU(True),
+                nn.ConvTranspose2d(ngf * 16, ngf * 8, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ngf * 8),
+                nn.ReLU(True),
+            ]
+        else:
+            raise ValueError("output_size must be 64 or 128.")
+
+        layers += [
             nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
-            # state size. ``(ngf*4) x 8 x 8``
             nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
-            # state size. ``(ngf*2) x 16 x 16``
             nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
-            # state size. ``(ngf) x 32 x 32``
             nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh(),
-            # state size. ``(nc) x 64 x 64``
-        )
+        ]
+        self.model = nn.Sequential(*layers)
 
     def forward(self, input, *args, **kwargs):
         return self.model(input, *args, **kwargs)

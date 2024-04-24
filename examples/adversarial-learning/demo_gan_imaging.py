@@ -72,10 +72,11 @@ pixel-wise MSE or VGG Perceptual Loss.
 
 import deepinv as dinv
 from deepinv.loss import adversarial
+from deepinv.physics.generator import MotionBlurGenerator
 import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
-from torchvision.transforms import Compose, ToTensor, CenterCrop
+from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 from torchvision.datasets.utils import download_and_extract_archive
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -83,12 +84,13 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load data and apply some forward degradation to the images. For this
-# example we use the Urban100 dataset resized to 64x64. For simplicity we
-# apply an isotropic Gaussian blur for demonstration, although the
-# original papers deal with inverse problems with unknown blurs.
+# example we use the Urban100 dataset resized to 128x128. We apply random
+# motion blur physics using
+# ``deepinv.physics.generator.MotionBlurGenerator``.
 #
 
-physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(sigma=(5, 5)))
+physics = dinv.physics.Blur(padding="circular")
+blur_generator = MotionBlurGenerator((11, 11))
 
 download_and_extract_archive(
     "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz?download=true",
@@ -98,23 +100,14 @@ download_and_extract_archive(
 )
 
 train_dataset, test_dataset = random_split(
-    ImageFolder("Urban100", transform=Compose([ToTensor(), CenterCrop(64)])), (0.8, 0.2)
+    ImageFolder(
+        "Urban100", transform=Compose([ToTensor(), Resize(256), CenterCrop(128)])
+    ),
+    (0.8, 0.2),
 )
 
-dataset_path = dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
-    physics=physics,
-    device=device,
-    save_dir=f"Urban100",
-)
-
-train_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
-)
-test_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
-)
+train_dataloader = DataLoader(train_dataset, shuffle=True)
+test_dataloader = DataLoader(test_dataset, shuffle=False)
 
 
 # %%
@@ -174,13 +167,17 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# Train the networks using ``AdversarialTrainer``
+# Train the networks using ``AdversarialTrainer``. We only train for 3
+# epochs for speed, but below we also show results with a pretrained model
+# trained in the exact same way after 50 epochs.
 #
 
-trainer = dinv.training.AdversarialTrainer(
+model = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
+    physics_generator=blur_generator,
+    online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=3,
@@ -192,18 +189,24 @@ trainer = dinv.training.AdversarialTrainer(
     show_progress_bar=False,
     save_path=None,
     device=device,
+).train()
+
+
+# %%
+# Show pretrained model results:
+#
+
+ckpt = torch.hub.load_state_dict_from_url(
+    dinv.models.utils.get_weights_url("deblurgan-demo", "model.pth"),
+    map_location=lambda s, _: s,
+    file_name="model.pth",
 )
 
-model = trainer.train()
+model.load_state_dict(ckpt["state_dict"])
 
-# Select the first image from the dataset
-x = test_dataset[0][0].unsqueeze(0).to(device)
-y = physics(x)
-
-# Apply the trained model to the measurement
-out = model(y, physics)
-
-dinv.utils.plot([x, y, out], titles=["GT", "Input", "Recons."])
+x, _ = next(iter(test_dataloader))
+y = physics(x, **blur_generator.step())
+dinv.utils.plot([x, y, model(y)], titles=["GT", "Measurement", "Reconstruction"])
 
 
 # %%
@@ -228,10 +231,12 @@ loss_d = adversarial.UAIRDiscriminatorLoss(device=device)
 # Train the networks using ``AdversarialTrainer``
 #
 
-trainer = dinv.training.AdversarialTrainer(
+model = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
+    physics_generator=blur_generator,
+    online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=3,
@@ -243,9 +248,7 @@ trainer = dinv.training.AdversarialTrainer(
     show_progress_bar=False,
     save_path=None,
     device=device,
-)
-
-model = trainer.train()
+).train()
 
 
 # %%
@@ -254,7 +257,7 @@ model = trainer.train()
 #
 
 model = dinv.models.CSGMGenerator(
-    dinv.models.DCGANGenerator(nz=100, ngf=32), inf_tol=1e-2
+    dinv.models.DCGANGenerator(output_size=128, nz=100, ngf=32), inf_tol=1e-2
 )
 D = dinv.models.DCGANDiscriminator(ndf=32)
 _, _, optimizer, scheduler = get_models(
@@ -283,6 +286,8 @@ trainer = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
+    physics_generator=blur_generator,
+    online_measurements=True,
     train_dataloader=train_dataloader,
     epochs=3,
     losses=loss_g,
