@@ -58,10 +58,10 @@ least squares problem.
     >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
     >>> data_fidelity = L2()  # The data fidelity term
     >>> prior = L1Prior()  # The prior term
-    >>> reg_param = 0.1  # Regularization parameter
+    >>> lambd = 0.1  # Regularization parameter
     >>>
     >>> norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()  # Compute the squared norm of the operator A
-    >>> gamma = 1/norm_A2  # stepsize for the PGD algorithm
+    >>> stepsize = 1/norm_A2  # stepsize for the PGD algorithm
     >>>
     >>> # PGD algorithm
     >>> max_iter = 100  # number of iterations
@@ -69,8 +69,8 @@ least squares problem.
     >>>
     >>> for it in range(max_iter):
     ...     u = x - gamma*data_fidelity.grad(x, y, physics)  # Gradient step
-    ...     x = prior.prox(u, gamma=gamma*reg_param)  # Proximal step
-    ...     cost = data_fidelity(x, y, physics) + reg_param*prior(x)  # Compute the cost
+    ...     x = prior.prox(u, gamma=lambd*reg_param)  # Proximal step
+    ...     cost = data_fidelity(x, y, physics) + lambd*prior(x)  # Compute the cost
     ...
     >>> print('Final cost: ', cost.item())
     Final cost:  0.07093750000662957
