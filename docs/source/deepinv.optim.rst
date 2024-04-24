@@ -30,7 +30,7 @@ operator (see :meth:`deepinv.physics.Physics`)
     or estimated. For example, if the regularization is implicitly defined by a denoiser,
     the hyperparameter is the noise level.
 
-A typical example of optimization problem is the l1-regularized least squares problem, where the data-fidelity term is
+A typical example of optimization problem is the :math:`\ell_1`-regularized least squares problem, where the data-fidelity term is
 the squared :math:`\ell_2`-norm and the regularization term is the :math:`\ell_1`-norm. In this case, a possible
 algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm writing as
 
@@ -40,7 +40,7 @@ algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm 
 where :math:`\operatorname{prox}_{\lambda \regname}` is the proximity operator of the regularization term, :math:`\gamma` is the
 step size of the algorithm, and :math:`\nabla \datafidname` is the gradient of the data-fidelity term.
 
-The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the l1-regularized
+The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the :math:`\ell_1`-regularized
 least squares problem.
 
 .. doctest::
