@@ -68,12 +68,14 @@ least squares problem.
     >>> x = torch.tensor([[[10], [10]]], dtype=torch.float64)  # initial guess
     >>>
     >>> for it in range(max_iter):
-    >>>     u = x - gamma*data_fidelity.grad(x, y, physics)  # Gradient step
-    >>>     x = prior.prox(u, gamma=gamma*reg_param)  # Proximal step
-    >>>     cost = data_fidelity(x, y, physics) + reg_param*prior(x)  # Compute the cost
-    >>>
+    ...     u = x - gamma*data_fidelity.grad(x, y, physics)  # Gradient step
+    ...     x = prior.prox(u, gamma=gamma*reg_param)  # Proximal step
+    ...     cost = data_fidelity(x, y, physics) + reg_param*prior(x)  # Compute the cost
+    ...
     >>> print('Final cost: ', cost.item())
-    >>> print('Estimated solution: ', x)
+    Final cost:  0.07093750000662957
+    >>> print('Estimated solution: ', x.flatten())
+    Estimated solution:  tensor([0.2562, 0.4125], dtype=torch.float64)
 
 
 Optimization algorithms such as the one above can be written as fixed point algorithms,
