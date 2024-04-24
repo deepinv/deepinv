@@ -204,6 +204,7 @@ The following files contain the base classes for implementing generic optimizers
    deepinv.optim.OptimIterator
    deepinv.optim.optim_iterators.GDIteration
    deepinv.optim.optim_iterators.PGDIteration
+   deepinv.optim.optim_iterators.FISTAIteration
    deepinv.optim.optim_iterators.CPIteration
    deepinv.optim.optim_iterators.ADMMIteration
    deepinv.optim.optim_iterators.DRSIteration
