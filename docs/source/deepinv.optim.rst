@@ -47,35 +47,35 @@ least squares problem.
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> from deepinv.optim import L2, L1Prior
+    >>> from deepinv.optim import L2, TVPrior
     >>>
-    >>> y = torch.tensor([[[1], [0]]], dtype=torch.float64) # Data
-    >>>
-    >>> A = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64) # Forward operator
-    >>> A_forward = lambda v: A @ v
-    >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
-    >>>
-    >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    >>> # Forward operator, here inpainting
+    >>> mask = torch.ones((1, 2, 2))
+    >>> mask[0, 0, 0] = 0
+    >>> physics = dinv.physics.Inpainting(tensor_size=mask.shape, mask=mask)
+    >>> # Generate data
+    >>> x = torch.ones((1, 1, 2, 2))
+    >>> y = physics(x)
     >>> data_fidelity = L2()  # The data fidelity term
-    >>> prior = L1Prior()  # The prior term
+    >>> prior = TVPrior()  # The prior term
     >>> lambd = 0.1  # Regularization parameter
-    >>>
-    >>> norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()  # Compute the squared norm of the operator A
+    >>> # Compute the squared norm of the operator A
+    >>> norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()
     >>> stepsize = 1/norm_A2  # stepsize for the PGD algorithm
     >>>
     >>> # PGD algorithm
-    >>> max_iter = 100  # number of iterations
-    >>> x = torch.tensor([[[10], [10]]], dtype=torch.float64)  # initial guess
+    >>> max_iter = 20  # number of iterations
+    >>> x_k = torch.zeros_like(x)  # initial guess
     >>>
     >>> for it in range(max_iter):
-    ...     u = x - stepsize*data_fidelity.grad(x, y, physics)  # Gradient step
-    ...     x = prior.prox(u, gamma=lambd*stepsize)  # Proximal step
-    ...     cost = data_fidelity(x, y, physics) + lambd*prior(x)  # Compute the cost
+    ...     u = x_k - stepsize*data_fidelity.grad(x_k, y, physics)  # Gradient step
+    ...     x_k = prior.prox(u, gamma=lambd*stepsize)  # Proximal step
+    ...     cost = data_fidelity(x_k, y, physics) + lambd*prior(x_k)  # Compute the cost
     ...
-    >>> print('Final cost: ', cost.item())
-    Final cost:  0.07093750000662957
-    >>> print('Estimated solution: ', x.flatten())
-    Estimated solution:  tensor([0.2562, 0.4125], dtype=torch.float64)
+    >>> print(cost < 1e-5)
+    tensor([True])
+    >>> print('Estimated solution: ', x_k.flatten())
+    Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])
 
 
 Optimization algorithms such as the one above can be written as fixed point algorithms,
