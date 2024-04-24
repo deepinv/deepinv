@@ -195,7 +195,7 @@ def generate_dataset(
                     hf["y_train"][index: index + bsize] = y[:bsize, :].to("cpu").numpy()
                     if supervised:
                         hf["x_train"][index: index + bsize] = (
-                            x[:bsize, :, :, :].to("cpu").numpy()
+                            x[:bsize, ...].to("cpu").numpy()
                         )
                     index = index + bsize
 
@@ -236,6 +236,7 @@ def generate_dataset(
                 index = index + bsize
         hf.close()
 
-    print("Dataset has been saved in " + str(save_dir))
+    if verbose:
+        print("Dataset has been saved in " + str(save_dir))
 
     return hf_paths[0] if G == 1 else hf_paths
