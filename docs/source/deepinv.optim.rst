@@ -68,8 +68,8 @@ least squares problem.
     >>> x = torch.tensor([[[10], [10]]], dtype=torch.float64)  # initial guess
     >>>
     >>> for it in range(max_iter):
-    ...     u = x - gamma*data_fidelity.grad(x, y, physics)  # Gradient step
-    ...     x = prior.prox(u, gamma=lambd*reg_param)  # Proximal step
+    ...     u = x - stepsize*data_fidelity.grad(x, y, physics)  # Gradient step
+    ...     x = prior.prox(u, gamma=lambd*stepsize)  # Proximal step
     ...     cost = data_fidelity(x, y, physics) + lambd*prior(x)  # Compute the cost
     ...
     >>> print('Final cost: ', cost.item())
