@@ -95,6 +95,7 @@ class Radon(nn.Module):
     :param int in_size: the size of the input image. If None, the size is inferred from the input image.
     :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is torch.arange(180).
     :param bool circle: if True, the input image is assumed to be a circle. Default is False.
+    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
     :param torch.dtype dtype: the data type of the output. Default is torch.float.
     :param str, torch.device device: the device of the output. Default is torch.device('cpu').
     """
@@ -104,6 +105,7 @@ class Radon(nn.Module):
         in_size=None,
         theta=None,
         circle=False,
+        parallel_computation=True,
         dtype=torch.float,
         device=torch.device("cpu"),
     ):
@@ -113,9 +115,12 @@ class Radon(nn.Module):
         if theta is None:
             self.theta = torch.arange(180)
         self.dtype = dtype
+        self.parallel_computation=parallel_computation
         self.all_grids = None
         if in_size is not None:
             self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)
+            if self.parallel_computation:
+                self.all_grids_par=torch.cat([self.all_grids[i] for i in range(len(self.theta))],2)
 
     def forward(self, x):
         N, C, W, H = x.shape
@@ -127,6 +132,8 @@ class Radon(nn.Module):
             self.all_grids = self._create_grids(
                 self.theta, W, self.circle, device=x.device
             )
+            if self.parallel_computation:
+                self.all_grids_par=torch.cat([self.all_grids[i] for i in range(len(self.theta))],2)
 
         if not self.circle:
             diagonal = SQRT2 * W
@@ -138,11 +145,16 @@ class Radon(nn.Module):
             x = F.pad(x, (pad_width[0], pad_width[1], pad_width[0], pad_width[1]))
 
         N, C, W, _ = x.shape
-        out = torch.zeros(N, C, W, len(self.theta), device=x.device, dtype=self.dtype)
 
-        for i in range(len(self.theta)):
-            rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1).to(x.device))
-            out[..., i] = rotated.sum(2)
+        if self.parallel_computation:
+            rotated_par=grid_sample(x,self.all_grids_par.repeat(N,1,1,1).to(x.device))
+            out=rotated_par.sum(2).reshape(N,C,len(self.theta),-1).transpose(-2,-1)
+        else:
+            out = torch.zeros(N, C, W, len(self.theta), device=x.device, dtype=self.dtype)
+
+            for i in range(len(self.theta)):
+                rotated = grid_sample(x, self.all_grids[i].repeat(N, 1, 1, 1).to(x.device))
+                out[..., i] = rotated.sum(2)
         return out
 
     def _create_grids(self, angles, grid_size, circle, device="cpu"):
@@ -170,6 +182,7 @@ class IRadon(nn.Module):
     :param bool circle: if True, the input image is assumed to be a circle. Default is False.
     :param use_filter: if True, the ramp filter is applied to the input image. Default is True.
     :param int out_size: the size of the output image. If None, the size is the same as the input image.
+    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
     :param torch.dtype dtype: the data type of the output. Default is torch.float.
     :param str, torch.device device: the device of the output. Default is torch.device('cpu').
     """
@@ -181,6 +194,7 @@ class IRadon(nn.Module):
         circle=False,
         use_filter=True,
         out_size=None,
+        parallel_computation=True,
         dtype=torch.float,
         device=torch.device("cpu"),
     ):
@@ -190,6 +204,7 @@ class IRadon(nn.Module):
         self.theta = theta if theta is not None else torch.arange(180).to(self.device)
         self.out_size = out_size
         self.in_size = in_size
+        self.parallel_computation=parallel_computation
         self.dtype = dtype
         self.ygrid, self.xgrid, self.all_grids = None, None, None
         if in_size is not None:
@@ -197,6 +212,8 @@ class IRadon(nn.Module):
             self.all_grids = self._create_grids(self.theta, in_size, circle).to(
                 self.device
             )
+            if self.parallel_computation:
+                self.all_grids_par=torch.cat([self.all_grids[i] for i in range(len(self.theta))],2)
         self.filter = (
             RampFilter(dtype=self.dtype, device=self.device)
             if use_filter
@@ -215,16 +232,24 @@ class IRadon(nn.Module):
         if self.ygrid is None or self.xgrid is None or self.all_grids is None:
             self.ygrid, self.xgrid = self._create_yxgrid(self.in_size, self.circle)
             self.all_grids = self._create_grids(self.theta, self.in_size, self.circle)
+            if self.parallel_computation:
+                self.all_grids_par=torch.cat([self.all_grids[i] for i in range(len(self.theta))],2)
 
         x = self.filter(x) if filtering else x
 
-        reco = torch.zeros(
-            x.shape[0], ch_size, it_size, it_size, device=self.device, dtype=self.dtype
-        )
-        for i_theta in range(len(self.theta)):
-            reco += grid_sample(
-                x, self.all_grids[i_theta].repeat(reco.shape[0], 1, 1, 1)
+
+        if self.parallel_computation:
+            reco= grid_sample(x,self.all_grids_par.repeat(x.shape[0], 1, 1, 1))
+            reco=reco.reshape(x.shape[0],ch_size,it_size,len(self.theta),it_size)
+            reco=reco.sum(-2)
+        else:
+            reco = torch.zeros(
+                x.shape[0], ch_size, it_size, it_size, device=self.device, dtype=self.dtype
             )
+            for i_theta in range(len(self.theta)):
+                reco += grid_sample(
+                    x, self.all_grids[i_theta].repeat(reco.shape[0], 1, 1, 1)
+                )
 
         if not self.circle:
             W = self.in_size

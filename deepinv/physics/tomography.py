@@ -32,6 +32,7 @@ class Tomography(LinearPhysics):
     :param int img_width: width/height of the square image input.
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
+    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
     :param str device: gpu or cpu.
 
     |sep|
@@ -71,6 +72,7 @@ class Tomography(LinearPhysics):
         angles,
         img_width,
         circle=False,
+        parallel_computation=True,
         device=torch.device("cpu"),
         dtype=torch.float,
         **kwargs,
@@ -86,10 +88,10 @@ class Tomography(LinearPhysics):
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
         self.radon = Radon(
-            img_width, theta, circle=circle, device=device, dtype=dtype
+            img_width, theta, circle=circle, parallel_computation=parallel_computation, device=device, dtype=dtype
         ).to(device)
         self.iradon = IRadon(
-            img_width, theta, circle=circle, device=device, dtype=dtype
+            img_width, theta, circle=circle, parallel_computation=parallel_computation, device=device, dtype=dtype
         ).to(device)
 
     def A(self, x, **kwargs):
