@@ -25,9 +25,7 @@ def fan_beam_grid(theta, image_size, fan_parameters, dtype=torch.float, device="
         dtype=dtype,
         device=device,
     )
-    base_grid = torch.nn.functional.affine_grid(
-        R, torch.Size([1, 1, n_detector_pixels, image_size]), align_corners=True
-    )
+    base_grid = affine_grid(R, torch.Size([1, 1, n_detector_pixels, image_size]))
     x_vals = base_grid[0, 0, :, 0]
     dist_scaling = (
         0.5
@@ -163,30 +161,19 @@ class Radon(nn.Module):
         self.parallel_computation = parallel_computation
         self.fan_beam = fan_beam
         self.fan_parameters = fan_parameters
-        if fan_beam and self.parameters is None:
-            self.fan_parameters = {}
-        if not "pixel_spacing" in self.fan_parameters.keys():
-            assert (
-                not in_size is None
-            ), "Either input size or pixel spacing have to be specified"
-            self.fan_parameters["pixel_spacing"] = 7.7 / in_size
-        if not "source_radius" in self.fan_parameters.keys():
-            assert (
-                not in_size is None
-            ), "Either input size or source radius have to be specified"
-            self.fan_parameters["source_radius"] = 5750.0 / in_size
-        if not "detector_radius" in self.fan_parameters.keys():
-            assert (
-                not in_size is None
-            ), "Either input size or detector radius have to be specified"
-            self.fan_parameters["detector_radius"] = 5750.0 / in_size
-        if not "n_detector_pixels" in self.fan_parameters.keys():
-            self.fan_parameters["n_detector_pixels"] = 258
-        if not "detector_spacing" in self.fan_parameters.keys():
-            assert (
-                not in_size is None
-            ), "Either input size or source radius have to be specified"
-            self.fan_parameters["detector_spacing"] = 7.7 / in_size
+        if fan_beam:
+            if self.fan_parameters is None:
+                self.fan_parameters = {}
+            if not "pixel_spacing" in self.fan_parameters.keys():
+                self.fan_parameters["pixel_spacing"] = 0.077
+            if not "source_radius" in self.fan_parameters.keys():
+                self.fan_parameters["source_radius"] = 57.5
+            if not "detector_radius" in self.fan_parameters.keys():
+                self.fan_parameters["detector_radius"] = 57.5
+            if not "n_detector_pixels" in self.fan_parameters.keys():
+                self.fan_parameters["n_detector_pixels"] = 258
+            if not "detector_spacing" in self.fan_parameters.keys():
+                self.fan_parameters["detector_spacing"] = 0.15
         self.all_grids = None
         if in_size is not None:
             self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)
@@ -230,7 +217,12 @@ class Radon(nn.Module):
             )
         else:
             out = torch.zeros(
-                N, C, W, len(self.theta), device=x.device, dtype=self.dtype
+                N,
+                C,
+                self.all_grids[0].shape[-2],
+                len(self.theta),
+                device=x.device,
+                dtype=self.dtype,
             )
 
             for i in range(len(self.theta)):

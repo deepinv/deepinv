@@ -6,6 +6,9 @@ from deepinv.physics.functional import Radon, IRadon, RampFilter
 from deepinv.physics import adjoint_function
 
 
+PI = 4 * torch.ones(1).atan()
+
+
 class Tomography(LinearPhysics):
     r"""
     (Computed) Tomography operator.
@@ -146,6 +149,6 @@ class Tomography(LinearPhysics):
                 device=self.device,
                 dtype=self.dtype,
             )
-            return adj(y)
+            return adj(y) * PI.item() / (2 * len(self.radon.theta))
         else:
             return self.iradon(y, filtering=False)
