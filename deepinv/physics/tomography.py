@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from deepinv.physics.forward import LinearPhysics
 
-from deepinv.physics.functional import Radon, IRadon
+from deepinv.physics.functional import Radon, IRadon, RampFilter
+from deepinv.physics import adjoint_function
 
 
 class Tomography(LinearPhysics):
@@ -33,6 +34,13 @@ class Tomography(LinearPhysics):
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
+    :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
+    :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
+        - "pixel_spacing" defining the distance between two pixels in the image
+        - "source_radius" distance between the x-ray source and the rotation axis (middle of the image)
+        - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image)
+        - "n_detector_pixels" number of pixels of the detector
+        - "detector_spacing" distance between two pixels on the detector
     :param str device: gpu or cpu.
 
     |sep|
@@ -73,6 +81,8 @@ class Tomography(LinearPhysics):
         img_width,
         circle=False,
         parallel_computation=True,
+        fan_beam=False,
+        fan_parameters=None,
         device=torch.device("cpu"),
         dtype=torch.float,
         **kwargs,
@@ -87,18 +97,55 @@ class Tomography(LinearPhysics):
         else:
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
+        self.fan_beam = fan_beam
+        self.img_width = img_width
+        self.device = device
+        self.dtype = dtype
         self.radon = Radon(
-            img_width, theta, circle=circle, parallel_computation=parallel_computation, device=device, dtype=dtype
+            img_width,
+            theta,
+            circle=circle,
+            parallel_computation=parallel_computation,
+            fan_beam=fan_beam,
+            fan_parameters=fan_parameters,
+            device=device,
+            dtype=dtype,
         ).to(device)
-        self.iradon = IRadon(
-            img_width, theta, circle=circle, parallel_computation=parallel_computation, device=device, dtype=dtype
-        ).to(device)
+        if not self.fan_beam:
+            self.iradon = IRadon(
+                img_width,
+                theta,
+                circle=circle,
+                parallel_computation=parallel_computation,
+                device=device,
+                dtype=dtype,
+            ).to(device)
+        else:
+            self.filter = RampFilter(dtype=dtype, device=device)
 
     def A(self, x, **kwargs):
+        if self.img_width is None:
+            self.img_width = x.shape[-1]
         return self.radon(x)
 
     def A_dagger(self, y, **kwargs):
-        return self.iradon(y)
+        if self.fan_beam:
+            y = self.filter(y)
+            return self.A_adjoint(y, **kwargs)
+        else:
+            return self.iradon(y)
 
     def A_adjoint(self, y, **kwargs):
-        return self.iradon(y, filtering=False)
+        if self.fan_beam:
+            assert (
+                not self.img_width is None
+            ), "Image size unknown. Apply forward operator or add it for initialization."
+            adj = adjoint_function(
+                self.A,
+                (y.shape[0], y.shape[1], self.img_width, self.img_width),
+                device=self.device,
+                dtype=self.dtype,
+            )
+            return adj(y)
+        else:
+            return self.iradon(y, filtering=False)
