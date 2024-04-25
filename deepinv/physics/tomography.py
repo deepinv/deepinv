@@ -144,12 +144,14 @@ class Tomography(LinearPhysics):
             assert (
                 not self.img_width is None
             ), "Image size unknown. Apply forward operator or add it for initialization."
+            # lazy implementation for the adjoint...
             adj = adjoint_function(
                 self.A,
                 (y.shape[0], y.shape[1], self.img_width, self.img_width),
                 device=self.device,
                 dtype=self.dtype,
             )
+            # the tomography operator does not exactly implement the adjoint but a rescaled version of it...
             return adj(y) * PI.item() / (2 * len(self.radon.theta))
         else:
             return self.iradon(y, filtering=False)
