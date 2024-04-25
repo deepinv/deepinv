@@ -132,11 +132,12 @@ class Radon(nn.Module):
     :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
     :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
     :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
-        - "pixel_spacing" defining the distance between two pixels in the image
-        - "source_radius" distance between the x-ray source and the rotation axis (middle of the image)
-        - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image)
-        - "n_detector_pixels" number of pixels of the detector
-        - "detector_spacing" distance between two pixels on the detector
+        - "pixel_spacing" defining the distance between two pixels in the image, default: 0.077
+        - "source_radius" distance between the x-ray source and the rotation axis (middle of the image), default: 57.5
+        - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5
+        - "n_detector_pixels" number of pixels of the detector, default: 258
+        - "detector_spacing" distance between two pixels on the detector, default: 0.15
+        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe artifacts in any reconstruction.
     :param torch.dtype dtype: the data type of the output. Default is torch.float.
     :param str, torch.device device: the device of the output. Default is torch.device('cpu').
     """
