@@ -4,12 +4,13 @@ Imaging inverse problems with adversarial networks
 
 This example shows you how to train various networks using adversarial
 training for deblurring problems. We demonstrate running training and
-inference using a conditional GAN (i.e DeblurGAN), CSGM, AmbientGAN and
+inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and
 UAIR implemented in the ``deepinv`` library, and how to simply train
 your own GAN by using ``deepinv.training.AdversarialTrainer``. These
 examples can also be easily extended to train more complicated GANs such
 as CycleGAN.
 
+This example is based on the following papers:
 -  Kupyn et al., `DeblurGAN: Blind Motion Deblurring Using Conditional
    Adversarial
    Networks <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`__
@@ -28,45 +29,10 @@ loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 where :math:`D(\cdot)` is the discriminator model, :math:`x` is the
 reference image, :math:`\hat x` is the estimated reconstruction,
 :math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN).
-Training alternates between generator :math:`f` and discriminator
-:math:`D` in a minimax game. When there are no ground truths (i.e
+Training alternates between generator :math:`G` and discriminator
+:math:`D` in a minimax game. When there are no ground truths (i.e.
 unsupervised), this may be defined on the measurements :math:`y`
 instead.
-
-**Conditional GAN** forward pass:
-
-.. math:: \hat x = f(y)
-
-**Conditional GAN** loss:
-
-.. math:: \mathcal{L}=\mathcal{L}_\text{sup}(\hat x, x)+\mathcal{L}_\text{adv}(\hat x, x;D)
-
-where :math:`\mathcal{L}_\text{sup}` is a supervised loss such as
-pixel-wise MSE or VGG Perceptual Loss.
-
-**CSGM**/**AmbientGAN** forward pass:
-
-.. math:: \hat x = f(z),\quad z\sim \mathcal{N}(\mathbf{0},\mathbf{I}_k)
-
-**CSGM** loss:
-
-.. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat x, x;D)
-
-**AmbientGAN** loss (where :math:`A(\cdot)` is the physics):
-
-.. math:: \mathcal{L}=\mathcal{L}_\text{adv}(A(\hat x), y;D)
-
-**CSGM**/**AmbientGAN** forward pass at eval time:
-
-.. math:: \hat x = f(\hat z)\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert A(f(z))-y\rVert _2^2
-
-**UAIR** forward pass:
-
-.. math:: \hat x = f(y)
-
-**UAIR** loss:
-
-.. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert A(f(\hat y))- \hat y\rVert^2_2,\quad\hat y=A(\hat x)
 
 """
 
@@ -83,8 +49,9 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 # %%
-# Load data and apply some forward degradation to the images. For this
-# example we use the Urban100 dataset resized to 128x128. We apply random
+# Generate dataset
+# ~~~~~~~~~~~~~~~~
+# In this example we use the Urban100 dataset resized to 128x128. We apply random
 # motion blur physics using
 # ``deepinv.physics.generator.MotionBlurGenerator``, and save the data
 # using ``dinv.datasets.generate_dataset``.
@@ -125,7 +92,10 @@ test_dataloader = DataLoader(
 
 
 # %%
-# Define reconstruction network (i.e conditional generator) and
+# Define models
+# ~~~~~~~~~~~~~
+#
+# We first define reconstruction network (i.e conditional generator) and
 # discriminator network to use for adversarial training. For demonstration
 # we use a simple U-Net as the reconstruction network and the
 # discriminator from `PatchGAN <https://arxiv.org/abs/1611.07004>`__, but
@@ -163,12 +133,29 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4):
 # Conditional GAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
+# Conditional GANs (Kupyn et al., `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks
+# <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`__)
+# are a type of GAN where the generator is conditioned on a label or input. In the context of imaging,
+# this can be used to generate images from a given measurement. In this example, we use a simple U-Net as the generator
+# and a PatchGAN discriminator. The forward pass of the generator is given by:
+#
+# **Conditional GAN** forward pass:
+#
+# .. math:: \hat x = G(y)
+#
+# **Conditional GAN** loss:
+#
+# .. math:: \mathcal{L}=\mathcal{L}_\text{sup}(\hat x, x)+\mathcal{L}_\text{adv}(\hat x, x;D)
+#
+# where :math:`\mathcal{L}_\text{sup}` is a supervised loss such as
+# pixel-wise MSE or VGG Perceptual Loss.
+#
 
-model, D, optimizer, scheduler = get_models()
+G, D, optimizer, scheduler = get_models()
 
 
 # %%
-# Construct pixel-wise and adversarial losses as defined above. We use the
+# We next define pixel-wise and adversarial losses as defined above. We use the
 # MSE for the supervised pixel-wise metric for simplicity but this can be
 # easily replaced with a perceptual loss if desired.
 #
@@ -181,18 +168,18 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# Train the networks using ``AdversarialTrainer``. We only train for 3
+# We are now ready to train the networks using ``AdversarialTrainer``. We only train for 2
 # epochs for speed, but below we also show results with a pretrained model
 # trained in the exact same way after 50 epochs.
 #
 
-model = dinv.training.AdversarialTrainer(
-    model=model,
+trainer = dinv.training.AdversarialTrainer(
+    model=G,
     D=D,
     physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=3,
+    epochs=2,
     losses=loss_g,
     losses_d=loss_d,
     optimizer=optimizer,
@@ -201,7 +188,9 @@ model = dinv.training.AdversarialTrainer(
     show_progress_bar=False,
     save_path=None,
     device=device,
-).train()
+)
+
+G = trainer.train()
 
 
 # %%
@@ -213,42 +202,52 @@ ckpt = torch.hub.load_state_dict_from_url(
     map_location=lambda s, _: s,
 )
 
-model.load_state_dict(ckpt["state_dict"])
+G.load_state_dict(ckpt["state_dict"])
 
 x, _ = next(iter(test_dataloader))
 y = physics(x, **blur_generator.step())
-dinv.utils.plot([x, y, model(y)], titles=["GT", "Measurement", "Reconstruction"])
+dinv.utils.plot([x, y, G(y)], titles=["GT", "Measurement", "Reconstruction"])
 
 
 # %%
 # UAIR training
 # ~~~~~~~~~~~~~
 #
+# Unsupervised Adversarial Image Reconstruction (UAIR) (Pajot et al.,
+# `Unsupervised Adversarial Image Reconstruction <https://openreview.net/forum?id=BJg4Z3RqF7>`__)
+# is a method for solving inverse problems using generative models. In this
+# example, we use a simple U-Net as the generator and discriminator, and
+# train using the adversarial loss. The forward pass of the generator is defined as:
+#
+# **UAIR** forward pass:
+#
+# .. math:: \hat x = G(y),
+#
+# **UAIR** loss:
+#
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert A(f(\hat y))- \hat y\rVert^2_2,\quad\hat y=A(\hat x).
+#
+# We next load the models and construct losses as defined above.
 
-model, D, optimizer, scheduler = get_models(
+G, D, optimizer, scheduler = get_models(
     lr_g=1e-4, lr_d=4e-4
 )  # learning rates from original paper
-
-
-# %%
-# Construct losses as defined above
-#
 
 loss_g = adversarial.UAIRGeneratorLoss(device=device)
 loss_d = adversarial.UAIRDiscriminatorLoss(device=device)
 
 
 # %%
-# Train the networks using ``AdversarialTrainer``
+# We are now ready to train the networks using ``AdversarialTrainer``.
 #
 
-model = dinv.training.AdversarialTrainer(
-    model=model,
+trainer = dinv.training.AdversarialTrainer(
+    model=G,
     D=D,
     physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=3,
+    epochs=2,
     losses=loss_g,
     losses_d=loss_d,
     optimizer=optimizer,
@@ -257,46 +256,68 @@ model = dinv.training.AdversarialTrainer(
     show_progress_bar=False,
     save_path=None,
     device=device,
-).train()
+)
+G = trainer.train()
 
 
 # %%
 # CSGM / AmbientGAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
+# Compressed Sensing using Generative Models (CSGM) and AmbientGAN are two methods for solving inverse problems
+# using generative models. CSGM (Bora et al., `Compressed Sensing using Generative Models
+# <https://arxiv.org/abs/1703.03208>`__) uses a generative model to solve the inverse problem by optimising the latent
+# space of the generator. AmbientGAN (Bora et al., `AmbientGAN: Generative models from lossy measurements
+# <https://openreview.net/forum?id=Hy7fDog0b>`__) uses a generative model to solve the inverse problem by optimising the
+# measurements themselves. Both methods are trained using an adversarial loss; the main difference is that CSGM requires
+# a ground truth dataset (supervised loss), while AmbientGAN does not (unsupervised loss).
+#
+# In this example, we use a DCGAN as the
+# generator and discriminator, and train using the adversarial loss. The forward pass of the generator is given by:
+#
+# **CSGM** forward pass at train time:
+#
+# .. math:: \hat x = f(z),\quad z\sim \mathcal{N}(\mathbf{0},\mathbf{I}_k)
+#
+# **CSGM**/**AmbientGAN** forward pass at eval time:
+#
+# .. math:: \hat x = f(\hat z)\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert A(f(z))-y\rVert _2^2
+#
+# **CSGM** loss:
+#
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat x, x;D)
+#
+# **AmbientGAN** loss (where :math:`A(\cdot)` is the physics):
+#
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(A(\hat x), y;D)
+#
+# We next load the models and construct losses as defined above.
 
-model = dinv.models.CSGMGenerator(
+G = dinv.models.CSGMGenerator(
     dinv.models.DCGANGenerator(output_size=128, nz=100, ngf=32), inf_tol=1e-2
 )
 D = dinv.models.DCGANDiscriminator(ndf=32)
 _, _, optimizer, scheduler = get_models(
-    model=model, D=D, lr_g=2e-4, lr_d=2e-4
+    model=G, D=D, lr_g=2e-4, lr_d=2e-4
 )  # learning rates from original paper
-
-
-# %%
-# Construct losses as defined above. We are free to choose between
-# supervised and unsupervised adversarial losses, where supervised gives
-# CSGM and unsupervised gives AmbientGAN.
-#
 
 loss_g = adversarial.SupAdversarialGeneratorLoss(device=device)
 loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# Train the networks using ``AdversarialTrainer``. Since inference is very
+# As before, we can now train our models. Since inference is very
 # slow for CSGM/AmbientGAN as it requires an optimisation, we only do one
 # evaluation at the end. Note the train PSNR is meaningless as this
 # generative model is trained on random latents.
 #
 
 trainer = dinv.training.AdversarialTrainer(
-    model=model,
+    model=G,
     D=D,
     physics=physics,
     train_dataloader=train_dataloader,
-    epochs=3,
+    epochs=2,
     losses=loss_g,
     losses_d=loss_d,
     optimizer=optimizer,
@@ -306,11 +327,11 @@ trainer = dinv.training.AdversarialTrainer(
     save_path=None,
     device=device,
 )
-model = trainer.train()
+G = trainer.train()
 
 
 # %%
-# Run evaluation of generative model by running test-time optimisation
+# Eventually, we run evaluation of the generative model by running test-time optimisation
 # using test measurements. Note that we do not get great results as CSGM /
 # AmbientGAN relies on large datasets of diverse samples, and we run the
 # optimisation to a relatively high tolerance for speed.
