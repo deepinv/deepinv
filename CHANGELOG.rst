@@ -12,6 +12,8 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add projective and affine transformations for EI or data augmentation (:gh:`173` by `Andrew Wang`_)
+
 
 Fixed
 ^^^^^
