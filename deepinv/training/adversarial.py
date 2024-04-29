@@ -12,7 +12,7 @@ from deepinv.utils import AverageMeter
 
 
 class AdversarialOptimizer:
-    """Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
+    r"""Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
 
     :param Optimizer optimizer_g: generator's torch optimizer
     :param Optimizer optimizer_d: discriminator's torch optimizer
@@ -35,16 +35,22 @@ class AdversarialOptimizer:
         self.zero_grad_g_only = zero_grad_g_only
 
     def state_dict(self, *args, **kwargs):
-        """Return both generator and discriminator's state_dicts with keys "G" and "D" """
+        r"""Return both generator and discriminator's state_dicts with keys "G" and "D"."""
         return {"G": self.G.state_dict(), "D": self.D.state_dict()}
 
     def load_state_dict(self, state_dict):
-        """Load state_dict which must have "G" and "D" keys for generator and discriminator respectively"""
+        r"""Load state_dict which must have "G" and "D" keys for generator and discriminator respectively
+
+        :param dict state_dict: state_dict with keys "G" and "D".
+        """
         self.G.load_state_dict(state_dict["G"])
         self.D.load_state_dict(state_dict["D"])
 
     def zero_grad(self, set_to_none: bool = True):
-        """zero_grad generator and discriminator optimizers, optionally only zero_grad one of them."""
+        r"""zero_grad generator and discriminator optimizers, optionally only zero_grad one of them.
+
+        :param bool set_to_none: whether to set gradients to None, defaults to True
+        """
         if not self.zero_grad_d_only:
             self.G.zero_grad(set_to_none=set_to_none)
         if not self.zero_grad_g_only:
@@ -52,7 +58,7 @@ class AdversarialOptimizer:
 
 
 class AdversarialScheduler:
-    """Scheduler for adversarial training that encapsulates both generator and discriminator's schedulers.
+    r"""Scheduler for adversarial training that encapsulates both generator and discriminator's schedulers.
 
     :param LRScheduler scheduler_g: generator's torch scheduler
     :param LRScheduler scheduler_d: discriminator's torch scheduler
@@ -72,7 +78,7 @@ class AdversarialScheduler:
 
 @dataclass
 class AdversarialTrainer(Trainer):
-    """
+    r"""
     Trainer class for training a reconstruction network using adversarial learning.
 
     It overrides the :class:`deepinv.Trainer` class to provide the same functionality, whilst supporting training using adversarial losses. Note that the forward pass remains the same.
@@ -126,8 +132,8 @@ class AdversarialTrainer(Trainer):
     step_ratio_D: int = 1
 
     def setup_train(self):
-        """
-        After usual Trainer setup, setup losses for discriminator too
+        r"""
+        After usual Trainer setup, setup losses for discriminator too.
         """
         super().setup_train()
 
@@ -252,7 +258,10 @@ class AdversarialTrainer(Trainer):
         return x_net, logs
 
     def check_clip_grad_D(self):
-        """Check the discriminator's gradient norm and perform gradient clipping if necessary. Analogous to ``check_clip_grad`` for generator."""
+        r"""Check the discriminator's gradient norm and perform gradient clipping if necessary.
+
+        Analogous to ``check_clip_grad`` for generator.
+        """
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
 
@@ -267,5 +276,5 @@ class AdversarialTrainer(Trainer):
             return norm_grads.item()
 
     def save_model(self, epoch, eval_psnr=None):
-        """Save discriminator model parameters alongside other models"""
+        r"""Save discriminator model parameters alongside other models."""
         super().save_model(epoch, eval_psnr, {"state_dict_D": self.D.state_dict()})
