@@ -107,16 +107,13 @@ losses = [
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
-ckpt = torch.load("model.pth", map_location=device)
-model.load_state_dict(ckpt["state_dict"])
-
 model = dinv.Trainer(
     model=model,
     physics=physics,
     online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=50,
+    epochs=1,
     losses=losses,
     optimizer=optimizer,
     verbose=True,
@@ -125,8 +122,22 @@ model = dinv.Trainer(
     device=device,
 ).train()
 
-torch.save({"state_dict": model.state_dict()}, "model.pth")
 
+# %%
+# Show results of a pretrained model trained using a larger UNet for 40
+# epochs:
+#
+
+model = dinv.models.UNet(
+    in_channels=3, out_channels=3, scales=3, circular_padding=True, batch_norm=False
+).to(device)
+
+ckpt = torch.hub.load_state_dict_from_url(
+    dinv.models.utils.get_weights_url("ei", "Urban100_inpainting_homography_model.pth"),
+    map_location=device,
+)
+
+model.load_state_dict(ckpt["state_dict"])
 
 x, _ = next(iter(train_dataloader))
 y = physics(x)
