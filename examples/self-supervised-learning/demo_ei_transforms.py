@@ -100,7 +100,10 @@ model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
 ).to(device)
 
-losses = [dinv.loss.MCLoss(), dinv.loss.EILoss(dinv.transform.Homography(theta_max=10))]
+losses = [
+    dinv.loss.MCLoss(),
+    dinv.loss.EILoss(dinv.transform.Homography(theta_max=10, device=device)),
+]
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-2, weight_decay=1e-8)
 
