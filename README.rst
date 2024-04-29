@@ -54,22 +54,22 @@ Try out the following plug-and-play image inpainting example:
 
 .. code-block:: python
 
-    import deepinv as dinv
-    from deepinv.utils import load_url_image
-
-    url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
-    x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
-
-    physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
+   import deepinv as dinv
+   from deepinv.utils import load_url_image
+    
+   url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
+   x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
+   
+   physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
                                        noise_model=dinv.physics.GaussianNoise(sigma=0.01))
-
-    data_fidelity = dinv.optim.data_fidelity.L2()
-    prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
-    model = dinv.optim.optim_builder(iteration="HQS", prior=prior, data_fidelity=data_fidelity, \
-                                     params_algo={"stepsize": 1.0, "g_param": 0.1})
-    y = physics(x)
-    x_hat = model(y, physics)
-    dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
+   
+   data_fidelity = dinv.optim.data_fidelity.L2()
+   prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
+   model = dinv.optim.optim_builder(iteration="HQS", prior=prior, data_fidelity=data_fidelity, \
+                                    params_algo={"stepsize": 1.0, "g_param": 0.1})
+   y = physics(x)
+   x_hat = model(y, physics)
+   dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
 Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started.

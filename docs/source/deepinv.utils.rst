@@ -18,6 +18,7 @@ to fit your needs.
 
 We also provide train and test functions that can be used to train and test a model with a single call.
 
+
 .. autosummary::
    :toctree: stubs
    :template: myfunc_template.rst
@@ -25,6 +26,7 @@ We also provide train and test functions that can be used to train and test a mo
 
         deepinv.train
         deepinv.test
+
 
 
 Plotting
