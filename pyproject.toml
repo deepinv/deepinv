@@ -29,7 +29,6 @@ dependencies = [
     "torchvision",
     "einops",
     "wandb",
-    "scipy",
 ]
 
 [tool.setuptools]
