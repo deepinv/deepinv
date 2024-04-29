@@ -125,9 +125,9 @@ class Homography(torch.nn.Module):
     For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,
     theta_max = theta_z_max = skew_max = 0 gives a pure translation.
 
-    Subgroup transformations include `deepinv.transform.Affine`, `deepinv.transform.Similarity`,
-    `deepinv.transform.Euclidean` along with the basic `deepinv.transform.Shift`,
-    `deepinv.transform.Rotation` and semigroup `deepinv.transform.Scale`.
+    Subgroup transformations include :class:`deepinv.transform.Affine`, :class:`deepinv.transform.Similarity`,
+    :class:`deepinv.transform.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
+    :class:`deepinv.transform.Rotation` and semigroup :class:`deepinv.transform.Scale`.
 
     Transformations with perspective effects (i.e. pan+tilt) are recovered by setting
     theta_max > 0.
@@ -153,7 +153,7 @@ class Homography(torch.nn.Module):
     :param float x_stretch_factor_min: Min stretch factor along the x-axis (up to 1), defaults to 0.5.
     :param float y_stretch_factor_min: Min stretch factor along the y-axis (up to 1), defaults to 0.5.
     :param str padding: kornia padding mode, defaults to "reflection"
-    :param str interpolation: kornia interpolation mode, defaults to "bilinear"
+    :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
     :param str device: torch device, defaults to "cpu".
     """
 
