@@ -190,8 +190,6 @@ model = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
-    physics_generator=blur_generator,
-    online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=3,
@@ -211,9 +209,8 @@ model = dinv.training.AdversarialTrainer(
 #
 
 ckpt = torch.hub.load_state_dict_from_url(
-    dinv.models.utils.get_weights_url("deblurgan-demo", "model.pth"),
+    dinv.models.utils.get_weights_url("deblurgan-demo", "deblurgan_model.pth"),
     map_location=lambda s, _: s,
-    file_name="model.pth",
 )
 
 model.load_state_dict(ckpt["state_dict"])
@@ -249,8 +246,6 @@ model = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
-    physics_generator=blur_generator,
-    online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=3,
@@ -300,8 +295,6 @@ trainer = dinv.training.AdversarialTrainer(
     model=model,
     D=D,
     physics=physics,
-    physics_generator=blur_generator,
-    online_measurements=True,
     train_dataloader=train_dataloader,
     epochs=3,
     losses=loss_g,
