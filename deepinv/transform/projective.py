@@ -6,7 +6,6 @@ from PIL import Image
 from scipy.spatial.transform import Rotation
 from kornia.geometry.transform import warp_perspective
 
-# TODO deprecate Pillow
 
 def apply_homography(
     im: torch.Tensor | Image.Image,
@@ -23,13 +22,19 @@ def apply_homography(
     interpolation: str = "bilinear",
     verbose: bool = False,
     device="cpu",
-    **kwargs
+    **kwargs,
 ) -> torch.Tensor | Image.Image:
-    """Perform homography (projective transformation).
+    r"""Perform homography (projective transformation).
 
-    Choice of kornia or PIL.
+    Given physical parameters describing camera variation, this function performs the geometric transformation given by the change in parameters.
 
-    :param torch.Tensor | Image.Image im: Input image of shape (B,C,H,W)
+    See :class:`deepinv.transform.Homography` for more details.
+
+    The input image can be a torch Tensor, in which case ``kornia`` is used to perform the transformation, or a PIL Image where PIL transform is used.
+
+    Following https://arxiv.org/abs/2403.09327, we assume principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
+
+    :param torch.Tensor | Image.Image im: Input if tensor, image of shape (B,C,H,W), otherwise a PIL image.
     :param float theta_x: tilt angle in degrees, defaults to 0.
     :param float theta_y: pan angle in degrees, defaults to 0.
     :param float theta_z: 2D rotation angle in degrees, defaults to 0.
@@ -40,7 +45,7 @@ def apply_homography(
     :param float x_t: relative x pixel translation, defaults to 0.
     :param float y_t: relative y pixel translation, defaults to 0.
     :param str padding: kornia padding mode, defaults to "reflection"
-    :param str interpolation: kornia interpolation mode, choose from "bilinear", "nearest" or "bicubic". Defaults to "bilinear"
+    :param str interpolation: kornia or PIL interpolation mode, choose from "bilinear", "nearest" or "bicubic". Defaults to "bilinear"
     :param bool verbose: if True, print homography matrix, defaults to False
     :param str device: torch device, defaults to "cpu"
     :return torch.Tensor | Image.Image: transformed image.
@@ -48,7 +53,6 @@ def apply_homography(
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
 
-    # Assumptions: principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
     w, h = (im.shape[2], im.shape[3]) if isinstance(im, torch.Tensor) else im.size
     u0, v0 = int(w / 2), int(h / 2)
     f = 100
@@ -73,14 +77,14 @@ def apply_homography(
         "xyz", [theta_x, theta_y, theta_z], degrees=True
     ).as_matrix()
 
-    if verbose:
-        with np.printoptions(precision=2, suppress=True):
-            print(H_inverse)
-
     if isinstance(im, torch.Tensor):
         # note thetas defined in the opposite direction here, but it doesn't matter
         # for random transformations which have symmetric ranges about 0.
         H_inverse = K @ R_dash @ np.linalg.inv(K_dash)
+
+        if verbose:
+            with np.printoptions(precision=2, suppress=True):
+                print(H_inverse)
 
         return warp_perspective(
             im.double(),
@@ -111,7 +115,9 @@ def apply_homography(
 @dataclass
 class Homography(torch.nn.Module):
     """
-    Homography (or projective transformation). The homography is parameterised by
+    Homography (or projective transformation).
+
+    The homography is parameterised by
     geometric parameters. By fixing these parameters, subgroup transformations are
     retrieved, see Wang et al. "Perspective-Equivariant Imaging: an Unsupervised
     Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
@@ -127,6 +133,16 @@ class Homography(torch.nn.Module):
     theta_max > 0.
 
     Generates n_trans random transformations concatenated along the batch dimension.
+
+    Example:
+
+    ::
+
+        x = torch.randn(1, 3, 64, 64)
+
+        transform = Homography(n_trans = 1)
+
+        x_T = transform(x)
 
     :param int n_trans: Number of transformations, defaults to 1.
     :param float theta_max: Maximum pan+tilt angle in degrees, defaults to 180.
@@ -197,10 +213,24 @@ class Homography(torch.nn.Module):
 
 
 class Affine(Homography):
-    """
+    """Random affine image transformations.
+
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
-    skews, and stretches. See `deepinv.transform.Homography` for more details.
+    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+
+    Generates n_trans random transformations concatenated along the batch dimension.
+
+    Example:
+
+    ::
+
+        x = torch.randn(1, 3, 64, 64)
+
+        transform = Affine(n_trans = 1)
+
+        x_T = transform(x)
+
     """
 
     def forward(self, data):
@@ -209,10 +239,24 @@ class Affine(Homography):
 
 
 class Similarity(Homography):
-    """
+    """Random 2D similarity image transformations.
+
     Special case of homography which corresponds to the actions of the similarity subgroup
     S(2). Similarity transformations include translations, rotations, reflections and
-    uniform scale. See `deepinv.transform.Homography` for more details.
+    uniform scale. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+
+    Generates n_trans random transformations concatenated along the batch dimension.
+
+    Example:
+
+    ::
+
+        x = torch.randn(1, 3, 64, 64)
+
+        transform = Similarity(n_trans = 1)
+
+        x_T = transform(x)
+
     """
 
     def forward(self, data):
@@ -222,10 +266,24 @@ class Similarity(Homography):
 
 
 class Euclidean(Homography):
-    """
+    """Random Euclidean image transformations.
+
     Special case of homography which corresponds to the actions of the Euclidean subgroup
-    E(2). Euclidean transformations include translations, rotations and reflections.
-    See `deepinv.transform.Homography` for more details.
+    E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    See :class:`deepinv.transform.Homography` for more details.
+
+    Generates n_trans random transformations concatenated along the batch dimension.
+
+    Example:
+
+    ::
+
+        x = torch.randn(1, 3, 64, 64)
+
+        transform = Euclidean(n_trans = 1)
+
+        x_T = transform(x)
+
     """
 
     def forward(self, data):
@@ -235,7 +293,8 @@ class Euclidean(Homography):
 
 
 class PanTiltRotate(Homography):
-    """
+    """Random 3D camera rotation image transformations.
+
     Special case of homography which corresponds to the actions of the 3D camera rotation,
     or "pan+tilt+rotate" subgroup from Wang et al. "Perspective-Equivariant Imaging: an
     Unsupervised Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
@@ -243,7 +302,20 @@ class PanTiltRotate(Homography):
     The transformations simulate panning, tilting or rotating the camera, leading to a
     "perspective" effect. The subgroup is isomorphic to SO(3).
 
-    See `deepinv.transform.Homography` for more details.
+    See :class:`deepinv.transform.Homography` for more details.
+
+    Generates n_trans random transformations concatenated along the batch dimension.
+
+    Example:
+
+    ::
+
+        x = torch.randn(1, 3, 64, 64)
+
+        transform = PanTiltRotate(n_trans = 1)
+
+        x_T = transform(x)
+
     """
 
     def forward(self, data):
