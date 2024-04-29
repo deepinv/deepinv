@@ -30,6 +30,7 @@ dependencies = [
     "einops",
     "wandb",
     "kornia",
+    "scipy",
 ]
 
 [tool.setuptools]
