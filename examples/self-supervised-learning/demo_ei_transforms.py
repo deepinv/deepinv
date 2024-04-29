@@ -70,7 +70,7 @@ dinv.utils.plot(
 # impose on the unknown image set :math:`x\in X`.
 #
 
-physics = dinv.physics.Inpainting((3, 256, 256), mask=0.3, device=device)
+physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
 
 download_and_extract_archive(
     "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz?download=true",
