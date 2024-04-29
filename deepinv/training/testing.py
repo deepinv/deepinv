@@ -59,6 +59,10 @@ def test(
         reconstruction network and a simple linear inverse on the test set.
     """
 
+    if not save_folder:
+        plot_images = plot_metrics = False
+        save_folder = "."
+
     if physics_generator is not None and not online_measurements:
         warnings.warn(
             "Physics generator is provided but online_measurements is False. Physics generator will not be used."
