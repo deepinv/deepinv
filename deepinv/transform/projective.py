@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Union
+
 import numpy as np
 import torch
 from PIL import Image
@@ -8,7 +10,7 @@ from kornia.geometry.transform import warp_perspective
 
 
 def apply_homography(
-    im: torch.Tensor | Image.Image,
+    im: Union[torch.Tensor, Image.Image],
     theta_x: float = 0.0,
     theta_y: float = 0.0,
     theta_z: float = 0.0,
