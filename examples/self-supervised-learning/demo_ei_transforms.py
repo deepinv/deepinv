@@ -3,7 +3,17 @@ Image transformations for Equivariant Imaging
 =============================================
 
 This example demonstrates various image transformations that can be used
-in Equivariant Imaging (EI) for self-supervised learning.
+in Equivariant Imaging (EI) for self-supervised learning. These were
+proposed in the papers:
+
+-  ``Shift``, ``Rotate``: `Chen et al., Equivariant Imaging: Learning
+   Beyond the Range
+   Space <https://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf>`__
+-  ``Scale``: `Scanvic et al., Self-Supervised Learning for Image
+   Super-Resolution and Deblurring <https://arxiv.org/abs/2312.11232>`__
+-  ``Homography`` and the projective geometry framework: `Wang et al.,
+   Perspective-Equivariant Imaging: an Unsupervised Framework for
+   Multispectral Pansharpening <https://arxiv.org/abs/2403.09327>`__
 
 TODO list transforms and equations
 
@@ -88,7 +98,7 @@ train_dataloader, test_dataloader = DataLoader(train_dataset, shuffle=True), Dat
 
 model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
-)
+).to(device)
 
 losses = [dinv.loss.MCLoss(), dinv.loss.EILoss(dinv.transform.Homography(theta_max=10))]
 
