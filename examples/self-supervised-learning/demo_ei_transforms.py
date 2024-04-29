@@ -70,7 +70,7 @@ dinv.utils.plot(
 # impose on the unknown image set :math:`x\in X`.
 #
 
-physics = dinv.physics.Inpainting((3, 128, 128), mask=0.3, device=device)
+physics = dinv.physics.Inpainting((3, 256, 256), mask=0.3, device=device)
 
 download_and_extract_archive(
     "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz?download=true",
@@ -81,7 +81,7 @@ download_and_extract_archive(
 
 train_dataset, test_dataset = random_split(
     ImageFolder(
-        "Urban100", transform=Compose([ToTensor(), Resize(256), CenterCrop(128)])
+        "Urban100", transform=Compose([ToTensor(), Resize(256), CenterCrop(256)])
     ),
     (0.8, 0.2),
 )
@@ -105,7 +105,10 @@ losses = [
     dinv.loss.EILoss(dinv.transform.Homography(theta_max=10, device=device)),
 ]
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-2, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
+
+ckpt = torch.load("model.pth", map_location=device)
+model.load_state_dict(ckpt["state_dict"])
 
 model = dinv.Trainer(
     model=model,
@@ -113,7 +116,7 @@ model = dinv.Trainer(
     online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=100,
+    epochs=50,
     losses=losses,
     optimizer=optimizer,
     verbose=True,
@@ -124,7 +127,8 @@ model = dinv.Trainer(
 
 torch.save({"state_dict": model.state_dict()}, "model.pth")
 
-x, _ = next(iter(test_dataloader))
+
+x, _ = next(iter(train_dataloader))
 y = physics(x)
 x_hat = model(y)
 
