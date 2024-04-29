@@ -11,7 +11,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-
+- Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
