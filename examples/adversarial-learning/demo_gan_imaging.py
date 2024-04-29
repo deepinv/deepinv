@@ -86,7 +86,8 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Load data and apply some forward degradation to the images. For this
 # example we use the Urban100 dataset resized to 128x128. We apply random
 # motion blur physics using
-# ``deepinv.physics.generator.MotionBlurGenerator``.
+# ``deepinv.physics.generator.MotionBlurGenerator``, and save the data
+# using ``dinv.datasets.generate_dataset``.
 #
 
 physics = dinv.physics.Blur(padding="circular")
@@ -106,8 +107,21 @@ train_dataset, test_dataset = random_split(
     (0.8, 0.2),
 )
 
-train_dataloader = DataLoader(train_dataset, shuffle=True)
-test_dataloader = DataLoader(test_dataset, shuffle=False)
+dataset_path = dinv.datasets.generate_dataset(
+    train_dataset=train_dataset,
+    test_dataset=test_dataset,
+    physics=physics,
+    physics_generator=blur_generator,
+    device=device,
+    save_dir="Urban100",
+)
+
+train_dataloader = DataLoader(
+    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+)
+test_dataloader = DataLoader(
+    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+)
 
 
 # %%
