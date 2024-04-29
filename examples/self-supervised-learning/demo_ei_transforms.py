@@ -2,9 +2,25 @@ r"""
 Image transformations for Equivariant Imaging
 =============================================
 
-This example demonstrates various image transformations that can be used
-in Equivariant Imaging (EI) for self-supervised learning. These were
-proposed in the papers:
+This example demonstrates various geometric image transformations
+implemented in ``deepinv`` that can be used in Equivariant Imaging (EI)
+for self-supervised learning:
+
+-  Shift: integer pixel 2D shift;
+-  Rotate: 2D image rotation;
+-  Scale: continuous 2D image downscaling;
+-  Euclidean: includes continuous translation, rotation, and reflection,
+   forming the group :math:`\mathbb{E}(2)`;
+-  Similarity: as above but includes scale, forming the group
+   :math:`\text{S}(2)`;
+-  Affine: as above but includes shear effects, forming the group
+   :math:`\text{Aff}(3)`;
+-  Homography: as above but includes perspective (i.e pan and tilt)
+   effects, forming the group :math:`\text{PGL}(3)`;
+-  PanTiltRotate: pure 3D camera rotation i.e pan, tilt and 2D image
+   rotation.
+
+These were proposed in the papers:
 
 -  ``Shift``, ``Rotate``: `Chen et al., Equivariant Imaging: Learning
    Beyond the Range
@@ -14,10 +30,6 @@ proposed in the papers:
 -  ``Homography`` and the projective geometry framework: `Wang et al.,
    Perspective-Equivariant Imaging: an Unsupervised Framework for
    Multispectral Pansharpening <https://arxiv.org/abs/2403.09327>`__
-
-TODO list transforms and equations
-
-TODO Cite my paper and Jeremy
 
 """
 
