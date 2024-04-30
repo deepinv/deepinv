@@ -89,6 +89,7 @@ class fStepSM(fStep):
         """
         x = x.to(torch.cfloat)
         y = y.flatten()
+        y = y / torch.mean(y)
         diag_T = self.preprocessing(y)
         y = y.to(torch.cfloat)
         res = physics.B(x)

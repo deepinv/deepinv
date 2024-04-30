@@ -1,7 +1,5 @@
 import torch
 
-import deepinv as dinv
-
 
 def spectral_methods(
     y: torch.Tensor,
@@ -14,10 +12,10 @@ def spectral_methods(
     r"""
     Utility function for spectral methods.
 
-    :param int n_iter: Number of iterations.
-    :param torch.Tensor x: Initial guess for the signals :math:`x_0`.
     :param torch.Tensor y: Measurements.
     :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
+    :param torch.Tensor x: Initial guess for the signals :math:`x_0`.
+    :param int n_iter: Number of iterations.
     :param function preprocessing: Function to preprocess the measurements. Default is :math:`\max(1 - 1/x, -5)`.
     :param float lamb: Regularization parameter. Default is 10.
 
@@ -27,7 +25,8 @@ def spectral_methods(
         x = torch.rand((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
     x = x.to(torch.cfloat)
     x = x / torch.linalg.norm(x)
-
+    # y should have mean 1
+    y = y / torch.mean(y)
     diag_T = preprocessing(y)
     diag_T = diag_T.to(torch.cfloat)
     for _ in range(n_iter):
@@ -67,3 +66,26 @@ def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor) -> torch.Tensor
             x_recon[i, j] = x_recon[i, j] * e_minus_phi
 
     return x_recon
+
+
+def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
+    r"""
+    Compute the cosine similarity between two images.
+
+    The cosine similarity is computed as:
+
+    .. math::
+        \text{cosine\_similarity} = \frac{a \cdot b}{\|a\| \cdot \|b\|}.
+
+    The value range is [0,1], higher values indicate higher similarity.
+    If one image is a scaled version of the other, i.e., :math:`a = c * b` where :math:`c` is a nonzero complex number, then the cosine similarity will be 1.
+
+    :param torch.Tensor a: First image.
+    :param torch.Tensor b: Second image.
+    :return: The cosine similarity between the two images."""
+    assert a.shape == b.shape
+    a = a.flatten()
+    b = b.flatten()
+    norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
+    norm_b = torch.sqrt(torch.dot(b.conj(), b).real)
+    return torch.abs(torch.dot(a.conj(), b)) / (norm_a * norm_b)

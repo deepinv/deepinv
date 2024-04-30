@@ -40,17 +40,17 @@ class PhaseRetrieval(Physics):
         """
         return self.B(x).abs().square()
 
-    def A_dagger(self, y: torch.Tensor) -> torch.Tensor:
+    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Computes a initial reconstruction for the image :math:`x` from the measurements :math:`y`.
 
         :param torch.Tensor y: measurements.
         :return: (torch.Tensor) an initial reconstruction for image :math:`x`.
         """
-        return spectral_methods(y, self, n_iter=2)
+        return spectral_methods(y, self, **kwargs)
 
-    def A_adjoint(self, y: torch.Tensor) -> torch.Tensor:
-        return self.A_dagger(y)
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+        return self.A_dagger(y, **kwargs)
 
     def B_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         return self.B.A_adjoint(y)
