@@ -13,7 +13,9 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 
     Constructs adversarial loss between reconstructed image and the ground truth, to be minimised by generator.
 
-    See ``deepinv.examples.adversarial_learning`` for formulae.
+    :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
+
+    See ``deepinv.examples.adversarial_learning`` for examples.
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.01 (from original paper)
     :param str device: torch device, defaults to "cpu"
@@ -42,7 +44,9 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     Constructs adversarial loss between reconstructed image and the ground truth, to be maximised by discriminator.
 
-    See ``deepinv.examples.adversarial_learning`` for formulae.
+    :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
+
+    See ``deepinv.examples.adversarial_learning`` for examples.
 
     :param float weight: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"
@@ -68,9 +72,11 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     This loss was used in unsupervised generative models such as Bora et al.,
     "AmbientGAN: Generative models from lossy measurements".
 
-    Constructs adversarial loss between input measurement and re-measured reconstruction, to be minimised by generator.
+    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimised by generator.
 
-    See ``deepinv.examples.adversarial_learning`` for formulae.
+    :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
+
+    See ``deepinv.examples.adversarial_learning`` for examples.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"
@@ -103,7 +109,9 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximised
     by discriminator.
 
-    See ``deepinv.examples.adversarial_learning`` for formulae.
+    :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
+
+    See ``deepinv.examples.adversarial_learning`` for examples.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param str device: torch device, defaults to "cpu"

@@ -7,7 +7,17 @@ from deepinv.physics import Physics
 class UAIRGeneratorLoss(GeneratorLoss):
     r"""Reimplementation of UAIR generator's adversarial loss.
 
-    Pajot et al., "Unsupervised Adversarial Image Reconstruction". See ``deepinv.examples.adversarial_learning`` for formulae.
+    Pajot et al., "Unsupervised Adversarial Image Reconstruction".
+
+    The loss is defined as follows, to be minimised by the generator:
+
+    :math:`\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert A(f(\hat y))- \hat y\rVert^2_2,\quad\hat y=A(\hat x)`
+
+    where the standard adversarial loss is
+
+    :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
+
+    See ``deepinv.examples.adversarial_learning`` for examples.
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
@@ -43,20 +53,3 @@ class UAIRGeneratorLoss(GeneratorLoss):
         mc_loss = self.metric(y_tilde, y_hat)
 
         return adv_loss + mc_loss * self.weight_mc
-
-
-class UAIRDiscriminatorLoss(DiscriminatorLoss):
-    r"""Reimplementation of UAIR discriminator's adversarial loss.
-
-    Pajot et al., "Unsupervised Adversarial Image Reconstruction". See ``deepinv.examples.adversarial_learning`` for formulae.
-
-    :param float weight_adv: weight for adversarial loss, defaults to 1.0
-    :param str device: torch device, defaults to "cpu"
-    """
-
-    def __init__(self, weight_adv: float = 1.0, device="cpu"):
-        super().__init__(weight_adv=weight_adv, device=device)
-        self.name = "UAIRDiscriminator"
-
-    def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module, **kwargs):
-        return self.adversarial_loss(y, y_hat, D)

@@ -234,7 +234,7 @@ G, D, optimizer, scheduler = get_models(
 )  # learning rates from original paper
 
 loss_g = adversarial.UAIRGeneratorLoss(device=device)
-loss_d = adversarial.UAIRDiscriminatorLoss(device=device)
+loss_d = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
@@ -301,6 +301,11 @@ _, _, optimizer, scheduler = get_models(
     model=G, D=D, lr_g=2e-4, lr_d=2e-4
 )  # learning rates from original paper
 
+# For AmbientGAN:
+loss_g = adversarial.UnsupAdversarialGeneratorLoss(device=device)
+loss_d = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
+
+# For CSGM:
 loss_g = adversarial.SupAdversarialGeneratorLoss(device=device)
 loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 

@@ -83,7 +83,6 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
     deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss
     deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
     deepinv.loss.adversarial.UAIRGeneratorLoss
-    deepinv.loss.adversarial.UAIRDiscriminatorLoss
 
 Metrics
 --------
