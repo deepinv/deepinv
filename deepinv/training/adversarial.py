@@ -73,8 +73,8 @@ class AdversarialScheduler:
 
     def step(self):
     r"""Performs a step on both generator and discriminator schedulers."""
-        self.G.step()
-        self.D.step()
+        self.scheduler_g.step()
+        self.scheduler_d.step()
 
 
 @dataclass
