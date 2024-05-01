@@ -69,6 +69,7 @@ class AdversarialScheduler:
         self.scheduler_d = scheduler_d
 
     def get_last_lr(self):
+    r"""Get last learning rates from the generator scheduler."""
         return self.scheduler_g.get_last_lr()
 
     def step(self):
