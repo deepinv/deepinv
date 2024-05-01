@@ -65,8 +65,8 @@ class AdversarialScheduler:
     """
 
     def __init__(self, scheduler_g: LRScheduler, scheduler_d: LRScheduler):
-        self.G = scheduler_g
-        self.D = scheduler_d
+        self.scheduler_g = scheduler_g
+        self.scheduler_d = scheduler_d
 
     def get_last_lr(self):
         return self.G.get_last_lr()
