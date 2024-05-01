@@ -69,7 +69,7 @@ class AdversarialScheduler:
         self.scheduler_d = scheduler_d
 
     def get_last_lr(self):
-        return self.G.get_last_lr()
+        return self.scheduler_g.get_last_lr()
 
     def step(self):
     r"""Performs a step on both generator and discriminator schedulers."""
