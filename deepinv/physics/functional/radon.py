@@ -132,12 +132,14 @@ class Radon(nn.Module):
     :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
     :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
     :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
-        - "pixel_spacing" defining the distance between two pixels in the image, default: 0.077
+        - "pixel_spacing" defining the distance between two pixels in the image, default: 0.5 / (in_size)
         - "source_radius" distance between the x-ray source and the rotation axis (middle of the image), default: 57.5
         - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5
         - "n_detector_pixels" number of pixels of the detector, default: 258
-        - "detector_spacing" distance between two pixels on the detector, default: 0.15
-        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe artifacts in any reconstruction.
+        - "detector_spacing" distance between two pixels on the detector, default: 0.077
+        The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
+        where pixel spacing, source and detector radius and detector spacing are given in cm.
+        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param torch.dtype dtype: the data type of the output. Default is torch.float.
     :param str, torch.device device: the device of the output. Default is torch.device('cpu').
     """
@@ -166,7 +168,10 @@ class Radon(nn.Module):
             if self.fan_parameters is None:
                 self.fan_parameters = {}
             if not "pixel_spacing" in self.fan_parameters.keys():
-                self.fan_parameters["pixel_spacing"] = 0.077
+                assert (
+                    not in_size is None
+                ), "Either input size or pixel spacing have to be given"
+                self.fan_parameters["pixel_spacing"] = 0.5 / in_size
             if not "source_radius" in self.fan_parameters.keys():
                 self.fan_parameters["source_radius"] = 57.5
             if not "detector_radius" in self.fan_parameters.keys():
@@ -174,7 +179,7 @@ class Radon(nn.Module):
             if not "n_detector_pixels" in self.fan_parameters.keys():
                 self.fan_parameters["n_detector_pixels"] = 258
             if not "detector_spacing" in self.fan_parameters.keys():
-                self.fan_parameters["detector_spacing"] = 0.15
+                self.fan_parameters["detector_spacing"] = 0.077
         self.all_grids = None
         if in_size is not None:
             self.all_grids = self._create_grids(self.theta, in_size, circle).to(device)

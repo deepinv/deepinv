@@ -41,12 +41,14 @@ class Tomography(LinearPhysics):
         if False, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
     :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
     :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
-        - "pixel_spacing" defining the distance between two pixels in the image, default: 0.077
+        - "pixel_spacing" defining the distance between two pixels in the image, default: 0.5 / (in_size)
         - "source_radius" distance between the x-ray source and the rotation axis (middle of the image), default: 57.5
         - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5
         - "n_detector_pixels" number of pixels of the detector, default: 258
-        - "detector_spacing" distance between two pixels on the detector, default: 0.15
-        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe artifacts in any reconstruction.
+        - "detector_spacing" distance between two pixels on the detector, default: 0.077
+        The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
+        where pixel spacing, source and detector radius and detector spacing are given in cm.
+        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param str device: gpu or cpu.
 
     |sep|
