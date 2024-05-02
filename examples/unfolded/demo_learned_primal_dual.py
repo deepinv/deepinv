@@ -195,9 +195,14 @@ def custom_output(X):
 
 
 # Define the unfolded trainable model.
+# In practice, one often replaces the adjoint in the primal dual algorithm by the filtered backprojection, see
+# A. Hauptmann, J. Adler, S. Arridge, O. Öktem,
+# Multi-scale learned iterative reconstruction,
+# IEEE Transactions on Computational Imaging 6, 843-856, 2020.
+# for a detailed study.
 model = unfolded_builder(
     iteration=PDNetIteration(),
-    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 0.0},
+    params_algo={"K": physics.A, "K_adjoint": physics.A_dagger, "beta": 0.0},
     data_fidelity=data_fidelity,
     prior=prior,
     max_iter=max_iter,
