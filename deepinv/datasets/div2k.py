@@ -7,13 +7,13 @@ from .utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
 
 
 class DIV2K(torch.utils.data.Dataset):
-    """Dataset for DIV2K <https://data.vision.ee.ethz.ch/cvl/DIV2K/>`_ Image Super-Resolution Challenge.
-    
+    """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
+
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
-    :param str mode: Select a subset of the dataset between "train" or "val". Default at "train".
+    :param str mode: Select a subset of the dataset between 'train' or 'val'. Default at 'train'.
     :param bool download: If True, downloads the dataset from the internet and puts it in root directory.
-        If dataset is already downloaded, it is not downloaded again.
-    :param callable transform: A function/transform that takes in a PIL image
+        If dataset is already downloaded, it is not downloaded again. Default at False.
+    :param callable, optional transform: A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
     """
 
@@ -32,8 +32,9 @@ class DIV2K(torch.utils.data.Dataset):
     def __init__(self, root: str, mode: str='train', download: bool=False, transform=None) -> None:
         super().__init__()
 
-        self.transform = transform
         self.root = root
+        self.mode = mode
+        self.transform = transform
         train_dir_path = os.path.join(self.root, 'DIV2K_train_HR')
         valid_dir_path = os.path.join(self.root, 'DIV2K_valid_HR')
 
@@ -76,12 +77,12 @@ class DIV2K(torch.utils.data.Dataset):
             OR set `download=True` (currently `download={download}`).
             ''')
 
-        if mode == 'train':
+        if self.mode == 'train':
             self.img_dir = train_dir_path
-        elif mode == 'val':
+        elif self.mode == 'val':
             self.img_dir = valid_dir_path
         else:
-            raise ValueError(f'Expected `train` or `val` values for `mode` argument, instead got `{mode}`')
+            raise ValueError(f'Expected `train` or `val` values for `mode` argument, instead got `{self.mode}`')
 
         self.img_list = os.listdir(self.img_dir)
 
