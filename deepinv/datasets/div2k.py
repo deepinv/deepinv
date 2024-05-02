@@ -7,6 +7,15 @@ from .utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
 
 
 class DIV2K(torch.utils.data.Dataset):
+    """Dataset for DIV2K <https://data.vision.ee.ethz.ch/cvl/DIV2K/>`_ Image Super-Resolution Challenge.
+    
+    :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
+    :param str mode: Select a subset of the dataset between "train" or "val". Default at "train".
+    :param bool download: If True, downloads the dataset from the internet and puts it in root directory.
+        If dataset is already downloaded, it is not downloaded again.
+    :param callable transform: A function/transform that takes in a PIL image
+        and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
     zipfile_urls = {
