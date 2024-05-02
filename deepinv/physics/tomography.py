@@ -37,6 +37,8 @@ class Tomography(LinearPhysics):
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
+    :param bool normalize: if True, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
+        if False, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
     :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
     :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
         - "pixel_spacing" defining the distance between two pixels in the image, default: 0.077
@@ -85,6 +87,7 @@ class Tomography(LinearPhysics):
         img_width,
         circle=False,
         parallel_computation=True,
+        normalize=False,
         fan_beam=False,
         fan_parameters=None,
         device=torch.device("cpu"),
@@ -105,6 +108,7 @@ class Tomography(LinearPhysics):
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
+        self.normalize = normalize
         self.radon = Radon(
             img_width,
             theta,
@@ -130,14 +134,24 @@ class Tomography(LinearPhysics):
     def A(self, x, **kwargs):
         if self.img_width is None:
             self.img_width = x.shape[-1]
-        return self.radon(x)
+        output = self.radon(x)
+        if self.normalize:
+            output = output / x.shape[-1]
+        return output
 
     def A_dagger(self, y, **kwargs):
         if self.fan_beam:
             y = self.filter(y)
-            return self.A_adjoint(y, **kwargs)
+            output = (
+                self.A_adjoint(y, **kwargs) * PI.item() / (2 * len(self.radon.theta))
+            )
+            if self.normalize:
+                output = output * output.shape[-1] ** 2
         else:
-            return self.iradon(y)
+            output = self.iradon(y)
+            if self.normalize:
+                output = output * output.shape[-1]
+        return output
 
     def A_adjoint(self, y, **kwargs):
         if self.fan_beam:
@@ -151,7 +165,14 @@ class Tomography(LinearPhysics):
                 device=self.device,
                 dtype=self.dtype,
             )
-            # the tomography operator does not exactly implement the adjoint but a rescaled version of it...
-            return adj(y) * PI.item() / (2 * len(self.radon.theta))
+            return adj(y)
         else:
-            return self.iradon(y, filtering=False)
+            # IRadon is not exactly the adjoint but a rescaled version of it...
+            output = (
+                self.iradon(y, filtering=False)
+                / PI.item()
+                * (2 * len(self.iradon.theta))
+            )
+            if self.normalize:
+                output = output / output.shape[-1]
+            return output
