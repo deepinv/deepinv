@@ -37,15 +37,22 @@ class Tomography(LinearPhysics):
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
     :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
-    :param bool normalize: if True, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
-        if False, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
-    :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
-    :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
+    :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
+        In this case the operator norm is approximately given by :math:`\|A\|_2^2  \approx \frac{\pi}{2\,\text{angles}}`,
+        If ``False``, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
+    :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
+    :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
+
         - "pixel_spacing" defining the distance between two pixels in the image, default: 0.5 / (in_size)
+
         - "source_radius" distance between the x-ray source and the rotation axis (middle of the image), default: 57.5
+
         - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5
+
         - "n_detector_pixels" number of pixels of the detector, default: 258
+
         - "detector_spacing" distance between two pixels on the detector, default: 0.077
+
         The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
         where pixel spacing, source and detector radius and detector spacing are given in cm.
         Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.

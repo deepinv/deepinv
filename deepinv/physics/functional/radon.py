@@ -128,15 +128,21 @@ class Radon(nn.Module):
 
     :param int in_size: the size of the input image. If None, the size is inferred from the input image.
     :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is torch.arange(180).
-    :param bool circle: if True, the input image is assumed to be a circle. Default is False.
-    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
-    :param bool fan_beam: if True, use fan beam geometry, if False use parallel beam
-    :param dict fan_parameters: only used if fan_beam is True. Contains the parameters defining the scanning geometry. The dict should contain the keys
+    :param bool circle: if ``True``, the input image is assumed to be a circle. Default is ``False``.
+    :param bool parallel_computation: if ``True``, all projections are performed in parallel. Requires more memory but is faster on GPUs.
+    :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
+    :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
+
         - "pixel_spacing" defining the distance between two pixels in the image, default: 0.5 / (in_size)
+
         - "source_radius" distance between the x-ray source and the rotation axis (middle of the image), default: 57.5
+
         - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5
+
         - "n_detector_pixels" number of pixels of the detector, default: 258
+
         - "detector_spacing" distance between two pixels on the detector, default: 0.077
+
         The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
         where pixel spacing, source and detector radius and detector spacing are given in cm.
         Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
