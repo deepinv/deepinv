@@ -197,7 +197,7 @@ def custom_output(X):
 # %%
 # Define the unfolded trainable model.
 # -------------------------------------
-# The original paper of the learned primal dual algorithm the authors used the adjoint operator 
+# The original paper of the learned primal dual algorithm the authors used the adjoint operator
 # in the primal update. However, the same authors (among others) find in the paper
 #
 # A. Hauptmann, J. Adler, S. Arridge, O. Öktem,
