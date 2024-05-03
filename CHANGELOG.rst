@@ -12,6 +12,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
