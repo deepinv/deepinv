@@ -1,10 +1,13 @@
+import warnings
 import torch
-from typing import Sequence, Optional, Union, Tuple
+from typing import Optional, Tuple
 import numpy as np
 from deepinv.physics.generator import PhysicsGenerator
 
-#TODO inline examples
-#TODO find common code across step() methods and put in Base
+
+def ceildiv(a: float, b: float) -> float:
+    return -(a // -b)
+
 
 class BaseMaskGenerator(PhysicsGenerator):
     """Base generator for MRI acceleration masks.
@@ -15,13 +18,25 @@ class BaseMaskGenerator(PhysicsGenerator):
 
     :param Tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps
     :param int acceleration: acceleration factor, defaults to 4
-    :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space), defaults to 0.125
+    :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space). If 0, there is no fixed low-freq sampling. Defaults to None.
+    :param np.random.Generator rng: numpy random generator, defaults to np.random.default_rng()
     """
-    def __init__(self, img_size: Tuple, acceleration: int = 4, center_fraction: Optional[float] = None, *args, **kwargs):
+
+    def __init__(
+        self,
+        img_size: Tuple,
+        acceleration: int = 4,
+        center_fraction: Optional[float] = None,
+        rng: np.random.Generator = np.random.default_rng(),
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.img_size = img_size
         self.acc = acceleration
+        self.rng = rng
 
+        # Set default center_fraction if not provided
         if center_fraction is not None:
             self.center_fraction = center_fraction
         elif acceleration == 4:
@@ -41,8 +56,27 @@ class BaseMaskGenerator(PhysicsGenerator):
             raise ValueError("img_size must be (H, W) or (C, H, W) or (C, T, H, W)")
 
         self.n_center = int(self.center_fraction * self.W)
-        self.n_lines = int(self.W / self.acc) - self.n_center
-    
+        self.n_lines = self.W // self.acc - self.n_center
+
+        if self.n_lines < 0:
+            raise ValueError(
+                "center_fraction is too high for this acceleration factor."
+            )
+        elif self.n_lines == 0:
+            warnings.warn(
+                "Number of high frequency lines to be sampled is 0. Reduce acceleration factor or reduce center_fraction."
+            )
+
+    def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        """Given empty mask, sample lines according to child class sampling strategy.
+
+        This must be implemented in child classes. Time dimension is specified but can be ignored if needed.
+
+        :param torch.Tensor mask: empty mask of shape (B, C, T, H, W)
+        :return torch.Tensor: sampled mask of shape (B, C, T, H, W)
+        """
+        raise NotImplementedError()
+
     def step(self, batch_size=1) -> dict:
         r"""
         Create a mask of vertical lines.
@@ -50,89 +84,161 @@ class BaseMaskGenerator(PhysicsGenerator):
         :param int batch_size: batch_size.
         :return: dictionary with key **'mask'**: tensor of size (batch_size, C, H, W) or (batch_size, C, T, H, W) with values in {0, 1}.
         :rtype: dict
-        """   
-        raise NotImplementedError()
+        """
+        _T = self.T if self.T > 0 else 1
+        mask = self.sample_mask(
+            torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs)
+        )
+
+        if self.T == 0:
+            mask = mask[:, :, 0, :, :]
+
+        return {"mask": mask}
+
 
 class RandomMaskGenerator(BaseMaskGenerator):
     """Generator for MRI Cartesian acceleration masks using random uniform undersampling.
 
     Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and random uniform undersampling in the high frequencies.
 
-    Supports k-t sampling, where the mask is selected randomly across time. 
-    
+    Supports k-t sampling, where the mask is selected randomly across time.
+
     The mask is repeated across channels and randomly varies across batch dimension.
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
-    """
-    def step(self, batch_size: int = 1) -> dict:
-        _T = self.T if self.T > 0 else 1
-        mask = torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs) #B, C, T, H, W
 
-        # central lines are always sampled
-        center_line_indices = torch.linspace(
-            self.W // 2 - self.n_center // 2,
-            self.W // 2 + self.n_center // 2 + 1,
-            steps=50,
-            dtype=torch.long,
-        )
-        mask[:, :, :, :, center_line_indices] = 1
+    Example:
+
+    ::
+
+        generator = RandomMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
+        params = generator.step(batch_size=1)
+        mask = params["mask"]
+        mask.shape # 1, 2, 8, 64, 64
+
+    """
+
+    def get_pdf(self) -> torch.Tensor:
+        """Create one-dimensional uniform probability density function across columns, ignoring any fixed sampling columns.
+
+        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        """
+        return np.ones(self.W)
+
+    def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        pdf = self.get_pdf()
+
+        # lines are never randomly sampled from the already sampled center
+        pdf[
+            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)
+        ] = 0
+
+        # normalise distribution
+        pdf /= np.sum(pdf)
 
         # select low-frequency lines according to pdf
-        for b in range(batch_size):
-            for t in range(_T):
-                idx = np.random.choice(self.W, size=(self.n_lines // 2,), replace=False)
+        for b in range(mask.shape[0]):
+            for t in range(mask.shape[2]):
+                idx = self.rng.choice(self.W, self.n_lines, replace=False, p=pdf)
                 mask[b, :, t, :, idx] = 1
-        
-        if self.T == 0:
-            mask = mask[:, :, 0, :, :]
 
-        return {"mask": mask}   
+        # central lines are always sampled
+        mask[
+            :,
+            :,
+            :,
+            :,
+            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2),
+        ] = 1
 
-class GaussianMaskGenerator(BaseMaskGenerator):
+        return mask
+
+
+class GaussianMaskGenerator(RandomMaskGenerator):
     """Generator for MRI Cartesian acceleration masks using Gaussian undersampling.
 
     Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and Gaussian undersampling in the high frequencies.
 
     The high frequences are selected according to a tail-adjusted Gaussian pdf. This ensures that the expected number of rows selected is equal to (N / acceleration).
 
-    Supports k-t sampling, where the Gaussian mask varies randomly across time. 
-    
+    Supports k-t sampling, where the Gaussian mask varies randomly across time.
+
     The mask is repeated across channels and randomly varies across batch dimension.
 
     Algorithm taken from Schlemper et al. `A Deep Cascade of Convolutional Neural Networks for Dynamic MR Image Reconstruction <https://github.com/js3611/Deep-MRI-Reconstruction/blob/master/utils/compressed_sensing.py>`_.
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
+
+    Example:
+
+    ::
+
+        generator = GaussianMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
+        params = generator.step(batch_size=1)
+        mask = params["mask"]
+        mask.shape # 1, 2, 8, 64, 64
+
     """
-    def step(self, batch_size: int = 1) -> dict:
-        _T = self.T if self.T > 0 else 1
-        mask = torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs) #B, C, T, H, W
 
-        # generate normal distribution
-        normal_pdf = lambda length, sensitivity: np.exp(-sensitivity * (np.arange(length) - length / 2)**2)
-        pdf_x = normal_pdf(self.W, 0.5/(self.W/10.)**2)
-        lmda = self.W / (2. * self.acc)
-    
-        # add uniform distribution so that probability of sampling
-        # high-frequency lines is non-zero
-        pdf_x += lmda * 1./self.W
-    
-        # lines are never randomly sampled from the already sampled center
-        pdf_x[self.W//2 - self.n_center//2 : self.W//2 + self.n_center//2] = 0
-        pdf_x /= np.sum(pdf_x)  # normalise distribution
+    def get_pdf(self) -> torch.Tensor:
+        """Create one-dimensional Gaussian probability density function across columns, ignoring any fixed sampling columns.
 
-        # select low-frequency lines according to pdf
-        for b in range(batch_size):
-            for t in range(_T):
-                idx = np.random.choice(self.W, self.n_lines, replace=False, p=pdf_x)
-                mask[b, :, t, :, idx] = 1
-    
-        # central lines are always sampled
-        mask[:, :, :, :, self.W//2-self.n_center//2:self.W//2+self.n_center//2] = 1
+        Add uniform distribution so that the probability of sampling high-frequency lines is non-zero.
 
-        if self.T == 0:
-            mask = mask[:, :, 0, :, :]
+        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        """
+        normal_pdf = lambda length, sensitivity: np.exp(
+            -sensitivity * (np.arange(length) - length / 2) ** 2
+        )
+        pdf = normal_pdf(self.W, 0.5 / (self.W / 10.0) ** 2)
+        lmda = self.W / (2.0 * self.acc)
 
-        return {"mask": mask}
-    
+        pdf += lmda * 1.0 / self.W
+
+        return pdf
+
+
 class UniformMaskGenerator(BaseMaskGenerator):
-    pass
+    """Generator for MRI Cartesian acceleration masks using uniform (equispaced) non-random undersampling.
+
+    Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and equispaced undersampling in the high frequencies.
+
+    The number of lines selected with equal spacing are at a proportion that reaches the desired acceleration rate taking into consideration the number of low-freq lines, so that the total number of lines is (N / acceleration).
+
+    Supports k-t sampling, where the uniform mask is sheared across time.
+
+    The mask is repeated across channels and randomly varies across batch dimension. Based off fastMRI code https://github.com/facebookresearch/fastMRI
+
+    For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
+
+    Example:
+
+    ::
+
+        generator = UniformMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
+        params = generator.step(batch_size=1)
+        mask = params["mask"]
+        mask.shape # 1, 2, 8, 64, 64
+
+    """
+
+    def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        pad = (self.W - self.n_center + 1) // 2
+        mask[:, :, :, :, pad : pad + self.n_center] = 1
+
+        # determine acceleration rate by adjusting for the number of low frequencies
+        adjusted_accel = (self.acc * (self.n_center - self.W)) / (
+            self.n_center * self.acc - self.W
+        )
+        offset = self.rng.integers(0, round(adjusted_accel))
+
+        for b in range(mask.shape[0]):
+            for t in range(mask.shape[2]):
+                accel_samples = (
+                    np.arange((t + offset) % adjusted_accel, self.W - 1, adjusted_accel)
+                    .round()
+                    .astype(int)
+                )
+                mask[b, :, t, :, accel_samples] = 1
+
+        return mask

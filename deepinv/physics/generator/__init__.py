@@ -5,5 +5,5 @@ from .blur import (
     PSFGenerator,
     ProductConvolutionBlurGenerator,
 )
-from .mri import AccelerationMaskGenerator
+from .mri import GaussianMaskGenerator, RandomMaskGenerator, UniformMaskGenerator
 from .noise import SigmaGenerator
