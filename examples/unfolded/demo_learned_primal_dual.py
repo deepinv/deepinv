@@ -40,9 +40,9 @@ torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
-# Load base image datasets and degradation operators.
+# Load degradation operator.
 # ---------------------------------------------------
-# In this example, we use the CBSD500 dataset for training and the Set3C dataset for testing.
+# We consider the CT operator.
 
 img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 1  # 3 for color images, 1 for gray-scale images
