@@ -194,12 +194,19 @@ def custom_output(X):
     return X["est"][0][:, 1, :, :].unsqueeze(1)
 
 
+# %%
 # Define the unfolded trainable model.
-# In practice, one often replaces the adjoint in the primal dual algorithm by the filtered backprojection, see
+# -------------------------------------
+# The original paper of the learned primal dual algorithm the authors used the adjoint operator 
+# in the primal update. However, the same authors (among others) find in the paper
+#
 # A. Hauptmann, J. Adler, S. Arridge, O. Öktem,
 # Multi-scale learned iterative reconstruction,
 # IEEE Transactions on Computational Imaging 6, 843-856, 2020.
-# for a detailed study.
+#
+# that using a filtered gradient can improve both the training speed and reconstruction quality significantly.
+# Following this approach, we use the filtered backprojection instead of the adjoint operator in the primal step.
+
 model = unfolded_builder(
     iteration=PDNetIteration(),
     params_algo={"K": physics.A, "K_adjoint": physics.A_dagger, "beta": 0.0},
