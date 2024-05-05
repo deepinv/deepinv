@@ -2,7 +2,11 @@ import torch
 from torch import nn
 from deepinv.physics.forward import LinearPhysics
 
-from deepinv.physics.functional import Radon, IRadon
+from deepinv.physics.functional import Radon, IRadon, RampFilter
+from deepinv.physics import adjoint_function
+
+
+PI = 4 * torch.ones(1).atan()
 
 
 class Tomography(LinearPhysics):
@@ -32,6 +36,26 @@ class Tomography(LinearPhysics):
     :param int img_width: width/height of the square image input.
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
+    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
+    :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
+        In this case the operator norm is approximately given by :math:`\|A\|_2^2  \approx \frac{\pi}{2\,\text{angles}}`,
+        If ``False``, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
+    :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
+    :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
+
+        - "pixel_spacing" defining the distance between two pixels in the image, default: 0.5 / (in_size)
+
+        - "source_radius" distance between the x-ray source and the rotation axis (middle of the image), default: 57.5
+
+        - "detector_radius" distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5
+
+        - "n_detector_pixels" number of pixels of the detector, default: 258
+
+        - "detector_spacing" distance between two pixels on the detector, default: 0.077
+
+        The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
+        where pixel spacing, source and detector radius and detector spacing are given in cm.
+        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param str device: gpu or cpu.
 
     |sep|
@@ -71,6 +95,10 @@ class Tomography(LinearPhysics):
         angles,
         img_width,
         circle=False,
+        parallel_computation=True,
+        normalize=False,
+        fan_beam=False,
+        fan_parameters=None,
         device=torch.device("cpu"),
         dtype=torch.float,
         **kwargs,
@@ -85,18 +113,75 @@ class Tomography(LinearPhysics):
         else:
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
+        self.fan_beam = fan_beam
+        self.img_width = img_width
+        self.device = device
+        self.dtype = dtype
+        self.normalize = normalize
         self.radon = Radon(
-            img_width, theta, circle=circle, device=device, dtype=dtype
+            img_width,
+            theta,
+            circle=circle,
+            parallel_computation=parallel_computation,
+            fan_beam=fan_beam,
+            fan_parameters=fan_parameters,
+            device=device,
+            dtype=dtype,
         ).to(device)
-        self.iradon = IRadon(
-            img_width, theta, circle=circle, device=device, dtype=dtype
-        ).to(device)
+        if not self.fan_beam:
+            self.iradon = IRadon(
+                img_width,
+                theta,
+                circle=circle,
+                parallel_computation=parallel_computation,
+                device=device,
+                dtype=dtype,
+            ).to(device)
+        else:
+            self.filter = RampFilter(dtype=dtype, device=device)
 
     def A(self, x, **kwargs):
-        return self.radon(x)
+        if self.img_width is None:
+            self.img_width = x.shape[-1]
+        output = self.radon(x)
+        if self.normalize:
+            output = output / x.shape[-1]
+        return output
 
     def A_dagger(self, y, **kwargs):
-        return self.iradon(y)
+        if self.fan_beam:
+            y = self.filter(y)
+            output = (
+                self.A_adjoint(y, **kwargs) * PI.item() / (2 * len(self.radon.theta))
+            )
+            if self.normalize:
+                output = output * output.shape[-1] ** 2
+        else:
+            output = self.iradon(y)
+            if self.normalize:
+                output = output * output.shape[-1]
+        return output
 
     def A_adjoint(self, y, **kwargs):
-        return self.iradon(y, filtering=False)
+        if self.fan_beam:
+            assert (
+                not self.img_width is None
+            ), "Image size unknown. Apply forward operator or add it for initialization."
+            # lazy implementation for the adjoint...
+            adj = adjoint_function(
+                self.A,
+                (y.shape[0], y.shape[1], self.img_width, self.img_width),
+                device=self.device,
+                dtype=self.dtype,
+            )
+            return adj(y)
+        else:
+            # IRadon is not exactly the adjoint but a rescaled version of it...
+            output = (
+                self.iradon(y, filtering=False)
+                / PI.item()
+                * (2 * len(self.iradon.theta))
+            )
+            if self.normalize:
+                output = output / output.shape[-1]
+            return output
