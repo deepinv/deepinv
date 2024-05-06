@@ -126,8 +126,20 @@ print(f"Posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, mean):.2f} dB")
 # plot results
 error = (mean - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
 std = var.sum(dim=1).unsqueeze(1).sqrt()  # per pixel average standard dev.
-imgs = [x_lin, x, mean, std / std.flatten().max(), error / error.flatten().max()]
+imgs = [
+    x_lin,
+    x,
+    mean,
+    std / std.flatten().max(),
+    error / error.flatten().max(),
+]
 plot(
     imgs,
-    titles=["measurement", "ground truth", "post. mean", "post. std", "abs. error"],
+    titles=[
+        "measurement",
+        "ground truth",
+        "post. mean",
+        "post. std",
+        "abs. error",
+    ],
 )

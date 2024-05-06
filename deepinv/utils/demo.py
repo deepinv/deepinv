@@ -137,7 +137,12 @@ def load_degradation(name, data_dir, index=0, download=True):
 
 
 def load_url_image(
-    url=None, img_size=None, grayscale=False, resize_mode="crop", device="cpu"
+    url=None,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
 ):
     r"""
     Load an image from a URL and return a torch.Tensor.
@@ -166,7 +171,7 @@ def load_url_image(
         transform_list.append(transforms.Grayscale())
     transform_list.append(transforms.ToTensor())
     transform = transforms.Compose(transform_list)
-    x = transform(img).unsqueeze(0).to(device)
+    x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 
 

@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.8"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -56,6 +56,8 @@ doc = [
     "sphinx_rtd_theme",
     "sphinxemoji",
     "sphinx_copybutton",
+    "sphinx_autoapi"
+
 ]
 
 # optional dependencies for specific denoisers
@@ -64,7 +66,8 @@ denoisers = [
     "timm",
     "PyWavelets",
     "ptwt",
-    "FrEIA"
+    "FrEIA",
+    "pyiqa"
 ]
 
 

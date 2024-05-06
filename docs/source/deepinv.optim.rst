@@ -30,7 +30,55 @@ operator (see :meth:`deepinv.physics.Physics`)
     or estimated. For example, if the regularization is implicitly defined by a denoiser,
     the hyperparameter is the noise level.
 
-Optimization algorithms for minimizing the problem above can be written as fixed point algorithms,
+A typical example of optimization problem is the :math:`\ell_1`-regularized least squares problem, where the data-fidelity term is
+the squared :math:`\ell_2`-norm and the regularization term is the :math:`\ell_1`-norm. In this case, a possible
+algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm writing as
+
+.. math::
+    \qquad x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname} \left( x_k - \gamma \nabla \datafidname(x_k, y) \right),
+
+where :math:`\operatorname{prox}_{\lambda \regname}` is the proximity operator of the regularization term, :math:`\gamma` is the
+step size of the algorithm, and :math:`\nabla \datafidname` is the gradient of the data-fidelity term.
+
+The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the :math:`\ell_1`-regularized
+least squares problem.
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> from deepinv.optim import L2, TVPrior
+    >>>
+    >>> # Forward operator, here inpainting
+    >>> mask = torch.ones((1, 2, 2))
+    >>> mask[0, 0, 0] = 0
+    >>> physics = dinv.physics.Inpainting(tensor_size=mask.shape, mask=mask)
+    >>> # Generate data
+    >>> x = torch.ones((1, 1, 2, 2))
+    >>> y = physics(x)
+    >>> data_fidelity = L2()  # The data fidelity term
+    >>> prior = TVPrior()  # The prior term
+    >>> lambd = 0.1  # Regularization parameter
+    >>> # Compute the squared norm of the operator A
+    >>> norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()
+    >>> stepsize = 1/norm_A2  # stepsize for the PGD algorithm
+    >>>
+    >>> # PGD algorithm
+    >>> max_iter = 20  # number of iterations
+    >>> x_k = torch.zeros_like(x)  # initial guess
+    >>>
+    >>> for it in range(max_iter):
+    ...     u = x_k - stepsize*data_fidelity.grad(x_k, y, physics)  # Gradient step
+    ...     x_k = prior.prox(u, gamma=lambd*stepsize)  # Proximal step
+    ...     cost = data_fidelity(x_k, y, physics) + lambd*prior(x_k)  # Compute the cost
+    ...
+    >>> print(cost < 1e-5)
+    tensor([True])
+    >>> print('Estimated solution: ', x_k.flatten())
+    Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])
+
+
+Optimization algorithms such as the one above can be written as fixed point algorithms,
 i.e. for :math:`k=1,2,...`
 
 .. math::
@@ -63,6 +111,7 @@ for all optimization algorithms.
    deepinv.optim.BaseOptim
 
 .. _data-fidelity:
+
 Data Fidelity
 -------------
 This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
@@ -86,6 +135,7 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
 
 
 .. _priors:
+
 Priors
 ------
 This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and
@@ -202,6 +252,7 @@ The following files contain the base classes for implementing generic optimizers
    deepinv.optim.OptimIterator
    deepinv.optim.optim_iterators.GDIteration
    deepinv.optim.optim_iterators.PGDIteration
+   deepinv.optim.optim_iterators.FISTAIteration
    deepinv.optim.optim_iterators.CPIteration
    deepinv.optim.optim_iterators.ADMMIteration
    deepinv.optim.optim_iterators.DRSIteration

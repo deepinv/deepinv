@@ -64,7 +64,7 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     ...     trainable_params=["stepsize", "g_param"]
     ... )
     >>> # Forward pass
-    >>> x = torch.randn(1, 1, 16, 16)
+    >>> x = torch.randn(1, 3, 16, 16)
     >>> physics = dinv.physics.Denoising()
     >>> y = physics(x)
     >>> x_hat = model(y, physics)
