@@ -2,175 +2,275 @@ r"""
 Random phase retrieval and reconstruction methods.
 ===================================================
 
-In this example, we will show how to create a random phase retrieval operator and use it to generate measurements. We then show how to use gradient descent and spectral methods to reconstruct the image given theses measurements.
+This example demonstrates how to create a random phase retrieval operator and use it to generate measurements from a given image. We then uses 4 different reconstruction methods to recover the image given theses measurements: 1. Gradient descent with random initialization; 2. Spectral methods; 3. Gradient descent with spectral methods initialization; 4. Gradient descent with PnP denoisers.
 
 """
 
-import matplotlib.pyplot as plt
-import torch
-
-import deepinv as dinv
-from deepinv.utils.plotting import plot
-from deepinv.utils.demo import load_url_image, get_image_url
-
 # %%
-# Load image from the internet
+# General setup
 # ----------------------------
-#
-# This example uses an image of the CBSD68 dataset.
+import deepinv as dinv
+from pathlib import Path
+import torch
+import matplotlib.pyplot as plt
+from deepinv.models import DRUNet
+from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import PnP, Zero
+from deepinv.optim.optimizers import optim_builder
+from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.plotting import plot
+from deepinv.optim.phase_retrieval import correct_global_phase, cosine_similarity
+from deepinv.models.complex import to_complex_denoiser
 
+BASE_DIR = Path(".")
+RESULTS_DIR = BASE_DIR / "results"
 # Set global random seed to ensure reproducibility.
 torch.manual_seed(0)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = get_image_url("CBSD_0010.png")
-x = load_url_image(url, grayscale=False).to(device)
-x = torch.tensor(x, device=device, dtype=torch.float)
-# Downsample the image to 32x32 pixels
-x = torch.nn.functional.interpolate(x, size=(32, 32))
+# %%
+# Load image from the internet
+# ----------------------------
+#
+# We use the standard test image "Shepp–Logan phantom".
 
-img_shape = x.shape[1:]
+# Image size
+img_size = 32
+url = get_image_url("SheppLogan.png")
+# The pixel values of the image are in the range [0, 1].
+x = load_url_image(
+    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+)
+print(x.min(), x.max())
 
 # %%
 # Visualization
 # ---------------------------------------
 #
 # We use the customized plot() function in deepinv to visualize the original image.
-plot(x, title="Original image")
+plot(x, titles="Original image")
 
 # %%
-# Signal Construction
+# Signal construction
 # ---------------------------------------
-# We use the original image as the phase information for the complex signal. The original value range is [0, 1], so we scale it to cover the full phase range[0, 2*pi].
-x_phase = torch.exp(1j * 2 * torch.pi * x)
-
-# For phase retrieval, the signal should be complex-valued.
-print(x_phase.dtype)
+# We use the original image as the phase information for the complex signal. The original value range is [0, 1], and we map it to the phase range [-pi/2, pi/2].
+x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi)
 
 # Every element of the signal should have unit norm.
 assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
 # %%
-# Measurements Generation
+# Measurements generation
 # ---------------------------------------
 # Create a random phase retrieval operator with an
-# oversampling ratio (measurements/signals) of 10
-m = 10 * torch.prod(torch.tensor(img_shape))
-print(f"Number of measurements: {m}")
+# oversampling ratio (measurements/signals) of 1.2,
+# and generate measurements from the signal with additive Gaussian noise.
 
+# Define physics information
+oversampling_ratio = 1.2
+img_shape = x.shape[1:]
+m = int(oversampling_ratio * torch.prod(torch.tensor(img_shape)))
+noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
+n_channels = 1  # 3 for color images, 1 for gray-scale images
+
+# Create the physics
 physics = dinv.physics.RandomPhaseRetrieval(
     m=m,
     img_shape=img_shape,
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
+# Generate measurements
 y = physics(x_phase)
 
 # %%
-# Reconstruction with Gradient Descent
-# ---------------------------------------
-# We use the function :class:`deepinv.optim.AmplitudeLoss` as loss function,
-# and the class :class:`deepinv.optim.optim_iterators.GDIteration` as the optimizer.
-loss_fn = dinv.optim.AmplitudeLoss()
+# Reconstruction with gradient descent and random initialization
+# ---------------------------------------------------------------
+# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and the class :class:`deepinv.optim.optim_iterators.GDIteration` as the optimizer to run a gradient descent algorithm. The initial guess is a random complex signal.
+
+data_fidelity = L2()
+prior = Zero()
 iterator = dinv.optim.optim_iterators.GDIteration()
 # Parameters for the optimizer, including stepsize and regularization coefficient.
-optim_params = {"stepsize": 0.1, "lambda": 1.0, "g_param": []}
-num_iter = 500
+optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": []}
+num_iter = 1000
 
 # Initial guess
-x_est = torch.rand_like(x_phase)
+x_phase_gd_rand = torch.randn_like(x_phase)
 
 loss_hist = []
 
 for _ in range(num_iter):
     res = iterator(
-        {"est": (x_est,), "cost": 0},
-        cur_data_fidelity=loss_fn,
-        cur_prior=dinv.optim.Zero(),
+        {"est": (x_phase_gd_rand,), "cost": 0},
+        cur_data_fidelity=data_fidelity,
+        cur_prior=prior,
         cur_params=optim_params,
         y=y,
         physics=physics,
     )
-    x_est = res["est"][0]
-    loss_hist.append(loss_fn(x_est, y, physics))
+    x_phase_gd_rand = res["est"][0]
+    loss_hist.append(data_fidelity(x_phase_gd_rand, y, physics))
 
-print("loss_init:", loss_hist[0])
-print("loss_final:", loss_hist[-1])
+print("initial loss:", loss_hist[0])
+print("final loss:", loss_hist[-1])
 # Plot the loss curve
 plt.plot(loss_hist)
 plt.yscale("log")
-plt.title("loss curve without spectral")
+plt.title("loss curve (gradient descent with random initialization)")
 plt.show()
-# Check the average difference between the estimated and the original signal.
-torch.mean(x_est - x_phase)
 
 # %%
-# Visualization between Original Image and Reconstruction
+# Phase correction and signal reconstruction
 # -----------------------------------------------------------
-# Reconstruct the image using the estimated phase.
-# We can use `torch.angle` to extract the phase information. With the range of the returned value being [-pi, pi], we first normalize it to be [0, 1].
-x_recon = torch.angle(x_est) / (2 * torch.pi) + 0.5
-# A good reconstruction should be only a global phase shift away from the original signal, i.e., `x_recon - x` is constant. We first make sure all reconstruction values are above the corresponding original values
-x_recon = torch.where(x_recon < x, x_recon + 1, x_recon)
-# Subtract the global phase shift
-x_recon = x_recon - (x_recon.max() - x.max())
-# Now the reconstruction should be close to the signal
-print(torch.allclose(x_recon, x, rtol=1e-5))
-plot([x, x_recon], titles=["Signal", "Reconstruction"])
+# Initially, the solution of the optimization algorithm x_est may be any phase-shifted version of the original complex signal x_phase, i.e., x_est = a * x_phase where a is an arbitrary unit norm complex number.
+# Therefore, we use the function :class:`deepinv.optim.phase_retrieval.correct_global_phase` to correct the global phase shift of the estimated signal x_est to make it closer to the original signal x_phase.
+# We then use ``torch.angle`` to extract the phase information. With the range of the returned value being [-pi/2, pi/2], we further normalize it to be [0, 1].
+# This operation will later be done for all the reconstruction methods.
+
+# correct possible global phase shifts
+x_gd_rand = correct_global_phase(x_phase_gd_rand, x_phase)
+# extract phase information and normalize to the range [0, 1]
+x_gd_rand = torch.angle(x_gd_rand) / torch.pi + 0.5
+
+plot([x, x_gd_rand], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 
 # %%
-# Reconstruction with Gradient Descent and Spectral Methods
+# Reconstruction with spectral methods
 # ---------------------------------------------------------------
-# Spectral methods :class:`deepinv.optim.optim_iterators.SMIteration` offers a good intialization for the estimated signals on which a normal gradient descent algorithm can be run.
-x_est = torch.rand_like(x_phase)
-x_est = x_est / torch.norm(x_est.flatten())
+# Spectral methods :class:`deepinv.optim.phase_retrieval.spectral_methods` offers a good initial guess on the original signal. Moreover, :class:`deepinv.physics.RandomPhaseRetrieval` uses spectral methods as its default reconstruction method `A_dagger`, which we can directly call.
 
-# Create the spectral methods optimizer
-spectral = dinv.optim.optim_iterators.SMIteration()
+# Spectral methods return a tensor with unit norm.
+x_phase_spec = physics.A_dagger(y, n_iter=4)
+# Correct the norm of the estimated signal
+x_phase_spec = x_phase_spec * torch.sqrt(y.sum())
 
-diff_hist = []
-# :class:`deepinv.optim.optim_iterators.SMIteration` uses power iteration to find the principal eigenvector. We may run multiple iterations to arrive on a better initialization.
-for _ in range(50):
-    x_next = spectral(x_est, dinv.optim.Zero(), optim_params, y, physics)
-    diff_hist.append(torch.norm(x_next - x_est))
-    x_est = x_next
+# %%
+# Phase correction and signal reconstruction
+# -----------------------------------------------------------
 
-x_est = x_est.reshape(x_phase.shape)
+# correct possible global phase shifts
+x_spec = correct_global_phase(x_phase_spec, x_phase)
+# extract phase information and normalize to the range [0, 1]
+x_spec = torch.angle(x_spec) / torch.pi + 0.5
+plot([x, x_spec], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 
-# A classical gradient descent algorithm can then be run on the optimized guess.
+# %%
+# Reconstruction with gradient descent and spectral methods initialization
+# -------------------------------------------------------------------------
+# The estimate from spectral methods can be directly used as the initial guess for the gradient descent algorithm.
+
+# Initial guess from spectral methods
+x_phase_gd_spec = physics.A_dagger(y, n_iter=4)
+x_phase_gd_spec = x_phase_gd_spec * torch.sqrt(y.sum())
+
 loss_hist = []
 for _ in range(num_iter):
     res = iterator(
-        {"est": (x_est,), "cost": 0},
-        cur_data_fidelity=loss_fn,
-        cur_prior=dinv.optim.Zero(),
+        {"est": (x_phase_gd_spec,), "cost": 0},
+        cur_data_fidelity=data_fidelity,
+        cur_prior=prior,
         cur_params=optim_params,
         y=y,
         physics=physics,
     )
-    x_est = res["est"][0]
-    loss_hist.append(loss_fn(x_est, y, physics))
+    x_phase_gd_spec = res["est"][0]
+    loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics))
 
-# Plot the loss curve
-print("loss_init:", loss_hist[0])
-print("loss_final:", loss_hist[-1])
+print("intial loss:", loss_hist[0])
+print("final loss:", loss_hist[-1])
 plt.plot(loss_hist)
 plt.yscale("log")
-plt.title("loss curve with spectral")
+plt.title("loss curve (gradient descent with spectral initialization)")
 plt.show()
-# Check the average difference between the estimated and the original signal.
-torch.mean(x_est - x_phase)
 
 # %%
-# Visualization between Original Image and Reconstruction
-# ------------------------------------------------------------
-# Reconstruct the image using the estimated phase.
-# We can use `torch.angle` to extract the phase information. With the range of the returned value being [-pi, pi], we first normalize it to be [0, 1].
-x_recon = torch.angle(x_est) / (2 * torch.pi) + 0.5
-# A good reconstruction should be only a global phase shift away from the original signal, i.e., `x_recon - x` is constant. We first make sure all reconstruction values are above the corresponding original values
-x_recon = torch.where(x_recon < x, x_recon + 1, x_recon)
-# Subtract the global phase shift
-x_recon = x_recon - (x_recon.max() - x.max())
-# Now the reconstruction should be close to the signal
-print(torch.allclose(x_recon, x, rtol=1e-5))
-plot([x, x_recon], titles=["Signal", "Reconstruction"])
+# Phase correction and signal reconstruction
+# -----------------------------------------------------------
+
+# correct possible global phase shifts
+x_gd_spec = correct_global_phase(x_phase_gd_spec, x_phase)
+# extract phase information and normalize to the range [0, 1]
+x_gd_spec = torch.angle(x_gd_spec) / torch.pi + 0.5
+plot([x, x_gd_spec], titles=["Signal", "Reconstruction"], rescale_mode="clip")
+
+# %%
+# Reconstruction with gradient descent and PnP denoisers
+# ---------------------------------------------------------------
+# We can also use the Plug-and-Play (PnP) framework to incorporate denoisers as regularizers in the optimization algorithm. We use a deep denoiser as the prior, which is trained on a large dataset of natural images.
+
+# Load the pre-trained denoiser
+denoiser = DRUNet(
+    in_channels=n_channels,
+    out_channels=n_channels,
+    pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
+    train=False,
+    device=device,
+)
+# The original denoiser is designed for real-valued images, so we need to convert it to a complex-valued denoiser for phase retrieval problems.
+denoiser_complex = to_complex_denoiser(denoiser)
+
+# Algorithm parameters
+data_fidelity = L2()
+prior = PnP(denoiser=denoiser_complex)
+params_algo = {"stepsize": 0.10, "g_param": 0.05}
+max_iter = 100
+early_stop = True
+verbose = True
+
+# Instantiate the algorithm class to solve the IP problem.
+model = optim_builder(
+    iteration="PGD",
+    prior=prior,
+    data_fidelity=data_fidelity,
+    early_stop=early_stop,
+    max_iter=max_iter,
+    verbose=verbose,
+    params_algo=params_algo,
+)
+
+# Run the algorithm
+x_phase_pnp, metrics = model(y, physics, x_gt=x_phase, compute_metrics=True)
+
+# %%
+# Phase correction and signal reconstruction
+# -----------------------------------------------------------
+
+# correct possible global phase shifts
+x_pnp = correct_global_phase(x_phase_pnp, x_phase)
+# now no global phase shift should exist
+# assert torch.allclose(x_est, x_phase)
+# extract phase information and normalize to the range [0, 1]
+x_pnp = torch.angle(x_pnp) / (2 * torch.pi) + 0.5
+plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
+
+# %%
+# Overall comparison
+# -----------------------------------------------------------
+# We visualize the original image and the reconstructed images from the four methods.
+# We further computed the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
+# In conclusion, gradient descent with ranodom intialization barely provides a reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent. Besides, the PnP framework with a deep denoiser as the prior provides the best denoising effect and overall reconstruction results.
+
+imgs = [x, x_gd_rand, x_spec, x_gd_spec, x_pnp]
+plot(
+    imgs,
+    titles=["Original", "GD random", "Spectral", "GD spectral", "PnP"],
+    save_dir=RESULTS_DIR / "images",
+    show=True,
+    rescale_mode="clip",
+)
+
+# Compute metrics
+print(
+    f"GD Random reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_gd_rand):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase):.3f}."
+)
+print(
+    f"Spectral reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase):.3f}."
+)
+print(
+    f"GD Spectral reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_gd_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase):.3f}."
+)
+print(
+    f"PnP reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_pnp):.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase):.3f}."
+)
