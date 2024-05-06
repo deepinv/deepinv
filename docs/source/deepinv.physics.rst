@@ -118,7 +118,6 @@ Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2
 
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
-   deepinv.physics.PseudoRandomPhaseRetrieval
 
 Noise distributions
 -------------------
