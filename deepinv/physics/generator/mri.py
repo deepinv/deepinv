@@ -45,7 +45,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
 
         if len(self.img_size) == 2:
             H, W = self.img_size
-            C = 1
+            C = 2
         elif len(self.img_size) == 3:
             C, H, W = self.img_size
         else:
