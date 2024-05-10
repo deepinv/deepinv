@@ -466,18 +466,38 @@ class PoissonLikelihood(DataFidelity):
         self.normalize = normalize
 
     def d(self, x, y):
+        r"""
+        Computes the Poisson negative log-likelihood.
+
+        :param torch.Tensor x: signal :math:`x` at which the function is computed.
+        :param torch.Tensor y: measurement :math:`y`.
+        """
         if self.normalize:
             y = y * self.gain
         return (-y * torch.log(self.gain * x + self.bkg)).flatten().sum() + (
             self.gain * x
-        ).flatten().sum()
+        ).view(x.shape[0], -1).sum(dim=1)
 
     def grad_d(self, x, y):
+        r"""
+        Gradient of the Poisson negative log-likelihood.
+
+
+        :param torch.Tensor x: signal :math:`x` at which the function is computed.
+        :param torch.Tensor y: measurement :math:`y`.
+        """
         if self.normalize:
             y = y * self.gain
         return (1 / self.gain) * (torch.ones_like(x) - y / (self.gain * x + self.bkg))
 
     def prox_d(self, x, y, gamma=1.0):
+        r"""
+        Proximal operator of the Poisson negative log-likelihood.
+
+        :param torch.Tensor x: signal :math:`x` at which the function is computed.
+        :param torch.Tensor y: measurement :math:`y`.
+        :param float gamma: proximity operator step size.
+        """
         if self.normalize:
             y = y * self.gain
         out = (
@@ -657,7 +677,7 @@ class LogPoissonLikelihood(DataFidelity):
     def d(self, x, y):
         out1 = torch.exp(-x * self.mu) * self.N0
         out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
-        return (out1 + out2).sum()
+        return (out1 + out2).view(x.shape[0], -1).sum(dim=1)
 
 
 if __name__ == "__main__":

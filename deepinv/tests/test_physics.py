@@ -12,6 +12,7 @@ OPERATORS = [
     "fastCS",
     "inpainting",
     "denoising",
+    "colorize",
     "fftdeblur",
     "singlepixel",
     "deblur_valid",
@@ -78,6 +79,8 @@ def find_operator(name, device):
         p = dinv.physics.CompressedSensing(
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device
         )
+    elif name == "colorize":
+        p = dinv.physics.Decolorize()
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
