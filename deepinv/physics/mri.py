@@ -68,10 +68,10 @@ class MRI(DecomposablePhysics):
         return y
 
     def U(self, x):
-        if x.size(0) == self.mask.size(0):
-            return x[self.mask > 0]
-        elif self.mask.size(0) == 1:
+        if self.mask.size(0) == 1:
             return x[:, self.mask[0, ...] > 0]
+        elif x.size(0) == self.mask.size(0):
+            return x[self.mask > 0]
         else:
             raise ValueError(
                 "The batch size of the mask and the input should be the same."
@@ -80,10 +80,11 @@ class MRI(DecomposablePhysics):
     def U_adjoint(self, x):
         _, c, h, w = self.mask.shape
         out = torch.zeros((x.shape[0], c, h, w), device=x.device)
-        if x.size(0) == self.mask.size(0):
-            out[self.mask > 0] = x
-        elif self.mask.size(0) == 1:
+
+        if self.mask.size(0) == 1:
             out[:, self.mask[0, ...] > 0] = x
+        elif x.size(0) == self.mask.size(0):
+            out[self.mask > 0] = x
         else:
             raise ValueError(
                 "The batch size of the mask and the input should be the same."

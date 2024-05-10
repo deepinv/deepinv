@@ -305,17 +305,17 @@ def test_MRI(device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    mask = torch.ones((32, 32), device=device)
+    mask = torch.ones((16, 16), device=device)
     physics = dinv.physics.MRI(mask=mask, device=device, acceleration_factor=4)
-    x = torch.randn((2, 32, 32), device=device).unsqueeze(0)
+    x = torch.randn((2, 2, 16, 16), device=device)
     y1 = physics.A(x)
     x2 = physics.A_adjoint(y1)
     assert x2.shape == x.shape
 
     generator = dinv.physics.generator.AccelerationMaskGenerator(
-        (32, 32), device=device
+        (16, 16), device=device
     )
-    mask = generator.step()
+    mask = generator.step(2)
     y2 = physics.A(x, **mask)
     if y1.shape == y2.shape:
         error = (y1.abs() - y2.abs()).flatten().mean().abs()
