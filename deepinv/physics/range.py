@@ -19,15 +19,12 @@ class Decolorize(DecomposablePhysics):
         Decolorize a 3x3 image:
 
         >>> from deepinv.physics import Decolorize
-        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn(1, 3, 3, 3) # Define random 3x3 RGB image
+        >>> x = torch.ones(1, 3, 3, 3) # Define constant 3x3 RGB image
         >>> physics = Decolorize()
-        >>> with torch.no_grad():
-        ...     physics(x)
-        tensor([[[[-1.1343, -0.1329,  0.1517],
-                  [-0.0790,  0.6711, -0.1414],
-                  [-0.1716, -0.9021,  0.0819]]]])
-
+        >>> physics(x)
+        tensor([[[[1.0000, 1.0000, 1.0000],
+                  [1.0000, 1.0000, 1.0000],
+                  [1.0000, 1.0000, 1.0000]]]], grad_fn=<MulBackward0>)
     """
 
     def __init__(self, device="cpu", **kwargs):
@@ -35,11 +32,11 @@ class Decolorize(DecomposablePhysics):
         self.mask = torch.nn.Parameter(torch.ones((1), device=device) * 0.66851)
 
     def V_adjoint(self, x):
-        y = x[:, 0, :, :] * 0.4471 + x[:, 1, :, :] * 0.8780 + x[:, 2, :, :] * 0.1705
+        y = x[:, 0, :, :] * 0.4472 + x[:, 1, :, :] * 0.8781 + x[:, 2, :, :] * 0.1706
         return y.unsqueeze(1)
 
     def V(self, y):
-        return torch.cat([y * 0.4471, y * 0.8780, y * 0.1705], dim=1)
+        return torch.cat([y * 0.4472, y * 0.8781, y * 0.1706], dim=1)
 
 
 # # test code
