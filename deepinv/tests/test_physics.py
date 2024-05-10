@@ -80,7 +80,8 @@ def find_operator(name, device):
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device
         )
     elif name == "colorize":
-        p = dinv.physics.Decolorize()
+        p = dinv.physics.Decolorize(device=device)
+        norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
