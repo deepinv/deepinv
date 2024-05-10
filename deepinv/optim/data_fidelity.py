@@ -476,7 +476,7 @@ class PoissonLikelihood(DataFidelity):
             y = y * self.gain
         return (-y * torch.log(self.gain * x + self.bkg)).flatten().sum() + (
             self.gain * x
-        ).view(x.shape[0], -1).sum(dim=1)
+        ).reshape(x.shape[0], -1).sum(dim=1)
 
     def grad_d(self, x, y):
         r"""
@@ -677,7 +677,7 @@ class LogPoissonLikelihood(DataFidelity):
     def d(self, x, y):
         out1 = torch.exp(-x * self.mu) * self.N0
         out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
-        return (out1 + out2).view(x.shape[0], -1).sum(dim=1)
+        return (out1 + out2).reshape(x.shape[0], -1).sum(dim=1)
 
 
 if __name__ == "__main__":
