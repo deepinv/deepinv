@@ -12,6 +12,25 @@ def spectral_methods(
     r"""
     Utility function for spectral methods.
 
+    This function runs the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
+    
+    .. math::
+        \begin{equation*}
+        M = \conj{B} \text{diag}(T(y)) B + \lambda I,
+        \end{equation*}
+    
+    where :math:`B` is the linear operator of the phase retrieval class, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
+
+    To find the principal eigenvector, the function runs power iteration which is given by
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        x_{k+1} &= M x_k \\
+        x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|},
+        \end{aligned}
+        \end{equation*}
+    
     :param torch.Tensor y: Measurements.
     :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
     :param torch.Tensor x: Initial guess for the signals :math:`x_0`.
@@ -22,7 +41,7 @@ def spectral_methods(
     :return: The estimated signals :math:`x`.
     """
     if x is None:
-        x = torch.rand((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
+        x = torch.randn((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
     x = x.to(torch.cfloat)
     x = x / torch.linalg.norm(x)
     # y should have mean 1
@@ -38,34 +57,36 @@ def spectral_methods(
     return x
 
 
-def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+def correct_global_phase(
+    x_hat: torch.Tensor, x: torch.Tensor, verbose=False
+) -> torch.Tensor:
     r"""
     Corrects the global phase of the reconstructed image.
 
-    :param torch.Tensor x_recon: Reconstructed image.
-    :param torch.Tensor x: Original image.
+    :param torch.Tensor x_hat: Reconstructed image.
+    :param torch.Tensor x: Reference image.
+    :param bool verbose: If True, prints whether the global phase shift is constant or not.
 
     :return: The corrected image.
     """
-    assert x_recon.shape == x.shape, "The shapes of the images should be the same."
-    assert (
-        len(x_recon.shape) == 4
-    ), "The images should be input with shape (N, C, H, W) "
+    assert x_hat.shape == x.shape, "The shapes of the images should be the same."
+    assert len(x_hat.shape) == 4, "The images should be input with shape (N, C, H, W) "
 
-    n_imgs = x_recon.shape[0]
-    n_channels = x_recon.shape[1]
+    n_imgs = x_hat.shape[0]
+    n_channels = x_hat.shape[1]
 
     for i in range(n_imgs):
         for j in range(n_channels):
-            e_minus_phi = (x_recon[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
-            if e_minus_phi.var() < 1e-3:
-                print(f"Image {i}, channel {j} has a constant global phase shift.")
-            else:
-                print(f"Image {i}, channel {j} does not have a global phase shift.")
+            e_minus_phi = (x_hat[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
+            if verbose:
+                if e_minus_phi.var() < 1e-3:
+                    print(f"Image {i}, channel {j} has a constant global phase shift.")
+                else:
+                    print(f"Image {i}, channel {j} does not have a global phase shift.")
             e_minus_phi = e_minus_phi.mean()
-            x_recon[i, j] = x_recon[i, j] * e_minus_phi
+            x_hat[i, j] = x_hat[i, j] * e_minus_phi
 
-    return x_recon
+    return x_hat
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor):

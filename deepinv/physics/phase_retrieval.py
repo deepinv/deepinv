@@ -12,7 +12,7 @@ class PhaseRetrieval(Physics):
 
         \forw{x} = |Bx|^2.
 
-    The linear operator :math:`B` is defined by a :meth:`deepinv.physics.LinearPhysics` object.
+    The linear operator :math:`B` is defined by a :class:`deepinv.physics.LinearPhysics` object.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
 
@@ -41,7 +41,9 @@ class PhaseRetrieval(Physics):
 
     def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
-        Computes a initial reconstruction for the image :math:`x` from the measurements :math:`y`.
+        Computes an initial reconstruction for the image :math:`x` from the measurements :math:`y`.
+
+        We use the spectral methods defined in :class:`deepinv.optim.phase_retrieval.spectral_methods` to obtain an initial inverse.
 
         :param torch.Tensor y: measurements.
         :return: (torch.Tensor) an initial reconstruction for image :math:`x`.

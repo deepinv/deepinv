@@ -6,7 +6,7 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
     Given a denoiser, returns a corresponding modified denoiser which can process complex numbers.
 
     :param torch.nn.Module denoiser: a denoiser which takes in real-valued inputs.
-    :param str mode: the mode by which the complex inputs are processed. Can be either 'real_imag' or 'abs_angle'.
+    :param str mode: the mode by which the complex inputs are processed. Can be either `'real_imag'` or `'abs_angle'`.
     :return: (torch.nn.Module) the denoiser which takes in complex-valued inputs.
     """
 
@@ -16,7 +16,7 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
             self.mode = mode
             self.denoiser = denoiser
 
-        def forward(self, x, sigma):
+        def forward(self, x, sigma=None):
             if self.mode == "real_imag":
                 x_real = x.real
                 x_imag = x.imag
