@@ -69,14 +69,14 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 # Measurements generation
 # ---------------------------------------
 # Create a random phase retrieval operator with an
-# oversampling ratio (measurements/pixels) of 1.2,
+# oversampling ratio (measurements/pixels) of 5.0,
 # and generate measurements from the signal with additive Gaussian noise.
 
 # Define physics information
-oversampling_ratio = 1.2
+oversampling_ratio = 5.0
 img_shape = x.shape[1:]
 m = int(oversampling_ratio * torch.prod(torch.tensor(img_shape)))
-noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
+noise_level_img = 0.05  # Gaussian Noise standard deviation for the degradation
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 
 # Create the physics
