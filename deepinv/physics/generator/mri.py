@@ -39,7 +39,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
         Create a mask of vertical lines.
 
         :param int batch_size: batch_size.
-        :return: dictionary with key **'mask'**: tensor of size (batch_size, C, H, W) with values in {0, 1}.
+        :return: dictionary with key ``mask``: tensor of size (batch_size, C, H, W) with values in {0, 1}.
         :rtype: dict
         """
 

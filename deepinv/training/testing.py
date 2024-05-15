@@ -119,7 +119,7 @@ def test(
                     physics_cur = physics[g]
 
                     if physics_generator is not None:
-                        params = physics_generator.step()
+                        params = physics_generator.step(x.size(0))
                         y = physics_cur(x, **params)
                     else:
                         y = physics_cur(x)
