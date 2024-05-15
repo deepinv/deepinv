@@ -150,13 +150,13 @@ class DRUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
+        else:
+            self.apply(weights_init_drunet)
 
         if not train:
             self.eval()
             for _, v in self.named_parameters():
                 v.requires_grad = False
-        else:
-            self.apply(weights_init_drunet)
 
         if device is not None:
             self.to(device)

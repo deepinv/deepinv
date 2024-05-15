@@ -259,10 +259,7 @@ class Trainer:
         :returns: The images, the titles, the grid image, and the caption.
         """
         with torch.no_grad():
-            if (
-                len(y.shape) == len(x.shape)
-                and y.shape != x.shape
-            ):
+            if len(y.shape) == len(x.shape) and y.shape != x.shape:
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
                     imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
