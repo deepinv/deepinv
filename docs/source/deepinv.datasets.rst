@@ -76,3 +76,15 @@ Generate a dataset of all patches out of a tensor of images.
    :nosignatures:
 
     deepinv.datasets.PatchDataset
+
+Image Datasets
+--------------
+
+Ready-made datasets available in the `deepinv.datasets` module.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.datasets.DIV2K
