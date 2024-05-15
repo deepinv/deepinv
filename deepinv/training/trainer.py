@@ -260,8 +260,7 @@ class Trainer:
         """
         with torch.no_grad():
             if (
-                self.plot_measurements
-                and len(y.shape) == len(x.shape)
+                len(y.shape) == len(x.shape)
                 and y.shape != x.shape
             ):
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
@@ -284,6 +283,10 @@ class Trainer:
                     imgs = [back, x_net, x]
                     titles = ["Backprojection", "Output", "Target"]
                     caption = "From top to bottom: backprojection, output, target"
+                elif y.shape == x.shape:
+                    imgs = [y, x_net, x]
+                    titles = ["Measurement", "Output", "Target"]
+                    caption = "From top to bottom: measurement, output, target"
                 else:
                     imgs = [x_net, x]
                     caption = "From top to bottom: output, target"

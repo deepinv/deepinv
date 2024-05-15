@@ -1,6 +1,5 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
-import numpy as np
 import torch
 import torch.nn as nn
 from .utils import get_weights_url, test_onesplit, test_pad
