@@ -458,7 +458,7 @@ def anderson_acceleration_step(
     *args,
 ):
     r"""
-    Anderson acceleration step. 
+    Anderson acceleration step.
 
     Code inspired from <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_
 

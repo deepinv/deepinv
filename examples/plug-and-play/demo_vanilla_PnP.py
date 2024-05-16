@@ -108,7 +108,10 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
-    custom_init=lambda y, physics: {"estimate": physics.A_adjoint(y) * SCALING, "iterate": physics.A_adjoint(y) * SCALING }
+    custom_init=lambda y, physics: {
+        "estimate": physics.A_adjoint(y) * SCALING,
+        "iterate": physics.A_adjoint(y) * SCALING,
+    },
 )
 
 # %%
