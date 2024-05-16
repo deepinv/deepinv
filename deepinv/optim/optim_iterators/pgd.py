@@ -45,7 +45,7 @@ class FISTAIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= x_k -  \gamma \nabla f(z_k) \\
+        u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
         \end{aligned}
@@ -70,7 +70,7 @@ class FISTAIteration(OptimIterator):
         r"""
         Forward pass of an iterate of the FISTA algorithm.
 
-        :param dict X: Dictionary containing the current iterate and the estimated cost.
+        :param dict X: Dictionary containing the current iterate, current estimate, cost at the current estimate, and the current iteration number.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
@@ -78,26 +78,23 @@ class FISTAIteration(OptimIterator):
         :param deepinv.physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev, z_prev = X["est"][0], X["est"][1]
+        x_prev = X["iterate"]
         k = 2 if "it" not in X else X["it"]
         alpha = (k - 1) / (k + self.a)
-
         if not self.g_first:
-            z = self.f_step(z_prev, cur_data_fidelity, cur_params, y, physics)
+            z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
             x = self.g_step(z, cur_prior, cur_params)
         else:
-            z = self.g_step(z_prev, cur_prior, cur_params)
+            z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
-
-        z = x + alpha * (x - x_prev)
-
-        F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        iterate = x + alpha * (x - x_prev)
+        estimate = x
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-
-        return {"est": (x, z), "cost": F, "it": k + 1}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost, "it": k + 1}
 
 
 class fStepPGD(fStep):

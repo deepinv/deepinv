@@ -18,7 +18,7 @@ class OptimIterator(nn.Module):
 
     .. note::
         The fixed-point iterate :math:`x` does not necessarily correspond to the minimizer of :math:`F`. 
-        This is typically the save for Douglas-Rachford splitting, ADMM or primal-dual algorithms. 
+        This is typically the case for Douglas-Rachford splitting, ADMM or primal-dual algorithms. 
         In order to get the curent estimate of the minimizer of :math:`F` from the current iterate, one can use the function :math:`get_estimate_from_iterate`.
 
 

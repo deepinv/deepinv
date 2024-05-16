@@ -443,8 +443,8 @@ class BaseOptim(nn.Module):
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         if self.crit_conv == "residual":
-            iterate = X["iterate"]
-            iterate_prev = X_prev["iterate"]
+            iterate = X["estimate"]
+            iterate_prev = X_prev["estimate"]
             if not isinstance(iterate, tuple):
                 iterate = (iterate,)
             if not isinstance(iterate_prev, tuple):
