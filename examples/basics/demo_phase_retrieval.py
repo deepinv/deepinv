@@ -92,7 +92,7 @@ y = physics(x_phase)
 # %%
 # Reconstruction with gradient descent and random initialization
 # ---------------------------------------------------------------
-# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and the class :class:`deepinv.optim.optim_iterators.GDIteration` as the optimizer to run a gradient descent algorithm. The initial guess is a random complex signal.
+# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and directly call its ``grad`` method to run a gradient descent algorithm. The initial guess is a random complex signal.
 
 data_fidelity = L2()
 # Step size for the gradient descent
@@ -139,7 +139,7 @@ plot([x, x_gd_rand], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # Spectral methods :class:`deepinv.optim.phase_retrieval.spectral_methods` offers a good initial guess on the original signal. Moreover, :class:`deepinv.physics.RandomPhaseRetrieval` uses spectral methods as its default reconstruction method `A_dagger`, which we can directly call.
 
 # Spectral methods return a tensor with unit norm.
-x_phase_spec = physics.A_dagger(y, n_iter=4)
+x_phase_spec = physics.A_dagger(y, n_iter=100)
 # Correct the norm of the estimated signal
 x_phase_spec = x_phase_spec * torch.sqrt(y.sum())
 
@@ -159,7 +159,7 @@ plot([x, x_spec], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # The estimate from spectral methods can be directly used as the initial guess for the gradient descent algorithm.
 
 # Initial guess from spectral methods
-x_phase_gd_spec = physics.A_dagger(y, n_iter=4)
+x_phase_gd_spec = physics.A_dagger(y, n_iter=100)
 x_phase_gd_spec = x_phase_gd_spec * torch.sqrt(y.sum())
 
 loss_hist = []
@@ -230,8 +230,6 @@ x_phase_pnp, metrics = model(y, physics, x_gt=x_phase, compute_metrics=True)
 
 # correct possible global phase shifts
 x_pnp = correct_global_phase(x_phase_pnp, x_phase)
-# now no global phase shift should exist
-# assert torch.allclose(x_est, x_phase)
 # extract phase information and normalize to the range [0, 1]
 x_pnp = torch.angle(x_pnp) / (2 * torch.pi) + 0.5
 plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
