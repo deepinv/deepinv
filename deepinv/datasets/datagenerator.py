@@ -160,9 +160,19 @@ def generate_dataset(
             index = 0
 
             epochs = int(n_train_g / len(train_dataset)) + 1
-            for e in (progress_bar := tqdm(range(epochs), ncols=150, disable=(not verbose or not show_progress_bar))):
+            for e in (
+                progress_bar := tqdm(
+                    range(epochs),
+                    ncols=150,
+                    disable=(not verbose or not show_progress_bar),
+                )
+            ):
 
-                desc = f"Generating dataset operator {g + 1}" if G > 1 else "Generating train dataset"
+                desc = (
+                    f"Generating dataset operator {g + 1}"
+                    if G > 1
+                    else "Generating train dataset"
+                )
                 progress_bar.set_description(desc)
 
                 train_dataloader = DataLoader(
@@ -192,10 +202,12 @@ def generate_dataset(
                     if bsize + index > n_train_g:
                         bsize = n_train_g - index
 
-                    hf["y_train"][index: index + bsize] = y[:bsize, :].to("cpu").numpy()
+                    hf["y_train"][index : index + bsize] = (
+                        y[:bsize, :].to("cpu").numpy()
+                    )
                     if supervised:
-                        hf["x_train"][index: index + bsize] = (
-                            x[:bsize, :, :, :].to("cpu").numpy()
+                        hf["x_train"][index : index + bsize] = (
+                            x[:bsize, ...].to("cpu").numpy()
                         )
                     index = index + bsize
 
@@ -231,11 +243,12 @@ def generate_dataset(
 
                 # Add new data to it
                 bsize = x.size()[0]
-                hf["x_test"][index: index + bsize] = x.to("cpu").numpy()
-                hf["y_test"][index: index + bsize] = y.to("cpu").numpy()
+                hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
+                hf["y_test"][index : index + bsize] = y.to("cpu").numpy()
                 index = index + bsize
         hf.close()
 
-    print("Dataset has been saved in " + str(save_dir))
+    if verbose:
+        print("Dataset has been saved in " + str(save_dir))
 
     return hf_paths[0] if G == 1 else hf_paths

@@ -8,20 +8,15 @@ modules, either via :class:`torch.nn.DataParallel` or :class:`torch.nn.parallel.
 
 For instance, one can simply write:
 
-::
+.. doctest::
 
-    import torch
-    import deepinv as dinv
-
-    gpu_number = 2  # number of GPUs to use
-
-    backbone = dinv.models.DRUNet(
-            in_channels=3, out_channels=3, pretrained=None, train=True, device=torch.device("cuda")
-        )
-
-    # choose a reconstruction architecture
-    model = dinv.models.ArtifactRemoval(backbone)
-    model = torch.nn.DataParallel(model, device_ids=list(range(gpu_number)))
+    >>> import torch
+    >>> import deepinv as dinv
+    >>>
+    >>> backbone = dinv.models.DRUNet(pretrained=None, train=True, device=torch.device("cuda"))
+    >>> model = dinv.models.ArtifactRemoval(backbone)
+    >>> gpu_number = torch.cuda.device_count()  # number of GPUs to use
+    >>> model = torch.nn.DataParallel(model, device_ids=list(range(gpu_number)))
 
 
 which can seamlessly be combined with the default training loop :func:`deepinv.train`.

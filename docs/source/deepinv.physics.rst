@@ -34,8 +34,8 @@ They are :class:`torch.nn.Module` which can be called with the ``forward`` metho
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> # load a phase retrieval operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> physics = dinv.physics.PhaseRetrieval(m=300, img_shape=(1, 28, 28),
+    >>> # load an inpainting operator that masks 50% of the pixels and adds Gaussian noise
+    >>> physics = dinv.physics.Inpainting(mask=.5, tensor_size=(1, 28, 28),
     ...                    noise_model=dinv.physics.GaussianNoise(sigma=.05))
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
@@ -123,16 +123,14 @@ Physics generators inherit from the :meth:`PhysicsGenerator` class:
     >>> import deepinv as dinv
     >>>
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(1))
+    >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(.2))
     >>> y = physics(x) # compute with Gaussian blur
     >>> generator = dinv.physics.generator.MotionBlurGenerator(psf_size=(3, 3))
     >>> params = generator.step(x.size(0)) # params = {'filter': torch.tensor(...)}
     >>> y1 = physics(x, **params) # compute with motion blur
     >>> assert not torch.allclose(y, y1) # different blurs, different outputs
-    True
     >>> y2 = physics(x) # motion kernel is stored in the physics object as default kernel
     >>> assert torch.allclose(y1, y2) # same blur, same output
-    True
 
 If we want to generate both a new physics and noise parameters,
 it is possible to sum generators as follows:
@@ -140,10 +138,10 @@ it is possible to sum generators as follows:
 .. doctest::
 
     >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
-    >>>    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
+    ...    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
     >>> params = mask_generator.step(batch_size=4)
-    >>> print(params.keys())
-    dict_keys(['sigma', 'mask'])
+    >>> print(sorted(params.keys()))
+    ['mask', 'sigma']
 
 It is also possible to mix generators of physics parameters through the :meth:`GeneratorMixture` class:
 
@@ -405,11 +403,11 @@ Similar to the PyTorch structure, they are available within :py:mod:`deepinv.phy
     >>> padding = "circular"
     >>> Ax = dinv.physics.functional.conv2d(x, filter, padding)
     >>> print(Ax[:, :, 7:10, 7:10])
-    tensor([[[[0.2500, 0.2500, 0.0000],
-          [0.2500, 0.2500, 0.0000],
-          [0.0000, 0.0000, 0.0000]]]])
+    tensor([[[[0.2500, 0.2500, 0.2500],
+              [0.2500, 0.2500, 0.2500],
+              [0.2500, 0.2500, 0.2500]]]])
     >>>
-    >>> torch.manual_seed(0)
+    >>> _ = torch.manual_seed(0)
     >>> y = torch.randn_like(Ax)
     >>> z = dinv.physics.functional.conv_transpose2d(y, filter, padding)
     >>> print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))

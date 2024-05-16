@@ -12,6 +12,7 @@ OPERATORS = [
     "fastCS",
     "inpainting",
     "denoising",
+    "colorize",
     "fftdeblur",
     "singlepixel",
     "deblur_valid",
@@ -78,6 +79,9 @@ def find_operator(name, device):
         p = dinv.physics.CompressedSensing(
             m=20, fast=True, channelwise=True, img_shape=img_size, device=device
         )
+    elif name == "colorize":
+        p = dinv.physics.Decolorize(device=device)
+        norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
     elif name == "MRI":
@@ -305,17 +309,17 @@ def test_MRI(device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    mask = torch.ones((32, 32), device=device)
+    mask = torch.ones((16, 16), device=device)
     physics = dinv.physics.MRI(mask=mask, device=device, acceleration_factor=4)
-    x = torch.randn((2, 32, 32), device=device).unsqueeze(0)
+    x = torch.randn((2, 2, 16, 16), device=device)
     y1 = physics.A(x)
     x2 = physics.A_adjoint(y1)
     assert x2.shape == x.shape
 
     generator = dinv.physics.generator.AccelerationMaskGenerator(
-        (32, 32), device=device
+        (16, 16), device=device
     )
-    mask = generator.step()
+    mask = generator.step(2)
     y2 = physics.A(x, **mask)
     if y1.shape == y2.shape:
         error = (y1.abs() - y2.abs()).flatten().mean().abs()
@@ -536,14 +540,28 @@ def test_tomography(device):
 
     :param device: (torch.device) cpu or cuda:x
     """
-    for circle in [True, False]:
-        imsize = (1, 16, 16)
-        physics = dinv.physics.Tomography(
-            img_width=imsize[-1], angles=imsize[-1], device=device, circle=circle
-        )
+    PI = 4 * torch.ones(1).atan()
+    for normalize in [True, False]:
+        for parallel_computation in [True, False]:
+            for fan_beam in [True, False]:
+                for circle in [True, False]:
+                    imsize = (1, 16, 16)
+                    physics = dinv.physics.Tomography(
+                        img_width=imsize[-1],
+                        angles=imsize[-1],
+                        device=device,
+                        circle=circle,
+                        fan_beam=fan_beam,
+                        normalize=normalize,
+                        parallel_computation=parallel_computation,
+                    )
 
-        x = torch.randn(imsize, device=device).unsqueeze(0)
-        r = physics.A_adjoint(physics.A(x))
-        y = physics.A(r)
-        error = (physics.A_dagger(y) - r).flatten().mean().abs()
-        assert error < 0.2
+                    x = torch.randn(imsize, device=device).unsqueeze(0)
+                    r = (
+                        physics.A_adjoint(physics.A(x))
+                        * PI.item()
+                        / (2 * len(physics.radon.theta))
+                    )
+                    y = physics.A(r)
+                    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+                    assert error < 0.2
