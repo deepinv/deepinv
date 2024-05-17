@@ -139,7 +139,7 @@ class DRUNet(nn.Module):
                 if in_channels == 4:
                     name = "drunet_deepinv_color_finetune_22k.pth"
                 elif in_channels == 2:
-                    name = " drunet_deepinv_gray_finetune_26k.pth"
+                    name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
