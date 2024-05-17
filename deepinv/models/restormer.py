@@ -335,7 +335,7 @@ class Restormer(nn.Module):
             ckpt_restormer = torch.load(
                 pretrained, map_location=lambda storage, loc: storage
             )
-            self.load_state_dict(ckpt_restormer, strict=True)
+            self.load_state_dict(ckpt_restormer["params"], strict=True)
         elif weights_pth_filename is not None:
             print(f"Loading from {weights_pth_filename}")
             url = get_weights_url(
