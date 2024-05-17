@@ -6,5 +6,3 @@ dependencies:
   - pytorch
   - torchvision
   - pip
-  - pip:
-    - fastmri
