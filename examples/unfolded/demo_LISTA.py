@@ -247,6 +247,20 @@ model = trainer.train()
 
 trainer.test(test_dataloader)
 
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)
 
 # %%
 # Plotting the learned parameters.
