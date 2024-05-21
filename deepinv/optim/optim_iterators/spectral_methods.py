@@ -88,16 +88,18 @@ class fStepSM(fStep):
         :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
         """
         x = x.to(torch.cfloat)
-        y = y.flatten()
-        y = y / torch.mean(y)
+        # normalize every image in x
+        x = torch.stack([subtensor / subtensor.norm() for subtensor in x])
+        # y should have mean 1 for each image
+        y = y / torch.mean(y, dim=1, keepdim=True)
         diag_T = self.preprocessing(y)
-        y = y.to(torch.cfloat)
+        diag_T = diag_T.to(torch.cfloat)
         res = physics.B(x)
         res = diag_T * res
         res = physics.B_adjoint(res)
-        x_new = res + self.lamb * x
-        x_new = x_new / torch.linalg.norm(x_new)
-        return x_new
+        x = res + self.lamb * x
+        x = torch.stack([subtensor / subtensor.norm() for subtensor in x])
+        return x
 
 
 class gStepSM(gStep):

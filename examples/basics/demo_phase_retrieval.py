@@ -139,7 +139,7 @@ plot([x, x_gd_rand], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # Spectral methods :class:`deepinv.optim.phase_retrieval.spectral_methods` offers a good initial guess on the original signal. Moreover, :class:`deepinv.physics.RandomPhaseRetrieval` uses spectral methods as its default reconstruction method `A_dagger`, which we can directly call.
 
 # Spectral methods return a tensor with unit norm.
-x_phase_spec = physics.A_dagger(y, n_iter=100)
+x_phase_spec = physics.A_dagger(y, n_iter=300)
 # Correct the norm of the estimated signal
 x_phase_spec = x_phase_spec * torch.sqrt(y.sum())
 
@@ -159,7 +159,7 @@ plot([x, x_spec], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # The estimate from spectral methods can be directly used as the initial guess for the gradient descent algorithm.
 
 # Initial guess from spectral methods
-x_phase_gd_spec = physics.A_dagger(y, n_iter=100)
+x_phase_gd_spec = physics.A_dagger(y, n_iter=300)
 x_phase_gd_spec = x_phase_gd_spec * torch.sqrt(y.sum())
 
 loss_hist = []

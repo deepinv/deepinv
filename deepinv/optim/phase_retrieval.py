@@ -43,9 +43,10 @@ def spectral_methods(
     if x is None:
         x = torch.randn((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
     x = x.to(torch.cfloat)
-    x = x / torch.linalg.norm(x)
-    # y should have mean 1
-    y = y / torch.mean(y)
+    # normalize every image in x
+    x = torch.stack([subtensor / subtensor.norm() for subtensor in x])
+    # y should have mean 1 for each image
+    y = y / torch.mean(y, dim=1, keepdim=True)
     diag_T = preprocessing(y)
     diag_T = diag_T.to(torch.cfloat)
     for _ in range(n_iter):
@@ -53,7 +54,7 @@ def spectral_methods(
         res = diag_T * res
         res = physics.B_adjoint(res)
         x = res + lamb * x
-        x = x / torch.linalg.norm(x)
+        x = torch.stack([subtensor / subtensor.norm() for subtensor in x])
     return x
 
 
