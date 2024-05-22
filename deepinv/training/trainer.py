@@ -135,7 +135,7 @@ class Trainer:
     epochs: int = 100
     losses: Union[Loss, List[Loss]] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
-    scheduler: torch.optim.lr_scheduler.LRScheduler = None
+    scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
     physics_generator: PhysicsGenerator = None
