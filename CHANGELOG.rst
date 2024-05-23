@@ -19,6 +19,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
 
 
 
