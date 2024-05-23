@@ -17,3 +17,4 @@ from .bm3d import BM3D
 from .equivariant import EquivariantDenoiser
 from .epll import EPLLDenoiser
 from .restormer import Restormer
+from .complex import to_complex_denoiser

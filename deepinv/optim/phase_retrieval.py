@@ -64,6 +64,20 @@ def correct_global_phase(
     r"""
     Corrects the global phase of the reconstructed image.
 
+    The global phase shift is comptued per image and per channel as:
+
+    .. math::
+        e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
+
+    where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
+    
+    The global phase shift is then applied to the reconstructed image as:
+
+    .. math::
+        \hat{x} = \hat{x} \cdot e^{-i \phi},
+
+    for the corresponding image and channel.
+
     :param torch.Tensor x_hat: Reconstructed image.
     :param torch.Tensor x: Reference image.
     :param bool verbose: If True, prints whether the global phase shift is constant or not.
