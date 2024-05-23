@@ -70,7 +70,7 @@ def correct_global_phase(
         e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
 
     where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
-    
+
     The global phase shift is then applied to the reconstructed image as:
 
     .. math::
