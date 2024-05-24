@@ -40,7 +40,7 @@ class FixedPoint(nn.Module):
         >>> iterator = dinv.optim.optim_iterators.PGDIteration()
         >>> # Iterate the iterator
         >>> x_init = torch.tensor([2, 2], dtype=torch.float64)  # Define initialisation of the algorithm
-        >>> X = {"iterate": torch.stack((x_init,)), "estimate": x_init, "cost": []}  # Iterates are stored in a dictionary containing the current iterate, current estimate and cost at the current estimate.
+        >>> X = {"iterate": x_init, "estimate": x_init, "cost": []}  # Iterates are stored in a dictionary containing the current iterate, current estimate and cost at the current estimate.
         >>> max_iter = 50
         >>> for it in range(max_iter):
         ...     X = iterator(X, data_fidelity, prior, params_algo, y, physics)
