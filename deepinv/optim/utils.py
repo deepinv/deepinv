@@ -396,11 +396,16 @@ def tuple_from_block_image(x, shapes):
 
     :param list x: image of shape :math:`(B,C, \prod_i H_i, \prod_i W_i)` with diagonal blocks
     """
-    B, C = x[0].shape[0], x[0].shape[1]
+    B, C = x.shape[0], x.shape[1]
     shapes = [[B, C, 0, 0]] + shapes
     return tuple(
         [
-            x[:, :, shapes[i][2] : shapes[i + 1][2], shapes[i][2]]
+            x[
+                :,
+                :,
+                shapes[i][2] : shapes[i][2] + shapes[i + 1][2],
+                shapes[i][3] : shapes[i][3] + shapes[i + 1][3],
+            ]
             for i in range(len(shapes) - 1)
         ]
     )
@@ -481,7 +486,8 @@ def anderson_acceleration_step(
     """
     x_prev = X_prev["iterate"]  # current iterate x
     Tx_prev = TX_prev["iterate"]  # current iterate Tx
-    if isinstance(x_prev, tuple):
+    is_tuple = isinstance(x_prev, tuple)
+    if is_tuple:
         x_shapes = [el.shape for el in x_prev]
         x_prev = create_block_image(x_prev)
         Tx_prev = create_block_image(Tx_prev)
@@ -503,8 +509,8 @@ def anderson_acceleration_step(
         + (1 - beta_anderson_acc) * (p[:, None] @ x_hist[:, :m])[:, 0]
     )
     x = x.view(x_prev.shape)
-    if isinstance(x_prev, tuple):
-        x = tuple_from_block_image(x.view(x_prev.shape), x_shapes)
+    if is_tuple:
+        x = tuple_from_block_image(x, x_shapes)
     estimate = iterator.get_estimate_from_iterate(
         x, cur_data_fidelity, cur_prior, cur_params, *args
     )

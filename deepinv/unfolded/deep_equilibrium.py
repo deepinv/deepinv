@@ -75,13 +75,14 @@ class BaseDEQ(BaseUnfold):
             X, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["iterate"]
         # Another iteration for jacobian computation via automatic differentiation.
-        assert torch.is_tensor(
-            x
-        ), "Our Deep Equilibrium is only implemented with tensor iterates."
+        if isinstance(x, tuple):
+            x = torch.stack(x)
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
             {"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
         )["iterate"]
+        if isinstance(f0, tuple):
+            f0 = torch.stack(f0)
 
         def backward_hook(grad):
             class backward_iterator(OptimIterator):
@@ -89,12 +90,11 @@ class BaseDEQ(BaseUnfold):
                     super().__init__(**kwargs)
 
                 def forward(self, X, *args, **kwargs):
-                    return {
-                        "iterate": torch.autograd.grad(
-                            f0, x0, X["iterate"], retain_graph=True
-                        )[0]
+                    iterate = (
+                        torch.autograd.grad(f0, x0, X["iterate"], retain_graph=True)[0]
                         + grad
-                    }
+                    )
+                    return {"iterate": iterate, "estimate": iterate}
 
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
             def init_iterate_fn(y, physics, cost_fn=None):
