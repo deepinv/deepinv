@@ -85,7 +85,7 @@ class CPIteration(OptimIterator):
         :param dict cur_params: dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        :return: Dictionary `{"est": (x, u, z), "cost": F}` containing the updated current iterate and the estimated current cost.
+        :return: Dictionary ``{"iterate": (x, u, z), "estimate": x, "cost": F}`` containing the updated current iterate, estimate and the estimated current cost.
         """
         iterate = X["iterate"]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
@@ -105,7 +105,9 @@ class CPIteration(OptimIterator):
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
         iterate = (x, u, z)
-        estimate = x
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
         cost = (
             self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost

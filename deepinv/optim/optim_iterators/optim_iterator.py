@@ -88,8 +88,8 @@ class OptimIterator(nn.Module):
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
         The fixed-point iterate, the current estimate as well as the estimated cost at the current iterate are stored in a dictionary
-        $X$ of the form `{'iterate' : x,  'estimate': z , 'cost': F}`.
-        The variable `iterate` can be either a :class:`torch.Tensor` or a tuple of :class:`torch.Tensor` elements.
+        of the form ``{'iterate' : x,  'estimate': u , 'cost': F}``.
+        The variable ``iterate`` can be either a :class:`torch.Tensor` or a tuple of :class:`torch.Tensor` elements.
 
         :param dict X: Dictionary containing the current iterate, current estimate and cost at the current estimate.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -97,7 +97,7 @@ class OptimIterator(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
+        :return: Dictionary ``{'iterate' : x,  'estimate': u , 'cost': F}`` containing the updated iterate, estimate and cost value.
         """
         x_prev = X["iterate"]
         if not self.g_first:

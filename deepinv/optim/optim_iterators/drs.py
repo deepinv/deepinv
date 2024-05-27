@@ -59,7 +59,7 @@ class DRSIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
+        :return: Dictionary ``{'iterate' : x,  'estimate': z , 'cost': F}`` containing the updated iterate, estimate and cost value.
         """
         z = X["iterate"]
         if self.g_first:

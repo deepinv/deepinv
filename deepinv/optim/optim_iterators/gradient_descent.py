@@ -37,7 +37,7 @@ class GDIteration(OptimIterator):
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-         :return: Dictionary `{'iterate' : x,  'estimate': z , 'cost': F}` containing the updated iterate, estimate and cost value.
+         :return: Dictionary ``{'iterate' : x,  'estimate': z , 'cost': F}`` containing the updated iterate, estimate and cost value.
         """
         x_prev = X["iterate"]
         grad = cur_params["stepsize"] * (

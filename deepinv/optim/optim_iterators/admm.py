@@ -71,7 +71,7 @@ class ADMMIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the observation.
-        :return: Dictionary `{"iterate": (x, z), "estimate" : x, "cost": F}` containing the updated current iterate, estimate and cost.
+        :return: Dictionary ``{"iterate": (x, z), "estimate" : x, "cost": F}`` containing the updated current iterate, estimate and cost.
         """
         x, z = X["iterate"]
         if z.shape != x.shape:
