@@ -47,7 +47,7 @@ class GaussianNoise(torch.nn.Module):
         if sigma is not None:
             self.sigma = to_nn_parameter(sigma)
 
-        return x + torch.randn_like(x) * self.sigma
+        return x + torch.randn_like(x) * self.sigma[(...,) + (None,) * (x.ndim - 1)]
 
 
 class UniformGaussianNoise(torch.nn.Module):
@@ -199,7 +199,7 @@ class PoissonGaussianNoise(torch.nn.Module):
 
         y = torch.poisson(x / self.gain) * self.gain
 
-        y += torch.randn_like(x) * self.sigma
+        y += torch.randn_like(x) * self.sigma[(...,) + (None,) * (x.ndim - 1)]
         return y
 
 
