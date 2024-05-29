@@ -40,9 +40,9 @@ torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
-# Load base image datasets and degradation operators.
+# Load degradation operator.
 # ---------------------------------------------------
-# In this example, we use the CBSD500 dataset for training and the Set3C dataset for testing.
+# We consider the CT operator.
 
 img_size = 128 if torch.cuda.is_available() else 32
 n_channels = 1  # 3 for color images, 1 for gray-scale images
@@ -194,10 +194,22 @@ def custom_output(X):
     return X["est"][0][:, 1, :, :].unsqueeze(1)
 
 
+# %%
 # Define the unfolded trainable model.
+# -------------------------------------
+# The original paper of the learned primal dual algorithm the authors used the adjoint operator
+# in the primal update. However, the same authors (among others) find in the paper
+#
+# A. Hauptmann, J. Adler, S. Arridge, O. Öktem,
+# Multi-scale learned iterative reconstruction,
+# IEEE Transactions on Computational Imaging 6, 843-856, 2020.
+#
+# that using a filtered gradient can improve both the training speed and reconstruction quality significantly.
+# Following this approach, we use the filtered backprojection instead of the adjoint operator in the primal step.
+
 model = unfolded_builder(
     iteration=PDNetIteration(),
-    params_algo={"K": physics.A, "K_adjoint": physics.A_adjoint, "beta": 0.0},
+    params_algo={"K": physics.A, "K_adjoint": physics.A_dagger, "beta": 0.0},
     data_fidelity=data_fidelity,
     prior=prior,
     max_iter=max_iter,

@@ -227,7 +227,7 @@ def minimize_variational_problem(prior, lam):
     optimizer = torch.optim.Adam([imgs], lr=lr_variational_problem)
     for i in (progress_bar := tqdm(range(optim_steps))):
         optimizer.zero_grad()
-        loss = data_fidelity(imgs, observation, physics) + lam * prior(imgs)
+        loss = data_fidelity(imgs, observation, physics).mean() + lam * prior(imgs)
         loss.backward()
         optimizer.step()
         progress_bar.set_description("Step {}".format(i + 1))

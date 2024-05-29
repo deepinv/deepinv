@@ -17,5 +17,5 @@ from .multiplier import (
 
 from .hist import histogram, histogramdd
 from .downsampling import downsample
-from .radon import Radon, IRadon
+from .radon import Radon, IRadon, RampFilter
 from .interp import ThinPlateSpline
