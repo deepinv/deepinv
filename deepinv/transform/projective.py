@@ -25,7 +25,7 @@ def apply_homography(
     verbose: bool = False,
     device="cpu",
     **kwargs,
-) -> torch.Tensor | Image.Image:
+) -> Union[torch.Tensor, Image.Image]:
     r"""Perform homography (projective transformation).
 
     Given physical parameters describing camera variation, this function performs the geometric transformation given by the change in parameters.
