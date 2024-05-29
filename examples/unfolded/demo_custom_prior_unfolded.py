@@ -137,6 +137,7 @@ def g(x, *args, **kwargs):
 # Define the prior. A prior instance from :class:`deepinv.priors` can be simply defined with an explicit potential :math:`g` function as such:
 prior = Prior(g=g)
 
+# %%
 # We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
@@ -145,7 +146,7 @@ prior = Prior(g=g)
 # For single ``stepsize`` and ``g_param`` shared across iterations, initialize with a single float value.
 
 # Unrolled optimization algorithm parameters
-max_iter = 5
+max_iter = 5  # Number of unrolled iterations
 lamb = [
     1.0
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
@@ -176,7 +177,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    g_first=False,
+    g_first=True,
 )
 
 # %%
@@ -187,14 +188,14 @@ model = unfolded_builder(
 
 
 # Training parameters
-epochs = 10 if torch.cuda.is_available() else 5
-learning_rate = 1e-2
+epochs = 20 if torch.cuda.is_available() else 10
+learning_rate = 5e-3  # reduce this parameter when using more epochs
 
 # Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
 
 # Choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.l1())]
 
 # Batch sizes and data loaders
 train_batch_size = 64 if torch.cuda.is_available() else 8
@@ -241,6 +242,21 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)
 
 
 # %%

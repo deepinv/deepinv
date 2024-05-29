@@ -6,7 +6,7 @@ class PGDIteration(OptimIterator):
     r"""
     Iterator for proximal gradient descent.
 
-    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimizing :math:` f(x) + \lambda g(x)`.
+    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimizing :math:`f(x) + \lambda g(x)`.
 
     The iteration is given by
 
@@ -37,7 +37,7 @@ class FISTAIteration(OptimIterator):
     r"""
     Iterator for fast iterative soft-thresholding (FISTA).
 
-    Class for a single iteration of the FISTA algorithm for minimizing :math:` f(x) + \lambda g(x)` as proposed by
+    Class for a single iteration of the FISTA algorithm for minimizing :math:`f(x) + \lambda g(x)` as proposed by
     `Chambolle \& Dossal <https://inria.hal.science/hal-01060130v3/document>`_.
 
     The iteration is given by
@@ -45,7 +45,7 @@ class FISTAIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        u_{k} &= x_k -  \gamma \nabla f(z_k) \\
+        u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
         \end{aligned}
