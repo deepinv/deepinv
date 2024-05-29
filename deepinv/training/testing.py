@@ -164,9 +164,14 @@ def test(
                 logs_metrics_init[k].update(loss.detach().cpu().numpy())
 
             if plot_images:
-                save_folder_im = ((
-                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                    ) / "images") if save_folder else None
+                save_folder_im = (
+                    (
+                        ((save_folder / ("G" + str(g))) if G > 1 else save_folder)
+                        / "images"
+                    )
+                    if save_folder
+                    else None
+                )
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
                         if plot_measurements and len(y.shape) == 4:
@@ -185,9 +190,14 @@ def test(
                         )
 
                 if plot_metrics:
-                    save_folder_curve = ((
-                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                ) / "curves") if save_folder else None
+                    save_folder_curve = (
+                        (
+                            ((save_folder / ("G" + str(g))) if G > 1 else save_folder)
+                            / "curves"
+                        )
+                        if save_folder
+                        else None
+                    )
                     plot_curves(optim_metrics, save_dir=save_folder_curve, show=True)
 
     if verbose:
