@@ -19,6 +19,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
 - Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
 
 
