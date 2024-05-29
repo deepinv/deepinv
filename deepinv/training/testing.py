@@ -59,16 +59,12 @@ def test(
         reconstruction network and a simple linear inverse on the test set.
     """
 
-    if not save_folder:
-        plot_images = plot_metrics = False
-        save_folder = "."
+    save_folder = Path(save_folder) if save_folder else None
 
     if physics_generator is not None and not online_measurements:
         warnings.warn(
             "Physics generator is provided but online_measurements is False. Physics generator will not be used."
         )
-
-    save_folder = Path(save_folder)
 
     model.eval()
 
@@ -168,19 +164,9 @@ def test(
                 logs_metrics_init[k].update(loss.detach().cpu().numpy())
 
             if plot_images:
-                save_folder_im = (
-                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                ) / "images"
-                save_folder_im.mkdir(parents=True, exist_ok=True)
-            else:
-                save_folder_im = None
-            if plot_metrics:
-                save_folder_curve = (
-                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
-                ) / "curves"
-                save_folder_curve.mkdir(parents=True, exist_ok=True)
-
-            if plot_images:
+                save_folder_im = ((
+                        (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                    ) / "images") if save_folder else None
                 if g < show_operators:
                     if not plot_only_first_batch or (plot_only_first_batch and i == 0):
                         if plot_measurements and len(y.shape) == 4:
@@ -192,13 +178,16 @@ def test(
                         plot(
                             imgs,
                             titles=name_imgs,
-                            save_dir=save_folder_im if plot_images else None,
+                            save_dir=save_folder_im,
                             show=plot_images,
                             return_fig=True,
                             rescale_mode="clip",
                         )
 
                 if plot_metrics:
+                    save_folder_curve = ((
+                    (save_folder / ("G" + str(g))) if G > 1 else save_folder
+                ) / "curves") if save_folder else None
                     plot_curves(optim_metrics, save_dir=save_folder_curve, show=True)
 
     if verbose:
