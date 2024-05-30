@@ -7,8 +7,19 @@ Copyright (c) Facebook, Inc. and its affiliates.
 This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 """
+
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 import os
 import xml.etree.ElementTree as etree
 
@@ -50,10 +61,12 @@ def et_query(
 
     return str(value.text)
 
+
 class FastMRIRawDataSample(NamedTuple):
     fname: Path
     slice_ind: int
     metadata: Dict[str, Any]
+
 
 class FastMRISliceDataset(torch.utils.data.Dataset):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to MR image slices.
@@ -65,23 +78,23 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                |
                -- ???
 
-    The fastMRI dataset is distributed as a set of HDF5 files and can be 
-    read with the h5py package. Each file corresponds to one MRI scan and 
-    contains the k-space data, ground truth and some meta data related to 
+    The fastMRI dataset is distributed as a set of HDF5 files and can be
+    read with the h5py package. Each file corresponds to one MRI scan and
+    contains the k-space data, ground truth and some meta data related to
     the scan.
 
-    MRI scans can either be single-coil or multi-coil with each coil in 
+    MRI scans can either be single-coil or multi-coil with each coil in
     a multi-coil MRI scan focusses on a different region of the image.
-    
+
     In multi-coil MRIs, k-space has the following shape:
     (number of slices, number of coils, height, width)
-    
+
     For single-coil MRIs, k-space has the following shape:
     (number of slices, height, width)
-    
+
     MRIs are acquired as 3D volumes, the first dimension is the number of 2D slices.
 
-    This dataset considers one sample as one slice of a MRI scan, 
+    This dataset considers one sample as one slice of a MRI scan,
     thus slices of the same MRI scan are considered independently in the dataset.
 
     :param Union[str, Path] root: Path to the dataset.
@@ -93,11 +106,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     :param callable, optional raw_sample_filter: A callable object that takes an raw_sample
         metadata as input and returns a boolean indicating whether the
         raw_sample should be included in the dataset.
-    :param float, optional sample_rate: A float between 0 and 1. This controls what 
+    :param float, optional sample_rate: A float between 0 and 1. This controls what
         fraction of the slices should be loaded. Defaults to 1.
         When creating a sampled dataset either set sample_rate (sample by slices)
         or volume_sample_rate (sample by volumes) but not both.
-    :param float, optional volume_sample_rate: A float between 0 and 1. This controls 
+    :param float, optional volume_sample_rate: A float between 0 and 1. This controls
         what fraction of the volumes should be loaded. Defaults to 1 if no value is given.
         When creating a sampled dataset either set sample_rate (sample by slices)
         or volume_sample_rate (sample by volumes) but not both.
@@ -128,12 +141,12 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             Current value `{root}`."""
             )
         # check that root contains hdf5 files
-        if not any([file.endswith('.h5') for file in os.listdir(root)]):
+        if not any([file.endswith(".h5") for file in os.listdir(root)]):
             raise ValueError(
-                f'''
+                f"""
             The `root` folder doesn't contain any hdf5 file.
             Please set `root` properly.
-            Current value "{root}".'''
+            Current value "{root}"."""
             )
         # ensure that challenge is either singlecoil or multicoil
         if challenge not in ("singlecoil", "multicoil"):
@@ -155,9 +168,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             "reconstruction_esc" if challenge == "singlecoil" else "reconstruction_rss"
         )
 
-
         ### load dataset metadata
-        
+
         self.raw_samples = []
         if load_metadata_from_cache:  # from a cache file
             metadata_cache_file = Path(metadata_cache_file)
@@ -190,7 +202,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                     if raw_sample_filter(raw_sample):
                         self.raw_samples.append(raw_sample)
 
-            # save dataset metadata 
+            # save dataset metadata
             if save_metadata_to_cache:
                 dataset_cache = {}
                 dataset_cache[root] = self.raw_samples
@@ -198,15 +210,14 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 with open(metadata_cache_file, "wb") as cache_f:
                     pickle.dump(dataset_cache, cache_f)
 
-
         ### random subsampling (1 sample = 1 slice from a MRI scan)
-        
+
         # set default sampling mode to get the full dataset
         if sample_rate is None:
             sample_rate = 1.0
         if volume_sample_rate is None:
             volume_sample_rate = 1.0
-        
+
         if sample_rate < 1.0:  # sample by slice
             random.shuffle(self.raw_samples)
             num_raw_samples = round(len(self.raw_samples) * sample_rate)
