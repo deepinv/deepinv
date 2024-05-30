@@ -90,7 +90,7 @@ class MeasOpRI(LinearPhysics):
 # %%
 # Groundtruth image
 # ----------------------------------------------------------------------------------------
-# The following data is our groundtruth with the settings of Experiment II in `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.. 
+# The following data is our groundtruth with the settings of Experiment II in `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_. 
 # The groundtruth data has been normalized in the [0, 1] range. 
 # As usual in radio interferometric imaging, the data has high dynamic range, 
 # i.e. the ratio between the faintest and highest emissions is higher than in traditional low-level vision task. 
