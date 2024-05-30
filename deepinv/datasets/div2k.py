@@ -31,7 +31,11 @@ class DIV2K(torch.utils.data.Dataset):
     }
 
     def __init__(
-        self, root: str, mode: str = "train", download: bool = False, transform: Callable=None
+        self,
+        root: str,
+        mode: str = "train",
+        download: bool = False,
+        transform: Callable = None,
     ) -> None:
         self.root = root
         self.mode = mode
