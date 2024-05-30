@@ -1,3 +1,4 @@
+from typing import Any, Callable
 import os
 
 from PIL import Image
@@ -30,10 +31,8 @@ class DIV2K(torch.utils.data.Dataset):
     }
 
     def __init__(
-        self, root: str, mode: str = "train", download: bool = False, transform=None
+        self, root: str, mode: str = "train", download: bool = False, transform: Callable=None
     ) -> None:
-        super().__init__()
-
         self.root = root
         self.mode = mode
         self.transform = transform
@@ -101,10 +100,10 @@ class DIV2K(torch.utils.data.Dataset):
 
         self.img_list = os.listdir(self.img_dir)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.img_list)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Any:
         img_path = os.path.join(self.img_dir, self.img_list[idx])
         # PIL Image
         img = Image.open(img_path)
@@ -113,7 +112,7 @@ class DIV2K(torch.utils.data.Dataset):
             img = self.transform(img)
         return img
 
-    def _check_dataset_exists(self):
+    def _check_dataset_exists(self) -> bool:
         """Verify that the train and val folders exist and contain all images.
 
         We verify that `self.root` has the following structure:
