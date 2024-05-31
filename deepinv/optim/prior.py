@@ -326,6 +326,8 @@ class WaveletPrior(Prior):
     :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
     :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
 
+    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{c_{\text{min}, c_{\text{max}}}`.
+
     .. note::
         Following common practice in signal processing, only detail coefficients are regularized, and the approximation
         coefficients are left untouched.
@@ -340,9 +342,22 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    :param float clamp_min: minimum value for the clamping. Default is None.
+    :param float clamp_max: maximum value for the clamping. Default is None.
     """
 
-    def __init__(self, level=3, wv="db8", p=1, device="cpu", wvdim=2, *args, **kwargs):
+    def __init__(
+        self,
+        level=3,
+        wv="db8",
+        p=1,
+        device="cpu",
+        wvdim=2,
+        clamp_min=None,
+        clamp_max=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
         self.p = p
@@ -350,6 +365,10 @@ class WaveletPrior(Prior):
         self.wvdim = wvdim
         self.level = level
         self.device = device
+
+        self.clamp_min = clamp_min
+        self.clamp_max = clamp_max
+
         if p == 0:
             self.non_linearity = "hard"
         elif p == 1:
@@ -407,7 +426,12 @@ class WaveletPrior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.WaveletDenoiser(x, ths=gamma)
+        out = self.WaveletDenoiser(x, ths=gamma)
+        if self.clamp_min is not None:
+            out = torch.clamp(out, min=self.clamp_min)
+        if self.clamp_max is not None:
+            out = torch.clamp(out, max=self.clamp_max)
+        return out
 
     def psi(self, x):
         r"""
