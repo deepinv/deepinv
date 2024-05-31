@@ -211,6 +211,97 @@ def plot(
         return fig
 
 
+def scatter_plot(
+    xy_list,
+    titles=None,
+    save_dir=None,
+    tight=True,
+    show=True,
+    return_fig=False,
+    figsize=None,
+    suptitle=None,
+    cmap="gray",
+    fontsize=17,
+    s=0.1,
+):
+    r"""
+    Plots a list of scatter plots.
+
+    Example usage:
+
+    .. doctest::
+
+        import torch
+        from deepinv.utils import scatter_plot
+        xy = torch.randn(10, 2)
+        scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
+
+    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
+    :param list[str] titles: list of titles for each image, has to be same length as img_list.
+    :param None, str, Path save_dir: path to save the plot.
+    :param bool tight: use tight layout.
+    :param int max_imgs: maximum number of images to plot.
+    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param bool show: show the image plot.
+    :param bool return_fig: return the figure object.
+    :param tuple[int] figsize: size of the figure.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
+    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    """
+    # Use the matplotlib config from deepinv
+    config_matplotlib(fontsize=fontsize)
+
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(xy_list, torch.Tensor):
+        xy_list = [xy_list]
+
+    if isinstance(titles, str):
+        titles = [titles]
+
+    scatters = []
+    for xy in xy_list:
+        scatters.append([xy.detach().cpu().numpy()])
+
+    if figsize is None:
+        figsize = (len(scatters) * 2, len(scatters[0]) * 2)
+
+    fig, axs = plt.subplots(
+        len(scatters[0]),
+        len(scatters),
+        figsize=figsize,
+        squeeze=False,
+    )
+
+    if suptitle:
+        plt.suptitle(suptitle, size=12)
+        fig.subplots_adjust(top=0.75)
+
+    for i, row_scatter in enumerate(scatters):
+        for r, xy in enumerate(row_scatter):
+            axs[r, i].scatter(xy[:, 0], xy[:, 1], s=s)
+            if titles and r == 0:
+                axs[r, i].set_title(titles[i], size=9)
+            axs[r, i].axis("off")
+    if tight:
+        plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if save_dir:
+        plt.savefig(save_dir / "images.png", dpi=1200)
+        for i, row_scatter in enumerate(scatters):
+            for r, img in enumerate(row_scatter):
+                plt.imsave(
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
+                )
+    if show:
+        plt.show()
+
+    if return_fig:
+        return fig
+
+
 def plot_curves(metrics, save_dir=None, show=True):
     r"""
     Plots the metrics of a Plug-and-Play algorithm.

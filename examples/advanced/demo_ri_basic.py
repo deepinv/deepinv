@@ -19,7 +19,7 @@ import numpy as np
 import torchkbnufft as tkbn
 
 import deepinv as dinv
-from deepinv.utils.plotting import plot, plot_curves
+from deepinv.utils.plotting import plot, plot_curves, scatter_plot
 from deepinv.utils.demo import load_np_url, get_image_dataset_url, get_degradation_url
 from deepinv.utils.nn import dirac_like
 
@@ -51,10 +51,14 @@ from deepinv.physics import LinearPhysics
 
 
 class MeasOpRI(LinearPhysics):
-    """
-    We can implement our own custom autograd Functions by subclassing
-    torch.autograd.Function and implementing the forward and backward passes
-    which operate on Tensors.
+    r"""
+    Radio Interferometry measurement operator.
+
+    Args:
+        img_size (tuple): Size of the target image.
+        samples_loc (torch.Tensor): Normalized sampling locations in the Fourier domain.
+        dataWeight (torch.Tensor): Data weighting for the measurements.
+        device (torch.device): Device where the operator is computed.
     """
 
     def __init__(
@@ -129,20 +133,10 @@ plot(imgs, titles=[f"Groundtruth", f"Groundtruth in logarithmic scale"], cmap="i
 # so that the possibility of point sources appearing on the boundaries of pixels can be reduced.
 # Here, this factor is ``1.5``.
 
-import matplotlib.pyplot as plt  # TODO: add scatter-plot utils in deepinv?
-
 uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
-uv = torch.from_numpy(uv)
+uv = torch.from_numpy(uv).to(device)
 
-plt.figure(figsize=(3, 3))
-plt.scatter(uv[:, 0], uv[:, 1], s=0.001)
-plt.ylabel("v")
-plt.xlabel("u")
-plt.axis("square")
-plt.xlim((-np.pi, np.pi))
-plt.ylim((-np.pi, np.pi))
-plt.title("Sampling trajectory in the Fourier domain")
-plt.show()
+scatter_plot([uv], titles=["Sampling trajectory in the Fourier domain"], s=0.001)
 
 # %%
 # Simulating the measurements
@@ -238,7 +232,7 @@ prior = WaveletPrior(level=3, wv="db8", p=1, device="cpu", clamp_min=0)
 
 # %%
 # The problem is quite challenging and to reduce optimization time,
-# we can start from an approximate guess of the solution that is the backprojected image divided by the PSF peak.
+# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
 
 
 def custom_init(y, physics):
