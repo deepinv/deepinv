@@ -142,7 +142,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             dtype=dtype,
             device=device,
         )
-        super().__init__(B)
+        super().__init__(B,**kwargs)
         self.name = f"RPR_m{self.m}"
 
 
@@ -167,36 +167,54 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
     def __init__(
         self,
         n_layers,
-        img_shape,
-        zero_padding=0,
+        input_shape,
+        output_shape,
         dtype=torch.cfloat,
         device="cpu",
         **kwargs,
     ):
+        if output_shape is None:
+            output_shape = input_shape
+
         self.n_layers = n_layers
-        self.zero_padding = zero_padding
+ 
+        assert input_shape[1] % 2 == 1 and input_shape[2] % 2 == 1, "The image should have odd numbers of pixels per edge." 
+        self.img_shape = input_shape
 
-        self.img_shape = img_shape
-        self.img_shape_padded = (
-            img_shape[0],
-            img_shape[1] + 2 * zero_padding,
-            img_shape[2] + 2 * zero_padding,
-        )
+        assert output_shape[1] % 2 == 1 and output_shape[2] % 2 == 1, "The output image should have odd numbers of pixels per edge."
+        self.output_shape = output_shape
 
+        if output_shape[1] > input_shape[1]:
+            self.mode = "oversampling"
+        elif output_shape[1] < input_shape[1]:
+            self.mode = "undersampling"
+        else:
+            self.mode = "equisampling"
+        
         self.n = torch.prod(torch.tensor(self.img_shape))
-        self.m = torch.prod(torch.tensor(self.img_shape_padded))
+        self.m = torch.prod(torch.tensor(self.output_shape))
+        self.oversampling_ratio = self.m / self.n
 
         self.dtype = dtype
         self.device = device
+
         self.diagonals = []
         for _ in range(self.n_layers):
-            diagonal = torch.rand(self.img_shape_padded)
+            diagonal = torch.rand(self.output_shape, device=self.device)
             diagonal = 2 * torch.pi * diagonal
             diagonal = torch.exp(1j * diagonal)
             self.diagonals.append(diagonal)
 
         def A(x):
-            x = torch.nn.ZeroPad2d(self.zero_padding)(x)
+            assert x.shape[1:] == self.img_shape, "x doesn't have the correct shape"
+
+            if self.mode == "oversampling" or self.mode == "equisampling":
+                zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
+                x = torch.nn.ZeroPad2d(zero_padding)(x)
+            else:
+                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
+                x = x[:,:,trimming:-trimming,trimming:-trimming]
+
             for i in range(self.n_layers):
                 diagonal = self.diagonals[i]
                 x = torch.fft.fft2(x, norm="ortho")
@@ -205,19 +223,23 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
             return x
 
         def A_adjoint(y):
+            assert y.shape[1:] == self.output_shape, "y doesn't have the correct shape"
+
             for i in range(self.n_layers):
                 diagonal = self.diagonals[-i - 1]
                 y = torch.fft.ifft2(y, norm="ortho")
                 y = torch.conj(diagonal) * y
             y = torch.fft.ifft2(y, norm="ortho")
-            return y[
-                :,
-                :,
-                self.zero_padding : -self.zero_padding,
-                self.zero_padding : -self.zero_padding,
-            ]
+            
+            if self.mode == "oversampling":
+                zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
+                return y[:,:,zero_padding:-zero_padding,zero_padding
+                         :-zero_padding]
+            else:
+                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
+                return torch.nn.ZeroPad2d(trimming)(y)
 
-        super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint))
+        super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint),**kwargs)
         self.name = f"PRPR_m{self.m}"
 
     def B_dagger(self, y):

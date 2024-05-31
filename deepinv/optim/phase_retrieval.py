@@ -1,12 +1,17 @@
 import torch
 
 
+
+def default_preprocessing(y, physics):
+    return torch.max(1 - 1 / y, torch.tensor(-5.0))
+
+
 def spectral_methods(
     y: torch.Tensor,
     physics,
     x=None,
     n_iter=50,
-    preprocessing=lambda y: torch.max(1 - 1 / y, torch.tensor(-5.0)),
+    preprocessing=default_preprocessing,
     lamb=10.0,
 ):
     r"""
@@ -22,12 +27,12 @@ def spectral_methods(
     :return: The estimated signals :math:`x`.
     """
     if x is None:
-        x = torch.rand((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
+        x = torch.rand((y.shape[0],) + physics.img_shape, dtype=physics.dtype, device=physics.device)
     x = x.to(torch.cfloat)
     x = x / torch.linalg.norm(x)
     # y should have mean 1
     y = y / torch.mean(y)
-    diag_T = preprocessing(y)
+    diag_T = preprocessing(y, physics)
     diag_T = diag_T.to(torch.cfloat)
     for _ in range(n_iter):
         res = physics.B(x)
@@ -35,6 +40,7 @@ def spectral_methods(
         res = physics.B_adjoint(res)
         x = res + lamb * x
         x = x / torch.linalg.norm(x)
+    x = x * torch.sqrt(y.sum())
     return x
 
 
