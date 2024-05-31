@@ -134,7 +134,6 @@ import matplotlib.pyplot as plt  # TODO: add scatter-plot utils in deepinv?
 uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
 uv = torch.from_numpy(uv)
 
-
 plt.figure(figsize=(3, 3))
 plt.scatter(uv[:, 0], uv[:, 1], s=0.001)
 plt.ylabel("v")
