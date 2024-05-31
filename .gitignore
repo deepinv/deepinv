@@ -28,7 +28,6 @@ results/
 /docs/source/stubs/*
 
 # Miscellaneous
-/experimental/
 /deepinv/datasets/reside/
 deepinv/version.py
 /saved_models/
