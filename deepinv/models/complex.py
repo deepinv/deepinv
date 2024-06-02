@@ -22,15 +22,20 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
             if self.mode == "real_imag":
                 x_real = x.real
                 x_imag = x.imag
-                x_real = self.denoiser.forward(x_real, sigma)
-                x_imag = self.denoiser.forward(x_imag, sigma)
-                return x_real + 1j * x_imag
+                noisy_batch = torch.cat((x_real, x_imag), 0)
+                denoised_batch = self.denoiser(noisy_batch, sigma)
+                return (
+                    denoised_batch[: x_real.shape[0], ...]
+                    + 1j * denoised_batch[x_real.shape[0] :, ...]
+                )
             elif self.mode == "abs_angle":
                 x_mag = torch.abs(x)
                 x_phase = torch.angle(x)
-                x_mag = self.denoiser.forward(x_mag, sigma)
-                x_phase = self.denoiser.forward(x_phase, sigma)
-                return x_mag * torch.exp(1j * x_phase)
+                noisy_batch = torch.cat((x_mag, x_phase), 0)
+                denoised_batch = self.denoiser(noisy_batch, sigma)
+                return denoised_batch[: x_mag.shape[0], ...] * torch.exp(
+                    1j * denoised_batch[x_mag.shape[0] :, ...]
+                )
             else:
                 raise ValueError("style must be 'real_imag' or 'abs_angle'.")
 
