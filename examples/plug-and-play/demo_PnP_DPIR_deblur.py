@@ -120,6 +120,7 @@ data_fidelity = L2()
 
 # Specify the denoising prior
 prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
+prior = None
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
