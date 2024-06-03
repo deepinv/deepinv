@@ -1,5 +1,5 @@
 """
-A simple example for RI imaging task
+Radio interferometric imaging with deepinverse
 ====================================================================================================
 
 In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse. 
