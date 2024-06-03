@@ -185,13 +185,6 @@ params_algo = {
 trainable_params = ["g_param", "stepsize"]
 
 
-# Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-def custom_init_CP(y, physics):
-    x_init = physics.A_adjoint(y)
-    u_init = y
-    return {"est": (x_init, x_init, u_init)}
-
-
 # Define the unfolded trainable model.
 model = unfolded_builder(
     iteration="CP",
@@ -201,7 +194,6 @@ model = unfolded_builder(
     max_iter=max_iter,
     prior=prior,
     g_first=False,
-    custom_init=custom_init_CP,
 )
 
 # %%
@@ -312,7 +304,6 @@ model_new = unfolded_builder(
     max_iter=max_iter,
     prior=prior_new,
     g_first=False,
-    custom_init=custom_init_CP,
 )
 model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()

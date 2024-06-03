@@ -11,6 +11,7 @@ where both the data fidelity and the prior are learned modules, distinct for eac
 
 The algorithm is used for CT reconstruction trained on random phantoms. 
 The phantoms are generated on the fly during training using the odl library (https://odlgroup.github.io/odl/).
+Install the odl library with `pip install https://github.com/odlgroup/odl/archive/master.zip`.
 """
 
 import deepinv as dinv
@@ -22,6 +23,7 @@ from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
+from deepinv.optim.utils import create_block_image
 
 # %%
 # Setup paths for data loading and results.
@@ -187,11 +189,13 @@ n_dual = 5  # extend the dual space
 def custom_init(y, physics):
     x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
     u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
-    return {"est": (x0, x0, u0)}
+    z0 = torch.zeros_like(x0)
+    iterate = (x0, u0, z0)
+    return {"iterate": iterate, "estimate": x0}
 
 
 def custom_output(X):
-    return X["est"][0][:, 1, :, :].unsqueeze(1)
+    return X["estimate"][:, 1:2, :, :]
 
 
 # %%
@@ -214,7 +218,7 @@ model = unfolded_builder(
     prior=prior,
     max_iter=max_iter,
     custom_init=custom_init,
-    get_output=custom_output,
+    custom_output=custom_output,
 )
 
 # choose optimizer and scheduler

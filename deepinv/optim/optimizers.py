@@ -38,11 +38,11 @@ class BaseOptim(nn.Module):
     i.e. for :math:`k=1,2,...`
 
     .. math::
-        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
+        \qquad x_{k+1} = \operatorname{FixedPoint}(x_k, f, g, A, y, ...)
 
 
-    where :math:`x_k` is a variable converging to the solution of the minimization problem, and
-    :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
+    where :math:`x_k` is the current iterate i.e. the fixed-point varaible iterated by the algorithm.
+    The fixed-point variable does not necessarily correspond to the minimizer of :math:`F`.
 
     The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
@@ -129,8 +129,8 @@ class BaseOptim(nn.Module):
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
     :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
-    :param function get_output: get the image output given the current dictionary update containing primal and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
-        If ``None`` (default value) algorithm is initialized with :math:`A^Ty`. Default: ``None``.
+        If ``None`` (default value) algorithm is initilialized with :math:`A^Ty`. Default: ``None``.
+    :param function custom_output: function to get a custom output from the iterated dictionary X. Default: ``None``.
     :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
@@ -156,7 +156,7 @@ class BaseOptim(nn.Module):
         eta_backtracking=0.9,
         custom_metrics=None,
         custom_init=None,
-        get_output=lambda X: X["est"][0],
+        custom_output=None,
         anderson_acceleration=False,
         history_size=5,
         beta_anderson_acc=1.0,
@@ -176,7 +176,7 @@ class BaseOptim(nn.Module):
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
         self.custom_init = custom_init
-        self.get_output = get_output
+        self.custom_output = custom_output
         self.has_cost = has_cost
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
@@ -295,20 +295,19 @@ class BaseOptim(nn.Module):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y, physics, F_fn=None):
+    def init_iterate_fn(self, y, physics, cost_fn=None):
         r"""
         Initializes the iterate of the algorithm.
-        The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
-
-            * ``est`` is a tuple containing the first primal and auxiliary iterates.
-            * ``cost`` is the value of the cost function at the first iterate.
-
-        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^{\top}y, A^{\top}y)`.
-        A custom initialization is possible with the custom_init argument.
+        The first iterate is stored in a dictionary with keys ``iterate`` , ``estimate`` and ``cost``, where:
+            - ``iterate`` is the first fixed-point iterate of the algorithm. It has dimension NxBxCxHxW, where N is the number of images in the fixed-point variable (1 by default).
+            - ``estimate`` is the first estimate of the algorithm. It has dimension BxCxHxW.
+            - ``cost`` is the value of the cost function at the first estimate.
+        The default initialization is defined in the iterator class (see :meth:`deepinv.optim.optim_iterators.OptimIterator.init_algo`).
+        A different custom initialization is possible with the custom_init argument.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
-        :param F_fn: function that computes the cost function.
+        :param cost_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
         self.params_algo = (
@@ -317,21 +316,21 @@ class BaseOptim(nn.Module):
         if self.custom_init:
             init_X = self.custom_init(y, physics)
         else:
-            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
-            init_X = {"est": (x_init, z_init)}
-        F = (
-            F_fn(
-                init_X["est"][0],
+            init_X = self.fixed_point.iterator.init_algo(y, physics)
+
+        cost = (
+            cost_fn(
+                init_X["estimate"],
                 self.update_data_fidelity_fn(0),
                 self.update_prior_fn(0),
                 self.update_params_fn(0),
                 y,
                 physics,
             )
-            if self.has_cost and F_fn is not None
+            if self.has_cost and cost_fn is not None
             else None
         )
-        init_X["cost"] = F
+        init_X["cost"] = cost
         return init_X
 
     def init_metrics_fn(self, X_init, x_gt=None):
@@ -342,17 +341,18 @@ class BaseOptim(nn.Module):
         They are represented by a list of list, and ``metrics[metric_name][i,j]`` contains the metric ``metric_name``
         computed for batch i, at iteration j.
 
-        :param dict X_init: dictionary containing the primal and auxiliary initial iterates.
+        :param dict X_init: dictionary containing the initial iterate, initial estimate and cost at the initial estimate.
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
         :return dict: A dictionary containing the metrics.
         """
+        est_init = X_init["estimate"]
+        self.batch_size = est_init.shape[0]
         init = {}
-        x_init = self.get_output(X_init)
-        self.batch_size = x_init.shape[0]
+        psnr = [[] for i in range(self.batch_size)]
         if x_gt is not None:
-            psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
-        else:
-            psnr = [[] for i in range(self.batch_size)]
+            out = self.custom_output(X_init) if self.custom_output else est_init
+            for i in range(self.batch_size):
+                psnr[i].append(cal_psnr(out[i], x_gt[i]))
         init["psnr"] = psnr
         if self.has_cost:
             init["cost"] = [[] for i in range(self.batch_size)]
@@ -367,24 +367,26 @@ class BaseOptim(nn.Module):
         Function that compute all the metrics, across all batches, for the current iteration.
 
         :param dict metrics: dictionary containing the metrics. Each metric is computed for each batch.
-        :param dict X_prev: dictionary containing the primal and dual previous iterates.
-        :param dict X: dictionary containing the current primal and dual iterates.
+        :param dict X_prev: dictionary containing the previous iterate, previous estimate and cost at the previous estimate.
+        :param dict X: dictionary containing the current iterate, current estimate and cost at the current estimate.
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
         :return dict: a dictionary containing the updated metrics.
         """
         if metrics is not None:
-            x_prev = self.get_output(X_prev)
-            x = self.get_output(X)
+            est_prev = X_prev["estimate"]
+            est = X["estimate"]
             for i in range(self.batch_size):
                 residual = (
-                    ((x_prev[i] - x[i]).norm() / (x[i].norm() + 1e-06))
+                    ((est_prev[i] - est[i]).norm() / (est[i].norm() + 1e-06))
                     .detach()
                     .cpu()
                     .item()
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = cal_psnr(x[i], x_gt[i])
+                    # apply custom output function if given, for PSNR computation.
+                    out = self.custom_output(X) if self.custom_output else est
+                    psnr = cal_psnr(out[i], x_gt[i])
                     metrics["psnr"][i].append(psnr)
                 if self.has_cost:
                     F = X["cost"][i]
@@ -395,7 +397,7 @@ class BaseOptim(nn.Module):
                     ):
                         metrics[custom_metric_name][i].append(
                             custom_metric_fn(
-                                metrics[custom_metric_name], x_prev[i], x[i]
+                                metrics[custom_metric_name], est_prev[i], est[i]
                             )
                         )
         return metrics
@@ -404,18 +406,18 @@ class BaseOptim(nn.Module):
         r"""
         Performs stepsize backtracking.
 
-        :param dict X_prev: dictionary containing the primal and dual previous iterates.
-        :param dict X: dictionary containing the current primal and dual iterates.
+        :param dict X_prev: dictionary containing the previous iterate, previous estimate and cost at the previous estimate.
+        :param dict X: dictionary containing the current iterate, current estimate and cost at the current estimate.
         """
         if self.backtracking and self.has_cost and X_prev is not None:
-            x_prev = X_prev["est"][0]
-            x = X["est"][0]
-            x_prev = x_prev.reshape((x_prev.shape[0], -1))
-            x = x.reshape((x.shape[0], -1))
+            est_prev = X_prev["estimate"]
+            est = X["estimate"]
+            est_prev = est_prev.reshape((est_prev.shape[0], -1))
+            est = est.reshape((est.shape[0], -1))
             F_prev, F = X_prev["cost"], X["cost"]
             diff_F, diff_x = (
                 (F_prev - F).mean(),
-                (torch.norm(x - x_prev, p=2, dim=-1) ** 2).mean(),
+                (torch.norm(est - est_prev, p=2, dim=-1) ** 2).mean(),
             )
             stepsize = self.params_algo["stepsize"][0]
             if diff_F < (self.gamma_backtracking / stepsize) * diff_x:
@@ -436,17 +438,27 @@ class BaseOptim(nn.Module):
         Checks the convergence of the algorithm.
 
         :param int it: iteration number.
-        :param dict X_prev: dictionary containing the primal and dual previous iterates.
-        :param dict X: dictionary containing the current primal and dual iterates.
+        :param dict X_prev: dictionary containing the previous iterate, previous estimate and cost at the previous estimate.
+        :param dict X: dictionary containing the current iterate, current estimate and cost at the current estimate.
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         if self.crit_conv == "residual":
-            x_prev = self.get_output(X_prev)
-            x = self.get_output(X)
-            x_prev = x_prev.reshape((x_prev.shape[0], -1))
-            x = x.reshape((x.shape[0], -1))
+            iterate = X["estimate"]
+            iterate_prev = X_prev["estimate"]
+            if not isinstance(iterate, tuple):
+                iterate = (iterate,)
+            if not isinstance(iterate_prev, tuple):
+                iterate_prev = (iterate_prev,)
+            batch_size = iterate[0].shape[0]
+            iterate = torch.cat(
+                tuple(el.reshape(batch_size, -1) for el in iterate), dim=1
+            )
+            iterate_prev = torch.cat(
+                tuple(el.reshape(batch_size, -1) for el in iterate_prev), dim=1
+            )
             crit_cur = (
-                (x_prev - x).norm(p=2, dim=-1) / (x.norm(p=2, dim=-1) + 1e-06)
+                (iterate_prev - iterate).norm(p=2, dim=-1)
+                / (iterate.norm(p=2, dim=-1) + 1e-06)
             ).mean()
         elif self.crit_conv == "cost":
             F_prev = X_prev["cost"]
@@ -478,14 +490,14 @@ class BaseOptim(nn.Module):
         X, metrics = self.fixed_point(
             y, physics, x_gt=x_gt, compute_metrics=compute_metrics
         )
-        x = self.get_output(X)
+        out = self.custom_output(X) if self.custom_output else X["estimate"]
         if compute_metrics:
-            return x, metrics
+            return out, metrics
         else:
-            return x
+            return out
 
 
-def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
+def create_iterator(iteration, prior=None, cost_fn=None, g_first=False):
     r"""
     Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
     corresponding to the chosen minimization algorithm.
@@ -497,16 +509,16 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: None.
+    :param callable cost_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
     """
-    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
+    # If no custom objective function cost_fn is given but g is explicitly given, we have an explicit objective function.
     explicit_prior = (
         prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
     )
-    if F_fn is None and explicit_prior:
+    if cost_fn is None and explicit_prior:
 
-        def F_fn(x, data_fidelity, prior, cur_params, y, physics):
+        def cost_fn(x, data_fidelity, prior, cur_params, y, physics):
             prior_value = prior(x, cur_params["g_param"], reduce=False)
             if prior_value.dim() == 0:
                 reg_value = cur_params["lambda"] * prior_value
@@ -527,7 +539,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
         iteration, str
     ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
-        return iterator_fn(g_first=g_first, F_fn=F_fn, has_cost=has_cost)
+        return iterator_fn(g_first=g_first, cost_fn=cost_fn, has_cost=has_cost)
     else:
         # If the iteration is directly given as an instance of OptimIterator, nothing to do
         return iteration
@@ -539,7 +551,7 @@ def optim_builder(
     params_algo={"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05},
     data_fidelity=None,
     prior=None,
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     **kwargs,
 ):
@@ -563,13 +575,13 @@ def optim_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: `None`.
+    :param callable cost_fn: Custom user input cost function. default: `None`.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: `False`
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
     :return: an instance of the :meth:`BaseOptim` class.
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(iteration, prior=prior, cost_fn=cost_fn, g_first=g_first)
     return BaseOptim(
         iterator,
         has_cost=iterator.has_cost,

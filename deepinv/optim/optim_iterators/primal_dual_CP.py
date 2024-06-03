@@ -1,5 +1,4 @@
 import torch
-
 from .optim_iterator import OptimIterator, fStep, gStep
 
 
@@ -25,6 +24,8 @@ class CPIteration(OptimIterator):
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
 
+    Here, the concatenation :math:`(x_k,u_k,z_k)` is the iterate i.e. the fixed point variable iterated by the algorithm and :math:`x_k` is the estimate i.e. the primal estimation of the solution of the minimization problem.
+
     If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
 
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
@@ -47,6 +48,33 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
+    def get_estimate_from_iterate(
+        self, iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
+    ):
+        """
+        Get the minimizer of F from the fixed point iterate x.
+
+        :param torch.Tensor iterate: Fixed point variable iterated by the algorithm.
+        :return: Minimizer of F.
+        """
+        return iterate[0]
+
+    def init_algo(self, y, physics):
+        """
+        Initialize the fixed-point algorithm by computing the initial iterate and estimate.
+        For primal-dual, the first iterate is chosen as :math:`(A^{\top}y,y,0)`.
+
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the observation.
+
+        :return: Dictionary containing the initial iterate and initial estimate.
+        """
+        x = physics.A_adjoint(y)
+        u = y
+        z = torch.zeros_like(x)
+        iterate = (x, u, z)
+        return {"iterate": iterate, "estimate": x}
+
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         Single iteration of the Chambolle-Pock algorithm.
@@ -57,13 +85,14 @@ class CPIteration(OptimIterator):
         :param dict cur_params: dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
+        :return: Dictionary ``{"iterate": (x, u, z), "estimate": x, "cost": F}`` containing the updated current iterate, estimate and the estimated current cost.
         """
-        x_prev, z_prev, u_prev = X["est"]  # x : primal, z : relaxed primal, u : dual
+        iterate = X["iterate"]
         K = lambda x: cur_params["K"](x) if "K" in cur_params.keys() else x
         K_adjoint = lambda x: (
             cur_params["K_adjoint"](x) if "K_adjoint" in cur_params.keys() else x
         )
+        x_prev, u_prev, z_prev = iterate
         if self.g_first:
             u = self.g_step(u_prev, K(z_prev), cur_prior, cur_params)
             x = self.f_step(
@@ -75,12 +104,16 @@ class CPIteration(OptimIterator):
             )
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
-        F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        iterate = (x, u, z)
+        estimate = self.get_estimate_from_iterate(
+            iterate, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
+        cost = (
+            self.cost_fn(estimate, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
             else None
         )
-        return {"est": (x, z, u), "cost": F}
+        return {"iterate": iterate, "estimate": estimate, "cost": cost}
 
 
 class fStepCP(fStep):

@@ -7,7 +7,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder, DEQ_builder
 
 
-OPTIM_ALGO = ["PGD", "HQS"]
+OPTIM_ALGO = ["PGD", "HQS", "DRS", "ADMM"]
 
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
@@ -123,36 +123,56 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
             anderson_acceleration_backward=and_acc,
         )
 
-        for idx, (name, param) in enumerate(model.named_parameters()):
-            assert param.requires_grad
-            assert (trainable_params[0] in name) or (trainable_params[1] in name)
+        trainable_params = [
+            "g_param",
+            "stepsize",
+        ]  # define which parameters from 'params_algo' are trainable
 
-        # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
-        batch_size = 5
-        n_channels, img_size_w, img_size_h = imsize
-        noise_level = 0.01
+        # Define the unfolded trainable model.
+        for and_acc in [False, True]:
+            # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
 
-        torch.manual_seed(0)
-        test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
-            device
-        )
-        groundtruth_sample = torch.randn(
-            batch_size, n_channels, img_size_w, img_size_h
-        ).to(device)
+            model = DEQ_builder(
+                unfolded_algo,
+                params_algo=params_algo,
+                trainable_params=trainable_params,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                prior=prior,
+                anderson_acceleration=and_acc,
+                anderson_acceleration_backward=and_acc,
+            )
 
-        physics = dinv.physics.BlurFFT(
-            img_size=(n_channels, img_size_w, img_size_h),
-            filter=dinv.physics.blur.gaussian_blur(),
-            device=device,
-            noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
-        )
+            for idx, (name, param) in enumerate(model.named_parameters()):
+                assert param.requires_grad
+                assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
-        y = physics(test_sample).type(test_sample.dtype).to(device)
+            # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+            batch_size = 5
+            n_channels, img_size_w, img_size_h = imsize
+            noise_level = 0.01
 
-        out = model(y, physics=physics)
+            torch.manual_seed(0)
+            test_sample = torch.randn(
+                batch_size, n_channels, img_size_w, img_size_h
+            ).to(device)
+            groundtruth_sample = torch.randn(
+                batch_size, n_channels, img_size_w, img_size_h
+            ).to(device)
 
-        assert out.shape == test_sample.shape
+            physics = dinv.physics.BlurFFT(
+                img_size=(n_channels, img_size_w, img_size_h),
+                filter=dinv.physics.blur.gaussian_blur(),
+                device=device,
+                noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+            )
 
-        loss_fn = dinv.loss.SupLoss(metric=dinv.metric.mse())
-        loss = loss_fn(groundtruth_sample, out)
-        loss.backward()
+            y = physics(test_sample).type(test_sample.dtype).to(device)
+
+            out = model(y, physics=physics)
+
+            assert out.shape == test_sample.shape
+
+            loss_fn = dinv.loss.SupLoss(metric=dinv.metric.mse())
+            loss = loss_fn(groundtruth_sample, out)
+            loss.backward()

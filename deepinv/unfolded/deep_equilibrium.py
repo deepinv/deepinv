@@ -4,6 +4,7 @@ from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.utils import create_block_image
 
 
 class BaseDEQ(BaseUnfold):
@@ -12,7 +13,7 @@ class BaseDEQ(BaseUnfold):
 
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
     that can be virtually unrolled infinitely leveraging the implicit function theorem.
-    The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
+    The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation.
 
     .. math::
 
@@ -25,7 +26,7 @@ class BaseDEQ(BaseUnfold):
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    Our DEQ implementation requires the variable `iterate` from the iterated dictionary to be :class:`torch.Tensor`(and not a tuple).
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
@@ -72,32 +73,32 @@ class BaseDEQ(BaseUnfold):
         cur_params = self.update_params_fn(self.max_iter - 1)
         x = self.fixed_point.iterator(
             X, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )["est"][0]
+        )["iterate"]
         # Another iteration for jacobian computation via automatic differentiation.
+        if isinstance(x, tuple):
+            x = torch.stack(x)
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
-            {"est": (x0,)}, cur_data_fidelity, cur_prior, cur_params, y, physics
-        )["est"][0]
+            {"iterate": x0}, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )["iterate"]
+        if isinstance(f0, tuple):
+            f0 = torch.stack(f0)
 
-        # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
         def backward_hook(grad):
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
                     super().__init__(**kwargs)
 
                 def forward(self, X, *args, **kwargs):
-                    return {
-                        "est": (
-                            torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
-                                0
-                            ]
-                            + grad,
-                        )
-                    }
+                    iterate = (
+                        torch.autograd.grad(f0, x0, X["iterate"], retain_graph=True)[0]
+                        + grad
+                    )
+                    return {"iterate": iterate, "estimate": iterate}
 
             # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-            def init_iterate_fn(y, physics, F_fn=None):
-                return {"est": (grad,)}  # initialize the fixed point algorithm.
+            def init_iterate_fn(y, physics, cost_fn=None):
+                return {"iterate": grad}  # initialize the fixed point algorithm.
 
             backward_FP = FixedPoint(
                 backward_iterator(),
@@ -109,16 +110,21 @@ class BaseDEQ(BaseUnfold):
                 beta_anderson_acc=self.beta_anderson_acc,
                 eps_anderson_acc=self.eps_anderson_acc,
             )
-            g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
+            g = backward_FP({"iterate": grad}, None)[0]["iterate"]
             return g
 
         if x.requires_grad:
             x.register_hook(backward_hook)
 
+        # Get estimation from the fixed-point iteration
+        est = self.fixed_point.iterator.get_estimate_from_iterate(
+            x, cur_data_fidelity, cur_prior, cur_params, y, physics
+        )
+        out = self.custom_output(est) if self.custom_output else est
         if compute_metrics:
-            return x, metrics
+            return out, metrics
         else:
-            return x
+            return out
 
 
 def DEQ_builder(
@@ -126,7 +132,7 @@ def DEQ_builder(
     params_algo={"lambda": 1.0, "stepsize": 1.0},
     data_fidelity=L2(),
     prior=None,
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     **kwargs,
 ):
@@ -148,11 +154,11 @@ def DEQ_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: None.
+    :param callable cost_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(iteration, prior=prior, cost_fn=cost_fn, g_first=g_first)
     return BaseDEQ(
         iterator,
         has_cost=iterator.has_cost,

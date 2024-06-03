@@ -32,7 +32,8 @@ def random_shapes(interior=False):
 def random_phantom(spc, n_ellipse=50, interior=False):
     """
     Generate a random ellipsoid phantom.
-    Taken from https://github.com/adler-j/adler/blob/master/adler/odl/phantom.py
+    Taken from https://github.com/adler-j/adler/blob/master/adler/odl/phantom.py.
+    Requires the ODL library `pip install https://github.com/odlgroup/odl/archive/master.zip`.
     """
     if isinstance(odl, ImportError):
         raise ImportError(
@@ -49,6 +50,7 @@ class RandomPhantomDataset(torch.utils.data.Dataset):
     """
     Dataset of random ellipsoid phantoms. The phantoms are generated on the fly.
     The phantoms are generated using the odl library (https://odlgroup.github.io/odl/).
+    Requires the ODL library `pip install https://github.com/odlgroup/odl/archive/master.zip`.
 
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
@@ -87,6 +89,7 @@ class RandomPhantomDataset(torch.utils.data.Dataset):
 class SheppLoganDataset(torch.utils.data.Dataset):
     """
     Dataset for the single Shepp-Logan phantom. The dataset has length 1.
+    Requires the ODL library `pip install https://github.com/odlgroup/odl/archive/master.zip`.
     """
 
     def __init__(self, size=128, n_data=1, transform=None):

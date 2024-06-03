@@ -89,7 +89,7 @@ def unfolded_builder(
     max_iter=5,
     trainable_params=["lambda", "stepsize"],
     device=torch.device("cpu"),
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     **kwargs,
 ):
@@ -117,7 +117,7 @@ def unfolded_builder(
     :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
         This does not encompass the trainable weights of the prior module.
-    :param callable F_fn: Custom user input cost function. default: None.
+    :param callable cost_fn: Custom user input cost function. default: None.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
@@ -148,7 +148,7 @@ def unfolded_builder(
 
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(iteration, prior=prior, cost_fn=cost_fn, g_first=g_first)
     return BaseUnfold(
         iterator,
         max_iter=max_iter,
