@@ -1,6 +1,6 @@
 """
 Radio interferometric imaging with deepinverse
-====================================================================================================
+==============================================
 
 In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse. 
 The following example and data are taken from `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_. 
