@@ -14,6 +14,7 @@ import torchvision.transforms.functional as F
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def config_matplotlib(fontsize=17):
@@ -98,6 +99,8 @@ def plot(
     cmap="gray",
     fontsize=17,
     interpolation="none",
+    center_crop=None,
+    cbar=False,
 ):
     r"""
     Plots a list of images.
@@ -151,9 +154,8 @@ def plot(
     if isinstance(titles, str):
         titles = [titles]
 
-    imgs = []
+    processed_img_list = []
     for im in img_list:
-        col_imgs = []
         for i in range(min(im.shape[0], max_imgs)):
             if im.shape[1] == 2:  # for complex images
                 pimg = (
@@ -172,7 +174,28 @@ def plot(
                 else:
                     pimg = im[i, :, :, :].type(torch.float32)
             pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-            col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
+            processed_img_list.append(pimg)
+
+    if center_crop is not None:
+        if isinstance(center_crop, int):
+            center_crop = [center_crop] * len(img_list)
+        elif not isinstance(center_crop, list):
+            raise ValueError("center_crop has to be either an int or a list of ints.")
+
+        for i, (img, crop) in enumerate(zip(processed_img_list, center_crop)):
+            if crop is not None:
+                h, w = img.shape[-2] // 2, img.shape[-1] // 2
+                processed_img_list[i] = img[
+                    ..., h - crop // 2 : h + crop // 2, w - crop // 2 : w + crop // 2
+                ]
+
+    # Build the array of images for displaying
+    imgs = []
+    for pimg in processed_img_list:
+        col_imgs = []
+        for i in range(min(pimg.shape[0], max_imgs)):
+            pimg = pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy()
+            col_imgs.append(pimg)
         imgs.append(col_imgs)
 
     if figsize is None:
@@ -191,12 +214,21 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            if cbar:
+                divider = make_axes_locatable(axs[r, i])
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                colbar = fig.colorbar(im, cax=cax, orientation="vertical")
+                colbar.ax.tick_params(labelsize=8)
+
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
     if tight:
-        plt.subplots_adjust(hspace=0.01, wspace=0.05)
+        if cbar:
+            plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        else:
+            plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_imgs in enumerate(imgs):
@@ -278,7 +310,7 @@ def scatter_plot(
 
     if suptitle:
         plt.suptitle(suptitle, size=12)
-        fig.subplots_adjust(top=0.75)
+        fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
         for r, xy in enumerate(row_scatter):

@@ -122,7 +122,12 @@ def to_logimage(im, rescale=False, dr=5000):
 
 
 imgs = [image_gdth, to_logimage(image_gdth)]
-plot(imgs, titles=[f"Groundtruth", f"Groundtruth in logarithmic scale"], cmap="inferno")
+plot(
+    imgs,
+    titles=[f"Groundtruth", f"Groundtruth in logarithmic scale"],
+    cmap="inferno",
+    cbar=True,
+)
 
 # %%
 # Sampling pattern
@@ -136,7 +141,7 @@ plot(imgs, titles=[f"Groundtruth", f"Groundtruth in logarithmic scale"], cmap="i
 uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
 uv = torch.from_numpy(uv).to(device)
 
-scatter_plot([uv], titles=["Sampling trajectory in the Fourier domain"], s=0.001)
+scatter_plot([uv], titles=["uv coverage"], s=0.001)
 
 # %%
 # Simulating the measurements
@@ -193,7 +198,14 @@ dirac = dirac_like(image_gdth)
 PSF = physics.A_adjoint(physics.A(dirac))
 print("PSF peak value: ", PSF.max().item())
 
-plot(to_logimage(PSF, rescale=True), titles=f"PSF (log scale)", cmap="viridis")
+psf_log = to_logimage(PSF, rescale=True)
+
+plot(
+    [psf_log, psf_log],
+    titles=["PSF (logscale)", "center crop"],
+    center_crop=[None, 64],
+    cmap="viridis",
+)
 
 # %%
 # The backprojected image :math:`A^{\top}Ay` is shown below.
@@ -285,7 +297,7 @@ imgs = [
     to_logimage(back, rescale=True),
     to_logimage(x_model, rescale=True),
 ]
-plot(imgs, titles=["GT", "Linear", "Recons."], cmap="inferno")
+plot(imgs, titles=["GT", "Linear", "Recons."], cmap="inferno", cbar=True)
 
 # plot convergence curves
 if plot_metrics:
