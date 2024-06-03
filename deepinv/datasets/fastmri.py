@@ -10,62 +10,19 @@ LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
 from typing import (
-    Any,
     Callable,
-    Dict,
-    List,
     NamedTuple,
     Optional,
-    Sequence,
-    Tuple,
     Union,
 )
 import os
-import xml.etree.ElementTree as etree
-
 import h5py
 import torch
 
 
-def et_query(
-    root: etree.Element,
-    qlist: Sequence[str],
-    namespace: str = "http://www.ismrm.org/ISMRMRD",
-) -> str:
-    """
-    ElementTree query function.
-
-    This can be used to query an xml document via ElementTree. It uses qlist
-    for nested queries.
-
-    Args:
-        root: Root of the xml to search through.
-        qlist: A list of strings for nested searches, e.g. ["Encoding",
-            "matrixSize"]
-        namespace: Optional; xml namespace to prepend query.
-
-    Returns:
-        The retrieved data as a string.
-    """
-    s = "."
-    prefix = "ismrmrd_namespace"
-
-    ns = {prefix: namespace}
-
-    for el in qlist:
-        s = s + f"//{prefix}:{el}"
-
-    value = root.find(s, ns)
-    if value is None:
-        raise RuntimeError("Element not found")
-
-    return str(value.text)
-
-
-class FastMRIRawDataSample(NamedTuple):
+class SliceSampleFileIdentifier(NamedTuple):
     fname: Path
     slice_ind: int
-    metadata: Dict[str, Any]
 
 
 class FastMRISliceDataset(torch.utils.data.Dataset):
@@ -103,7 +60,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     :param bool save_metadata_to_cache: Whether to cache dataset metadata.
     :param Union[str, Path] metadata_cache_file: A file in which to cache dataset
         information for faster load times.
-    :param callable, optional raw_sample_filter: A callable object that takes an raw_sample
+    :param callable, optional sample_filter: A callable object that takes an raw_sample
         metadata as input and returns a boolean indicating whether the
         raw_sample should be included in the dataset.
     :param float, optional sample_rate: A float between 0 and 1. This controls what
@@ -127,7 +84,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
-        raw_sample_filter: Callable = lambda raw_sample: True,
+        sample_filter: Callable = lambda raw_sample: True,
         sample_rate: Optional[float] = None,
         volume_sample_rate: Optional[float] = None,
         transform: Optional[Callable] = None,
@@ -170,7 +127,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         ### load dataset metadata
 
-        self.raw_samples = []
+        # should contain all the information to load a slice from the storage
+        self.sample_identifiers = []
         if load_metadata_from_cache:  # from a cache file
             metadata_cache_file = Path(metadata_cache_file)
             if not metadata_cache_file.exists():
@@ -194,18 +152,19 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         else:
             files = list(Path(root).iterdir())
             for fname in sorted(files):
-                metadata, num_slices = self._retrieve_metadata(fname)
+                with h5py.File(fname, "r") as hf:
+                    num_slices = hf["kspace"].shape[0]
 
-                # add metadata for each slice to the dataset after filtering
-                for slice_ind in range(num_slices):
-                    raw_sample = FastMRIRawDataSample(fname, slice_ind, metadata)
-                    if raw_sample_filter(raw_sample):
-                        self.raw_samples.append(raw_sample)
+                    # add each slice to the dataset after filtering
+                    for slice_ind in range(num_slices):
+                        slice_id = SliceSampleFileIdentifier(fname, slice_ind)
+                        if sample_filter(slice_id):
+                            self.sample_identifiers.append(slice_id)
 
             # save dataset metadata
             if save_metadata_to_cache:
                 dataset_cache = {}
-                dataset_cache[root] = self.raw_samples
+                dataset_cache[root] = self.sample_identifiers
                 logging.info(f"Saving dataset cache to {metadata_cache_file}.")
                 with open(metadata_cache_file, "wb") as cache_f:
                     pickle.dump(dataset_cache, cache_f)
@@ -219,61 +178,25 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             volume_sample_rate = 1.0
 
         if sample_rate < 1.0:  # sample by slice
-            random.shuffle(self.raw_samples)
-            num_raw_samples = round(len(self.raw_samples) * sample_rate)
-            self.raw_samples = self.raw_samples[:num_raw_samples]
+            random.shuffle(self.sample_identifiers)
+            num_samples = round(len(self.sample_identifiers) * sample_rate)
+            self.sample_identifiers = self.sample_identifiers[:num_samples]
         elif volume_sample_rate < 1.0:  # sample by volume
-            vol_names = sorted(list(set([f[0].stem for f in self.raw_samples])))
+            vol_names = sorted(list(set([f[0].stem for f in self.sample_identifiers])))
             random.shuffle(vol_names)
             num_volumes = round(len(vol_names) * volume_sample_rate)
             sampled_vols = vol_names[:num_volumes]
-            self.raw_samples = [
-                raw_sample
-                for raw_sample in self.raw_samples
-                if raw_sample[0].stem in sampled_vols
+            self.sample_identifiers = [
+                sample_id
+                for sample_id in self.sample_identifiers
+                if sample_id[0].stem in sampled_vols
             ]
 
-    def _retrieve_metadata(self, fname):
-        with h5py.File(fname, "r") as hf:
-            et_root = etree.fromstring(hf["ismrmrd_header"][()])
-
-            enc = ["encoding", "encodedSpace", "matrixSize"]
-            enc_size = (
-                int(et_query(et_root, enc + ["x"])),
-                int(et_query(et_root, enc + ["y"])),
-                int(et_query(et_root, enc + ["z"])),
-            )
-            rec = ["encoding", "reconSpace", "matrixSize"]
-            recon_size = (
-                int(et_query(et_root, rec + ["x"])),
-                int(et_query(et_root, rec + ["y"])),
-                int(et_query(et_root, rec + ["z"])),
-            )
-
-            lims = ["encoding", "encodingLimits", "kspace_encoding_step_1"]
-            enc_limits_center = int(et_query(et_root, lims + ["center"]))
-            enc_limits_max = int(et_query(et_root, lims + ["maximum"])) + 1
-
-            padding_left = enc_size[1] // 2 - enc_limits_center
-            padding_right = padding_left + enc_limits_max
-
-            num_slices = hf["kspace"].shape[0]
-
-            metadata = {
-                "padding_left": padding_left,
-                "padding_right": padding_right,
-                "encoding_size": enc_size,
-                "recon_size": recon_size,
-                **hf.attrs,
-            }
-
-        return metadata, num_slices
-
     def __len__(self):
-        return len(self.raw_samples)
+        return len(self.sample_identifiers)
 
     def __getitem__(self, idx: int, mask: Optional[Callable]=None):
-        fname, dataslice, _ = self.raw_samples[idx]
+        fname, dataslice = self.sample_identifiers[idx]
 
         with h5py.File(fname, "r") as hf:
             kspace = hf["kspace"][dataslice]
