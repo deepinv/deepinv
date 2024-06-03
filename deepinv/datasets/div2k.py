@@ -10,6 +10,8 @@ from .utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
 class DIV2K(torch.utils.data.Dataset):
     """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
 
+    Images have varying sizes with up to 2040 vertical pixels, and 2040 horizontal pixels
+
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param str mode: Select a subset of the dataset between 'train' or 'val'. Default at 'train'.
     :param bool download: If True, downloads the dataset from the internet and puts it in root directory.
@@ -43,55 +45,48 @@ class DIV2K(torch.utils.data.Dataset):
         train_dir_path = os.path.join(self.root, "DIV2K_train_HR")
         valid_dir_path = os.path.join(self.root, "DIV2K_valid_HR")
 
-        # verify that dataset is available at self.root and use it
-        if self._check_dataset_exists():
-            print(
-                f"""
-            Dataset is available at `{self.root}`.
-            `download` flag is not taken into account.
-            """
-            )
-        # otherwise we try to download the whole dataset
-        elif download:
-            if not os.path.isdir(self.root):
-                os.makedirs(self.root)
-            if os.path.exists(train_dir_path):
-                raise ValueError(
-                    f"""
-                The train folder already exists,
-                thus the download is aborted.
-                Please set `download=False`
-                OR remove `{train_dir_path}`."""
-                )
+        # download dataset, we check first that dataset isn't already downloaded
+        if not self._check_dataset_exists():
+            if download:
+                if not os.path.isdir(self.root):
+                    os.makedirs(self.root)
+                if os.path.exists(train_dir_path):
+                    raise ValueError(
+                        f"""
+                    The train folder already exists,
+                    thus the download is aborted.
+                    Please set `download=False`
+                    OR remove `{train_dir_path}`."""
+                    )
 
-            if os.path.exists(valid_dir_path):
-                raise ValueError(
-                    f"""
-                The val folder already exists,
-                thus the download is aborted.
-                Please set `download=False`
-                OR remove `{valid_dir_path}`."""
-                )
+                if os.path.exists(valid_dir_path):
+                    raise ValueError(
+                        f"""
+                    The val folder already exists,
+                    thus the download is aborted.
+                    Please set `download=False`
+                    OR remove `{valid_dir_path}`."""
+                    )
 
-            for filename, url in self.zipfile_urls.items():
-                # download zipfile from the Internet and save it locally
-                download_zipfile(
-                    url=self.zipfile_urls[filename],
-                    save_path=os.path.join(self.root, filename),
+                for filename, url in self.zipfile_urls.items():
+                    # download zipfile from the Internet and save it locally
+                    download_zipfile(
+                        url=self.zipfile_urls[filename],
+                        save_path=os.path.join(self.root, filename),
+                    )
+                    # extract local zipfile
+                    extract_zipfile(os.path.join(self.root, filename), self.root)
+            # stop the execution since the dataset is not available and we didn't download it
+            else:
+                raise RuntimeError(
+                    f"""
+                Dataset not found at `{self.root}`.
+                Please set `root` correctly (currently `root={self.root}`),
+                AND check that `{train_dir_path}` contains ONLY the following files 0001.png, ..., 0800.png
+                               `{valid_dir_path}` contains ONLY the followinf files 0801.png, ..., 0900.png
+                OR set `download=True` (currently `download={download}`).
+                """
                 )
-                # extract local zipfile
-                extract_zipfile(os.path.join(self.root, filename), self.root)
-        # stop the execution since the dataset is not available and we didn't download it
-        else:
-            raise RuntimeError(
-                f"""
-            Dataset not found at `{self.root}`.
-            Please set `root` correctly (currently `root={self.root}`),
-            AND check that `{train_dir_path}` contains ONLY the following files 0001.png, ..., 0800.png
-                           `{valid_dir_path}` contains ONLY the followinf files 0801.png, ..., 0900.png
-            OR set `download=True` (currently `download={download}`).
-            """
-            )
 
         if self.mode == "train":
             self.img_dir = train_dir_path
