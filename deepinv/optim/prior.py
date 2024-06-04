@@ -378,13 +378,22 @@ class WaveletPrior(Prior):
         else:
             raise ValueError("p should be 0, 1 or inf")
 
-        self.WaveletDenoiser = WaveletDenoiser(
-            level=self.level,
-            wv=self.wv,
-            device=self.device,
-            non_linearity=self.non_linearity,
-            wvdim=self.wvdim,
-        )
+        if type(self.wv) == str:
+            self.WaveletDenoiser = WaveletDenoiser(
+                level=self.level,
+                wv=self.wv,
+                device=self.device,
+                non_linearity=self.non_linearity,
+                wvdim=self.wvdim,
+            )
+        elif type(self.wv) == list:
+            self.WaveletDenoiser = WaveletDictDenoiser(
+                level=self.level,
+                list_wv=self.wv,
+                max_iter=10,
+                non_linearity=self.non_linearity,
+                wvdim=self.wvdim,
+            )
 
     def g(self, x, *args, reduce=True, **kwargs):
         r"""
@@ -434,11 +443,13 @@ class WaveletPrior(Prior):
             out = torch.clamp(out, max=self.clamp_max)
         return out
 
-    def psi(self, x):
+    def psi(self, x, wavelet="db2", level=2, dimension=2):
         r"""
         Applies the (flattening) wavelet decomposition of x.
         """
-        return self.WaveletDenoiser.psi(x, self.wv, self.level, self.wvdim)
+        return self.WaveletDenoiser.psi(
+            x, wavelet=self.wv, level=self.level, dimension=self.wvdim
+        )
 
 
 class TVPrior(Prior):

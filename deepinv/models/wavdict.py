@@ -339,6 +339,7 @@ class WaveletDictDenoiser(nn.Module):
     ):
         super().__init__()
         self.level = level
+        self.list_wv = list_wv
         self.list_prox = nn.ModuleList(
             [
                 WaveletDenoiser(

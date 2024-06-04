@@ -229,11 +229,12 @@ plot(
 #
 # .. math::
 #   \begin{equation*}
-#       \underset{x \geq 0}{\operatorname{min}} \,\, \frac{1}{2} \|Ax-y\|_2^2 + \lambda \|\Psi x\|_{1}(x),
+#       \underset{x \geq 0}{\operatorname{min}} \,\, \frac{1}{2} \|Ax-y\|_2^2 + \lambda \sum_i \|\Psi_i x\|_{1}(x),
 #   \end{equation*}
 #
-# where :math:`1/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\|\Psi x\|_{1}(x)` is a sparsity inducing
-# prior for the image :math:`x`, and :math:`\lambda>0` is a regularisation parameter.
+# where :math:`1/2 \|A(x)-y\|_2^2` is the a data-fidelity term, and each :math:`\|\Psi_i x\|_{1}(x)` is a sparsity
+# inducing prior for the image :math:`x`, and :math:`\lambda>0` is a regularisation parameter. Simlarly to the `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_
+# algorithm, we use a dictionnary of 8 Daubechies wavelets as the prior.
 
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import WaveletPrior
@@ -242,7 +243,8 @@ from deepinv.optim.prior import WaveletPrior
 data_fidelity = L2()
 
 # Specify the prior (we redefine it with a smaller number of iteration for faster computation)
-prior = WaveletPrior(level=3, wv="db8", p=1, device="cpu", clamp_min=0)
+wv_list = ["db1", "db2", "db3", "db4", "db5", "db6", "db7", "db8"]
+prior = WaveletPrior(level=3, wv=wv_list, p=1, device="cpu", clamp_min=0)
 
 
 # %%
@@ -265,7 +267,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 1.0  # wavelet regularisation parameter
+lamb = 1e-4 * opnorm  # wavelet regularisation parameter
 params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 50
 early_stop = True
