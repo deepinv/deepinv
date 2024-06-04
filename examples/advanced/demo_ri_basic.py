@@ -19,7 +19,7 @@ import numpy as np
 import torchkbnufft as tkbn
 
 import deepinv as dinv
-from deepinv.utils.plotting import plot, plot_curves, scatter_plot
+from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
 from deepinv.utils.demo import load_np_url, get_image_dataset_url, get_degradation_url
 from deepinv.utils.nn import dirac_like
 
@@ -200,11 +200,14 @@ print("PSF peak value: ", PSF.max().item())
 
 psf_log = to_logimage(PSF, rescale=True)
 
-plot(
-    [psf_log, psf_log],
-    titles=["PSF (logscale)", "center crop"],
-    center_crop=[None, 64],
+plot_inset(
+    [psf_log],
+    titles=["PSF (logscale)"],
     cmap="viridis",
+    extract_loc=(0.46, 0.46),
+    extract_size=0.08,
+    inset_loc=(0.0, 0.6),
+    inset_size=0.4,
 )
 
 # %%
