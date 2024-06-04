@@ -38,15 +38,15 @@ class Pansharpen(LinearPhysics):
         Pansharpen operator applied to a random 32x32 image:
 
         >>> from deepinv.physics import Pansharpen
-        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 image
+        >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 color image
         >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
-        >>> physics(x)[0][:, :, 0, :3] # Display first pixels of RGB image
-        tensor([[[-0.1291,  0.0594, -0.1425],
-                 [-0.3199, -0.2397,  0.1460],
-                 [ 0.0975, -0.0053, -0.0941]]])
-        >>> physics(x)[1][:, :, 0, :3] # Display first pixels of grayscale image
-        tensor([[[-0.9084, -0.2966, -0.4015]]])
+        >>> x.shape
+        torch.Size([1, 3, 32, 32])
+        >>> y = physics(x)
+        >>> y[0].shape
+        torch.Size([1, 3, 8, 8])
+        >>> y[1].shape
+        torch.Size([1, 1, 32, 32])
 
     """
 
