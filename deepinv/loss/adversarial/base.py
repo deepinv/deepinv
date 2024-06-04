@@ -51,26 +51,30 @@ class GeneratorLoss(Loss):
     See ``deepinv.examples.adversarial_learning`` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
+    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1.0, device="cpu", **kwargs):
+    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.metric_gan = DiscriminatorMetric(device=device)
         self.weight_adv = weight_adv
+        self.D = D
 
-    def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module) -> Tensor:
+    def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module = None) -> Tensor:
         r"""Typical adversarial loss in GAN generators.
 
         :param Tensor real: image labelled as real, typically one originating from training set
         :param Tensor fake: image labelled as fake, typically a reconstructed image
-        :param nn.Module D: discriminator/critic/classifier model
+        :param nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
         :return Tensor: generator adversarial loss
         """
+        D = self.D if D is None else D
+
         pred_fake = D(fake)
         return self.metric_gan(pred_fake, real=True) * self.weight_adv
 
-    def forward(self, *args, **kwargs) -> Tensor:
+    def forward(self, *args, D: nn.Module = None, **kwargs) -> Tensor:
         return NotImplementedError()
 
 
@@ -82,22 +86,26 @@ class DiscriminatorLoss(Loss):
     See ``deepinv.examples.adversarial_learning`` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
+    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1.0, device="cpu", **kwargs):
+    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.metric_gan = DiscriminatorMetric(device=device)
         self.weight_adv = weight_adv
+        self.D = D
 
-    def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module):
+    def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module = None):
         r"""Typical adversarial loss in GAN discriminators.
 
         :param Tensor real: image labelled as real, typically one originating from training set
         :param Tensor fake: image labelled as fake, typically a reconstructed image
-        :param nn.Module D: discriminator/critic/classifier model
+        :param nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
         :return Tensor: discriminator adversarial loss
         """
+        D = self.D if D is None else D
+        
         pred_real = D(real)
         pred_fake = D(fake.detach())
 
@@ -106,5 +114,5 @@ class DiscriminatorLoss(Loss):
 
         return (adv_loss_real + adv_loss_fake) * self.weight_adv
 
-    def forward(self, *args, **kwargs) -> Tensor:
+    def forward(self, *args, D: nn.Module = None, **kwargs) -> Tensor:
         return NotImplementedError()

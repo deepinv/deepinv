@@ -17,11 +17,25 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
-    See ``deepinv.examples.adversarial_learning`` for examples.
+    See ``deepinv.examples.adversarial_learning`` for examples of training generator and discriminator models.
+
+    Simple example (assuming a pretrained discriminator):
+
+    ::
+
+        from deepinv.models import DCGANDiscriminator
+        D = DCGANDiscriminator() # assume pretrained discriminator
+
+        loss = UAIRGeneratorLoss(D=D)
+
+        l = loss(y, y_hat, physics, model)
+
+        l.backward()
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
     :param nn.Module metric: metric for measurement consistency, defaults to nn.MSELoss
+    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
     """
 
@@ -30,12 +44,14 @@ class UAIRGeneratorLoss(GeneratorLoss):
         weight_adv: float = 0.5,
         weight_mc: float = 1,
         metric: nn.Module = nn.MSELoss(),
+        D: nn.Module = None,
         device="cpu",
     ):
         super().__init__(weight_adv=weight_adv, device=device)
         self.name = "UAIRGenerator"
         self.metric = metric
         self.weight_mc = weight_mc
+        self.D = D
 
     def forward(
         self,
@@ -43,9 +59,19 @@ class UAIRGeneratorLoss(GeneratorLoss):
         y_hat: Tensor,
         physics: Physics,
         model: nn.Module,
-        D: nn.Module,
+        D: nn.Module = None,
         **kwargs,
     ):
+        r"""Forward pass for UAIR generator's adversarial loss.
+
+        :param Tensor y: input measurement
+        :param Tensor y_hat: re-measured reconstruction
+        :param Physics physics: forward physics
+        :param nn.Module model: reconstruction network
+        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
+        """
+        D = self.D if D is None else D
+
         adv_loss = self.adversarial_loss(y, y_hat, D)
 
         x_tilde = model(y_hat)
