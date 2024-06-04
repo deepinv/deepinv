@@ -216,9 +216,10 @@ class ULAIterator(nn.Module):
     Single iteration of the Unadjusted Langevin Algorithm.
 
     :param float step_size: step size :math:`\eta>0` of the algorithm.
-    :param float alpha: regularization parameter :math:`\alpha`. 
-    :param float sigma: noise level used in the plug-and-play prior denoiser. 
+    :param float alpha: regularization parameter :math:`\alpha`.
+    :param float sigma: noise level used in the plug-and-play prior denoiser.
     """
+
     def __init__(self, step_size, alpha, sigma):
         super().__init__()
         self.step_size = step_size
