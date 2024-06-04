@@ -12,7 +12,7 @@ except:
 
 from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
-from deepinv.models.wavdict import WaveletDenoiser
+from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 
 
@@ -377,6 +377,7 @@ class WaveletPrior(Prior):
             self.non_linearity = "topk"
         else:
             raise ValueError("p should be 0, 1 or inf")
+
         self.WaveletDenoiser = WaveletDenoiser(
             level=self.level,
             wv=self.wv,

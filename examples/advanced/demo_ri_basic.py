@@ -188,7 +188,7 @@ physics.setWeight(nWimag / tau)
 opnorm = physics.compute_norm(
     torch.randn_like(image_gdth, device=device), max_iter=20, tol=1e-6, verbose=False
 ).item()
-print("Operator norn: ", opnorm)
+print("Operator norm: ", opnorm)
 
 # %%
 # The PSF, defined as :math:`\operatorname{PSF} = A \delta` (where :math:`\delta` is a Dirac), can be computed
