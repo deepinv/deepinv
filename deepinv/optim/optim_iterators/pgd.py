@@ -79,7 +79,7 @@ class FISTAIteration(OptimIterator):
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
-        k = 2 if "it" not in X else X["it"]
+        k = 0 if "it" not in X else X["it"]
         alpha = (k - 1) / (k + self.a)
 
         if not self.g_first:

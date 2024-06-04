@@ -232,8 +232,10 @@ class FixedPoint(nn.Module):
             else None
         )
         self.check_iteration = True
-        # if self.anderson_acceleration:
-        self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(X)
+        if self.anderson_acceleration:
+            self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(
+                X
+            )
         it = 0
 
         for it in tqdm(
