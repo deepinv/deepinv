@@ -3,6 +3,7 @@ import torch.nn as nn
 import warnings
 from tqdm import tqdm
 
+
 class FixedPoint(nn.Module):
     """
     Fixed-point iterations module.
@@ -235,11 +236,22 @@ class FixedPoint(nn.Module):
         self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(X)
         it = 0
 
-        for it in tqdm(range(self.max_iter), disable=(not self.verbose or not self.show_progress_bar)):
-                
+        for it in tqdm(
+            range(self.max_iter),
+            disable=(not self.verbose or not self.show_progress_bar),
+        ):
+
             X_prev = X
-            X = self.single_iteration(X, it, *args, compute_metrics = compute_metrics, metrics = metrics, x_gt = x_gt, **kwargs)
-            
+            X = self.single_iteration(
+                X,
+                it,
+                *args,
+                compute_metrics=compute_metrics,
+                metrics=metrics,
+                x_gt=x_gt,
+                **kwargs,
+            )
+
             if self.check_iteration:
                 metrics = (
                     self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
@@ -254,16 +266,14 @@ class FixedPoint(nn.Module):
                 ):
                     break
                 it += 1
-                        
+
         return X, metrics
 
     def single_iteration(self, X, it, *args, **kwargs):
 
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
-            self.update_data_fidelity_fn(it)
-            if self.update_data_fidelity_fn
-            else None
+            self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None
         )
         cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
         X_prev = X
@@ -282,5 +292,7 @@ class FixedPoint(nn.Module):
                 cur_params,
                 *args,
             )
-        self.check_iteration = self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+        self.check_iteration = (
+            self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+        )
         return X if self.check_iteration else X_prev
