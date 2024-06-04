@@ -55,13 +55,17 @@ class GeneratorLoss(Loss):
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs):
+    def __init__(
+        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+    ):
         super().__init__(**kwargs)
         self.metric_gan = DiscriminatorMetric(device=device)
         self.weight_adv = weight_adv
         self.D = D
 
-    def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module = None) -> Tensor:
+    def adversarial_loss(
+        self, real: Tensor, fake: Tensor, D: nn.Module = None
+    ) -> Tensor:
         r"""Typical adversarial loss in GAN generators.
 
         :param Tensor real: image labelled as real, typically one originating from training set
@@ -90,7 +94,9 @@ class DiscriminatorLoss(Loss):
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs):
+    def __init__(
+        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+    ):
         super().__init__(**kwargs)
         self.metric_gan = DiscriminatorMetric(device=device)
         self.weight_adv = weight_adv
@@ -105,7 +111,7 @@ class DiscriminatorLoss(Loss):
         :return Tensor: discriminator adversarial loss
         """
         D = self.D if D is None else D
-        
+
         pred_real = D(real)
         pred_fake = D(fake.detach())
 

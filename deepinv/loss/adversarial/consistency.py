@@ -35,11 +35,15 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 0.01, D: nn.Module = None, device="cpu", **kwargs):
+    def __init__(
+        self, weight_adv: float = 0.01, D: nn.Module = None, device="cpu", **kwargs
+    ):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "SupAdversarialGenerator"
 
-    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs) -> Tensor:
+    def forward(
+        self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs
+    ) -> Tensor:
         r"""Forward pass for supervised adversarial generator loss.
 
         :param Tensor x: ground truth image
@@ -67,11 +71,15 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs):
+    def __init__(
+        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+    ):
         super().__init__(weight_adv=weight_adv, D=D, **kwargs)
         self.name = "SupAdversarialDiscriminator"
 
-    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs) -> Tensor:
+    def forward(
+        self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs
+    ) -> Tensor:
         r"""Forward pass for supervised adversarial discriminator loss.
 
         :param Tensor x: ground truth image
