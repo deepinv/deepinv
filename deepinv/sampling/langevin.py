@@ -218,7 +218,9 @@ class ULAIterator(nn.Module):
         self.alpha = alpha
         if torch.is_tensor(step_size):
             step_size = step_size.cpu()
-        self.noise_std = np.sqrt(2 * step_size)
+        else:
+            step_size = torch.tensor(step_size)
+        self.noise_std = torch.sqrt(2 * step_size)
         self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
