@@ -138,7 +138,7 @@ it is possible to sum generators as follows:
 .. doctest::
 
     >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
-    ...    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
+    ...    + dinv.physics.generator.RandomMaskGenerator((32, 32))
     >>> params = mask_generator.step(batch_size=4)
     >>> print(sorted(params.keys()))
     ['mask', 'sigma']

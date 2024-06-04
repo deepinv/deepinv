@@ -4,10 +4,10 @@ import deepinv as dinv
 import itertools
 
 # Generators to test (make sure they appear in find_generator as well)
+# Note MRI mask generators tests now in test_mri_generators.py
 GENERATORS = [
     "MotionBlurGenerator",
     "DiffractionBlurGenerator",
-    "AccelerationMaskGenerator",
     "SigmaGenerator",
 ]
 
