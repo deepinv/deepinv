@@ -31,7 +31,8 @@ class EILoss(Loss):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
-    :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``True``.
+    :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
+        This option is useful for super-resolution problems, see https://arxiv.org/abs/2312.11232.
     """
 
     def __init__(
@@ -40,7 +41,7 @@ class EILoss(Loss):
         metric=torch.nn.MSELoss(),
         apply_noise=True,
         weight=1.0,
-        no_grad=True,
+        no_grad=False,
     ):
         super(EILoss, self).__init__()
         self.name = "ei"
