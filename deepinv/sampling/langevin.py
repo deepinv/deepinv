@@ -224,7 +224,7 @@ class ULAIterator(nn.Module):
         super().__init__()
         self.step_size = step_size
         self.alpha = alpha
-        self.noise_std = torch.sqrt(2 * step_size)
+        self.noise_std = np.sqrt(2 * step_size)
         self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
