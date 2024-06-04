@@ -59,6 +59,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed the None prior (:gh:`233` by `Samuel Hurault`_) - 04/06/2024
 - Fixed the conjugate gradient torch.nograd for teh demos, accelerated)
 - Fixed torch.nograd in demos for faster generation of the doc
 - Corrected the padding for the convolution
