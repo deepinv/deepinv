@@ -81,6 +81,8 @@ class FixedPoint(nn.Module):
         history_size=5,
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
+        verbose=False,
+        show_progress_bar=True,
     ):
         super().__init__()
         self.iterator = iterator
@@ -98,6 +100,8 @@ class FixedPoint(nn.Module):
         self.history_size = history_size
         self.beta_anderson_acc = beta_anderson_acc
         self.eps_anderson_acc = eps_anderson_acc
+        self.verbose = verbose
+        self.show_progress_bar = show_progress_bar
 
         if self.check_conv_fn is None and self.early_stop:
             warnings.warn(
@@ -226,28 +230,34 @@ class FixedPoint(nn.Module):
             if self.init_metrics_fn and compute_metrics
             else None
         )
+        self.check_iteration = True
         # if self.anderson_acceleration:
         self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(X)
         it = 0
-        with tqdm(total=self.max_iter) as pbar:
 
-            while it < self.max_iter:
+        for it in tqdm(range(self.max_iter), disable=(not self.verbose or not self.show_progress_bar)):
                 
-                X, X_prev, check_iteration = self.one_iteration(X, it, *args, compute_metrics = compute_metrics, x_gt = x_gt, **kwargs)
-                if check_iteration:
-                    if (
-                        self.early_stop
-                        and (self.check_conv_fn is not None)
-                        and it > 1
-                        and self.check_conv_fn(it, X_prev, X)
-                    ):
-                        break
-                    it += 1
-                    pbar.update(1) 
+            X_prev = X
+            X = self.single_iteration(X, it, *args, compute_metrics = compute_metrics, metrics = metrics, x_gt = x_gt, **kwargs)
+            
+            if self.check_iteration:
+                metrics = (
+                    self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
+                    if self.update_metrics_fn and compute_metrics
+                    else None
+                )
+                if (
+                    self.early_stop
+                    and (self.check_conv_fn is not None)
+                    and it > 1
+                    and self.check_conv_fn(it, X_prev, X)
+                ):
+                    break
+                it += 1
                         
         return X, metrics
 
-    def one_iteration(self, X, it, *args, compute_metrics, x_gt, **kwargs):
+    def single_iteration(self, X, it, *args, **kwargs):
 
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
@@ -272,15 +282,5 @@ class FixedPoint(nn.Module):
                 cur_params,
                 *args,
             )
-        check_iteration = (
-                    self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
-                )
-        if check_iteration:
-            metrics = (
-                self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
-                if self.update_metrics_fn and compute_metrics
-                else None
-            )
-        else:
-            X = X_prev
-        return X, X_prev, check_iteration
+        self.check_iteration = self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+        return X if self.check_iteration else X_prev
