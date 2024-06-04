@@ -19,6 +19,8 @@ Fixed
 
 Changed
 ^^^^^^^
+- Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
+- Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
 
 
 
@@ -52,6 +54,8 @@ New Features
 - PhaseRetrieval class (:gh:`176` by `Zhiyuan Hu`_) - 20/03/2024
 - Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
+- Added Restormer model (:gh:`185` by Antoine Regnier and Maxime SONG) - 18/04/2024
+- Added DIV2K built-in dataset (:gh:`203` by Maxime SONG) - 03/05/2024
 
 Fixed
 ^^^^^

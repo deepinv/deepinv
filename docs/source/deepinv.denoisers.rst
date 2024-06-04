@@ -13,7 +13,7 @@ or as a standalone denoiser. All denoisers have a ``forward`` method that takes 
     >>> import deepinv as dinv
     >>> denoiser = dinv.models.DRUNet()
     >>> sigma = 0.1
-    >>> image = torch.ones(1, 3, 32, 32)*.5
+    >>> image = torch.ones(1, 3, 32, 32) * .5
     >>> noisy_image =  image + torch.randn(1, 3, 32, 32) * sigma
     >>> denoised_image = denoiser(noisy_image, sigma)
 
@@ -94,6 +94,19 @@ Discriminator networks used in networks trained with adversarial learning using 
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
+
+Complex Denoisers
+--------------------------
+Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval, require processing complex-valued images.The function :class:`deepinv.models.complex.to_complex_denoiser` can convert any real-valued denoiser into a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_complex_denoiser(denoiser)``.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.complex.to_complex_denoiser
+
+
 
 .. _pretrained-weights:
 Pretrained Weights

@@ -57,7 +57,7 @@ def conjugate_gradient(
     def dot(a, b):
         ndim = a[0].ndim if isinstance(a, TensorList) else a.ndim
         dot = (a.conj() * b).sum(
-            dim=tuple(range(1, ndim)), keepdim=False
+            dim=tuple(range(1, ndim)), keepdim=True
         )  # performs batched dot product
         if isinstance(dot, TensorList):
             aux = 0
@@ -76,7 +76,8 @@ def conjugate_gradient(
         x = x + p * alpha
         r = r - Ap * alpha
         rsnew = dot(r, r)
-        if all(rsnew < tol**2):
+        assert rsnew.isfinite().all(), "Conjugate gradient diverged"
+        if all(rsnew.abs() < tol**2):
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew

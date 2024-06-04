@@ -27,7 +27,8 @@ All losses inherit from the base class :meth:`deepinv.loss.Loss`, which is a met
     >>> x = torch.ones(1, 3, 16, 16)
     >>> y = physics(x)
     >>> model = dinv.models.DnCNN()
-    >>> loss(x_net=model(y), y=y, physics=physics) # self-supervised loss, doesn't require ground truth x
+    >>> x_net = model(y)
+    >>> l = loss(x_net=x_net, y=y, physics=physics, model=model) # self-supervised loss, doesn't require ground truth x
 
 Supervised Learning
 --------------------

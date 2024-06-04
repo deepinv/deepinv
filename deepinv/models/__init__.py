@@ -24,3 +24,4 @@ from .gan import (
     DCGANGenerator,
     DCGANDiscriminator,
 )
+from .complex import to_complex_denoiser
