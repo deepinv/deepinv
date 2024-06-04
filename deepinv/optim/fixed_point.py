@@ -83,7 +83,7 @@ class FixedPoint(nn.Module):
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
         verbose=False,
-        show_progress_bar=True,
+        show_progress_bar=False,
     ):
         super().__init__()
         self.iterator = iterator
