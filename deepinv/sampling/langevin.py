@@ -228,7 +228,7 @@ class ULAIterator(nn.Module):
         self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
-        noise = torch.randn_like(x) * self.noise_std.to(x.device)
+        noise = torch.randn_like(x) * self.noise_std
         lhood = -likelihood.grad(x, y, physics)
         lprior = -prior.grad(x, self.sigma) * self.alpha
         return x + self.step_size * (lhood + lprior) + noise
