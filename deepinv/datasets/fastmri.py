@@ -195,7 +195,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.sample_identifiers)
 
-    def __getitem__(self, idx: int, mask: Optional[Callable]=None):
+    def __getitem__(self, idx: int, mask: Optional[Callable] = None):
         fname, dataslice = self.sample_identifiers[idx]
 
         with h5py.File(fname, "r") as hf:
