@@ -125,7 +125,7 @@ class Zero(Prior):
 
     def __init__(self):
         super().__init__()
-        self._g = lambda x: 0.0
+        self._g = lambda x, *args, **kwargs: 0.0
         self.explicit_prior = True
 
     def grad(self, x, *args):

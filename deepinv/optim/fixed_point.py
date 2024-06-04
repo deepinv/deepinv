@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import warnings
-
+from tqdm import tqdm
 
 class FixedPoint(nn.Module):
     """
@@ -226,50 +226,104 @@ class FixedPoint(nn.Module):
             if self.init_metrics_fn and compute_metrics
             else None
         )
-        if self.anderson_acceleration:
-            x_hist, T_hist, H, q = self.init_anderson_acceleration(X)
+        # if self.anderson_acceleration:
+        self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(X)
         it = 0
-        while it < self.max_iter:
-            cur_params = self.update_params_fn(it) if self.update_params_fn else None
-            cur_data_fidelity = (
-                self.update_data_fidelity_fn(it)
-                if self.update_data_fidelity_fn
+        with tqdm(total=self.max_iter) as pbar:
+
+            while it < self.max_iter:
+                
+                X, X_prev, check_iteration = self.one_iteration(X, it, *args, compute_metrics = compute_metrics, x_gt = x_gt, **kwargs)
+                if check_iteration:
+                    if (
+                        self.early_stop
+                        and (self.check_conv_fn is not None)
+                        and it > 1
+                        and self.check_conv_fn(it, X_prev, X)
+                    ):
+                        break
+                    it += 1
+                    pbar.update(1) 
+
+                # cur_params = self.update_params_fn(it) if self.update_params_fn else None
+                # cur_data_fidelity = (
+                #     self.update_data_fidelity_fn(it)
+                #     if self.update_data_fidelity_fn
+                #     else None
+                # )
+                # cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
+                # X_prev = X
+                # X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+                # if self.anderson_acceleration:
+                #     X = self.anderson_acceleration_step(
+                #         it,
+                #         X_prev,
+                #         X,
+                #         x_hist,
+                #         T_hist,
+                #         H,
+                #         q,
+                #         cur_data_fidelity,
+                #         cur_prior,
+                #         cur_params,
+                #         *args,
+                #     )
+                # check_iteration = (
+                #     self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+                # )
+                # if check_iteration:
+                #     metrics = (
+                #         self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
+                #         if self.update_metrics_fn and compute_metrics
+                #         else None
+                #     )
+                #     if (
+                #         self.early_stop
+                #         and (self.check_conv_fn is not None)
+                #         and it > 1
+                #         and self.check_conv_fn(it, X_prev, X)
+                #     ):
+                #         break
+                #     it += 1
+                #     pbar.update(1) 
+                # else:
+                #     X = X_prev
+        return X, metrics
+
+    def one_iteration(self, X, it, *args, compute_metrics, x_gt, **kwargs):
+
+        cur_params = self.update_params_fn(it) if self.update_params_fn else None
+        cur_data_fidelity = (
+            self.update_data_fidelity_fn(it)
+            if self.update_data_fidelity_fn
+            else None
+        )
+        cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
+        X_prev = X
+        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+        if self.anderson_acceleration:
+            X = self.anderson_acceleration_step(
+                it,
+                X_prev,
+                X,
+                self.x_hist,
+                self.T_hist,
+                self.H,
+                self.q,
+                cur_data_fidelity,
+                cur_prior,
+                cur_params,
+                *args,
+            )
+        check_iteration = (
+                    self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+                )
+        if check_iteration:
+            metrics = (
+                self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
+                if self.update_metrics_fn and compute_metrics
                 else None
             )
-            cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
-            X_prev = X
-            X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
-            if self.anderson_acceleration:
-                X = self.anderson_acceleration_step(
-                    it,
-                    X_prev,
-                    X,
-                    x_hist,
-                    T_hist,
-                    H,
-                    q,
-                    cur_data_fidelity,
-                    cur_prior,
-                    cur_params,
-                    *args,
-                )
-            check_iteration = (
-                self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
-            )
-            if check_iteration:
-                metrics = (
-                    self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
-                    if self.update_metrics_fn and compute_metrics
-                    else None
-                )
-                if (
-                    self.early_stop
-                    and (self.check_conv_fn is not None)
-                    and it > 1
-                    and self.check_conv_fn(it, X_prev, X)
-                ):
-                    break
-                it += 1
-            else:
-                X = X_prev
-        return X, metrics
+        else:
+            X = X_prev
+        return X, X_prev, check_iteration
