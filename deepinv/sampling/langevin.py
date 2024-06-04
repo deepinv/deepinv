@@ -216,11 +216,13 @@ class ULAIterator(nn.Module):
         super().__init__()
         self.step_size = step_size
         self.alpha = alpha
+        if torch.is_tensor(step_size):
+            step_size = step_size.cpu()
         self.noise_std = np.sqrt(2 * step_size)
         self.sigma = sigma
 
     def forward(self, x, y, physics, likelihood, prior):
-        noise = torch.randn_like(x) * self.noise_std
+        noise = torch.randn_like(x) * self.noise_std.to(x.device)
         lhood = -likelihood.grad(x, y, physics)
         lprior = -prior.grad(x, self.sigma) * self.alpha
         return x + self.step_size * (lhood + lprior) + noise
