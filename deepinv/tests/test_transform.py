@@ -15,6 +15,19 @@ TRANSFORMS = [
 
 
 def choose_transform(transform_name):
+    if transform_name in (
+        "homography",
+        "euclidean",
+        "similarity",
+        "affine",
+        "pantiltrotate",
+    ):
+        pytest.importorskip(
+            "kornia",
+            reason="This test requires kornia. It should be "
+            "installed with `pip install kornia`",
+        )
+
     if transform_name == "shift":
         return dinv.transform.Shift()
     elif transform_name == "rotate":
@@ -22,7 +35,7 @@ def choose_transform(transform_name):
     elif transform_name == "scale":
         return dinv.transform.Scale()
     elif transform_name == "homography":
-        return dinv.transform.Homography()
+        return dinv.transform.projective.Homography()
     elif transform_name == "euclidean":
         return dinv.transform.projective.Euclidean()
     elif transform_name == "similarity":

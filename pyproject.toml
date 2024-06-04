@@ -29,7 +29,6 @@ dependencies = [
     "torchvision",
     "einops",
     "wandb",
-    "kornia",
     "scipy",
 ]
 
@@ -69,7 +68,8 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa"
+    "pyiqa",
+    "kornia"
 ]
 
 

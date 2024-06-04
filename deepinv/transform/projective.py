@@ -6,7 +6,11 @@ import torch
 from PIL import Image
 
 from scipy.spatial.transform import Rotation
-from kornia.geometry.transform import warp_perspective
+
+try:
+    from kornia.geometry.transform import warp_perspective
+except ImportError:
+    warp_perspective = ImportError("The kornia package is not installed.")
 
 
 def apply_homography(
