@@ -212,14 +212,17 @@ class MonteCarlo(nn.Module):
 
 
 class ULAIterator(nn.Module):
+    r"""
+    Single iteration of the Unadjusted Langevin Algorithm.
+
+    :param float step_size: step size :math:`\eta>0` of the algorithm.
+    :param float alpha: regularization parameter :math:`\alpha`. 
+    :param float sigma: noise level used in the plug-and-play prior denoiser. 
+    """
     def __init__(self, step_size, alpha, sigma):
         super().__init__()
         self.step_size = step_size
         self.alpha = alpha
-        if torch.is_tensor(step_size):
-            step_size = step_size.cpu()
-        else:
-            step_size = torch.tensor(step_size)
         self.noise_std = torch.sqrt(2 * step_size)
         self.sigma = sigma
 
