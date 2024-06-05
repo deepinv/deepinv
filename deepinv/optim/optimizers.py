@@ -505,12 +505,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     if prior is None:
         prior = Zero()
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
-    if prior:
-        explicit_prior = (
-            prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
-        )
-    else:
-        explicit_prior = False
+    explicit_prior = prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
     if F_fn is None and explicit_prior:
 
         def F_fn(x, data_fidelity, prior, cur_params, y, physics):
