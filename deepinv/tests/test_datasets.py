@@ -48,17 +48,17 @@ def download_Urban100():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_urban100_dataset(download_div2k):
+def test_load_urban100_dataset(download_Urban100):
     """Check that DIV2K/DIV2K_train_HR contains 800 items."""
-    dataset = DIV2K(download_div2k, download=False)
+    dataset = DIV2K(download_Urban100, download=False)
     assert (
         len(dataset) == 100
     ), f"Dataset should have been of len 100, instead got {len(dataset)}."
 
 
-def test_load_div2K_img(download_div2k):
+def test_load_div2K_img(download_Urban100):
     """Check that DIV2K/DIV2K_train_HR contains images."""
-    dataset = DIV2K(download_div2k, download=False)
+    dataset = DIV2K(download_Urban100, download=False)
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
