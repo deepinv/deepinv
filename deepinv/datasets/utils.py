@@ -4,6 +4,7 @@ import shutil
 import zipfile
 
 import requests
+from tqdm.auto import tqdm
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -47,10 +48,13 @@ def download_zipfile(url, save_path):
     # `stream=True` to avoid loading in memory an entire file, instead get a chunk
     # useful when downloading huge file
     response = requests.get(url, stream=True)
-    with open(save_path, "wb") as file:
-        # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
-        # https://requests.readthedocs.io/en/latest/user/quickstart/#raw-response-content
-        shutil.copyfileobj(response.raw, file)
+    file_size = int(response.headers.get('Content-Length', 0))
+    # use tqdm progress bar to follow progress on downloading zipfile
+    with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
+        with open(save_path, "wb") as file:
+            # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
+            # https://requests.readthedocs.io/en/latest/user/quickstart/#raw-response-content
+            shutil.copyfileobj(r_raw, file)
     del response
 
 
