@@ -13,7 +13,9 @@ class Urban100HR(torch.utils.data.Dataset):
     The Urban100 dataset contains 100 images of urban scenes. 
     It commonly used as a test set to evaluate the performance of super-resolution models.
 
-    Raw data file structure :
+    
+    **Raw data file structure :** ::
+    
         self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
                    |               | 
                    |               -- img_100_SRF_2_SRCNN.png
@@ -24,8 +26,10 @@ class Urban100HR(torch.utils.data.Dataset):
                    -- readme.txt
                    -- source_selected.xlsx
                    -- Urban100_SR.zip
+
     For each image in the dataset, several variations of the same image exist.
-    For more information, look at `readme.txt`.
+    For this class, we are dealing with only high resolution images in `image_SRF_4` folder.
+    For more information about the different versions, look at `readme.txt`.
 
     >>> root = "/path/to/dataset/Urban100"
     ... dataset = Urban100HR(root=root, download=True)  # will download dataset at root
