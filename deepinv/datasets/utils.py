@@ -62,5 +62,8 @@ def extract_zipfile(file_path, extract_dir):
     """Extract a local zipfile."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
-        # Extract all the contents of the zip file to the specified dir
-        zip_ref.extractall(extract_dir)
+        # progress bar on the total number of files to be extracted 
+        # since files may be very huge or very small, the extraction time vary per file 
+        # thus the progres bar will not move linearly with time
+        for file_to_be_extracted in tqdm(zip_ref.infolist(), desc='Extracting'):
+            zip_ref.extract(file_to_be_extracted, extract_dir)
