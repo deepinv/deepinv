@@ -253,6 +253,7 @@ class BaseOptim(nn.Module):
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
             eps_anderson_acc=eps_anderson_acc,
+            verbose=verbose,
         )
 
     def update_params_fn(self, it):
