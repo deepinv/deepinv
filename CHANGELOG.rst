@@ -19,6 +19,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
 - Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
 
 
@@ -58,6 +59,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed the None prior (:gh:`233` by `Samuel Hurault`_) - 04/06/2024
 - Fixed the conjugate gradient torch.nograd for teh demos, accelerated)
 - Fixed torch.nograd in demos for faster generation of the doc
 - Corrected the padding for the convolution

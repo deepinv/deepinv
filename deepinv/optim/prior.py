@@ -127,6 +127,14 @@ class Zero(Prior):
         super().__init__()
         self.explicit_prior = True
 
+    def g(self, x, *args, **kwargs):
+        r"""
+        Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
+
+        It returns a tensor of zeros of the same shape as :math:`x`.
+        """
+        return torch.zeros_like(x)
+
     def grad(self, x, *args):
         r"""
         Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.

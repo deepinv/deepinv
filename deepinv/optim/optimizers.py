@@ -501,6 +501,9 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
     """
+    # If no prior is given, we set it to a zero prior.
+    if prior is None:
+        prior = Zero()
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     if prior:
         explicit_prior = (

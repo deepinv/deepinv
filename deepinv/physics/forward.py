@@ -469,7 +469,7 @@ class LinearPhysics(Physics):
             tol=self.tol,
         )
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True):
+    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
 
@@ -488,8 +488,8 @@ class LinearPhysics(Physics):
         x /= torch.norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
-            y = self.A(x)
-            y = self.A_adjoint(y)
+            y = self.A(x, **kwargs)
+            y = self.A_adjoint(y, **kwargs)
             z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
@@ -503,7 +503,7 @@ class LinearPhysics(Physics):
 
         return z.real
 
-    def adjointness_test(self, u):
+    def adjointness_test(self, u, **kwargs):
         r"""
         Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
 
@@ -513,18 +513,18 @@ class LinearPhysics(Physics):
 
         """
         u_in = u  # .type(self.dtype)
-        Au = self.A(u_in)
+        Au = self.A(u_in, **kwargs)
 
         if isinstance(Au, tuple) or isinstance(Au, list):
             V = [randn_like(au) for au in Au]
-            Atv = self.A_adjoint(V)
+            Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
             for au, v in zip(Au, V):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:
             v = randn_like(Au)
-            Atv = self.A_adjoint(v)
+            Atv = self.A_adjoint(v, **kwargs)
 
             s1 = (v.conj() * Au).flatten().sum()
 
@@ -532,7 +532,7 @@ class LinearPhysics(Physics):
 
         return s1.conj() - s2
 
-    def prox_l2(self, z, y, gamma):
+    def prox_l2(self, z, y, gamma, **kwargs):
         r"""
         Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
 
@@ -546,8 +546,8 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) estimated signal tensor
 
         """
-        b = self.A_adjoint(y) + 1 / gamma * z
-        H = lambda x: self.A_adjoint(self.A(x)) + 1 / gamma * x
+        b = self.A_adjoint(y, **kwargs) + 1 / gamma * z
+        H = lambda x: self.A_adjoint(self.A(x, **kwargs), **kwargs) + 1 / gamma * x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
