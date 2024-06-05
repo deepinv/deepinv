@@ -53,7 +53,7 @@ class FISTAIteration(OptimIterator):
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:` \gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
-    :math:`\alpha_k = (k + a)/ a `.
+    :math:`\alpha_k = (k + a - 1) / (k + a) `.
     """
 
     def __init__(self, a=3, **kwargs):
@@ -80,7 +80,7 @@ class FISTAIteration(OptimIterator):
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
         k = 0 if "it" not in X else X["it"]
-        alpha = (k + self.a) / self.a
+        alpha = (k + self.a - 1) / (k + self.a)
 
         if not self.g_first:
             z = self.f_step(z_prev, cur_data_fidelity, cur_params, y, physics)
