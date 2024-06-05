@@ -41,6 +41,9 @@ def calculate_md5_for_folder(folder_path: str):
 
 def download_zipfile(url, save_path):
     """Download zipfile from the Internet."""
+    # Ensure the directory containing `save_path`` exists
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
     # `stream=True` to avoid loading in memory an entire file, instead get a chunk
     # useful when downloading huge file
     response = requests.get(url, stream=True)
