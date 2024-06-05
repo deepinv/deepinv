@@ -10,14 +10,14 @@ from .utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
 class Urban100HR(torch.utils.data.Dataset):
     """Dataset for `Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
-    The Urban100 dataset contains 100 images of urban scenes. 
+    The Urban100 dataset contains 100 images of urban scenes.
     It commonly used as a test set to evaluate the performance of super-resolution models.
 
-    
+
     **Raw data file structure :** ::
-    
+
         self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
-                   |               | 
+                   |               |
                    |               -- img_100_SRF_2_SRCNN.png
                    |
                    -- image_SRF_4 --- img_001_SRF_4_A+.png
@@ -97,7 +97,9 @@ class Urban100HR(torch.utils.data.Dataset):
                 """
                 )
 
-        self.img_list = sorted([file for file in os.listdir(self.img_dir) if file.endswith("HR.png")])
+        self.img_list = sorted(
+            [file for file in os.listdir(self.img_dir) if file.endswith("HR.png")]
+        )
 
     def __len__(self) -> int:
         return len(self.img_list)
@@ -116,7 +118,7 @@ class Urban100HR(torch.utils.data.Dataset):
 
         We verify that `self.root` has the following structure:
             self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
-                       |               | 
+                       |               |
                        |               -- img_100_SRF_2_SRCNN.png
                        |
                        -- image_SRF_4 --- img_001_SRF_4_A+.png

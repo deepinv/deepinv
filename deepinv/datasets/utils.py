@@ -48,7 +48,7 @@ def download_zipfile(url, save_path):
     # `stream=True` to avoid loading in memory an entire file, instead get a chunk
     # useful when downloading huge file
     response = requests.get(url, stream=True)
-    file_size = int(response.headers.get('Content-Length', 0))
+    file_size = int(response.headers.get("Content-Length", 0))
     # use tqdm progress bar to follow progress on downloading zipfile
     with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
         with open(save_path, "wb") as file:
@@ -62,8 +62,8 @@ def extract_zipfile(file_path, extract_dir):
     """Extract a local zipfile."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
-        # progress bar on the total number of files to be extracted 
-        # since files may be very huge or very small, the extraction time vary per file 
+        # progress bar on the total number of files to be extracted
+        # since files may be very huge or very small, the extraction time vary per file
         # thus the progres bar will not move linearly with time
-        for file_to_be_extracted in tqdm(zip_ref.infolist(), desc='Extracting'):
+        for file_to_be_extracted in tqdm(zip_ref.infolist(), desc="Extracting"):
             zip_ref.extract(file_to_be_extracted, extract_dir)
