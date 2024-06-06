@@ -11,7 +11,7 @@ class Urban100HR(torch.utils.data.Dataset):
     """Dataset for `Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
     The Urban100 dataset contains 100 images of urban scenes.
-    It commonly used as a test set to evaluate the performance of super-resolution models.
+    It is commonly used as a test set to evaluate the performance of super-resolution models.
 
 
     **Raw data file structure :** ::
@@ -27,19 +27,27 @@ class Urban100HR(torch.utils.data.Dataset):
                    -- source_selected.xlsx
                    -- Urban100_SR.zip
 
-    For each image in the dataset, several variations of the same image exist.
-    For this class, we are dealing with only high resolution images in `image_SRF_4` folder.
-    For more information about the different versions, look at `readme.txt`.
-
-    >>> root = "/path/to/dataset/Urban100"
-    ... dataset = Urban100HR(root=root, download=True)  # will download dataset at root
-    ... dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
+    This dataset wrapper gives access to the 100 high resolution images in the `image_SRF_4` folder.
+    For more information about the raw data, you can look at `readme.txt`.
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
-    :param bool download: If True, downloads the dataset from the internet and puts it in root directory.
+    :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param callable, optional transform: A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+
+    |sep|
+
+    :Examples:
+
+        Instanciate dataset and download raw data from the Internet
+
+            >>> root = "/path/to/dataset/Urban100"
+            >>> dataset = Urban100HR(root=root, download=True)  # will download dataset at root
+            >>> dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
+            >>> print(len(dataset))
+            >>> assert len(dataset) == 100                      # check that we have 100 images
+
     """
 
     zipfile_urls = {
@@ -116,7 +124,8 @@ class Urban100HR(torch.utils.data.Dataset):
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
 
-        We verify that `self.root` has the following structure:
+        `self.root` should have the following structure: ::
+
             self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
                        |               |
                        |               -- img_100_SRF_2_SRCNN.png
