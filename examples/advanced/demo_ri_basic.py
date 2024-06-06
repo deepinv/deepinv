@@ -305,7 +305,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 1e-4 * opnorm  # wavelet regularisation parameter
+lamb = 2e-4 * opnorm  # wavelet regularisation parameter
 params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 50
 early_stop = True
