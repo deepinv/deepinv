@@ -23,5 +23,5 @@ from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
-
+from .radio import MeasOpRI
 from .phase_retrieval import PhaseRetrieval, RandomPhaseRetrieval
