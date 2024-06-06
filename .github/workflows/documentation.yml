@@ -27,6 +27,9 @@ jobs:
       - name: Install git repository optional dependencies
         run: |
           python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
+      - name: Install dependencies needed for pytest through pipy
+        run: |
+          pip install datasets
       - name: Run doctests
         run: |
           find . \( -name '*.py' -o -name '*.rst' \) | xargs grep -l '>>>' | while read file; do
