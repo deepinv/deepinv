@@ -189,23 +189,20 @@ def find_operator(name, device):
             "git+https://github.com/fbcotter/pytorch_wavelets.git`",
         )
 
-        # Create a meshgrid
+        # Generate regular grid for sampling
         y = torch.linspace(-1, 1, img_size[-2])
         x = torch.linspace(-1, 1, img_size[-1])
         grid_y, grid_x = torch.meshgrid(y, x)
-
-        # Normalize to [-pi, pi]
-        uv = torch.stack((grid_y, grid_x), dim=-1) * torch.pi
+        uv = torch.stack((grid_y, grid_x), dim=-1) * torch.pi  # normalize [-pi, pi]
 
         # Reshape to [nb_points x 2]
         uv = uv.view(-1, 2)
-
-        # Move to the desired device
         uv = uv.to(device)
 
         if "weighted" in name:
-            # dataWeight = torch.ones(uv.shape[0], device=device)
-            dataWeight = torch.linspace(0.01, 0.99, uv.shape[0], device=device)
+            dataWeight = torch.linspace(
+                0.01, 0.99, uv.shape[0], device=device
+            )  # take a non-trivial weight
         else:
             dataWeight = torch.tensor(
                 [
