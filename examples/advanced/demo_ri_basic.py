@@ -55,9 +55,12 @@ class MeasOpRI(LinearPhysics):
     Radio Interferometry measurement operator.
 
     Args:
-        img_size (tuple): Size of the target image.
+        img_size (tuple): Size of the target image, e.g., (H, W).
         samples_loc (torch.Tensor): Normalized sampling locations in the Fourier domain.
         dataWeight (torch.Tensor): Data weighting for the measurements.
+        interp_points (Union[int, Sequence[int]]): Number of neighbors to use for interpolation in each dimension. Default is `7`.
+        k_oversampling (float): Oversampling of the k space grid, should be between `1.25` and `2`. Default is `2`.
+        real_projection (bool): Apply real projection after the adjoint NUFFT.
         device (torch.device): Device where the operator is computed.
     """
 
@@ -70,28 +73,63 @@ class MeasOpRI(LinearPhysics):
                 1.0,
             ]
         ),
+        k_oversampling=2,
+        interp_points=7,
+        real_projection=True,
         device=torch.device("cpu"),
         **kwargs,
     ):
         super(MeasOpRI, self).__init__(**kwargs)
 
         self.device = device
-        self.nufftObj = tkbn.KbNufft(im_size=img_size, numpoints=7, device=device)
-        self.adjnufftObj = tkbn.KbNufftAdjoint(
-            im_size=img_size, numpoints=7, device=device
+        self.k_oversampling = k_oversampling
+        self.interp_points = interp_points
+        self.img_size = img_size
+        self.real_projection = real_projection
+
+        # Check image size format
+        assert len(self.img_size) == 2
+
+        # Define oversampled grid
+        self.grid_size = (
+            int(img_size[0] * self.k_oversampling),
+            int(img_size[1] * self.k_oversampling),
         )
-        self.samples_loc = samples_loc.to(device)
-        self.dataWeight = dataWeight.to(device=device)
+
+        self.samples_loc = samples_loc.to(self.device)
+        self.dataWeight = dataWeight.to(self.device)
+
+        self.nufftObj = tkbn.KbNufft(
+            im_size=self.img_size,
+            grid_size=self.grid_size,
+            numpoints=self.interp_points,
+            device=self.device,
+        )
+        self.adjnufftObj = tkbn.KbNufftAdjoint(
+            im_size=self.img_size,
+            grid_size=self.grid_size,
+            numpoints=self.interp_points,
+            device=self.device,
+        )
+
+        # Define adjoint operator projection
+        if self.real_projection:
+            self.adj_projection = lambda x: torch.real(x).to(torch.float)
+        else:
+            self.adj_projection = lambda x: x
 
     def setWeight(self, w):
-        self.dataWeight = w.to(device=device)
+        self.dataWeight = w.to(self.device)
 
     def A(self, x):
-        return self.nufftObj(x.to(torch.complex64), self.samples_loc) * self.dataWeight
+        return (
+            self.nufftObj(x.to(torch.complex64), self.samples_loc, norm="ortho")
+            * self.dataWeight
+        )
 
     def A_adjoint(self, y):
-        return torch.real(self.adjnufftObj(y * self.dataWeight, self.samples_loc)).to(
-            torch.float
+        return self.adj_projection(
+            self.adjnufftObj(y * self.dataWeight, self.samples_loc, norm="ortho")
         )
 
 
@@ -147,12 +185,12 @@ scatter_plot([uv], titles=["uv coverage"], s=0.001)
 # Simulating the measurements
 # ----------------------------------------------------------------------------------------
 # We now have all the data and tools to generate our measurements!
-# The noise level :math:`\tau` in the spacial Fourier domain is set to ``0.5976``.
+# The noise level :math:`\tau` in the spacial Fourier domain is set to ``0.5976 * 2e-3``.
 # This value will preserve the dynamic range of the groundtruth image in this case.
 # Please check `Terris et al. (2024) <https://doi.org/10.1093/mnras/stac2672>`_ and `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_
 # for more information about the relationship between the noise level in the Fourier domain and the dynamic range of the target image.
 
-tau = 0.5976
+tau = 0.5976 * 2e-3
 
 # build sensing operator
 physics = MeasOpRI(
