@@ -76,7 +76,7 @@ class MeasOpRI(LinearPhysics):
         k_oversampling=2,
         interp_points=7,
         real_projection=True,
-        device=torch.device("cpu"),
+        device="cpu",
         **kwargs,
     ):
         super(MeasOpRI, self).__init__(**kwargs)
