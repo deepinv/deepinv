@@ -36,6 +36,7 @@ OPERATORS = [
     "pansharpen_reflect",
     "pansharpen_replicate",
     "complex_compressed_sensing",
+    "radio",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -177,6 +178,36 @@ def find_operator(name, device):
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
+    elif name == "radio":
+        img_size = (1, 64, 64)
+        pytest.importorskip(
+            "torchkbnufft",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+
+        # Create a meshgrid
+        y = torch.linspace(-1, 1, img_size[-2])
+        x = torch.linspace(-1, 1, img_size[-1])
+        grid_y, grid_x = torch.meshgrid(y, x)
+
+        # Normalize to [-pi, pi]
+        uv = torch.stack((grid_y, grid_x), dim=-1) * torch.pi
+
+        # Reshape to [nb_points x 2]
+        uv = uv.view(-1, 2)
+
+        # Move to the desired device
+        uv = uv.to(device)
+
+        p = dinv.physics.MeasOpRI(
+            img_size=img_size[1:],
+            samples_loc=uv.permute((1, 0)),
+            dtype=torch.float,
+            device=device,
+            noise_model=dinv.physics.GaussianNoise(0.0),
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
