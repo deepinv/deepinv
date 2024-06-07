@@ -4,7 +4,7 @@ import os
 from PIL import Image
 import torch
 
-from .utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
+from deepinv.datasets.utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
 
 
 class Urban100HR(torch.utils.data.Dataset):
