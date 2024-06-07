@@ -56,6 +56,7 @@ New Features
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
 - Added Restormer model (:gh:`185` by Antoine Regnier and Maxime SONG) - 18/04/2024
 - Added DIV2K built-in dataset (:gh:`203` by Maxime SONG) - 03/05/2024
+- Added Urban100 built-in dataset (:gh:`237` by Maxime SONG) - 07/06/2024
 
 Fixed
 ^^^^^
