@@ -210,7 +210,7 @@ def find_operator(name, device):
                 ]
             )
 
-        p = dinv.physics.MeasOpRI(
+        p = dinv.physics.RadioInterferometry(
             img_size=img_size[1:],
             samples_loc=uv.permute((1, 0)),
             dataWeight=dataWeight,

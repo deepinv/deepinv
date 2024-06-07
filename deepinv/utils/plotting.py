@@ -233,6 +233,8 @@ def scatter_plot(
     cmap="gray",
     fontsize=17,
     s=0.1,
+    linewidths=1.5,
+    color="b",
 ):
     r"""
     Plots a list of scatter plots.
@@ -292,7 +294,9 @@ def scatter_plot(
 
     for i, row_scatter in enumerate(scatters):
         for r, xy in enumerate(row_scatter):
-            axs[r, i].scatter(xy[:, 0], xy[:, 1], s=s)
+            axs[r, i].scatter(
+                xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
+            )
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")

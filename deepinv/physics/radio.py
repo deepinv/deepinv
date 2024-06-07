@@ -7,7 +7,7 @@ except:
     tkbn = ImportError("The torchkbnufft package is not installed.")
 
 
-class MeasOpRI(LinearPhysics):
+class RadioInterferometry(LinearPhysics):
     r"""
     Radio Interferometry measurement operator.
 
@@ -15,8 +15,8 @@ class MeasOpRI(LinearPhysics):
 
 
     :param tuple img_size: Size of the target image, e.g., (H, W).
-    :param torch.Tensor samples_loc: Normalized sampling locations in the Fourier domain.
-    :param torch.Tensor dataWeight: Data weighting for the measurements.
+    :param torch.Tensor samples_loc: Normalized sampling locations in the Fourier domain (Size: N x 2).
+    :param torch.Tensor dataWeight: Data weighting for the measurements (Size: N). Default is `torch.tensor([1.0])`.
     :param Union[int, Sequence[int]] interp_points: Number of neighbors to use for interpolation in each dimension. Default is `7`.
     :param float k_oversampling: Oversampling of the k space grid, should be between `1.25` and `2`. Default is `2`.
     :param bool real_projection: Apply real projection after the adjoint NUFFT. Warning: If the `real_projection` is `False`, the output of the adjoint will have a complex-typed rather than a float-typed.
@@ -38,7 +38,7 @@ class MeasOpRI(LinearPhysics):
         device="cpu",
         **kwargs,
     ):
-        super(MeasOpRI, self).__init__(**kwargs)
+        super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device
         self.k_oversampling = k_oversampling

@@ -134,6 +134,17 @@ class MeasOpRI(LinearPhysics):
 
 
 # %%
+#
+# This measurement operator is readily available in the Physics module in :class:`deepinv.physics.RadioInterferometry`
+# and can be used directly as
+#
+# ::
+#
+#         from deepinv.physics import RadioInterferometry
+#
+#         physics = RadioInterferometry(img_size=img_size, samples_loc=samples_loc, device=device)
+#
+#
 # Groundtruth image
 # ----------------------------------------------------------------------------------------
 # The following data is our groundtruth with the settings of Experiment II in `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
@@ -179,7 +190,7 @@ plot(
 uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
 uv = torch.from_numpy(uv).to(device)
 
-scatter_plot([uv], titles=["uv coverage"], s=0.001)
+scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 
 # %%
 # Simulating the measurements

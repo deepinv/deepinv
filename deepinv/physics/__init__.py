@@ -27,4 +27,4 @@ from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
 )
-from .radio import MeasOpRI
+from .radio import RadioInterferometry
