@@ -1,7 +1,7 @@
 import torch
+from .base import Transform
 
-
-class Shift(torch.nn.Module):
+class Shift(Transform):
     r"""
     Fast integer 2D translations.
 
@@ -11,9 +11,8 @@ class Shift(torch.nn.Module):
     :param float shift_max: maximum shift as fraction of total height/width.
     """
 
-    def __init__(self, n_trans=1, shift_max=1.0):
-        super(Shift, self).__init__()
-        self.n_trans = n_trans
+    def __init__(self, *args, shift_max=1.0, **kwargs):
+        super().__init__(*args, **kwargs)
         self.shift_max = shift_max
 
     def forward(self, x):
@@ -29,12 +28,12 @@ class Shift(torch.nn.Module):
         H_max, W_max = int(self.shift_max * H), int(self.shift_max * W)
 
         x_shift = (
-            torch.arange(-H_max, H_max)[torch.randperm(2 * H_max)][: self.n_trans]
+            torch.arange(-H_max, H_max)[torch.randperm(2 * H_max, generator=self.rng)][: self.n_trans]
             if H_max > 0
             else torch.zeros(self.n_trans)
         )
         y_shift = (
-            torch.arange(-W_max, W_max)[torch.randperm(2 * W_max)][: self.n_trans]
+            torch.arange(-W_max, W_max)[torch.randperm(2 * W_max, generator=self.rng)][: self.n_trans]
             if W_max > 0
             else torch.zeros(self.n_trans)
         )
