@@ -14,7 +14,7 @@ class Urban100HR(torch.utils.data.Dataset):
     It is commonly used as a test set to evaluate the performance of super-resolution models.
 
 
-    **Raw data file structure :** ::
+    **Raw data file structure:** ::
 
         self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
                    |               |
@@ -38,13 +38,15 @@ class Urban100HR(torch.utils.data.Dataset):
 
     |sep|
 
-    Instanciate dataset and download raw data from the Internet
+    :Examples:
 
-        >>> root = "/path/to/dataset/Urban100"
-        >>> dataset = Urban100HR(root=root, download=True)  # will download dataset at root
-        >>> dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
-        >>> print(len(dataset))
-        >>> assert len(dataset) == 100                      # check that we have 100 images
+        Instanciate dataset and download raw data from the Internet: ::
+    
+            root = "/path/to/dataset/Urban100"
+            dataset = Urban100HR(root=root, download=True)  # will download dataset at root
+            dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
+            print(len(dataset))
+            assert len(dataset) == 100                      # check that we have 100 images
 
     """
 
