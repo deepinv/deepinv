@@ -50,7 +50,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 from deepinv.physics import LinearPhysics
 
 
-class MeasOpRI(LinearPhysics):
+class RadioInterferometry(LinearPhysics):
     r"""
     Radio Interferometry measurement operator.
 
@@ -79,7 +79,7 @@ class MeasOpRI(LinearPhysics):
         device="cpu",
         **kwargs,
     ):
-        super(MeasOpRI, self).__init__(**kwargs)
+        super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device
         self.k_oversampling = k_oversampling
@@ -204,7 +204,7 @@ scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 tau = 0.5976 * 2e-3
 
 # build sensing operator
-physics = MeasOpRI(
+physics = RadioInterferometry(
     img_size=image_gdth.shape[-2:],
     samples_loc=uv.permute((1, 0)),
     real=True,
@@ -212,6 +212,7 @@ physics = MeasOpRI(
 )
 
 # Generate the physics
+torch.manual_seed(0)
 y = physics.A(image_gdth)
 noise = (torch.randn_like(y) + 1j * torch.randn_like(y)) / np.sqrt(2)
 y = y + tau * noise
@@ -316,7 +317,7 @@ plot_metrics = True  # compute performance and convergence metrics along the alg
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 2e-4 * opnorm  # wavelet regularisation parameter
+lamb = 1e-3 * opnorm  # wavelet regularisation parameter
 params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 50
 early_stop = True
