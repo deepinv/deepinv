@@ -38,15 +38,13 @@ class Urban100HR(torch.utils.data.Dataset):
 
     |sep|
 
-    :Examples:
+    Instanciate dataset and download raw data from the Internet
 
-        Instanciate dataset and download raw data from the Internet
-
-            >>> root = "/path/to/dataset/Urban100"
-            >>> dataset = Urban100HR(root=root, download=True)  # will download dataset at root
-            >>> dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
-            >>> print(len(dataset))
-            >>> assert len(dataset) == 100                      # check that we have 100 images
+        >>> root = "/path/to/dataset/Urban100"
+        >>> dataset = Urban100HR(root=root, download=True)  # will download dataset at root
+        >>> dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
+        >>> print(len(dataset))
+        >>> assert len(dataset) == 100                      # check that we have 100 images
 
     """
 
@@ -77,8 +75,7 @@ class Urban100HR(torch.utils.data.Dataset):
                     os.makedirs(self.root)
                 if os.path.exists(self.img_dir):
                     raise ValueError(
-                        f"""
-                    The image folder already exists,
+                    f"""The image folder already exists,
                     thus the download is aborted.
                     Please set `download=False`
                     OR remove `{self.img_dir}`."""
@@ -98,11 +95,9 @@ class Urban100HR(torch.utils.data.Dataset):
             # stop the execution since the dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
-                    f"""
-                Dataset not found at `{self.root}`.
-                Please set `root` correctly (currently `root={self.root}`) 
-                OR set `download=True` (currently `download={download}`).
-                """
+                f"""Dataset not found at `{self.root}`.
+                Please set `root` correctly (currently `root={self.root}`)
+                OR set `download=True` (currently `download={download}`)."""
                 )
 
         self.img_list = sorted(
