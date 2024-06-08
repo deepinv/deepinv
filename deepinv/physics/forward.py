@@ -248,6 +248,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
+    def update(self, **kwargs):
+        r"""
+        Update the parameters of the forward operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        if hasattr(self, "update_parameters"):
+            self.update_parameters(**kwargs)
+        else:
+            raise NotImplementedError("update_parameters method not implemented for this physics operator")
+
+        if self.noise_model is not None:
+            self.noise_model.update_parameters(**kwargs)
 
 class LinearPhysics(Physics):
     r"""
@@ -740,6 +753,15 @@ class DecomposablePhysics(LinearPhysics):
             mask = 1 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
+
+    def update_parameters(self, mask=None, **kwargs):
+        r"""
+        Updates the singular values of the operator.
+
+        :param torch.nn.Parameter, float mask: singular values.
+        """
+        if mask is not None:
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
 
 class Denoising(DecomposablePhysics):
