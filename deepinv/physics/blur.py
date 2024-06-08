@@ -529,7 +529,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
-            self.set_params(filters, multipliers, padding)
+            self.update_parameters(filters, multipliers, padding)
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
