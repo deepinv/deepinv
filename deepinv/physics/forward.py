@@ -782,8 +782,7 @@ class Denoising(DecomposablePhysics):
         >>> from deepinv.physics import Denoising, GaussianNoise
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = Denoising()
-        >>> physics.noise_model = GaussianNoise(sigma=0.1)
+        >>> physics = Denoising(GaussianNoise(sigma=0.1))
         >>> with torch.no_grad():
         ...     physics(x)
         tensor([[[[ 0.7302, -0.2064, -1.0712],
@@ -792,8 +791,6 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):
-        super().__init__(**kwargs)
-        if noise is None:
-            noise = GaussianNoise(sigma=0.0)
-        self.noise_model = noise
+    def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
+        super().__init__(noise_model=noise_model, **kwargs)
+
