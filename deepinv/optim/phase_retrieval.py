@@ -44,7 +44,7 @@ def spectral_methods(
     return x
 
 
-def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor, threshold=1e-5) -> torch.Tensor:
     r"""
     Corrects the global phase of the reconstructed image.
 
@@ -64,7 +64,7 @@ def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor) -> torch.Tensor
     for i in range(n_imgs):
         for j in range(n_channels):
             e_minus_phi = (x_recon[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
-            if e_minus_phi.var() < 1e-3:
+            if e_minus_phi.var() < threshold:
                 print(f"Image {i}, channel {j} has a constant global phase shift.")
             else:
                 print(f"Image {i}, channel {j} does not have a global phase shift.")

@@ -200,7 +200,10 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
 
         self.diagonals = []
         for _ in range(self.n_layers):
-            diagonal = torch.rand(self.output_shape, device=self.device)
+            if self.mode == "oversampling":
+                diagonal = torch.rand(self.output_shape, device=self.device)
+            else:
+                diagonal = torch.rand(self.img_shape, device=self.device)
             diagonal = 2 * torch.pi * diagonal
             diagonal = torch.exp(1j * diagonal)
             self.diagonals.append(diagonal)
@@ -208,22 +211,28 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         def A(x):
             assert x.shape[1:] == self.img_shape, "x doesn't have the correct shape"
 
-            if self.mode == "oversampling" or self.mode == "equisampling":
+            if self.mode == "oversampling":
                 zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
                 x = torch.nn.ZeroPad2d(zero_padding)(x)
-            else:
-                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
-                x = x[:,:,trimming:-trimming,trimming:-trimming]
 
             for i in range(self.n_layers):
                 diagonal = self.diagonals[i]
                 x = torch.fft.fft2(x, norm="ortho")
                 x = diagonal * x
             x = torch.fft.fft2(x, norm="ortho")
+
+            if self.mode == "undersampling":
+                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
+                x = x[:,:,trimming:-trimming,trimming:-trimming]
+            
             return x
 
         def A_adjoint(y):
             assert y.shape[1:] == self.output_shape, "y doesn't have the correct shape"
+
+            if self.mode == "undersampling":
+                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
+                y = torch.nn.ZeroPad2d(trimming)(y)
 
             for i in range(self.n_layers):
                 diagonal = self.diagonals[-i - 1]
@@ -233,11 +242,11 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
             
             if self.mode == "oversampling":
                 zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
-                return y[:,:,zero_padding:-zero_padding,zero_padding
+                y = y[:,:,zero_padding:-zero_padding,zero_padding
                          :-zero_padding]
-            else:
-                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
-                return torch.nn.ZeroPad2d(trimming)(y)
+            
+            return y
+
 
         super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint),**kwargs)
         self.name = f"PRPR_m{self.m}"

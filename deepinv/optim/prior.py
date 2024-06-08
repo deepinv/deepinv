@@ -125,10 +125,12 @@ class Zero(Prior):
 
     def __init__(self):
         super().__init__()
-        self._g = lambda x: 0.0
+        def forward(x, *args, **kwargs):
+            return torch.tensor(0.0)
+        self._g = forward
         self.explicit_prior = True
 
-    def grad(self, x, *args):
+    def grad(self, x, *args, **kwargs):
         r"""
         Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
@@ -136,7 +138,7 @@ class Zero(Prior):
         """
         return torch.zeros_like(x)
 
-    def prox(self, x, ths=1.0, gamma=1.0):
+    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""
         Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
