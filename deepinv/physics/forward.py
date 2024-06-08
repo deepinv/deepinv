@@ -257,10 +257,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
         if hasattr(self, "update_parameters"):
             self.update_parameters(**kwargs)
         else:
-            raise NotImplementedError("update_parameters method not implemented for this physics operator")
+            raise NotImplementedError(
+                "update_parameters method not implemented for this physics operator"
+            )
 
         if self.noise_model is not None:
             self.noise_model.update_parameters(**kwargs)
+
 
 class LinearPhysics(Physics):
     r"""
@@ -793,4 +796,3 @@ class Denoising(DecomposablePhysics):
 
     def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(noise_model=noise_model, **kwargs)
-

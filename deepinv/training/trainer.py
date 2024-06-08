@@ -453,9 +453,7 @@ class Trainer:
                     cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            meters = (
-                self.logs_total_loss_train if train else self.logs_total_loss_eval
-            )
+            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
             meters.update(loss_total.item())
             logs[f"TotalLoss"] = meters.avg
 
@@ -540,8 +538,6 @@ class Trainer:
             logs["step"] = epoch
             self.log_metrics_wandb(logs)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
-
-
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""

@@ -481,6 +481,7 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None:
             self.set_mask(filter)
 
+
 class SpaceVaryingBlur(LinearPhysics):
     r"""
 
@@ -594,4 +595,3 @@ class SpaceVaryingBlur(LinearPhysics):
             self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
         if padding is not None:
             self.padding = padding
-
