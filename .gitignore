@@ -12,7 +12,6 @@ results/
 *.pyc
 
 # Files
-*.pt
 *.h5
 *.png
 *.pth
