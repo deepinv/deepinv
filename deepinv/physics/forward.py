@@ -698,7 +698,7 @@ class DecomposablePhysics(LinearPhysics):
         """
 
         if mask is not None:
-            self.mask = mask
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
         if isinstance(self.mask, float):
             mask = self.mask
