@@ -333,7 +333,8 @@ class WaveletPrior(Prior):
     :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
     :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
 
-    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{c_{\text{min}, c_{\text{max}}}`.
+    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{c_{\text{min}, c_{\text{max}}}(x)`,
+    where :math:`\iota_{c_{\text{min}, c_{\text{max}}}(x)` is the indicator function of the interval :math:`[c_{\text{min}}, c_{\text{max}}]`.
 
     .. note::
         Following common practice in signal processing, only detail coefficients are regularized, and the approximation

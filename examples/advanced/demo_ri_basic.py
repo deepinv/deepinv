@@ -44,7 +44,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # and :math:`\epsilon \in \mathbb{C}^{m}` is a realization of some i.i.d. Gaussian random noise.
 #
 # This operator can be implemented with `TorchKbNUFFT <https://github.com/mmuckley/torchkbnufft>`_.
-# Below, we propose an implementation wrapping it in :class:`deepinv.physics.LinearPhysics`.
+# Below, we propose an implementation using the :class:`deepinv.physics.LinearPhysics`.
 # As such, operations like grad and prox are available.
 
 from deepinv.physics import LinearPhysics
@@ -150,7 +150,7 @@ class RadioInterferometry(LinearPhysics):
 # The following data is our groundtruth with the settings of Experiment II in `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
 # The groundtruth data has been normalized in the [0, 1] range.
 # As usual in radio interferometric imaging, the data has high dynamic range,
-# i.e. the ratio between the faintest and highest emissions is higher than in traditional low-level vision task.
+# i.e. the ratio between the faintest and highest emissions is higher than in traditional low-level vision tasks.
 # In the case of this particular image, this ratio is of ``5000``.
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
