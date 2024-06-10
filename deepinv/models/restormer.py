@@ -87,7 +87,7 @@ class Restormer(nn.Module):
         # stores the filename of pretrained weights, used later in the code to download the pth file from the HuggingFace Hub
         weights_pth_filename = None
         # When loading pretrained weights from HuggingFace Hub, we check if our model is compatible with the weights.
-        if pretrained=="denoising":
+        if pretrained == "denoising":
             self.is_standard_denoising_network(
                 in_channels,
                 out_channels,
