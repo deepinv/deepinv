@@ -269,6 +269,19 @@ Compressive operators are implemented in the following classes:
    deepinv.physics.SinglePixelCamera
 
 
+Radio interferometric imaging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The radio interferometric imaging operator is implemented in the following class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.RadioInterferometry
+
+
 Single-photon lidar
 ^^^^^^^^^^^^^^^^^^^^^^^
 Single-photon lidar is a popular technique for depth ranging and imaging.

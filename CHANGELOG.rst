@@ -11,6 +11,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024
 
 
 Fixed
@@ -169,3 +170,5 @@ Authors
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
+.. _Chao Tang: https://github.com/ChaoTang0330
+.. _Tobias Liaudat: https://github.com/tobias-liaudat

@@ -83,6 +83,11 @@ class WaveletDenoiser(nn.Module):
     def psi(x, wavelet="db2", level=2, dimension=2):
         r"""
         Returns a flattened list containing the wavelet coefficients.
+
+        :param torch.Tensor x: input image.
+        :param str wavelet: mother wavelet.
+        :param int level: decomposition level.
+        :param int dimension: dimension of the wavelet transform (either 2 or 3).
         """
         if dimension == 2:
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode="zero", level=level)
@@ -335,13 +340,19 @@ class WaveletDictDenoiser(nn.Module):
         max_iter=10,
         non_linearity="soft",
         wvdim=2,
+        device="cpu",
     ):
         super().__init__()
         self.level = level
+        self.list_wv = list_wv
         self.list_prox = nn.ModuleList(
             [
                 WaveletDenoiser(
-                    level=level, wv=wv, non_linearity=non_linearity, wvdim=wvdim
+                    level=level,
+                    wv=wv,
+                    non_linearity=non_linearity,
+                    wvdim=wvdim,
+                    device=device,
                 )
                 for wv in list_wv
             ]
@@ -371,3 +382,12 @@ class WaveletDictDenoiser(nn.Module):
             if rel_crit < 1e-3:
                 break
         return x
+
+    def psi(self, x, **kwargs):
+        r"""
+        Returns a flattened list containing the wavelet coefficients for each wavelet.
+        """
+        vec = []
+        for p in self.list_prox:
+            vec += p.psi(x, wavelet=p.wv, level=p.level, dimension=p.dimension)
+        return vec

@@ -67,7 +67,8 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa"
+    "pyiqa",
+    "torchkbnufft"
 ]
 
 

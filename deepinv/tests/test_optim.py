@@ -407,10 +407,38 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     assert pnp.has_converged
 
 
+def get_prior(prior_name, device="cpu"):
+    if prior_name == "L1Prior":
+        prior = dinv.optim.prior.L1Prior()
+    elif prior_name == "Tikhonov":
+        prior = dinv.optim.prior.Tikhonov()
+    elif prior_name == "TVPrior":
+        prior = dinv.optim.prior.TVPrior()
+    elif "wavelet" in prior_name.lower():
+        pytest.importorskip(
+            "ptwt",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+        if prior_name == "WaveletPrior":
+            prior = dinv.optim.prior.WaveletPrior(wv="db8", level=3, device=device)
+        elif prior_name == "WaveletDictPrior":
+            prior = dinv.optim.prior.WaveletPrior(
+                wv=["db1", "db4", "db8"], level=3, device=device
+            )
+    return prior
+
+
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP", "FISTA"])
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
-    # for prior_name in ['L1Prior', 'Tikhonov']:
-    for prior_name in ["L1Prior", "Tikhonov", "TVPrior"]:
+    for prior_name in [
+        "L1Prior",
+        "Tikhonov",
+        "TVPrior",
+        "WaveletPrior",
+        "WaveletDictPrior",
+    ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
@@ -434,12 +462,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         data_fidelity = L2()
 
         # here the prior model is common for all iterations
-        if prior_name == "L1Prior":
-            prior = dinv.optim.prior.L1Prior()
-        elif prior_name == "Tikhonov":
-            prior = dinv.optim.prior.Tikhonov()
-        elif prior_name == "TVPrior":
-            prior = dinv.optim.prior.TVPrior()
+        prior = get_prior(prior_name, device=device)
 
         stepsize_dual = 1.0 if pnp_algo == "CP" else None
         params_algo = {
