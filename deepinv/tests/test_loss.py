@@ -43,7 +43,7 @@ def choose_loss(loss_name):
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Scale()))
     elif loss_name == "splittv":
-        loss.append(dinv.loss.SplittingLoss(regular_mask=True, split_ratio=0.25))
+        loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
         loss.append(dinv.loss.ScoreLoss(1.0))
@@ -92,7 +92,7 @@ def test_sure(noise_type, device):
 
     # choose noise
     torch.manual_seed(0)  # for reproducibility
-    physics = dinv.physics.Denoising(noise=noise)
+    physics = dinv.physics.Denoising(noise)
 
     batch_size = 1
     x = torch.ones((batch_size,) + imsize, device=device)
@@ -165,6 +165,11 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
 
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone)
+
+    if loss_name == "r2r":
+        model = dinv.loss.r2r_eval(model, eta=0.1, alpha=0.5, MC_samples=2)
+    elif loss_name == "splittv":
+        model = dinv.loss.splitting_eval(model, split_ratio=0.25, MC_samples=2)
 
     # choose optimizer and scheduler
     epochs = 50
@@ -258,10 +263,12 @@ def test_measplit(device):
     y = physics(x)
 
     # choose training losses
-    loss = dinv.loss.SplittingLoss(split_ratio=0.5, regular_mask=True)
-    split_loss = loss(y, physics, f)
-
     loss = dinv.loss.Neighbor2Neighbor()
     n2n_loss = loss(y, physics, f)
+
+    f = dinv.loss.splitting_eval(f, split_ratio=0.5, regular_mask=True, MC_samples=2)
+    f.eval()
+    loss = dinv.loss.SplittingLoss(split_ratio=0.5, regular_mask=True)
+    split_loss = loss(y, physics, f)
 
     assert split_loss > 0 and n2n_loss > 0
