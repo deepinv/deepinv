@@ -39,6 +39,10 @@ jobs:
         run: |
           pip install -e .[${{ matrix.extra }}]
 
+      - name: Install dependencies needed to run the HuggingFace dataset example
+        run: |
+          pip install pillow datasets
+
       - name: Test with pytest and generate coverage report
         run: |
           python -m pytest deepinv/tests
