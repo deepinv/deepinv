@@ -75,6 +75,7 @@ class MRI(DecomposablePhysics):
             )
 
         if x.size(0) != self.mask.size(0) and self.mask.size(0) != 1:
+            print(x.shape, self.mask.shape)
             raise ValueError(
                 "The batch size of the mask and the input should be the same or the mask batch size must be 1."
             )
@@ -140,7 +141,6 @@ class DynamicMRI(MRI):
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
         mask = self.mask if mask is None else mask
-        self.update_parameters(mask)
 
         mask_flatten = self.flatten(mask.expand(*x.shape)).to(x.device)  
         y = self.unflatten(
@@ -149,11 +149,11 @@ class DynamicMRI(MRI):
             ), batch_size=x.shape[0]
         )
         
+        self.update_parameters(mask) # set mask as unflattened version
         return y
     
     def A_adjoint(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
         mask = self.mask if mask is None else mask
-        self.update_parameters(mask)
 
         mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
         x = self.unflatten(
@@ -161,8 +161,13 @@ class DynamicMRI(MRI):
                 self.flatten(y), mask=torch.nn.Parameter(mask_flatten, requires_grad=False), **kwargs
             ), batch_size=y.shape[0]
         )
+
+        self.update_parameters(mask) # set mask as unflattened version
         return x
     
+    def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+        return self.A_adjoint(y, mask=mask)
+
     def update_parameters(self, mask: torch.Tensor = None, **kwargs) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,T,H,W.

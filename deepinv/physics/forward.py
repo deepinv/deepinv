@@ -680,6 +680,8 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
 
         """
+        mask = self.check_parameters(mask=mask)
+
         if mask is not None:
             self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
@@ -738,7 +740,7 @@ class DecomposablePhysics(LinearPhysics):
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y, mask=None, **kwargs):
         r"""
         Computes :math:`A^{\dagger}y = x` in an efficient manner leveraging the singular vector decomposition.
 
@@ -746,6 +748,9 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) The reconstructed image :math:`x`.
 
         """
+
+        if mask is not None:
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
         # avoid division by singular value = 0
 
@@ -765,6 +770,9 @@ class DecomposablePhysics(LinearPhysics):
         """
         if mask is not None:
             self.mask = torch.nn.Parameter(mask, requires_grad=False)
+    
+    def check_parameters(self, mask=None, **kwargs):
+        return mask
 
 
 class Denoising(DecomposablePhysics):
