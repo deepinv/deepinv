@@ -33,7 +33,7 @@ class GaussianNoise(torch.nn.Module):
 
     def __init__(self, sigma=0.1):
         super().__init__()
-        self.sigma = to_nn_parameter(sigma)
+        self.update_parameters(sigma)
 
     def forward(self, x, sigma=None, **kwargs):
         r"""
@@ -136,7 +136,7 @@ class PoissonNoise(torch.nn.Module):
     def __init__(self, gain=1.0, normalize=True, clip_positive=False):
         super().__init__()
         self.normalize = to_nn_parameter(normalize)
-        self.gain = to_nn_parameter(gain)
+        self.update_parameters(gain)
         self.clip_positive = clip_positive
 
     def forward(self, x, gain=None, **kwargs):
@@ -193,8 +193,7 @@ class PoissonGaussianNoise(torch.nn.Module):
 
     def __init__(self, gain=1.0, sigma=0.1):
         super().__init__()
-        self.gain = to_nn_parameter(gain)
-        self.sigma = to_nn_parameter(sigma)
+        self.update_parameters(gain, sigma)
 
     def forward(self, x, gain=None, sigma=None, **kwargs):
         r"""
@@ -250,7 +249,7 @@ class UniformNoise(torch.nn.Module):
 
     def __init__(self, a=0.1):
         super().__init__()
-        self.a = to_nn_parameter(a)
+        self.update_parameters(a)
 
     def forward(self, x, a=None, **kwargs):
         r"""
@@ -308,8 +307,7 @@ class LogPoissonNoise(torch.nn.Module):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0):
         super().__init__()
-        self.mu = to_nn_parameter(mu)
-        self.N0 = to_nn_parameter(N0)
+        self.update_parameters(mu, N0)
 
     def forward(self, x, mu=None, N0=None, **kwargs):
         r"""

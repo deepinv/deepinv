@@ -680,8 +680,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
 
         """
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(mask=mask)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -697,8 +696,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
         """
 
-        if mask is not None:
-            self.mask = mask
+        self.update_parameters(mask=mask)
 
         if isinstance(self.mask, float):
             mask = self.mask

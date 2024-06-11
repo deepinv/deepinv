@@ -343,8 +343,7 @@ class Blur(LinearPhysics):
     def __init__(self, filter=None, padding="valid", device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.padding = padding
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
+        self.update_parameters(filter)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -355,8 +354,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter)
 
         return conv2d(x, self.filter, self.padding)
 
@@ -369,9 +367,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter)
 
         return conv_transpose2d(y, self.filter, self.padding)
 
