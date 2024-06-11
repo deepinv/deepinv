@@ -1,5 +1,6 @@
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.physics.compressed_sensing import CompressedSensing
+from deepinv.optim.phase_retrieval import spectral_methods
 import torch
 
 
@@ -11,7 +12,7 @@ class PhaseRetrieval(Physics):
 
         \forw{x} = |Bx|^2.
 
-    The linear operator :math:`B` is defined by a :meth:`deepinv.physics.LinearPhysics` object.
+    The linear operator :math:`B` is defined by a :class:`deepinv.physics.LinearPhysics` object.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
 
@@ -39,8 +40,18 @@ class PhaseRetrieval(Physics):
         return self.B(x, **kwargs).abs().square()
 
     def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        x_init = self.B.A_adjoint(y)
-        return super().A_dagger(y, x_init)
+        r"""
+        Computes an initial reconstruction for the image :math:`x` from the measurements :math:`y`.
+
+        We use the spectral methods defined in :class:`deepinv.optim.phase_retrieval.spectral_methods` to obtain an initial inverse.
+
+        :param torch.Tensor y: measurements.
+        :return: (torch.Tensor) an initial reconstruction for image :math:`x`.
+        """
+        return spectral_methods(y, self, **kwargs)
+
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+        return self.A_dagger(y, **kwargs)
 
     def B_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.B.A_adjoint(y, **kwargs)
@@ -49,7 +60,7 @@ class PhaseRetrieval(Physics):
         r"""
         Computes the linear pseudo-inverse of :math:`B`.
 
-        :param torch.Tensor y: signal/image.
+        :param torch.Tensor y: measurements.
         :return: (torch.Tensor) the reconstruction image :math:`x`.
         """
         return self.B.A_dagger(y)

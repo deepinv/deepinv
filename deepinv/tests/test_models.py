@@ -125,9 +125,8 @@ def test_TVs_adjoint():
 def test_wavelet_adjoints():
     pytest.importorskip(
         "ptwt",
-        reason="This test requires pytorch_wavelets. It should be "
-        "installed with `pip install "
-        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        reason="This test requires ptwt. It should be "
+        "installed with `pip install ptwt`",
     )
 
     torch.manual_seed(0)

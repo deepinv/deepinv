@@ -76,6 +76,7 @@ def conjugate_gradient(
         x = x + p * alpha
         r = r - Ap * alpha
         rsnew = dot(r, r)
+        assert rsnew.isfinite().all(), "Conjugate gradient diverged"
         if all(rsnew.abs() < tol**2):
             break
         p = r + p * (rsnew / (rsold + eps))

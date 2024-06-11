@@ -259,11 +259,7 @@ class Trainer:
         :returns: The images, the titles, the grid image, and the caption.
         """
         with torch.no_grad():
-            if (
-                self.plot_measurements
-                and len(y.shape) == len(x.shape)
-                and y.shape != x.shape
-            ):
+            if len(y.shape) == len(x.shape) and y.shape != x.shape:
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
                     imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
@@ -284,6 +280,10 @@ class Trainer:
                     imgs = [back, x_net, x]
                     titles = ["Backprojection", "Output", "Target"]
                     caption = "From top to bottom: backprojection, output, target"
+                elif y.shape == x.shape:
+                    imgs = [y, x_net, x]
+                    titles = ["Measurement", "Output", "Target"]
+                    caption = "From top to bottom: measurement, output, target"
                 else:
                     imgs = [x_net, x]
                     caption = "From top to bottom: output, target"
@@ -359,7 +359,7 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            params = self.physics_generator.step()
+            params = self.physics_generator.step(x.size(0))
             y = physics(x, **params)
         else:
             y = physics(x)
