@@ -53,6 +53,7 @@ NOISES = [
     "LogPoisson",
 ]
 
+
 def find_operator(name, device):
     r"""
     Chooses operator
@@ -351,9 +352,11 @@ def test_pseudo_inverse(name, device):
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
     assert error < 0.01
 
+
 @pytest.fixture
 def mri_img_size():
-    return 1, 2, 3, 16, 16 #B, C, T, H, W
+    return 1, 2, 3, 16, 16  # B, C, T, H, W
+
 
 def test_MRI(mri_img_size, device, rng):
     r"""
@@ -363,9 +366,9 @@ def test_MRI(mri_img_size, device, rng):
 
     :param mri_img_size: (tuple) image size tuple (B, C, T, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :param rng: (torch.Generator) 
+    :param rng: (torch.Generator)
     """
-    
+
     for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
         B, C, T, H, W = mri_img_size
 
@@ -380,11 +383,15 @@ def test_MRI(mri_img_size, device, rng):
 
         for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
             # Remove time dim for static MRI
-            _mask_size = mask_size if mri is dinv.physics.DynamicMRI else mask_size[:-3] + mask_size[-2:]
+            _mask_size = (
+                mask_size
+                if mri is dinv.physics.DynamicMRI
+                else mask_size[:-3] + mask_size[-2:]
+            )
 
             mask, mask2 = (
                 torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:]),
-                torch.zeros(_mask_size, device=device) + torch.eye(*_mask_size[-2:])
+                torch.zeros(_mask_size, device=device) + torch.eye(*_mask_size[-2:]),
             )
 
             # Empty mask
@@ -395,7 +402,7 @@ def test_MRI(mri_img_size, device, rng):
             assert torch.sum(x1 == 0) == 0
 
             # Set mask in constructor
-            physics = mri(mask=mask)
+            physics = mri(mask=mask, device=device)
             y1 = physics(x)
             assert torch.all((y1 == 0) == (mask == 0))
 
@@ -408,7 +415,7 @@ def test_MRI(mri_img_size, device, rng):
             assert torch.all((y1 == 0) == (mask2 == 0))
 
             # Set mask via update_parameters
-            physics.update_parameters(mask)
+            physics.update_parameters(mask=mask)
             y1 = physics(x)
             assert torch.all((y1 == 0) == (mask == 0))
 

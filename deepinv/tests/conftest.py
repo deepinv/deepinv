@@ -40,6 +40,7 @@ def imsize_1_channel():
     c = 1
     return c, h, w
 
+
 @pytest.fixture
 def rng():
     return torch.Generator().manual_seed(0)

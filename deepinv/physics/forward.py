@@ -678,7 +678,8 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
 
         """
-        self.update_parameters(mask=mask)
+
+        self.update_parameters(mask=mask, **kwargs)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -694,7 +695,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
         """
 
-        self.update_parameters(mask=mask)
+        self.update_parameters(mask=mask, **kwargs)
 
         if isinstance(self.mask, float):
             mask = self.mask
@@ -743,8 +744,8 @@ class DecomposablePhysics(LinearPhysics):
 
         """
 
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        # TODO should this happen here or at the end of A_dagger?
+        self.update_parameters(mask=mask, **kwargs)
 
         # avoid division by singular value = 0
 
@@ -761,6 +762,7 @@ class DecomposablePhysics(LinearPhysics):
         Updates the singular values of the operator.
 
         """
+
         for key, value in kwargs.items():
             if value is not None and hasattr(self, key):
                 setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
