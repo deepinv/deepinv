@@ -102,10 +102,10 @@ class DIV2K(torch.utils.data.Dataset):
 
         self.img_list = os.listdir(self.img_dir)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.img_list)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Any:
         img_path = os.path.join(self.img_dir, self.img_list[idx])
         # PIL Image
         img = Image.open(img_path)
@@ -114,7 +114,7 @@ class DIV2K(torch.utils.data.Dataset):
             img = self.transform(img)
         return img
     
-    def _verify_split_dataset_integrity(self):
+    def _check_dataset_exists(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
 
         This method checks if `DIV2K_train_HR` or `DIV2K_valid_HR` folder within 
