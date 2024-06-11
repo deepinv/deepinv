@@ -36,12 +36,12 @@ venv
 build
 deepinv.egg-info
 dist
-datasets
+examples/datasets
 wandb/
 kernels
 measurements/
 degradations/
-datasets/
+examples/*/datasets
 results/
 tmp/
 sg_execution_times.rst
