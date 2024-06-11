@@ -30,7 +30,7 @@ DATA_DIR = "DRUNET_preprocessed"
 
 # download from Internet
 # https://huggingface.co/datasets/deepinv/drunet_dataset
-dataset = load_dataset("deepinv/drunet_dataset")
+dataset = load_dataset("deepinv/drunet_dataset", streaming=True)
 
 # save it to disk, which is useful to avoid downloading again
 dataset.save_to_disk(DATA_DIR)
