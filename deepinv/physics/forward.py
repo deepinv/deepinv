@@ -664,7 +664,7 @@ class DecomposablePhysics(LinearPhysics):
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
-        self.update_parameters(mask=mask)
+        self.mask = mask
 
     def A(self, x, mask=None, **kwargs):
         r"""
@@ -792,3 +792,4 @@ class Denoising(DecomposablePhysics):
 
     def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(noise_model=noise_model, **kwargs)
+
