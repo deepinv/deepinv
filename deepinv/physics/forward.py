@@ -663,10 +663,8 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = torch.nn.Parameter(
-            torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask,
-            requires_grad=False,
-        )
+        mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
+        self.update_parameters(mask=mask)
 
     def A(self, x, mask=None, **kwargs):
         r"""
@@ -761,7 +759,7 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         for key, value in kwargs.items():
-            if hasattr(self, key):
+            if value is not None and hasattr(self, key):
                 setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
