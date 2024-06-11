@@ -85,13 +85,33 @@ The following example shows how operators and their parameter can be instantiate
 
 .. doctest::
 
-   >>> import torch
+import deepinv.utils.nn   >>> import torch
    >>> from deepinv.physics import Blur
    >>> x = torch.rand((1, 1, 16, 16))
    >>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
    >>> # default usage
    >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
    >>> y = physics(x)
+   >>> theta2 = deepinv.utils.nn.dirac()
+   >>>
+   >>> # A second possibility
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> y = physics(x, filter=theta) # we define the blur by specifying its filter
+   >>> y = physics(x) # now, the filter is well-defined and this line does the same as above
+   >>>
+   >>> # The same can be done by passing in a dictionary including 'filter' as a key
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> dict_params = {'filter': theta, 'dummy': None}
+   >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
+   >>> from deepinv.physics import Blur
+   >>> x = torch.rand((1, 1, 16, 16))
+   >>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
+   >>> # default usage
+   >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
+   >>> y = physics(x)
+   >>> theta2 = deepinv.utils.nn.dirac_like(theta) # a dirac filter of the same size as theta
+   >>> physics.update_parameters(filter=theta2) # we update the filter
+   >>> y2 = physics(x) # we compute the new output
    >>>
    >>> # A second possibility
    >>> physics = Blur() # a blur operator without convolution filter
