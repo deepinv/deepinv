@@ -1,15 +1,42 @@
-from datasets import load_dataset, load_from_disk
+from torch.utils.data import DataLoader, IterableDataset
+
+from torchvision import transforms
+
+import datasets as hf_datasets
+
+class HFDataset(IterableDataset):
+    r"""
+    Creates an iteratble dataset from a Hugging Face dataset to enable streaming.
+    """
+    def __init__(self, hf_dataset, transforms=None, key='png'):
+        self.hf_dataset = hf_dataset
+        self.transform = transforms
+        self.key = key
+
+    def __iter__(self):
+        for sample in self.hf_dataset:
+            if self.transform:
+                out = self.transform(sample[self.key])
+            else:
+                out = sample[self.key]
+            yield out
 
 
-DATA_DIR = "DRUNET_preprocessed"
+def test_hf_dataloading():
+    dataset = hf_datasets.load_dataset("deepinv/drunet_dataset", streaming=True)
 
-# download from Internet
-# https://huggingface.co/datasets/deepinv/drunet_dataset
-dataset = load_dataset("deepinv/drunet_dataset")
+    img_size = 32
+    transforms_loader = transforms.Compose([transforms.CenterCrop(img_size),
+                                            transforms.ToTensor()])
 
-# save it to disk, which is useful to avoid downloading again
-dataset.save_to_disk(DATA_DIR)
+    hf_dataset = HFDataset(dataset['train'], transforms=transforms_loader)
 
-# load from disk (useless here, as we already have the dataset in memory)
-dataset = load_from_disk(DATA_DIR)
+    dataloader = DataLoader(hf_dataset, batch_size=5)
+
+    for batch in dataloader:
+        break
+
+    assert batch.shape == (5, 3, img_size, img_size)
+
+
     
