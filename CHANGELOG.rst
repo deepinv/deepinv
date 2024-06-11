@@ -11,10 +11,14 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added update_parameters for parameter-dependent physics (:gh:`241` by Julian Tachella) - 11/06/2024
+- Added evaluation functions for R2R and Splitting losses (:gh:`241` by Julian Tachella) - 11/06/2024
+- Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024
 
 
 Fixed
 ^^^^^
+- Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 
 
 Changed
@@ -169,3 +173,5 @@ Authors
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
+.. _Chao Tang: https://github.com/ChaoTang0330
+.. _Tobias Liaudat: https://github.com/tobias-liaudat

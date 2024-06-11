@@ -259,11 +259,7 @@ class Trainer:
         :returns: The images, the titles, the grid image, and the caption.
         """
         with torch.no_grad():
-            if (
-                self.plot_measurements
-                and len(y.shape) == len(x.shape)
-                and y.shape != x.shape
-            ):
+            if len(y.shape) == len(x.shape) and y.shape != x.shape:
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
                     imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
@@ -284,6 +280,10 @@ class Trainer:
                     imgs = [back, x_net, x]
                     titles = ["Backprojection", "Output", "Target"]
                     caption = "From top to bottom: backprojection, output, target"
+                elif y.shape == x.shape:
+                    imgs = [y, x_net, x]
+                    titles = ["Measurement", "Output", "Target"]
+                    caption = "From top to bottom: measurement, output, target"
                 else:
                     imgs = [x_net, x]
                     caption = "From top to bottom: output, target"
@@ -296,12 +296,20 @@ class Trainer:
 
         return imgs, titles, grid_image, caption
 
-    def log_metrics_wandb(self, log_dict_iter):
+    def log_metrics_wandb(self, logs, train=True):
         r"""
         Log the metrics to wandb.
+
+        It logs the metrics to wandb.
+
+        :param dict logs: Dictionary containing the metrics to log.
+        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        if not train:
+            logs = {"Eval " + str(key): val for key, val in logs.items()}
+
         if self.wandb_vis:
-            wandb.log(log_dict_iter)
+            wandb.log(logs)
 
     def check_clip_grad(self):
         r"""
@@ -535,8 +543,10 @@ class Trainer:
                     print(
                         f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
                     )
-            logs["step"] = epoch
-            self.log_metrics_wandb(logs)  # Log metrics to wandb
+
+            if train:
+                logs["step"] = epoch
+            self.log_metrics_wandb(logs, train)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, train=True):

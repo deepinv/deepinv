@@ -217,6 +217,30 @@ def zeros_like(x):
         return TensorList([torch.zeros_like(xi) for xi in x])
 
 
+def dirac(shape):
+    r"""
+    Returns a :class:`torch.Tensor` with a Dirac delta at the center.
+
+    :param tuple shape: shape of the output tensor.
+    """
+    out = torch.zeros(shape)
+    center = tuple([s // 2 for s in shape[-2:]])
+    slices = [slice(None)] * (len(shape) - 2) + list(center)
+    out[slices] = 1
+    return out
+
+
+def dirac_like(x):
+    r"""
+    Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
+    with the same type as x, filled with zeros.
+    """
+    if isinstance(x, torch.Tensor):
+        return dirac(x.shape)
+    else:
+        return TensorList([dirac(xi.shape) for xi in x])
+
+
 def ones_like(x):
     r"""
     Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`

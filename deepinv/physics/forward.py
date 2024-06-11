@@ -663,10 +663,8 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = torch.nn.Parameter(
-            torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask,
-            requires_grad=False,
-        )
+        mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
+        self.mask = mask
 
     def A(self, x, mask=None, **kwargs):
         r"""
@@ -680,10 +678,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
 
         """
-        mask = self.check_parameters(mask=mask)
-
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(mask=mask)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -699,8 +694,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
         """
 
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(mask=mask)
 
         if isinstance(self.mask, float):
             mask = self.mask
@@ -762,17 +756,14 @@ class DecomposablePhysics(LinearPhysics):
 
         return self.V(self.U_adjoint(y) * mask)
 
-    def update_parameters(self, mask=None, **kwargs):
+    def update_parameters(self, **kwargs):
         r"""
         Updates the singular values of the operator.
 
-        :param torch.nn.Parameter, float mask: singular values.
         """
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
-    
-    def check_parameters(self, mask=None, **kwargs):
-        return mask
+        for key, value in kwargs.items():
+            if value is not None and hasattr(self, key):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
 class Denoising(DecomposablePhysics):
