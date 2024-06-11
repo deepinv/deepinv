@@ -757,14 +757,14 @@ class DecomposablePhysics(LinearPhysics):
 
         return self.V(self.U_adjoint(y) * mask)
 
-    def update_parameters(self, mask=None, **kwargs):
+    def update_parameters(self, **kwargs):
         r"""
         Updates the singular values of the operator.
 
-        :param torch.nn.Parameter, float mask: singular values.
         """
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
 class Denoising(DecomposablePhysics):
