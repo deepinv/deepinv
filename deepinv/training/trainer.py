@@ -17,7 +17,7 @@ from .testing import test
 
 @dataclass
 class Trainer:
-    r"""
+    r"""Trainer(model, physics, optimizer, train_dataloader, ...)
     Trainer class for training a reconstruction network.
 
     Training can be done by calling the :meth:`deepinv.Trainer.train` method, whereas
@@ -55,9 +55,9 @@ class Trainer:
                     loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
                     loss_total += loss.mean()
 
-                current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
-                current_log.update(loss_total.item())
-                logs[f"TotalLoss"] = current_log.avg
+                metric = self.logs_total_loss_train if train else self.logs_total_loss_eval
+                metric.update(loss_total.item())
+                logs[f"TotalLoss"] = metric.avg
 
                 if train:
                     loss_total.backward()  # Backward the total loss
@@ -99,7 +99,7 @@ class Trainer:
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
-    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
+    :param None, torch.optim.lr_scheduler scheduler: Torch scheduler for changing the learning rate across iterations.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
         parameters of the forward operator or noise realizations, can change between each sample;
@@ -135,7 +135,7 @@ class Trainer:
     epochs: int = 100
     losses: Union[Loss, List[Loss]] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
-    scheduler: torch.optim.lr_scheduler.LRScheduler = None
+    scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
     physics_generator: PhysicsGenerator = None
@@ -296,12 +296,20 @@ class Trainer:
 
         return imgs, titles, grid_image, caption
 
-    def log_metrics_wandb(self, log_dict_iter):
+    def log_metrics_wandb(self, logs, train=True):
         r"""
         Log the metrics to wandb.
+
+        It logs the metrics to wandb.
+
+        :param dict logs: Dictionary containing the metrics to log.
+        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        if not train:
+            logs = {"Eval " + str(key): val for key, val in logs.items()}
+
         if self.wandb_vis:
-            wandb.log(log_dict_iter)
+            wandb.log(logs)
 
     def check_clip_grad(self):
         r"""
@@ -446,18 +454,16 @@ class Trainer:
                 loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
-                    current_log = (
+                    meters = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
-                    current_log.update(loss.detach().cpu().numpy())
-                    cur_loss = current_log.avg
+                    meters.update(loss.detach().cpu().numpy())
+                    cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            current_log = (
-                self.logs_total_loss_train if train else self.logs_total_loss_eval
-            )
-            current_log.update(loss_total.item())
-            logs[f"TotalLoss"] = current_log.avg
+            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            meters.update(loss_total.item())
+            logs[f"TotalLoss"] = meters.avg
 
         if train:
             loss_total.backward()  # Backward the total loss
@@ -537,8 +543,10 @@ class Trainer:
                     print(
                         f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
                     )
-            logs["step"] = epoch
-            self.log_metrics_wandb(logs)  # Log metrics to wandb
+
+            if train:
+                logs["step"] = epoch
+            self.log_metrics_wandb(logs, train)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
@@ -665,6 +673,13 @@ class Trainer:
                 self.step(
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
+
+                if i < batches - 1:
+                    # clean meters
+                    self.logs_total_loss_train.reset()
+                    self.logs_total_loss_eval.reset()
+                    for l in self.logs_losses_train:
+                        l.reset()
 
             self.loss_history.append(self.logs_total_loss_train.avg)
 
