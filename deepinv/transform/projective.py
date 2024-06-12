@@ -5,13 +5,46 @@ import numpy as np
 import torch
 from PIL import Image
 
-from scipy.spatial.transform import Rotation
-
 try:
     from kornia.geometry.transform import warp_perspective
 except ImportError:
     warp_perspective = ImportError("The kornia package is not installed.")
 
+def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
+    """Numpy implementation of ``scipy`` rotation matrix from Euler angles.
+
+    Construct 3D extrinsic rotation matrix from x, y and z angles. This is equivalent of using the ``scipy`` function:
+
+    ``scipy.spatial.transform.Rotation.from_euler("xyz", (tx, ty, tz), degrees=True).as_matrix()``
+
+    :param float tx: x rotation in degrees
+    :param float ty: y rotation in degrees
+    :param float tz: z rotation in degrees
+    :return np.ndarray: 3D rotation matrix.
+    """
+    tx, ty, tz = np.radians((tx,ty,tz))
+
+    # fmt: off
+    Rx = np.array([
+        [1, 0, 0],
+        [0, np.cos(tx), -np.sin(tx)],
+        [0, np.sin(tx), np.cos(tx)]
+    ])
+
+    Ry = np.array([
+        [np.cos(ty), 0, np.sin(ty)],
+        [0, 1, 0],
+        [-np.sin(ty), 0, np.cos(ty)]
+    ])
+
+    Rz = np.array([
+        [np.cos(tz), -np.sin(tz), 0],
+        [np.sin(tz),  np.cos(tz), 0],
+        [0, 0, 1]
+    ])
+    # fmt: on
+
+    return Rz @ Ry @ Rx
 
 def apply_homography(
     im: Union[torch.Tensor, Image.Image],
@@ -79,9 +112,7 @@ def apply_homography(
     ])
     # fmt: on
 
-    R_dash = Rotation.from_euler(
-        "xyz", [theta_x, theta_y, theta_z], degrees=True
-    ).as_matrix()
+    R_dash = rotation_matrix(theta_x, theta_y, theta_z)
 
     if isinstance(im, torch.Tensor):
         # note thetas defined in the opposite direction here, but it doesn't matter
@@ -121,7 +152,7 @@ def apply_homography(
 @dataclass
 class Homography(torch.nn.Module):
     """
-    Homography (or projective transformation).
+    Random projective transformations (homographies).
 
     The homography is parameterised by
     geometric parameters. By fixing these parameters, subgroup transformations are
@@ -138,17 +169,18 @@ class Homography(torch.nn.Module):
     Transformations with perspective effects (i.e. pan+tilt) are recovered by setting
     theta_max > 0.
 
-    Generates n_trans random transformations concatenated along the batch dimension.
+    Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
-    Example:
+    |sep|
 
-    ::
+    :Example:
 
-        x = torch.randn(1, 3, 64, 64)
+        Apply a random projective transformation:
 
-        transform = Homography(n_trans = 1)
-
-        x_T = transform(x)
+        >>> from deepinv.transform.projective import Homography
+        >>> x = torch.randn(1, 3, 16, 16) # Random 16x16 image
+        >>> transform = Homography(n_trans = 1)
+        >>> x_T = transform(x)
 
     :param int n_trans: Number of transformations, defaults to 1.
     :param float theta_max: Maximum pan+tilt angle in degrees, defaults to 180.
@@ -219,23 +251,24 @@ class Homography(torch.nn.Module):
 
 
 class Affine(Homography):
-    """Random affine image transformations.
+    """Random affine image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
     skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
 
-    Generates n_trans random transformations concatenated along the batch dimension.
+    Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
-    Example:
+    |sep|
 
-    ::
+    :Example:
 
-        x = torch.randn(1, 3, 64, 64)
+        Apply a random affine transformation:
 
-        transform = Affine(n_trans = 1)
-
-        x_T = transform(x)
+        >>> from deepinv.transform.projective import Affine
+        >>> x = torch.randn(1, 3, 16, 16) # Random 16x16 image
+        >>> transform = Affine(n_trans = 1)
+        >>> x_T = transform(x)
 
     """
 
@@ -245,23 +278,24 @@ class Affine(Homography):
 
 
 class Similarity(Homography):
-    """Random 2D similarity image transformations.
+    """Random 2D similarity image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the similarity subgroup
     S(2). Similarity transformations include translations, rotations, reflections and
     uniform scale. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
 
-    Generates n_trans random transformations concatenated along the batch dimension.
+    Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
-    Example:
+    |sep|
 
-    ::
+    :Example:
 
-        x = torch.randn(1, 3, 64, 64)
+        Apply a random similarity transformation:
 
-        transform = Similarity(n_trans = 1)
-
-        x_T = transform(x)
+        >>> from deepinv.transform.projective import Similarity
+        >>> x = torch.randn(1, 3, 16, 16) # Random 16x16 image
+        >>> transform = Similarity(n_trans = 1)
+        >>> x_T = transform(x)
 
     """
 
@@ -272,23 +306,24 @@ class Similarity(Homography):
 
 
 class Euclidean(Homography):
-    """Random Euclidean image transformations.
+    """Random Euclidean image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the Euclidean subgroup
     E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrised using geometric parameters in the pinhole camera model.
     See :class:`deepinv.transform.Homography` for more details.
 
-    Generates n_trans random transformations concatenated along the batch dimension.
+    Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
-    Example:
+    |sep|
 
-    ::
+    :Example:
 
-        x = torch.randn(1, 3, 64, 64)
+        Apply a random Euclidean transformation:
 
-        transform = Euclidean(n_trans = 1)
-
-        x_T = transform(x)
+        >>> from deepinv.transform.projective import Euclidean
+        >>> x = torch.randn(1, 3, 16, 16) # Random 16x16 image
+        >>> transform = Euclidean(n_trans = 1)
+        >>> x_T = transform(x)
 
     """
 
@@ -299,7 +334,7 @@ class Euclidean(Homography):
 
 
 class PanTiltRotate(Homography):
-    """Random 3D camera rotation image transformations.
+    """Random 3D camera rotation image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the 3D camera rotation,
     or "pan+tilt+rotate" subgroup from Wang et al. "Perspective-Equivariant Imaging: an
@@ -310,17 +345,18 @@ class PanTiltRotate(Homography):
 
     See :class:`deepinv.transform.Homography` for more details.
 
-    Generates n_trans random transformations concatenated along the batch dimension.
+    Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
-    Example:
+    |sep|
 
-    ::
+    :Example:
 
-        x = torch.randn(1, 3, 64, 64)
+        Apply a random pan+tilt+rotate transformation:
 
-        transform = PanTiltRotate(n_trans = 1)
-
-        x_T = transform(x)
+        >>> from deepinv.transform.projective import PanTiltRotate
+        >>> x = torch.randn(1, 3, 16, 16) # Random 16x16 image
+        >>> transform = PanTiltRotate(n_trans = 1)
+        >>> x_T = transform(x)
 
     """
 
