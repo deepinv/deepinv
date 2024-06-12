@@ -34,16 +34,30 @@ class MRI(DecomposablePhysics):
 
     :Examples:
 
-        Single-coil MRI operator with 4x acceleration:
+        Single-coil accelerated MRI operator with subsampling mask:
 
         >>> from deepinv.physics import MRI
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn(1, 2, 3, 3) # Define random 3x3 image
-        >>> mask = torch.ones((3, 3))
-        >>> mask[:, ::2] = 0
-        >>> physics = MRI(mask=mask)
+        >>> x = torch.randn(1, 2, 2, 2) # Define random 2x2 image
+        >>> mask = 1 - torch.eye(2) # Define subsampling mask
+        >>> physics = MRI(mask=mask) # Define mask at initialisation
         >>> physics(x)
-        tensor([[-0.5305,  0.0351,  0.3326,  2.1730,  1.7072,  0.0418]])
+        tensor([[[[ 0.0000, -1.4290],
+                [ 0.4564, -0.0000]],
+                [[ 0.0000,  1.8622],
+                [ 0.0603, -0.0000]]]])
+        >>> physics = MRI(img_size=x.shape) # No subsampling
+        >>> physics(x)
+        tensor([[[[ 2.2908, -1.4290],
+                [ 0.4564, -0.1814]],
+                [[ 0.3744,  1.8622],
+                [ 0.0603, -0.6209]]]])
+        >>> physics.update_parameters(mask=mask) # Update mask on the fly
+        >>> physics(x)
+        tensor([[[[ 0.0000, -1.4290],
+                [ 0.4564, -0.0000]],
+                [[ 0.0000,  1.8622],
+                [ 0.0603, -0.0000]]]])
 
     """
 
@@ -129,6 +143,28 @@ class DynamicMRI(MRI):
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
     :param torch.device device: cpu or gpu.
+
+    |sep|
+
+    :Examples:
+
+        Single-coil accelerated 2D+t MRI operator:
+
+        >>> from deepinv.physics import DynamicMRI
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 2, 2, 2, 2) # Define random video of shape (B,C,T,H,W)
+        >>> mask = torch.rand_like(x) > 0.75 # Define random 4x subsampling mask
+        >>> physics = DynamicMRI(mask=mask) # Physics with given mask
+        >>> physics.update_parameters(mask=mask) # Alternatively set mask on-the-fly
+        >>> physics(x)
+        tensor([[[[[-0.0000,  0.7969],
+                [-0.0000, -0.0000]],
+                [[-0.0000, -1.9860],
+                [-0.0000, -0.4453]]],
+                [[[ 0.0000,  0.0000],
+                [-0.8137, -0.0000]],
+                [[-0.0000, -0.0000],
+                [-0.0000,  1.1135]]]]])
 
     """
 
