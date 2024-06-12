@@ -10,8 +10,9 @@ class Rotate(Transform):
 
     Generates n_transf randomly rotated versions of 2D images with zero padding.
 
-    :param n_trans: number of rotated versions generated per input image.
     :param degrees: images are rotated in the range of angles (-degrees, degrees)
+    :param n_trans: number of shifted versions generated per input image.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
     def __init__(self, *args, degrees=360, **kwargs):
@@ -30,9 +31,11 @@ class Rotate(Transform):
             theta = theta[: self.n_trans]
         else:
             theta = np.arange(0, 360, int(360 / (self.group_size + 1)))[1:]
-            theta = theta[torch.randperm(self.group_size, generator=self.rng)][: self.n_trans]
+            theta = theta[torch.randperm(self.group_size, generator=self.rng)][
+                : self.n_trans
+            ]
         return torch.cat([rotate(x, float(_theta)) for _theta in theta])
-    
+
 
 # if __name__ == "__main__":
 #     device = "cuda:0"
