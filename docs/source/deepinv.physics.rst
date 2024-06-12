@@ -220,7 +220,7 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    deepinv.physics.MRI
 
 
-We provide generators for creating acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
+We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
 
 .. autosummary::
    :toctree: stubs
@@ -229,7 +229,7 @@ We provide generators for creating acceleration masks using Cartesian sampling, 
 
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
-   deepinv.physics.generator.UniformMaskGenerator
+   deepinv.physics.generator.EquispacedMaskGenerator
 
 Tomography 
 ^^^^^^^^^^

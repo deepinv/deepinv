@@ -144,12 +144,12 @@ plot(
 from deepinv.physics.generator import (
     GaussianMaskGenerator,
     RandomMaskGenerator,
-    UniformMaskGenerator,
+    EquispacedMaskGenerator,
 )
 
 # shape (C, T, H, W)
 mask_gaussian = GaussianMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
-mask_uniform = UniformMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
+mask_uniform = EquispacedMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
 mask_random = RandomMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
 
 plot(

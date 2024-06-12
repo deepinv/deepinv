@@ -107,14 +107,18 @@ class RandomMaskGenerator(BaseMaskGenerator):
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
 
-    Example:
+    |sep|
 
-    ::
+    :Examples:
 
-        generator = RandomMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
-        params = generator.step(batch_size=1)
-        mask = params["mask"]
-        mask.shape # 1, 2, 8, 64, 64
+        Random k-t mask generator for a 8x64x64 video:
+
+        >>> from deepinv.physics.generator import RandomMaskGenerator
+        >>> generator = RandomMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
+        >>> params = generator.step(batch_size=1)
+        >>> mask = params["mask"]
+        >>> mask.shape
+        torch.Size([1, 2, 8, 64, 64])
 
     """
 
@@ -169,14 +173,18 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
 
-    Example:
+    |sep|
 
-    ::
+    :Examples:
 
-        generator = GaussianMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
-        params = generator.step(batch_size=1)
-        mask = params["mask"]
-        mask.shape # 1, 2, 8, 64, 64
+        Gaussian random k-t mask generator for a 8x64x64 video:
+
+        >>> from deepinv.physics.generator import GaussianMaskGenerator
+        >>> generator = GaussianMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
+        >>> params = generator.step(batch_size=1)
+        >>> mask = params["mask"]
+        >>> mask.shape
+        torch.Size([1, 2, 8, 64, 64])
 
     """
 
@@ -198,8 +206,8 @@ class GaussianMaskGenerator(RandomMaskGenerator):
         return pdf
 
 
-class UniformMaskGenerator(BaseMaskGenerator):
-    """Generator for MRI Cartesian acceleration masks using uniform (equispaced) non-random undersampling.
+class EquispacedMaskGenerator(BaseMaskGenerator):
+    """Generator for MRI Cartesian acceleration masks using uniform (equispaced) non-random undersampling with random offset.
 
     Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and equispaced undersampling in the high frequencies.
 
@@ -207,18 +215,22 @@ class UniformMaskGenerator(BaseMaskGenerator):
 
     Supports k-t sampling, where the uniform mask is sheared across time.
 
-    The mask is repeated across channels and randomly varies across batch dimension. Based off fastMRI code https://github.com/facebookresearch/fastMRI
+    The mask is repeated across channels and the offset varies randomly across batch dimension. Based off fastMRI code https://github.com/facebookresearch/fastMRI
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
 
-    Example:
+    |sep|
 
-    ::
+    :Examples:
 
-        generator = UniformMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
-        params = generator.step(batch_size=1)
-        mask = params["mask"]
-        mask.shape # 1, 2, 8, 64, 64
+        Equispaced k-t mask generator for a 8x64x64 video:
+
+        >>> from deepinv.physics.generator import EquispacedMaskGenerator
+        >>> generator = EquispacedMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W
+        >>> params = generator.step(batch_size=1)
+        >>> mask = params["mask"]
+        >>> mask.shape
+        torch.Size([1, 2, 8, 64, 64])
 
     """
 
@@ -230,12 +242,14 @@ class UniformMaskGenerator(BaseMaskGenerator):
         adjusted_accel = (self.acc * (self.n_center - self.W)) / (
             self.n_center * self.acc - self.W
         )
-        offset = self.rng.integers(0, round(adjusted_accel))
+        offset = self.rng.integers(0, round(adjusted_accel), size=(mask.shape[0]))
 
         for b in range(mask.shape[0]):
             for t in range(mask.shape[2]):
                 accel_samples = (
-                    np.arange((t + offset) % adjusted_accel, self.W - 1, adjusted_accel)
+                    np.arange(
+                        (t + offset[b]) % adjusted_accel, self.W - 1, adjusted_accel
+                    )
                     .round()
                     .astype(int)
                 )

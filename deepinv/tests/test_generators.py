@@ -5,7 +5,7 @@ import itertools
 
 from deepinv.physics.generator import (
     GaussianMaskGenerator,
-    UniformMaskGenerator,
+    EquispacedMaskGenerator,
     RandomMaskGenerator,
 )
 
@@ -321,7 +321,7 @@ def choose_mri_generator(generator_name, img_size, acc, center_fraction):
             img_size, acceleration=acc, center_fraction=center_fraction
         )
     elif generator_name == "uniform":
-        g = UniformMaskGenerator(
+        g = EquispacedMaskGenerator(
             img_size, acceleration=acc, center_fraction=center_fraction
         )
     return g
