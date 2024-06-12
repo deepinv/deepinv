@@ -10,6 +10,7 @@ try:
 except ImportError:
     warp_perspective = ImportError("The kornia package is not installed.")
 
+
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     """Numpy implementation of ``scipy`` rotation matrix from Euler angles.
 
@@ -22,7 +23,7 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     :param float tz: z rotation in degrees
     :return np.ndarray: 3D rotation matrix.
     """
-    tx, ty, tz = np.radians((tx,ty,tz))
+    tx, ty, tz = np.radians((tx, ty, tz))
 
     # fmt: off
     Rx = np.array([
@@ -45,6 +46,7 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     # fmt: on
 
     return Rz @ Ry @ Rx
+
 
 def apply_homography(
     im: Union[torch.Tensor, Image.Image],
