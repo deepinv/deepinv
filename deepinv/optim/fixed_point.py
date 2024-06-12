@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import warnings
+from tqdm import tqdm
 
 
 class FixedPoint(nn.Module):
@@ -81,6 +82,8 @@ class FixedPoint(nn.Module):
         history_size=5,
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
+        verbose=False,
+        show_progress_bar=False,
     ):
         super().__init__()
         self.iterator = iterator
@@ -98,6 +101,8 @@ class FixedPoint(nn.Module):
         self.history_size = history_size
         self.beta_anderson_acc = beta_anderson_acc
         self.eps_anderson_acc = eps_anderson_acc
+        self.verbose = verbose
+        self.show_progress_bar = show_progress_bar
 
         if self.check_conv_fn is None and self.early_stop:
             warnings.warn(
@@ -226,37 +231,30 @@ class FixedPoint(nn.Module):
             if self.init_metrics_fn and compute_metrics
             else None
         )
+        self.check_iteration = True
         if self.anderson_acceleration:
-            x_hist, T_hist, H, q = self.init_anderson_acceleration(X)
+            self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(
+                X
+            )
         it = 0
-        while it < self.max_iter:
-            cur_params = self.update_params_fn(it) if self.update_params_fn else None
-            cur_data_fidelity = (
-                self.update_data_fidelity_fn(it)
-                if self.update_data_fidelity_fn
-                else None
-            )
-            cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
+
+        for it in tqdm(
+            range(self.max_iter),
+            disable=(not self.verbose or not self.show_progress_bar),
+        ):
+
             X_prev = X
-            X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
-            if self.anderson_acceleration:
-                X = self.anderson_acceleration_step(
-                    it,
-                    X_prev,
-                    X,
-                    x_hist,
-                    T_hist,
-                    H,
-                    q,
-                    cur_data_fidelity,
-                    cur_prior,
-                    cur_params,
-                    *args,
-                )
-            check_iteration = (
-                self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+            X = self.single_iteration(
+                X,
+                it,
+                *args,
+                compute_metrics=compute_metrics,
+                metrics=metrics,
+                x_gt=x_gt,
+                **kwargs,
             )
-            if check_iteration:
+
+            if self.check_iteration:
                 metrics = (
                     self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
                     if self.update_metrics_fn and compute_metrics
@@ -270,6 +268,33 @@ class FixedPoint(nn.Module):
                 ):
                     break
                 it += 1
-            else:
-                X = X_prev
+
         return X, metrics
+
+    def single_iteration(self, X, it, *args, **kwargs):
+
+        cur_params = self.update_params_fn(it) if self.update_params_fn else None
+        cur_data_fidelity = (
+            self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None
+        )
+        cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
+        X_prev = X
+        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+        if self.anderson_acceleration:
+            X = self.anderson_acceleration_step(
+                it,
+                X_prev,
+                X,
+                self.x_hist,
+                self.T_hist,
+                self.H,
+                self.q,
+                cur_data_fidelity,
+                cur_prior,
+                cur_params,
+                *args,
+            )
+        self.check_iteration = (
+            self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+        )
+        return X if self.check_iteration else X_prev

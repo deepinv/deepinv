@@ -69,7 +69,8 @@ denoisers = [
     "ptwt",
     "FrEIA",
     "pyiqa",
-    "kornia"
+    "kornia",
+    "torchkbnufft"
 ]
 
 

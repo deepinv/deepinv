@@ -92,6 +92,9 @@ The following example shows how operators and their parameter can be instantiate
    >>> # default usage
    >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
    >>> y = physics(x)
+   >>> theta2 = torch.randn((1, 1, 2, 2)) # a random 2x2 filter
+   >>> physics.update_parameters(filter=theta2)
+   >>> y2 = physics(x)
    >>>
    >>> # A second possibility
    >>> physics = Blur() # a blur operator without convolution filter
@@ -267,6 +270,19 @@ Compressive operators are implemented in the following classes:
 
    deepinv.physics.CompressedSensing
    deepinv.physics.SinglePixelCamera
+
+
+Radio interferometric imaging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The radio interferometric imaging operator is implemented in the following class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.RadioInterferometry
 
 
 Single-photon lidar

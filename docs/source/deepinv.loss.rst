@@ -65,6 +65,18 @@ about the forward measurement process.
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
 
+
+Some self-supervised methods require modifying the model at evaluation time, e.g., by adding noise to the input or removing
+measurements. These methods are implemented in the following functions.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.r2r_eval
+    deepinv.loss.splitting_eval
+
 Metrics
 --------
 Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.

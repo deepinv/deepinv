@@ -21,6 +21,13 @@ class SplittingLoss(Loss):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
+    .. note::
+
+        To obtain the best test performance, the trained model should be averaged at test time
+        over multiple realizations of the splitting, i.e.
+        :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`. This can be achieved using
+        :meth:`deepinv.loss.splitting_eval`.
+
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
@@ -71,6 +78,70 @@ class SplittingLoss(Loss):
         loss_ms /= 1 - self.split_ratio  # normalize loss
 
         return loss_ms
+
+
+def splitting_eval(model, split_ratio=0.9, regular_mask=False, MC_samples=5):
+    r"""
+    Average over multiple splittings at evaluation time.
+
+    To obtain the best test performance, the trained model should be averaged at test time
+    over multiple realizations of the splitting:
+
+    .. math::
+
+        \hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}
+
+    where :math:`N\geq 1` and :math:`y_1^{(i)}` and :math:`A_1^{(i)}` are obtained by
+    randomly splitting the measurements :math:`y` and operator :math:`A`.
+
+    :param torch.nn.Module model: Reconstruction model.
+    :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
+        with the splitting ratio.
+    :param bool regular_mask: If ``True``, it will use a regular mask, otherwise it uses a random mask.
+    :param int MC_iter: number of Monte Carlo samples.
+    :return: (torch.nn.Module) Model modified for evaluation.
+    """
+
+    class SplittingEval(torch.nn.Module):
+        def __init__(self, model, split_ratio, regular_mask, MC_samples):
+            super().__init__()
+            self.model = model
+            self.split_ratio = split_ratio
+            self.regular_mask = regular_mask
+            self.MC_samples = MC_samples
+
+        def forward(self, y, physics):
+            if self.training:
+                return self.model(y, physics)
+            else:
+                tsize = y.size()[1:]
+
+                # sample a splitting
+                mask = torch.ones(tsize).to(y.device)
+                out = 0
+                with torch.no_grad():
+                    for i in range(self.MC_samples):
+                        if not self.regular_mask:
+                            mask[torch.rand_like(mask) > self.split_ratio] = 0
+                        else:
+                            stride = int(1 / (1 - self.split_ratio))
+                            start = np.random.randint(stride)
+                            mask[..., start::stride, start::stride] = 0.0
+
+                        # create inpainting masks
+                        inp = Inpainting(tsize, mask, device=y.device)
+
+                        # concatenate operators
+                        physics1 = inp * physics  # A_1 = P*A
+
+                        # divide measurements
+                        y1 = inp.A(y)
+
+                        out += model(y1, physics1)
+                    out = out / self.MC_samples
+            return out
+
+    return SplittingEval(model, split_ratio, regular_mask, MC_samples)
 
 
 class Neighbor2Neighbor(Loss):
