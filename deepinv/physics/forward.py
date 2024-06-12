@@ -762,7 +762,6 @@ class DecomposablePhysics(LinearPhysics):
         Updates the singular values of the operator.
 
         """
-
         for key, value in kwargs.items():
             if value is not None and hasattr(self, key):
                 setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
