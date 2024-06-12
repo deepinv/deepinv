@@ -21,7 +21,7 @@ class Shift(Transform):
         r"""
         Applies a random translation to the input image.
 
-        :param torch.Tensor x: input image
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         :return: torch.Tensor containing the translated images concatenated along the first dimension
         """
         H, W = x.shape[-2:]

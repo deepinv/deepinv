@@ -21,7 +21,7 @@ class Transform(torch.nn.Module):
     def forward(self, x: torch.Tensor):
         """Transform image.
 
-        :param torch.Tensor x: input image
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         """
         return NotImplementedError()
 

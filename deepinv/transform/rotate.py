@@ -23,7 +23,7 @@ class Rotate(Transform):
         r"""
         Applies a random rotation to the input image.
 
-        :param torch.Tensor x: input image
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         :return: torch.Tensor containing the rotated images concatenated along the first dimension
         """
         if self.group_size == 360:

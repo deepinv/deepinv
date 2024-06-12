@@ -48,7 +48,7 @@ class Scale(Transform):
         r"""
         Applies a random scaling to the input image.
 
-        :param torch.Tensor x: input image
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         :return: scaled image
         """
         # Prepare for multiple transforms
