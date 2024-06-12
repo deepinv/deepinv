@@ -27,7 +27,8 @@ def spectral_methods(
     :return: The estimated signals :math:`x`.
     """
     if x is None:
-        x = torch.rand((y.shape[0],) + physics.img_shape, dtype=physics.dtype, device=physics.device)
+        # always use randn for initial guess, never use rand!
+        x = torch.randn((y.shape[0],) + physics.img_shape, dtype=physics.dtype, device=physics.device)
     x = x.to(torch.cfloat)
     x = x / torch.linalg.norm(x)
     # y should have mean 1
@@ -47,6 +48,8 @@ def spectral_methods(
 def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor, threshold=1e-5) -> torch.Tensor:
     r"""
     Corrects the global phase of the reconstructed image.
+
+    Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
 
     :param torch.Tensor x_recon: Reconstructed image.
     :param torch.Tensor x: Original image.
