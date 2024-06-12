@@ -121,9 +121,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             Either set `sample_rate` (sample by slices) or 
             `volume_sample_rate` (sample by volumes) but not both"""
             )
-
-        self.transforms['transform_kspace'] = transform_kspace
-        self.transforms['transform_target'] = transform_target
+        self.transforms = {'transform_kspace': transform_kspace,
+                            'transform_target': transform_target
+                          }
         self.recons_key = (
             "reconstruction_esc" if challenge == "singlecoil" else "reconstruction_rss"
         )
