@@ -678,7 +678,8 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
 
         """
-        self.update_parameters(mask=mask)
+
+        self.update_parameters(mask=mask, **kwargs)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -694,7 +695,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
         """
 
-        self.update_parameters(mask=mask)
+        self.update_parameters(mask=mask, **kwargs)
 
         if isinstance(self.mask, float):
             mask = self.mask
@@ -734,7 +735,7 @@ class DecomposablePhysics(LinearPhysics):
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y, mask=None, **kwargs):
         r"""
         Computes :math:`A^{\dagger}y = x` in an efficient manner leveraging the singular vector decomposition.
 
@@ -742,6 +743,9 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) The reconstructed image :math:`x`.
 
         """
+
+        # TODO should this happen here or at the end of A_dagger?
+        self.update_parameters(mask=mask, **kwargs)
 
         # avoid division by singular value = 0
 

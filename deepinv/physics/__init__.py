@@ -18,7 +18,7 @@ from .noise import (
     UniformGaussianNoise,
     LogPoissonNoise,
 )
-from .mri import MRI
+from .mri import MRI, DynamicMRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera

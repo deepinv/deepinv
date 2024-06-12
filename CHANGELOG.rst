@@ -7,7 +7,7 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-
+- Dynamic MRI physics operator
 
 New Features
 ^^^^^^^^^^^^
