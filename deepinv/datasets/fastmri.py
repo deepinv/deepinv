@@ -7,7 +7,8 @@ Copyright (c) Facebook, Inc. and its affiliates.
 This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 """
-
+import torchvision
+import random  # beware
 from pathlib import Path
 from typing import (
     Callable,
@@ -87,7 +88,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         sample_filter: Callable = lambda raw_sample: True,
         sample_rate: Optional[float] = None,
         volume_sample_rate: Optional[float] = None,
-        transform: Optional[Callable] = None,
+        transform_kspace: Optional[Callable] = torchvision.transforms.ToTensor(),
+        transform_target: Optional[Callable] = torchvision.transforms.ToTensor(),
     ):
         # check that root is a folder
         if not os.path.isdir(root):
@@ -120,7 +122,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             `volume_sample_rate` (sample by volumes) but not both"""
             )
 
-        self.transform = transform
+        self.transforms['transform_kspace'] = transform_kspace
+        self.transforms['transform_target'] = transform_target
         self.recons_key = (
             "reconstruction_esc" if challenge == "singlecoil" else "reconstruction_rss"
         )
@@ -203,9 +206,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
             target = hf[self.recons_key][dataslice]
 
-        if self.transform is None:
-            sample = (target, kspace)
-        else:
-            sample = self.transform(target, kspace)
+        if self.transforms is not None:
+            target = self.transforms['transform_target'](target)
+            kspace = self.transforms['transform_kspace'](kspace)
 
-        return sample
+        return target, kspace
