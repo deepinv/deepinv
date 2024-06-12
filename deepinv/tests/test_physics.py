@@ -36,6 +36,8 @@ OPERATORS = [
     "pansharpen_reflect",
     "pansharpen_replicate",
     "complex_compressed_sensing",
+    "radio",
+    "radio_weighted",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -177,6 +179,46 @@ def find_operator(name, device):
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
+    elif "radio" in name:
+        dtype = torch.complex64
+        img_size = (1, 64, 64)
+        pytest.importorskip(
+            "torchkbnufft",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+
+        # Generate regular grid for sampling
+        y = torch.linspace(-1, 1, img_size[-2])
+        x = torch.linspace(-1, 1, img_size[-1])
+        grid_y, grid_x = torch.meshgrid(y, x)
+        uv = torch.stack((grid_y, grid_x), dim=-1) * torch.pi  # normalize [-pi, pi]
+
+        # Reshape to [nb_points x 2]
+        uv = uv.view(-1, 2)
+        uv = uv.to(device)
+
+        if "weighted" in name:
+            dataWeight = torch.linspace(
+                0.01, 0.99, uv.shape[0], device=device
+            )  # take a non-trivial weight
+        else:
+            dataWeight = torch.tensor(
+                [
+                    1.0,
+                ]
+            )
+
+        p = dinv.physics.RadioInterferometry(
+            img_size=img_size[1:],
+            samples_loc=uv.permute((1, 0)),
+            dataWeight=dataWeight,
+            real_projection=False,
+            dtype=torch.float,
+            device=device,
+            noise_model=dinv.physics.GaussianNoise(0.0),
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
@@ -219,12 +261,16 @@ def test_operators_adjointness(name, device):
     :return: asserts adjointness
     """
     physics, imsize, _, dtype = find_operator(name, device)
+
+    if name == "radio":
+        dtype = torch.complex64
+
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
     if (
-        "pansharpen" in name
+        "pansharpen" in name or "radio" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         return
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
@@ -246,6 +292,9 @@ def test_operators_norm(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts norm is in (.8,1.2)
     """
+    if name == "radio_weighted":  # weighted nufft norm is not tested
+        return
+
     if name == "singlepixel" or name == "CS":
         device = torch.device("cpu")
 
