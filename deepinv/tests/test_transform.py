@@ -19,14 +19,16 @@ def choose_transform(transform_name):
     else:
         raise ValueError("Invalid transform_name provided")
 
+
 @pytest.fixture
 def image():
     return randn(1, 3, 64, 64)
 
+
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 def test_transform_arithmetic(transform_name, image):
     transform = choose_transform(transform_name)
-    
+
     t1 = transform + dinv.transform.Shift()
     image_t = t1(image)
     assert image_t.shape[1:] == image.shape[1:]
