@@ -9,7 +9,7 @@ class Shift(Transform):
     Generates n_transf randomly shifted versions of 2D images with circular padding.
 
     :param float shift_max: maximum shift as fraction of total height/width.
-    :param n_trans: number of shifted versions generated per input image.
+    :param n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

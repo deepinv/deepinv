@@ -11,7 +11,7 @@ class Rotate(Transform):
     Generates n_transf randomly rotated versions of 2D images with zero padding.
 
     :param degrees: images are rotated in the range of angles (-degrees, degrees)
-    :param n_trans: number of shifted versions generated per input image.
+    :param n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

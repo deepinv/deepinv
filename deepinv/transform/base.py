@@ -13,7 +13,7 @@ class Transform(torch.nn.Module):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def __init__(self, n_trans: int = 1, rng: torch.Generator = None):
+    def __init__(self, *args, n_trans: int = 1, rng: torch.Generator = None, **kwargs):
         super().__init__()
         self.n_trans = n_trans
         self.rng = torch.Generator() if rng is None else rng
