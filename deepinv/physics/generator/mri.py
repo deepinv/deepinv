@@ -68,7 +68,7 @@ class AccelerationMaskGenerator(PhysicsGenerator):
 
         center_line_indices = torch.linspace(
             H // 2 - num_lines_center // 2,
-            H // 2 + num_lines_center // 2 + 1,
+            W // 2 + num_lines_center // 2 + 1,
             steps=50,
             dtype=torch.long,
         )
