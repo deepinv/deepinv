@@ -107,6 +107,10 @@ train_dataloader, test_dataloader = DataLoader(train_dataset, shuffle=True), Dat
 # For training, use a small UNet, Adam optimizer, EI loss with homography
 # transform, and the ``deepinv.Trainer`` functionality:
 #
+# .. note::
+#
+#       We only train for a single epoch in the demo, but it is recommended to train multiple epochs in practice.
+#
 
 model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
