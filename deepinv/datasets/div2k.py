@@ -4,7 +4,11 @@ import os
 from PIL import Image
 import torch
 
-from deepinv.datasets.utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
+from deepinv.datasets.utils import (
+    calculate_md5_for_folder,
+    download_zipfile,
+    extract_zipfile,
+)
 
 
 class DIV2K(torch.utils.data.Dataset):
@@ -12,7 +16,7 @@ class DIV2K(torch.utils.data.Dataset):
 
     Images have varying sizes with up to 2040 vertical pixels, and 2040 horizontal pixels.
 
-    
+
     **Raw data file structure:** ::
 
             self.root --- DIV2K_train_HR --- 0001.png
@@ -79,7 +83,11 @@ class DIV2K(torch.utils.data.Dataset):
                     OR remove `{self.img_dir}`."""
                     )
 
-                zip_filename = "DIV2K_train_HR.zip" if self.mode == "train" else "DIV2K_valid_HR.zip"
+                zip_filename = (
+                    "DIV2K_train_HR.zip"
+                    if self.mode == "train"
+                    else "DIV2K_valid_HR.zip"
+                )
                 # download zipfile from the Internet and save it locally
                 download_zipfile(
                     url=self.zipfile_urls[zip_filename],
@@ -87,7 +95,7 @@ class DIV2K(torch.utils.data.Dataset):
                 )
                 # extract local zipfile
                 extract_zipfile(os.path.join(self.root, zip_filename), self.root)
-                
+
                 if self._verify_split_dataset_integrity():
                     print("Dataset has been successfully downloaded.")
                 else:
@@ -95,7 +103,7 @@ class DIV2K(torch.utils.data.Dataset):
             # stop the execution since the split dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
-                f"""Dataset not found at `{self.root}`.
+                    f"""Dataset not found at `{self.root}`.
                 Please set `root` correctly (currently `root={self.root}`),
                 OR set `download=True` (currently `download={download}`)."""
                 )
@@ -113,12 +121,12 @@ class DIV2K(torch.utils.data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
         return img
-    
+
     def _verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
 
-        This method checks if `DIV2K_train_HR` or `DIV2K_valid_HR` folder within 
-        `self.root` exists and validates the integrity of its contents by comparing 
+        This method checks if `DIV2K_train_HR` or `DIV2K_valid_HR` folder within
+        `self.root` exists and validates the integrity of its contents by comparing
         the MD5 checksum of the folder with the expected checksum.
 
         The expected structure of the dataset directory is as follows: ::
@@ -136,6 +144,12 @@ class DIV2K(torch.utils.data.Dataset):
         if not root_dir_exist:
             return False
         if self.mode == "train":
-            return calculate_md5_for_folder(self.img_dir) == self.checksums["DIV2K_train_HR"]
+            return (
+                calculate_md5_for_folder(self.img_dir)
+                == self.checksums["DIV2K_train_HR"]
+            )
         else:
-            return calculate_md5_for_folder(self.img_dir) == self.checksums["DIV2K_valid_HR"]
+            return (
+                calculate_md5_for_folder(self.img_dir)
+                == self.checksums["DIV2K_valid_HR"]
+            )
