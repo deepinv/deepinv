@@ -44,18 +44,21 @@ class MRI(DecomposablePhysics):
         >>> physics(x)
         tensor([[[[ 0.0000, -1.4290],
                 [ 0.4564, -0.0000]],
+                <BLANKLINE>
                 [[ 0.0000,  1.8622],
                 [ 0.0603, -0.0000]]]])
         >>> physics = MRI(img_size=x.shape) # No subsampling
         >>> physics(x)
         tensor([[[[ 2.2908, -1.4290],
                 [ 0.4564, -0.1814]],
+                <BLANKLINE>
                 [[ 0.3744,  1.8622],
                 [ 0.0603, -0.6209]]]])
         >>> physics.update_parameters(mask=mask) # Update mask on the fly
         >>> physics(x)
         tensor([[[[ 0.0000, -1.4290],
                 [ 0.4564, -0.0000]],
+                <BLANKLINE>
                 [[ 0.0000,  1.8622],
                 [ 0.0603, -0.0000]]]])
 
@@ -159,10 +162,14 @@ class DynamicMRI(MRI):
         >>> physics(x)
         tensor([[[[[-0.0000,  0.7969],
                 [-0.0000, -0.0000]],
+                <BLANKLINE>
                 [[-0.0000, -1.9860],
                 [-0.0000, -0.4453]]],
+                <BLANKLINE>
+                <BLANKLINE>
                 [[[ 0.0000,  0.0000],
                 [-0.8137, -0.0000]],
+                <BLANKLINE>
                 [[-0.0000, -0.0000],
                 [-0.0000,  1.1135]]]]])
 
