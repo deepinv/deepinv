@@ -51,7 +51,7 @@ class SigmaGenerator(PhysicsGenerator):
 
 # if __name__ == "__main__":
 #     import deepinv as dinv
-#     from deepinv.physics.generator import AccelerationMaskGenerator
+#     from deepinv.physics.generator import RandomMaskGenerator
 #
-#     mask_generator = SigmaGenerator() + AccelerationMaskGenerator((32, 32))
+#     mask_generator = SigmaGenerator() + RandomMaskGenerator((32, 32))
 #     sigmas = mask_generator.step(4)
