@@ -422,23 +422,11 @@ class BlurFFT(DecomposablePhysics):
                   [0.0000, 0.0000, 0.0000]]]])
     """
 
-    def __init__(self, img_size, filter, device="cpu", **kwargs):
+    def __init__(self, img_size, filter=None, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.device = device
         self.img_size = img_size
-        self.set_mask(filter)
-
-    def set_mask(self, filter):
-        if self.img_size[0] > filter.shape[1]:
-            filter = filter.repeat(1, self.img_size[0], 1, 1)
-        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
-
-        mask = filter_fft_2d(filter, self.img_size).to(self.device)
-        self.angle = torch.angle(mask)
-        self.angle = torch.exp(-1.0j * self.angle).to(self.device)
-        mask = torch.abs(mask).unsqueeze(-1)
-        mask = torch.cat([mask, mask], dim=-1)
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(filter=filter)
 
     def A(self, x, filter=None, **kwargs):
         self.update_parameters(filter)
@@ -475,7 +463,18 @@ class BlurFFT(DecomposablePhysics):
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
         if filter is not None:
-            self.set_mask(filter)
+            if self.img_size[0] > filter.shape[1]:
+                filter = filter.repeat(1, self.img_size[0], 1, 1)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                self.device
+            )
+
+            mask = filter_fft_2d(filter, self.img_size).to(self.device)
+            self.angle = torch.angle(mask)
+            self.angle = torch.exp(-1.0j * self.angle).to(self.device)
+            mask = torch.abs(mask).unsqueeze(-1)
+            mask = torch.cat([mask, mask], dim=-1)
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
 
 class SpaceVaryingBlur(LinearPhysics):
