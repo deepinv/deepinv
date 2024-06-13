@@ -46,7 +46,11 @@ class GDIteration(OptimIterator):
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
         x = gradient_descent_step(x_prev, grad)
-        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
+        F = (
+            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.has_cost
+            else None
+        )
         return {"est": (x,), "cost": F}
 
 
