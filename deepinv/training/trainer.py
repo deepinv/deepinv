@@ -235,7 +235,7 @@ class Trainer:
         if type(self.physics) is not list:
             self.physics = [self.physics]
 
-        if type(self.physics_generator) is not list:
+        if self.physics_generator is not None and type(self.physics_generator) is not list:
             self.physics_generator = [self.physics_generator]
 
         self.loss_history = []
