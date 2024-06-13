@@ -201,6 +201,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         return len(self.sample_identifiers)
 
     def __getitem__(self, idx: int, mask: Optional[Callable] = None):
+        r"""
+        Returns the idx-th sample from the dataset, both kspace and target.
+
+        The target data is compatible with the physics MRI operator and is a complex tensor of shape (2, H, W).
+        """
         fname, dataslice = self.sample_identifiers[idx]
 
         with h5py.File(fname, "r") as hf:
@@ -209,11 +214,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             target = hf[self.recons_key][dataslice]
 
         if self.transforms is not None:
-            target = self.transforms["transform_target"](target)
+            target = self.transforms["transform_target"](target)[0]  # by default, shape is (1, H, W), we want to get rid of the first dimension when moving to complex type
 
             target = target + 0 * 1j
             target = torch.view_as_real(target)
-            target = torch.moveaxis(target, -1, 1)  # shape (2, H, W)
+            target = torch.moveaxis(target, -1, 0)  # shape (2, H, W)
 
             kspace = self.transforms["transform_kspace"](kspace)
 
