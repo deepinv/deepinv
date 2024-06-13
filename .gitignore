@@ -41,6 +41,7 @@ wandb/
 kernels
 measurements/
 degradations/
+datasets/
 examples/*/datasets
 results/
 tmp/
