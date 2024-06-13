@@ -210,6 +210,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         if self.transforms is not None:
             target = self.transforms["transform_target"](target)
+
+            target = target + 0 * 1j
+            target = torch.view_as_real(target)
+            target = torch.moveaxis(target, -1, 1)  # shape (2, H, W)
+
             kspace = self.transforms["transform_kspace"](kspace)
 
         return target, kspace
