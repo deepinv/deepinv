@@ -1,7 +1,7 @@
 import torch
 from torchvision.transforms.functional import rotate
 import numpy as np
-from .base import Transform
+from deepinv.transform.base import Transform
 
 
 class Rotate(Transform):

@@ -1,5 +1,5 @@
 import torch
-from .base import Transform
+from deepinv.transform.base import Transform
 
 
 class Shift(Transform):

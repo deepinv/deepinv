@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from .base import Transform
+from deepinv.transform.base import Transform
 
 try:
     from kornia.geometry.transform import warp_perspective

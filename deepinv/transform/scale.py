@@ -2,7 +2,7 @@
 import torch
 import torch.nn.functional as F
 from torch.nn import Module
-from .base import Transform
+from deepinv.transform.base import Transform
 
 
 def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator=None):
