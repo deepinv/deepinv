@@ -52,11 +52,13 @@ def choose_transform(transform_name):
 def image():
     return randn(1, 3, 64, 64)
 
+
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 def test_transforms(transform_name, image):
     transform = choose_transform(transform_name)
     image_transformed = transform(image)
     assert image.shape == image_transformed.shape
+
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 def test_transform_arithmetic(transform_name, image):
