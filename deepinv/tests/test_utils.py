@@ -83,7 +83,6 @@ def test_plot():
         deepinv.utils.plot(x, titles="a", show=False)
         deepinv.utils.plot(imgs, show=False)
 
-
 def test_plot_inset():
     # Plots a batch of images with a checkboard pattern, with different inset locations
     x = torch.ones(2, 1, 100, 100)
@@ -100,3 +99,9 @@ def test_plot_inset():
         show=False,
         save_fn="temp.png",
     )
+
+def test_plot_videos():
+    x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
+    y = torch.rand((1, 3, 5, 16, 16))
+    deepinv.utils.plot_videos([x, y], display=True)
+    deepinv.utils.plot_videos([x, y], save_fn="vid.gif")
