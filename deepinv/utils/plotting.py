@@ -669,7 +669,10 @@ def plot_videos(
 
     if save_fn:
         save_fn = Path(save_fn)
-        anim.save(save_fn.with_suffix('.gif') if save_fn.suffix == '' else save_fn, writer=anim_writer)
+        anim.save(
+            save_fn.with_suffix(".gif") if save_fn.suffix == "" else save_fn,
+            writer=anim_writer,
+        )
 
     if return_anim:
         return anim
