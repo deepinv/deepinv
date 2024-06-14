@@ -380,7 +380,7 @@ class Blur(LinearPhysics):
         if filter is not None:
             self.filter = torch.nn.Parameter(filter, requires_grad=False)
 
-        if self.noise_model is not None:
+        if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
 
 
@@ -479,7 +479,7 @@ class BlurFFT(DecomposablePhysics):
             mask = torch.cat([mask, mask], dim=-1)
             self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
-        if self.noise_model is not None:
+        if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
 
 
