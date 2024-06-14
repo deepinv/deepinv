@@ -115,7 +115,7 @@ class Trainer:
     :param str save_path: Directory in which to save the trained model.
     :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu').
     :param bool verbose: Output training progress information in the console.
-    :param bool progress_bar: Show a progress bar during training.
+    :param bool show_progress_bar: Show a progress bar during training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
@@ -171,14 +171,16 @@ class Trainer:
         if self.eval_dataloader and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
 
-        self.save_path = Path(self.save_path)
+        self.save_path = Path(self.save_path) if self.save_path else None
 
         self.eval_metrics_history = {}
         self.G = len(self.train_dataloader)
 
         if (
-            self.wandb_setup is not None or self.wandb_setup != {}
-        ) and not self.wandb_vis:
+            self.wandb_setup != {}
+            and self.wandb_setup is not None
+            and not self.wandb_vis
+        ):
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
@@ -225,7 +227,9 @@ class Trainer:
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = f"{self.save_path}/{get_timestamp()}"
+        self.save_path = (
+            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
+        )
 
         # count the overall training parameters
         params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
@@ -586,7 +590,7 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
-    def save_model(self, epoch, eval_metrics=None):
+    def save_model(self, epoch, eval_metrics=None, state={}):
         r"""
         Save the model.
 
@@ -594,10 +598,15 @@ class Trainer:
 
         :param int epoch: Current epoch.
         :param None, float eval_metrics: Evaluation metrics across epochs.
+        :param dict state: custom objects to save with model
         """
+
+        if not self.save_path:
+            return
+
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
-            state = {
+            state = state | {
                 "epoch": epoch,
                 "state_dict": self.model.state_dict(),
                 "loss": self.loss_history,
@@ -711,8 +720,8 @@ class Trainer:
             online_measurements=self.online_measurements,
             plot_images=self.plot_images,
             plot_metrics=self.plot_metrics,
+            save_folder=self.save_path + "/test" if self.save_path else None,
             physics_generator=self.physics_generator,
-            save_folder=self.save_path + "/test",
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
@@ -732,7 +741,7 @@ def train(
     **kwargs,
 ):
     """
-    Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
+    Alias function for training a model using :class:`deepinv.Trainer` class.
 
     This function creates a Trainer instance and returns the trained model.
 
