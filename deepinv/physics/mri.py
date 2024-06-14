@@ -54,14 +54,18 @@ class MRI(DecomposablePhysics):
         self.device = device
         self.img_size = img_size
 
-        mask = mask.to(device)
+        self.mask = torch.nn.Parameter(
+            self.check_mask_shape(mask).to(device), requires_grad=False
+        ).to(device)
+
+    def check_mask_shape(self, mask):
         if len(mask.shape) == 2:
             mask = mask.unsqueeze(0).unsqueeze(0)
 
         if mask.shape[1] == 1:
             mask = torch.cat([mask, mask], dim=1)
 
-        self.mask = torch.nn.Parameter(mask, requires_grad=False).to(device)
+        return mask
 
     def V_adjoint(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
@@ -94,6 +98,10 @@ class MRI(DecomposablePhysics):
     def V(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         x = x.permute(0, 2, 3, 1)
         return ifft2c_new(x).permute(0, 3, 1, 2)
+
+    def A(self, x, mask=None, **kwargs):
+        mask = None if mask is None else self.check_mask_shape(mask)
+        return super().A(x, mask=mask, **kwargs)
 
 
 #

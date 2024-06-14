@@ -17,6 +17,7 @@ New Features
 
 - Add projective and affine transformations for EI or data augmentation (:gh:`173` by `Andrew Wang`_)
 
+- Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
