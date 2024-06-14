@@ -29,6 +29,7 @@ dependencies = [
     "torchvision",
     "einops",
     "wandb",
+    "scipy",
 ]
 
 [tool.setuptools]
@@ -68,6 +69,7 @@ denoisers = [
     "ptwt",
     "FrEIA",
     "pyiqa",
+    "kornia",
     "torchkbnufft"
 ]
 
