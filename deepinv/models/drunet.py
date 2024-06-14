@@ -1,6 +1,5 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
-import numpy as np
 import torch
 import torch.nn as nn
 from .utils import get_weights_url, test_onesplit, test_pad
@@ -138,9 +137,9 @@ class DRUNet(nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 4:
-                    name = "drunet_deepinv_color.pth"
+                    name = "drunet_deepinv_color_finetune_22k.pth"
                 elif in_channels == 2:
-                    name = "drunet_deepinv_gray.pth"
+                    name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -151,13 +150,13 @@ class DRUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
+        else:
+            self.apply(weights_init_drunet)
 
         if not train:
             self.eval()
             for _, v in self.named_parameters():
                 v.requires_grad = False
-        else:
-            self.apply(weights_init_drunet)
 
         if device is not None:
             self.to(device)
@@ -184,15 +183,7 @@ class DRUNet(nn.Module):
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                if x.get_device() > -1:
-                    sigma = sigma[
-                        int(x.get_device() * x.shape[0]) : int(
-                            (x.get_device() + 1) * x.shape[0]
-                        )
-                    ]
-                    noise_level_map = sigma.to(x.device).view(x.size(0), 1, 1, 1)
-                else:
-                    noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
+                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
                 noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
                 noise_level_map = torch.ones(

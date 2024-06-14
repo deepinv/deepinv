@@ -17,7 +17,7 @@ from .testing import test
 
 @dataclass
 class Trainer:
-    r"""
+    r"""Trainer(model, physics, optimizer, train_dataloader, ...)
     Trainer class for training a reconstruction network.
 
     Training can be done by calling the :meth:`deepinv.Trainer.train` method, whereas
@@ -55,9 +55,9 @@ class Trainer:
                     loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
                     loss_total += loss.mean()
 
-                current_log = self.logs_total_loss_train if train else self.logs_total_loss_eval
-                current_log.update(loss_total.item())
-                logs[f"TotalLoss"] = current_log.avg
+                metric = self.logs_total_loss_train if train else self.logs_total_loss_eval
+                metric.update(loss_total.item())
+                logs[f"TotalLoss"] = metric.avg
 
                 if train:
                     loss_total.backward()  # Backward the total loss
@@ -99,7 +99,7 @@ class Trainer:
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
-    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
+    :param None, torch.optim.lr_scheduler scheduler: Torch scheduler for changing the learning rate across iterations.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
         parameters of the forward operator or noise realizations, can change between each sample;
@@ -115,7 +115,7 @@ class Trainer:
     :param str save_path: Directory in which to save the trained model.
     :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu').
     :param bool verbose: Output training progress information in the console.
-    :param bool progress_bar: Show a progress bar during training.
+    :param bool show_progress_bar: Show a progress bar during training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
@@ -135,7 +135,7 @@ class Trainer:
     epochs: int = 100
     losses: Union[Loss, List[Loss]] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
-    scheduler: torch.optim.lr_scheduler.LRScheduler = None
+    scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
     physics_generator: PhysicsGenerator = None
@@ -171,14 +171,16 @@ class Trainer:
         if self.eval_dataloader and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
 
-        self.save_path = Path(self.save_path)
+        self.save_path = Path(self.save_path) if self.save_path else None
 
         self.eval_metrics_history = {}
         self.G = len(self.train_dataloader)
 
         if (
-            self.wandb_setup is not None or self.wandb_setup != {}
-        ) and not self.wandb_vis:
+            self.wandb_setup != {}
+            and self.wandb_setup is not None
+            and not self.wandb_vis
+        ):
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
@@ -225,7 +227,9 @@ class Trainer:
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = f"{self.save_path}/{get_timestamp()}"
+        self.save_path = (
+            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
+        )
 
         # count the overall training parameters
         params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
@@ -259,11 +263,7 @@ class Trainer:
         :returns: The images, the titles, the grid image, and the caption.
         """
         with torch.no_grad():
-            if (
-                self.plot_measurements
-                and len(y.shape) == len(x.shape)
-                and y.shape != x.shape
-            ):
+            if len(y.shape) == len(x.shape) and y.shape != x.shape:
                 y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
                 if hasattr(physics_cur, "A_adjoint"):
                     imgs = [y_reshaped, physics_cur.A_adjoint(y), x_net, x]
@@ -284,6 +284,10 @@ class Trainer:
                     imgs = [back, x_net, x]
                     titles = ["Backprojection", "Output", "Target"]
                     caption = "From top to bottom: backprojection, output, target"
+                elif y.shape == x.shape:
+                    imgs = [y, x_net, x]
+                    titles = ["Measurement", "Output", "Target"]
+                    caption = "From top to bottom: measurement, output, target"
                 else:
                     imgs = [x_net, x]
                     caption = "From top to bottom: output, target"
@@ -296,12 +300,20 @@ class Trainer:
 
         return imgs, titles, grid_image, caption
 
-    def log_metrics_wandb(self, log_dict_iter):
+    def log_metrics_wandb(self, logs, train=True):
         r"""
         Log the metrics to wandb.
+
+        It logs the metrics to wandb.
+
+        :param dict logs: Dictionary containing the metrics to log.
+        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        if not train:
+            logs = {"Eval " + str(key): val for key, val in logs.items()}
+
         if self.wandb_vis:
-            wandb.log(log_dict_iter)
+            wandb.log(logs)
 
     def check_clip_grad(self):
         r"""
@@ -446,18 +458,16 @@ class Trainer:
                 loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
-                    current_log = (
+                    meters = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
-                    current_log.update(loss.detach().cpu().numpy())
-                    cur_loss = current_log.avg
+                    meters.update(loss.detach().cpu().numpy())
+                    cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            current_log = (
-                self.logs_total_loss_train if train else self.logs_total_loss_eval
-            )
-            current_log.update(loss_total.item())
-            logs[f"TotalLoss"] = current_log.avg
+            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            meters.update(loss_total.item())
+            logs[f"TotalLoss"] = meters.avg
 
         if train:
             loss_total.backward()  # Backward the total loss
@@ -537,8 +547,10 @@ class Trainer:
                     print(
                         f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
                     )
-            logs["step"] = epoch
-            self.log_metrics_wandb(logs)  # Log metrics to wandb
+
+            if train:
+                logs["step"] = epoch
+            self.log_metrics_wandb(logs, train)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
@@ -578,7 +590,7 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
-    def save_model(self, epoch, eval_metrics=None):
+    def save_model(self, epoch, eval_metrics=None, state={}):
         r"""
         Save the model.
 
@@ -586,10 +598,15 @@ class Trainer:
 
         :param int epoch: Current epoch.
         :param None, float eval_metrics: Evaluation metrics across epochs.
+        :param dict state: custom objects to save with model
         """
+
+        if not self.save_path:
+            return
+
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
-            state = {
+            state = state | {
                 "epoch": epoch,
                 "state_dict": self.model.state_dict(),
                 "loss": self.loss_history,
@@ -666,6 +683,13 @@ class Trainer:
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
 
+                if i < batches - 1:
+                    # clean meters
+                    self.logs_total_loss_train.reset()
+                    self.logs_total_loss_eval.reset()
+                    for l in self.logs_losses_train:
+                        l.reset()
+
             self.loss_history.append(self.logs_total_loss_train.avg)
 
             if self.scheduler:
@@ -696,8 +720,8 @@ class Trainer:
             online_measurements=self.online_measurements,
             plot_images=self.plot_images,
             plot_metrics=self.plot_metrics,
+            save_folder=self.save_path + "/test" if self.save_path else None,
             physics_generator=self.physics_generator,
-            save_folder=self.save_path + "/test",
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
@@ -717,7 +741,7 @@ def train(
     **kwargs,
 ):
     """
-    Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
+    Alias function for training a model using :class:`deepinv.Trainer` class.
 
     This function creates a Trainer instance and returns the trained model.
 

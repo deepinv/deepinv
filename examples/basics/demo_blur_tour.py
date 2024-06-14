@@ -164,7 +164,7 @@ filters = motion_generator.step(batch_size=3)
 plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 
 # %%
-# Motion blur generators
+# Diffraction blur generators
 # ---------------------------------------
 #
 # We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil

@@ -137,6 +137,31 @@ plot(
 )
 
 # %%
+#
+# We also provide physics generators for various accelerated MRI masks.
+# These are Cartesian sampling strategies and can be used for static (k) and dynamic (k-t) undersampling:
+
+from deepinv.physics.generator import (
+    GaussianMaskGenerator,
+    RandomMaskGenerator,
+    EquispacedMaskGenerator,
+)
+
+# shape (C, T, H, W)
+mask_gaussian = GaussianMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
+mask_uniform = EquispacedMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
+mask_random = RandomMaskGenerator((2, 8, 64, 50), acceleration=4).step()["mask"]
+
+plot(
+    [
+        mask_gaussian[:, :, 0, ...],
+        mask_uniform[:, :, 0, ...],
+        mask_random[:, :, 0, ...],
+    ],
+    titles=["Gaussian", "Uniform", "Random uniform"],
+)
+
+# %%
 # Decolorize
 # ---------------------------------------
 #

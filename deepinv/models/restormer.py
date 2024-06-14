@@ -104,7 +104,7 @@ class Restormer(nn.Module):
                 weights_pth_filename = "gaussian_gray_denoising_blind.pth"
             elif in_channels == 3:
                 weights_pth_filename = "gaussian_color_denoising_blind.pth"
-        elif pretrained == "denoising_real":
+        elif "denoising_real" in pretrained:
             self.is_standard_denoising_network(
                 in_channels,
                 out_channels,
@@ -121,7 +121,7 @@ class Restormer(nn.Module):
                 in_channels == 3
             ), f"Real denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
             weights_pth_filename = "real_denoising.pth"
-        elif pretrained == "denoising_gray":
+        elif "denoising_gray" in pretrained:
             self.is_standard_denoising_network(
                 in_channels,
                 out_channels,
@@ -138,7 +138,7 @@ class Restormer(nn.Module):
                 in_channels == 1
             ), f"Real denoising / EXPECTED in_channels == 1, INSTEAD of {in_channels}"
             weights_pth_filename = "gaussian_gray_denoising_blind.pth"
-        elif pretrained == "denoising_color":
+        elif "denoising_color" in pretrained:
             self.is_standard_denoising_network(
                 in_channels,
                 out_channels,
@@ -335,7 +335,7 @@ class Restormer(nn.Module):
             ckpt_restormer = torch.load(
                 pretrained, map_location=lambda storage, loc: storage
             )
-            self.load_state_dict(ckpt_restormer, strict=True)
+            self.load_state_dict(ckpt_restormer["params"], strict=True)
         elif weights_pth_filename is not None:
             print(f"Loading from {weights_pth_filename}")
             url = get_weights_url(
