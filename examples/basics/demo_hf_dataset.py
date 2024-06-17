@@ -14,29 +14,31 @@ Here we use drunet_dataset (https://github.com/samuro95/GSPnP)
 # ----------------------------------------------------------------------------------------
 #
 
-from datasets import load_dataset, load_from_disk
-from torch.utils.data import DataLoader
+from datasets import load_dataset
+from torch.utils.data import IterableDataset, DataLoader
 from torchvision import transforms
 
 import deepinv as dinv
 
 
 # %%
-# Download dataset from Internet, save it on disk, and load from disk
+# Stream data from Internet
 # ----------------------------------------------------------------------------------------
 #
 
-DATA_DIR = "DRUNET_preprocessed"
-
-# download from Internet
+# stream data from huggingface
+# only a limited number of samples should be in memory and nothing should be saved on disk
 # https://huggingface.co/datasets/deepinv/drunet_dataset
-dataset = load_dataset("deepinv/drunet_dataset", streaming=True)
+# type : datasets.iterable_dataset.IterableDataset
+raw_hf_train_dataset = load_dataset("deepinv/drunet_dataset", split="train", streaming=True)
+print('Number of data files used to store raw data: ', raw_hf_train_dataset.n_shards)
 
-# save it to disk, which is useful to avoid downloading again
-dataset.save_to_disk(DATA_DIR)
-
-# load from disk (useless here, as we already have the dataset in memory)
-dataset = load_from_disk(DATA_DIR)
+# in streaming mode, we can only read sequentially the data sample in a certain order
+# thus we are not able to do exact shuffling
+# an alternative way is the buffer shuffling which load a fixed number of samples in memory
+# and let us pick randomly one sample among this fixed number of samples
+# https://huggingface.co/docs/datasets/about_mapstyle_vs_iterable
+raw_hf_train_dataset = raw_hf_train_dataset.shuffle(seed=42, buffer_size=100)
 
 
 # %%
@@ -47,8 +49,8 @@ dataset = load_from_disk(DATA_DIR)
 # You can use any other function.
 #
 
-# Define your transformations
-transform = transforms.Compose(
+# Function that should be applied to a PIL Image
+img_transforms = transforms.Compose(
     [
         transforms.Resize((224, 224)),  # Resize all images to 224x224
         transforms.ToTensor(),
@@ -56,68 +58,36 @@ transform = transforms.Compose(
 )
 
 
-# Define a function to apply transformations on a batch of data
-def transform_images(examples):
-    # before : examples['png'] = [<PIL.PngImagePlugin.PngImageFile image>, etc.]
-    # after : examples['png'] = [transform(<PIL.PngImagePlugin.PngImageFile image>), etc.]
-    examples["png"] = list(map(transform, examples["png"]))
-    return examples
+# Class that apply transform on data samples of a datasets.iterable_dataset.IterableDataset
+class HFDataset(IterableDataset):
+    r"""
+    Creates an iteratble dataset from a Hugging Face dataset to enable streaming.
+    """
+    def __init__(self, hf_dataset, transforms=None, key='png'):
+        self.hf_dataset = hf_dataset
+        self.transform = transforms
+        self.key = key
+
+    def __iter__(self):
+        for sample in self.hf_dataset:
+            if self.transform:
+                out = self.transform(sample[self.key])
+            else:
+                out = sample[self.key]
+            yield out
 
 
-# Add function that will be applied when accessing train data (on-the-fly)
-train_dataset = dataset.with_transform(transform_images)
+hf_train_dataset = HFDataset(raw_hf_train_dataset, transforms=img_transforms)
 
 # Define your DataLoader
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+# if raw_hf_train_dataset.n_shards > 1, 
+# it may be interesting to define argument `num_workers > 1`,
+# to have parallel processing of data samples
+# of course, num_workers <= n_shards (number of data files)
+#            num_workers <= number of available cpu cores
+# DataLoader(hf_train_dataset, batch_size=5, num_workers=?)
+train_dataloader = DataLoader(raw_hf_train_dataset, batch_size=5, shuffle=True)
 
 # display a batch
 batch = next(iter(train_dataloader))
 dinv.utils.plot(batch["png"])
-
-
-# %%
-# Generate a dataset of degraded images and load it.
-# --------------------------------------------------------------------------------
-# We use a simple denoising forward operator with Gaussian noise.
-#
-# .. note::
-#      :func:`dinv.datasets.generate_dataset` will ignore other attributes than the image,
-#      e.g. the class labels if there are any.
-
-
-class HF_dataset(torch.utils.data.Dataset):
-    """To make the HF dataset compatible with deepinv.datasets.generate_dataset"""
-
-    def __init__(self, hf_dataset: datasets.arrow_dataset.Dataset) -> None:
-        super().__init__()
-        self.hf_dataset = hf_dataset
-
-    def __len__(self):
-        return len(self.hf_dataset)
-
-    def __getitem__(self, idx: int):
-        return self.hf_dataset[idx]["png"]
-
-
-train_drunet = HF_dataset(train_dataset)
-
-# Physic applied to degrade data
-physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
-
-# Save generated noisy dataset
-dinv_dataset_path = dinv.datasets.generate_dataset(
-    train_dataset=train_drunet,
-    test_dataset=None,
-    physics=physics,
-    save_dir=DATA_DIR + "/noisy",
-)
-
-# Load noisy dataset
-noisy_train_dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
-
-# Define your noisy DataLoader
-noisy_train_dataloader = DataLoader(noisy_train_dataset, batch_size=4, shuffle=True)
-
-# display a batch of noisy images with its associated clean images
-noisy_batch = next(iter(noisy_train_dataloader))
-dinv.utils.plot([noisy_batch[0], noisy_batch[1]])
