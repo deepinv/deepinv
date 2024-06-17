@@ -30,8 +30,10 @@ import deepinv as dinv
 # only a limited number of samples should be in memory and nothing should be saved on disk
 # https://huggingface.co/datasets/deepinv/drunet_dataset
 # type : datasets.iterable_dataset.IterableDataset
-raw_hf_train_dataset = load_dataset("deepinv/drunet_dataset", split="train", streaming=True)
-print('Number of data files used to store raw data: ', raw_hf_train_dataset.n_shards)
+raw_hf_train_dataset = load_dataset(
+    "deepinv/drunet_dataset", split="train", streaming=True
+)
+print("Number of data files used to store raw data: ", raw_hf_train_dataset.n_shards)
 
 # in streaming mode, we can only read sequentially the data sample in a certain order
 # thus we are not able to do exact shuffling
@@ -63,7 +65,8 @@ class HFDataset(IterableDataset):
     r"""
     Creates an iteratble dataset from a Hugging Face dataset to enable streaming.
     """
-    def __init__(self, hf_dataset, transforms=None, key='png'):
+
+    def __init__(self, hf_dataset, transforms=None, key="png"):
         self.hf_dataset = hf_dataset
         self.transform = transforms
         self.key = key
@@ -80,7 +83,7 @@ class HFDataset(IterableDataset):
 hf_train_dataset = HFDataset(raw_hf_train_dataset, transforms=img_transforms)
 
 # Define your DataLoader
-# if raw_hf_train_dataset.n_shards > 1, 
+# if raw_hf_train_dataset.n_shards > 1,
 # it may be interesting to define argument `num_workers > 1`,
 # to have parallel processing of data samples
 # of course, num_workers <= n_shards (number of data files)
