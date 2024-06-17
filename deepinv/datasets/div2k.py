@@ -27,7 +27,7 @@ class DIV2K(torch.utils.data.Dataset):
                        |                  |
                        |                  -- 0900.png
                        -- DIV2K_train_HR.zip
-                       -- DIV2K_valid_HR
+                       -- DIV2K_valid_HR.zip
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param str mode: Select a split of the dataset between 'train' or 'val'. Default at 'train'.
