@@ -73,9 +73,9 @@ def download_Set14():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_set14_dataset(download_Urban100):
+def test_load_set14_dataset(download_Set14):
     """Check that dataset contains 14 PIL images."""
-    dataset = Urban100HR(download_Urban100, download=False)
+    dataset = Set14HR(download_Set14, download=False)
     assert (
         len(dataset) == 14
     ), f"Dataset should have been of len 100, instead got {len(dataset)}."
