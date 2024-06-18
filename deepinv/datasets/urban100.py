@@ -4,7 +4,11 @@ import os
 from PIL import Image
 import torch
 
-from deepinv.datasets.utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
+from deepinv.datasets.utils import (
+    calculate_md5_for_folder,
+    download_zipfile,
+    extract_zipfile,
+)
 
 
 class Urban100HR(torch.utils.data.Dataset):
@@ -41,7 +45,7 @@ class Urban100HR(torch.utils.data.Dataset):
     :Examples:
 
         Instanciate dataset and download raw data from the Internet: ::
-    
+
             root = "/path/to/dataset/Urban100"
             dataset = Urban100HR(root=root, download=True)  # will download dataset at root
             dataset.check_dataset_exists()                  # check that raw data has been downloaded correctly
@@ -77,10 +81,7 @@ class Urban100HR(torch.utils.data.Dataset):
                     os.makedirs(self.root)
                 if os.path.exists(self.img_dir):
                     raise ValueError(
-                    f"""The image folder already exists,
-                    thus the download is aborted.
-                    Please set `download=False`
-                    OR remove `{self.img_dir}`."""
+                        f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
                 for filename, url in self.zipfile_urls.items():
@@ -97,9 +98,7 @@ class Urban100HR(torch.utils.data.Dataset):
             # stop the execution since the dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
-                f"""Dataset not found at `{self.root}`.
-                Please set `root` correctly (currently `root={self.root}`)
-                OR set `download=True` (currently `download={download}`)."""
+                    f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
         self.img_list = sorted(
