@@ -11,7 +11,7 @@ def download_div2k():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "DIV2K"
 
-    # Download div2K dataset
+    # Download div2K raw dataset
     DIV2K(tmp_data_dir, mode="val", download=True)
 
     # This will return control to the test function
@@ -37,7 +37,7 @@ def download_Urban100():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "Urban100"
 
-    # Download div2K dataset
+    # Download Urban100 raw dataset
     Urban100HR(tmp_data_dir, download=True)
 
     # This will return control to the test function
@@ -48,7 +48,7 @@ def download_Urban100():
 
 
 def test_load_urban100_dataset(download_Urban100):
-    """Check that dataset contains 800 items."""
+    """Check that dataset contains 100 items."""
     dataset = Urban100HR(download_Urban100, download=False)
     assert (
         len(dataset) == 100
