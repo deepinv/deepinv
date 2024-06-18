@@ -93,4 +93,4 @@ train_dataloader = DataLoader(hf_train_dataset, batch_size=5)
 
 # display a batch
 batch = next(iter(train_dataloader))
-dinv.utils.plot(batch["png"])
+dinv.utils.plot(batch)
