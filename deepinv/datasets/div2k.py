@@ -65,7 +65,9 @@ class DIV2K(torch.utils.data.Dataset):
         elif self.mode == "val":
             self.img_dir = os.path.join(self.root, "DIV2K_valid_HR")
         else:
-            raise ValueError(f"Expected `train` or `val` values for `mode` argument, instead got `{self.mode}`")
+            raise ValueError(
+                f"Expected `train` or `val` values for `mode` argument, instead got `{self.mode}`"
+            )
 
         # download a split of the dataset, we check first that this split isn't already downloaded
         if not self._verify_split_dataset_integrity():
@@ -73,7 +75,9 @@ class DIV2K(torch.utils.data.Dataset):
                 if not os.path.isdir(self.root):
                     os.makedirs(self.root)
                 if os.path.exists(self.img_dir):
-                    raise ValueError(f"The {self.mode} folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`.")
+                    raise ValueError(
+                        f"The {self.mode} folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
+                    )
 
                 zip_filename = (
                     "DIV2K_train_HR.zip"
@@ -94,7 +98,9 @@ class DIV2K(torch.utils.data.Dataset):
                     raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the split dataset is not available and we didn't download it
             else:
-                raise RuntimeError(f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`), OR set `download=True` (currently `download={download}`).")
+                raise RuntimeError(
+                    f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`), OR set `download=True` (currently `download={download}`)."
+                )
 
         self.img_list = os.listdir(self.img_dir)
 
