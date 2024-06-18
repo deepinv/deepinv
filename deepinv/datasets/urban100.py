@@ -80,12 +80,7 @@ class Urban100HR(torch.utils.data.Dataset):
                 if not os.path.isdir(self.root):
                     os.makedirs(self.root)
                 if os.path.exists(self.img_dir):
-                    raise ValueError(
-                        f"""The image folder already exists,
-                    thus the download is aborted.
-                    Please set `download=False`
-                    OR remove `{self.img_dir}`."""
-                    )
+                    raise ValueError(f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`.")
 
                 for filename, url in self.zipfile_urls.items():
                     # download zipfile from the Internet and save it locally
@@ -100,11 +95,7 @@ class Urban100HR(torch.utils.data.Dataset):
                         print("Dataset has been successfully downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
             else:
-                raise RuntimeError(
-                    f"""Dataset not found at `{self.root}`.
-                Please set `root` correctly (currently `root={self.root}`)
-                OR set `download=True` (currently `download={download}`)."""
-                )
+                raise RuntimeError(f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`).")
 
         self.img_list = sorted(
             [file for file in os.listdir(self.img_dir) if file.endswith("HR.png")]
