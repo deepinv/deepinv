@@ -89,7 +89,7 @@ hf_train_dataset = HFDataset(raw_hf_train_dataset, transforms=img_transforms)
 # of course, num_workers <= n_shards (number of data files)
 #            num_workers <= number of available cpu cores
 # DataLoader(hf_train_dataset, batch_size=5, num_workers=?)
-train_dataloader = DataLoader(raw_hf_train_dataset, batch_size=5)
+train_dataloader = DataLoader(hf_train_dataset, batch_size=5)
 
 # display a batch
 batch = next(iter(train_dataloader))
