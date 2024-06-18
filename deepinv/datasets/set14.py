@@ -4,7 +4,11 @@ import os
 from PIL import Image
 import torch
 
-from deepinv.datasets.utils import calculate_md5_for_folder, download_zipfile, extract_zipfile
+from deepinv.datasets.utils import (
+    calculate_md5_for_folder,
+    download_zipfile,
+    extract_zipfile,
+)
 
 
 class Set14HR(torch.utils.data.Dataset):
@@ -36,7 +40,7 @@ class Set14HR(torch.utils.data.Dataset):
     :Examples:
 
         Instanciate dataset and download raw data from the Internet: ::
-    
+
             root = "/path/to/dataset/Set14"
             dataset = Set14(root=root, download=True)  # will download dataset at root
             dataset.check_dataset_exists()             # check that raw data has been downloaded correctly
@@ -71,7 +75,9 @@ class Set14HR(torch.utils.data.Dataset):
                 if not os.path.isdir(self.root):
                     os.makedirs(self.root)
                 if os.path.exists(self.img_dir):
-                    raise ValueError(f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`.")
+                    raise ValueError(
+                        f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
+                    )
 
                 for filename, url in self.zipfile_urls.items():
                     # download zipfile from the Internet and save it locally
@@ -86,7 +92,9 @@ class Set14HR(torch.utils.data.Dataset):
                         print("Dataset has been successfully downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
             else:
-                raise RuntimeError(f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`).")
+                raise RuntimeError(
+                    f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
+                )
 
         self.img_list = sorted(
             [file for file in os.listdir(self.img_dir) if file.endswith("HR.png")]
@@ -122,6 +130,7 @@ class Set14HR(torch.utils.data.Dataset):
         if not data_dir_exist:
             return False
         return all(
-            calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name)) == checksum
+            calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name))
+            == checksum
             for folder_name, checksum in self.checksums.items()
         )
