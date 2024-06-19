@@ -702,13 +702,6 @@ class Trainer:
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
 
-                if i < batches - 1:
-                    # clean meters
-                    self.logs_total_loss_train.reset()
-                    self.logs_total_loss_eval.reset()
-                    for l in self.logs_losses_train:
-                        l.reset()
-
             self.loss_history.append(self.logs_total_loss_train.avg)
 
             if self.scheduler:
