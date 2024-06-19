@@ -618,7 +618,7 @@ class Trainer:
             if eval_metrics is not None:
                 state["eval_metrics"] = eval_metrics
             if self.wandb_vis:
-                state['wandb_id'] = wandb.run.id
+                state["wandb_id"] = wandb.run.id
             torch.save(
                 state,
                 os.path.join(
