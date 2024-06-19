@@ -28,6 +28,7 @@ class Set14HR(torch.utils.data.Dataset):
                    -- Set14_SR.zip
 
     This dataset wrapper gives access to the 14 high resolution images in the `image_SRF_4` folder.
+    Raw dataset source : https://github.com/jbhuang0604/SelfExSR
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.

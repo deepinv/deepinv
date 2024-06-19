@@ -63,7 +63,7 @@ def download_Set14():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "Set14"
 
-    # Download div2K dataset
+    # Download Set14 dataset
     Set14HR(tmp_data_dir, download=True)
 
     # This will return control to the test function
@@ -78,7 +78,7 @@ def test_load_set14_dataset(download_Set14):
     dataset = Set14HR(download_Set14, download=False)
     assert (
         len(dataset) == 14
-    ), f"Dataset should have been of len 100, instead got {len(dataset)}."
+    ), f"Dataset should have been of len 14, instead got {len(dataset)}."
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
