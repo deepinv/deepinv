@@ -63,7 +63,7 @@ def download_Set14():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "Set14"
 
-    # Download Set14 dataset
+    # Download Set14 raw dataset
     Set14HR(tmp_data_dir, download=True)
 
     # This will return control to the test function
