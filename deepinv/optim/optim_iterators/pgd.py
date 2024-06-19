@@ -19,7 +19,7 @@ class PGDIteration(OptimIterator):
         \end{equation*}
 
 
-    where :math:`\gamma` is a stepsize that should satisfy :math:` \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
 
     """
 
@@ -52,7 +52,7 @@ class FISTAIteration(OptimIterator):
         \end{equation*}
 
 
-    where :math:`\gamma` is a stepsize that should satisfy :math:` \gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
     :math:`\alpha_k = (k + a - 1) / (k + a) `.
     """
 
