@@ -15,6 +15,9 @@ New Features
 - Added evaluation functions for R2R and Splitting losses (:gh:`241` by Julian Tachella) - 11/06/2024
 - Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024
 
+- Add projective and affine transformations for EI or data augmentation (:gh:`173` by `Andrew Wang`_)
+
+- Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 
 Fixed
 ^^^^^

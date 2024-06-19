@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
-LOSSES = ["sup", "mcei", "mcei-scale", "r2r"]
+LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
 
 
@@ -42,6 +42,14 @@ def choose_loss(loss_name):
     elif loss_name == "mcei-scale":
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Scale()))
+    elif loss_name == "mcei-homography":
+        pytest.importorskip(
+            "kornia",
+            reason="This test requires kornia. It should be "
+            "installed with `pip install kornia`",
+        )
+        loss.append(dinv.loss.MCLoss())
+        loss.append(dinv.loss.EILoss(dinv.transform.Homography()))
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
