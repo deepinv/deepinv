@@ -82,15 +82,22 @@ class HFDataset(IterableDataset):
 
 hf_train_dataset = HFDataset(raw_hf_train_dataset, transforms=img_transforms)
 
-# Define your DataLoader
+
+# %%
+# Create a dataloader
+# --------------------------------------------------------------------
+#
+# We iterate over the dataset using a dataloader.
+#
+
 # if raw_hf_train_dataset.n_shards > 1,
 # it may be interesting to define argument `num_workers > 1`,
 # to have parallel processing of data samples
 # of course, num_workers <= n_shards (number of data files)
 #            num_workers <= number of available cpu cores
 # DataLoader(hf_train_dataset, batch_size=5, num_workers=?)
-train_dataloader = DataLoader(hf_train_dataset, batch_size=5)
+train_dataloader = DataLoader(hf_train_dataset, batch_size=2)
 
 # display a batch
 batch = next(iter(train_dataloader))
-dinv.utils.plot(batch)
+dinv.utils.plot([batch[0], batch[1]])
