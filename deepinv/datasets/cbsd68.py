@@ -9,10 +9,10 @@ from deepinv.datasets.utils import calculate_md5_for_folder
 class CBSD68(torch.utils.data.Dataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
-    Color BSD68 dataset for image denoising benchmarks is part of The Berkeley Segmentation Dataset and Benchmark. 
+    Color BSD68 dataset for image denoising benchmarks is part of The Berkeley Segmentation Dataset and Benchmark.
     It is used for measuring image denoising algorithms performance. It contains 68 images.
 
-    
+
     **Raw data file structure:** ::
 
             self.root --- data-00000-of-00001.arrow
@@ -21,7 +21,7 @@ class CBSD68(torch.utils.data.Dataset):
 
     This dataset wraps the huggingface version of the dataset.
     HF source : https://huggingface.co/datasets/deepinv/CBSD68
-                       
+
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
@@ -54,7 +54,7 @@ class CBSD68(torch.utils.data.Dataset):
                 raise RuntimeError(
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
-            
+
         self.hf_dataset = datasets.load_from_disk(self.root)
 
     def __len__(self) -> int:
@@ -62,12 +62,11 @@ class CBSD68(torch.utils.data.Dataset):
 
     def __getitem__(self, idx: int) -> Any:
         # PIL Image
-        img = self.hf_dataset[idx]['png']
+        img = self.hf_dataset[idx]["png"]
 
         if self.transform is not None:
             img = self.transform(img)
         return img
-
 
     def check_dataset_exists(self) -> bool:
         """Verify that the HuggingFace dataset folder exists and contains all the files.
