@@ -30,7 +30,7 @@ class CBSD68(torch.utils.data.Dataset):
     """
 
     # for integrity of downloaded data
-    checksum = "71e89aded7583f4c6b4e8aad5ccb51e5"
+    checksum = "636d3a974fc1f84302b1a5d6379bbe59"
 
     def __init__(
         self,
@@ -46,9 +46,13 @@ class CBSD68(torch.utils.data.Dataset):
             if download:
                 # source : https://github.com/huggingface/datasets/issues/6703
                 # load_dataset : download from Internet, raw data formats like CSV are processed into Arrow format, then saved in a cache dir
-                datasets.load_dataset("deepinv/CBSD68", split="train").save_to_disk(
-                    self.root
-                )
+                hf_dataset = datasets.load_dataset("deepinv/CBSD68", split="train")
+
+                # '__url__' column contains absolute paths to raw data in the cache dir which is unnecessary when saving the dataset
+                if "__url__" in hf_dataset.column_names:
+                    # Remove the '__url__' column
+                    hf_dataset = hf_dataset.remove_columns("__url__")
+                hf_dataset.save_to_disk(self.root)
 
                 if self.check_dataset_exists():
                     print("Dataset has been successfully downloaded.")

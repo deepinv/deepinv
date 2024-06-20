@@ -5,7 +5,7 @@ import pytest
 
 from deepinv.datasets import DIV2K, Urban100HR, CBSD68
 
-# for debugging CI 
+# for debugging CI
 import os
 from deepinv.datasets.utils import calculate_md5_for_folder
 
