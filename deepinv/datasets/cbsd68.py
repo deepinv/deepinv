@@ -44,8 +44,11 @@ class CBSD68(torch.utils.data.Dataset):
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
             if download:
-                hf_dataset = datasets.load_dataset("deepinv/CBSD68", split="train")
-                hf_dataset.save_to_disk(self.root)
+                # source : https://github.com/huggingface/datasets/issues/6703
+                # load_dataset : download from Internet, raw data formats like CSV are processed into Arrow format, then saved in a cache dir
+                datasets.load_dataset("deepinv/CBSD68", split="train").save_to_disk(
+                    self.root
+                )
 
                 if self.check_dataset_exists():
                     print("Dataset has been successfully downloaded.")
