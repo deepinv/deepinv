@@ -30,6 +30,7 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
+    "datasets",
 ]
 
 [tool.setuptools]
