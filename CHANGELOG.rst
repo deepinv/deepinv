@@ -178,3 +178,4 @@ Authors
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
 .. _Chao Tang: https://github.com/ChaoTang0330
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
+.. _Andrew Wang: https://andrewwango.github.io/about/
