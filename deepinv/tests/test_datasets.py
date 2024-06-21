@@ -5,10 +5,6 @@ import pytest
 
 from deepinv.datasets import DIV2K, Urban100HR, CBSD68
 
-# for debugging CI
-import os
-from deepinv.datasets.utils import calculate_md5_for_folder
-
 
 @pytest.fixture
 def download_div2k():
@@ -79,8 +75,6 @@ def download_CBSD68():
 
 def test_load_CBSD68_dataset(download_CBSD68):
     """Check that dataset contains 68 PIL images."""
-    print(os.listdir(download_CBSD68))
-    print(calculate_md5_for_folder(download_CBSD68))
     dataset = CBSD68(download_CBSD68, download=False)
     assert (
         len(dataset) == 68
