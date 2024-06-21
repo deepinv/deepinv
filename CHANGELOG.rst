@@ -7,7 +7,7 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-- Plot video functionality
+- Plot video/animation functionality (:gh:`245` by `Andrew Wang`_)
 
 New Features
 ^^^^^^^^^^^^
