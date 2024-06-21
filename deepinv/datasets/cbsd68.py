@@ -1,9 +1,10 @@
 from typing import Any, Callable
+import os
 
 import datasets
 import torch
 
-from deepinv.datasets.utils import calculate_md5_for_folder
+from deepinv.datasets.utils import calculate_md5
 
 
 class CBSD68(torch.utils.data.Dataset):
@@ -30,7 +31,7 @@ class CBSD68(torch.utils.data.Dataset):
     """
 
     # for integrity of downloaded data
-    checksum = "636d3a974fc1f84302b1a5d6379bbe59"
+    checksum = "5340df21e964a94dd569cd91e01d1c76"
 
     def __init__(
         self,
@@ -76,12 +77,17 @@ class CBSD68(torch.utils.data.Dataset):
         return img
 
     def check_dataset_exists(self) -> bool:
-        """Verify that the HuggingFace dataset folder exists and contains all the files.
+        """Verify that the HuggingFace dataset folder exists and contains the raw data file.
 
         `self.root` should have the following structure: ::
 
             self.root --- data-00000-of-00001.arrow
-                       -- dataset_info.json
-                       -- state.json
+                       -- xxx
+                       -- xxx
+
+        This is a soft verification as we don't check all the files in the folder.
         """
-        return calculate_md5_for_folder(self.root) == self.checksum
+        raw_data_fpath = os.path.join(self.root, "data-00000-of-00001.arrow")
+        if not os.path.exists(raw_data_fpath):
+            return False
+        return calculate_md5(fpath=raw_data_fpath) == self.checksum
