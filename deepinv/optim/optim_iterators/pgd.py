@@ -1,5 +1,4 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .utils import gradient_descent_step
 
 
 class PGDIteration(OptimIterator):
