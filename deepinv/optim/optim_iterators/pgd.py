@@ -1,5 +1,4 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .utils import gradient_descent_step
 
 
 class PGDIteration(OptimIterator):
@@ -120,7 +119,7 @@ class fStepPGD(fStep):
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
-            return gradient_descent_step(x, grad)
+            return x - grad
         else:
             return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
 
@@ -153,4 +152,4 @@ class gStepPGD(gStep):
                 * cur_params["stepsize"]
                 * cur_prior.grad(x, cur_params["g_param"])
             )
-            return gradient_descent_step(x, grad)
+            return x - grad

@@ -29,7 +29,8 @@ results/
 
 # Miscellaneous
 /experimental/
-/deepinv/datasets/reside/
+datasets
+examples/*/datasets
 deepinv/version.py
 /saved_models/
 venv
