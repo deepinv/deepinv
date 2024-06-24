@@ -51,7 +51,7 @@ class GDIteration(OptimIterator):
             else None
         )
         return {"est": (x,), "cost": F}
-    
+
 
 class MDIteration(OptimIterator):
     r"""
@@ -104,8 +104,6 @@ class MDIteration(OptimIterator):
             else None
         )
         return {"est": (x,), "cost": F}
-
-
 
 
 class fStepGD(fStep):
