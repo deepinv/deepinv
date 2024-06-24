@@ -9,8 +9,7 @@ class StudentGrad(nn.Module):
         self.model = denoiser
 
     def forward(self, x, sigma):
-        out = self.model(x, sigma)
-        return out
+        return self.model(x, sigma)
 
 
 class GSPnP(nn.Module):

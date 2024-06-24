@@ -63,7 +63,7 @@ kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
 )  # add batch and channel dimensions
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
-num_workers = 0
+num_workers = 4 if torch.cuda.is_available() else 0
 
 factor = 2  # down-sampling factor
 n_channels = 3  # 3 for color images, 1 for gray-scale images
