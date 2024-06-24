@@ -28,6 +28,23 @@ class CBSD68(torch.utils.data.Dataset):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param callable, optional transform: A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+
+    |sep|
+
+    :Examples:
+
+        Instanciate dataset and download raw data from the Internet:
+
+        >>> import shutil
+        >>> from deepinv.datasets import CBSD68
+        >>> dataset = CBSD68(root="CBSB68_DATA", download=True)  # download raw data at root and load dataset
+        Dataset has been successfully downloaded.
+        >>> dataset.check_dataset_exists()                       # check that raw data has been downloaded correctly
+        True
+        >>> len(dataset)                                         # check that we have 68 images
+        68
+        >>> shutil.rmtree("CBSB68_DATA")                         # remove raw data from disk
+
     """
 
     # for integrity of downloaded data
