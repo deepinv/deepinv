@@ -12,6 +12,7 @@ class StudentGrad(nn.Module):
         out = self.model(x, sigma)
         return out
 
+
 class GSPnP(nn.Module):
     r"""
     Gradient Step module to use a denoiser architecture as a Gradient Step Denoiser.
