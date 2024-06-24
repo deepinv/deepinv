@@ -74,6 +74,8 @@ class CBSD68(torch.utils.data.Dataset):
 
                 if self.check_dataset_exists():
                     print("Dataset has been successfully downloaded.")
+                else:
+                    raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
