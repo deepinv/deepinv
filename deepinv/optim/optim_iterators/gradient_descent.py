@@ -96,8 +96,8 @@ class MDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        h = cur_params["bregman_fn"]
-        x = h.grad_inv(h.grad(x_prev) - grad)
+        bregman_potential = cur_params["bregman_potential"]
+        x = bregman_potential.grad_conj(bregman_potential.grad(x_prev) - grad)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost

@@ -58,13 +58,13 @@ class Bregman(nn.Module):
         It corresponds to the inverse of the gradient of :math:`h`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
+        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
         pass
     
     def div(self, x, y, *args, **kwargs):
         r"""
-        Computes the Bregmab divergence with potential :math:`h`.
+        Computes the Bregman divergence with potential :math:`h`.
 
         :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Variable :math:`y` at which the divergence is computed.
@@ -88,7 +88,8 @@ class Bregman(nn.Module):
 
 class BurgEntropy(Bregman):
     r"""
-    Module for the using the Burg entropy as Bregman potential :math:`h(x) = \sum_i x_i \log x_i - x_i`.
+    Module for the using Burg's entropy as Bregman potential :math:`h(x) = - \sum_i \log x_i`.
+    The corresponding Bregman divergence is the Itakura-Saito distance :math:`D(x,y) = \sum_i x_i / y_i - \log(x_i / y_i) - 1`.
     """
 
     def __init__(self):
@@ -96,45 +97,88 @@ class BurgEntropy(Bregman):
 
     def h(self, x):
         r"""
-        Computes the potential :math:`h(x) = \sum_i x_i \log x_i - x_i`.
+        Computes Burg's entropy potential :math:`h(x) = - \sum_i \log x_i`.
+        The input :math:`x` must be postive.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
         :return: (torch.tensor) potential :math:`h(x)`.
         """
-        return torch.sum(x * torch.log(x) - x)
+        return -torch.sum(torch.log(x).reshape(x.shape[0],-1), dim=-1)
 
     def conjugate(self, x):
         r"""
-        Computes the convex conjugate potential :math:`h^*(y) = \sup_{x} \langle x, y \rangle - h(x)`.
+        Computes the convex conjugate potential :math:`h^*(y) = - - \sum_i \log (-x_i)`.
+        The input :math:`x` must be negative.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
         :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
         """
-        return torch.sum(torch.exp(x) - 1)
+        n = torch.shape(x.reshape(x.shape[0],-1))[-1]
+        return -torch.sum(torch.log(-x).reshape(x.shape[0],-1), dim=-1) - n
 
-    def grad_conj(self, x):
+    def grad(self, x, *args, **kwargs):
         r"""
-        Calculates the gradient of the convex conjugate :math:`h^*` of :math:`h`. 
-        It corresponds to the inverse of the gradient of :math:`h`.
+        Calculates the gradient of Burg's entropy :math:`\nabla h(x) = - 1 / x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
         """
-        return torch.exp(x)
-
-    def grad(self, x):
+        return - 1 / x
+    
+    def grad_conj(self, x, *args, **kwargs):
         r"""
-        Calculates the gradient of the potential :math:`h` at :math:`x`.
-        By default, the gradient is computed using automatic differentiation.
+        Calculates the gradient of the conjugate of Burg's entropy :math:`\nabla h^*(x) = - 1 / x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
+        """
+        return - 1 / x
+    
+
+class NegEntropy(Bregman):
+    r"""
+    Module for the using negative entropy as Bregman potential :math:`h(x) = \sum_i x_i \log x_i`.
+    The corresponding Bregman divergence is the Kullback-Leibler divergence :math:`D(x,y) = \sum_i x_i \log(x_i / y_i) - x_i + y_i`.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def h(self, x):
+        r"""
+        Computes negative entropy potential :math:`h(x) = \sum_i x_i \log x_i`.
+        The input :math:`x` must be postive.
+
+        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
+        :return: (torch.tensor) potential :math:`h(x)`.
+        """
+        return torch.sum((x * torch.log(x)).reshape(x.shape[0],-1), dim=-1)
+
+    def conjugate(self, x):
+        r"""
+        Computes the convex conjugate potential :math:`h^*(y) = \sum_i y_i \log y_i`.
+        The input :math:`x` must be negative.
+
+        :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
+        :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
+        """
+        return torch.sum(torch.exp(x - 1).reshape(x.shape[0],-1), dim=-1)
+
+    def grad(self, x, *args, **kwargs):
+        r"""
+        Calculates the gradient of negative entropy :math:`\nabla h(x) = 1 + \log x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (torch.tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
         """
-        return torch.log(x) + 1
-
-    def div(self, x, y):
+        return 1 + torch.log(x)
+    
+    def grad_conj(self, x, *args, **kwargs):
         r"""
-        Computes the Bregmab divergence with potential :math:`h`.
+        Calculates the gradient of the conjugate of negative entropy :math:`\nabla h^*(x) = 1 + \log x`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
-        :param torch.Tensor y: Variable :math:`y` at which the divergence is computed
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
+        """
+        return torch.exp(x - 1)
+    
