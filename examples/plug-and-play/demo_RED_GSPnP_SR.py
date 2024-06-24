@@ -63,7 +63,7 @@ kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
 )  # add batch and channel dimensions
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
-num_workers = 4 if torch.cuda.is_available() else 0
+num_workers = 0
 
 factor = 2  # down-sampling factor
 n_channels = 3  # 3 for color images, 1 for gray-scale images
@@ -76,6 +76,7 @@ p = dinv.physics.Downsampling(
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
+
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
 measurement_dir = DATA_DIR / dataset_name / operation
 dinv_dataset_path = dinv.datasets.generate_dataset(

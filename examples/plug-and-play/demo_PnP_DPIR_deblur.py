@@ -49,6 +49,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
 dataset_name = "set3c"
+dataset_name = "CBSD68"
 img_size = 256 if torch.cuda.is_available() else 32
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]

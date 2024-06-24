@@ -29,6 +29,8 @@ results/
 
 # Miscellaneous
 /experimental/
+datasets
+examples/*/datasets
 /deepinv/datasets/reside/
 deepinv/version.py
 /saved_models/
