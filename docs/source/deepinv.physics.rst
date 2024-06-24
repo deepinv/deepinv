@@ -141,7 +141,7 @@ it is possible to sum generators as follows:
 .. doctest::
 
     >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
-    ...    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
+    ...    + dinv.physics.generator.RandomMaskGenerator((32, 32))
     >>> params = mask_generator.step(batch_size=4)
     >>> print(sorted(params.keys()))
     ['mask', 'sigma']
@@ -223,14 +223,16 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    deepinv.physics.MRI
 
 
-We provide generators for sampling acceleration masks:
+We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.generator.AccelerationMaskGenerator
+   deepinv.physics.generator.GaussianMaskGenerator
+   deepinv.physics.generator.RandomMaskGenerator
+   deepinv.physics.generator.EquispacedMaskGenerator
 
 Tomography 
 ^^^^^^^^^^

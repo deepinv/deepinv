@@ -365,9 +365,7 @@ def test_MRI(device):
     x2 = physics.A_adjoint(y1)
     assert x2.shape == x.shape
 
-    generator = dinv.physics.generator.AccelerationMaskGenerator(
-        (16, 16), device=device
-    )
+    generator = dinv.physics.generator.RandomMaskGenerator((16, 16), device=device)
     mask = generator.step(2)
     y2 = physics.A(x, **mask)
     if y1.shape == y2.shape:
