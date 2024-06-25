@@ -6,7 +6,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import Module
 
-from deepinv import Trainer
+from deepinv.training import Trainer
 from deepinv.loss import Loss
 from deepinv.utils import AverageMeter
 
