@@ -107,20 +107,20 @@ class AdversarialTrainer(Trainer):
         >>> discrimin = PatchGANDiscriminator(1, 2, 1)
         >>>
         >>> optimizer = AdversarialOptimizer(
-        >>>     torch.optim.Adam(generator.parameters()),
-        >>>     torch.optim.Adam(discrimin.parameters()),
-        >>> )
+        ...     torch.optim.Adam(generator.parameters()),
+        ...     torch.optim.Adam(discrimin.parameters()),
+        ... )
         >>>
         >>> trainer = AdversarialTrainer(
-        >>>     model = generator,
-        >>>     D = discrimin,
-        >>>     physics = LinearPhysics(),
-        >>>     train_dataloader = torch.utils.data.DataLoader(PlaceholderDataset()),
-        >>>     epochs = 1,
-        >>>     losses = SupAdversarialGeneratorLoss(),
-        >>>     losses_d = SupAdversarialDiscriminatorLoss(),
-        >>>     optimizer = optimizer,
-        >>> )
+        ...     model = generator,
+        ...     D = discrimin,
+        ...     physics = LinearPhysics(),
+        ...     train_dataloader = torch.utils.data.DataLoader(PlaceholderDataset()),
+        ...     epochs = 1,
+        ...     losses = SupAdversarialGeneratorLoss(),
+        ...     losses_d = SupAdversarialDiscriminatorLoss(),
+        ...     optimizer = optimizer,
+        ... )
         >>>
         >>> generator = trainer.train()
 
