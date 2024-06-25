@@ -224,7 +224,7 @@ dinv.utils.plot([x, y, G(y)], titles=["GT", "Measurement", "Reconstruction"])
 #
 # **UAIR** loss:
 #
-# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert A(f(\hat y))- \hat y\rVert^2_2,\quad\hat y=A(\hat x).
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
 #
 # We next load the models and construct losses as defined above.
 
@@ -276,19 +276,19 @@ G = trainer.train()
 #
 # **CSGM** forward pass at train time:
 #
-# .. math:: \hat x = f(z),\quad z\sim \mathcal{N}(\mathbf{0},\mathbf{I}_k)
+# .. math:: \hat x = \inverse{z},\quad z\sim \mathcal{N}(\mathbf{0},\mathbf{I}_k)
 #
 # **CSGM**/**AmbientGAN** forward pass at eval time:
 #
-# .. math:: \hat x = f(\hat z)\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert A(f(z))-y\rVert _2^2
+# .. math:: \hat x = \inverse{\hat z}\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert \forw{\inverse{z}}-y\rVert _2^2
 #
 # **CSGM** loss:
 #
 # .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat x, x;D)
 #
-# **AmbientGAN** loss (where :math:`A(\cdot)` is the physics):
+# **AmbientGAN** loss (where :math:`\forw{\cdot}` is the physics):
 #
-# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(A(\hat x), y;D)
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\forw{\hat x}, y;D)
 #
 # We next load the models and construct losses as defined above.
 

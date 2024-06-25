@@ -11,7 +11,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
     The loss is defined as follows, to be minimised by the generator:
 
-    :math:`\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert A(f(\hat y))- \hat y\rVert^2_2,\quad\hat y=A(\hat x)`
+    :math:`\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}`
 
     where the standard adversarial loss is
 
