@@ -10,7 +10,6 @@ from .trainer import Trainer
 from deepinv.loss import Loss
 from deepinv.utils import AverageMeter
 
-
 class AdversarialOptimizer:
     r"""Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
 
@@ -89,33 +88,40 @@ class AdversarialTrainer(Trainer):
     Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``. The adversarial losses themselves are defined in the ``deepinv.loss.adversarial`` module.
     Examples of discriminators are in ``deepinv.models.gan``.
 
-    See ``deepinv.examples.adversarial_learning`` for usage. A very basic example outline:
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage. 
+    
+    |sep|
 
-    ::
+    :Examples:
+    
+        A very basic example:
 
-        generator = dinv.models.UNet()
-        discrimin = dinv.models.PatchGANDiscriminator()
-
-        loss_g = adversarial.SupAdversarialGeneratorLoss()
-        loss_d = adversarial.SupAdversarialDiscriminatorLoss()
-
-        optimizer = dinv.training.adversarial.AdversarialOptimizer(
-            torch.optim.Adam(generator.parameters()),
-            torch.optim.Adam(discrimin.parameters()),
-        )
-
-        trainer = dinv.training.AdversarialTrainer(
-            model=generator,
-            D=discrimin,
-            physics=physics,
-            train_dataloader=train_dataloader,
-            epochs=3,
-            losses=loss_g,
-            losses_d=loss_d,
-            optimizer=optimizer
-        )
-
-        generator = trainer.train()
+        >>> from deepinv.training import AdversarialTrainer, AdversarialOptimizer
+        >>> from deepinv.loss.adversarial import SupAdversarialGeneratorLoss, SupAdversarialDiscriminatorLoss
+        >>> from deepinv.models import UNet, PatchGANDiscriminator
+        >>> from deepinv.physics import LinearPhysics
+        >>> from deepinv.datasets.utils import PlaceholderDataset
+        >>> 
+        >>> generator = UNet(scales=2)
+        >>> discrimin = PatchGANDiscriminator(1, 2, 1)
+        >>> 
+        >>> optimizer = AdversarialOptimizer(
+        >>>     torch.optim.Adam(generator.parameters()),
+        >>>     torch.optim.Adam(discrimin.parameters()),
+        >>> )
+        >>> 
+        >>> trainer = AdversarialTrainer(
+        >>>     model = generator,
+        >>>     D = discrimin,
+        >>>     physics = LinearPhysics(),
+        >>>     train_dataloader = torch.utils.data.DataLoader(PlaceholderDataset()),
+        >>>     epochs = 1,
+        >>>     losses = SupAdversarialGeneratorLoss(),
+        >>>     losses_d = SupAdversarialDiscriminatorLoss(),
+        >>>     optimizer = optimizer,
+        >>> )
+        >>> 
+        >>> generator = trainer.train()
 
 
     Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times, but this is completely optional.
