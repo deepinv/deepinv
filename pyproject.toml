@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.8"
 version = "0.2.0"
 dependencies = [
-    "numpy",
+    "numpy<=1.26",
     "matplotlib",
     "hdf5storage",
     "tqdm",
@@ -30,6 +30,7 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
+    "datasets",
 ]
 
 [tool.setuptools]

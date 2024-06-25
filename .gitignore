@@ -29,20 +29,18 @@ results/
 
 # Miscellaneous
 /experimental/
-/deepinv/datasets/reside/
+datasets
+examples/*/datasets
 deepinv/version.py
 /saved_models/
 venv
 build
 deepinv.egg-info
 dist
-examples/datasets
 wandb/
 kernels
 measurements/
 degradations/
-datasets/
-examples/*/datasets
 results/
 tmp/
 sg_execution_times.rst

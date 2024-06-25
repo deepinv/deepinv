@@ -7,7 +7,7 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-- Dynamic MRI physics operator
+- Plot video/animation functionality (:gh:`245` by `Andrew Wang`_)
 
 New Features
 ^^^^^^^^^^^^
@@ -178,3 +178,4 @@ Authors
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
 .. _Chao Tang: https://github.com/ChaoTang0330
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
+.. _Andrew Wang: https://andrewwango.github.io/about/
