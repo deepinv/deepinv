@@ -142,7 +142,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             "reconstruction_esc" if challenge == "singlecoil" else "reconstruction_rss"
         )
         self.challenge = challenge
-        self.mode = mode
+        self.test = test
 
 
         ### LOAD DATA SAMPLE IDENTIFIERS -----------------------------------------------
@@ -221,10 +221,10 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         with h5py.File(fname, "r") as hf:
             kspace = hf["kspace"][dataslice]
-            if self.mode != "test":
+            if not self.test:
                 target = hf[self.recons_key][dataslice]
 
-        if mode != "test" and self.transforms["transform_target"] is not None:
+        if not self.test and self.transforms["transform_target"] is not None:
             # by default, shape is (1, H, W), we want to get rid of the first dimension when moving to complex type
             target = self.transforms["transform_target"](target)[0] 
             target = target + 0 * 1j
@@ -237,6 +237,6 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 kspace = np.moveaxis(kspace, 0, -1)
             kspace = self.transforms["transform_kspace"](kspace)
 
-        if self.mode == "test":
+        if self.test:
             return kspace
         return target, kspace
