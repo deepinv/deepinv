@@ -1,5 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-
+from .bregman import L2
 
 class GDIteration(OptimIterator):
     r"""
@@ -83,11 +83,13 @@ class MDIteration(OptimIterator):
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
         Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
+        The bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.
+        It must be defined in the cur_params dictionary.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm. Must contain the key "bregman_potential" containing the Bregman potential.
         :param torch.Tensor y: Input data.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
@@ -96,7 +98,12 @@ class MDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        bregman_potential = cur_params["bregman_potential"]
+        if "bregman_potential" not in cur_params:
+            bregman_potential = L2()
+            raise Warning("Bregman potential not defined in cur_params. Using the L2 norm as Bregman potential.")
+        else:
+            bregman_potential = cur_params["bregman_potential"]
+
         x = bregman_potential.grad_conj(bregman_potential.grad(x_prev) - grad)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)

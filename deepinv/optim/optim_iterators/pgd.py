@@ -1,6 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 
-
 class PGDIteration(OptimIterator):
     r"""
     Iterator for proximal gradient descent.

@@ -73,7 +73,7 @@ class Bregman(nn.Module):
         """
         return self.h(x, *args, **kwargs) - self.h(y, *args, **kwargs) - torch.sum((self.grad(y, *args, **kwargs) * (x - y)).reshape(x.shape[0],-1), dim=-1)
     
-    def MD_step(self, x, grad, gamma, *args, **kwargs):
+    def MD_step(self, x, grad, *args, gamma = 1., **kwargs):
         r"""
         Performs a Mirror Descent step :math:`x = \nabla h^*(\nabla h(x) - \gamma \nabla f(x))`.
 
@@ -84,7 +84,62 @@ class Bregman(nn.Module):
         """
         return self.grad_conj(self.grad(x, *args, **kwargs) - gamma*grad)
 
+class L2(Bregman):
+    r"""
+    Module for the L2 norm as Bregman potential :math:`h(x) = \frac{1}{2} \|x\|_2^2`.
+    The corresponding Bregman divergence is the squared Euclidean distance :math:`D(x,y) = \frac{1}{2} \|x-y\|_2^2`.
+    """
 
+    def __init__(self):
+        super().__init__()
+
+    def h(self, x):
+        r"""
+        Computes the L2 norm potential :math:`h(x) = \frac{1}{2} \|x\|_2^2`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
+        :return: (torch.tensor) potential :math:`h(x)`.
+        """
+        return 0.5 * torch.sum(x.reshape(x.shape[0],-1)**2, dim=-1)
+
+    def conjugate(self, x):
+        r"""
+        Computes the convex conjugate potential :math:`h^*(y) = \frac{1}{2} \|y\|_2^2`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
+        :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
+        """
+        return 0.5 * torch.sum(x.reshape(x.shape[0],-1)**2, dim=-1)
+
+    def grad(self, x, *args, **kwargs):
+        r"""
+        Calculates the gradient of the L2 norm :math:`\nabla h(x) = x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
+        """
+        return x
+    
+    def grad_conj(self, x, *args, **kwargs):
+        r"""
+        Calculates the gradient of the conjugate of the L2 norm :math:`\nabla h^*(x) = x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
+        """
+        return x
+    
+    
+    def div(self, x, y, *args, **kwargs):
+        r"""
+        Computes the Bregman divergence with potential :math:`h`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
+        :param torch.Tensor y: Variable :math:`y` at which the divergence is computed.
+
+        :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y`.
+        """
+        return 0.5 * torch.sum((x - y).reshape(x.shape[0],-1)**2, dim=-1)
 
 class BurgEntropy(Bregman):
     r"""
