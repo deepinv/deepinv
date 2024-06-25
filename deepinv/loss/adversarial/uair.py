@@ -17,7 +17,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
-    See ``deepinv.examples.adversarial_learning`` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     Simple example (assuming a pretrained discriminator):
 

@@ -151,7 +151,7 @@ def generate_dataset(
 
         # choose operator and generate measurement
         if physics_generator is not None:
-            params = physics_generator.step()
+            params = physics_generator.step(batch_size=batch_size)
             y = physics[g](x, **params)
         else:
             y = physics[g](x)

@@ -16,11 +16,11 @@ class PatchGANDiscriminator(nn.Module):
      Networks <https://arxiv.org/abs/1611.07004>`_ (Isola et al.) and classifies whether each patch of an image is real
      or fake.
 
-    Implementation taken from `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks
+    Implementation adapted from `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks
     <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_
     (Kupyn et al.).
 
-    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int input_nc: number of input channels, defaults to 3
     :param int ndf: hidden layer size, defaults to 64
@@ -106,7 +106,7 @@ class ESRGANDiscriminator(nn.Module):
     Networks <https://arxiv.org/abs/1809.00219>`_ (Wang et al.). Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
-    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple input_shape: shape of input image
     """
@@ -161,7 +161,7 @@ class DCGANDiscriminator(nn.Module):
     Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.). Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
-    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
@@ -207,7 +207,7 @@ class DCGANGenerator(nn.Module):
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
-    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int output_size: desired square size of output image. Choose from 64 or 128, defaults to 64
     :param int nz: latent dimension, defaults to 100
@@ -272,7 +272,7 @@ class CSGMGenerator(nn.Module):
 
     This generator can be overridden for more advanced optimisation algorithms by overriding ``optimize_z``.
 
-    See ``deepinv.examples.adversarial_learning`` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     .. note::
 

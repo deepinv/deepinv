@@ -15,7 +15,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
-    See ``deepinv.examples.adversarial_learning`` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     Simple example (assuming a pretrained discriminator):
 
@@ -64,7 +64,7 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
-    See ``deepinv.examples.adversarial_learning`` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
@@ -99,7 +99,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
-    See ``deepinv.examples.adversarial_learning`` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     Simple example (assuming a pretrained discriminator):
 
@@ -149,7 +149,7 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
-    See ``deepinv.examples.adversarial_learning`` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
