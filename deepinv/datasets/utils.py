@@ -5,6 +5,8 @@ import zipfile
 
 import requests
 
+from torch.utils.data import Dataset
+from torch import randn
 
 def check_path_is_a_folder(folder_path: str) -> bool:
     # Check if `folder_path` is pointing to a directory
@@ -57,3 +59,14 @@ def extract_zipfile(file_path, extract_dir):
     with zipfile.ZipFile(file_path, "r") as zip_ref:
         # Extract all the contents of the zip file to the specified dir
         zip_ref.extractall(extract_dir)
+
+class PlaceholderDataset(Dataset):
+    def __init__(self, n=1, shape=(1, 64, 64)):
+        self.n = n
+        self.shape = shape
+    
+    def __len__(self):
+        return self.n
+    
+    def __getitem__(self, index):
+        return randn(self.shape), randn(self.shape)
