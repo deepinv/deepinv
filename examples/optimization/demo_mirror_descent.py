@@ -1,11 +1,10 @@
 """
-Image deblurring with Total-Variation (TV) prior
+Poisson image deblurring with Mirror Descent.
 ====================================================================================================
 
-This example shows how to use a standard TV prior for image deblurring. The problem writes as :math:`y = Ax + \epsilon`
-where :math:`A` is a convolutional operator and :math:`\epsilon` is the realization of some Gaussian noise. The goal is
-to recover the original image :math:`x` from the blurred and noisy image :math:`y`. The TV prior is used to regularize
-the problem.
+This example shows how to use mirror descent with Burg's entropy Bregman potential in order to slve Poisson Inverse Problems. 
+The problem writes as :math:`y = \mathcal{P}(Ax)` where :math:`A` is a convolutional operator and :math:`\mathcal{P}` is the realization of some Poisson noise. The goal is
+to recover the original image :math:`x` from the blurred and noisy image :math:`y`. The TV prior is used to regularize the problem.
 """
 
 import deepinv as dinv
@@ -70,7 +69,7 @@ physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
     device=device,
-    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+    noise_model=dinv.physics.PoissonNoise(sigma=noise_level_img),
 )
 
 # Select the first image from the dataset
