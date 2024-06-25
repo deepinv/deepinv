@@ -129,7 +129,7 @@ model = dinv.models.ArtifactRemoval(backbone)
 # %%
 # Train the model
 # ----------------------------------------------------------------------------------------
-# We train the model using the :meth:`deepinv.training.train` function.
+# We train the model using the :meth:`deepinv.Trainer` class.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
 # :class:`deepinv.loss.SupLoss` class.

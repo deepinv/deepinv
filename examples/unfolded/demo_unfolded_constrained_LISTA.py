@@ -82,9 +82,9 @@ test_base_dataset = load_dataset(
 # We define an inpainting operator that randomly masks pixels with probability 0.5.
 #
 # A dataset of pairs of measurements and ground truth images is then generated using the
-# :meth:`dinv.datasets.generate_dataset` function.
+# :meth:`deepinv.datasets.generate_dataset` function.
 #
-# Once the dataset is generated, we can load it using the :class:`dinv.datasets.HDF5Dataset` class.
+# Once the dataset is generated, we can load it using the :class:`deepinv.datasets.HDF5Dataset` class.
 
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 probability_mask = 0.5  # probability to mask pixel
@@ -207,10 +207,10 @@ model = unfolded_builder(
 # %%
 # Train the model
 # ---------------
-# We train the model using the :meth:`dinv.training.train` function.
+# We train the model using the :meth:`deepinv.Trainer` class.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
-# :class:`dinv.loss.SupLoss` class.
+# :class:`deepinv.loss.SupLoss` class.
 #
 # .. note::
 #
@@ -251,7 +251,7 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-# We can now test the trained network using the :meth:`dinv.training.test` function.
+# We can now test the trained network using the :meth:`deepinv.test` function.
 #
 # The testing function will compute test_psnr metrics and plot and save the results.
 

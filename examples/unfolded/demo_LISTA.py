@@ -215,7 +215,7 @@ test_dataloader = DataLoader(
 # Train the network.
 # -------------------------------------------
 #
-# We train the network using the library's train function.
+# We train the network using the :meth:`deepinv.Trainer` class.
 #
 
 trainer = dinv.Trainer(
