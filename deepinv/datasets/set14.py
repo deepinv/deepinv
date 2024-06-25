@@ -41,12 +41,17 @@ class Set14HR(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet: ::
+        Instanciate dataset and download raw data from the Internet:
 
-            root = "/path/to/dataset/Set14"
-            dataset = Set14(root=root, download=True)  # will download dataset at root
-            dataset.check_dataset_exists()             # check that raw data has been downloaded correctly
-            assert len(dataset) == 14                  # check that we have 14 images
+        >>> import shutil
+        >>> from deepinv.datasets import Set14HR
+        >>> dataset = Set14HR(root="Set14_DATA", download=True)  # download raw data at root and load dataset
+        Dataset has been successfully downloaded.
+        >>> dataset.check_dataset_exists()                       # check that raw data has been downloaded correctly
+        True
+        >>> len(dataset)                                         # check that we have 14 images
+        14
+        >>> shutil.rmtree("Set14_DATA")                          # remove raw data from disk
 
     """
 
@@ -92,6 +97,8 @@ class Set14HR(torch.utils.data.Dataset):
 
                     if self.check_dataset_exists():
                         print("Dataset has been successfully downloaded.")
+                    else:
+                        raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
