@@ -28,7 +28,7 @@ def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:
     return md5.hexdigest()
 
 
-def calculate_md5_for_folder(folder_path: str):
+def calculate_md5_for_folder(folder_path: str) -> str:
     """Compute the hash of all files in a folder then compute the hash of the folder.
 
     Folder will be considered as empty if it is not strictly containing files.
@@ -41,7 +41,7 @@ def calculate_md5_for_folder(folder_path: str):
     return md5_folder.hexdigest()
 
 
-def download_zipfile(url, save_path):
+def download_zipfile(url: str, save_path: str) -> None:
     """Download zipfile from the Internet."""
     # `stream=True` to avoid loading in memory an entire file, instead get a chunk
     # useful when downloading huge file
@@ -53,7 +53,7 @@ def download_zipfile(url, save_path):
     del response
 
 
-def extract_zipfile(file_path, extract_dir):
+def extract_zipfile(file_path, extract_dir) -> None:
     """Extract a local zipfile."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
@@ -61,6 +61,14 @@ def extract_zipfile(file_path, extract_dir):
         zip_ref.extractall(extract_dir)
 
 class PlaceholderDataset(Dataset):
+    """
+    A placeholder dataset for test purposes.
+
+    Produces image pairs x,y that are random tensor of shape specified.
+    
+    :param int n: number of samples in dataset, defaults to 1
+    :param tuple shape: image shape, (channel, height, width), defaults to (1, 64, 64)
+    """
     def __init__(self, n=1, shape=(1, 64, 64)):
         self.n = n
         self.shape = shape
