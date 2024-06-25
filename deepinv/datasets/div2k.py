@@ -40,7 +40,7 @@ class DIV2K(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet:
+        Instanciate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import DIV2K
