@@ -10,6 +10,7 @@ from .trainer import Trainer
 from deepinv.loss import Loss
 from deepinv.utils import AverageMeter
 
+
 class AdversarialOptimizer:
     r"""Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
 
@@ -88,12 +89,12 @@ class AdversarialTrainer(Trainer):
     Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``. The adversarial losses themselves are defined in the ``deepinv.loss.adversarial`` module.
     Examples of discriminators are in ``deepinv.models.gan``.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage. 
-    
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
+
     |sep|
 
     :Examples:
-    
+
         A very basic example:
 
         >>> from deepinv.training import AdversarialTrainer, AdversarialOptimizer
@@ -101,15 +102,15 @@ class AdversarialTrainer(Trainer):
         >>> from deepinv.models import UNet, PatchGANDiscriminator
         >>> from deepinv.physics import LinearPhysics
         >>> from deepinv.datasets.utils import PlaceholderDataset
-        >>> 
+        >>>
         >>> generator = UNet(scales=2)
         >>> discrimin = PatchGANDiscriminator(1, 2, 1)
-        >>> 
+        >>>
         >>> optimizer = AdversarialOptimizer(
         >>>     torch.optim.Adam(generator.parameters()),
         >>>     torch.optim.Adam(discrimin.parameters()),
         >>> )
-        >>> 
+        >>>
         >>> trainer = AdversarialTrainer(
         >>>     model = generator,
         >>>     D = discrimin,
@@ -120,7 +121,7 @@ class AdversarialTrainer(Trainer):
         >>>     losses_d = SupAdversarialDiscriminatorLoss(),
         >>>     optimizer = optimizer,
         >>> )
-        >>> 
+        >>>
         >>> generator = trainer.train()
 
 
