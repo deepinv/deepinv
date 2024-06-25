@@ -86,3 +86,51 @@ class Inpainting(DecomposablePhysics):
             )
         )
         return noise
+
+
+class Demosaicing(Inpainting):
+    def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
+        r"""
+        Demosaicing operator.
+
+        The operator chooses one color per pixel according to the pattern specified.
+
+        :param tuple img_size: size of the input images, e.g., (C, H, W).
+        :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
+        :param torch.device device: ``gpu`` or ``cpu``
+
+        |sep|
+
+        :Examples:
+
+            Demosaicing operator using Bayer pattern for a 3x3 image:
+
+            >>> from deepinv.physics import Demosaicing
+            >>> x = torch.ones(1, 3, 4, 4)
+            >>> physics = Demosaicing(img_size=(4, 4))
+            >>> physics(x)[0, 1, :, :] # Green channel
+            tensor([[0., 1., 0., 1.],
+                    [1., 0., 1., 0.],
+                    [0., 1., 0., 1.],
+                    [1., 0., 1., 0.]])
+
+
+
+        """
+        if pattern == "bayer":
+            if len(img_size) == 2:
+                img_size = (3, img_size[0], img_size[1])
+
+            mask = torch.zeros(img_size, device=device)
+            # red
+            mask[0, 1::2, 1::2] = 1
+            # green
+            mask[1, 0::2, 1::2] = 1
+            mask[1, 1::2, 0::2] = 1
+            # blue
+            mask[2, 0::2, 0::2] = 1
+        else:
+            raise ValueError(f"The {pattern} pattern is not implemented")
+        super().__init__(
+            tensor_size=mask.shape, mask=mask, pixelwise=False, device=device, **kwargs
+        )

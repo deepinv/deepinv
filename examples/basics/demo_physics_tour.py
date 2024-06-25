@@ -67,6 +67,21 @@ y = physics(x)
 # plot results
 plot([x, y], titles=["signal", "measurement"])
 
+
+# %%
+# Demosaicing
+# ---------------------------------------
+#
+# The demosaicing class :class:`deepinv.physics.Demosaicing` is associated with a Bayer pattern,
+# which is a color filter array used in digital cameras (see `Wikipedia <https://en.wikipedia.org/wiki/Bayer_filter>`_).
+
+physics = dinv.physics.Demosaicing(img_size=(64, 64), device=device)
+
+y = physics(x)
+
+# plot results
+plot([x, y], titles=["signal", "measurement"])
+
 # %%
 # Compressed Sensing
 # ---------------------------------------

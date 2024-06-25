@@ -9,7 +9,7 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.loss import PSNR, Loss, SupLoss
+from deepinv.loss import PSNR, Loss, SupLoss, R2RLoss, SplittingLoss
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from .testing import test
@@ -73,7 +73,7 @@ class Trainer:
 
     .. note::
 
-        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for visualization
+        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
         by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
         a dictionary with the setup for wandb.
 
@@ -117,7 +117,7 @@ class Trainer:
     :param bool verbose: Output training progress information in the console.
     :param bool show_progress_bar: Show a progress bar during training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
-    :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
+    :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool check_grad: Compute and print the gradient norm at each iteration.
@@ -168,7 +168,7 @@ class Trainer:
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
-        if self.eval_dataloader and type(self.eval_dataloader) is not list:
+        if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
 
         self.save_path = Path(self.save_path) if self.save_path else None
@@ -182,7 +182,7 @@ class Trainer:
             and not self.wandb_vis
         ):
             warnings.warn(
-                "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
+                "wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False)."
             )
 
         if self.physics_generator is not None and not self.online_measurements:
@@ -210,18 +210,22 @@ class Trainer:
         if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
             self.losses = [self.losses]
 
+        self.reorder_losses()
+
         if not isinstance(self.metrics, list) or isinstance(self.metrics, tuple):
             self.metrics = [self.metrics]
 
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
         self.logs_losses_train = [
-            AverageMeter("Training loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Training loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
         self.logs_losses_eval = [
-            AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         # metrics
@@ -252,6 +256,17 @@ class Trainer:
             self.physics = [self.physics]
 
         self.loss_history = []
+
+    def reorder_losses(self):
+        # check if R2R loss is present and move it to the beginning
+        if any([isinstance(l, R2RLoss) for l in self.losses]):
+            idx = [isinstance(l, R2RLoss) for l in self.losses].index(True)
+            self.losses.insert(0, self.losses.pop(idx))
+
+        # check if Splitting loss is present and move it to the beginning
+        if any([isinstance(l, SplittingLoss) for l in self.losses]):
+            idx = [isinstance(l, SplittingLoss) for l in self.losses].index(True)
+            self.losses.insert(0, self.losses.pop(idx))
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
@@ -501,7 +516,7 @@ class Trainer:
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
-                metric = l(x=x, x_net=x_net, y=y, physics=physics)
+                metric = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
 
                 current_log = (
                     self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
@@ -626,6 +641,25 @@ class Trainer:
                 ),
             )
 
+    def reset_metrics(self):
+        r"""
+        Reset the metrics.
+        """
+        self.logs_total_loss_train.reset()
+        self.logs_total_loss_eval.reset()
+
+        for l in self.logs_losses_train:
+            l.reset()
+
+        for l in self.logs_losses_eval:
+            l.reset()
+
+        for l in self.logs_metrics_train:
+            l.reset()
+
+        for l in self.logs_metrics_eval:
+            l.reset()
+
     def train(
         self,
     ):
@@ -641,52 +675,13 @@ class Trainer:
         self.setup_train()
 
         for epoch in range(self.epoch_start, self.epochs):
-
-            # clean metrics
-            self.logs_total_loss_train.reset()
-            self.logs_total_loss_eval.reset()
-
-            for l in self.logs_losses_train:
-                l.reset()
-
-            for l in self.logs_metrics_train:
-                l.reset()
-
-            for l in self.logs_metrics_eval:
-                l.reset()
-
-            ## Evaluation
-            perform_eval = self.eval_dataloader and (
-                (epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs
-            )
-            if perform_eval:
-                self.current_iterators = [
-                    iter(loader) for loader in self.eval_dataloader
-                ]
-                batches = len(self.eval_dataloader[self.G - 1]) - int(
-                    self.eval_dataloader[self.G - 1].drop_last
-                )
-
-                self.model.eval()
-                for i in (
-                    progress_bar := tqdm(
-                        range(batches),
-                        ncols=150,
-                        disable=(not self.verbose or not self.show_progress_bar),
-                    )
-                ):
-                    progress_bar.set_description(f"Eval epoch {epoch + 1}")
-                    self.step(
-                        epoch, progress_bar, train=False, last_batch=(i == batches - 1)
-                    )
-
-                for l in self.logs_losses_eval:
-                    self.eval_metrics_history[l.name] = l.avg
+            self.reset_metrics()
 
             ## Training
             self.current_iterators = [iter(loader) for loader in self.train_dataloader]
-            batches = len(self.train_dataloader[self.G - 1]) - int(
-                self.train_dataloader[self.G - 1].drop_last
+
+            batches = min(
+                [len(loader) - loader.drop_last for loader in self.train_dataloader]
             )
 
             self.model.train()
@@ -697,7 +692,7 @@ class Trainer:
                     disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
-                progress_bar.set_description(f"Train epoch {epoch + 1}")
+                progress_bar.set_description(f"Train epoch {epoch + 1}/{self.epochs}")
                 self.step(
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
@@ -706,6 +701,37 @@ class Trainer:
 
             if self.scheduler:
                 self.scheduler.step()
+
+            ## Evaluation
+            perform_eval = self.eval_dataloader and (
+                epoch % self.eval_interval == 0 or epoch == self.epochs
+            )
+            if perform_eval:
+                self.current_iterators = [
+                    iter(loader) for loader in self.eval_dataloader
+                ]
+
+                batches = min(
+                    [len(loader) - loader.drop_last for loader in self.eval_dataloader]
+                )
+
+                self.model.eval()
+                for i in (
+                    progress_bar := tqdm(
+                        range(batches),
+                        ncols=150,
+                        disable=(not self.verbose or not self.show_progress_bar),
+                    )
+                ):
+                    progress_bar.set_description(
+                        f"Eval epoch {epoch + 1}/{self.epochs}"
+                    )
+                    self.step(
+                        epoch, progress_bar, train=False, last_batch=(i == batches - 1)
+                    )
+
+                for l in self.logs_losses_eval:
+                    self.eval_metrics_history[l.__class__.__name__] = l.avg
 
             # Saving the model
             self.save_model(epoch, self.eval_metrics_history if perform_eval else None)

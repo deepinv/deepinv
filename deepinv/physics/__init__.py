@@ -1,4 +1,4 @@
-from .inpainting import Inpainting
+from .inpainting import Inpainting, Demosaicing
 from .compressed_sensing import CompressedSensing
 from .blur import Blur, Downsampling, BlurFFT, SpaceVaryingBlur
 from .range import Decolorize
