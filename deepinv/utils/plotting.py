@@ -4,6 +4,8 @@ from pathlib import Path
 from collections.abc import Iterable
 from typing import List, Tuple, Union
 from itertools import zip_longest
+from functools import partial
+from warnings import warn
 
 import wandb
 import torch
@@ -14,6 +16,8 @@ import torchvision.transforms.functional as F
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from matplotlib.animation import FuncAnimation
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def config_matplotlib(fontsize=17):
@@ -92,12 +96,16 @@ def plot(
     max_imgs=4,
     rescale_mode="min_max",
     show=True,
-    return_fig=False,
     figsize=None,
     suptitle=None,
     cmap="gray",
     fontsize=17,
     interpolation="none",
+    cbar=False,
+    fig=None,
+    axs=None,
+    return_fig=False,
+    return_axs=False,
 ):
     r"""
     Plots a list of images.
@@ -128,11 +136,14 @@ def plot(
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
-    :param bool return_fig: return the figure object.
     :param tuple[int] figsize: size of the figure.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
+    :param bool return_fig: return the figure object.
+    :param bool return_axs: return the axs object.
     """
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
@@ -178,12 +189,13 @@ def plot(
     if figsize is None:
         figsize = (len(imgs) * 2, len(imgs[0]) * 2)
 
-    fig, axs = plt.subplots(
-        len(imgs[0]),
-        len(imgs),
-        figsize=figsize,
-        squeeze=False,
-    )
+    if fig is None or axs is None:
+        fig, axs = plt.subplots(
+            len(imgs[0]),
+            len(imgs),
+            figsize=figsize,
+            squeeze=False,
+        )
 
     if suptitle:
         plt.suptitle(suptitle, size=12)
@@ -191,7 +203,114 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            if cbar:
+                divider = make_axes_locatable(axs[r, i])
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                colbar = fig.colorbar(im, cax=cax, orientation="vertical")
+                colbar.ax.tick_params(labelsize=8)
+            if titles and r == 0:
+                axs[r, i].set_title(titles[i], size=9)
+            axs[r, i].axis("off")
+    if tight:
+        if cbar:
+            plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        else:
+            plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if save_dir:
+        plt.savefig(save_dir / "images.png", dpi=1200)
+        for i, row_imgs in enumerate(imgs):
+            for r, img in enumerate(row_imgs):
+                plt.imsave(
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
+                )
+    if show:
+        plt.show()
+
+    if return_fig and return_axs:
+        return fig, axs
+    elif return_fig:
+        return fig
+    elif return_axs:
+        return axs
+
+
+def scatter_plot(
+    xy_list,
+    titles=None,
+    save_dir=None,
+    tight=True,
+    show=True,
+    return_fig=False,
+    figsize=None,
+    suptitle=None,
+    cmap="gray",
+    fontsize=17,
+    s=0.1,
+    linewidths=1.5,
+    color="b",
+):
+    r"""
+    Plots a list of scatter plots.
+
+    Example usage:
+
+    .. doctest::
+
+        import torch
+        from deepinv.utils import scatter_plot
+        xy = torch.randn(10, 2)
+        scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
+
+    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
+    :param list[str] titles: list of titles for each image, has to be same length as img_list.
+    :param None, str, Path save_dir: path to save the plot.
+    :param bool tight: use tight layout.
+    :param int max_imgs: maximum number of images to plot.
+    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param bool show: show the image plot.
+    :param bool return_fig: return the figure object.
+    :param tuple[int] figsize: size of the figure.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
+    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    """
+    # Use the matplotlib config from deepinv
+    config_matplotlib(fontsize=fontsize)
+
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(xy_list, torch.Tensor):
+        xy_list = [xy_list]
+
+    if isinstance(titles, str):
+        titles = [titles]
+
+    scatters = []
+    for xy in xy_list:
+        scatters.append([xy.detach().cpu().numpy()])
+
+    if figsize is None:
+        figsize = (len(scatters) * 2, len(scatters[0]) * 2)
+
+    fig, axs = plt.subplots(
+        len(scatters[0]),
+        len(scatters),
+        figsize=figsize,
+        squeeze=False,
+    )
+
+    if suptitle:
+        plt.suptitle(suptitle, size=12)
+        fig.subplots_adjust(top=0.75, wspace=0.15)
+
+    for i, row_scatter in enumerate(scatters):
+        for r, xy in enumerate(row_scatter):
+            axs[r, i].scatter(
+                xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
+            )
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
@@ -199,8 +318,8 @@ def plot(
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
-        for i, row_imgs in enumerate(imgs):
-            for r, img in enumerate(row_imgs):
+        for i, row_scatter in enumerate(scatters):
+            for r, img in enumerate(row_scatter):
                 plt.imsave(
                     save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
                 )
@@ -369,14 +488,15 @@ def plot_inset(
     save_fn: str = None,
     show: bool = True,
     return_fig: bool = False,
+    cmap: str = "gray",
 ):
-    """Plots a list of images with zoomed-in insets extracted from the images.
+    r"""Plots a list of images with zoomed-in insets extracted from the images.
 
     The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's top left.
 
     Each loc can either be a tuple (float, float) which uses the same loc for all images across the batch dimension, or a list of these whose length must equal the batch dimension.
 
-    Coordinates are fractions from 0-1.
+    Coordinates are fractions from 0-1, (0, 0) is the top left corner and (1, 1) is the bottom right corner.
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
@@ -391,7 +511,7 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     """
 
-    fig = plot(img_list, titles, show=False, return_fig=True)
+    fig = plot(img_list, titles, show=False, return_fig=True, cmap=cmap)
     axs = fig.axes
     batch_size = img_list[0].shape[0]
 
@@ -429,7 +549,7 @@ def plot_inset(
             .detach()
             .cpu()
             .numpy(),
-            cmap="gray",
+            cmap=cmap,
         )
 
         # Set inset image according to extract
@@ -476,3 +596,92 @@ def plot_inset(
 
     if return_fig:
         return fig
+
+
+def plot_videos(
+    vid_list: Union[torch.Tensor, List[torch.Tensor]],
+    titles: Union[str, List[str]] = None,
+    time_dim: int = 2,
+    rescale_mode: str = "min_max",
+    display: bool = False,
+    save_fn: str = None,
+    return_anim: bool = False,
+    anim_writer: str = None,
+    **anim_kwargs,
+):
+    r"""Plots and animates a list of image sequences.
+
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :meth:`deepinv.utils.plot`
+
+    vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
+
+    Per frame of the videos, this function calls :meth:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+
+    To display an interactive HTML video in an IPython notebook, use ``display=True``. Note IPython must be installed for this.
+
+    |sep|
+
+    :Examples:
+
+        Display list of image sequences live in a notebook:
+
+        >>> from deepinv.utils import plot_videos
+        >>> x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
+        >>> y = torch.rand((1, 3, 5, 16, 16))
+        >>> plot_videos([x, y], display=True) # Display interactive view in notebook (requires IPython)
+        >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
+
+
+    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to None
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
+    :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
+    :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
+    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
+    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
+    :param bool return_anim: return matplotlib animation object, defaults to False
+    :param \**anim_kwargs: keyword args for matplotlib FuncAnimation init
+    """
+    if isinstance(vid_list, torch.Tensor):
+        vid_list = [vid_list]
+
+    def animate(i, fig=None, axs=None):
+        return plot(
+            [
+                vid.select(time_dim, i if vid.shape[time_dim] > 1 else 0)
+                for vid in vid_list
+            ],
+            titles=titles,
+            show=False,
+            rescale_mode=rescale_mode,
+            return_fig=True,
+            return_axs=True,
+            fig=fig,
+            axs=axs,
+        )
+
+    fig, axs = animate(0)
+    anim = FuncAnimation(
+        fig,
+        partial(animate, fig=fig, axs=axs),
+        frames=vid_list[0].shape[time_dim],
+        **anim_kwargs,
+    )
+
+    if save_fn:
+        save_fn = Path(save_fn)
+        anim.save(
+            save_fn.with_suffix(".gif") if save_fn.suffix == "" else save_fn,
+            writer=anim_writer,
+        )
+
+    if return_anim:
+        return anim
+
+    if display:
+        try:
+            from IPython.display import HTML
+
+            return HTML(anim.to_jshtml())
+        except ImportError:
+            warn("IPython can't be found. Install it to use display=True. Skipping...")

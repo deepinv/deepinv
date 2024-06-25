@@ -1,5 +1,4 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .utils import gradient_descent_step
 
 
 class PGDIteration(OptimIterator):
@@ -19,7 +18,7 @@ class PGDIteration(OptimIterator):
         \end{equation*}
 
 
-    where :math:`\gamma` is a stepsize that should satisfy :math:` \gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
 
     """
 
@@ -52,8 +51,8 @@ class FISTAIteration(OptimIterator):
         \end{equation*}
 
 
-    where :math:`\gamma` is a stepsize that should satisfy :math:` \gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
-    :math:`\alpha_k = (t_k + a - 1)/(t_k + a)`.
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
+    :math:`\alpha_k = (k + a - 1) / (k + a) `.
     """
 
     def __init__(self, a=3, **kwargs):
@@ -79,8 +78,8 @@ class FISTAIteration(OptimIterator):
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
-        k = 2 if "it" not in X else X["it"]
-        alpha = (k - 1) / (k + self.a)
+        k = 0 if "it" not in X else X["it"]
+        alpha = (k + self.a - 1) / (k + self.a)
 
         if not self.g_first:
             z = self.f_step(z_prev, cur_data_fidelity, cur_params, y, physics)
@@ -120,7 +119,7 @@ class fStepPGD(fStep):
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
-            return gradient_descent_step(x, grad)
+            return x - grad
         else:
             return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
 
@@ -153,4 +152,4 @@ class gStepPGD(gStep):
                 * cur_params["stepsize"]
                 * cur_prior.grad(x, cur_params["g_param"])
             )
-            return gradient_descent_step(x, grad)
+            return x - grad

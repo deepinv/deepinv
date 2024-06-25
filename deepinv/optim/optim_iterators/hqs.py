@@ -20,7 +20,7 @@ class HQSIteration(OptimIterator):
 
     where :math:`\gamma` and :math:`\sigma` are step-sizes. Note that this algorithm does not converge to
     a minimizer of :math:`f(x) + \lambda  g(x)`, but instead to a minimizer of
-    :math:` \gamma\, ^1f+\sigma \lambda g`, where :math:`^1f` denotes
+    :math:`\gamma\, ^1f+\sigma \lambda g`, where :math:`^1f` denotes
     the Moreau envelope of :math:`f`
 
     """

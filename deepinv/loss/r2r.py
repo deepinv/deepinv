@@ -35,9 +35,9 @@ class R2RLoss(Loss):
 
     .. note::
 
-        To obtain the best test performance, the trained model should be averagedv at test time
+        To obtain the best test performance, the trained model should be averaged at test time
         over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)`
-        where :math:`N>1`.
+        where :math:`N>1`. This can be achieved using :meth:`deepinv.loss.r2r_eval`.
 
     :param float eta: standard deviation of the Gaussian noise used for the perturbation.
     :param float alpha: scaling factor of the perturbation.
@@ -68,3 +68,45 @@ class R2RLoss(Loss):
         output = model(y_plus, physics)
 
         return self.metric(physics.A(output), y_minus)
+
+
+def r2r_eval(model, eta=0.1, alpha=0.5, MC_samples=5):
+    r"""
+    Average over multiple added noise realizations at evaluation time.
+
+    To obtain the best test performance, the trained model using :meth:`deepinv.loss.R2RLoss`
+    should be averaged at test time over multiple realizations of the added noise:
+
+    .. math::
+
+        \hat{x} = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)
+
+
+    where :math:`N\geq 1`.
+
+    :param torch.nn.Module model: Reconstruction model.
+    :param float eta: standard deviation of the Gaussian noise used for the perturbation.
+    :param float alpha: scaling factor of the perturbation.
+    :param int MC_samples: number of samples used for the Monte Carlo approximation.
+    :return: (torch.nn.Module) Model modified for evaluation.
+    """
+
+    class R2REvalModel(torch.nn.Module):
+        def __init__(self, model):
+            super(R2REvalModel, self).__init__()
+            self.model = model
+
+        def forward(self, y, physics):
+            if self.training:
+                return self.model(y, physics)
+            else:
+                with torch.no_grad():
+                    out = 0
+                    for i in range(MC_samples):
+                        pert = torch.randn_like(y) * eta
+                        y_plus = y + pert * alpha
+                        out += self.model(y_plus, physics)
+                    out = out / MC_samples
+                return out
+
+    return R2REvalModel(model)

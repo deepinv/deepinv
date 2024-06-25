@@ -65,6 +65,18 @@ about the forward measurement process.
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
 
+
+Some self-supervised methods require modifying the model at evaluation time, e.g., by adding noise to the input or removing
+measurements. These methods are implemented in the following functions.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.r2r_eval
+    deepinv.loss.splitting_eval
+
 .. _adversarial-losses:
 Adversarial Learning
 --------------------
@@ -104,7 +116,8 @@ Metrics are generally used to evaluate the performance of a model. Some of them 
 Transforms
 ^^^^^^^^^^
 
-This submodule contains different transforms which can be used for data augmentation or together with the equivariant losses.
+This submodule contains different transforms which can be used for data augmentation or together with the equivariant losses. 
+The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. See the self-supervised example for a demonstration. Note these require ``kornia`` installed.
 
 .. autosummary::
    :toctree: stubs
@@ -114,6 +127,11 @@ This submodule contains different transforms which can be used for data augmenta
     deepinv.transform.Rotate
     deepinv.transform.Shift
     deepinv.transform.Scale
+    deepinv.transform.Homography
+    deepinv.transform.projective.Euclidean
+    deepinv.transform.projective.Similarity
+    deepinv.transform.projective.Affine
+    deepinv.transform.projective.PanTiltRotate
 
 Network Regularization
 ----------------------

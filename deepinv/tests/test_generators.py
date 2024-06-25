@@ -3,17 +3,29 @@ import torch
 import deepinv as dinv
 import itertools
 
+from deepinv.physics.generator import (
+    GaussianMaskGenerator,
+    EquispacedMaskGenerator,
+    RandomMaskGenerator,
+)
+
 # Generators to test (make sure they appear in find_generator as well)
 GENERATORS = [
     "MotionBlurGenerator",
     "DiffractionBlurGenerator",
-    "AccelerationMaskGenerator",
     "SigmaGenerator",
 ]
 
 MIXTURES = list(itertools.combinations(GENERATORS, 2))
 SIZES = [(5, 5), (6, 6)]
 NUM_CHANNELS = [1, 3]
+
+
+C, T, H, W = 2, 12, 256, 512
+MRI_GENERATORS = ["gaussian", "random", "uniform"]
+MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
+MRI_ACCELERATIONS = [4, 10, 12]
+MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
 
 
 def find_generator(name, size, num_channels, device):
@@ -36,11 +48,6 @@ def find_generator(name, size, num_channels, device):
             num_channels=num_channels,
         )
         keys = ["filter", "coeff", "pupil"]
-    elif name == "AccelerationMaskGenerator":
-        g = dinv.physics.generator.AccelerationMaskGenerator(
-            img_size=size, device=device
-        )
-        keys = ["mask"]
     elif name == "SigmaGenerator":
         g = dinv.physics.generator.SigmaGenerator(device=device)
         keys = ["sigma"]
@@ -67,9 +74,6 @@ def test_shape(name, size, num_channels, device):
     if "filter" in params.keys():
         assert params["filter"].shape == (batch_size, num_channels, size[0], size[1])
 
-    if "mask" in params.keys():
-        assert params["mask"].shape == (batch_size, 2, size[0], size[1])
-
 
 @pytest.mark.parametrize("name", GENERATORS)
 def test_generation_newparams(name, device):
@@ -86,8 +90,6 @@ def test_generation_newparams(name, device):
         param_key = "filter"
     elif name == "DiffractionBlurGenerator":
         param_key = "filter"
-    elif name == "AccelerationMaskGenerator":
-        param_key = "mask"
     elif name == "SigmaGenerator":
         param_key = "sigma"
 
@@ -290,50 +292,6 @@ def test_generation(name, device):
                     ]
                 ]
             ).to(device)
-    elif name == "AccelerationMaskGenerator":
-        w = params["mask"]
-        if device.type == "cpu":
-            wref = torch.tensor(
-                [
-                    [
-                        [
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                        ],
-                        [
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                        ],
-                    ]
-                ]
-            )
-        elif device.type == "cuda":
-            wref = torch.tensor(
-                [
-                    [
-                        [
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                        ],
-                        [
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 1.0, 0.0],
-                        ],
-                    ]
-                ]
-            ).to(device)
 
     elif name == "SigmaGenerator":
         w = params["sigma"]
@@ -343,3 +301,68 @@ def test_generation(name, device):
             wref = torch.tensor([0.2055327892]).to(device)
 
     assert torch.allclose(w, wref, atol=1e-6)
+
+
+### MRI GENERATORS
+
+
+@pytest.fixture
+def batch_size():
+    return 2
+
+
+def choose_mri_generator(generator_name, img_size, acc, center_fraction):
+    if generator_name == "gaussian":
+        g = GaussianMaskGenerator(
+            img_size, acceleration=acc, center_fraction=center_fraction
+        )
+    elif generator_name == "random":
+        g = RandomMaskGenerator(
+            img_size, acceleration=acc, center_fraction=center_fraction
+        )
+    elif generator_name == "uniform":
+        g = EquispacedMaskGenerator(
+            img_size, acceleration=acc, center_fraction=center_fraction
+        )
+    return g
+
+
+@pytest.mark.parametrize("generator_name", MRI_GENERATORS)
+@pytest.mark.parametrize("img_size", MRI_IMG_SIZES)
+@pytest.mark.parametrize("acc", MRI_ACCELERATIONS)
+@pytest.mark.parametrize("center_fraction", MRI_CENTER_FRACTIONS)
+def test_mri_generator(generator_name, img_size, batch_size, acc, center_fraction):
+    generator = choose_mri_generator(generator_name, img_size, acc, center_fraction)
+    # test across different accs and centre fracations
+    H, W = img_size[-2:]
+    assert W // generator.acc == (generator.n_lines + generator.n_center)
+
+    mask = generator.step(batch_size=batch_size)["mask"]
+
+    if len(img_size) == 2:
+        assert len(mask.shape) == 4
+        C = 1
+    elif len(img_size) == 3:
+        assert len(mask.shape) == 4
+        C = img_size[0]
+    elif len(img_size) == 4:
+        assert len(mask.shape) == 5
+        C = img_size[0]
+        assert mask.shape[2] == img_size[1]
+
+    assert mask.shape[0] == batch_size
+    assert mask.shape[1] == C
+    assert mask.shape[-2:] == img_size[-2:]
+
+    for b in range(batch_size):
+        for c in range(C):
+            if len(img_size) == 4:
+                for t in range(img_size[1]):
+                    mask[b, c, t, :, :].sum() * generator.acc == H * W
+            else:
+                mask[b, c, :, :].sum() * generator.acc == H * W
+
+    mask2 = generator.step(batch_size=batch_size)["mask"]
+
+    if generator.n_lines != 0 and generator_name != "uniform":
+        assert not torch.allclose(mask, mask2)
