@@ -47,10 +47,10 @@ class SplittingLoss(Loss):
     >>> physics = dinv.physics.Inpainting()
     >>> model = dinv.models.MedianFilter()
     >>> loss = dinv.loss.SplittingLoss(split_ratio=0.9)
-    >>> model = loss.adapt_model(model, MC_samples=2) # important step!
+    >>> model = loss.adapt_model(model, MC_samples=2)
     >>> x = torch.ones((1, 1, 8, 8))
     >>> y = physics(x)
-    >>> x_net = model(y, physics, update_parameters=True) # save random mask in forward pass
+    >>> x_net = model(y, physics, update_parameters=True)
     >>> l = loss(x_net, y, physics, model)
     >>> print(l > 0)
     True
