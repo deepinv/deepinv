@@ -153,11 +153,6 @@ class DRUNet(nn.Module):
         else:
             self.apply(weights_init_drunet)
 
-        if not train:
-            self.eval()
-            for _, v in self.named_parameters():
-                v.requires_grad = False
-
         if device is not None:
             self.to(device)
 

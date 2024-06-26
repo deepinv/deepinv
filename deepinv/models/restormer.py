@@ -79,8 +79,7 @@ class Restormer(nn.Module):
         LayerNorm_type: str = "BiasFree",
         dual_pixel_task: bool = False,
         pretrained: Optional[str] = "denoising",
-        device: Optional[torch.device] = None,
-        train=False,
+        device: Optional[torch.device] = None
     ) -> None:
         super(Restormer, self).__init__()
 
@@ -349,8 +348,6 @@ class Restormer(nn.Module):
             self.load_state_dict(ckpt_restormer["params"], strict=True)
         elif pretrained is not None:
             raise ValueError(f"pretrained value error, {pretrained}")
-
-        self.training = train
 
         if device is not None:
             self.to(device)
