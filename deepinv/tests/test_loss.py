@@ -267,11 +267,13 @@ def test_measplit(device):
 
     # choose training losses
     loss = dinv.loss.Neighbor2Neighbor()
-    n2n_loss = loss(y, physics, f)
+    n2n_loss = loss(y=y, physics=physics, model=f)
 
-    f = dinv.loss.splitting_eval(f, split_ratio=0.5, regular_mask=True, MC_samples=2)
+    loss = dinv.loss.SplittingLoss(split_ratio=0.5)
+    f = loss.adapt_model(f)
+    x_net = f(y, physics, update_parameters=True)
+    split_loss = loss(x_net=x_net, y=y, physics=physics, model=f)
     f.eval()
-    loss = dinv.loss.SplittingLoss(split_ratio=0.5, regular_mask=True)
-    split_loss = loss(y, physics, f)
+    x_net2 = f(y, physics)
 
     assert split_loss > 0 and n2n_loss > 0

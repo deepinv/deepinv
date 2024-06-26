@@ -50,7 +50,7 @@ class SplittingLoss(Loss):
     >>> model = loss.adapt_model(model, MC_samples=2) # important step!
     >>> x = torch.ones((1, 1, 8, 8))
     >>> y = physics(x)
-    >>> x_net = model(y, physics)
+    >>> x_net = model(y, physics, update_parameters=True) # save random mask in forward pass
     >>> l = loss(x_net, y, physics, model)
     >>> print(l > 0)
     True
@@ -78,7 +78,7 @@ class SplittingLoss(Loss):
         mask = model.get_mask()
 
         # create inpainting masks
-        mask2 = 1 - mask
+        mask2 = 1.0 - mask
         inp2 = Inpainting(tsize, mask=mask2, device=y.device)
 
         # concatenate operators
@@ -139,7 +139,7 @@ class SplittingModel(torch.nn.Module):
 
         if self.mask_generator is None:
             self.mask_generator = BernoulliMaskGenerator(
-                tensor_size=tsize, split_ratio=self.split_ratio, device=device
+                tensor_size=tsize, split_ratio=self.split_ratio, device=y.device
             )
 
         inp = Inpainting(tsize, mask=0.0, device=y.device)
@@ -156,6 +156,10 @@ class SplittingModel(torch.nn.Module):
         return out
 
     def get_mask(self):
+        if not isinstance(self.mask, torch.Tensor):
+            raise ValueError(
+                "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
+            )
         return self.mask
 
 

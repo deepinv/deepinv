@@ -118,7 +118,7 @@ class Inpainting(DecomposablePhysics):
                 device=other.device,
             )
         else:
-            return self.super().__mul__(other)
+            return super().__mul__(other)
 
 
 class Demosaicing(Inpainting):

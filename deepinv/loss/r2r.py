@@ -59,7 +59,7 @@ class R2RLoss(Loss):
         >>> model = loss.adapt_model(model, MC_samples=2) # important step!
         >>> x = torch.ones((1, 1, 8, 8))
         >>> y = physics(x)
-        >>> x_net = model(y, physics)
+        >>> x_net = model(y, physics, update_parameters=True) # save extra noise in forward pass
         >>> l = loss(x_net, y, physics, model)
         >>> print(l > 0)
         True
