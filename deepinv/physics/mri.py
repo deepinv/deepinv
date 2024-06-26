@@ -112,6 +112,7 @@ class MRI(DecomposablePhysics):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
+
 #
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
 def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
