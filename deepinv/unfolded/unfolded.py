@@ -136,7 +136,7 @@ def unfolded_builder(
         >>> model = dinv.unfolded.unfolded_builder(
         ...     iteration="PGD",
         ...     data_fidelity=dinv.optim.L2(),
-        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1, train=True)),
+        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1)),
         ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
         ...     trainable_params=["stepsize", "g_param"]
         ... )
