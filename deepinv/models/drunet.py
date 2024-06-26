@@ -51,7 +51,6 @@ class DRUNet(nn.Module):
         downsample_mode="strideconv",
         upsample_mode="convtranspose",
         pretrained="download",
-        train=False,
         device=None,
     ):
         super(DRUNet, self).__init__()

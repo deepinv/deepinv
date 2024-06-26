@@ -142,7 +142,7 @@ method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
 prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
+    denoiser=dinv.models.GSDRUNet(pretrained="download").to(device)
 )
 
 

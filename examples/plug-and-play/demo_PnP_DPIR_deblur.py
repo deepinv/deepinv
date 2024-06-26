@@ -119,7 +119,7 @@ early_stop = False  # Do not stop algorithm with convergence criteria
 data_fidelity = L2()
 
 # Specify the denoising prior
-prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
+prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(

@@ -89,7 +89,6 @@ denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
     pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
-    train=False,
     device=device,
 )
 prior = PnP(denoiser=denoiser)
