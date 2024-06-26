@@ -75,6 +75,7 @@ class Inpainting(DecomposablePhysics):
         if len(mask.shape) == len(tensor_size):
             mask = mask.unsqueeze(0)
 
+        self.tensor_size = tensor_size
         self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
     def noise(self, x, **kwargs):
@@ -108,15 +109,14 @@ class Inpainting(DecomposablePhysics):
                 tensor_size=self.tensor_size,
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
-                pixelwise=self.pixelwise,
-                device=self.device,
+                device=self.mask.device,
             )
         elif isinstance(other, MRI):
             return MRI(
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
                 img_size=other.img_size,
-                device=self.device,
+                device=self.mask.device,
             )
         else:
             return super().__mul__(other)
