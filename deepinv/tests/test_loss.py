@@ -174,11 +174,6 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone)
 
-    if loss_name == "r2r":
-        model = dinv.loss.r2r_eval(model, eta=0.1, alpha=0.5, MC_samples=2)
-    elif loss_name == "splittv":
-        model = dinv.loss.splitting_eval(model, split_ratio=0.25, MC_samples=2)
-
     # choose optimizer and scheduler
     epochs = 50
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)

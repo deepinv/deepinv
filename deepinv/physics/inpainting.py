@@ -1,4 +1,5 @@
 from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.mri import MRI
 import torch
 
 
@@ -71,7 +72,10 @@ class Inpainting(DecomposablePhysics):
             else:
                 mask[:, aux[0, :, :] > mask_rate] = 0
 
-        self.mask = torch.nn.Parameter(mask.unsqueeze(0), requires_grad=False)
+        if len(mask.shape) == len(tensor_size):
+            mask = mask.unsqueeze(0)
+
+        self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
     def noise(self, x, **kwargs):
         r"""
@@ -86,6 +90,35 @@ class Inpainting(DecomposablePhysics):
             )
         )
         return noise
+
+    def __mul__(self, other):
+        r"""
+        Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
+
+        If the second operator is an Inpainting or MRI operator, the masks are multiplied elementwise,
+        otherwise the default implementation of LinearPhysics is used (see :meth:`deepinv.physics.LinearPhysics.__mul__`).
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.Physics) concantenated operator
+
+        """
+        if isinstance(other, Inpainting):
+            return Inpainting(
+                tensor_size=self.tensor_size,
+                mask=self.mask * other.mask,
+                noise_model=other.noise_model,
+                pixelwise=self.pixelwise,
+                device=self.device,
+            )
+        elif isinstance(other, MRI):
+            return MRI(
+                mask=self.mask * other.mask,
+                noise_model=other.noise_model,
+                img_size=other.img_size,
+                device=other.device,
+            )
+        else:
+            return self.super().__mul__(other)
 
 
 class Demosaicing(Inpainting):

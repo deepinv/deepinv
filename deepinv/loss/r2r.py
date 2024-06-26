@@ -109,8 +109,10 @@ class R2RLoss(Loss):
         :param int MC_samples: number of samples used for the Monte Carlo approximation.
         :return: (torch.nn.Module) Modified model.
         """
-
-        return R2RModel(model, self.sigma, self.alpha, MC_samples)
+        if model.__name__ == "R2RModel":
+            return model
+        else:
+            return R2RModel(model, self.sigma, self.alpha, MC_samples)
 
 
 class R2RModel(torch.nn.Module):
@@ -122,7 +124,7 @@ class R2RModel(torch.nn.Module):
         self.alpha = alpha
         self.MC_samples = MC_samples
 
-    def forward(self, y, physics):
+    def forward(self, y, physics, update_parameters=False):
         MC = 1 if self.training else self.MC_samples
 
         out = 0
@@ -132,7 +134,7 @@ class R2RModel(torch.nn.Module):
                 y_plus = y + extra_noise * self.alpha
                 out += self.model(y_plus, physics)
 
-            if self.training:  # save the noise
+            if self.training and update_parameters:  # save the noise
                 self.extra_noise = extra_noise
 
             out = out / MC

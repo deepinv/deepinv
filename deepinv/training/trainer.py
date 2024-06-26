@@ -13,6 +13,7 @@ from deepinv.loss import PSNR, Loss, SupLoss, R2RLoss, SplittingLoss
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from .testing import test
+import inspect
 
 
 @dataclass
@@ -210,7 +211,8 @@ class Trainer:
         if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
             self.losses = [self.losses]
 
-        self.reorder_losses()
+        for l in self.losses:
+            self.model = l.adapt_model(self.model)
 
         if not isinstance(self.metrics, list) or isinstance(self.metrics, tuple):
             self.metrics = [self.metrics]
@@ -256,17 +258,6 @@ class Trainer:
             self.physics = [self.physics]
 
         self.loss_history = []
-
-    def reorder_losses(self):
-        # check if R2R loss is present and move it to the beginning
-        if any([isinstance(l, R2RLoss) for l in self.losses]):
-            idx = [isinstance(l, R2RLoss) for l in self.losses].index(True)
-            self.losses.insert(0, self.losses.pop(idx))
-
-        # check if Splitting loss is present and move it to the beginning
-        if any([isinstance(l, SplittingLoss) for l in self.losses]):
-            idx = [isinstance(l, SplittingLoss) for l in self.losses].index(True)
-            self.losses.insert(0, self.losses.pop(idx))
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
@@ -446,7 +437,12 @@ class Trainer:
         :returns: The network reconstruction.
         """
         y = y.to(self.device)
-        x_net = self.model(y, physics)
+
+        # check if the forward has 'update_parameters' method, and if so, update the parameters
+        if "update_parameters" in inspect.signature(self.model.forward):
+            x_net = self.model(y, physics, update_parameters=True)
+        else:
+            x_net = self.model(y, physics)
         return x_net
 
     def compute_loss(self, physics, x, y, train=True):
@@ -704,7 +700,7 @@ class Trainer:
 
             ## Evaluation
             perform_eval = self.eval_dataloader and (
-                epoch % self.eval_interval == 0 or epoch == self.epochs
+                epoch % self.eval_interval == 0 or epoch + 1 == self.epochs
             )
             if perform_eval:
                 self.current_iterators = [

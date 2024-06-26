@@ -1,19 +1,7 @@
 import torch
 from deepinv.physics import Inpainting
-import numpy as np
 from deepinv.loss.loss import Loss
-
-
-def get_mask(tensor_size, split_ratio, regular_mask=False, device="cpu"):
-    # sample a splitting
-    mask = torch.ones(tensor_size).to(device)
-    if not regular_mask:
-        mask[torch.rand_like(mask) > split_ratio] = 0
-    else:
-        stride = int(1 / (1 - split_ratio))
-        start = np.random.randint(stride)
-        mask[..., start::stride, start::stride] = 0.0
-    return mask
+from deepinv.physics.generator import BernoulliMaskGenerator
 
 
 class SplittingLoss(Loss):
@@ -47,7 +35,8 @@ class SplittingLoss(Loss):
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
         with the splitting ratio.
-    :param bool regular_mask: If ``True``, it will use a regular mask, otherwise it uses a random mask.
+    :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
+        None, the :class:`deepinv.physics.generator.BernoulliMaskGenerator` is used.
 
     |sep|
 
@@ -67,14 +56,13 @@ class SplittingLoss(Loss):
     True
 
 
-
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), split_ratio=0.9, regular_mask=False):
+    def __init__(self, metric=torch.nn.MSELoss(), split_ratio=0.9, mask_generator=None):
         super().__init__()
         self.name = "ms"
         self.metric = metric
-        self.regular_mask = regular_mask
+        self.mask_generator = mask_generator
         self.split_ratio = split_ratio
 
     def forward(self, x_net, y, physics, model, **kwargs):
@@ -90,7 +78,8 @@ class SplittingLoss(Loss):
         mask = model.get_mask()
 
         # create inpainting masks
-        inp2 = Inpainting(tsize, 1 - mask, device=y.device)
+        mask2 = 1 - mask
+        inp2 = Inpainting(tsize, mask=mask2, device=y.device)
 
         # concatenate operators
         physics2 = inp2 * physics  # A_2 = (I-P)*A
@@ -99,7 +88,8 @@ class SplittingLoss(Loss):
         y2 = inp2.A(y)
 
         loss_ms = self.metric(physics2.A(x_net), y2)
-        loss_ms /= 1 - self.split_ratio  # normalize loss
+
+        loss_ms = loss_ms / mask2.mean()  # normalize loss
 
         return loss_ms
 
@@ -125,34 +115,43 @@ class SplittingLoss(Loss):
         :return: (torch.nn.Module) Model modified for evaluation.
         """
 
-        return SplittingModel(model, self.split_ratio, self.regular_mask, MC_samples)
+        if model.__name__ == "SplittingModel":
+            return model
+        else:
+            return SplittingModel(
+                model, self.split_ratio, self.mask_generator, MC_samples
+            )
 
 
 class SplittingModel(torch.nn.Module):
-    def __init__(self, model, split_ratio, regular_mask, MC_samples):
+    def __init__(self, model, split_ratio, mask_generator, MC_samples):
         super().__init__()
         self.model = model
         self.split_ratio = split_ratio
-        self.regular_mask = regular_mask
         self.MC_samples = MC_samples
         self.mask = 0
+        self.mask_generator = mask_generator
 
-    def forward(self, y, physics):
+    def forward(self, y, physics, update_parameters=False):
         MC = 1 if self.training else self.MC_samples
         tsize = y.size()[1:]
         out = 0
+
+        if self.mask_generator is None:
+            self.mask_generator = BernoulliMaskGenerator(
+                tensor_size=tsize, split_ratio=self.split_ratio, device=device
+            )
+
+        inp = Inpainting(tsize, mask=0.0, device=y.device)
         with torch.set_grad_enabled(self.training):
             for i in range(MC):
-                mask = get_mask(
-                    tsize, self.split_ratio, self.regular_mask, device=y.device
-                )
-                inp = Inpainting(tsize, mask, device=y.device)
-                y1 = inp.A(y)
+                mask = self.mask_generator.step(y.size(0))
+                y1 = inp.A(y, **mask)
                 physics1 = inp * physics  # A_1 = P*A
                 out += self.model(y1, physics1)
 
-            if self.training:
-                self.mask = mask
+            if self.training and update_parameters:
+                self.mask = mask["mask"]
             out = out / MC
         return out
 
@@ -277,31 +276,35 @@ class Neighbor2Neighbor(Loss):
         return loss_n2n
 
 
-# if __name__ == "__main__":
-#     import deepinv as dinv
-#
-#     sigma = 0.1
-#     physics = dinv.physics.Denoising()
-#     physics.noise_model = dinv.physics.GaussianNoise(sigma)
-#
-#     # choose a reconstruction architecture
-#     backbone = dinv.models.MedianFilter()
-#     f = dinv.models.ArtifactRemoval(backbone)
-#     batch_size = 1
-#     imsize = (3, 128, 128)
-#
-#     for split_ratio in np.linspace(0.7, 0.99, 10):
-#         x = torch.ones((batch_size,) + imsize, device=dinv.device)
-#         y = physics(x)
-#
-#         # choose training losses
-#         loss = SplittingLoss(split_ratio=split_ratio, regular_mask=True)
-#         x_net = f(y, physics)
-#         mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
-#         split_loss = loss(y, physics, f)
-#
-#         print(
-#             f"split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}"
-#         )
-#         rel_error = (split_loss - mse).abs() / mse
-#         print(f"rel_error: {rel_error:.2f}")
+if __name__ == "__main__":
+    import deepinv as dinv
+    import torch
+    import numpy as np
+
+    sigma = 0.1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+    # choose a reconstruction architecture
+    backbone = dinv.models.MedianFilter()
+    f = dinv.models.ArtifactRemoval(backbone)
+    # choose training losses
+    split_ratio = 0.9
+    loss = SplittingLoss(split_ratio=split_ratio)
+    f = loss.adapt_model(f, MC_samples=2)  # important step!
+
+    batch_size = 1
+    imsize = (3, 128, 128)
+    device = "cuda"
+
+    x = torch.ones((batch_size,) + imsize, device=device)
+    y = physics(x)
+
+    x_net = f(y, physics)
+    mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
+    split_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
+
+    print(
+        f"split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}"
+    )
+    rel_error = (split_loss - mse).abs() / mse
+    print(f"rel_error: {rel_error:.2f}")
