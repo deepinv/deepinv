@@ -109,7 +109,7 @@ class R2RLoss(Loss):
         :param int MC_samples: number of samples used for the Monte Carlo approximation.
         :return: (torch.nn.Module) Modified model.
         """
-        if model.__name__ == "R2RModel":
+        if model.__class__.__name__ == "R2RModel":
             return model
         else:
             return R2RModel(model, self.sigma, self.alpha, MC_samples)

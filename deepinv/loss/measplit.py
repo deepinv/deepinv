@@ -115,7 +115,7 @@ class SplittingLoss(Loss):
         :return: (torch.nn.Module) Model modified for evaluation.
         """
 
-        if model.__name__ == "SplittingModel":
+        if model.__class__.__name__ == "SplittingModel":
             return model
         else:
             return SplittingModel(
