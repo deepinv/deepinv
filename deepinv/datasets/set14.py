@@ -11,28 +11,24 @@ from deepinv.datasets.utils import (
 )
 
 
-class Urban100HR(torch.utils.data.Dataset):
-    """Dataset for `Urban100 <https://paperswithcode.com/dataset/urban100>`_.
+class Set14HR(torch.utils.data.Dataset):
+    """Dataset for `Set14 <https://paperswithcode.com/dataset/set14>`_.
 
-    The Urban100 dataset contains 100 images of urban scenes.
-    It is commonly used as a test set to evaluate the performance of super-resolution models.
-
+    The Set14 dataset is a dataset consisting of 14 images commonly used for testing performance of image reconstruction algorithms.
+    Images have sizes ranging from 276×276 to 512×768 pixels.
 
     **Raw data file structure:** ::
 
-        self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
-                   |               |
-                   |               -- img_100_SRF_2_SRCNN.png
+        self.root --- Set14 --- image_SRF_2 --- img_001_SRF_2_bicubic.png
+                   |         |               |
+                   |         |               -- img_014_SRF_2_SRCNN.png
+                   |         |
+                   |         -- image_SRF_3 --- ...
+                   |         -- image_SRF_4 --- ...
                    |
-                   -- image_SRF_4 --- img_001_SRF_4_A+.png
-                   |               |
-                   |               -- img_100_SRF_4_SRCNN.png
-                   -- readme.txt
-                   -- source_selected.xlsx
-                   -- Urban100_SR.zip
+                   -- Set14_SR.zip
 
-    This dataset wrapper gives access to the 100 high resolution images in the `image_SRF_4` folder.
-    For more information about the raw data, you can look at `readme.txt`.
+    This dataset wrapper gives access to the 14 high resolution images in the `image_SRF_4` folder.
     Raw dataset source : https://github.com/jbhuang0604/SelfExSR
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
@@ -48,25 +44,26 @@ class Urban100HR(torch.utils.data.Dataset):
         Instanciate dataset and download raw data from the Internet:
 
         >>> import shutil
-        >>> from deepinv.datasets import Urban100HR
-        >>> dataset = Urban100HR(root="Urban100_DATA", download=True)  # download raw data at root and load dataset
+        >>> from deepinv.datasets import Set14HR
+        >>> dataset = Set14HR(root="Set14_DATA", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.check_dataset_exists()                             # check that raw data has been downloaded correctly
+        >>> dataset.check_dataset_exists()                       # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                               # check that we have 100 images
-        100
-        >>> shutil.rmtree("Urban100_DATA")                             # remove raw data from disk
+        >>> len(dataset)                                         # check that we have 14 images
+        14
+        >>> shutil.rmtree("Set14_DATA")                          # remove raw data from disk
 
     """
 
     zipfile_urls = {
-        "Urban100_SR.zip": "https://uofi.box.com/shared/static/65upg43jjd0a4cwsiqgl6o6ixube6klm.zip",
+        "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
     }
 
     # for integrity of downloaded data
     checksums = {
-        "image_SRF_2": "7a69080e004abff22afea2520f7d7e83",
-        "image_SRF_4": "7c4479537ef7bf42270cf663205a136b",
+        "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
+        "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
+        "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
     }
 
     def __init__(
@@ -77,7 +74,7 @@ class Urban100HR(torch.utils.data.Dataset):
     ) -> None:
         self.root = root
         self.transform = transform
-        self.img_dir = os.path.join(self.root, "image_SRF_4")
+        self.img_dir = os.path.join(self.root, "Set14", "image_SRF_4")
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -129,19 +126,20 @@ class Urban100HR(torch.utils.data.Dataset):
 
         `self.root` should have the following structure: ::
 
-            self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
-                       |               |
-                       |               -- img_100_SRF_2_SRCNN.png
-                       |
-                       -- image_SRF_4 --- img_001_SRF_4_A+.png
-                       |               |
-                       |               -- img_100_SRF_4_SRCNN.png
+            self.root --- Set14 --- image_SRF_2 --- img_001_SRF_2_bicubic.png
+                       |         |               |
+                       |         |               -- img_014_SRF_2_SRCNN.png
+                       |         |
+                       |         -- image_SRF_3 --- ...
+                       |         -- image_SRF_4 --- ...
+                       |         -- xxx
                        -- xxx
         """
-        data_dir_exist = os.path.isdir(self.root)
+        data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14"))
         if not data_dir_exist:
             return False
         return all(
-            calculate_md5_for_folder(os.path.join(self.root, folder_name)) == checksum
+            calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name))
+            == checksum
             for folder_name, checksum in self.checksums.items()
         )
