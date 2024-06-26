@@ -61,7 +61,7 @@ class R2RLoss(Loss):
         >>> y = physics(x)
         >>> x_net = model(y, physics, update_parameters=True) # save extra noise in forward pass
         >>> l = loss(x_net, y, physics, model)
-        >>> print(l > 0)
+        >>> print(l.item() > 0)
         True
 
     """
