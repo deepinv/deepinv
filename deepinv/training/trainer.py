@@ -190,6 +190,18 @@ class Trainer:
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
             )
 
+        self.epoch_start = 0
+        if self.ckpt_pretrained is not None:
+            checkpoint = torch.load(self.ckpt_pretrained)
+            self.model.load_state_dict(checkpoint["state_dict"])
+            if "optimizer" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if "wandb_id" in checkpoint:
+                self.wandb_setup["id"] = checkpoint["wandb_id"]
+                self.wandb_setup["resume"] = "allow"
+            if "epoch" in checkpoint:
+                self.epoch_start = checkpoint["epoch"]
+
         # wandb initialization
         if self.wandb_vis:
             if wandb.run is None:
@@ -204,12 +216,14 @@ class Trainer:
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
         self.logs_losses_train = [
-            AverageMeter("Training loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Training loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
         self.logs_losses_eval = [
-            AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         # metrics
@@ -240,15 +254,6 @@ class Trainer:
             self.physics = [self.physics]
 
         self.loss_history = []
-
-        self.epoch_start = 0
-        if self.ckpt_pretrained is not None:
-            checkpoint = torch.load(self.ckpt_pretrained)
-            self.model.load_state_dict(checkpoint["state_dict"])
-            if "optimizer" in checkpoint:
-                self.optimizer.load_state_dict(checkpoint["optimizer"])
-            if "epoch" in checkpoint:
-                self.epoch_start = checkpoint["epoch"]
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
@@ -614,6 +619,8 @@ class Trainer:
             }
             if eval_metrics is not None:
                 state["eval_metrics"] = eval_metrics
+            if self.wandb_vis:
+                state["wandb_id"] = wandb.run.id
             torch.save(
                 state,
                 os.path.join(
@@ -636,6 +643,20 @@ class Trainer:
         self.setup_train()
 
         for epoch in range(self.epoch_start, self.epochs):
+
+            # clean metrics
+            self.logs_total_loss_train.reset()
+            self.logs_total_loss_eval.reset()
+
+            for l in self.logs_losses_train:
+                l.reset()
+
+            for l in self.logs_metrics_train:
+                l.reset()
+
+            for l in self.logs_metrics_eval:
+                l.reset()
+
             ## Evaluation
             perform_eval = self.eval_dataloader and (
                 (epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs
@@ -662,7 +683,7 @@ class Trainer:
                     )
 
                 for l in self.logs_losses_eval:
-                    self.eval_metrics_history[l.name] = l.avg
+                    self.eval_metrics_history[l.__class__.__name__] = l.avg
 
             ## Training
             self.current_iterators = [iter(loader) for loader in self.train_dataloader]
@@ -682,13 +703,6 @@ class Trainer:
                 self.step(
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
-
-                if i < batches - 1:
-                    # clean meters
-                    self.logs_total_loss_train.reset()
-                    self.logs_total_loss_eval.reset()
-                    for l in self.logs_losses_train:
-                        l.reset()
 
             self.loss_history.append(self.logs_total_loss_train.avg)
 
