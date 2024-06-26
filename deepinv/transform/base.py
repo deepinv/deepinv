@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-
+from typing import Tuple, Callable, Any
 
 class Transform(torch.nn.Module):
     """Base class for image transforms.
@@ -18,12 +18,43 @@ class Transform(torch.nn.Module):
         self.n_trans = n_trans
         self.rng = torch.Generator() if rng is None else rng
 
-    def forward(self, x: torch.Tensor):
-        """Transform image.
+    def get_params(self, x) -> dict:
+        return NotImplementedError()
+
+    def invert_params(self, **params) -> dict:
+        return {k: -v for k, v in params.items()}
+
+    def transform(self, x: torch.Tensor, **params):
+        """Transform image given transform parameters.
+        
+        Override this to implement a custom transform.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
+        :return: torch.Tensor: transformed image.
         """
+        #TODO add unit test to test T * T^inv x = x
         return NotImplementedError()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.transform(x, **self.get_params(x))
+    
+    def inverse(self, x: torch.Tensor) -> torch.Tensor:
+        return self.transform(x, **self.invert_params(**self.get_params(x)))
+
+    def identity(self, x: torch.Tensor) -> torch.Tensor:
+        return self.symmetrize(f=lambda x: x)
+
+    def symmetrize(self, f: Callable[[torch.Tensor, Any], torch.Tensor]) -> Callable[[torch.Tensor, Any], torch.Tensor]:
+        def symmetrized(x, *args, **kwargs):
+            params = self.get_params(x)
+            return self.transform(
+                f(
+                    self.transform(
+                        x, **self.invert_params(**params)
+                    ), *args, **kwargs
+                ), **params
+            )
+        return symmetrized
 
     def __mul__(self, other: Transform):
         """
