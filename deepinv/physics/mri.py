@@ -71,29 +71,29 @@ class MRI(DecomposablePhysics):
         y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         return y
 
-    def U(self, x):
-        if self.mask.size(0) == 1:
-            return x[:, self.mask[0, ...] > 0]
-        elif x.size(0) == self.mask.size(0):
-            return x[self.mask > 0]
-        else:
-            raise ValueError(
-                "The batch size of the mask and the input should be the same."
-            )
-
-    def U_adjoint(self, x):
-        _, c, h, w = self.mask.shape
-        out = torch.zeros((x.shape[0], c, h, w), device=x.device)
-
-        if self.mask.size(0) == 1:
-            out[:, self.mask[0, ...] > 0] = x
-        elif x.size(0) == self.mask.size(0):
-            out[self.mask > 0] = x
-        else:
-            raise ValueError(
-                "The batch size of the mask and the input should be the same."
-            )
-        return out
+    # def U(self, x):
+    #     if self.mask.size(0) == 1:
+    #         return x[:, self.mask[0, ...] > 0]
+    #     elif x.size(0) == self.mask.size(0):
+    #         return x[self.mask > 0]
+    #     else:
+    #         raise ValueError(
+    #             "The batch size of the mask and the input should be the same."
+    #         )
+    #
+    # def U_adjoint(self, x):
+    #     _, c, h, w = self.mask.shape
+    #     out = torch.zeros((x.shape[0], c, h, w), device=x.device)
+    #
+    #     if self.mask.size(0) == 1:
+    #         out[:, self.mask[0, ...] > 0] = x
+    #     elif x.size(0) == self.mask.size(0):
+    #         out[self.mask > 0] = x
+    #     else:
+    #         raise ValueError(
+    #             "The batch size of the mask and the input should be the same."
+    #         )
+    #     return out
 
     def V(self, x):  # (B, 2, H, W) -> (B, H, W, 2)
         x = x.permute(0, 2, 3, 1)
@@ -103,6 +103,14 @@ class MRI(DecomposablePhysics):
         mask = None if mask is None else self.check_mask_shape(mask)
         return super().A(x, mask=mask, **kwargs)
 
+    def noise(self, x, **kwargs):
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
+
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
+        """
+        return self.noise_model(x, **kwargs) * self.mask
 
 #
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py

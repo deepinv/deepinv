@@ -439,7 +439,7 @@ class Trainer:
         y = y.to(self.device)
 
         # check if the forward has 'update_parameters' method, and if so, update the parameters
-        if "update_parameters" in inspect.signature(self.model.forward):
+        if "update_parameters" in inspect.signature(self.model.forward).parameters:
             x_net = self.model(y, physics, update_parameters=True)
         else:
             x_net = self.model(y, physics)

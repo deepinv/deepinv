@@ -39,9 +39,9 @@ class BaseMaskGenerator(PhysicsGenerator):
         # Set default center_fraction if not provided
         if center_fraction is not None:
             self.center_fraction = center_fraction
-        elif acceleration == 4:
+        elif acceleration < 8:
             self.center_fraction = 0.08
-        elif acceleration == 8:
+        elif acceleration >= 8:
             self.center_fraction = 0.04
 
         if len(self.img_size) == 2:
@@ -56,7 +56,7 @@ class BaseMaskGenerator(PhysicsGenerator):
             raise ValueError("img_size must be (H, W) or (C, H, W) or (C, T, H, W)")
 
         self.n_center = int(self.center_fraction * self.W)
-        self.n_lines = self.W // self.acc - self.n_center
+        self.n_lines = int(self.W // self.acc - self.n_center)
 
         if self.n_lines < 0:
             raise ValueError(
