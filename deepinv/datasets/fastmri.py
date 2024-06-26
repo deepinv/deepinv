@@ -23,11 +23,6 @@ import torch
 import numpy as np
 
 
-class SliceSampleFileIdentifier(NamedTuple):
-    fname: Path
-    slice_ind: int
-
-
 class FastMRISliceDataset(torch.utils.data.Dataset):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to MR image slices.
 
@@ -49,9 +44,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     | Each file contains the k-space data, ground truth and some meta data related to the scan.
     | 2) MRI scans can either be single-coil or multi-coil with each coil in
     | a multi-coil MRI scan focusses on a different region of the image.
-    | 3) In multi-coil MRIs, k-space has the following shape:
+    | 3) In multi-coil MRIs, k-space data has the following shape:
     | (number of slices, number of coils, height, width)
-    | 4) For single-coil MRIs, k-space has the following shape:
+    | 4) For single-coil MRIs, k-space data has the following shape:
     | (number of slices, height, width)
 
     :param Union[str, Path] root: Path to the dataset.
@@ -62,7 +57,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     :param Union[str, Path] metadata_cache_file: A file used to cache dataset
         information for faster load times.
     :param callable, optional sample_filter: A callable object that takes a
-        SliceSampleFileIdentifier as input and returns a boolean indicating
+        :meth:`SliceSampleFileIdentifier` as input and returns a boolean indicating
         whether the sample should be included in the dataset.
     :param float, optional sample_rate: A float between 0 and 1. This controls what
         fraction of all slices should be loaded. Defaults to 1.
@@ -106,6 +101,12 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             print(kspace.shape)
 
     """
+
+    class SliceSampleFileIdentifier(NamedTuple):
+        """Data structure for identifying specific slices within MRI data files."""
+
+        fname: Path
+        slice_ind: int
 
     def __init__(
         self,
@@ -178,7 +179,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
                     # add each slice to the dataset after filtering
                     for slice_ind in range(num_slices):
-                        slice_id = SliceSampleFileIdentifier(fname, slice_ind)
+                        slice_id = self.SliceSampleFileIdentifier(fname, slice_ind)
                         if sample_filter(slice_id):
                             self.sample_identifiers.append(slice_id)
 
