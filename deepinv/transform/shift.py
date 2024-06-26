@@ -1,26 +1,27 @@
 import torch
+from deepinv.transform.base import Transform
 
 
-class Shift(torch.nn.Module):
+class Shift(Transform):
     r"""
     Fast integer 2D translations.
 
     Generates n_transf randomly shifted versions of 2D images with circular padding.
 
-    :param n_trans: number of shifted versions generated per input image.
     :param float shift_max: maximum shift as fraction of total height/width.
+    :param n_trans: number of transformed versions generated per input image.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def __init__(self, n_trans=1, shift_max=1.0):
-        super(Shift, self).__init__()
-        self.n_trans = n_trans
+    def __init__(self, *args, shift_max=1.0, **kwargs):
+        super().__init__(*args, **kwargs)
         self.shift_max = shift_max
 
     def forward(self, x):
         r"""
         Applies a random translation to the input image.
 
-        :param torch.Tensor x: input image
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         :return: torch.Tensor containing the translated images concatenated along the first dimension
         """
         H, W = x.shape[-2:]
@@ -29,12 +30,16 @@ class Shift(torch.nn.Module):
         H_max, W_max = int(self.shift_max * H), int(self.shift_max * W)
 
         x_shift = (
-            torch.arange(-H_max, H_max)[torch.randperm(2 * H_max)][: self.n_trans]
+            torch.arange(-H_max, H_max)[torch.randperm(2 * H_max, generator=self.rng)][
+                : self.n_trans
+            ]
             if H_max > 0
             else torch.zeros(self.n_trans)
         )
         y_shift = (
-            torch.arange(-W_max, W_max)[torch.randperm(2 * W_max)][: self.n_trans]
+            torch.arange(-W_max, W_max)[torch.randperm(2 * W_max, generator=self.rng)][
+                : self.n_trans
+            ]
             if W_max > 0
             else torch.zeros(self.n_trans)
         )

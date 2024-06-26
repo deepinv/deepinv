@@ -1,9 +1,12 @@
 from dataclasses import dataclass
+
 from typing import Union
 
 import numpy as np
 import torch
 from PIL import Image
+
+from deepinv.transform.base import Transform
 
 try:
     from kornia.geometry.transform import warp_perspective
@@ -152,7 +155,7 @@ def apply_homography(
 
 
 @dataclass
-class Homography(torch.nn.Module):
+class Homography(Transform):
     """
     Random projective transformations (homographies).
 
@@ -184,7 +187,6 @@ class Homography(torch.nn.Module):
         >>> transform = Homography(n_trans = 1)
         >>> x_T = transform(x)
 
-    :param int n_trans: Number of transformations, defaults to 1.
     :param float theta_max: Maximum pan+tilt angle in degrees, defaults to 180.
     :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.
     :param float zoom_factor_min: Minimum zoom factor (up to 1), defaults to 0.5.
@@ -195,6 +197,8 @@ class Homography(torch.nn.Module):
     :param str padding: kornia padding mode, defaults to "reflection"
     :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
     :param str device: torch device, defaults to "cpu".
+    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
     n_trans: int = 1
@@ -210,12 +214,12 @@ class Homography(torch.nn.Module):
     device: str = "cpu"
 
     def __post_init__(self, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
-    def rand(self, maxi: float, mini: float = None) -> np.ndarray:
-        return np.random.default_rng().uniform(
-            -maxi if mini is None else mini, maxi, self.n_trans
-        )
+    def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
+        if mini is None:
+            mini = -maxi
+        return (mini - maxi) * torch.rand(self.n_trans, generator=self.rng) + maxi
 
     def forward(self, data):
         H, W = data.shape[-2:]
