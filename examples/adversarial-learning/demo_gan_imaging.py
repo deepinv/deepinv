@@ -80,7 +80,7 @@ dataset_path = dinv.datasets.generate_dataset(
     physics_generator=blur_generator,
     device=device,
     save_dir="Urban100",
-    batch_size=1
+    batch_size=1,
 )
 
 train_dataloader = DataLoader(
