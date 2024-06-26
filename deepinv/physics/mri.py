@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.fft
 from typing import List, Optional
@@ -39,7 +38,13 @@ class MRI(DecomposablePhysics):
         >>> mask[:, ::2] = 0
         >>> physics = MRI(mask=mask)
         >>> physics(x)
-        tensor([[-0.5305,  0.0351,  0.3326,  2.1730,  1.7072,  0.0418]])
+        tensor([[[[ 0.0000, -0.5305, -0.0000],
+              [ 0.0000,  0.0351,  0.0000],
+              [ 0.0000,  0.3326,  0.0000]],
+        <BLANKLINE>
+             [[-0.0000,  2.1730,  0.0000],
+              [ 0.0000,  1.7072,  0.0000],
+              [-0.0000,  0.0418, -0.0000]]]])
 
     """
 
