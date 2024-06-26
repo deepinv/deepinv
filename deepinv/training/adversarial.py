@@ -120,6 +120,7 @@ class AdversarialTrainer(Trainer):
         ...     losses = SupAdversarialGeneratorLoss(),
         ...     losses_d = SupAdversarialDiscriminatorLoss(),
         ...     optimizer = optimizer,
+        ...     verbose = False
         ... )
         >>>
         >>> generator = trainer.train()
