@@ -216,12 +216,14 @@ class Trainer:
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
         self.logs_losses_train = [
-            AverageMeter("Training loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Training loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
         self.logs_losses_eval = [
-            AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         # metrics
@@ -682,7 +684,7 @@ class Trainer:
                     )
 
                 for l in self.logs_losses_eval:
-                    self.eval_metrics_history[l.name] = l.avg
+                    self.eval_metrics_history[l.__class__.__name__] = l.avg
 
             ## Training
             self.current_iterators = [iter(loader) for loader in self.train_dataloader]

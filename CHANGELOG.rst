@@ -11,8 +11,9 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Plot video/animation functionality (:gh:`245` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
+- Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
+- Plot video/animation functionality (:gh:`245` by `Andrew Wang`_)
 - Added update_parameters for parameter-dependent physics (:gh:`241` by Julian Tachella) - 11/06/2024
 - Added evaluation functions for R2R and Splitting losses (:gh:`241` by Julian Tachella) - 11/06/2024
 - Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024

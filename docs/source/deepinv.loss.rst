@@ -119,11 +119,29 @@ Transforms
 This submodule contains different transforms which can be used for data augmentation or together with the equivariant losses. 
 The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. See the self-supervised example for a demonstration. Note these require ``kornia`` installed.
 
+Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, and chained by multiplying them (i.e. product group). For example, random transforms can be used as follows:
+
+.. doctest::
+
+    >>> import torch
+    >>> from deepinv.transform import Shift, Rotate
+    >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
+    >>> transform = Shift() # Define random shift transform
+    >>> transform(x).shape
+    torch.Size([1, 1, 2, 2])
+    >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
+    >>> transform(x).shape
+    torch.Size([2, 1, 2, 2])
+    >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
+    >>> rotoshift(x).shape
+    torch.Size([1, 1, 2, 2])
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
+    deepinv.transform.Transform
     deepinv.transform.Rotate
     deepinv.transform.Shift
     deepinv.transform.Scale
