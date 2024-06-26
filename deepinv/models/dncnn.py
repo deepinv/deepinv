@@ -89,7 +89,7 @@ class DnCNN(nn.Module):
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
-        else: 
+        else:
             self.apply(weights_init_kaiming)
 
         if device is not None:

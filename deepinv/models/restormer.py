@@ -79,7 +79,7 @@ class Restormer(nn.Module):
         LayerNorm_type: str = "BiasFree",
         dual_pixel_task: bool = False,
         pretrained: Optional[str] = "denoising",
-        device: Optional[torch.device] = None
+        device: Optional[torch.device] = None,
     ) -> None:
         super(Restormer, self).__init__()
 
