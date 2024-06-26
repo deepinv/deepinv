@@ -102,8 +102,9 @@ class Inpainting(DecomposablePhysics):
         :return: (deepinv.physics.Physics) concantenated operator
 
         """
-        if isinstance(other, Inpainting):
-            return Inpainting(
+
+        if isinstance(other, self.__class__):
+            return self.__class__(
                 tensor_size=self.tensor_size,
                 mask=self.mask * other.mask,
                 noise_model=other.noise_model,
