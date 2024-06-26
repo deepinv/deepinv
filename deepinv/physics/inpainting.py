@@ -107,16 +107,16 @@ class Inpainting(DecomposablePhysics):
             return self.__class__(
                 tensor_size=self.tensor_size,
                 mask=self.mask * other.mask,
-                noise_model=other.noise_model,
+                noise_model=self.noise_model,
                 pixelwise=self.pixelwise,
                 device=self.device,
             )
         elif isinstance(other, MRI):
             return MRI(
                 mask=self.mask * other.mask,
-                noise_model=other.noise_model,
+                noise_model=self.noise_model,
                 img_size=other.img_size,
-                device=other.device,
+                device=self.device,
             )
         else:
             return super().__mul__(other)

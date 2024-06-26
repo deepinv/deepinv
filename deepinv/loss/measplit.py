@@ -79,7 +79,7 @@ class SplittingLoss(Loss):
 
         # create inpainting masks
         mask2 = 1.0 - mask
-        inp2 = Inpainting(tsize, mask=mask2, device=y.device)
+        inp2 = Inpainting(tsize, mask=mask2, device=y.device, noise_model=physics.noise_model)
 
         # concatenate operators
         physics2 = inp2 * physics  # A_2 = (I-P)*A
@@ -142,7 +142,7 @@ class SplittingModel(torch.nn.Module):
                 tensor_size=tsize, split_ratio=self.split_ratio, device=y.device
             )
 
-        inp = Inpainting(tsize, mask=0.0, device=y.device)
+        inp = Inpainting(tsize, mask=0.0, device=y.device, noise_model=physics.noise_model)
         with torch.set_grad_enabled(self.training):
             for i in range(MC):
                 mask = self.mask_generator.step(y.size(0))
