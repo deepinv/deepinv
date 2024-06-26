@@ -25,7 +25,7 @@ class Inpainting(DecomposablePhysics):
     :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
         distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,
         the mask will be set to this tensor.
-    :param tuple tensor_size: size of the input images, e.g., (C, H, W).
+    :param tuple tensor_size: size of the input images i.e. (C, H, W) or (B, C, H, W).
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
 
@@ -129,7 +129,7 @@ class Demosaicing(Inpainting):
 
         The operator chooses one color per pixel according to the pattern specified.
 
-        :param tuple img_size: size of the input images, e.g., (C, H, W).
+        :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).
         :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
         :param torch.device device: ``gpu`` or ``cpu``
 
@@ -137,7 +137,7 @@ class Demosaicing(Inpainting):
 
         :Examples:
 
-            Demosaicing operator using Bayer pattern for a 3x3 image:
+            Demosaicing operator using Bayer pattern for a 4x4 image:
 
             >>> from deepinv.physics import Demosaicing
             >>> x = torch.ones(1, 3, 4, 4)
