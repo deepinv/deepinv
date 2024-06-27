@@ -89,6 +89,7 @@ class DnCNN(nn.Module):
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
+            self.eval()
         else:
             self.apply(weights_init_kaiming)
 

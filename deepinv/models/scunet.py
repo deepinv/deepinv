@@ -437,6 +437,7 @@ class SCUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
+            self.eval()
 
         if device is not None:
             self.to(device)

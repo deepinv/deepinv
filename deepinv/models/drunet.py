@@ -149,6 +149,7 @@ class DRUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
+            self.eval()
         else:
             self.apply(weights_init_drunet)
 

@@ -125,4 +125,5 @@ def GSDRUNet(
             ckpt = ckpt["state_dict"]
 
         GSmodel.load_state_dict(ckpt, strict=False)
+        GSmodel.eval()
     return GSmodel
