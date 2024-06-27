@@ -6,7 +6,7 @@ import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
-    download_zipfile,
+    download_archive,
     extract_zipfile,
 )
 

@@ -6,7 +6,7 @@ import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
-    download_zipfile,
+    download_archive,
     extract_zipfile,
 )
 
@@ -88,7 +88,7 @@ class Set14HR(torch.utils.data.Dataset):
 
                 for filename, url in self.zipfile_urls.items():
                     # download zipfile from the Internet and save it locally
-                    download_zipfile(
+                    download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )

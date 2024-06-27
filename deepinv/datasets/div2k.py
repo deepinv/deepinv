@@ -6,7 +6,7 @@ import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
-    download_zipfile,
+    download_archive,
     extract_zipfile,
 )
 
@@ -101,7 +101,7 @@ class DIV2K(torch.utils.data.Dataset):
                     else "DIV2K_valid_HR.zip"
                 )
                 # download zipfile from the Internet and save it locally
-                download_zipfile(
+                download_archive(
                     url=self.zipfile_urls[zip_filename],
                     save_path=os.path.join(self.root, zip_filename),
                 )
