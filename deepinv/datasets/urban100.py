@@ -7,7 +7,7 @@ import torch
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
-    extract_zipfile,
+    extract_tarball,
 )
 
 
@@ -20,16 +20,11 @@ class Urban100HR(torch.utils.data.Dataset):
 
     **Raw data file structure:** ::
 
-        self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
+        self.root --- Urban100_HR --- img_001.png
                    |               |
-                   |               -- img_100_SRF_2_SRCNN.png
+                   |               -- img_100.png
                    |
-                   -- image_SRF_4 --- img_001_SRF_4_A+.png
-                   |               |
-                   |               -- img_100_SRF_4_SRCNN.png
-                   -- readme.txt
-                   -- source_selected.xlsx
-                   -- Urban100_SR.zip
+                   -- Urban100_HR.tar.gz
 
     This dataset wrapper gives access to the 100 high resolution images in the `image_SRF_4` folder.
     For more information about the raw data, you can look at `readme.txt`.
@@ -59,14 +54,13 @@ class Urban100HR(torch.utils.data.Dataset):
 
     """
 
-    zipfile_urls = {
-        "Urban100_SR.zip": "https://uofi.box.com/shared/static/65upg43jjd0a4cwsiqgl6o6ixube6klm.zip",
+    tarball_urls = {
+        "Urban100_HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz",
     }
 
     # for integrity of downloaded data
     checksums = {
-        "image_SRF_2": "7a69080e004abff22afea2520f7d7e83",
-        "image_SRF_4": "7c4479537ef7bf42270cf663205a136b",
+        "Urban100_HR": "6e0640850d436a359e0a9baf5eabd27b",
     }
 
     def __init__(
@@ -77,7 +71,7 @@ class Urban100HR(torch.utils.data.Dataset):
     ) -> None:
         self.root = root
         self.transform = transform
-        self.img_dir = os.path.join(self.root, "image_SRF_4")
+        self.img_dir = os.path.join(self.root, "Urban100_HR")
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -89,14 +83,14 @@ class Urban100HR(torch.utils.data.Dataset):
                         f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
-                for filename, url in self.zipfile_urls.items():
+                for filename, url in self.tarball_urls.items():
                     # download zipfile from the Internet and save it locally
-                    download_zipfile(
+                    download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )
                     # extract local zipfile
-                    extract_zipfile(os.path.join(self.root, filename), self.root)
+                    extract_tarball(os.path.join(self.root, filename), self.root)
 
                     if self.check_dataset_exists():
                         print("Dataset has been successfully downloaded.")
@@ -108,9 +102,7 @@ class Urban100HR(torch.utils.data.Dataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(
-            [file for file in os.listdir(self.img_dir) if file.endswith("HR.png")]
-        )
+        self.img_list = sorted(os.listdir(self.img_dir))
 
     def __len__(self) -> int:
         return len(self.img_list)
@@ -129,13 +121,10 @@ class Urban100HR(torch.utils.data.Dataset):
 
         `self.root` should have the following structure: ::
 
-            self.root --- image_SRF_2 --- img_001_SRF_2_A+.png
+            self.root --- Urban100_HR --- img_001.png
                        |               |
-                       |               -- img_100_SRF_2_SRCNN.png
+                       |               -- img_100.png
                        |
-                       -- image_SRF_4 --- img_001_SRF_4_A+.png
-                       |               |
-                       |               -- img_100_SRF_4_SRCNN.png
                        -- xxx
         """
         data_dir_exist = os.path.isdir(self.root)
