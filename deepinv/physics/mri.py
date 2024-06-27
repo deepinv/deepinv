@@ -48,13 +48,11 @@ class MRI(DecomposablePhysics):
                   [ 0.0603, -0.0000]]]])
         >>> physics = MRI(img_size=x.shape) # No subsampling
         >>> physics(x)
-        tensor([[[[ 0.0000, -0.5305, -0.0000],
-                  [ 0.0000,  0.0351,  0.0000],
-                  [ 0.0000,  0.3326,  0.0000]],
+        tensor([[[[ 2.2908, -1.4290],
+                  [ 0.4564, -0.1814]],
         <BLANKLINE>
-                 [[-0.0000,  2.1730,  0.0000],
-                  [ 0.0000,  1.7072,  0.0000],
-                  [-0.0000,  0.0418, -0.0000]]]])
+                 [[ 0.3744,  1.8622],
+                  [ 0.0603, -0.6209]]]])
         >>> physics.update_parameters(mask=mask) # Update mask on the fly
         >>> physics(x)
         tensor([[[[ 0.0000, -1.4290],
@@ -81,9 +79,6 @@ class MRI(DecomposablePhysics):
 
         self.update_parameters(mask=mask.to(self.device))
 
-    def V_adjoint(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
-        y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        return y
 
     # def U(self, x):
     #     if self.mask.size(0) == 1:
@@ -109,8 +104,9 @@ class MRI(DecomposablePhysics):
     #         )
     #     return out
 
-    def U_adjoint(self, x: Tensor) -> Tensor:
-        return self.U(x)
+    def V_adjoint(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
+        y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        return y
 
     def V(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
         x = x.permute(0, 2, 3, 1)
