@@ -1,12 +1,11 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .utils import gradient_descent_step
 
 
 class GDIteration(OptimIterator):
     r"""
     Iterator for Gradient Descent.
 
-    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:` f(x) + \lambda g(x)`.
+    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`f(x) + \lambda g(x)`.
 
     The iteration is given by
 
@@ -45,8 +44,12 @@ class GDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        x = gradient_descent_step(x_prev, grad)
-        F = self.F_fn(x, cur_prior, cur_params, y, physics) if self.has_cost else None
+        x = x_prev - grad
+        F = (
+            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.has_cost
+            else None
+        )
         return {"est": (x,), "cost": F}
 
 

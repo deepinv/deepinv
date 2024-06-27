@@ -2,19 +2,20 @@
 import torch
 import torch.nn.functional as F
 from torch.nn import Module
+from deepinv.transform.base import Transform
 
 
-def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu"):
+def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator=None):
     """Sample a random tensor from a list of values"""
     values = torch.tensor(values, device=device, dtype=dtype)
     N = torch.tensor(len(values), device=device, dtype=dtype)
-    indices = torch.floor(N * torch.rand(shape, device=device, dtype=dtype)).to(
-        torch.long
-    )
+    indices = torch.floor(
+        N * torch.rand(shape, device=device, dtype=dtype, generator=generator)
+    ).to(torch.long)
     return values[indices]
 
 
-class Scale(Module):
+class Scale(Transform):
     r"""
     2D Scaling.
 
@@ -31,11 +32,14 @@ class Scale(Module):
     :param list factors: list of scale factors (default: [.75, .5])
     :param str padding_mode: padding mode for grid sampling
     :param str mode: interpolation mode for grid sampling
+    :param n_trans: number of transformed versions generated per input image.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def __init__(self, factors=None, padding_mode="reflection", mode="bicubic"):
-        super().__init__()
-
+    def __init__(
+        self, *args, factors=None, padding_mode="reflection", mode="bicubic", **kwargs
+    ):
+        super().__init__(*args, **kwargs)
         self.factors = factors or [0.75, 0.5]
         self.padding_mode = padding_mode
         self.mode = mode
@@ -44,18 +48,23 @@ class Scale(Module):
         r"""
         Applies a random scaling to the input image.
 
-        :param torch.Tensor x: input image
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         :return: scaled image
         """
+        # Prepare for multiple transforms
+        x = x.repeat(self.n_trans, 1, 1, 1)
+
         b, _, h, w = x.shape
 
         # Sample a random scale factor for each batch element
-        factor = sample_from(self.factors, shape=(b,), device=x.device)
+        factor = sample_from(
+            self.factors, shape=(b,), device=x.device, generator=self.rng
+        )
         factor = factor.view(b, 1, 1, 1).repeat(1, 1, 1, 2)
 
         # Sample a random transformation center for each batch element
         # with coordinates in [-1, 1]
-        center = torch.rand((b, 2), dtype=x.dtype, device=x.device)
+        center = torch.rand((b, 2), dtype=x.dtype, device=x.device, generator=self.rng)
         center = center.view(b, 1, 1, 2)
         center = 2 * center - 1
 

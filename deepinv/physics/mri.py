@@ -63,6 +63,7 @@ class MRI(DecomposablePhysics):
                  [[ 0.0000,  1.8622],
                   [ 0.0603, -0.0000]]]])
 
+
     """
 
     def __init__(

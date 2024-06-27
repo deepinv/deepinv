@@ -424,7 +424,7 @@ class BaseOptim(nn.Module):
                 self.params_algo["stepsize"] = [self.eta_backtracking * stepsize]
                 if self.verbose:
                     print(
-                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.3f}'
+                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
                     )
             else:
                 check_iteration = True

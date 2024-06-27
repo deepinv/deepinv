@@ -52,6 +52,7 @@ def generate_dataset(
     device="cpu",
     train_datapoints=None,
     test_datapoints=None,
+    physics_generator=None,
     dataset_filename="dinv_dataset",
     batch_size=4,
     num_workers=0,
@@ -82,6 +83,8 @@ def generate_dataset(
         augmentation (which should be chosen in the train_dataset).
     :param int, None test_datapoints: Desired number of datapoints in the test dataset. If set to ``None``, it will use the
         number of datapoints in the base test dataset.
+    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
+            the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
     :param str dataset_filename: desired filename of the dataset.
     :param int batch_size: batch size for generating the measurement data
         (it only affects the speed of the generating process)
@@ -147,8 +150,13 @@ def generate_dataset(
         x = x.to(device).unsqueeze(0)
 
         # choose operator and generate measurement
-        y = physics[g](x)
+        if physics_generator is not None:
+            params = physics_generator.step(batch_size=batch_size)
+            y = physics[g](x, **params)
+        else:
+            y = physics[g](x)
 
+        #TODO save params if physics_generator is not None
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if train_dataset is not None:

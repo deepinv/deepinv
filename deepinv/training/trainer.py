@@ -115,7 +115,7 @@ class Trainer:
     :param str save_path: Directory in which to save the trained model.
     :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu').
     :param bool verbose: Output training progress information in the console.
-    :param bool progress_bar: Show a progress bar during training.
+    :param bool show_progress_bar: Show a progress bar during training.
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.
     :param bool wandb_vis: Use Weights & Biases visualization, see https://wandb.ai/ for more details.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.
@@ -138,7 +138,7 @@ class Trainer:
     scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
-    physics_generator: PhysicsGenerator = None
+    physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
     grad_clip: float = None
     ckp_interval: int = 1
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -171,14 +171,16 @@ class Trainer:
         if self.eval_dataloader and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
 
-        self.save_path = Path(self.save_path)
+        self.save_path = Path(self.save_path) if self.save_path else None
 
         self.eval_metrics_history = {}
         self.G = len(self.train_dataloader)
 
         if (
-            self.wandb_setup is not None or self.wandb_setup != {}
-        ) and not self.wandb_vis:
+            self.wandb_setup != {}
+            and self.wandb_setup is not None
+            and not self.wandb_vis
+        ):
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb visualization deactivated (wandb_vis=False)."
             )
@@ -187,6 +189,18 @@ class Trainer:
             warnings.warn(
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
             )
+
+        self.epoch_start = 0
+        if self.ckpt_pretrained is not None:
+            checkpoint = torch.load(self.ckpt_pretrained)
+            self.model.load_state_dict(checkpoint["state_dict"])
+            if "optimizer" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if "wandb_id" in checkpoint:
+                self.wandb_setup["id"] = checkpoint["wandb_id"]
+                self.wandb_setup["resume"] = "allow"
+            if "epoch" in checkpoint:
+                self.epoch_start = checkpoint["epoch"]
 
         # wandb initialization
         if self.wandb_vis:
@@ -202,12 +216,14 @@ class Trainer:
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
         self.logs_losses_train = [
-            AverageMeter("Training loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Training loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
         self.logs_losses_eval = [
-            AverageMeter("Validation loss " + l.name, ":.2e") for l in self.losses
+            AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
+            for l in self.losses
         ]
 
         # metrics
@@ -225,26 +241,26 @@ class Trainer:
         if self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = f"{self.save_path}/{get_timestamp()}"
+        self.save_path = (
+            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
+        )
 
         # count the overall training parameters
-        params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"The model has {params} trainable parameters")
+        if self.verbose:
+            params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
         if type(self.physics) is not list:
             self.physics = [self.physics]
 
-        self.loss_history = []
+        if (
+            self.physics_generator is not None
+            and type(self.physics_generator) is not list
+        ):
+            self.physics_generator = [self.physics_generator]
 
-        self.epoch_start = 0
-        if self.ckpt_pretrained is not None:
-            checkpoint = torch.load(self.ckpt_pretrained)
-            self.model.load_state_dict(checkpoint["state_dict"])
-            if "optimizer" in checkpoint:
-                self.optimizer.load_state_dict(checkpoint["optimizer"])
-            if "epoch" in checkpoint:
-                self.epoch_start = checkpoint["epoch"]
+        self.loss_history = []
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
@@ -359,7 +375,7 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            params = self.physics_generator.step(x.size(0))
+            params = self.physics_generator[g].step(x.size(0))
             y = physics(x, **params)
         else:
             y = physics(x)
@@ -586,7 +602,7 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch)
 
-    def save_model(self, epoch, eval_metrics=None):
+    def save_model(self, epoch, eval_metrics=None, state={}):
         r"""
         Save the model.
 
@@ -594,10 +610,15 @@ class Trainer:
 
         :param int epoch: Current epoch.
         :param None, float eval_metrics: Evaluation metrics across epochs.
+        :param dict state: custom objects to save with model
         """
+
+        if not self.save_path:
+            return
+
         if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
-            state = {
+            state = state | {
                 "epoch": epoch,
                 "state_dict": self.model.state_dict(),
                 "loss": self.loss_history,
@@ -605,6 +626,8 @@ class Trainer:
             }
             if eval_metrics is not None:
                 state["eval_metrics"] = eval_metrics
+            if self.wandb_vis:
+                state["wandb_id"] = wandb.run.id
             torch.save(
                 state,
                 os.path.join(
@@ -627,6 +650,20 @@ class Trainer:
         self.setup_train()
 
         for epoch in range(self.epoch_start, self.epochs):
+
+            # clean metrics
+            self.logs_total_loss_train.reset()
+            self.logs_total_loss_eval.reset()
+
+            for l in self.logs_losses_train:
+                l.reset()
+
+            for l in self.logs_metrics_train:
+                l.reset()
+
+            for l in self.logs_metrics_eval:
+                l.reset()
+
             ## Evaluation
             perform_eval = self.eval_dataloader and (
                 (epoch + 1) % self.eval_interval == 0 or epoch + 1 == self.epochs
@@ -653,7 +690,7 @@ class Trainer:
                     )
 
                 for l in self.logs_losses_eval:
-                    self.eval_metrics_history[l.name] = l.avg
+                    self.eval_metrics_history[l.__class__.__name__] = l.avg
 
             ## Training
             self.current_iterators = [iter(loader) for loader in self.train_dataloader]
@@ -673,13 +710,6 @@ class Trainer:
                 self.step(
                     epoch, progress_bar, train=True, last_batch=(i == batches - 1)
                 )
-
-                if i < batches - 1:
-                    # clean meters
-                    self.logs_total_loss_train.reset()
-                    self.logs_total_loss_eval.reset()
-                    for l in self.logs_losses_train:
-                        l.reset()
 
             self.loss_history.append(self.logs_total_loss_train.avg)
 
@@ -711,8 +741,8 @@ class Trainer:
             online_measurements=self.online_measurements,
             plot_images=self.plot_images,
             plot_metrics=self.plot_metrics,
+            save_folder=self.save_path + "/test" if self.save_path else None,
             physics_generator=self.physics_generator,
-            save_folder=self.save_path + "/test",
             metrics=self.metrics,
             device=self.device,
             verbose=self.verbose,
@@ -732,7 +762,7 @@ def train(
     **kwargs,
 ):
     """
-    Alias function for training a model using :class:`deepinv.training_utils.Trainer` class.
+    Alias function for training a model using :class:`deepinv.Trainer` class.
 
     This function creates a Trainer instance and returns the trained model.
 
