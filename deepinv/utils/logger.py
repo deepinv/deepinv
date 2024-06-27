@@ -1,6 +1,7 @@
 import os
 import csv
 from datetime import datetime
+import platform
 import numpy as np
 
 
@@ -66,8 +67,9 @@ class ProgressMeter(object):
 # --------------------------------
 # logger
 # --------------------------------
-def get_timestamp():
-    return datetime.now().strftime("%y-%m-%d-%H:%M:%S")
+def get_timestamp() -> str:
+    sep = "_" if platform.system() == "Windows" else ":"
+    return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 
 
 class LOG(object):

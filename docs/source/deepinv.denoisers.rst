@@ -78,7 +78,22 @@ equivariant denoiser.
 
    deepinv.models.EquivariantDenoiser
 
+.. _adversarial-networks:
+Adversarial Networks
+--------------------
 
+Discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.PatchGANDiscriminator
+   deepinv.models.ESRGANDiscriminator
+   deepinv.models.DCGANGenerator
+   deepinv.models.DCGANDiscriminator
+   deepinv.models.CSGMGenerator
 
 Complex Denoisers
 --------------------------

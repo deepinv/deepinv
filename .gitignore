@@ -29,7 +29,7 @@ results/
 
 # Miscellaneous
 /experimental/
-datasets
+/datasets
 examples/*/datasets
 deepinv/version.py
 /saved_models/

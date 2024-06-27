@@ -45,7 +45,7 @@ class Urban100HR(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet:
+        Instanciate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import Urban100HR

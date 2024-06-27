@@ -27,3 +27,10 @@ class Loss(torch.nn.Module):
         raise NotImplementedError(
             "The method 'forward' must be implemented in the subclass."
         )
+
+    def adapt_model(self, model, **kwargs):
+        r"""
+        Some loss functions require the model forward call to be adapted before the forward pass.
+
+        """
+        return model
