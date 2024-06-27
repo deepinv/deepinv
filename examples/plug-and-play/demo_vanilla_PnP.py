@@ -112,6 +112,10 @@ model = optim_builder(
     },
 )
 
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
+
 # %%
 # Evaluate the model on the problem and plot the results.
 # --------------------------------------------------------------------

@@ -132,6 +132,10 @@ model = optim_builder(
     params_algo=params_algo,
 )
 
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
+
 # %%
 # Evaluate the model on the problem.
 # --------------------------------------------------------------------

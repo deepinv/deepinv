@@ -165,6 +165,10 @@ model = optim_builder(
     verbose=True,
 )
 
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
+
 # %%
 # Evaluate the model on the problem.
 # ----------------------------------------------------
