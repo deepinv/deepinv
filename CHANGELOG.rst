@@ -7,10 +7,10 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-- Dynamic MRI physics operator
 
 New Features
 ^^^^^^^^^^^^
+- Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
 - Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
 - Plot video/animation functionality (:gh:`245` by `Andrew Wang`_)
