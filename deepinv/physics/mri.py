@@ -28,6 +28,7 @@ class MRI(DecomposablePhysics):
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (C,H,W), or (B,C,H,W) where H, W are the image height and width, C is channels (typically 2) and B is batch size.
+    :param tuple img_size: if mask not specified, blank mask of ones is created using img_size, where img_size can be of any shape specified above.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -146,6 +147,7 @@ class DynamicMRI(MRI):
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
+    :param tuple img_size: if mask not specified, blank mask of ones is created using img_size, where img_size can be of any shape specified above.
     :param torch.device device: cpu or gpu.
 
     |sep|
