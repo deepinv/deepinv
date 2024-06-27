@@ -35,6 +35,22 @@ class DIV2K(torch.utils.data.Dataset):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param callable, optional transform: A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+
+    |sep|
+
+    :Examples:
+
+        Instanciate dataset and download raw data from the Internet
+
+        >>> import shutil
+        >>> from deepinv.datasets import DIV2K
+        >>> dataset = DIV2K(root="DIV2K_DATA", mode="val", download=True)  # download raw data at root and load dataset
+        Dataset has been successfully downloaded.
+        >>> dataset.verify_split_dataset_integrity()                       # check that raw data has been downloaded correctly
+        True
+        >>> len(dataset)                                                   # check that we have 100 images
+        100
+        >>> shutil.rmtree("DIV2K_DATA")                                    # remove raw data from disk
     """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
@@ -70,7 +86,7 @@ class DIV2K(torch.utils.data.Dataset):
             )
 
         # download a split of the dataset, we check first that this split isn't already downloaded
-        if not self._verify_split_dataset_integrity():
+        if not self.verify_split_dataset_integrity():
             if download:
                 if not os.path.isdir(self.root):
                     os.makedirs(self.root)
@@ -92,7 +108,7 @@ class DIV2K(torch.utils.data.Dataset):
                 # extract local zipfile
                 extract_zipfile(os.path.join(self.root, zip_filename), self.root)
 
-                if self._verify_split_dataset_integrity():
+                if self.verify_split_dataset_integrity():
                     print("Dataset has been successfully downloaded.")
                 else:
                     raise ValueError("There is an issue with the data downloaded.")
@@ -116,7 +132,7 @@ class DIV2K(torch.utils.data.Dataset):
             img = self.transform(img)
         return img
 
-    def _verify_split_dataset_integrity(self) -> bool:
+    def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
 
         This method checks if `DIV2K_train_HR` or `DIV2K_valid_HR` folder within

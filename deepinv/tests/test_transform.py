@@ -58,3 +58,16 @@ def test_transforms(transform_name, image):
     transform = choose_transform(transform_name)
     image_transformed = transform(image)
     assert image.shape == image_transformed.shape
+
+
+@pytest.mark.parametrize("transform_name", TRANSFORMS)
+def test_transform_arithmetic(transform_name, image):
+    transform = choose_transform(transform_name)
+
+    t1 = transform + dinv.transform.Shift()
+    image_t = t1(image)
+    assert image_t.shape[1:] == image.shape[1:]
+    assert image_t.shape[0] == image.shape[0] * 2
+
+    t2 = transform * dinv.transform.Shift()
+    assert t2(image).shape == image.shape
