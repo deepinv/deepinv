@@ -38,7 +38,7 @@ class BernoulliMaskGenerator(PhysicsGenerator):
         :return: dictionary with key **'mask'**: tensor of size (batch_size, *tensor_size) with values in {0, 1}.
         :rtype: dict
         """
-        mask = torch.zeros((batch_size, *self.tensor_size), device=self.device)
+        mask = torch.ones((batch_size, *self.tensor_size), device=self.device)
         mask[torch.rand_like(mask) > self.split_ratio] = 0
 
         return {"mask": mask}
