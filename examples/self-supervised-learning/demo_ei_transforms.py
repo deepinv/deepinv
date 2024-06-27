@@ -90,9 +90,8 @@ dataset = dinv.datasets.Urban100HR(
 
 train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
 
-train_dataloader, test_dataloader = DataLoader(train_dataset, shuffle=True), DataLoader(
-    test_dataset
-)
+train_dataloader = DataLoader(train_dataset, shuffle=True)
+test_dataloader = DataLoader(test_dataset)
 
 # Use physics to generate data online
 physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
@@ -150,7 +149,7 @@ ckpt = torch.hub.load_state_dict_from_url(
 
 model.load_state_dict(ckpt["state_dict"])
 
-x, _ = next(iter(train_dataloader))
+x = next(iter(train_dataloader))
 y = physics(x)
 x_hat = model(y)
 
