@@ -28,7 +28,7 @@ class Urban100HR(torch.utils.data.Dataset):
 
     This dataset wrapper gives access to the 100 high resolution images in the `image_SRF_4` folder.
     For more information about the raw data, you can look at `readme.txt`.
-    Raw dataset source : https://github.com/jbhuang0604/SelfExSR
+    Raw dataset source : https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
@@ -40,17 +40,17 @@ class Urban100HR(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import Urban100HR
-        >>> dataset = Urban100HR(root="Urban100_DATA", download=True)  # download raw data at root and load dataset
+        >>> dataset = Urban100HR(root="Urban100", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
         >>> print(dataset.check_dataset_exists())                      # check that raw data has been downloaded correctly
         True
         >>> print(len(dataset))                                        # check that we have 100 images
         100
-        >>> shutil.rmtree("Urban100_DATA")                             # remove raw data from disk
+        >>> shutil.rmtree("Urban100")                             # remove raw data from disk
 
     """
 
