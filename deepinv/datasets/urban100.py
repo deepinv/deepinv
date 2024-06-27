@@ -26,8 +26,7 @@ class Urban100HR(torch.utils.data.Dataset):
                    |
                    -- Urban100_HR.tar.gz
 
-    This dataset wrapper gives access to the 100 high resolution images in the `image_SRF_4` folder.
-    For more information about the raw data, you can look at `readme.txt`.
+    This dataset wrapper gives access to the 100 high resolution images in the Urban100_HR folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
