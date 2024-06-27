@@ -136,7 +136,14 @@ def load_degradation(name, data_dir, index=0, download=True):
     return deg_torch
 
 
-def load_image(path, img_size=None, grayscale=False, resize_mode="crop", device="cpu", dtype=torch.float32):
+def load_image(
+    path,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
+):
     r"""
     Load an image from a file and return a torch.Tensor.
 
