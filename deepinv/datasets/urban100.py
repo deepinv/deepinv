@@ -46,9 +46,9 @@ class Urban100HR(torch.utils.data.Dataset):
         >>> from deepinv.datasets import Urban100HR
         >>> dataset = Urban100HR(root="Urban100_DATA", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.check_dataset_exists()                             # check that raw data has been downloaded correctly
+        >>> print(dataset.check_dataset_exists())                      # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                               # check that we have 100 images
+        >>> print(len(dataset))                                        # check that we have 100 images
         100
         >>> shutil.rmtree("Urban100_DATA")                             # remove raw data from disk
 

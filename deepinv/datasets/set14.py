@@ -47,9 +47,9 @@ class Set14HR(torch.utils.data.Dataset):
         >>> from deepinv.datasets import Set14HR
         >>> dataset = Set14HR(root="Set14_DATA", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.check_dataset_exists()                       # check that raw data has been downloaded correctly
+        >>> print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                         # check that we have 14 images
+        >>> print(len(dataset))                                  # check that we have 14 images
         14
         >>> shutil.rmtree("Set14_DATA")                          # remove raw data from disk
 

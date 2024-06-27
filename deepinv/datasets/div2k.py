@@ -46,9 +46,9 @@ class DIV2K(torch.utils.data.Dataset):
         >>> from deepinv.datasets import DIV2K
         >>> dataset = DIV2K(root="DIV2K_DATA", mode="val", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.verify_split_dataset_integrity()                       # check that raw data has been downloaded correctly
+        >>> print(dataset.verify_split_dataset_integrity())                # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                                   # check that we have 100 images
+        >>> print(len(dataset))                                            # check that we have 100 images
         100
         >>> shutil.rmtree("DIV2K_DATA")                                    # remove raw data from disk
     """

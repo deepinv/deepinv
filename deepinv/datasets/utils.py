@@ -19,7 +19,7 @@ def check_path_is_a_folder(folder_path: str) -> bool:
     return all(
         os.path.isfile(os.path.join(folder_path, filename))
         for filename in os.listdir(folder_path)
-    )   
+    )
 
 
 def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:
