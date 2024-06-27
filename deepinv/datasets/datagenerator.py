@@ -156,7 +156,7 @@ def generate_dataset(
         else:
             y = physics[g](x)
 
-        #TODO save params if physics_generator is not None
+        # TODO save params if physics_generator is not None
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if train_dataset is not None:
