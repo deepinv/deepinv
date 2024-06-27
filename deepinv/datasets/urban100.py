@@ -54,7 +54,7 @@ class Urban100HR(torch.utils.data.Dataset):
 
     """
 
-    tarball_urls = {
+    archive_urls = {
         "Urban100_HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz",
     }
 
@@ -83,13 +83,13 @@ class Urban100HR(torch.utils.data.Dataset):
                         f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
-                for filename, url in self.tarball_urls.items():
-                    # download zipfile from the Internet and save it locally
+                for filename, url in self.archive_urls.items():
+                    # download tar file from the Internet and save it locally
                     download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )
-                    # extract local zipfile
+                    # extract local tar file
                     extract_tarball(os.path.join(self.root, filename), self.root)
 
                     if self.check_dataset_exists():

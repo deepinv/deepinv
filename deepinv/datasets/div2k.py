@@ -54,7 +54,7 @@ class DIV2K(torch.utils.data.Dataset):
     """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
-    zipfile_urls = {
+    archive_urls = {
         "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
         "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
     }
@@ -100,12 +100,12 @@ class DIV2K(torch.utils.data.Dataset):
                     if self.mode == "train"
                     else "DIV2K_valid_HR.zip"
                 )
-                # download zipfile from the Internet and save it locally
+                # download zip file from the Internet and save it locally
                 download_archive(
-                    url=self.zipfile_urls[zip_filename],
+                    url=self.archive_urls[zip_filename],
                     save_path=os.path.join(self.root, zip_filename),
                 )
-                # extract local zipfile
+                # extract local zip file
                 extract_zipfile(os.path.join(self.root, zip_filename), self.root)
 
                 if self.verify_split_dataset_integrity():
