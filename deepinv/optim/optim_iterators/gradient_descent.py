@@ -59,7 +59,7 @@ class MDIteration(OptimIterator):
 
     Class for a single iteration of the mirror descent (GD) algorithm for minimising :math:`f(x) + \lambda g(x)`.
 
-    The iteration is given by
+    For a given convex potential :math:`h`, the iteration is given by
 
 
     .. math::
@@ -72,6 +72,7 @@ class MDIteration(OptimIterator):
 
 
    where :math:`\gamma` is a stepsize.
+   The potential :math:`h` should be specified in the cur_params dictionary.
     """
 
     def __init__(self, **kwargs):
@@ -100,7 +101,7 @@ class MDIteration(OptimIterator):
         )
         if "bregman_potential" not in cur_params:
             bregman_potential = L2()
-            raise Warning("Bregman potential not defined in cur_params. Using the L2 norm as Bregman potential.")
+            raise Warning("Bregman potential not defined in cur_params. Using the L2 norm as Bregman potential. In this case Mirror Descent is just standard Gradient Descent.")
         else:
             bregman_potential = cur_params["bregman_potential"]
 

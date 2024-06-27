@@ -97,7 +97,6 @@ class FISTAIteration(OptimIterator):
 
         return {"est": (x, z), "cost": F, "it": k + 1}
 
-
 class fStepPGD(fStep):
     r"""
     PGD fStep module.
@@ -124,6 +123,96 @@ class fStepPGD(fStep):
 
 
 class gStepPGD(gStep):
+    r"""
+    PGD gStep module.
+    """
+
+    def __init__(self, **kwargs):
+        super(gStepPGD, self).__init__(**kwargs)
+
+    def forward(self, x, cur_prior, cur_params):
+        r"""
+        Single iteration step on the prior term :math:`\lambda g`.
+
+        :param torch.Tensor x: Current iterate :math:`x_k`.
+        :param dict cur_prior: Dictionary containing the current prior.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        """
+        if not self.g_first:
+            return cur_prior.prox(
+                x,
+                cur_params["g_param"],
+                gamma=cur_params["lambda"] * cur_params["stepsize"],
+            )
+        else:
+            grad = (
+                cur_params["lambda"]
+                * cur_params["stepsize"]
+                * cur_prior.grad(x, cur_params["g_param"])
+            )
+            return x - grad
+
+
+
+class PMDIteration(OptimIterator):
+    r"""
+    Iterator for Proximal Mirror Descent (PMD).
+
+    Class for a single iteration of the Proximal Mirror Descent (PMD) algorithm for minimizing :math:`f(x) + \lambda g(x)`.
+
+   For a given convex potential :math:`h`, the iteration is given by
+
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
+        x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
+        \end{aligned}
+        \end{equation*}
+
+
+   where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
+   The potential :math:`h` should be specified in the cur_params dictionary.
+
+    """
+
+    def __init__(self, **kwargs):
+        super(PGDIteration, self).__init__(**kwargs)
+        self.g_step = gStepPGD(**kwargs)
+        self.f_step = fStepPGD(**kwargs)
+        if self.g_first:
+            self.requires_grad_g = True
+        else:
+            self.requires_prox_g = True
+
+
+class fStepPMD(fStep):
+    r"""
+    PGD fStep module.
+    """
+
+    def __init__(self, **kwargs):
+        super(fStepPGD, self).__init__(**kwargs)
+
+    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
+        r"""
+         Single PGD iteration step on the data-fidelity term :math:`f`.
+
+         :param torch.Tensor x: Current iterate :math:`x_k`.
+         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+         :param torch.Tensor y: Input data.
+         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        """
+        if not self.g_first:
+            grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
+            return x - grad
+        else:
+            return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
+
+
+class gStepPMD(gStep):
     r"""
     PGD gStep module.
     """
