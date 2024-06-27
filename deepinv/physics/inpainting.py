@@ -111,8 +111,8 @@ class Inpainting(DecomposablePhysics):
                 noise_model=self.noise_model,
                 device=self.mask.device,
             )
-        elif isinstance(other, MRI):
-            return MRI(
+        elif isinstance(other, MRI): #handles derived classes
+            return other.__class__(
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
                 img_size=other.img_size,
