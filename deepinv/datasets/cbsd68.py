@@ -37,13 +37,13 @@ class CBSD68(torch.utils.data.Dataset):
 
         >>> import shutil
         >>> from deepinv.datasets import CBSD68
-        >>> dataset = CBSD68(root="CBSB68_DATA", download=True)  # download raw data at root and load dataset
+        >>> dataset = CBSD68(root="CBSB68", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.check_dataset_exists()                       # check that raw data has been downloaded correctly
+        >>> print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                         # check that we have 68 images
+        >>> print(len(dataset))                                  # check that we have 68 images
         68
-        >>> shutil.rmtree("CBSB68_DATA")                         # remove raw data from disk
+        >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
 
     """
 
