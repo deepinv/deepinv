@@ -141,9 +141,7 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download").to(device)
-)
+prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download").to(device))
 
 
 # we want to output the intermediate PGD update to finish with a denoising step.

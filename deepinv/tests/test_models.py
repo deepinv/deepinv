@@ -284,9 +284,11 @@ def test_equivariant(imsize, device):
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
-    model = dinv.models.EquivariantDenoiser(
-        model, transform="rotoflips", random=True
-    ).to(device).eval()
+    model = (
+        dinv.models.EquivariantDenoiser(model, transform="rotoflips", random=True)
+        .to(device)
+        .eval()
+    )
 
     torch.manual_seed(0)
     sigma = 0.2
