@@ -62,8 +62,12 @@ class EILoss(Loss):
         """
 
         if self.no_grad:
+            # NOTE: Calling both torch.no_grad() and detach() is not redundant.
+            # One avoids unnecessary computations and makes the code more efficient
+            # while the other ensures that x2 is marked as a leaf in the computational graph.
             with torch.no_grad():
                 x2 = self.T(x_net)
+                x2 = x2.detach()
         else:
             x2 = self.T(x_net)
 
