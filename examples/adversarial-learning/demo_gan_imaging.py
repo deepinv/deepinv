@@ -59,7 +59,11 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 physics = dinv.physics.Blur(padding="circular")
 blur_generator = MotionBlurGenerator((11, 11))
 
-dataset = dinv.datasets.Urban100HR(root="Urban100", download=True, transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]))
+dataset = dinv.datasets.Urban100HR(
+    root="Urban100",
+    download=True,
+    transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]),
+)
 
 train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
 

@@ -82,7 +82,11 @@ dinv.utils.plot(
 # impose on the unknown image set :math:`x\in X`.
 #
 
-dataset = dinv.datasets.Urban100HR(root="Urban100", download=True, transform=Compose([ToTensor(), Resize(256), CenterCrop(256)]))
+dataset = dinv.datasets.Urban100HR(
+    root="Urban100",
+    download=True,
+    transform=Compose([ToTensor(), Resize(256), CenterCrop(256)]),
+)
 
 train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
 
