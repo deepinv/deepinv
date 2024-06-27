@@ -237,14 +237,14 @@ class L2(DataFidelity):
         tensor([0.])
         >>> # Compute the gradient of f
         >>> fidelity.grad(x, y, physics)
-        tensor([[[[[0., 0., 0.],
+        tensor([[[[0., 0., 0.],
                    [0., 0., 0.],
-                   [0., 0., 0.]]]]])
+                   [0., 0., 0.]]]])
         >>> # Compute the proximity operator of f
         >>> fidelity.prox(x, y, physics, gamma=1.0)
-        tensor([[[[[1., 1., 1.],
+        tensor([[[[1., 1., 1.],
                    [1., 1., 1.],
-                   [1., 1., 1.]]]]])
+                   [1., 1., 1.]]]])
     """
 
     def __init__(self, sigma=1.0):
