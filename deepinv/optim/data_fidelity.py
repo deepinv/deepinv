@@ -229,7 +229,7 @@ class L2(DataFidelity):
         >>> x = torch.ones(1, 1, 3, 3)
         >>> mask = torch.ones_like(x)
         >>> mask[0, 0, 1, 1] = 0
-        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 3, 3), mask = mask)
+        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 3, 3), mask=mask)
         >>> y = physics(x)
         >>>
         >>> # Compute the data fidelity f(Ax, y)
@@ -238,13 +238,13 @@ class L2(DataFidelity):
         >>> # Compute the gradient of f
         >>> fidelity.grad(x, y, physics)
         tensor([[[[0., 0., 0.],
-                   [0., 0., 0.],
-                   [0., 0., 0.]]]])
+                  [0., 0., 0.],
+                  [0., 0., 0.]]]])
         >>> # Compute the proximity operator of f
         >>> fidelity.prox(x, y, physics, gamma=1.0)
         tensor([[[[1., 1., 1.],
-                   [1., 1., 1.],
-                   [1., 1., 1.]]]])
+                  [1., 1., 1.],
+                  [1., 1., 1.]]]])
     """
 
     def __init__(self, sigma=1.0):
