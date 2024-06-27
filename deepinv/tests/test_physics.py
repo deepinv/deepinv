@@ -11,6 +11,7 @@ OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
+    "demosaicing",
     "denoising",
     "colorize",
     "fftdeblur",
@@ -87,6 +88,9 @@ def find_operator(name, device):
         norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
+    elif name == "demosaicing":
+        p = dinv.physics.Demosaicing(img_size=img_size, device=device)
+        norm = 1.0
     elif name == "MRI":
         img_size = (2, 16, 8)
         p = dinv.physics.MRI(img_size=img_size, device=device)
@@ -418,6 +422,26 @@ def test_MRI(mri_img_size, device, rng):
             physics.update_parameters(mask=mask)
             y1 = physics(x)
             assert torch.all((y1 == 0) == (mask == 0))
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_concatenation(name, device):
+    if "pansharpen" in name:  # TODO: fix pansharpening
+        return
+    physics, imsize, _, dtype = find_operator(name, device)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    y = physics(x)
+    physics = (
+        dinv.physics.Inpainting(
+            tensor_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
+        )
+        * physics
+    )
+
+    r = physics.A_adjoint(physics.A(x))
+    y = physics.A(r)
+    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    assert error < 0.01
 
 
 def test_phase_retrieval(device):

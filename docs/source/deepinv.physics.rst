@@ -173,6 +173,7 @@ Pixelwise operators operate in the pixel domain and are used for denoising, inpa
    deepinv.physics.Denoising
    deepinv.physics.Inpainting
    deepinv.physics.Decolorize
+   deepinv.physics.Demosaicing
 
 Blur & Super-Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^

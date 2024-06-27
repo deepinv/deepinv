@@ -342,6 +342,7 @@ class Blur(LinearPhysics):
 
     def __init__(self, filter=None, padding="valid", device="cpu", **kwargs):
         super().__init__(**kwargs)
+        self.device = device
         self.padding = padding
         self.update_parameters(filter)
 
@@ -378,7 +379,9 @@ class Blur(LinearPhysics):
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
         if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+            self.filter = torch.nn.Parameter(
+                filter.to(self.device), requires_grad=False
+            )
 
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
