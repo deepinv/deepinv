@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 from torch.utils.data import Dataset
 from torch import randn
 
+
 def check_path_is_a_folder(folder_path: str) -> bool:
     # Check if `folder_path` is pointing to a directory
     if not os.path.isdir(folder_path):
@@ -70,21 +71,23 @@ def extract_zipfile(file_path, extract_dir) -> None:
         for file_to_be_extracted in tqdm(zip_ref.infolist(), desc="Extracting"):
             zip_ref.extract(file_to_be_extracted, extract_dir)
 
+
 class PlaceholderDataset(Dataset):
     """
     A placeholder dataset for test purposes.
 
     Produces image pairs x,y that are random tensor of shape specified.
-    
+
     :param int n: number of samples in dataset, defaults to 1
     :param tuple shape: image shape, (channel, height, width), defaults to (1, 64, 64)
     """
+
     def __init__(self, n=1, shape=(1, 64, 64)):
         self.n = n
         self.shape = shape
-    
+
     def __len__(self):
         return self.n
-    
+
     def __getitem__(self, index):
         return randn(self.shape), randn(self.shape)

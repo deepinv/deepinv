@@ -383,4 +383,3 @@ def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
         shift[i] = (x.shape[dim_num] + 1) // 2
 
     return roll(x, shift, dim)
-
