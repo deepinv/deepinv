@@ -139,7 +139,7 @@ class Trainer:
     scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
     online_measurements: bool = False
-    physics_generator: PhysicsGenerator = None
+    physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
     grad_clip: float = None
     ckp_interval: int = 1
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -250,12 +250,19 @@ class Trainer:
         )
 
         # count the overall training parameters
-        params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"The model has {params} trainable parameters")
+        if self.verbose:
+            params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
         if type(self.physics) is not list:
             self.physics = [self.physics]
+
+        if (
+            self.physics_generator is not None
+            and type(self.physics_generator) is not list
+        ):
+            self.physics_generator = [self.physics_generator]
 
         self.loss_history = []
 
@@ -372,7 +379,7 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            params = self.physics_generator.step(x.size(0))
+            params = self.physics_generator[g].step(x.size(0))
             y = physics(x, **params)
         else:
             y = physics(x)

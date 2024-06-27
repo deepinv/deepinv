@@ -39,3 +39,8 @@ def imsize_1_channel():
     w = 31
     c = 1
     return c, h, w
+
+
+@pytest.fixture
+def rng():
+    return torch.Generator().manual_seed(0)

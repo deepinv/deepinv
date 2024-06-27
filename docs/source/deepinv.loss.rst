@@ -66,6 +66,27 @@ about the forward measurement process.
     deepinv.loss.R2RLoss
 
 
+.. _adversarial-losses:
+Adversarial Learning
+--------------------
+Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game. 
+We implement various popular (supervised and unsupervised) adversarial training frameworks below. These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN. Generator and discriminator networks are provided in :ref:`adversarial models <adversarial-networks>`.
+Training is implemented using :class:`deepinv.training.AdversarialTrainer` which overrides the standard :class:`deepinv.Trainer`. See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.adversarial.DiscriminatorMetric
+    deepinv.loss.adversarial.GeneratorLoss
+    deepinv.loss.adversarial.DiscriminatorLoss
+    deepinv.loss.adversarial.SupAdversarialGeneratorLoss
+    deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss
+    deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss
+    deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
+    deepinv.loss.adversarial.UAIRGeneratorLoss
+
 Metrics
 --------
 Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.
