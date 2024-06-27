@@ -12,7 +12,7 @@ class BernoulliMaskGenerator(PhysicsGenerator):
     :param Tuple tensor_size: size of the tensor to be masked.
     :param float split_ratio: ratio of values to be kept.
     :param torch.device device: device where the tensor is stored (default: 'cpu').
-    :param np.random.Generator rng: random number generator.
+    :param np.random.Generator, torch.Generator rng: random number generator.
     """
 
     def __init__(
@@ -20,7 +20,7 @@ class BernoulliMaskGenerator(PhysicsGenerator):
         tensor_size: Tuple,
         split_ratio: float,
         device: torch.device = torch.device("cpu"),
-        rng: np.random.Generator = np.random.default_rng(),
+        rng: torch.Generator = torch.Generator().manual_seed(0),
         *args,
         **kwargs,
     ):
@@ -39,6 +39,6 @@ class BernoulliMaskGenerator(PhysicsGenerator):
         :rtype: dict
         """
         mask = torch.ones((batch_size, *self.tensor_size), device=self.device)
-        mask[torch.rand_like(mask) > self.split_ratio] = 0
+        mask[torch.empty_like(mask).normal_(generator=self.rng) > self.split_ratio] = 0
 
         return {"mask": mask}
