@@ -80,7 +80,6 @@ class MRI(DecomposablePhysics):
 
         self.update_parameters(mask=mask.to(self.device))
 
-
     # def U(self, x):
     #     if self.mask.size(0) == 1:
     #         return x[:, self.mask[0, ...] > 0]
