@@ -246,8 +246,9 @@ class Trainer:
         )
 
         # count the overall training parameters
-        params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"The model has {params} trainable parameters")
+        if self.verbose:
+            params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
         if type(self.physics) is not list:
