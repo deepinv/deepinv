@@ -102,6 +102,7 @@ class SplittingLoss(Loss):
 
         # concatenate operators
         physics2 = inp2 * physics  # A_2 = (I-P)*A
+        physics2.noise_model = physics.noise_model
 
         # divide measurements
         y2 = inp2.A(y)
@@ -195,6 +196,7 @@ class SplittingModel(torch.nn.Module):
                 )
                 y1 = inp.A(y, **mask)
                 physics1 = inp * physics  # A_1 = P*A
+                physics1.noise_model = physics.noise_model
                 x_hat = self.model(y1, physics1)
 
                 if eval_split_output:
