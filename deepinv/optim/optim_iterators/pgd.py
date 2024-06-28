@@ -197,7 +197,7 @@ class fStepPMD(fStep):
 
     def forward(self, x, cur_data_fidelity, cur_params, y, physics):
         r"""
-         Single PGD iteration step on the data-fidelity term :math:`f`.
+         Single Proximal Mirror Descent iteration step on the data-fidelity term :math:`f`.
 
          :param torch.Tensor x: Current iterate :math:`x_k`.
          :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
