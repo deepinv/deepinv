@@ -3,7 +3,7 @@ import shutil
 import PIL
 import pytest
 
-from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68
+from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68, Flickr2kHR
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def test_load_div2k_dataset(download_div2k):
 
 
 @pytest.fixture
-def download_Urban100():
+def download_urban100():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "Urban100"
 
@@ -59,7 +59,7 @@ def test_load_urban100_dataset(download_Urban100):
 
 
 @pytest.fixture
-def download_Set14():
+def download_set14():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "Set14"
 
@@ -85,7 +85,7 @@ def test_load_set14_dataset(download_Set14):
 
 
 @pytest.fixture
-def download_CBSD68():
+def download_cbsd68():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "CBSD68"
 
@@ -99,12 +99,38 @@ def download_CBSD68():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_CBSD68_dataset(download_CBSD68):
+def test_load_cbsd68_dataset(download_CBSD68):
     """Check that dataset contains 68 PIL images."""
     dataset = CBSD68(download_CBSD68, download=False)
     assert (
         len(dataset) == 68
     ), f"Dataset should have been of len 68, instead got {len(dataset)}."
+    assert (
+        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
+    ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_flickr2k():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "Flickr2K"
+
+    # Download Flickr2K raw dataset
+    Flickr2kHR(tmp_data_dir, download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_load_flickr2k_dataset(download_flickr2k):
+    """Check that dataset contains 2650 PIL images."""
+    dataset = Flickr2kHR(download_flickr2k, download=False)
+    assert (
+        len(dataset) == 2650
+    ), f"Dataset should have been of len 2650, instead got {len(dataset)}."
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."

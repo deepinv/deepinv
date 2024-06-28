@@ -6,3 +6,4 @@ from .set14 import Set14HR
 from .cbsd68 import CBSD68
 from .fastmri import FastMRISliceDataset
 from .lidc_idri import LidcIdriSliceDataset
+from .flickr2k import Flickr2kHR
