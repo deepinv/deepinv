@@ -2,7 +2,7 @@
 Poisson image deblurring with Mirror Descent.
 ====================================================================================================
 
-This example shows how to use mirror descent with Burg's entropy Bregman potential in order to slve Poisson Inverse Problems. 
+This example shows how to use mirror descent with Burg's entropy Bregman potential in order to solve Poisson Inverse Problems. 
 The problem writes as :math:`y = \mathcal{P}(Ax)` where :math:`A` is a convolutional operator and :math:`\mathcal{P}` is the realization of some Poisson noise. The goal is
 to recover the original image :math:`x` from the blurred and noisy image :math:`y`. The TV prior is used to regularize the problem.
 """
@@ -12,10 +12,11 @@ from pathlib import Path
 import torch
 from torchvision import transforms
 
-from deepinv.optim.data_fidelity import L2
+from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.utils.plotting import plot, plot_curves
+from deepinv.optim.optim_iterators.bregman import BurgEntropy
 
 # %%
 # Setup paths for data loading and results.
@@ -63,13 +64,13 @@ dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 # We use the BlurFFT class from the physics module to generate a dataset of blurred images.
 
 
-noise_level_img = 0.05  # Gaussian Noise standard deviation for the degradation
+noise_level_img = 40  # Poisson Noise gain
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
     device=device,
-    noise_model=dinv.physics.PoissonNoise(sigma=noise_level_img),
+    noise_model=dinv.physics.PoissonNoise(gain=noise_level_img),
 )
 
 # Select the first image from the dataset
@@ -78,59 +79,11 @@ x = dataset[0][0].unsqueeze(0).to(device)
 # Apply the degradation to the image
 y = physics(x)
 
-# %%
-# Exploring the total variation prior.
-# ------------------------------------
-#
-# In this example, we will use the total variation prior, which can be done with the :meth:`deepinv.optim.prior.Prior`
-# class. The prior object represents the cost function of the prior (TV in this case), as well as convenient methods,
-# such as its proximal operator :math:`\text{prox}_{\tau g}`.
-
 # Set up the total variation prior
 prior = dinv.optim.prior.TVPrior(n_it_max=2000)
 
-# Compute the total variation prior cost
-cost_tv = prior(y)
-print(f"Cost TV: g(y) = {cost_tv:.2f}")
-
-# Apply the proximal operator of the TV prior
-x_tv = prior.prox(y, gamma=0.1)
-cost_tv_prox = prior(x_tv)
-
-# %%
-# .. note::
-#           The output of the proximity operator of TV is **not** the solution to our deblurring problem. It is only a
-#           step towards the solution and is used in the proximal gradient descent algorithm to solve the inverse
-#           problem.
-#
-
-# Plot the input and the output of the TV proximal operator
-imgs = [y, x_tv]
-plot(
-    imgs,
-    titles=[f"Input, TV cost: {cost_tv:.2f}", f"Output, TV cost: {cost_tv_prox:.2f}"],
-)
-
-
-# %%
-# Set up the optimization algorithm to solve the inverse problem.
-# --------------------------------------------------------------------------------
-# The problem we want to minimize is the following:
-#
-# .. math::
-#
-#     \begin{equation*}
-#     \underset{x}{\operatorname{min}} \,\, \frac{1}{2} \|Ax-y\|_2^2 + \lambda \|Dx\|_{1,2}(x),
-#     \end{equation*}
-#
-#
-# where :math:`1/2 \|A(x)-y\|_2^2` is the a data-fidelity term, :math:`\lambda \|Dx\|_{2,1}(x)` is the total variation (TV)
-# norm of the image :math:`x`, and :math:`\lambda>0` is a regularisation parameters.
-#
-# We use a Proximal Gradient Descent (PGD) algorithm to solve the inverse problem.
-
 # Select the data fidelity term
-data_fidelity = L2()
+data_fidelity = PoissonLikelihood()
 
 # Specify the prior (we redefine it with a smaller number of iteration for faster computation)
 prior = dinv.optim.prior.TVPrior(n_it_max=20)
@@ -139,16 +92,16 @@ prior = dinv.optim.prior.TVPrior(n_it_max=20)
 verbose = True
 plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
-# Algorithm parameters
-stepsize = 1.0
-lamb = 1e-2  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+# Algorithm parameters. The Bregman potential used for Mirror Descent (here Brug's entropy) is defined in the params_algo dictionary.
+stepsize = 0.1
+lamb = 0.01  # TV regularisation parameter
+params_algo = {"stepsize": stepsize, "lambda": lamb, "bregman_potential": BurgEntropy()}
 max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
 model = optim_builder(
-    iteration="PGD",
+    iteration="MD",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,

@@ -4,6 +4,7 @@ import torch.nn as nn
 from deepinv.optim.utils import gradient_descent
 from deepinv.optim.optim_iterators.bregman import Bregman, L2
 
+
 class DataFidelity(nn.Module):
     r"""
     Data fidelity term :math:`\datafid{x}{y}=\distance{\forw{x}}{y}`.
@@ -203,7 +204,7 @@ class DataFidelity(nn.Module):
         return u - gamma * self.prox_d(
             u / gamma, y, *args, gamma=lamb / gamma, **kwargs
         )
-    
+
     def bregman_prox(
         self,
         x,
@@ -211,20 +212,20 @@ class DataFidelity(nn.Module):
         physics,
         *args,
         gamma=1.0,
-        bregman_potential = L2(),
+        bregman_potential=L2(),
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
         **kwargs,
     ):
-        """
+        r"""
         Calculates the Bregman proximity operator of :math:`\datafidname` at :math:`x` i.e.:
 
         .. math::
-        
+
             \operatorname{prox^h}_{\gamma \datafidname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}\datafidname + D_h(u,x)
 
-        where :math:`D_h(x,y)` stands for the Bregman divergence with potential :math:`h`. 
+        where :math:`D_h(x,y)` stands for the Bregman divergence with potential :math:`h`.
 
         By default, the proximity operator is computed using internal gradient descent.
 
@@ -237,7 +238,9 @@ class DataFidelity(nn.Module):
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
         :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`, computed in :math:`x`.
         """
-        grad = lambda u: gamma * self.grad(u, y, physics, *args, **kwargs) + (bregman_potential(u) - bregman_potential(x))
+        grad = lambda u: gamma * self.grad(u, y, physics, *args, **kwargs) + (
+            bregman_potential(u) - bregman_potential(x)
+        )
         return gradient_descent(
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )

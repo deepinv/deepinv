@@ -1,6 +1,7 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 from .bregman import L2
 
+
 class GDIteration(OptimIterator):
     r"""
     Iterator for Gradient Descent.

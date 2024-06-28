@@ -1,6 +1,7 @@
 from .optim_iterator import OptimIterator, fStep, gStep
 from .bregman import L2
 
+
 class PGDIteration(OptimIterator):
     r"""
     Iterator for proximal gradient descent.
@@ -98,6 +99,7 @@ class FISTAIteration(OptimIterator):
 
         return {"est": (x, z), "cost": F, "it": k + 1}
 
+
 class fStepPGD(fStep):
     r"""
     PGD fStep module.
@@ -152,7 +154,6 @@ class gStepPGD(gStep):
                 * cur_prior.grad(x, cur_params["g_param"])
             )
             return x - grad
-
 
 
 class PMDIteration(OptimIterator):
@@ -210,7 +211,13 @@ class fStepPMD(fStep):
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
             return bregman_potential.grad_conj(bregman_potential.grad(x) - grad)
         else:
-            return cur_data_fidelity.bregman_prox(x, y, physics, gamma=cur_params["stepsize"], bregman_potential = bregman_potential)
+            return cur_data_fidelity.bregman_prox(
+                x,
+                y,
+                physics,
+                gamma=cur_params["stepsize"],
+                bregman_potential=bregman_potential,
+            )
 
 
 class gStepPMD(gStep):
@@ -235,7 +242,7 @@ class gStepPMD(gStep):
                 x,
                 cur_params["g_param"],
                 gamma=cur_params["lambda"] * cur_params["stepsize"],
-                bregman_potential = bregman_potential
+                bregman_potential=bregman_potential,
             )
         else:
             grad = (
