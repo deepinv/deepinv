@@ -266,7 +266,7 @@ class L2(DataFidelity):
         :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         x = u - y
-        d = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        d = 0.5 * torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
         return self.norm * d
 
     def grad_d(self, u, y):
@@ -358,7 +358,7 @@ class IndicatorL2(DataFidelity):
         :return: (torch.Tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
         diff = u - y
-        dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
+        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
         radius = self.radius if radius is None else radius
         loss = (dist > radius) * 1e16
         return loss
@@ -383,7 +383,7 @@ class IndicatorL2(DataFidelity):
         """
         radius = self.radius if radius is None else radius
         diff = x - y
-        dist = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=-1)
+        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
         return y + diff * (
             torch.min(torch.tensor([radius]).to(x.device), dist) / (dist + 1e-12)
         ).view(-1, 1, 1, 1)
@@ -525,7 +525,7 @@ class L1(DataFidelity):
 
     def d(self, x, y):
         diff = x - y
-        return torch.norm(diff.view(diff.shape[0], -1), p=1, dim=-1)
+        return torch.norm(diff.reshape(diff.shape[0], -1), p=1, dim=-1)
 
     def grad_d(self, x, y):
         r"""
@@ -634,7 +634,7 @@ class AmplitudeLoss(DataFidelity):
         :return: (torch.Tensor) the amplitude loss of shape B where B is the batch size.
         """
         x = torch.sqrt(u) - torch.sqrt(y)
-        d = torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        d = torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
         return d
 
     def grad_d(self, u, y, epsilon=1e-12):
