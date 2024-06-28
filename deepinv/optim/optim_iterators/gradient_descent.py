@@ -1,5 +1,4 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .bregman import L2
 
 
 class GDIteration(OptimIterator):
@@ -77,7 +76,7 @@ class MDIteration(OptimIterator):
     """
 
     def __init__(self, **kwargs):
-        super(GDIteration, self).__init__(**kwargs)
+        super(MDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
         self.requires_grad_g = True

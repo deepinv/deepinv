@@ -151,13 +151,13 @@ class PoissonNoise(torch.nn.Module):
         self.update_parameters(gain)
 
         y = torch.poisson(
-            torch.clip(x / self.gain, min=0.0) if self.clip_positive else x / self.gain
+            torch.clip(x * self.gain, min=0.0) if self.clip_positive else x * self.gain
         )
         if self.normalize:
-            y *= self.gain
+            y /= self.gain
         return y
 
-    def update_parameters(self, gain, **kwargs):
+    def update_parameters(self, gain=None, **kwargs):
         r"""
         Updates the gain of the noise.
 
@@ -207,7 +207,7 @@ class PoissonGaussianNoise(torch.nn.Module):
         """
         self.update_parameters(gain, sigma)
 
-        y = torch.poisson(x / self.gain) * self.gain
+        y = torch.poisson(x * self.gain) / self.gain
 
         y += torch.randn_like(x) * self.sigma
         return y

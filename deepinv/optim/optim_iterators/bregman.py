@@ -93,7 +93,7 @@ class Bregman(nn.Module):
         return self.grad_conj(self.grad(x, *args, **kwargs) - gamma * grad)
 
 
-class L2(Bregman):
+class BregmanL2(Bregman):
     r"""
     Module for the L2 norm as Bregman potential :math:`h(x) = \frac{1}{2} \|x\|_2^2`.
     The corresponding Bregman divergence is the squared Euclidean distance :math:`D(x,y) = \frac{1}{2} \|x-y\|_2^2`.

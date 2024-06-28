@@ -1,5 +1,4 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-from .bregman import L2
 
 
 class PGDIteration(OptimIterator):
@@ -179,7 +178,7 @@ class PMDIteration(OptimIterator):
     """
 
     def __init__(self, **kwargs):
-        super(PGDIteration, self).__init__(**kwargs)
+        super(PMDIteration, self).__init__(**kwargs)
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
         if self.g_first:
