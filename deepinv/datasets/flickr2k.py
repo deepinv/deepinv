@@ -84,8 +84,8 @@ class Flickr2kHR(torch.utils.data.Dataset):
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )
-                    # extract local tar file
-                    extract_tarball(os.path.join(self.root, filename), self.root)
+                    # extract local zip file
+                    extract_zipfile(os.path.join(self.root, filename), self.root)
 
                     if self.check_dataset_exists():
                         print("Dataset has been successfully downloaded.")
