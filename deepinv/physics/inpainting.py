@@ -150,6 +150,7 @@ class Demosaicing(Inpainting):
 
 
     """
+
     def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
         if pattern == "bayer":
             if len(img_size) == 2:
