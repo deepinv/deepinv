@@ -1,14 +1,14 @@
 import torch
-from deepinv.physics import Inpainting
+from deepinv.physics import Inpainting, Denoising
 from deepinv.loss.loss import Loss
-from deepinv.physics.generator import BernoulliMaskGenerator
+from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 
 
 class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
 
-    Splits the measurement and forward operator (of size :math:`m`)
+    Splits the measurement and forward operator :math:`\forw{}` (of size :math:`m`)
     into two smaller pairs  :math:`(y_1,A_1)` (of size :math:`m_1`) and  :math:`(y_2,A_2)` (of size :math:`m_2`) ,
     to compute the self-supervised loss:
 
@@ -16,7 +16,14 @@ class SplittingLoss(Loss):
 
         \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2
 
-    where :math:`R` is the trainable network. See https://pubmed.ncbi.nlm.nih.gov/32614100/.
+    where :math:`R` is the trainable network, :math:`A_1 = M_1 \forw{}, A_2 = M_2 \forw{}`, and :math:`M_i` are randomly generated masks such that :math:`M_1+M_2=\mathbb{1}_m`.
+
+    .. note::
+
+        If the forward operator has its own subsampling mask :math:`M_{\forw{}}`, e.g. :class:`deepinv.physics.Inpainting` or :class:`deepinv.physics.MRI`,
+        the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
+
+    This loss was used in SSDU for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
@@ -31,12 +38,17 @@ class SplittingLoss(Loss):
         over multiple realizations of the splitting, i.e.
         :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`.
 
+        If ``eval_split_output==True``, and the physics is not dimension-reducing (e.g. Denoising), this becomes:
+        :math:`\hat{x} = \sum_{i=1}^N M_2 \inversef{y_1^{(i)}}{A_1^{(i)}}/\sum_{i=1}^N M_2`.
+
+
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
         with the splitting ratio.
     :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
-        None, the :class:`deepinv.physics.generator.BernoulliMaskGenerator` is used.
+        None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used.
+    :param bool eval_split_output: if True and physics is Denoising, during MC evaluation, pass the output through the output mask too.
 
     |sep|
 
@@ -58,12 +70,19 @@ class SplittingLoss(Loss):
 
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), split_ratio=0.9, mask_generator=None):
+    def __init__(
+        self,
+        metric=torch.nn.MSELoss(),
+        split_ratio=0.9,
+        mask_generator=None,
+        eval_split_output=True,
+    ):
         super().__init__()
         self.name = "ms"
         self.metric = metric
         self.mask_generator = mask_generator
         self.split_ratio = split_ratio
+        self.eval_split_output = eval_split_output
 
     def forward(self, x_net, y, physics, model, **kwargs):
         r"""
@@ -78,10 +97,8 @@ class SplittingLoss(Loss):
         mask = model.get_mask()
 
         # create inpainting masks
-        mask2 = 1.0 - mask
-        inp2 = Inpainting(
-            tsize, mask=mask2, device=y.device
-        )
+        mask2 = (1.0 if not hasattr(physics, "mask") else physics.mask) - mask
+        inp2 = Inpainting(tsize, mask=mask2, device=y.device)
 
         # concatenate operators
         physics2 = inp2 * physics  # A_2 = (I-P)*A
@@ -121,18 +138,33 @@ class SplittingLoss(Loss):
             return model
         else:
             return SplittingModel(
-                model, self.split_ratio, self.mask_generator, MC_samples
+                model,
+                split_ratio=self.split_ratio,
+                mask_generator=self.mask_generator,
+                MC_samples=MC_samples,
+                eval_split_output=self.eval_split_output,
             )
 
 
 class SplittingModel(torch.nn.Module):
-    def __init__(self, model, split_ratio, mask_generator, MC_samples):
+    """
+    Model wrapper when using SplittingLoss.
+
+    Performs input splitting during forward pass. At evaluation, perform forward passes for multiple realisations of splitting mask and average.
+
+    For parameters, see :class:`deepinv.loss.SplittingLoss`
+    """
+
+    def __init__(
+        self, model, split_ratio, mask_generator, MC_samples, eval_split_output
+    ):
         super().__init__()
         self.model = model
         self.split_ratio = split_ratio
         self.MC_samples = MC_samples
         self.mask = 0
         self.mask_generator = mask_generator
+        self.eval_split_output = eval_split_output
 
     def forward(self, y, physics, update_parameters=False):
         MC = 1 if self.training else self.MC_samples
@@ -140,23 +172,49 @@ class SplittingModel(torch.nn.Module):
         out = 0
 
         if self.mask_generator is None:
-            self.mask_generator = BernoulliMaskGenerator(
+            self.mask_generator = BernoulliSplittingMaskGenerator(
                 tensor_size=tsize, split_ratio=self.split_ratio, device=y.device
             )
 
-        inp = Inpainting(
-            tsize, mask=0.0, device=y.device
+        inp = Inpainting(tsize, mask=0.0, device=y.device)
+
+        eval_split_output = (
+            self.eval_split_output
+            and isinstance(physics, Denoising)
+            and not self.training
         )
+
         with torch.set_grad_enabled(self.training):
+
+            normaliser = torch.zeros_like(y)
+
             for i in range(MC):
-                mask = self.mask_generator.step(y.size(0))
+                mask = self.mask_generator.step(
+                    y.size(0),
+                    input_mask=None if not hasattr(physics, "mask") else physics.mask,
+                )
                 y1 = inp.A(y, **mask)
                 physics1 = inp * physics  # A_1 = P*A
-                out += self.model(y1, physics1)
+                x_hat = self.model(y1, physics1)
+
+                if eval_split_output:
+                    mask2 = (
+                        1.0 if not hasattr(physics, "mask") else physics.mask
+                    ) - mask["mask"]
+                    inp2 = Inpainting(tsize, mask=mask2, device=y.device)
+                    x_hat = inp2.A(x_hat)
+                    normaliser += mask2
+
+                out += x_hat
+
+            if eval_split_output:
+                out[normaliser != 0] /= normaliser[normaliser != 0]
+            else:
+                out /= MC
 
             if self.training and update_parameters:
                 self.mask = mask["mask"]
-            out = out / MC
+
         return out
 
     def get_mask(self):
