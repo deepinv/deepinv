@@ -119,7 +119,7 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 # Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
 stepsize = [1.0] * max_iter  # stepsize of the algorithm
