@@ -72,7 +72,10 @@ class BaseUnfold(BaseOptim):
             if param_key in self.init_params_algo.keys():
                 param_value = self.init_params_algo[param_key]
                 self.init_params_algo[param_key] = nn.ParameterList(
-                    [nn.Parameter(torch.tensor(el).to(device)) for el in param_value]
+                    [
+                        nn.Parameter(torch.tensor(el).float().to(device))
+                        for el in param_value
+                    ]
                 )
         self.init_params_algo = nn.ParameterDict(self.init_params_algo)
         self.params_algo = self.init_params_algo.copy()
