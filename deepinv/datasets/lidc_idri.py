@@ -68,12 +68,12 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
         In LIDC-IDRI, there are 1010 patients.
         Among them, 8 patients have each 2 CT scans.
-        
+
         :param str slice_fname: Filename of a dicom file containing 1 slice of the scan.
         :param str scan_folder: Path to all dicom files from the same scan.
         :param str patient_id: Foldername of one patient among the 1010.
         """
-    
+
         slice_fname: str
         scan_folder: str
         patient_id: str
@@ -90,7 +90,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         self.transform = transform
 
         ### LOAD CSV to find CT scan folder paths --------------------------------------
-        
+
         csv_path = os.path.join(root, "metadata.csv")
         # check that root is a folder
         if not os.path.isdir(root):
@@ -105,32 +105,36 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
         df = pd.read_csv(csv_path, index_col=False)
         # Get only CT scans
-        filtered_df = df[df['Modality'] == 'CT']
+        filtered_df = df[df["Modality"] == "CT"]
         # Sort by Patient ID
-        sorted_filtered_df = filtered_df.sort_values(by='Subject ID', ascending=True)
+        sorted_filtered_df = filtered_df.sort_values(by="Subject ID", ascending=True)
 
         ### LOAD SLICE SAMPLE INFO -----------------------------------------------------
-        
+
         self.sample_identifiers = []
         n_scans = len(sorted_filtered_df)
         for i in range(n_scans):
-            patient_id = sorted_filtered_df.iloc[i]['Subject ID']
-            scan_folder_path = sorted_filtered_df.iloc[i]['Download Timestamp']
-        
+            patient_id = sorted_filtered_df.iloc[i]["Subject ID"]
+            scan_folder_path = sorted_filtered_df.iloc[i]["Download Timestamp"]
+
             # replace WINDOWS path separator into the curent system path separator
-            scan_folder_path = scan_folder_path.replace('\\', os.sep)
+            scan_folder_path = scan_folder_path.replace("\\", os.sep)
             # replace POSIX path separator into the current system path separator
-            scan_folder_path = scan_folder_path.replace('/', os.sep)
+            scan_folder_path = scan_folder_path.replace("/", os.sep)
             # Normalize path : https://www.geeksforgeeks.org/python-os-path-normpath-method/
             scan_folder_path = os.path.normpath(scan_folder_path)
             # relative path -> absolute path
             scan_folder_fullpath = os.path.join(root, scan_folder_path)
-            
+
             slice_list = os.listdir(scan_folder_fullpath)
             slice_list.sort()
             for fname in slice_list:
                 if fname.endswith(".dcm"):
-                    self.sample_identifiers.append(self.SliceSampleIdentifier(fname, scan_folder_fullpath, patient_id))
+                    self.sample_identifiers.append(
+                        self.SliceSampleIdentifier(
+                            fname, scan_folder_fullpath, patient_id
+                        )
+                    )
 
     def __len__(self) -> int:
         return len(self.sample_identifiers)
