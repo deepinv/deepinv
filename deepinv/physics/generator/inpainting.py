@@ -39,15 +39,20 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         :return: dictionary with key **'mask'**: tensor of size (batch_size, *tensor_size) with values in {0, 1}.
         :rtype: dict
         """
-        if not isinstance(input_mask, torch.Tensor) or tuple(input_mask.shape) != (batch_size, *self.tensor_size):
+        if not isinstance(input_mask, torch.Tensor) or tuple(input_mask.shape) != (
+            batch_size,
+            *self.tensor_size,
+        ):
             # Sample pixels from a uniform distribution
             mask = torch.ones((batch_size, *self.tensor_size), device=self.device)
-            mask[torch.empty_like(mask).uniform_(generator=self.rng) > self.split_ratio] = 0
+            mask[
+                torch.empty_like(mask).uniform_(generator=self.rng) > self.split_ratio
+            ] = 0
         else:
             # Sample indices from input mask
             idx = input_mask.nonzero(as_tuple=False)
             shuff = idx[torch.randperm(len(idx), generator=self.rng)]
-            idx_out = shuff[:int(self.split_ratio * len(idx))]
+            idx_out = shuff[: int(self.split_ratio * len(idx))]
 
             mask = torch.zeros_like(input_mask)
             mask[tuple(idx_out.t())] = 1

@@ -377,11 +377,18 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
 INPAINTING_IMG_SIZES = [(1, 64, 64), (1, 28, 31)]
 INPAINTING_GENERATORS = ["bernoulli"]
 
+
 def choose_inpainting_generator(name, img_size, split_ratio, device):
     if name == "bernoulli":
-        return dinv.physics.generator.BernoulliSplittingMaskGenerator(tensor_size=img_size, split_ratio=split_ratio, device=device, rng=torch.Generator().manual_seed(0))
+        return dinv.physics.generator.BernoulliSplittingMaskGenerator(
+            tensor_size=img_size,
+            split_ratio=split_ratio,
+            device=device,
+            rng=torch.Generator().manual_seed(0),
+        )
     else:
         raise Exception("The generator chosen doesn't exist")
+
 
 @pytest.mark.parametrize("generator_name", INPAINTING_GENERATORS)
 @pytest.mark.parametrize("img_size", INPAINTING_IMG_SIZES)
@@ -392,13 +399,28 @@ def test_inpainting_generators(generator_name, batch_size, img_size, device):
     atol = 1e-2
 
     mask1 = gen.step(batch_size=batch_size)["mask"]
-    assert torch.isclose(mask1.sum() / np.prod((batch_size, *img_size)), torch.Tensor([split_ratio]), rtol=rtol, atol=atol)
+    assert torch.isclose(
+        mask1.sum() / np.prod((batch_size, *img_size)),
+        torch.Tensor([split_ratio]),
+        rtol=rtol,
+        atol=atol,
+    )
 
     input_mask = torch.ones(batch_size, *img_size)
     mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
-    assert torch.isclose(mask2.sum() / input_mask.sum(), torch.Tensor([split_ratio]), rtol=rtol, atol=atol)
+    assert torch.isclose(
+        mask2.sum() / input_mask.sum(),
+        torch.Tensor([split_ratio]),
+        rtol=rtol,
+        atol=atol,
+    )
 
     input_mask = torch.zeros(batch_size, *img_size)
     input_mask[:, :, 10:20, :] = 1
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
-    assert torch.isclose(mask3.sum() / input_mask.sum(), torch.Tensor([split_ratio]), rtol=rtol, atol=atol)
+    assert torch.isclose(
+        mask3.sum() / input_mask.sum(),
+        torch.Tensor([split_ratio]),
+        rtol=rtol,
+        atol=atol,
+    )
