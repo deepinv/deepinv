@@ -1,4 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
+from .bregman import L2
 
 class PGDIteration(OptimIterator):
     r"""
@@ -160,14 +161,13 @@ class PMDIteration(OptimIterator):
 
     Class for a single iteration of the Proximal Mirror Descent (PMD) algorithm for minimizing :math:`f(x) + \lambda g(x)`.
 
-   For a given convex potential :math:`h`, the iteration is given by
-
+   For a given Bregman convex potential :math:`h`, the iteration is given by
 
     .. math::
         \begin{equation*}
         \begin{aligned}
-        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
-        x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
+        u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
+        x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda g}(u_k)
         \end{aligned}
         \end{equation*}
 
@@ -189,7 +189,7 @@ class PMDIteration(OptimIterator):
 
 class fStepPMD(fStep):
     r"""
-    PGD fStep module.
+    Proximal Mirror Descent fStep module.
     """
 
     def __init__(self, **kwargs):
@@ -205,16 +205,17 @@ class fStepPMD(fStep):
          :param torch.Tensor y: Input data.
          :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
+        bregman_potential = cur_params["bregman_potential"]
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
-            return x - grad
+            return bregman_potential.grad_conj(bregman_potential.grad(x) - grad)
         else:
-            return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
+            return cur_data_fidelity.bregman_prox(x, y, physics, gamma=cur_params["stepsize"], bregman_potential = bregman_potential)
 
 
 class gStepPMD(gStep):
     r"""
-    PGD gStep module.
+    Proximal Mirror Descent gStep module.
     """
 
     def __init__(self, **kwargs):
@@ -228,11 +229,13 @@ class gStepPMD(gStep):
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
+        bregman_potential = cur_params["bregman_potential"]
         if not self.g_first:
-            return cur_prior.prox(
+            return cur_prior.bregman_prox(
                 x,
                 cur_params["g_param"],
                 gamma=cur_params["lambda"] * cur_params["stepsize"],
+                bregman_potential = bregman_potential
             )
         else:
             grad = (
@@ -240,4 +243,4 @@ class gStepPMD(gStep):
                 * cur_params["stepsize"]
                 * cur_prior.grad(x, cur_params["g_param"])
             )
-            return x - grad
+            return bregman_potential.grad_conj(bregman_potential.grad(x) - grad)

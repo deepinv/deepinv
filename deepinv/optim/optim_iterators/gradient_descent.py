@@ -99,12 +99,7 @@ class MDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        if "bregman_potential" not in cur_params:
-            bregman_potential = L2()
-            raise Warning("Bregman potential not defined in cur_params. Using the L2 norm as Bregman potential. In this case Mirror Descent is just standard Gradient Descent.")
-        else:
-            bregman_potential = cur_params["bregman_potential"]
-
+        bregman_potential = cur_params["bregman_potential"]
         x = bregman_potential.grad_conj(bregman_potential.grad(x_prev) - grad)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
