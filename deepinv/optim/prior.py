@@ -14,7 +14,7 @@ from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-
+from deepinv.optim.optim_iterators.bregman import Bregman, L2
 
 class Prior(nn.Module):
     r"""
@@ -116,6 +116,41 @@ class Prior(nn.Module):
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda g)^*}(x)`, computed in :math:`x`.
         """
         return x - gamma * self.prox(x / gamma, lamb / gamma, *args, **kwargs)
+    
+    def bregman_prox(
+        self,
+        x,
+        *args,
+        gamma=1.0,
+        bregman_potential = L2(),
+        stepsize_inter=1.0,
+        max_iter_inter=50,
+        tol_inter=1e-3,
+        **kwargs,
+    ):
+        r"""
+        Calculates the Bregman proximity operator of :math:`\regname` at :math:`x` i.e.:
+
+        .. math::
+        
+            \operatorname{prox^h}_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}\regname + D_h(u,x)
+
+        where :math:`D_h(x,y)` stands for the Bregman divergence with potential :math:`h`. 
+
+        By default, the proximity operator is computed using internal gradient descent.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param float stepsize_inter: stepsize used for internal gradient descent
+        :param int max_iter_inter: maximal number of iterations for internal gradient descent.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma g}(x)`, computed in :math:`x`.
+        """
+        grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (bregman_potential(u) - bregman_potential(x))
+        return gradient_descent(
+            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
+        )
+
 
 
 class Zero(Prior):

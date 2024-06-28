@@ -64,10 +64,10 @@ class Bregman(nn.Module):
     
     def div(self, x, y, *args, **kwargs):
         r"""
-        Computes the Bregman divergence with potential :math:`h`.
+        Computes the Bregman divergence :math:`D_h(x,y)` with potential :math:`h`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
-        :param torch.Tensor y: Variable :math:`y` at which the divergence is computed.
+        :param torch.Tensor x: Left variable :math:`x` at which the divergence is computed.
+        :param torch.Tensor y: Right variable :math:`y` at which the divergence is computed.
 
         :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y`.
         """

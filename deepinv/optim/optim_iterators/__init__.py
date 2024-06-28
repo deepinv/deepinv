@@ -6,3 +6,4 @@ from .hqs import HQSIteration
 from .drs import DRSIteration
 from .gradient_descent import GDIteration
 from .spectral_methods import SMIteration
+from .bregman import Bregman, L2, BurgEntropy, NegEntropy
