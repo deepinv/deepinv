@@ -487,7 +487,8 @@ class TVPrior(Prior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
+        y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1))
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
