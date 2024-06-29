@@ -109,6 +109,7 @@ def test_load_CBSD68_dataset(download_CBSD68):
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
 
+
 @pytest.fixture
 def download_Kohler():
     """Download the Köhler dataset before a test and remove it after completion."""
@@ -130,7 +131,7 @@ def test_load_Kohler_dataset(download_Kohler):
     x, y = dataset.__getitem__(1, 1, "middle")
 
     assert (
-            len(dataset) == 48
+        len(dataset) == 48
     ), f"The dataset should have been of len 48, instead got {len(dataset)}."
 
     assert (
