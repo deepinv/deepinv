@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from os.path import basename, join
 from typing import Callable, Union
 from pathlib import Path
+from zipfile import ZipFile
 
 
 def url_basename(url: str) -> str:
@@ -30,15 +31,15 @@ class Kohler(Dataset):
     # archives.
     archive_checksums = {
         "GroundTruth_pngs_Image1.zip": "acb90b6d9bfdb4b2370e08a5fcb80e68",
-        "GroundTruth_pngs_Image2.zip": "72ce9690c3ed1296358653396cf9576d",
+        "GroundTruth_pngs_Image2.zip": "da440d3bf43b32bec0b7170ccd828f29",
         "GroundTruth_pngs_Image3.zip": "3a77c41c951367f35db52eb18496bbac",
-        "GroundTruth_pngs_Image4.zip": "da440d3bf43b32bec0b7170ccd828f29",
+        "GroundTruth_pngs_Image4.zip": "72ce9690c3ed1296358653396cf9576d",
         "BlurryImages.zip": "61ffb1434d93fca6c508976a7216d723",
     }
 
     # Most of the acquisitions of sharp images span exactly 199 frames but not
     # all of them and this lookup table gives each frame count for them all.
-    frame_count_lookup = {
+    frame_count_table = {
         (2, 11): 200,
         (1, 10): 198,
         (1, 12): 198,
@@ -63,26 +64,30 @@ class Kohler(Dataset):
 
     # NOTE: The archives are ultimately left in place which might be
     # inconvenient for some use cases.
-    @staticmethod
-    def download(root: Union[str, Path]) -> None:
-        for url in self.archive_urls:
-            name = url_basename(url)
-            checksum = self.archive_checksums[name]
+    @classmethod
+    def download(cls, root: Union[str, Path]) -> None:
+        for url in cls.archive_urls:
+            archive_name = url_basename(url)
+            checksum = cls.archive_checksums[archive_name]
 
             # Download the archive and verify its integrity
-            download_url(url, root, filename=name, md5=checksum)
+            download_url(url, root, filename=archive_name, md5=checksum)
 
             # NOTE: Extracting individual images instead of the whole directory
             # tree makes the code for loading them clearer as it ensures that
             # all extracted images end up in the same directory.
 
             # Extract individual images from the archive
-            path = join(root, name)
-            with ZipFile(path, "r") as zipfile:
-                members = zipfile.namelist()
-                filter_fn = lambda member: member.endswith(".png")
-                members = filter(filter_fn, members)
-                zipfile.extractall(path=self.root, members=members)
+            archive_path = join(root, archive_name)
+            with ZipFile(archive_path, "r") as zipfile:
+                infolist = zipfile.infolist()
+                for info in infolist:
+                    filename = basename(info.filename)
+                    if filename.endswith(".png"):
+                        destination_path = join(root, filename)
+                        with open(destination_path, "wb") as file:
+                            data = zipfile.read(info)
+                            file.write(data)
 
     def __len__(self) -> int:
         return 48
@@ -124,14 +129,14 @@ class Kohler(Dataset):
         path = join(root, f"Blurry{printout_index}_{trajectory_index}.png")
         return Image.open(path)
 
-    @staticmethod
+    @classmethod
     def select_frame(
-        printout_index: int, trajectory_index: int, frame: Union[int, str]
+        cls, printout_index: int, trajectory_index: int, frame: Union[int, str]
     ) -> int:
         if isinstance(frame, int):
             frame_index = frame
         else:
-            frame_count = self.get_frame_count(printout_index, trajectory_index)
+            frame_count = cls.get_frame_count(printout_index, trajectory_index)
 
             if frame == "first":
                 frame_index = 1
@@ -144,13 +149,13 @@ class Kohler(Dataset):
 
         return frame_index
 
-    @staticmethod
-    def get_frame_count(printout_index: int, trajectory_index: int) -> int:
+    @classmethod
+    def get_frame_count(cls, printout_index: int, trajectory_index: int) -> int:
         index = (printout_index, trajectory_index)
 
-        if index in self.frame_count_lookup:
-            count = self.frame_count_lookup[index]
+        if index in cls.frame_count_table:
+            count = cls.frame_count_table[index]
         else:
-            count = self.frame_count_lookup["others"]
+            count = cls.frame_count_table["others"]
 
         return count
