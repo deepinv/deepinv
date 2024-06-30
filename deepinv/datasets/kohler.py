@@ -17,6 +17,22 @@ def url_basename(url: str) -> str:
 
 
 class Kohler(Dataset):
+    """Dataset for `Recording and Playback of Camera Shake: Benchmarking Blind Deconvolution with a Real-World Database <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
+
+    :param Union[str, Path] root: Root directory of the dataset.
+    :param callable, optional transform: A function used to transform both the blurry shots and the sharp frames.
+    :param bool download: Download the dataset.
+
+    |sep|
+
+    :Examples:
+
+        Download the dataset and load one of its elements.
+
+        >>> from deepinv.datasets import Kohler
+        >>> dataset = Kohler(root="datasets/Kohler", download=True)
+        >>> sharp_frame, blurry_shot = dataset.__getitem__(1, 1, frame="middle")
+    """
 
     # The Köhler dataset is split into multiple archives available online.
     archive_urls = [
@@ -66,6 +82,19 @@ class Kohler(Dataset):
     # inconvenient for some use cases.
     @classmethod
     def download(cls, root: Union[str, Path]) -> None:
+        """Download the dataset.
+
+        :param Union[str, Path] root: Root directory of the dataset.
+
+        |sep|
+
+        :Examples:
+
+            Download the dataset.
+
+            >>> from deepinv.datasets import Kohler
+            >>> Kohler.download("datasets/Kohler")
+        """
         for url in cls.archive_urls:
             archive_name = url_basename(url)
             checksum = cls.archive_checksums[archive_name]
@@ -104,6 +133,20 @@ class Kohler(Dataset):
         trajectory_index: int,
         frame: Union[int, str] = "middle",
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Get a sharp frame and a blurry shot from the dataset.
+
+        :param int printout_index: Index of the printout.
+        :param int trajectory_index: Index of the trajectory.
+        :param Union[int, str] frame: Frame specifier. Can be the frame number, "first", "middle", or "last".
+
+        :return: (torch.Tensor, torch.Tensor) The sharp frame and the blurry shot.
+
+        |sep|
+
+        :Examples:
+
+            >>> sharp_frame, blurry_shot = dataset.__getitem__(1, 1, frame="middle")
+        """
         frame_index = self.select_frame(printout_index, trajectory_index, frame=frame)
 
         sharp_frame = self.open_sharp_frame(
