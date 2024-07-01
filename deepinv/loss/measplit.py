@@ -131,10 +131,9 @@ class SplittingLoss(Loss):
         for computational efficiency, whereas at test time, we use multiple samples for better performance.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param int MC_samples: Number of samples used for averaging.
+        :param int MC_samples: Number of samples used for averaging. Must be greater than 0.
         :return: (torch.nn.Module) Model modified for evaluation.
         """
-
         if isinstance(model, SplittingModel):
             return model
         else:

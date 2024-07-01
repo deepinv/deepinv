@@ -20,7 +20,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         tensor_size: Tuple,
         split_ratio: float,
         device: torch.device = torch.device("cpu"),
-        rng: torch.Generator = torch.Generator().manual_seed(0),
+        rng: torch.Generator = None,
         *args,
         **kwargs,
     ):
@@ -28,7 +28,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.tensor_size = tensor_size
         self.split_ratio = split_ratio
         self.device = device
-        self.rng = rng
+        self.rng = rng if rng is not None else torch.Generator(device=self.device).manual_seed(0)
 
     def step(self, batch_size=1, input_mask=None) -> dict:
         r"""
