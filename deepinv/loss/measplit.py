@@ -40,8 +40,8 @@ class SplittingLoss(Loss):
 
         If ``eval_split_output==True``, and the physics is not dimension-reducing (e.g. Denoising), this becomes:
         :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.
-        
-        
+
+
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases

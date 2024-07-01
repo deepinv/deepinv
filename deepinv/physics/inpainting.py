@@ -79,12 +79,12 @@ class Inpainting(DecomposablePhysics):
                 [ 0.5684, -1.0845, -1.3986],
                 [ 0.4033,  0.0000, -0.7193]]]])
 
-        
+
     """
 
     def __init__(self, tensor_size, mask=None, pixelwise=True, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        
+
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
             mask = mask.to(device)
         elif type(mask) == float:

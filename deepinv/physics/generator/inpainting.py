@@ -28,7 +28,11 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.tensor_size = tensor_size
         self.split_ratio = split_ratio
         self.device = device
-        self.rng = rng if rng is not None else torch.Generator(device=self.device).manual_seed(0)
+        self.rng = (
+            rng
+            if rng is not None
+            else torch.Generator(device=self.device).manual_seed(0)
+        )
 
     def step(self, batch_size=1, input_mask=None) -> dict:
         r"""
@@ -42,8 +46,10 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}.
         :rtype: dict
         """
-        if isinstance(input_mask, torch.Tensor) or input_mask.shape[1:] == torch.Size(self.tensor_size):
-            
+        if isinstance(input_mask, torch.Tensor) or input_mask.shape[1:] == torch.Size(
+            self.tensor_size
+        ):
+
             # Sample indices from input mask
             idx = input_mask.nonzero(as_tuple=False)
             shuff = idx[torch.randperm(len(idx), generator=self.rng)]
@@ -52,7 +58,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
             mask = torch.zeros_like(input_mask)
             mask[tuple(idx_out.t())] = 1
         else:
-            
+
             # Sample pixels from a uniform distribution
             mask = torch.ones((batch_size, *self.tensor_size), device=self.device)
             mask[

@@ -27,10 +27,10 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Define loss
 # ~~~~~~~~~~~
-# 
+#
 # Our implementation has multiple optional parameters that control how the
 # splitting is to be achieved. For example, you can:
-# 
+#
 # -  Use ``split_ratio`` to set the ratio of pixels used in the forward
 #    pass vs the loss;
 # -  Define custom masking methods using a ``mask_generator`` such as
@@ -39,7 +39,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #    used at evaluation time;
 # -  Average over both input and output masks at evaluation time using
 #    ``eval_split_output``.
-# 
+#
 
 loss = dinv.loss.SplittingLoss(split_ratio=0.6, eval_split_output=True)
 
@@ -47,24 +47,20 @@ loss = dinv.loss.SplittingLoss(split_ratio=0.6, eval_split_output=True)
 # %%
 # Prepare data
 # ~~~~~~~~~~~~
-# 
+#
 # We use the ``torchvision`` MNIST dataset, and use Poisson noise physics
 # for the forward operator.
-# 
+#
 # .. note::
-# 
+#
 #      We use a subset of the whole training set to reduce the computational load of the example.
 #      We recommend to use the whole set by setting ``train_datapoints=test_datapoints=None`` to get the best results.
-# 
+#
 
 transform = transforms.Compose([transforms.ToTensor()])
 
-train_dataset = datasets.MNIST(
-    root=".", train=True, transform=transform, download=True
-)
-test_dataset = datasets.MNIST(
-    root=".", train=False, transform=transform, download=True
-)
+train_dataset = datasets.MNIST(root=".", train=True, transform=transform, download=True)
+test_dataset = datasets.MNIST(root=".", train=False, transform=transform, download=True)
 
 physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
@@ -82,24 +78,24 @@ train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True
 test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
 
 train_dataloader = DataLoader(train_dataset, shuffle=True)
-test_dataloader = DataLoader(test_dataset,  shuffle=False)
+test_dataloader = DataLoader(test_dataset, shuffle=False)
 
 
 # %%
 # Define model
 # ~~~~~~~~~~~~
-# 
+#
 # We use a simple U-Net architecture with 2 scales as the denoiser
 # network.
-# 
+#
 # To reduce training time, we use a pretrained model. Here we demonstrate
 # training with 100 images for 1 epoch, after having loaded a pretrained
 # model trained that was with 1000 images for 100 epochs.
-# 
+#
 # .. note::
-# 
+#
 #      When using the splitting loss, the model must be "adapted" by the loss, as its forward pass takes only a subset of the pixels, not the full image.
-# 
+#
 
 model = dinv.models.ArtifactRemoval(
     dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
@@ -122,7 +118,7 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train and test network
 # ----------------------
-# 
+#
 
 trainer = dinv.Trainer(
     model=model,
@@ -146,7 +142,7 @@ model = trainer.train()
 # Test and visualise the model outputs using a small test set. We set the
 # output to average over 50 iterations of random mask realisations. The
 # trained model improves on the no-learning reconstruction by ~3dB.
-# 
+#
 
 trainer.plot_images = True
 model.MC_samples = 50
@@ -158,7 +154,7 @@ trainer.test(test_dataloader)
 # ``eval_split_output`` to True (see :class:`deepinv.loss.SplittingLoss`
 # for details). Alternatively, we get worse results when we set
 # ``eval_split_output`` to False:
-# 
+#
 
 model.eval_split_output = False
 trainer.test(test_dataloader)
