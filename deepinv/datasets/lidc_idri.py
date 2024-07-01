@@ -14,11 +14,11 @@ import pandas as pd
 class LidcIdriSliceDataset(torch.utils.data.Dataset):
     """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
 
-    | The Lung Image Database Consortium image collection (LIDC-IDRI) consists 
-    | of diagnostic and lung cancer screening thoracic computed tomography (CT) 
-    | scans with marked-up annotated lesions. 
-    | It is a web-accessible international resource for development, training, 
-    | and evaluation of computer-assisted diagnostic (CAD) methods for lung 
+    | The Lung Image Database Consortium image collection (LIDC-IDRI) consists
+    | of diagnostic and lung cancer screening thoracic computed tomography (CT)
+    | scans with marked-up annotated lesions.
+    | It is a web-accessible international resource for development, training,
+    | and evaluation of computer-assisted diagnostic (CAD) methods for lung
     | cancer detection and diagnosis.
     | To download the dataset, you will need to install the `NBIA Data Retriever <https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images>`_.
 
