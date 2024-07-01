@@ -1,13 +1,12 @@
 import torch
 from torch.utils.data import Dataset
-from torchvision.datasets.utils import download_url
+from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
 
 from urllib.parse import urlparse
 from os.path import basename, join
 from typing import Callable, Union
 from pathlib import Path
-from zipfile import ZipFile
 
 
 def url_basename(url: str) -> str:
@@ -90,8 +89,6 @@ class Kohler(Dataset):
         if download:
             self.download(self.root)
 
-    # NOTE: The archives are ultimately left in place which might be
-    # inconvenient for some use cases.
     @classmethod
     def download(cls, root: Union[str, Path]) -> None:
         """Download the dataset.
@@ -111,24 +108,15 @@ class Kohler(Dataset):
             archive_name = url_basename(url)
             checksum = cls.archive_checksums[archive_name]
 
+            # NOTE: The archives are ultimately left in place which might be
+            # inconvenient for some use cases.
+
             # Download the archive and verify its integrity
-            download_url(url, root, filename=archive_name, md5=checksum)
-
-            # NOTE: Extracting individual images instead of the whole directory
-            # tree makes the code for loading them clearer as it ensures that
-            # all extracted images end up in the same directory.
-
-            # Extract individual images from the archive
-            archive_path = join(root, archive_name)
-            with ZipFile(archive_path, "r") as zipfile:
-                infolist = zipfile.infolist()
-                for info in infolist:
-                    filename = basename(info.filename)
-                    if filename.endswith(".png"):
-                        destination_path = join(root, filename)
-                        with open(destination_path, "wb") as file:
-                            data = zipfile.read(info)
-                            file.write(data)
+            download_and_extract_archive(url,
+                         root,
+                         filename=archive_name,
+                         md5=checksum,
+                         remove_finished=False)
 
     def __len__(self) -> int:
         return 48
@@ -200,7 +188,10 @@ class Kohler(Dataset):
     @staticmethod
     def open_sharp_frame(root, printout_index, trajectory_index, frame_index):
         path = join(
-            root, f"GroundTruth{printout_index}_{trajectory_index}_{frame_index}.png"
+            root,
+            f"Image{printout_index}",
+            f"Kernel{trajectory_index}",
+            f"GroundTruth{printout_index}_{trajectory_index}_{frame_index}.png"
         )
         return Image.open(path)
 
