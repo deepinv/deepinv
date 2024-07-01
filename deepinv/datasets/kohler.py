@@ -19,6 +19,8 @@ def url_basename(url: str) -> str:
 class Kohler(Dataset):
     """Dataset for `Recording and Playback of Camera Shake: Benchmarking Blind Deconvolution with a Real-World Database <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
 
+    :param Union[int, str] frame_specifier: Frame specifier. Can be the frame number, "first", "middle", or "last".
+    :param str ordering: Ordering of the dataset. Can be "printout_first" or "trajectory_first".
     :param Union[str, Path] root: Root directory of the dataset.
     :param callable, optional transform: A function used to transform both the blurry shots and the sharp frames.
     :param bool download: Download the dataset.
@@ -30,8 +32,14 @@ class Kohler(Dataset):
         Download the dataset and load one of its elements.
 
         >>> from deepinv.datasets import Kohler
-        >>> dataset = Kohler(root="datasets/Kohler", download=True)
-        >>> sharp_frame, blurry_shot = dataset.__getitem__(1, 1, frame="middle")
+        >>> dataset = Kohler(frame_specifier="middle",
+        >>>                  ordering="printout_first",
+        >>>                  root="datasets/Kohler",
+        >>>                  download=True)
+        >>> # Usual interface
+        >>> sharp_frame, blurry_shot = dataset[0]
+        >>> # Convenience method
+        >>> sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
     """
 
     # The Köhler dataset is split into multiple archives available online.
@@ -68,12 +76,16 @@ class Kohler(Dataset):
 
     def __init__(
         self,
+        frame_specifier: Union[int, str] = "middle",
+        ordering: str = "printout_first",
         root: Union[str, Path],
         transform: Callable = None,
         download: bool = False,
     ) -> None:
-        self.transform = transform
+        self.frame_specifier = frame_specifier
+        self.ordering = ordering
         self.root = root
+        self.transform = transform
 
         if download:
             self.download(self.root)
@@ -121,13 +133,38 @@ class Kohler(Dataset):
     def __len__(self) -> int:
         return 48
 
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Get a sharp frame and a blurry shot from the dataset.
+
+        :param int index: Index of the pair.
+
+        :return: (torch.Tensor, torch.Tensor) The sharp frame and the blurry shot.
+
+        |sep|
+
+        :Examples:
+
+            >>> sharp_frame, blurry_shot = dataset[0]
+        """
+        if self.ordering == "printout_first":
+            printout_index = index // 12 + 1
+            trajectory_index = index % 12 + 1
+        elif self.ordering == "trajectory_first":
+            printout_index = index % 12 + 1
+            trajectory_index = index // 12 + 1
+        else:
+            raise ValueError(f"Unsupported ordering: {self.ordering}")
+
+        frame = self.frame_specifier
+        return self.get_item(printout_index, trajectory_index, frame)
+
     # While users might sometimes want to thoroughly compare their own
     # deblurred images to all the sharp frames (about 200 per blurry shot),
     # they will probably most often make the way more convenient choice of
     # comparing against a single frame per blurry shot. For this reason, the
-    # function __getitem__ accepts an additional parameter for frame selection
-    # and only returns the selected frame.
-    def __getitem__(
+    # method get_item accepts an additional parameter for frame selection and
+    # only returns the selected frame.
+    def get_item(
         self,
         printout_index: int,
         trajectory_index: int,
@@ -145,7 +182,7 @@ class Kohler(Dataset):
 
         :Examples:
 
-            >>> sharp_frame, blurry_shot = dataset.__getitem__(1, 1, frame="middle")
+            >>> sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
         """
         frame_index = self.select_frame(printout_index, trajectory_index, frame=frame)
 

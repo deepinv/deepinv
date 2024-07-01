@@ -127,17 +127,28 @@ def test_load_Kohler_dataset(download_Kohler):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
 
-    dataset = Kohler(root, download=False)
-    x, y = dataset.__getitem__(1, 1, "middle")
+    dataset = Kohler(
+        frame_specifier="middle", ordering="printout_first", root=root, download=False
+    )
+    x1, y1 = dataset.get_item(1, 1, "middle")
+    x2, y2 = dataset[0]
 
     assert (
         len(dataset) == 48
     ), f"The dataset should have been of len 48, instead got {len(dataset)}."
 
     assert (
-        type(x) == PIL.PngImagePlugin.PngImageFile
+        type(x1) == PIL.PngImagePlugin.PngImageFile
     ), "The sharp frame is unexpectedly not a PIL image."
 
     assert (
-        type(y) == PIL.PngImagePlugin.PngImageFile
+        type(y1) == PIL.PngImagePlugin.PngImageFile
+    ), "The blurry frame is unexpectedly not a PIL image."
+
+    assert (
+        type(x2) == PIL.PngImagePlugin.PngImageFile
+    ), "The sharp frame is unexpectedly not a PIL image."
+
+    assert (
+        type(y2) == PIL.PngImagePlugin.PngImageFile
     ), "The blurry frame is unexpectedly not a PIL image."
