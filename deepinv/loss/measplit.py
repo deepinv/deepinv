@@ -16,7 +16,7 @@ class SplittingLoss(Loss):
 
         \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2
 
-    where :math:`R` is the trainable network, :math:`A_1 = M_1 \forw{}, A_2 = M_2 \forw{}`, and :math:`M_i` are randomly generated masks such that :math:`M_1+M_2=\mathbb{1}_m`.
+    where :math:`R` is the trainable network, :math:`A_1 = M_1 \forw{}, A_2 = M_2 \forw{}`, and :math:`M_i` are randomly generated masks (i.e. diagonal matrices) such that :math:`M_1+M_2=\mathbb{I}_m`.
 
     .. note::
 
@@ -39,9 +39,9 @@ class SplittingLoss(Loss):
         :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`.
 
         If ``eval_split_output==True``, and the physics is not dimension-reducing (e.g. Denoising), this becomes:
-        :math:`\hat{x} = \sum_{i=1}^N M_2 \inversef{y_1^{(i)}}{A_1^{(i)}}/\sum_{i=1}^N M_2`.
-
-
+        :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.
+        
+        
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
