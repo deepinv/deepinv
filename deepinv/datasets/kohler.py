@@ -32,9 +32,9 @@ class Kohler(Dataset):
         Download the dataset and load one of its elements.
 
         >>> from deepinv.datasets import Kohler
-        >>> dataset = Kohler(frame_specifier="middle",
+        >>> dataset = Kohler(root="datasets/Kohler",
+        >>>                  frame_specifier="middle",
         >>>                  ordering="printout_first",
-        >>>                  root="datasets/Kohler",
         >>>                  download=True)
         >>> # Usual interface
         >>> sharp_frame, blurry_shot = dataset[0]
@@ -76,15 +76,15 @@ class Kohler(Dataset):
 
     def __init__(
         self,
+        root: Union[str, Path],
         frame_specifier: Union[int, str] = "middle",
         ordering: str = "printout_first",
-        root: Union[str, Path],
         transform: Callable = None,
         download: bool = False,
     ) -> None:
+        self.root = root
         self.frame_specifier = frame_specifier
         self.ordering = ordering
-        self.root = root
         self.transform = transform
 
         if download:
