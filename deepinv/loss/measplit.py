@@ -1,7 +1,8 @@
+from typing import Optional
 import torch
 from deepinv.physics import Inpainting, Denoising
 from deepinv.loss.loss import Loss
-from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+from deepinv.physics.generator import PhysicsGenerator, BernoulliSplittingMaskGenerator
 
 
 class SplittingLoss(Loss):
@@ -49,6 +50,7 @@ class SplittingLoss(Loss):
     :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
         None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used.
     :param bool eval_split_output: if True and physics is Denoising, during MC evaluation, pass the output through the output mask too.
+    :param bool pixelwise: if True, create pixelwise splitting masks i.e. zero all channels simultaneously.
 
     |sep|
 
@@ -73,9 +75,10 @@ class SplittingLoss(Loss):
     def __init__(
         self,
         metric=torch.nn.MSELoss(),
-        split_ratio=0.9,
-        mask_generator=None,
+        split_ratio: float = 0.9,
+        mask_generator: Optional[PhysicsGenerator] = None,
         eval_split_output=True,
+        pixelwise=True,
     ):
         super().__init__()
         self.name = "ms"
@@ -83,6 +86,7 @@ class SplittingLoss(Loss):
         self.mask_generator = mask_generator
         self.split_ratio = split_ratio
         self.eval_split_output = eval_split_output
+        self.pixelwise = pixelwise
 
     def forward(self, x_net, y, physics, model, **kwargs):
         r"""
@@ -113,7 +117,7 @@ class SplittingLoss(Loss):
 
         return loss_ms
 
-    def adapt_model(self, model, MC_samples=5):
+    def adapt_model(self, model: torch.nn.Module, MC_samples: int = 5):
         r"""
         Apply random splitting to input.
 
@@ -143,6 +147,7 @@ class SplittingLoss(Loss):
                 mask_generator=self.mask_generator,
                 MC_samples=MC_samples,
                 eval_split_output=self.eval_split_output,
+                pixelwise=self.pixelwise,
             )
 
 
@@ -156,7 +161,13 @@ class SplittingModel(torch.nn.Module):
     """
 
     def __init__(
-        self, model, split_ratio, mask_generator, MC_samples, eval_split_output
+        self,
+        model,
+        split_ratio,
+        mask_generator,
+        MC_samples,
+        eval_split_output,
+        pixelwise,
     ):
         super().__init__()
         self.model = model
@@ -165,6 +176,7 @@ class SplittingModel(torch.nn.Module):
         self.mask = 0
         self.mask_generator = mask_generator
         self.eval_split_output = eval_split_output
+        self.pixelwise = pixelwise
 
     def forward(self, y, physics, update_parameters=False):
         MC = 1 if self.training else self.MC_samples
@@ -173,10 +185,13 @@ class SplittingModel(torch.nn.Module):
 
         if self.mask_generator is None:
             self.mask_generator = BernoulliSplittingMaskGenerator(
-                tensor_size=tsize, split_ratio=self.split_ratio, device=y.device
+                tensor_size=tsize,
+                split_ratio=self.split_ratio,
+                pixelwise=self.pixelwise,
+                device=y.device,
             )
 
-        inp = Inpainting(tsize, mask=0.0, device=y.device)
+        inp = Inpainting(tsize, device=y.device)
 
         eval_split_output = (
             self.eval_split_output
