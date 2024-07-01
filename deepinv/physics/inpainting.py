@@ -22,9 +22,12 @@ class Inpainting(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to ``torch.nn.Module``.
 
+    Masks can also be created on-the-fly using mask generators such as :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`, see example below.
+
     :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
         distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,
         the mask will be set to this tensor. If ``mask`` is ``torch.Tensor``, it must be shape that is broadcastable to input shape and will be broadcast during forward call.
+        If None, it must be set during forward pass or using ``update_parameters`` method.
     :param tuple tensor_size: size of the input images (C, H, W) or (B, C, H, W).
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
@@ -57,10 +60,31 @@ class Inpainting(DecomposablePhysics):
                    [ 0.0000, -1.0845, -1.3986],
                    [ 0.0000,  0.8380, -0.7193]]]]])
 
+        Generate random masks on-the-fly using mask generators:
+
+        >>> from deepinv.physics import Inpainting
+        >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
+        >>> physics = Inpainting(tensor_size=x.shape)
+        >>> gen = BernoulliSplittingMaskGenerator(x.shape, split_ratio=0.7)
+        >>> params = gen.step(batch_size=1) # Generate random mask
+        >>> physics(x, **params) # Set mask on-the-fly
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                [ 0.5684, -1.0845, -1.3986],
+                [ 0.4033,  0.0000, -0.7193]]]])
+        >>> physics.update_parameters(**params) # Alternatively update mask before forward call
+        >>> physics(x)
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                [ 0.5684, -1.0845, -1.3986],
+                [ 0.4033,  0.0000, -0.7193]]]])
+
+        
     """
 
-    def __init__(self, tensor_size, mask, pixelwise=True, device="cpu", **kwargs):
+    def __init__(self, tensor_size, mask=None, pixelwise=True, device="cpu", **kwargs):
         super().__init__(**kwargs)
+        
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
             mask = mask.to(device)
         elif type(mask) == float:
@@ -72,11 +96,11 @@ class Inpainting(DecomposablePhysics):
             else:
                 mask[:, aux[0, :, :] > mask_rate] = 0
 
-        if len(mask.shape) == len(tensor_size):
+        if mask is not None and len(mask.shape) == len(tensor_size):
             mask = mask.unsqueeze(0)
 
         self.tensor_size = tensor_size
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(mask=mask)
 
     def noise(self, x, **kwargs):
         r"""

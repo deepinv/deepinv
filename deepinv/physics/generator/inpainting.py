@@ -34,9 +34,12 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         r"""
         Create a bernoulli mask.
 
+        If ``input_mask`` is None, generates a standard random mask that can be used for :class:`deepinv.physics.Inpainting`.
+        If ``input_mask`` is specified, splits the input mask into subsets given the split ratio.
+
         :param int batch_size: batch_size.
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered.
-        :return: dictionary with key **'mask'**: tensor of size (batch_size, *tensor_size) with values in {0, 1}.
+        :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}.
         :rtype: dict
         """
         if not isinstance(input_mask, torch.Tensor) or tuple(input_mask.shape) != (
