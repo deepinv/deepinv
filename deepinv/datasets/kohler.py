@@ -90,10 +90,11 @@ class Kohler(Dataset):
             self.download(self.root)
 
     @classmethod
-    def download(cls, root: Union[str, Path]) -> None:
+    def download(cls, root: Union[str, Path], remove_finished: bool = False) -> None:
         """Download the dataset.
 
         :param Union[str, Path] root: Root directory of the dataset.
+        :param bool remove_finished: Remove the archives after extraction.
 
         |sep|
 
@@ -108,15 +109,14 @@ class Kohler(Dataset):
             archive_name = url_basename(url)
             checksum = cls.archive_checksums[archive_name]
 
-            # NOTE: The archives are ultimately left in place which might be
-            # inconvenient for some use cases.
-
             # Download the archive and verify its integrity
-            download_and_extract_archive(url,
-                         root,
-                         filename=archive_name,
-                         md5=checksum,
-                         remove_finished=False)
+            download_and_extract_archive(
+                url,
+                root,
+                filename=archive_name,
+                md5=checksum,
+                remove_finished=remove_finished,
+            )
 
     def __len__(self) -> int:
         return 48
@@ -191,7 +191,7 @@ class Kohler(Dataset):
             root,
             f"Image{printout_index}",
             f"Kernel{trajectory_index}",
-            f"GroundTruth{printout_index}_{trajectory_index}_{frame_index}.png"
+            f"GroundTruth{printout_index}_{trajectory_index}_{frame_index}.png",
         )
         return Image.open(path)
 
