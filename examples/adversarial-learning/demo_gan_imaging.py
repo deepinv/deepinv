@@ -59,20 +59,15 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 physics = dinv.physics.Blur(padding="circular")
 blur_generator = MotionBlurGenerator((11, 11))
 
-download_and_extract_archive(
-    "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz?download=true",
-    "Urban100",
-    filename="Urban100_HR.tar.gz",
-    md5="65d9d84a34b72c6f7ca1e26a12df1e4c",
+dataset = dinv.datasets.Urban100HR(
+    root="Urban100",
+    download=True,
+    transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]),
 )
 
-train_dataset, test_dataset = random_split(
-    ImageFolder(
-        "Urban100", transform=Compose([ToTensor(), Resize(256), CenterCrop(128)])
-    ),
-    (0.8, 0.2),
-)
+train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
 
+# Generate data pairs x,y offline using a physics generator
 dataset_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,

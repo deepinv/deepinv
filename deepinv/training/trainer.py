@@ -741,6 +741,7 @@ class Trainer:
 
         if self.wandb_vis:
             wandb.save("model.h5")
+            wandb.finish()
 
         return self.model
 

@@ -22,6 +22,7 @@ results/
 *-ubyte
 *tmp
 *.tar
+*.ipynb
 
 # Folders
 /docs/build/

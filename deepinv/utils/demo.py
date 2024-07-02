@@ -136,6 +136,43 @@ def load_degradation(name, data_dir, index=0, download=True):
     return deg_torch
 
 
+def load_image(
+    path,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
+):
+    r"""
+    Load an image from a file and return a torch.Tensor.
+
+    :param str path: Path to the image file.
+    :param int, tuple[int] img_size: Size of the image to return.
+    :param bool grayscale: Whether to convert the image to grayscale.
+    :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
+    :param str device: Device on which to load the image (gpu or cpu).
+    :return: :class:`torch.Tensor` containing the image.
+    """
+    img = Image.open(path)
+    transform_list = []
+    if img_size is not None:
+        if resize_mode == "crop":
+            transform_list.append(transforms.CenterCrop(img_size))
+        elif resize_mode == "resize":
+            transform_list.append(transforms.Resize(img_size))
+        else:
+            raise ValueError(
+                f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
+            )
+    if grayscale:
+        transform_list.append(transforms.Grayscale())
+    transform_list.append(transforms.ToTensor())
+    transform = transforms.Compose(transform_list)
+    x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
+    return x
+
+
 def load_url_image(
     url=None,
     img_size=None,
