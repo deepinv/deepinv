@@ -20,6 +20,7 @@ results/
 *.tar.gz
 *tmp
 *.tar
+*.ipynb
 
 # Folders
 /docs/build/
