@@ -15,6 +15,7 @@ to fit your needs.
    :nosignatures:
 
         deepinv.Trainer
+        deepinv.training.AdversarialTrainer
 
 We also provide train and test functions that can be used to train and test a model with a single call.
 
@@ -85,3 +86,4 @@ Other
         deepinv.utils.cal_psnr
         deepinv.utils.get_freer_gpu
         deepinv.utils.load_url_image
+        deepinv.utils.load_image

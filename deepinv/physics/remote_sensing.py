@@ -73,7 +73,7 @@ class Pansharpen(LinearPhysics):
 
         self.noise_color = noise_color
         self.noise_gray = noise_gray
-        self.colorize = Decolorize()
+        self.colorize = Decolorize(device=device)
 
     def A(self, x, **kwargs):
         return TensorList(

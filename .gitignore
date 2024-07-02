@@ -20,6 +20,7 @@ results/
 *.tar.gz
 *tmp
 *.tar
+*.ipynb
 
 # Folders
 /docs/build/
@@ -29,7 +30,7 @@ results/
 
 # Miscellaneous
 /experimental/
-datasets
+/datasets
 examples/*/datasets
 deepinv/version.py
 /saved_models/

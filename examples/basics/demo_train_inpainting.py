@@ -22,8 +22,6 @@ from deepinv.utils.demo import load_dataset
 BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
-RESULTS_DIR = BASE_DIR / "results"
-DEG_DIR = BASE_DIR / "degradations"
 CKPT_DIR = BASE_DIR / "ckpts"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -129,7 +127,7 @@ model = dinv.models.ArtifactRemoval(backbone)
 # %%
 # Train the model
 # ----------------------------------------------------------------------------------------
-# We train the model using the :meth:`deepinv.training_utils.train` function.
+# We train the model using the :meth:`deepinv.Trainer` class.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
 # :class:`deepinv.loss.SupLoss` class.
