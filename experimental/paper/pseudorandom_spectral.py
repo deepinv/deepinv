@@ -59,7 +59,7 @@ oversampling_ratios = torch.empty((end-start)//2)
 for i in trange(start,end,2):
     for j in range(repeat):
         physics = dinv.physics.PseudoRandomPhaseRetrieval(
-            n_layers=4,
+            n_layers=5,
             input_shape=(1, img_size, img_size),
             output_shape=(1, i, i),
             dtype=torch.cfloat,
@@ -68,11 +68,11 @@ for i in trange(start,end,2):
         y = physics(x_phase)
 
         oversampling_ratios[(i - start)//2] = physics.oversampling_ratio
-        x_phase_spec = spectral_methods(y, physics,n_iter=2500)
+        x_phase_spec = spectral_methods(y, physics,n_iter=5000)
         res_spec[(i - start)//2,j] = cosine_similarity(x_phase, x_phase_spec)
         # print the cosine similarity
         print(f"cosine similarity: {res_spec[(i - start)//2,j]}")
 
 # save results
-torch.save(res_spec, SAVE_DIR / "pseudorandom" / "res_spec_4layer.pt")
-torch.save(oversampling_ratios, SAVE_DIR / "pseudorandom" / "oversampling_ratios_spec_4layer.pt")
+torch.save(res_spec, SAVE_DIR / "pseudorandom" / "res_spec_5layer.pt")
+torch.save(oversampling_ratios, SAVE_DIR / "pseudorandom" / "oversampling_ratios_spec_5layer.pt")
