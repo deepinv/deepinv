@@ -102,7 +102,4 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
     b = b.flatten()
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
     norm_b = torch.sqrt(torch.dot(b.conj(), b).real)
-    print(norm_a)
-    print(norm_b)
-    print(torch.abs(torch.dot(a.conj(), b)))
     return torch.abs(torch.dot(a.conj(), b)) / (norm_a * norm_b)
