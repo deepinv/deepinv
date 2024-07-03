@@ -11,25 +11,46 @@ class Transform(torch.nn.Module):
 
     To implement a new transform, please reimplement ``get_params()``, ``invert_params()`` (if needed) and ``transform()``.
     
+    Also handle deterministic (non-random) transformations by passing in fixed parameter values.
+
     |sep|
 
-    Examples: TODO from loss docs
+    Examples:
 
         Randomly transform an image:
 
-        >>> #TODO
+        >>> import torch
+        >>> from deepinv.transform import Shift, Rotate
+        >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
+        >>> transform = Shift() # Define random shift transform
+        >>> transform(x).shape
+        torch.Size([1, 1, 2, 2])
+
+        Deterministically transform an image:
+
+        >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1])
+        >>> torch.all(x == y)
+        tensor(True)
 
         Multiply transforms to create compound transforms (direct product of groups).
 
-        >>> #TODO
+        >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
+        >>> rotoshift(x).shape
+        torch.Size([1, 1, 2, 2])
 
         Sum transforms to create stacks of transformed images (along the batch dimension).
 
-        >>> #TODO
+        >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
+        >>> transform(x).shape
+        torch.Size([2, 1, 2, 2])
 
         Symmetrize a function for Reynolds Averaging:
         
-        >>> #TODO
+        >>> f = lambda x: x.pow(2) # Function to be symmetrized
+        >>> f_s = rotoshift.symmetrize(f)
+        >>> f_s(x).shape
+        torch.Size([1, 1, 2, 2])
+
 
 
     :param int n_trans: number of transformed versions generated per input image, defaults to 1
@@ -51,17 +72,17 @@ class Transform(torch.nn.Module):
         """
         return NotImplementedError()
 
-    def invert_params(self, **params) -> dict:
+    def invert_params(self, params: dict) -> dict:
         """Invert transformation parameters.
 
         This may need to be overriden for custom transforms. By default, it negates each parameter.
 
-        :param **params: transform parameters as keyword args
+        :param dict params: transform parameters as dict
         :return dict: inverted parameters.
         """
         return {k: -v for k, v in params.items()}
 
-    def transform(self, x: torch.Tensor, **params):
+    def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Transform image given transform parameters.
         
         Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.
@@ -74,21 +95,25 @@ class Transform(torch.nn.Module):
         """
         return NotImplementedError()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random transformation on image.
 
-        :param torch.Tensor x: input image
-        :return torch.Tensor: randomly transformed images
+        Calls ``get_params`` to generate random params for image, then ``transform`` to deterministically transform.
+
+        For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
+
+        :param torch.Tensor x: input image of shape (B,C,H,W)
+        :return torch.Tensor: randomly transformed images concatenated along the first dimension
         """
-        return self.transform(x, **self.get_params(x))
+        return self.transform(x, **(self.get_params(x) if not params else params))
     
-    def inverse(self, x: torch.Tensor) -> torch.Tensor:
+    def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random inverse transformation on image (i.e. when not a group)
 
         :param torch.Tensor x: input image
         :return torch.Tensor: randomly transformed images
         """
-        return self.transform(x, **self.invert_params(**self.get_params(x)))
+        return self.transform(x, **self.invert_params(self.get_params(x) if not params else params))
 
     def identity(self, x: torch.Tensor) -> torch.Tensor:
         """Sanity check function that should do nothing.
@@ -96,8 +121,7 @@ class Transform(torch.nn.Module):
         :param torch.Tensor x: input image
         :return torch.Tensor: :math:`T_g^{-1}T_g x=x`
         """
-        #TODO add unit test to test T.identity(x) == x (approximately)
-        return self.symmetrize(f=lambda x: x)
+        return self.symmetrize(f=lambda _x: _x)(x)
 
     def symmetrize(self, f: Callable[[torch.Tensor, Any], torch.Tensor]) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         """Symmetrise a function with a transform and its inverse.
@@ -111,12 +135,13 @@ class Transform(torch.nn.Module):
         """
         def symmetrized(x, *args, **kwargs):
             params = self.get_params(x)
-            return self.transform(
+            return self.inverse(
                 f(
                     self.transform(
                         x, **params
                     ), *args, **kwargs
-                ), **self.invert_params(**params)
+                ),
+                **params
             )
         return symmetrized
 
@@ -129,13 +154,23 @@ class Transform(torch.nn.Module):
         """
 
         class ChainTransform(Transform):
-            def __init__(self, t1, t2):
+            def __init__(self, t1: Transform, t2: Transform):
                 super().__init__()
                 self.t1 = t1
                 self.t2 = t2
+            
+            def get_params(self, x: torch.Tensor) -> dict:
+                return self.t1.get_params(x) | self.t2.get_params(x)
+            
+            def invert_params(self, params: dict) -> dict:
+                return self.t1.invert_params(params) | self.t2.invert_params(params)
 
-            def forward(self, x: torch.Tensor):
-                return self.t2(self.t1(x))
+            def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+                return self.t2.transform(self.t1.transform(x, **params), **params)
+            
+            def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
+                inv = self.invert_params(self.get_params(x) if not params else params)
+                return self.t1.transform(self.t2.transform(x, **inv), **inv)
 
         return ChainTransform(self, other)
 

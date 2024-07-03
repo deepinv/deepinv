@@ -1,10 +1,12 @@
 import pytest
 import deepinv as dinv
-from torch import randn
+from torch import randn, allclose
 
 TRANSFORMS = [
     "shift",
-    "rotate",
+    "rotate"]
+
+[
     "scale",
     "homography",
     "euclidean",
@@ -71,3 +73,15 @@ def test_transform_arithmetic(transform_name, image):
 
     t2 = transform * dinv.transform.Shift()
     assert t2(image).shape == image.shape
+
+@pytest.mark.parametrize("transform_name", TRANSFORMS)
+def test_transform_identity(transform_name, image):
+    transform = choose_transform(transform_name)
+
+    t1 = transform + dinv.transform.Shift()
+    t2 = transform * dinv.transform.Shift()
+
+    for t in (t2, transform):
+        print(t)
+        assert allclose(t.identity(image), image)
+        assert allclose(t.symmetrize(lambda x: x)(image), image)
