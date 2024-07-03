@@ -142,7 +142,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             dtype=dtype,
             device=device,
         )
-        super().__init__(B,**kwargs)
+        super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
 
 
@@ -177,11 +177,15 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
             output_shape = input_shape
 
         self.n_layers = n_layers
- 
-        assert input_shape[1] % 2 == 1 and input_shape[2] % 2 == 1, "The image should have odd numbers of pixels per edge." 
+
+        assert (
+            input_shape[1] % 2 == 1 and input_shape[2] % 2 == 1
+        ), "The image should have odd numbers of pixels per edge."
         self.img_shape = input_shape
 
-        assert output_shape[1] % 2 == 1 and output_shape[2] % 2 == 1, "The output image should have odd numbers of pixels per edge."
+        assert (
+            output_shape[1] % 2 == 1 and output_shape[2] % 2 == 1
+        ), "The output image should have odd numbers of pixels per edge."
         self.output_shape = output_shape
 
         if output_shape[1] > input_shape[1]:
@@ -190,7 +194,7 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
             self.mode = "undersampling"
         else:
             self.mode = "equisampling"
-        
+
         self.n = torch.prod(torch.tensor(self.img_shape))
         self.m = torch.prod(torch.tensor(self.output_shape))
         self.oversampling_ratio = self.m / self.n
@@ -223,8 +227,8 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
 
             if self.mode == "undersampling":
                 trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
-                x = x[:,:,trimming:-trimming,trimming:-trimming]
-            
+                x = x[:, :, trimming:-trimming, trimming:-trimming]
+
             return x
 
         def A_adjoint(y):
@@ -239,16 +243,14 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
                 y = torch.fft.ifft2(y, norm="ortho")
                 y = torch.conj(diagonal) * y
             y = torch.fft.ifft2(y, norm="ortho")
-            
+
             if self.mode == "oversampling":
                 zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
-                y = y[:,:,zero_padding:-zero_padding,zero_padding
-                         :-zero_padding]
-            
+                y = y[:, :, zero_padding:-zero_padding, zero_padding:-zero_padding]
+
             return y
 
-
-        super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint),**kwargs)
+        super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint), **kwargs)
         self.name = f"PRPR_m{self.m}"
 
     def B_dagger(self, y):

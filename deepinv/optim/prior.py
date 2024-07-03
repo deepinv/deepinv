@@ -125,8 +125,10 @@ class Zero(Prior):
 
     def __init__(self):
         super().__init__()
+
         def forward(x, *args, **kwargs):
             return torch.tensor(0.0)
+
         self._g = forward
         self.explicit_prior = True
 

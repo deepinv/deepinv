@@ -129,7 +129,7 @@ class CompressedSensing(LinearPhysics):
             if no_inverse == False:
                 self._A_dagger = torch.linalg.pinv(self._A)
                 self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-            
+
             self._A_adjoint = (
                 torch.nn.Parameter(self._A.conj().T, requires_grad=False)
                 .type(dtype)

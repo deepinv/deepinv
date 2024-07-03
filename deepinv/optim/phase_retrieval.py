@@ -1,7 +1,6 @@
 import torch
 
 
-
 def default_preprocessing(y, physics):
     return torch.max(1 - 1 / y, torch.tensor(-5.0))
 
@@ -28,7 +27,11 @@ def spectral_methods(
     """
     if x is None:
         # always use randn for initial guess, never use rand!
-        x = torch.randn((y.shape[0],) + physics.img_shape, dtype=physics.dtype, device=physics.device)
+        x = torch.randn(
+            (y.shape[0],) + physics.img_shape,
+            dtype=physics.dtype,
+            device=physics.device,
+        )
     x = x.to(torch.cfloat)
     x = x / torch.linalg.norm(x)
     # y should have mean 1
@@ -45,7 +48,9 @@ def spectral_methods(
     return x
 
 
-def correct_global_phase(x_recon: torch.Tensor, x: torch.Tensor, threshold=1e-5) -> torch.Tensor:
+def correct_global_phase(
+    x_recon: torch.Tensor, x: torch.Tensor, threshold=1e-5
+) -> torch.Tensor:
     r"""
     Corrects the global phase of the reconstructed image.
 
@@ -97,4 +102,7 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
     b = b.flatten()
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
     norm_b = torch.sqrt(torch.dot(b.conj(), b).real)
+    print(norm_a)
+    print(norm_b)
+    print(torch.abs(torch.dot(a.conj(), b)))
     return torch.abs(torch.dot(a.conj(), b)) / (norm_a * norm_b)
