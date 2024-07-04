@@ -8,7 +8,7 @@ class DnCNN(nn.Module):
     r"""
     DnCNN convolutional denoiser.
 
-    The architecture was introduced by Zhang et al. in https://arxiv.org/abs/1608.03981 and is composed of a series of
+    The architecture was introduced by :cite:`zhang2017beyond` and is composed of a series of
     convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
     original paper, this implementation does not include batch normalization layers.
 

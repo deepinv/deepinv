@@ -28,7 +28,11 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
+    'sphinxcontrib.bibtex'
 ]
+
+bibtex_bibfiles = ['refs.bib']
+bibtex_default_style = 'plain'
 
 copybutton_exclude = ".linenos, .gp"
 
