@@ -96,7 +96,7 @@ class CompressedSensing(LinearPhysics):
         channelwise=False,
         dtype=torch.float,
         device="cpu",
-        no_inverse=True,
+        compute_inverse=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -126,7 +126,7 @@ class CompressedSensing(LinearPhysics):
             self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
             self._A = torch.nn.Parameter(self._A, requires_grad=False)
 
-            if no_inverse == False:
+            if compute_inverse == True:
                 self._A_dagger = torch.linalg.pinv(self._A)
                 self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
 

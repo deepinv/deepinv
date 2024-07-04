@@ -5,49 +5,6 @@ def default_preprocessing(y, physics):
     return torch.max(1 - 1 / y, torch.tensor(-5.0))
 
 
-def spectral_methods(
-    y: torch.Tensor,
-    physics,
-    x=None,
-    n_iter=50,
-    preprocessing=default_preprocessing,
-    lamb=10.0,
-):
-    r"""
-    Utility function for spectral methods.
-
-    :param torch.Tensor y: Measurements.
-    :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
-    :param torch.Tensor x: Initial guess for the signals :math:`x_0`.
-    :param int n_iter: Number of iterations.
-    :param function preprocessing: Function to preprocess the measurements. Default is :math:`\max(1 - 1/x, -5)`.
-    :param float lamb: Regularization parameter. Default is 10.
-
-    :return: The estimated signals :math:`x`.
-    """
-    if x is None:
-        # always use randn for initial guess, never use rand!
-        x = torch.randn(
-            (y.shape[0],) + physics.img_shape,
-            dtype=physics.dtype,
-            device=physics.device,
-        )
-    x = x.to(torch.cfloat)
-    x = x / torch.linalg.norm(x)
-    # y should have mean 1
-    y = y / torch.mean(y)
-    diag_T = preprocessing(y, physics)
-    diag_T = diag_T.to(torch.cfloat)
-    for _ in range(n_iter):
-        res = physics.B(x)
-        res = diag_T * res
-        res = physics.B_adjoint(res)
-        x = res + lamb * x
-        x = x / torch.linalg.norm(x)
-    x = x * torch.sqrt(y.sum())
-    return x
-
-
 def correct_global_phase(
     x_recon: torch.Tensor, x: torch.Tensor, threshold=1e-5
 ) -> torch.Tensor:
@@ -103,3 +60,58 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
     norm_b = torch.sqrt(torch.dot(b.conj(), b).real)
     return torch.abs(torch.dot(a.conj(), b)) / (norm_a * norm_b)
+
+
+def spectral_methods(
+    y: torch.Tensor,
+    physics,
+    x=None,
+    n_iter=50,
+    preprocessing=default_preprocessing,
+    lamb=10.0,
+    x_true=None,
+    log: bool = False,
+    log_metric=cosine_similarity,
+):
+    r"""
+    Utility function for spectral methods.
+
+    :param torch.Tensor y: Measurements.
+    :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
+    :param torch.Tensor x: Initial guess for the signals :math:`x_0`.
+    :param int n_iter: Number of iterations.
+    :param function preprocessing: Function to preprocess the measurements. Default is :math:`\max(1 - 1/x, -5)`.
+    :param float lamb: Regularization parameter. Default is 10.
+
+    :return: The estimated signals :math:`x`.
+    """
+    if x is None:
+        # always use randn for initial guess, never use rand!
+        x = torch.randn(
+            (y.shape[0],) + physics.img_shape,
+            dtype=physics.dtype,
+            device=physics.device,
+        )
+
+    if log == True:
+        metrics = []
+
+    x = x.to(torch.cfloat)
+    x = x / torch.linalg.norm(x)
+    # y should have mean 1
+    y = y / torch.mean(y)
+    diag_T = preprocessing(y, physics)
+    diag_T = diag_T.to(torch.cfloat)
+    for _ in range(n_iter):
+        res = physics.B(x)
+        res = diag_T * res
+        res = physics.B_adjoint(res)
+        x = res + lamb * x
+        x = x / torch.linalg.norm(x)
+        if log == True:
+            metrics.append(log_metric(x, x_true))
+    x = x * torch.sqrt(y.sum())
+    if log == True:
+        return x, metrics
+    else:
+        return x

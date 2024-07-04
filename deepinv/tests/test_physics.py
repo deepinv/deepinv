@@ -47,13 +47,20 @@ def find_operator(name, device):
     dtype = torch.float
     if name == "CS":
         m = 30
-        p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device,no_inverse=False)
+        p = dinv.physics.CompressedSensing(
+            m=m, img_shape=img_size, device=device, compute_inverse=True
+        )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
-            m=20, fast=True, channelwise=True, img_shape=img_size, device=device, no_inverse=False
+            m=20,
+            fast=True,
+            channelwise=True,
+            img_shape=img_size,
+            device=device,
+            compute_inverse=True,
         )
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
@@ -104,7 +111,11 @@ def find_operator(name, device):
         img_size = (1, 8, 8)
         m = 50
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, dtype=torch.cfloat, device=device, no_inverse=False
+            m=m,
+            img_shape=img_size,
+            dtype=torch.cfloat,
+            device=device,
+            compute_inverse=True,
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
