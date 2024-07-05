@@ -37,11 +37,18 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #    :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`;
 # -  Use ``MC_samples`` to set how many realisations of the random mask is
 #    used at evaluation time;
+# -  Optionally disable measurement splitting at evaluation time using
+#    ``eval_split_input``.
 # -  Average over both input and output masks at evaluation time using
 #    ``eval_split_output``.
 #
+# Note that after the model has been defined, the loss must also "adapt"
+# the model.
+#
 
-loss = dinv.loss.SplittingLoss(split_ratio=0.6, eval_split_output=True)
+loss = dinv.loss.SplittingLoss(
+    split_ratio=0.6, eval_split_input=True, eval_split_output=True, MC_samples=5
+)
 
 
 # %%
@@ -100,7 +107,7 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 model = dinv.models.ArtifactRemoval(
     dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
 )
-model = loss.adapt_model(model, MC_samples=5)
+model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
@@ -157,4 +164,14 @@ trainer.test(test_dataloader)
 #
 
 model.eval_split_output = False
+trainer.test(test_dataloader)
+
+
+# %%
+# Furthermore, we can disable measurement splitting at evaluation
+# altogether by setting ``eval_split_input`` to False (this is done in
+# `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__):
+#
+
+model.eval_split_input = False
 trainer.test(test_dataloader)
