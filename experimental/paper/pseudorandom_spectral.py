@@ -54,7 +54,7 @@ x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi).to(device)
 # Every element of the signal should have unit norm.
 assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
-repeat = 10
+repeat = 100
 
 start = 1
 end = 299
@@ -65,7 +65,7 @@ oversampling_ratios = torch.empty((end - start) // 2)
 for i in trange(start, end, 2):
     for j in range(repeat):
         physics = dinv.physics.PseudoRandomPhaseRetrieval(
-            n_layers=5,
+            n_layers=2,
             input_shape=(1, img_size, img_size),
             output_shape=(1, i, i),
             dtype=torch.cfloat,
@@ -80,8 +80,8 @@ for i in trange(start, end, 2):
         print(f"cosine similarity: {res_spec[(i - start)//2,j]}")
 
 # save results
-torch.save(res_spec, SAVE_DIR / "pseudorandom" / "res_spec_5layer.pt")
+torch.save(res_spec, SAVE_DIR / "pseudorandom" / "res_spec_2layer_100repeat.pt")
 torch.save(
     oversampling_ratios,
-    SAVE_DIR / "pseudorandom" / "oversampling_ratios_spec_5layer.pt",
+    SAVE_DIR / "pseudorandom" / "oversampling_ratios_spec_2layer_100repeat.pt",
 )
