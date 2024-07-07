@@ -72,6 +72,8 @@ def spectral_methods(
     x_true=None,
     log: bool = False,
     log_metric=cosine_similarity,
+    early_stop: bool = False,
+    rtol: float = 1e-8,
 ):
     r"""
     Utility function for spectral methods.
@@ -102,16 +104,23 @@ def spectral_methods(
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
     diag_T = diag_T.to(torch.cfloat)
-    for _ in range(n_iter):
-        res = physics.B(x)
-        res = diag_T * res
-        res = physics.B_adjoint(res)
-        x = res + lamb * x
-        x = x / torch.linalg.norm(x)
-        if log == True:
-            metrics.append(log_metric(x, x_true))
+    for i in range(n_iter):
+        x_new = physics.B(x)
+        x_new = diag_T * x_new
+        x_new = physics.B_adjoint(x_new)
+        x_new = x_new + lamb * x
+        x_new = x_new / torch.linalg.norm(x_new)
+        if log:
+            metrics.append(log_metric(x_new, x_true))
+        if early_stop:
+            if (torch.linalg.norm(x_new - x) / torch.linalg.norm(x) < rtol):
+                print(f"Power iteration early stopping at iteration {i}.")
+                print(x_new - x)
+                print(x)
+                break
+        x = x_new
     x = x * torch.sqrt(y.sum())
-    if log == True:
+    if log:
         return x, metrics
     else:
         return x
