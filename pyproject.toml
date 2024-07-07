@@ -65,6 +65,7 @@ doc = [
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
+    "bm4d<4.2.4",
     "timm",
     "PyWavelets",
     "ptwt",
