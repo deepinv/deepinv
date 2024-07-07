@@ -582,7 +582,7 @@ def optim_builder(
         params_algo=params_algo,
         max_iter=max_iter,
         **kwargs,
-    )
+    ).eval()
 
 
 def str_to_class(classname):

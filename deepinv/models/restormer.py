@@ -80,7 +80,6 @@ class Restormer(nn.Module):
         dual_pixel_task: bool = False,
         pretrained: Optional[str] = "denoising",
         device: Optional[torch.device] = None,
-        train=False,
     ) -> None:
         super(Restormer, self).__init__()
 
@@ -337,6 +336,7 @@ class Restormer(nn.Module):
                 pretrained, map_location=lambda storage, loc: storage
             )
             self.load_state_dict(ckpt_restormer["params"], strict=True)
+            self.eval()
         elif weights_pth_filename is not None:
             print(f"Loading from {weights_pth_filename}")
             url = get_weights_url(
@@ -348,10 +348,9 @@ class Restormer(nn.Module):
                 file_name=weights_pth_filename,
             )
             self.load_state_dict(ckpt_restormer["params"], strict=True)
+            self.eval()
         elif pretrained is not None:
             raise ValueError(f"pretrained value error, {pretrained}")
-
-        self.training = train
 
         if device is not None:
             self.to(device)
