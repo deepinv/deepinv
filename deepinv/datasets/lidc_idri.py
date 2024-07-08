@@ -5,10 +5,14 @@ from typing import (
     Optional,
 )
 import os
-from pydicom import dcmread
 import torch
 import numpy as np
 import pandas as pd
+
+try:
+    from pydicom import dcmread
+except:
+    error_import = ImportError("dicom is not available. Please install the dicom package with `pip install dicom`.")
 
 
 class LidcIdriSliceDataset(torch.utils.data.Dataset):
@@ -17,10 +21,11 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
     | The Lung Image Database Consortium image collection (LIDC-IDRI) consists
     | of diagnostic and lung cancer screening thoracic computed tomography (CT)
     | scans with marked-up annotated lesions.
-    | It is a web-accessible international resource for development, training,
-    | and evaluation of computer-assisted diagnostic (CAD) methods for lung
-    | cancer detection and diagnosis.
-    | To download the dataset, you will need to install the `NBIA Data Retriever <https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images>`_.
+
+    .. warning::
+        To download the raw dataset, you will need to install the `NBIA Data Retriever <https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images>`_,
+        then download the manifest file (.tcia file)`here <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_, and open it by double clicking. 
+
 
     **Raw data file structure:** ::
 
@@ -31,8 +36,14 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
                    |                                                                 -- 1-xxx.dcm
                    -- metadata.csv
 
+    | 0) There are 1010 patients and a total of 1018 CT scans.
+    | 1) Each CT scan is composed of 2d slices.
+    | 2) Each slice is stored as a .dcm file
+    | 3) This class gives access to one slice of a CT scan per data sample.
+    | 4) Each slice is represented as an (512, 512) array.
+
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
-    :param callable, optional transform: TODO
+    :param callable, optional transform: A function/transform that takes in a data sample and returns a transformed version.
 
     |sep|
 
@@ -60,7 +71,6 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         :param str scan_folder: Path to all dicom files from the same scan.
         :param str patient_id: Foldername of one patient among the 1010.
         """
-
         slice_fname: str
         scan_folder: str
         patient_id: str
@@ -70,6 +80,9 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         root: str,
         transform: Optional[Callable] = None,
     ) -> None:
+        if isinstance(error_import, ImportError):
+            raise error_import
+
         self.root = root
         self.transform = transform
 
