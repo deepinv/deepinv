@@ -27,7 +27,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
     .. warning::
         To download the raw dataset, you will need to install the `NBIA Data Retriever <https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images>`_,
         then download the manifest file (.tcia file)`here <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_, and open it by double clicking.
-        
+
 
     **Raw data file structure:** ::
 
@@ -73,7 +73,6 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         :param str scan_folder: Path to all dicom files from the same scan.
         :param str patient_id: Foldername of one patient among the 1010.
         """
-
         slice_fname: str
         scan_folder: str
         patient_id: str
