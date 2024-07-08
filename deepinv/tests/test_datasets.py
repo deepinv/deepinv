@@ -3,7 +3,7 @@ import shutil
 import PIL
 import pytest
 
-from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68
+from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68, Kohler
 
 
 @pytest.fixture
@@ -108,3 +108,47 @@ def test_load_CBSD68_dataset(download_CBSD68):
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_Kohler():
+    """Download the Köhler dataset before a test and remove it after completion."""
+    root = "Kohler"
+    Kohler.download(root)
+
+    # Return the control flow to the test function
+    yield root
+
+    # Clean up the created directory
+    shutil.rmtree(root)
+
+
+def test_load_Kohler_dataset(download_Kohler):
+    """Check that the Köhler dataset contains 48 PIL images."""
+    root = download_Kohler
+
+    dataset = Kohler(
+        root=root, frame_specifier="middle", ordering="printout_first", download=False
+    )
+    x1, y1 = dataset.get_item(1, 1, "middle")
+    x2, y2 = dataset[0]
+
+    assert (
+        len(dataset) == 48
+    ), f"The dataset should have been of len 48, instead got {len(dataset)}."
+
+    assert (
+        type(x1) == PIL.PngImagePlugin.PngImageFile
+    ), "The sharp frame is unexpectedly not a PIL image."
+
+    assert (
+        type(y1) == PIL.PngImagePlugin.PngImageFile
+    ), "The blurry frame is unexpectedly not a PIL image."
+
+    assert (
+        type(x2) == PIL.PngImagePlugin.PngImageFile
+    ), "The sharp frame is unexpectedly not a PIL image."
+
+    assert (
+        type(y2) == PIL.PngImagePlugin.PngImageFile
+    ), "The blurry frame is unexpectedly not a PIL image."

@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_) - 01/07/2024
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
 - Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
