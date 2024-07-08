@@ -124,3 +124,8 @@ def spectral_methods(
         return x, metrics
     else:
         return x
+
+def spectral_methods_wrapper(y, physics, n_iter=500, **kwargs):
+    x = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
+    z = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
+    return {"est": (x, z)}

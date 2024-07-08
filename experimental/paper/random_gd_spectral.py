@@ -19,8 +19,15 @@ from deepinv.optim.phase_retrieval import (
     cosine_similarity,
     spectral_methods,
     default_preprocessing,
+    spectral_methods_wrapper,
 )
 from deepinv.models.complex import to_complex_denoiser
+
+repeat = 30
+max_iter = 5000
+step_size = 1e-4
+#oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
+oversampling_ratios = torch.arange(0.1, 2.1, 0.1)
 
 now = datetime.now()
 dt_string = now.strftime("%Y%m%d-%H%M%S")
@@ -29,16 +36,14 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "data"
 SAVE_DIR = DATA_DIR / dt_string
 FIGURE_DIR = DATA_DIR / "first_results"
+LOAD_DIR = DATA_DIR / "latest" / "pseudorandom"
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device
-
+print("device is: ", device)
 print(SAVE_DIR)
-
-n_iter = 500
 
 # Set up the variable to fetch dataset and operators.
 img_size = 99
@@ -52,39 +57,51 @@ x.shape
 
 # The phase is computed as 2*pi*x - pi, where x is the original image.
 x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi).to(device)
-
 # Every element of the signal should have unit norm.
 assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
-repeat = 100
+res_gd_spec = torch.empty(oversampling_ratios.shape[0], repeat)
 
-start = 1
-end = 91
+data_fidelity = L2()
+prior = dinv.optim.prior.Zero()
+early_stop = True
+verbose = True
 
-res_spec = torch.empty((end - start) // 2, repeat)
-oversampling_ratios = torch.empty((end - start) // 2)
 
-for i in trange(start, end):
-    oversampling_ratio = i / 10
+for i in trange(oversampling_ratios.shape[0]):
+    oversampling_ratio = oversampling_ratios[i]
     print(f"oversampling_ratio: {oversampling_ratio}")
+    params_algo = {"stepsize": (step_size * oversampling_ratio).item(), "g_params": 0.00}
+    print("stepsize:", params_algo["stepsize"])
+    model = optim_builder(
+        iteration="PGD",
+        prior=prior,
+        data_fidelity=data_fidelity,
+        early_stop=early_stop,
+        max_iter=max_iter,
+        verbose=verbose,
+        params_algo=params_algo,
+        custom_init=spectral_methods_wrapper,
+    )
     for j in range(repeat):
         physics = dinv.physics.RandomPhaseRetrieval(
-            m=int(oversampling_ratio * img_size ** 2),
+            m=int(oversampling_ratio * torch.prod(torch.tensor(x_phase.shape))),
             img_shape=(1, img_size, img_size),
             dtype=torch.cfloat,
             device=device,
         )
         y = physics(x_phase)
 
-        oversampling_ratios[i-1] = oversampling_ratio
-        x_phase_spec = spectral_methods(y, physics, n_iter=n_iter)
-        res_spec[i-1, j] = cosine_similarity(x_phase, x_phase_spec)
-        # print the cosine similarity
-        print(f"cosine similarity: {res_spec[i-1,j]}")
+        x_phase_gd_spec, _ = model(y, physics, x_gt=x_phase, compute_metrics=True)
+
+        res_gd_spec[i, j] = cosine_similarity(x_phase, x_phase_gd_spec)
+        print(res_gd_spec[i, j])
 
 # save results
-torch.save(res_spec, SAVE_DIR / "random" / "res_spec_100repeat.pt")
+torch.save(
+    res_gd_spec, SAVE_DIR / "random" / "res_gd_spec_0-2_100repeat.pt"
+)
 torch.save(
     oversampling_ratios,
-    SAVE_DIR / "random" / "oversampling_ratios_spec_100repeat.pt",
+    SAVE_DIR / "random" / "oversampling_ratios_gd_spec_0-2_100repeat.pt",
 )
