@@ -73,7 +73,6 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         :param str scan_folder: Path to all dicom files from the same scan.
         :param str patient_id: Foldername of one patient among the 1010.
         """
-
         slice_fname: str
         scan_folder: str
         patient_id: str
