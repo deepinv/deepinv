@@ -32,7 +32,6 @@ dependencies = [
     "scipy",
     "datasets",
     "pandas",
-    "pydicom",
 ]
 
 [tool.setuptools]
