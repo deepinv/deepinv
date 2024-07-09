@@ -24,9 +24,9 @@ class PSFGenerator(PhysicsGenerator):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        assert (
-            len(psf_size) == 2
-        ), "The psf size should be a tuple with two elements, height x width"
+        # assert (
+        #     len(psf_size) == 2
+        # ), "The psf size should be a tuple with two elements, height x width"
         self.shape = (num_channels,) + psf_size
         self.psf_size = psf_size
         self.num_channels = num_channels
@@ -248,11 +248,12 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         lin_x = torch.linspace(-0.5, 0.5, self.pupil_size[0], **self.factory_kwargs)
         lin_y = torch.linspace(-0.5, 0.5, self.pupil_size[1], **self.factory_kwargs)
-
+        self.step_rho = lin_x[1] - lin_x[0]
+        
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
         XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
         self.rho = cart2pol(XX, YY)  # Cartesian coordinates
-
+        
         # The list of Zernike polynomial functions
         list_zernike_polynomial = define_zernike()
 
@@ -312,8 +313,8 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         pupil1 = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
         pupil2 = torch.exp(-2.0j * torch.pi * pupil1)
-        indicator = bump_function(self.rho, 1.0)
-        pupil3 = pupil2 * indicator
+        indicator_circ = bump_function(self.rho, 1 - self.step_rho/2, b=self.step_rho/2)
+        pupil3 = pupil2 * indicator_circ
         psf1 = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil3)))
         psf2 = torch.real(psf1 * torch.conj(psf1))
 
@@ -631,3 +632,231 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         # Ending
         params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
         return params_blur
+
+
+class DiffractionBlurGenerator3D(PSFGenerator):
+    r"""
+    Diffraction limited blur generator.
+
+    Generates 3D diffraction kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory)
+
+    :param tuple shape: 
+    :param list[str] list_param: list of activated Zernike coefficients, defaults to `["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]`
+    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
+    :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * f_c. Should be smaller than fc i.e in `[0, 1/4]` 
+            to respect Shannon, defaults to `0.1`. Needed only for 3D PSF.
+
+    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (256, 256).
+            If a int is given, a square pupil is considered.
+
+    :return: a DiffractionBlurGenerator object
+
+    |sep|
+
+    :Examples:
+
+    >>> generator = DiffractionBlurGenerator((16, 16))
+    >>> filter = generator.step()
+    >>> dinv.utils.plot(filter)
+    >>> print(filter.shape)
+    torch.Size([1, 1, 16, 16])
+
+    """
+
+    def __init__(
+        self,
+        psf_size: tuple,
+        num_channels: int = 1,
+        device: str = "cpu",
+        dtype: type = torch.float32,
+        list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
+        fc: float = 0.2,
+        max_zernike_amplitude: float = 0.15,
+        pupil_size: Tuple[int] = (1024, 1024),
+        stepz_pixel: float = 1.,
+        kb: float = 0.4,
+    ):
+        
+        if len(psf_size) != 3:
+            raise ValueError("You should provide a tuple of len == 3 to generate 3D PSFs.")
+        
+        kwargs = {"list_param": list_param, "fc": fc, "pupil_size": pupil_size, "max_zernike_amplitude": max_zernike_amplitude}
+        super().__init__(psf_size=psf_size, num_channels=num_channels, device=device, dtype=dtype, **kwargs)
+        
+        
+        
+
+        self.generator2d = DiffractionBlurGenerator(psf_size=psf_size[1:], 
+                                                      num_channels=num_channels,  
+                                                      device=device, 
+                                                      dtype=dtype, 
+                                                      **kwargs)
+                
+        self.stepz_pixel = stepz_pixel
+        self.kb = kb
+        self.nzs = self.psf_size[0]
+
+    def __update__(self):
+        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        self.generator2d.rho = self.generator2d.rho.to(**self.factory_kwargs)
+        self.generator2d.Z = self.generator2d.Z.to(**self.factory_kwargs)
+
+    def step(self, batch_size: int = 1, coeff: torch.Tensor = None):
+        r"""
+        Generate a batch of PSF with a batch of Zernike coefficients
+
+        :return: tensor B x psf_size x psf_size x psf_size batch of psfs
+        :rtype: torch.Tensor
+        """
+        self.__update__()
+        
+        gen_dict = self.generator2d.step(batch_size=batch_size, coeff=coeff)
+        
+        pupil3 = gen_dict['pupil']
+               
+        defocus = torch.linspace(-self.nzs/2,self.nzs/2,self.nzs, **self.factory_kwargs)*self.stepz_pixel
+
+        d = ((self.kb)**2-(self.generator2d.rho*self.fc)**2+0j)**.5
+
+        propKer = torch.exp(-1j*2*torch.pi*d*defocus[:, None, None]) + 0j
+        p = pupil3[:, None, ...] * propKer[None, ...]
+        p[torch.isnan(p)]=0
+        pshift= torch.fft.fftshift(p, dim=(-2, -1))
+        pfft = torch.fft.fft2(pshift, dim=(-2, -1))
+        psf1 = torch.fft.ifftshift(pfft, dim=(-2, -1))
+        psf2 = torch.real(psf1 * torch.conj(psf1))
+
+        psf3 = psf2[
+             :,
+             :,
+             self.generator2d.pad_pre[0] : self.generator2d.pupil_size[0] - self.generator2d.pad_post[0],
+             self.generator2d.pad_pre[1] : self.generator2d.pupil_size[1] - self.generator2d.pad_post[1],
+        ].unsqueeze(1)
+        
+        psf = psf3 / torch.sum(psf3, dim=(-3, -2, -1), keepdim=True)
+
+        
+        return {'filter': psf.expand(-1, self.shape[0], -1, -1, -1),
+                'pupil': pupil3, 
+                'filter2d': gen_dict['filter'],
+                'coeff':  gen_dict['coeff']} 
+
+
+if __name__ == "__main__":
+    import deepinv as dinv
+    import matplotlib.pyplot as plt 
+    from matplotlib.colors import PowerNorm
+    import imageio as io
+
+    from cmap import Colormap
+    cm = Colormap('imagej:fire').to_matplotlib()  # case insensitive
+    
+    # CUDA setup
+    if torch.cuda.is_available():
+        # Set up CUDA context only in the main process
+        device = torch.device("cuda:0")
+    else:
+        device = torch.device("cpu")
+
+    dtype = torch.float32
+    
+
+    
+    ##We need to have NA < NI / 2 : Why ??
+    ### NA = NI * sin(theta), theta angle.
+    ### Our function works for theta < pi / 6 == 30 deg
+    ### NA = NI * torch.sin(torch.tensor([torch.pi / 6]))
+    #PSFgenerator has NA = 1.4 for NI = 1.5. 
+    ## --> Correspond à un theta = 69 deg !
+    ## Bizarre, notre formule ne fonctionne pas du tout dans ce cas...33
+
+    ##DeeBlur
+    ##coeff_zernike=[5,6],
+    ##imgSize=17,pixelSize=240,NA=1.41, int(pixelsize_Z / pixelsize_XY),
+    ##wavelength=540,nI=1.51,nZ=17,stepZ=100
+
+    torch.manual_seed(0)
+    torch.cuda.manual_seed(0)
+
+
+    NI = 1.51 #(PSFgenerator - oil)
+    angAper = 35 ##in degrees
+    NA = NI * torch.sin(torch.deg2rad(torch.tensor([angAper]))).item()
+    wavelength = 610e-9 #(610nm)
+    pixelsize_XY = 103e-9 #100e-9 #(100nm)
+    pixelsize_Z = 200e-9 #(100nm)
+
+
+    fc = (NA / wavelength) * pixelsize_XY
+    kb = (NI / wavelength)  * pixelsize_XY
+    
+    psf_size = (128, 128, 128)
+    pupil_size = (1024, 1024)
+    
+    # ### 2D
+    # generator2d =  DiffractionBlurGenerator(psf_size=(255, 255),
+    #                                         list_param = ["Z0"], fc = fc,
+    #                                         pupil_size=(1024, 1024))
+    # blur2d = generator2d.step()
+    # kernel2d = blur2d['filter'][0, 0]
+    # ###
+    
+    
+    # fig, ax = plt.subplots()
+    # imm = ax.imshow(kernel2d, cmap=cm, norm=PowerNorm(0.5, vmax=1e-4))
+    # plt.colorbar(imm)
+    # plt.show()
+    # #plt.savefig('2D_airy_PSF_bump_b0.01.png', dpi=600)
+    
+    
+
+    generator =  DiffractionBlurGenerator3D(
+        #psf_size=(51, 101, 101),
+        psf_size=psf_size,
+        #list_param = ["Z0"], #list_param = ["Z0"], #"Z5", "Z6"], #, "Z9", "Z11"],
+        fc =  fc,
+        kb = kb,
+        stepz_pixel = pixelsize_Z / pixelsize_XY,
+        #max_zernike_amplitude = 0.3,
+        pupil_size=pupil_size,
+        dtype=dtype,
+        device=device
+        )
+
+    
+    #for _ in range(10):
+    blur_ill = generator.step(batch_size=1)  # dict_keys(['filter', 'coeff', 'pupil'])
+    
+    b, c, d, h, w = blur_ill['filter'].shape
+    
+    kernel_ill = blur_ill['filter'][0, 0].cpu()
+    #norm = torch.trapz(torch.trapz(torch.trapz(kernel, dx=pixelsize_XY, dim=-1), 
+    #                               dx=pixelsize_XY, dim=-1), 
+    #                   dx=pixelsize_Z, dim=-1)
+    norm = kernel_ill.max()
+    #kernel_ill /= norm
+    
+    io.volsave('kernel_ill.tif',kernel_ill.detach().cpu())
+    
+    
+    gridspec = {'width_ratios': [1, 0.025], 
+                'height_ratios': [1, 1], 
+                'hspace': 0.05, 
+                'wspace': 0.01}   
+        
+    fig, ((ax_XY, cax_XY), 
+          (ax_XZ, cax_XZ)) = plt.subplots(2,2, figsize=(6, 9), 
+                                          gridspec_kw=gridspec)
+    _ = ax_XY.set_xticklabels([])
+    
+    #kernel_loop = blur['filter_loop'][0, 0]
+
+    imXY = ax_XY.imshow(kernel_ill[d//2] / kernel_ill.max(), cmap=cm, norm=PowerNorm(0.5, vmax = 0.25))
+    plt.colorbar(imXY, cax=cax_XY)
+    imXZ = ax_XZ.imshow(kernel_ill[:, h//2] / kernel_ill.max(), cmap=cm, norm=PowerNorm(0.5, vmax = 0.25))
+    plt.colorbar(imXZ, cax=cax_XZ)
+
+    ax_XZ.set_xlabel(r'$X$')
+    ax_XY.set_ylabel(r'$Y$')
+    ax_XZ.set_ylabel(r'$Z$')
+    ax_XY.set_title(r'${\rm Widefield}$')

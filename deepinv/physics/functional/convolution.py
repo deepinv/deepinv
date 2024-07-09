@@ -234,6 +234,109 @@ def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
     """
     pass
 
+def conv3d_fft(x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid") -> Tensor:
+    r"""
+    A helper function performing the 3d convolution of `x` and `filter` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transpose3d_fft()`.
+
+    :param torch.Tensor y: Image of size `(B, C, D, W, H)`.
+    :param torch.Tensor filter: Filter of size `(b, c, d, w, h)` ) where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
+    :param bool real_fft: for real filters and images choose True (default) to accelerate computation
+    :param str padding: can be `valid` (default) or `circular`
+ 
+    If `b = 1` or `c = 1`, then this function applies the same filter for each channel.
+    Otherwise, each channel of each image is convolved with the corresponding kernel.
+
+    Padding conditions include `circular` and `valid`. 
+    
+    Note: the filter center is located at (d//2, w//2, h//2)
+
+    :return torch.Tensor : the output of the convolution, which has the same shape as :math:`x` if padding is circular, (B, C, D-d+1, W-w+1, H-h+1) if padding is valid
+    """  
+    
+    assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+
+    B, C, D, H, W = x.size()
+    img_size = x.shape[-3:]
+    b, c, d, h, w = filter.size()
+
+    if c != C:
+        assert c == 1
+        filter = filter.expand(-1, C, -1, -1, -1)
+
+    if b != B:
+        assert b == 1
+        filter = filter.expand(B, -1, -1, -1, -1)
+    
+    if real_fft:
+        f_f = fft.rfftn(filter, s=img_size, dim=(-3, -2, -1))
+        x_f = fft.rfftn(x, dim=(-3, -2, -1))
+        res = fft.irfftn(x_f * f_f, s=img_size, dim=(-3, -2, -1))
+    else:
+        f_f = fft.fftn(filter, s=img_size, dim=(-3, -2, -1))
+        x_f = fft.fftn(x, dim=(-3, -2, -1))
+        res = fft.ifftn(x_f * f_f, s=img_size, dim=(-3, -2, -1))
+
+    if padding == 'valid':
+        return res[:, :, d-1:, h-1:, w-1:]    
+    elif padding == 'circular':
+        shifts =(-(d//2), -(h//2), -(w//2))
+        return torch.roll(res, shifts = shifts, dims = (-3, -2, -1))
+    else:
+        raise ValueError("padding = '"+padding+"' not implemented")
+
+
+def conv_transpose3d_fft(y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid") -> Tensor:
+    r"""
+    A helper function performing the 3d transposed convolution of `x` and `filter` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv3d_fft()`.
+
+    :param torch.Tensor y: Image of size `(B, C, D, W, H)`.
+    :param torch.Tensor filter: Filter of size `(b, c, d, w, h)` ) where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
+
+
+    If `b = 1` or `c = 1`, then this function applies the same filter for each channel.
+    Otherwise, each channel of each image is convolved with the corresponding kernel.
+
+    Padding conditions include `circular` and `valid`. 
+
+    :return torch.Tensor : the output of the convolution, which has the same shape as :math:`y`
+    """
+
+    assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+
+    # Get dimensions of the input and the filter
+    B, C, D, H, W = y.size()
+    b, c, d, h, w = filter.size()
+    if padding == 'valid':
+        img_size = (D+d-1, H+h-1, W+w-1)
+    elif padding =='circular' :
+        img_size = (D, H, W)
+        shifts =(d//2, h//2, w//2)
+        y = torch.roll(y, shifts = shifts, dims = (-3, -2, -1))
+    else:
+        raise ValueError("padding = '"+padding+"' not implemented")
+
+    if c != C:
+        assert c == 1
+        filter = filter.expand(-1, C, -1, -1, -1)
+
+    if b != B:
+        assert b == 1
+        filter = filter.expand(B, -1, -1, -1, -1)
+
+    if real_fft:
+        f_f = fft.rfftn(filter, s=img_size, dim=(-3, -2, -1))
+        y_f = fft.rfftn(y, s=img_size, dim=(-3, -2, -1))
+        res = fft.irfftn(y_f * torch.conj(f_f), s=img_size, dim=(-3, -2, -1))
+    else:
+        f_f = fft.fftn(filter, s=img_size, dim=(-3, -2, -1))
+        y_f = fft.fftn(y, s=img_size, dim=(-3, -2, -1))
+        res = fft.ifftn(y_f * torch.conj(f_f), s=img_size, dim=(-3, -2, -1))
+
+    if padding == 'valid':
+        return torch.roll(res, shifts = (d - 1, h - 1, w - 1), dims=(-3, -2, -1))
+    else:
+        return res
+
 
 # if __name__ == "__main__":
 #     from skimage.data import astronaut

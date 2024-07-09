@@ -11,6 +11,8 @@ from deepinv.physics.functional import (
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
+    conv3d_fft,
+    conv_transpose3d_fft
 )
 
 
@@ -306,10 +308,15 @@ class Blur(LinearPhysics):
     .. math:: y = w*x
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
+    
+    This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
+    and :meth:`torch.nn.functional.conv3d_fft` for performing the convolutions in 3D.
 
-    This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
+    It uses FFT convolution in 3D because torch.functional.nn.conv3d is slow for (large) kernels 
+    of size typically needed for 3D blur in microscopy
+    
 
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
+    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W), (1, 1, D, H, W) or (1, C, D, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``)
     :param str device: cpu or cuda.
@@ -356,8 +363,11 @@ class Blur(LinearPhysics):
             the provided filter is stored as the current filter.
         """
         self.update_parameters(filter)
-
-        return conv2d(x, self.filter, self.padding)
+        
+        if x.dim() == 4:
+            return conv2d(x, self.filter, self.padding)
+        elif x.dim() == 5:
+            return conv3d_fft(x, self.filter, self.padding)
 
     def A_adjoint(self, y, filter=None, **kwargs):
         r"""
@@ -370,7 +380,10 @@ class Blur(LinearPhysics):
         """
         self.update_parameters(filter)
 
-        return conv_transpose2d(y, self.filter, self.padding)
+        if y.dim() == 4:
+           return conv_transpose2d(y, self.filter, self.padding)
+        elif y.dim() == 5:
+            return conv_transpose3d_fft(y, self.filter, self.padding)
 
     def update_parameters(self, filter=None, **kwargs):
         r"""
