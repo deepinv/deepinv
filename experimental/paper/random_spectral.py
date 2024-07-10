@@ -22,6 +22,11 @@ from deepinv.optim.phase_retrieval import (
 )
 from deepinv.models.complex import to_complex_denoiser
 
+n_repeats = 100
+start = 1
+end = 91
+n_iter = 500
+
 now = datetime.now()
 dt_string = now.strftime("%Y%m%d-%H%M%S")
 
@@ -37,8 +42,6 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device
 
 print(SAVE_DIR)
-
-n_iter = 500
 
 # Set up the variable to fetch dataset and operators.
 img_size = 99
@@ -56,18 +59,13 @@ x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi).to(device)
 # Every element of the signal should have unit norm.
 assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
-repeat = 100
-
-start = 1
-end = 91
-
-res_spec = torch.empty((end - start) // 2, repeat)
-oversampling_ratios = torch.empty((end - start) // 2)
+res_spec = torch.empty(end - start, n_repeats)
+oversampling_ratios = torch.empty(end - start)
 
 for i in trange(start, end):
     oversampling_ratio = i / 10
     print(f"oversampling_ratio: {oversampling_ratio}")
-    for j in range(repeat):
+    for j in range(n_repeats):
         physics = dinv.physics.RandomPhaseRetrieval(
             m=int(oversampling_ratio * img_size ** 2),
             img_shape=(1, img_size, img_size),

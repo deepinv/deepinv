@@ -25,9 +25,11 @@ from deepinv.models.complex import to_complex_denoiser
 
 repeat = 30
 max_iter = 5000
-step_size = 1e-4
+step_size = 5e-3
 #oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
-oversampling_ratios = torch.arange(0.1, 2.1, 0.1)
+#oversampling_ratios = torch.arange(0.1, 2.1, 0.1)
+oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
+print("oversampling_ratios:", oversampling_ratios)
 
 now = datetime.now()
 dt_string = now.strftime("%Y%m%d-%H%M%S")
@@ -99,9 +101,9 @@ for i in trange(oversampling_ratios.shape[0]):
 
 # save results
 torch.save(
-    res_gd_spec, SAVE_DIR / "random" / "res_gd_spec_0-2_100repeat.pt"
+    res_gd_spec, SAVE_DIR / "random" / "res_gd_spec_2-9_30repeat.pt"
 )
 torch.save(
     oversampling_ratios,
-    SAVE_DIR / "random" / "oversampling_ratios_gd_spec_0-2_100repeat.pt",
+    SAVE_DIR / "random" / "oversampling_ratios_gd_spec_2-9_30repeat.pt",
 )
