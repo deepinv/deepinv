@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 import torch
 
 
@@ -129,3 +132,44 @@ def spectral_methods_wrapper(y, physics, n_iter=500, **kwargs):
     x = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
     z = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
     return {"est": (x, z)}
+
+def plot_error_bars(oversamplings,datasets,labels,title='Performance'):
+    
+    # Generate a color palette
+    palette = sns.color_palette(n_colors=len(datasets))
+
+    plt.figure(figsize=(10, 6))
+
+    for i, (oversampling, data, label) in enumerate(zip(oversamplings, datasets, labels)):
+        print(label)
+        # Calculate statistics
+        min_vals = data.min(dim=1).values.numpy()
+        max_vals = data.max(dim=1).values.numpy()
+        avg_vals = data.mean(dim=1).numpy()
+
+        # Calculate error bars
+        yerr_lower = avg_vals - min_vals
+        yerr_upper = max_vals - avg_vals
+
+        # Prepare data for plotting
+        df = pd.DataFrame({
+            'x': oversampling,
+            'avg': avg_vals,
+            'yerr_lower': yerr_lower,
+            'yerr_upper': yerr_upper
+        })
+
+        # Plotting
+        color = palette[i]
+        ax = sns.lineplot(data=df, x='x', y='avg', marker='o', label=label,color=color)
+        # Adding error bars
+        ax.errorbar(df['x'], df['avg'], yerr=[df['yerr_lower'], df['yerr_upper']], fmt='o', capsize=5, color=color)
+
+    # Adding labels and title
+    ax.set_xlabel('Oversampling Ratio')
+    ax.set_ylabel('Consine Similarity')
+    ax.set_title(title)
+    ax.legend()
+
+    # Show plot
+    plt.show()
