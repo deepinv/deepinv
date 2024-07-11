@@ -158,10 +158,6 @@ diffraction_generator = DiffractionBlurGenerator3D(
     dtype=dtype,
 )
 blurs = diffraction_generator.step(batch_size=3)
-    [f[None] for f in blurs["filter"]],
-    suptitle="PSF obtained with astigmatism only",
-)
-
 
 # %%
 # Confocal microscope PSF

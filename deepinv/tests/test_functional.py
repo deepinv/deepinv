@@ -10,8 +10,9 @@ import deepinv as dinv
 import torch
 import pytest
 
-dtype=torch.float64
-device = 'cpu'
+dtype = torch.float64
+device = "cpu"
+
 
 def test_conv2d_adjointness():
     torch.manual_seed(0)
@@ -31,7 +32,7 @@ def test_conv2d_adjointness():
 
                 Axy = torch.sum(Ax * y)
                 Atyx = torch.sum(Aty * x)
-                
+
                 print(torch.abs(Axy - Atyx))
 
                 assert torch.abs(Axy - Atyx) < 1e-5
@@ -39,14 +40,14 @@ def test_conv2d_adjointness():
 
 def test_conv3d_norm():
     torch.manual_seed(0)
-    max_iter=1000
-    tol=1e-6
-    
+    max_iter = 1000
+    tol = 1e-6
+
     size_im = ([3, 5, 5, 5], [3, 6, 6, 6], [3, 5, 5, 6], [3, 5, 6, 5])
     size_filt = ([3, 3, 3], [4, 4, 4], [4, 3, 4], [3, 4, 3])
-    
-    paddings = ("circular", )
-    
+
+    paddings = ("circular",)
+
     for pad in paddings:
         print(pad)
         for sim in size_im:
@@ -58,14 +59,16 @@ def test_conv3d_norm():
                 h = torch.zeros(1, 1, 5, 5, 5)
                 h[:, :, 1:4, 1:4, 1:4] = 1
                 h /= h.sum()
-                
+
                 zold = torch.zeros_like(x)
                 for it in range(max_iter):
                     y = dinv.physics.functional.conv3d_fft(x, h, padding=pad)
                     y = dinv.physics.functional.conv_transpose3d_fft(y, h, padding=pad)
-                    z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
-                
-                    
+                    z = (
+                        torch.matmul(x.conj().reshape(-1), y.reshape(-1))
+                        / torch.norm(x) ** 2
+                    )
+
                     rel_var = torch.norm(z - zold)
                     if rel_var < tol:
                         print(
@@ -75,19 +78,20 @@ def test_conv3d_norm():
                     zold = z
                     x = y / torch.norm(y)
 
+
 def test_conv3d_adjointness():
     torch.manual_seed(0)
 
-    size_im = ([5, 5, 5], [6, 6, 6], [5, 5, 6], [5, 6, 5]) 
+    size_im = ([5, 5, 5], [6, 6, 6], [5, 5, 6], [5, 6, 5])
     size_filt = ([3, 3, 3], [4, 4, 4], [4, 3, 4], [3, 4, 3])
-    
+
     paddings = ("valid", "circular")
-    
+
     for pad in paddings:
         print(pad)
         for sim in size_im:
             for sfil in size_filt:
-                #print(sim, sfil)
+                # print(sim, sfil)
                 x = torch.rand(sim)[None, None].to(dtype)
                 h = torch.rand(sfil)[None, None].to(dtype)
                 Ax = dinv.physics.functional.conv3d_fft(x, h, padding=pad)
@@ -96,14 +100,14 @@ def test_conv3d_adjointness():
 
                 Axy = torch.sum(Ax * y)
                 Atyx = torch.sum(Aty * x)
-                
+
                 assert torch.abs(Axy - Atyx) < 1e-3
-                
-                
-#test_conv3d_norm()          
-#test_conv2d_adjointness()
+
+
+# test_conv3d_norm()
+# test_conv2d_adjointness()
 # print('')
 # print('')
 # print('')
 # print('')
-#test_conv3d_adjointness()
+# test_conv3d_adjointness()

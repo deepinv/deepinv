@@ -165,7 +165,7 @@ def find_operator(name, device):
         )
     elif name.startswith("3Ddeblur"):
         img_size = (1, 7, 6, 8)
-        h_size = (1 , 1, 4, 3, 5)
+        h_size = (1, 1, 4, 3, 5)
         h = torch.rand(h_size)
         h /= h.sum()
         p = dinv.physics.Blur(
@@ -265,7 +265,7 @@ def find_nonlinear_operator(name, device):
                 torch.randn(1, device=device),
             ]
         )
-        p = dinv.physics.Haze()   
+        p = dinv.physics.Haze()
 
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
@@ -333,7 +333,10 @@ def test_operators_norm(name, device):
     if (
         name in ["singlepixel", "CS", "complex_compressed_sensing"]
         or "pansharpen" in name
-        or "reflect" in name or "replicate" in name or "constant" in name or "valid" in name # convolution norm is not simple in those cases
+        or "reflect" in name
+        or "replicate" in name
+        or "constant" in name
+        or "valid" in name  # convolution norm is not simple in those cases
     ):
         pass
     else:

@@ -255,8 +255,8 @@ class Downsampling(LinearPhysics):
             else:
                 h, w = self.filter.shape[-2:]
                 ih = (h - 1) % 2
-                iw = (w - 1) % 2                
-            
+                iw = (w - 1) % 2
+
                 imsize = (
                     self.imsize[0],
                     self.imsize[1] - ih + 1,
@@ -368,9 +368,9 @@ class Blur(LinearPhysics):
         self.update_parameters(filter)
 
         if x.dim() == 4:
-            return conv2d(x, filter = self.filter, padding = self.padding)
+            return conv2d(x, filter=self.filter, padding=self.padding)
         elif x.dim() == 5:
-            return conv3d_fft(x, filter = self.filter, padding = self.padding)
+            return conv3d_fft(x, filter=self.filter, padding=self.padding)
 
     def A_adjoint(self, y, filter=None, **kwargs):
         r"""
@@ -384,9 +384,9 @@ class Blur(LinearPhysics):
         self.update_parameters(filter)
 
         if y.dim() == 4:
-            return conv_transpose2d(y, filter = self.filter, padding=self.padding)
+            return conv_transpose2d(y, filter=self.filter, padding=self.padding)
         elif y.dim() == 5:
-            return conv_transpose3d_fft(y, filter = self.filter, padding=self.padding)
+            return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
 
     def update_parameters(self, filter=None, **kwargs):
         r"""
