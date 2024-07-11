@@ -24,12 +24,15 @@ from deepinv.optim.phase_retrieval import (
 from deepinv.models.complex import to_complex_denoiser
 
 n_repeats = 50
-max_iter = 5000
+n_iter = 1500
 step_size = 5e-3
 #oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
 oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
 #oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
+oversampling_name = f"oversampling_ratios_gd_rand_{n_repeats}repeat_{n_iter}iter_0-9.pt"
+res_name = f"res_gd_rand_{n_repeats}repeat_{n_iter}iter_0-9.pt"
 print("oversampling_ratios:", oversampling_ratios)
+print("res_name:", res_name)
 
 now = datetime.now()
 dt_string = now.strftime("%Y%m%d-%H%M%S")
@@ -83,7 +86,7 @@ for i in trange(oversampling_ratios.shape[0]):
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=early_stop,
-        max_iter=max_iter,
+        max_iter=n_iter,
         verbose=verbose,
         params_algo=params_algo,
         custom_init=random_init,
@@ -104,9 +107,9 @@ for i in trange(oversampling_ratios.shape[0]):
 
 # save results
 torch.save(
-    res_gd_rand, SAVE_DIR / "random" / f"res_gd_rand_{n_repeats}repeat.pt"
+    res_gd_rand, SAVE_DIR / "random" / res_name
 )
 torch.save(
     oversampling_ratios,
-    SAVE_DIR / "random" / f"oversampling_ratios_gd_rand_{n_repeats}repeat.pt",
+    SAVE_DIR / "random" / oversampling_name,
 )
