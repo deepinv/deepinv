@@ -14,9 +14,9 @@ from deepinv.datasets.utils import (
 class LsdirHR(torch.utils.data.Dataset):
     """Dataset for `LSDIR <https://data.vision.ee.ethz.ch/yawli/>`_.
 
-    A large-scale dataset for image restoration tasks such as image super-resolution (SR), 
+    A large-scale dataset for image restoration tasks such as image super-resolution (SR),
     image denoising, JPEG deblocking, deblurring, and demosaicking, and real-world SR.
-    
+
 
     **Raw data file structure:** ::
 
@@ -31,9 +31,9 @@ class LsdirHR(torch.utils.data.Dataset):
                    -- shard-00.tar.gz
                    |  ...
                    -- shard-16.tar.gz
-                   | 
+                   |
                    -- val1 --- HR --- val --- 0000001.png
-                   |        -- X2          |  
+                   |        -- X2          |
                    |        -- X3          -- 0000250.png
                    |        -- X4
                    -- val1.tar.gz
@@ -86,7 +86,7 @@ class LsdirHR(torch.utils.data.Dataset):
         },
         "val": {
             "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
-        }
+        },
     }
 
     # for integrity of downloaded data
@@ -109,7 +109,9 @@ class LsdirHR(torch.utils.data.Dataset):
         if self.mode == "train":
             # train_folder_names = ['0001000', ..., '0085000']
             train_folder_names = [str(i * 1000).zfill(7) for i in range(1, 86)]
-            self.img_dirs = [os.path.join(self.root, folder) for folder in train_folder_names]
+            self.img_dirs = [
+                os.path.join(self.root, folder) for folder in train_folder_names
+            ]
         elif self.mode == "val":
             self.img_dirs = [os.path.join(self.root, "val1", "HR", "val")]
         else:
@@ -126,7 +128,7 @@ class LsdirHR(torch.utils.data.Dataset):
                 raise ValueError(
                     f"The {self.mode} folders already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dirs}`."
                 )
-                
+
             for filename, url in self.archive_urls[self.mode].items():
                 # download tar file from the Internet and save it locally
                 download_archive(
@@ -144,9 +146,13 @@ class LsdirHR(torch.utils.data.Dataset):
         self.img_paths = []
         for img_dir in self.img_dirs:
             try:
-                self.img_paths.extend([os.path.join(img_dir, fname) for fname in os.listdir(img_dir)])
+                self.img_paths.extend(
+                    [os.path.join(img_dir, fname) for fname in os.listdir(img_dir)]
+                )
             except FileNotFoundError:
-                raise RuntimeError("Data folder doesn't exist, please set `download=True`")
+                raise RuntimeError(
+                    "Data folder doesn't exist, please set `download=True`"
+                )
         self.img_paths = sorted(self.img_paths)
 
     def __len__(self) -> int:
@@ -174,16 +180,16 @@ class LsdirHR(torch.utils.data.Dataset):
                        -- 0085000 --- 0084001.png
                        |           |
                        |           -- 0084991.png
-                       | 
+                       |
                        -- val1 --- HR --- val --- 0000001.png
-                       |                       |  
-                       |                       -- 0000250.png   
+                       |                       |
+                       |                       -- 0000250.png
                        -- xxx
         """
         root_dir_exist = os.path.isdir(self.root)
         if not root_dir_exist:
             return False
-        
+
         md5_folders = hashlib.md5()
         for img_dir in self.img_dirs:
             md5_folders.update(calculate_md5_for_folder(img_dir).encode())
