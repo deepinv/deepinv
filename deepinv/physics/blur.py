@@ -309,23 +309,22 @@ class Blur(LinearPhysics):
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
     
-    This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-    and :meth:`torch.nn.functional.conv3d_fft` for performing the convolutions in 3D.
-
-    It uses FFT convolution in 3D because torch.functional.nn.conv3d is slow for (large) kernels 
-    of size typically needed for 3D blur in microscopy
-    
-
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W), (1, 1, D, H, W) or (1, C, D, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
+    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D, containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image. (default is ``'valid'``)
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``). Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
     :param str device: cpu or cuda.
 
 
     .. note::
 
-        This class allows to change the filter at runtime by passing a new filter to the forward method, e.g.,
+        This class makes it possible to change the filter at runtime by passing a new filter to the forward method, e.g.,
         ``y = physics(x, w)``. The new filter :math:`w` is stored as the current filter.
+        
+    .. note::
+        
+        This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
+        and :meth:`torch.nn.functional.conv3d_fft` for performing the convolutions in 3D. 
+        It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
 
     |sep|
 

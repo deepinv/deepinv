@@ -14,8 +14,7 @@ from deepinv.utils.plotting import plot
 from deepinv.utils.demo import load_url_image, get_image_url
 
 
-# %%
-# Load test images
+# %% Load test images
 # ----------------
 #
 # First, let's load some test images.
@@ -41,8 +40,8 @@ torch.cuda.manual_seed(0)
 # %%
 # We are now ready to explore the different blur operators.
 #
-# Blur
-# ----
+# Convolution Basics 
+# ------------------
 #
 # The class :class:`deepinv.physics.Blur` implements convolution operations with kernels.
 #
@@ -130,12 +129,14 @@ plot(
 )
 
 # %%
-# Motion blur generators
+# Blur generators
 # ----------------------
-#
 # More advanced kernel generation methods are provided with the toolbox thanks to
 # the  :class:`deepinv.physics.generator.PSFGenerator`. In particular, motion blurs generators are implemented.
 
+# %%
+# Motion blur generators
+# ~~~~~~~~~~~~~~~~~~~~~~
 from deepinv.physics.generator import MotionBlurGenerator
 
 # %%
@@ -165,7 +166,7 @@ plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 
 # %%
 # Diffraction blur generators
-# ---------------------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil
 # plane expanded in Zernike polynomials
@@ -237,8 +238,9 @@ plot(
     suptitle="PSF obtained with astigmatism only",
 )
 
-# %% Generator Mixture
-# --------------------
+# %% 
+# Generator Mixture
+# ~~~~~~~~~~~~~~~~~
 #
 # During training, it's more robust to train on multiple family of operators. This can be done
 # seamlessly with the :class:`deepinv.physics.generator.GeneratorMixture`.
@@ -258,7 +260,8 @@ for i in range(4):
         suptitle=f"Random PSF generated at step {i + 1}",
     )
 
-# %% Space varying blurs
+# %% 
+# Space varying blurs
 # --------------------
 #
 # Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`

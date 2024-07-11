@@ -700,13 +700,13 @@ def plot_ortho3D(
     suptitle=None,
     cmap="gray",
     fontsize=17,
-    interpolation="none",
+    interpolation="nearest",
 ):
     r"""
-    Plots a list of images.
+    Plots an orthogonal view of 3D images.
 
-    The images should be of shape [B,C,H,W] or [C, H, W], where B is the batch size, C is the number of channels,
-    H is the height and W is the width. The images are plotted in a grid, where the number of rows is B
+    The images should be of shape [B, C, D, H, W] or [C, D, H, W], where B is the batch size, C is the number of channels,
+    D is the depth, H is the height and W is the width. The images are plotted in a grid, where the number of rows is B
     and the number of columns is the length of the list. If the B is bigger than max_imgs, only the first
     batches are plotted.
 
@@ -720,9 +720,9 @@ def plot_ortho3D(
     .. doctest::
 
         import torch
-        from deepinv.utils import plot
-        img = torch.rand(4, 3, 256, 256)
-        plot([img, img, img], titles=["img1", "img2", "img3"], save_dir="test.png")
+        from deepinv.utils import plot_ortho3D
+        img = torch.rand(2, 3, 8, 16, 16)
+        plot_ortho3D(img)
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
@@ -735,6 +735,7 @@ def plot_ortho3D(
     :param tuple[int] figsize: size of the figure.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
+    :param int fontsize: fontsize for the titles. Default: 17
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
     # Use the matplotlib config from deepinv
@@ -775,7 +776,7 @@ def plot_ortho3D(
                 else:
                     pimg = im[i, :, :, :, :].type(torch.float32)
             pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-            col_imgs.append(pimg.detach().permute(1, 2, 3, 0).squeeze().cpu().numpy())
+            col_imgs.append(pimg.detach().permute(1, 2, 3, 0).cpu().numpy())
         imgs.append(col_imgs)
 
     if figsize is None:
@@ -802,14 +803,16 @@ def plot_ortho3D(
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
             
+            img = img**0.5
+                                    
             ax_XY = axs[r, i]
-            ax_XY.imshow(img[img.shape[0]//2], cmap=cmap, interpolation=interpolation)
+            ax_XY.imshow(img[img.shape[0]//2]**0.5, cmap=cmap, interpolation=interpolation)
             #ax_XY.set_aspect(1.)
             divider = make_axes_locatable(ax_XY)
-            ax_XZ = divider.append_axes("bottom", 3*0.5*split_ratios[i, r], pad=0.005*split_ratios[i, r], sharex=ax_XY)
-            ax_XZ.imshow(img[:, img.shape[1]//2, :], cmap=cmap, interpolation=interpolation)
-            ax_ZY = divider.append_axes("right", 3*0.5*split_ratios[i, r], pad=0.005*split_ratios[i, r], sharey=ax_XY)
-            ax_ZY.imshow(img[:, :, img.shape[2]//2].T, cmap=cmap, interpolation=interpolation)
+            ax_XZ = divider.append_axes("bottom", 3*0.5*split_ratios[i, r], sharex=ax_XY) #pad=1.0*split_ratios[i, r], sharex=ax_XY)
+            ax_XZ.imshow(img[:, img.shape[1]//2, :]**0.5, cmap=cmap, interpolation=interpolation)
+            ax_ZY = divider.append_axes("right", 3*0.5*split_ratios[i, r], sharey=ax_XY) #pad=1.0*split_ratios[i, r]
+            ax_ZY.imshow(np.moveaxis(img[:, :, img.shape[2]//2]**0.5, (0,1,2), (1,0,2)), cmap=cmap, interpolation=interpolation)
             
             if titles and r == 0:
                 axs[r, i].set_title(titles[i])
@@ -821,7 +824,7 @@ def plot_ortho3D(
     if tight:
         plt.subplots_adjust(hspace=0.05, wspace=0.05)
     if save_dir:
-        plt.savefig(save_dir / "images.png", dpi=1200)
+        plt.savefig(save_dir / "images.png", dpi=600)
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
                 plt.imsave(
