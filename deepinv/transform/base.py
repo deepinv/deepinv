@@ -2,6 +2,9 @@ from __future__ import annotations
 import torch
 from typing import Tuple, Callable, Any
 
+class Param:
+    def __neg__()
+
 class Transform(torch.nn.Module):
     """Base class for image transforms.
 
@@ -9,7 +12,7 @@ class Transform(torch.nn.Module):
 
     All transforms must implement ``get_params()`` to randomly generate e.g. rotation degrees or shift pixels, and ``transform()`` to deterministically transform an image given the params.
 
-    To implement a new transform, please reimplement ``get_params()``, ``invert_params()`` (if needed) and ``transform()``.
+    To implement a new transform, please reimplement ``get_params()``, ``invert_params()`` (if needed) and ``transform()`` (with a ``**kwargs`` argument).
     
     Also handle deterministic (non-random) transformations by passing in fixed parameter values.
 
@@ -63,7 +66,9 @@ class Transform(torch.nn.Module):
         self.rng = torch.Generator() if rng is None else rng
 
     def get_params(self, x: torch.Tensor) -> dict:
-        """Randomly generate transform parameters.
+        """Randomly generate transform parameters, one set per n_trans.
+
+        Params are represented as tensors where the first dimension indexes batch and n_trans.
 
         E.g. rotation degrees or shift amounts. Override this to implement a custom transform.
 
@@ -117,6 +122,10 @@ class Transform(torch.nn.Module):
 
     def identity(self, x: torch.Tensor) -> torch.Tensor:
         """Sanity check function that should do nothing.
+
+        This performs forward and inverse transform, which results in the exact original, down to interpolation effects.
+
+        Interpolation effects will be visible in non-pixelwise transformations, such as arbitrary rotation, scale or projective transformation.
 
         :param torch.Tensor x: input image
         :return torch.Tensor: :math:`T_g^{-1}T_g x=x`
@@ -183,12 +192,30 @@ class Transform(torch.nn.Module):
         """
 
         class StackTransform(Transform):
-            def __init__(self, t1, t2):
+            def __init__(self, t1: Transform, t2: Transform):
                 super().__init__()
                 self.t1 = t1
                 self.t2 = t2
+            
+            def get_params(self, x: torch.Tensor) -> dict:
+                return self.t1.get_params(x) | self.t2.get_params(x)
+            
+            def invert_params(self, params: dict) -> dict:
+                return self.t1.invert_params(params) | self.t2.invert_params(params)
 
-            def forward(self, x: torch.Tensor):
-                return torch.cat((self.t1(x), self.t2(x)), dim=0)
+            def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+                return torch.cat((
+                    self.t1.transform(x, **params),
+                    self.t2.transform(x, **params)
+                ), dim=0)
+            
+            def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
+                # x is assumed to be concatenated along first (batch) dimension of t1(x) and t2(x)
+                x1, x2 = x[:len(x) // 2, ...], x[len(x) // 2:, ...]
+                return torch.cat((
+                    self.t1.inverse(x1, **params),
+                    self.t2.inverse(x2, **params)
+                ), dim=0)
+                
 
         return StackTransform(self, other)
