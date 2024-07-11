@@ -79,7 +79,7 @@ class Flickr2kHR(torch.utils.data.Dataset):
                     )
 
                 for filename, url in self.archive_urls.items():
-                    # download tar file from the Internet and save it locally
+                    # download zip file from the Internet and save it locally
                     download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
