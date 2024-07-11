@@ -10,14 +10,14 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
-    filter center is at (hh, ww) where hh = h//2 if h is odd and hh = h//2 - 1 if h is even. Same for ww. 
-    
+    filter center is at (hh, ww) where hh = h//2 if h is odd and hh = h//2 - 1 if h is even. Same for ww.
+
     ..note:
         The convolution is in fact a correlation (filter is not flipped), similar to the torch conv2d.
 
     If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    :param padding: (options = `valid`, `circular`, `replicate`, `reflect`, `constant`) If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image. 
+    :param padding: (options = `valid`, `circular`, `replicate`, `reflect`, `constant`) If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
     `constant` corresponds to zero padding or `same` in :meth:`torch.nn.functional.conv2d`
 
     :return: (torch.Tensor) : the output
@@ -37,11 +37,12 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
         filter = filter.expand(B, -1, -1, -1)
 
     if padding != "valid":
-        ph = (h - 1) // 2
+        ph = h // 2
         ih = (h - 1) % 2
-        pw = (w - 1) // 2
+        pw = w // 2
         iw = (w - 1) % 2
-        pad = (ph, ph + ih, pw, pw + iw)
+        pad = (pw, pw - iw, ph, ph - ih)  # because functional.pad is w,h instead of h,w
+        # pad = (pw, pw, ph, ph)
 
         x = F.pad(x, pad, mode=padding, value=0)
         B, C, H, W = x.size()
@@ -80,8 +81,10 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
     B, C, H, W = y.size()
     b, c, h, w = filter.size()
 
-    ph = (h - 1) // 2
-    pw = (w - 1) // 2
+    ph = h // 2
+    pw = w // 2
+    ih = (h - 1) % 2
+    iw = (w - 1) % 2
 
     if padding != "valid":
         if ph == 0 or pw == 0:
@@ -109,43 +112,56 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
     if padding == "valid":
         out = x
     elif padding == "circular":
-        out = x[:, :, ph:-ph, pw:-pw]
+        out = x[:, :, ph : -ph + ih, pw : -pw + iw]
         # sides
-        out[:, :, :ph, :] += x[:, :, -ph:, pw:-pw]
-        out[:, :, -ph:, :] += x[:, :, :ph, pw:-pw]
-        out[:, :, :, :pw] += x[:, :, ph:-ph, -pw:]
-        out[:, :, :, -pw:] += x[:, :, ph:-ph, :pw]
+        out[:, :, : ph - ih, :] += x[:, :, -ph + ih :, pw : -pw + iw]
+        out[:, :, -ph:, :] += x[:, :, :ph, pw : -pw + iw]
+        out[:, :, :, : pw - iw] += x[:, :, ph : -ph + ih, -pw + iw :]
+        out[:, :, :, -pw:] += x[:, :, ph : -ph + ih, :pw]
         # corners
-        out[:, :, :ph, :pw] += x[:, :, -ph:, -pw:]
+        out[:, :, : ph - ih, : pw - iw] += x[:, :, -ph + ih :, -pw + iw :]
         out[:, :, -ph:, -pw:] += x[:, :, :ph, :pw]
-        out[:, :, :ph, -pw:] += x[:, :, -ph:, :pw]
-        out[:, :, -ph:, :pw] += x[:, :, :ph, -pw:]
+        out[:, :, : ph - ih, -pw:] += x[:, :, -ph + ih :, :pw]
+        out[:, :, -ph:, : pw - iw] += x[:, :, :ph, -pw + iw :]
 
     elif padding == "reflect":
-        out = x[:, :, ph:-ph, pw:-pw]
+        out = x[:, :, ph : -ph + ih, pw : -pw + iw]
         # sides
-        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw:-pw].flip(dims=(2,))
-        out[:, :, -ph - 1 : -1, :] += x[:, :, -ph:, pw:-pw].flip(dims=(2,))
-        out[:, :, :, 1 : 1 + pw] += x[:, :, ph:-ph, :pw].flip(dims=(3,))
-        out[:, :, :, -pw - 1 : -1] += x[:, :, ph:-ph, -pw:].flip(dims=(3,))
+        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw : -pw + iw].flip(dims=(2,))
+        out[:, :, -ph + ih - 1 : -1, :] += x[:, :, -ph + ih :, pw : -pw + iw].flip(
+            dims=(2,)
+        )
+        out[:, :, :, 1 : 1 + pw] += x[:, :, ph : -ph + ih, :pw].flip(dims=(3,))
+        out[:, :, :, -pw + iw - 1 : -1] += x[:, :, ph : -ph + ih, -pw + iw :].flip(
+            dims=(3,)
+        )
         # corners
         out[:, :, 1 : 1 + ph, 1 : 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
-        out[:, :, -ph - 1 : -1, -pw - 1 : -1] += x[:, :, -ph:, -pw:].flip(dims=(2, 3))
-        out[:, :, -ph - 1 : -1, 1 : 1 + pw] += x[:, :, -ph:, :pw].flip(dims=(2, 3))
-        out[:, :, 1 : 1 + ph, -pw - 1 : -1] += x[:, :, :ph, -pw:].flip(dims=(2, 3))
+        out[:, :, -ph + ih - 1 : -1, -pw + iw - 1 : -1] += x[
+            :, :, -ph + ih :, -pw + iw :
+        ].flip(dims=(2, 3))
+        out[:, :, -ph + ih - 1 : -1, 1 : 1 + pw] += x[:, :, -ph + ih :, :pw].flip(
+            dims=(2, 3)
+        )
+        out[:, :, 1 : 1 + ph, -pw + iw - 1 : -1] += x[:, :, :ph, -pw + iw :].flip(
+            dims=(2, 3)
+        )
 
     elif padding == "replicate":
-        out = x[:, :, ph:-ph, pw:-pw]
+        out = x[:, :, ph : -ph + ih, pw : -pw + iw]
         # sides
-        out[:, :, 0, :] += x[:, :, :ph, pw:-pw].sum(2)
-        out[:, :, -1, :] += x[:, :, -ph:, pw:-pw].sum(2)
-        out[:, :, :, 0] += x[:, :, ph:-ph, :pw].sum(3)
-        out[:, :, :, -1] += x[:, :, ph:-ph, -pw:].sum(3)
+        out[:, :, 0, :] += x[:, :, :ph, pw : -pw + iw].sum(2)
+        out[:, :, -1, :] += x[:, :, -ph + ih :, pw : -pw + iw].sum(2)
+        out[:, :, :, 0] += x[:, :, ph : -ph + ih, :pw].sum(3)
+        out[:, :, :, -1] += x[:, :, ph : -ph + ih, -pw + iw :].sum(3)
         # corners
         out[:, :, 0, 0] += x[:, :, :ph, :pw].sum(3).sum(2)
-        out[:, :, -1, -1] += x[:, :, -ph:, -pw:].sum(3).sum(2)
-        out[:, :, -1, 0] += x[:, :, -ph:, :pw].sum(3).sum(2)
-        out[:, :, 0, -1] += x[:, :, :ph, -pw:].sum(3).sum(2)
+        out[:, :, -1, -1] += x[:, :, -ph + ih :, -pw + iw :].sum(3).sum(2)
+        out[:, :, -1, 0] += x[:, :, -ph + ih :, :pw].sum(3).sum(2)
+        out[:, :, 0, -1] += x[:, :, :ph, -pw + iw :].sum(3).sum(2)
+
+    elif padding == "constant":
+        out = x[:, :, ph : -(ph - ih), pw : -(pw - iw)]
 
     return out
 
@@ -160,7 +176,7 @@ def conv2d_fft(x: Tensor, filter: Tensor, real_fft: bool = True) -> Tensor:
     If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     For convolution using FFT consider only `circular` padding (i.e., circular convolution).
-    
+
     ..note:
         The convolution here is a convolution, not a correlation as in conv2d.
 
@@ -244,7 +260,10 @@ def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
     """
     pass
 
-def conv3d_fft(x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid") -> Tensor:
+
+def conv3d_fft(
+    x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
+) -> Tensor:
     r"""
     A helper function performing the 3d convolution of `x` and `filter` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transpose3d_fft()`.
 
@@ -252,18 +271,18 @@ def conv3d_fft(x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = 
     :param torch.Tensor filter: Filter of size `(b, c, d, h, w)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
     :param bool real_fft: for real filters and images choose True (default) to accelerate computation
     :param str padding: can be `valid` (default) or `circular`
- 
+
     If `b = 1` or `c = 1`, this function applies the same filter for each channel.
     Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    Padding conditions include ``'circular'`` and ``'valid'``. 
-    
-    .. note::  
+    Padding conditions include ``'circular'`` and ``'valid'``.
+
+    .. note::
         The filter center is located at (d//2, h//2, w//2)
 
     :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`x` if ``padding = 'circular'``, (B, C, D-d+1, W-w+1, H-h+1) if ``padding = 'valid'``
-    """  
-    
+    """
+
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
 
     B, C, D, H, W = x.size()
@@ -277,7 +296,7 @@ def conv3d_fft(x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = 
     if b != B:
         assert b == 1
         filter = filter.expand(B, -1, -1, -1, -1)
-    
+
     if real_fft:
         f_f = fft.rfftn(filter, s=img_size, dim=(-3, -2, -1))
         x_f = fft.rfftn(x, dim=(-3, -2, -1))
@@ -287,16 +306,18 @@ def conv3d_fft(x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = 
         x_f = fft.fftn(x, dim=(-3, -2, -1))
         res = fft.ifftn(x_f * f_f, s=img_size, dim=(-3, -2, -1))
 
-    if padding == 'valid':
-        return res[:, :, d-1:, h-1:, w-1:]    
-    elif padding == 'circular':
-        shifts =(-(d//2), -(h//2), -(w//2))
-        return torch.roll(res, shifts = shifts, dims = (-3, -2, -1))
+    if padding == "valid":
+        return res[:, :, d - 1 :, h - 1 :, w - 1 :]
+    elif padding == "circular":
+        shifts = (-(d // 2), -(h // 2), -(w // 2))
+        return torch.roll(res, shifts=shifts, dims=(-3, -2, -1))
     else:
-        raise ValueError("padding = '"+padding+"' not implemented")
+        raise ValueError("padding = '" + padding + "' not implemented")
 
 
-def conv_transpose3d_fft(y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid") -> Tensor:
+def conv_transpose3d_fft(
+    y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
+) -> Tensor:
     r"""
     A helper function performing the 3d transposed convolution of `y` and `filter` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv3d_fft()`.
 
@@ -309,7 +330,7 @@ def conv_transpose3d_fft(y: Tensor, filter: Tensor, real_fft: bool = True, paddi
     If `b = 1` or `c = 1`, then this function applies the same filter for each channel.
     Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    Padding conditions include `circular` and `valid`. 
+    Padding conditions include `circular` and `valid`.
 
     :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`y`
     """
@@ -319,14 +340,14 @@ def conv_transpose3d_fft(y: Tensor, filter: Tensor, real_fft: bool = True, paddi
     # Get dimensions of the input and the filter
     B, C, D, H, W = y.size()
     b, c, d, h, w = filter.size()
-    if padding == 'valid':
-        img_size = (D+d-1, H+h-1, W+w-1)
-    elif padding =='circular' :
+    if padding == "valid":
+        img_size = (D + d - 1, H + h - 1, W + w - 1)
+    elif padding == "circular":
         img_size = (D, H, W)
-        shifts =(d//2, h//2, w//2)
-        y = torch.roll(y, shifts = shifts, dims = (-3, -2, -1))
+        shifts = (d // 2, h // 2, w // 2)
+        y = torch.roll(y, shifts=shifts, dims=(-3, -2, -1))
     else:
-        raise ValueError("padding = '"+padding+"' not implemented")
+        raise ValueError("padding = '" + padding + "' not implemented")
 
     if c != C:
         assert c == 1
@@ -345,8 +366,8 @@ def conv_transpose3d_fft(y: Tensor, filter: Tensor, real_fft: bool = True, paddi
         y_f = fft.fftn(y, s=img_size, dim=(-3, -2, -1))
         res = fft.ifftn(y_f * torch.conj(f_f), s=img_size, dim=(-3, -2, -1))
 
-    if padding == 'valid':
-        return torch.roll(res, shifts = (d - 1, h - 1, w - 1), dims=(-3, -2, -1))
+    if padding == "valid":
+        return torch.roll(res, shifts=(d - 1, h - 1, w - 1), dims=(-3, -2, -1))
     else:
         return res
 
@@ -409,7 +430,7 @@ def conv_transpose3d_fft(y: Tensor, filter: Tensor, real_fft: bool = True, paddi
 #     #     print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)
 
 
-# #%% 
+# #%%
 # a = torch.zeros(1,1,7,7)
 # b = torch.zeros(1,1,6,6)
 # a[0,0,0,0] = 1

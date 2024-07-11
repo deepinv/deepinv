@@ -20,10 +20,13 @@ OPERATORS = [
     "deblur_circular",
     "deblur_reflect",
     "deblur_replicate",
+    "deblur_constant",
     "space_deblur_valid",
     "space_deblur_circular",
     "space_deblur_reflect",
     "space_deblur_replicate",
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
     "super_resolution_valid",
     "super_resolution_circular",
     "super_resolution_reflect",
@@ -67,7 +70,7 @@ def find_operator(name, device):
     norm = 1
     dtype = torch.float
     padding = None
-    paddings = ["valid", "circular", "reflect", "replicate"]
+    paddings = ["valid", "circular", "reflect", "replicate", "constant"]
     for p in paddings:
         if p in name:
             padding = p
@@ -157,6 +160,16 @@ def find_operator(name, device):
             * 0.5,
             padding=padding,
         )
+    elif name.startswith("3Ddeblur"):
+        img_size = (3, 11, 17, 19)
+        h = torch.zeros(1, 1, 5, 5, 5)
+        h[:, :, 1:4, 1:4, 1:4] = 1
+        p = dinv.physics.Blur(
+            filter=h,
+            padding=padding,
+            device=device,
+        )
+
     elif name == "aliased_super_resolution":
         img_size = (1, 32, 32)
         factor = 2
@@ -248,7 +261,8 @@ def find_nonlinear_operator(name, device):
                 torch.randn(1, device=device),
             ]
         )
-        p = dinv.physics.Haze()
+        p = dinv.physics.Haze()    paddings = ["valid", "circular", "reflect", "replicate", "constant"]
+
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
@@ -683,3 +697,7 @@ def test_tomography(device):
                     y = physics.A(r)
                     error = (physics.A_dagger(y) - r).flatten().mean().abs()
                     assert error < 0.2
+
+
+# device='cpu'
+# test_operators_adjointness("super_resolution_circular", device)

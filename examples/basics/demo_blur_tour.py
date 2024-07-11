@@ -40,7 +40,7 @@ torch.cuda.manual_seed(0)
 # %%
 # We are now ready to explore the different blur operators.
 #
-# Convolution Basics 
+# Convolution Basics
 # ------------------
 #
 # The class :class:`deepinv.physics.Blur` implements convolution operations with kernels.
@@ -238,7 +238,7 @@ plot(
     suptitle="PSF obtained with astigmatism only",
 )
 
-# %% 
+# %%
 # Generator Mixture
 # ~~~~~~~~~~~~~~~~~
 #
@@ -260,7 +260,7 @@ for i in range(4):
         suptitle=f"Random PSF generated at step {i + 1}",
     )
 
-# %% 
+# %%
 # Space varying blurs
 # --------------------
 #

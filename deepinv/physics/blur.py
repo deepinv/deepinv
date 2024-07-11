@@ -12,7 +12,7 @@ from deepinv.physics.functional import (
     product_convolution2d,
     product_convolution2d_adjoint,
     conv3d_fft,
-    conv_transpose3d_fft
+    conv_transpose3d_fft,
 )
 
 
@@ -253,10 +253,14 @@ class Downsampling(LinearPhysics):
                     self.imsize[2] - self.filter.shape[-1] + 1,
                 )
             else:
+                h, w = self.filter.shape[-2:]
+                ih = (h - 1) % 2
+                iw = (w - 1) % 2                
+            
                 imsize = (
                     self.imsize[0],
-                    self.imsize[1] - (self.filter.shape[-2] + 1) % 2,
-                    self.imsize[2] - (self.filter.shape[-1] + 1) % 2,
+                    self.imsize[1] - ih + 1,
+                    self.imsize[2] - iw + 1,
                 )
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device)
@@ -308,7 +312,7 @@ class Blur(LinearPhysics):
     .. math:: y = w*x
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
-    
+
     :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D, containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``). Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
@@ -319,11 +323,11 @@ class Blur(LinearPhysics):
 
         This class makes it possible to change the filter at runtime by passing a new filter to the forward method, e.g.,
         ``y = physics(x, w)``. The new filter :math:`w` is stored as the current filter.
-        
+
     .. note::
-        
+
         This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and :meth:`torch.nn.functional.conv3d_fft` for performing the convolutions in 3D. 
+        and :meth:`torch.nn.functional.conv3d_fft` for performing the convolutions in 3D.
         It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
 
     |sep|
@@ -362,7 +366,7 @@ class Blur(LinearPhysics):
             the provided filter is stored as the current filter.
         """
         self.update_parameters(filter)
-        
+
         if x.dim() == 4:
             return conv2d(x, self.filter, self.padding)
         elif x.dim() == 5:
@@ -380,7 +384,7 @@ class Blur(LinearPhysics):
         self.update_parameters(filter)
 
         if y.dim() == 4:
-           return conv_transpose2d(y, self.filter, self.padding)
+            return conv_transpose2d(y, self.filter, self.padding)
         elif y.dim() == 5:
             return conv_transpose3d_fft(y, self.filter, self.padding)
 
