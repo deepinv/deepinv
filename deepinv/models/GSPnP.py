@@ -22,11 +22,10 @@ class GSPnP(nn.Module):
     :param float alpha: Relaxation parameter
     """
 
-    def __init__(self, denoiser, alpha=1.0, train=False):
+    def __init__(self, denoiser, alpha=1.0):
         super().__init__()
         self.student_grad = StudentGrad(denoiser)
         self.alpha = alpha
-        self.train = train
 
     def potential(self, x, sigma, *args, **kwargs):
         N = self.student_grad(x, sigma)
@@ -73,7 +72,6 @@ def GSDRUNet(
     nc=[64, 128, 256, 512],
     act_mode="E",
     pretrained=None,
-    train=False,
     device=torch.device("cpu"),
 ):
     """
@@ -107,10 +105,9 @@ def GSDRUNet(
         nc=nc,
         act_mode=act_mode,
         pretrained=None,
-        train=train,
         device=device,
     )
-    GSmodel = GSPnP(denoiser, alpha=alpha, train=train)
+    GSmodel = GSPnP(denoiser, alpha=alpha)
     if pretrained:
         if pretrained == "download":
             url = get_weights_url(
@@ -128,4 +125,5 @@ def GSDRUNet(
             ckpt = ckpt["state_dict"]
 
         GSmodel.load_state_dict(ckpt, strict=False)
+        GSmodel.eval()
     return GSmodel

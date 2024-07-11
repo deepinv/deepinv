@@ -264,6 +264,7 @@ class DiffUNet(nn.Module):
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
             self.load_state_dict(ckpt, strict=True)
+            self.eval()
 
     def convert_to_fp16(self):
         """
