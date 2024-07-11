@@ -1,4 +1,3 @@
-# %%
 import math
 import torch.nn.functional as F
 import torch
@@ -52,43 +51,23 @@ def product_convolution2d(
 
 def get_psf_product_convolution2d(h, w, position: Tuple[int]):
     r"""
+    Get the PSF at the given position of the :meth:`deepinv.physics.functional.produc_convolution2d` function.
     :param torch.Tensor w: Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param Tuple[int] position: Position of the PSF patch
     """
     return torch.sum(h * w[..., position[0]:position[0]+1, position[1]:position[1] + 1], dim=0).flip(-1).flip(-2)
 
 
-# def get_psf_product_convolution2d_patches(h, w, position: Tuple[int], overlap: Tuple[int], image_size: Tuple[int]):
-#     r"""
-#     :param torch.Tensor w: Tensor of size (K, b, c, patch_size, patch_size). b in {1, B} and c in {1, C}
-#     :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
-#     """
-#     patch_size = w.shape[-2:]
-#     patch_index, patch_position = get_all_patches_and_positions(
-#         position, patch_size, overlap, image_size)
-
-#     num_patches = ((image_size[0] - patch_size[0]) // (patch_size[0] - overlap[0]) + 1,
-#                    (image_size[1] - patch_size[1]) // (patch_size[1] - overlap[1]) + 1)
-
-#     h = h.view(num_patches[0], num_patches[1], h.size(
-#         1), h.size(2), h.size(3), h.size(4))
-#     w = w.view(num_patches[0], num_patches[1], w.size(
-#         1), w.size(2), w.size(3), w.size(4))
-
-#     output = 0.
-#     print('xxx: ', patch_index, patch_position)
-#     for index, pos in zip(patch_index, patch_position):
-#         i, j = index
-#         ii, jj = pos
-#         print('1', i, j)
-#         print('2', ii, jj)
-#         output += output + h[i, j, ...] * w[i, j, ..., ii:ii+1, jj:jj+1]
-#     return output.flip(-1).flip(-2) if isinstance(output, torch.Tensor) else output
-
-def get_psf_product_convolution2d_patches(h, w, position: Tuple[int], overlap: Tuple[int], num_patches: Tuple[int]):
+def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[int], overlap: Tuple[int], num_patches: Tuple[int]):
     r"""
-    :param torch.Tensor w: Tensor of size (K, b, c, patch_size, patch_size). b in {1, B} and c in {1, C}
+    Get the PSF at the given position of the :meth:`deepinv.physics.functional.produc_convolution2d_patches` function.  
+
+    :param torch.Tensor w: Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param Tuple[int] position: Position of the PSF patch
+    :param Tuple[int] overlap: Overlap between PSF patches
+    :param Tuple[int] num_patches: Number of PSF patches
     """
     patch_size = w.shape[-2:]
     if isinstance(overlap, int):
@@ -144,12 +123,8 @@ def get_psf_product_convolution2d_patches(h, w, position: Tuple[int], overlap: T
         1), h.size(2), h.size(3), h.size(4))
     w = w.view(num_patches[0], num_patches[1], w.size(
         1), w.size(2), w.size(3), w.size(4))
-    psf = 0.
 
-    # print('n:', n)
-    # print('patch_position_h', patch_position_h)
-    # print('patch_position_w', patch_position_w)
-    # print('index: ', index_h, index_w)
+    psf = 0.
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
             psf = psf + h[i, j, ...] * w[i, j, ...,
@@ -186,52 +161,51 @@ def product_convolution2d_adjoint(
     return result
 
 
-def unity_partition_function_1d(image_size, patch_size, overlap, ):
-    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
-    max = patch_size + (n_patch - 1) * (patch_size - overlap)
-    t = torch.linspace(-max//2, max//2, max)
-    mask = bump_function(t, patch_size / 2 - overlap,
-                         overlap).roll(shifts=-max // 2 + patch_size//2)
-    masks = torch.stack([mask.roll(shifts=(patch_size-overlap) * i)
-                         for i in range(n_patch)], dim=0)
-    masks[0, :overlap] = 1.
-    masks[-1, -overlap:] = 1.
-    masks = masks / masks.sum(dim=0, keepdims=True)
-    return masks
-
-
-def linear_function_1d(image_size, patch_size, overlap):
-    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
-    max = patch_size + (n_patch - 1) * (patch_size - overlap)
-    t = torch.linspace(-max//2, max//2, max)
-    a = patch_size / 2 - overlap
-    b = overlap
-    def f(x): return ((a + b) / b - x.abs().clip(0, a+b) / b).abs().clip(0, 1)
-
-    mask = f(t).roll(shifts=-max // 2 + patch_size//2)
-    masks = torch.stack([mask.roll(shifts=(patch_size-overlap) * i)
-                         for i in range(n_patch)], dim=0)
-    masks[0, :overlap] = 1.
-    masks[-1, -overlap:] = 1.
-    masks = masks / masks.sum(dim=0, keepdims=True)
-    return masks
-
-
-def unity_partition_function_2d(image_size: Tuple[int], patch_size: Tuple[int], overlap: Tuple[int]):
+def unity_partition_function_1d(image_size: int, patch_size: int, overlap: int, mode: str = 'bump'):
     r"""
-    Unity partition function in 2D.
-    Image will be cropped.
+    Define the partition function, which is 1 on [-a, a] and decrease to 0 on - (a + b) and (a + b)
+    where a = patch_size / 2 - overlap and b = overlap.  
 
+    :param int image_size: the size the dimension of image
+    :param int patch_size: the size of patch along a dimension 
+    :param int overlap: overlapping size of patch along a dimension
+    :param str mode: 'linear' or 'bump' are supported. Defined how the function is decreased.
+    """
+    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
+    max = patch_size + (n_patch - 1) * (patch_size - overlap)
+    t = torch.linspace(-max//2, max//2, max)
+    if mode.lower() == 'bump':
+        mask = bump_function(t, patch_size / 2 - overlap,
+                             overlap).roll(shifts=-max // 2 + patch_size//2)
+    elif mode.lower() == 'linear':
+        a = patch_size / 2 - overlap
+        b = overlap
+        def linear(x): return ((a + b) / b -
+                               x.abs().clip(0, a+b) / b).abs().clip(0, 1)
+        mask = linear(t).roll(shifts=-max // 2 + patch_size//2)
+
+    masks = torch.stack([mask.roll(shifts=(patch_size-overlap) * i)
+                         for i in range(n_patch)], dim=0)
+    masks[0, :overlap] = 1.
+    masks[-1, -overlap:] = 1.
+    masks = masks / masks.sum(dim=0, keepdims=True)
+    return masks
+
+
+def unity_partition_function_2d(image_size: Tuple[int], patch_size: Tuple[int], overlap: Tuple[int], mode: str = 'bump'):
+    r"""
+    Unity partition function in 2D. Similar to :meth:`deepinv.physics.functional.product_convolution.unity_partition_function_1d`
+    This function will create the mask corresponding to the patches output from :meth:`deepinv.physics.functional.product_convolution.image_to_patches`.
+
+    :param tuple image_size: size of the image in the format (height, width)
+    :param tuple patch_size: size of the patch in the format (height, width)
+    :param tuple overlap: overlap size of the patch in the format (height, width)
+    :param str mode: 'linear' or 'bump' are supported. Defined how the function is decreased. Default to `bump`.
     """
     masks_x = unity_partition_function_1d(
-        image_size[0], patch_size[0], overlap[0])
+        image_size[0], patch_size[0], overlap[0], mode)
     masks_y = unity_partition_function_1d(
-        image_size[1], patch_size[1], overlap[1])
-    # masks_x = linear_function_1d(
-    #     image_size[0], patch_size[0], overlap[0])
-    # masks_y = linear_function_1d(
-    #     image_size[1], patch_size[1], overlap[1])
-
+        image_size[1], patch_size[1], overlap[1], mode)
     masks = torch.tensordot(masks_x, masks_y, dims=0)
     masks = masks.permute(0, 2, 1, 3)
     masks = masks / (masks.sum(dim=(0, 1), keepdims=True) + 1e-8)
@@ -242,8 +216,8 @@ def crop_unity_partition_2d(masks, patch_size: Tuple[int], overlap: Tuple[int], 
     cropped_masks = []
     diff_h = patch_size[0] - overlap[0]
     diff_w = patch_size[1] - overlap[1]
-    supp_h = patch_size[0]  # + psf_size[0]
-    supp_w = patch_size[1]  # + psf_size[1]
+    supp_h = patch_size[0]
+    supp_w = patch_size[1]
 
     index = torch.zeros(masks.size(0), masks.size(1), 2)
     for h in range(masks.size(0)):
@@ -318,7 +292,6 @@ def patches_to_image(patches, overlap):
         B, num_patches_h * num_patches_w, C, h, w)
 
     # Now reverse the process using torch.fold
-
     # Calculate the number of patches
     num_patches = num_patches_h * num_patches_w
 
@@ -335,7 +308,6 @@ def patches_to_image(patches, overlap):
     return output.contiguous()
 
 
-# %%
 def product_convolution2d_patches(
     x: Tensor,
     w: Tensor,
@@ -399,14 +371,15 @@ def product_convolution2d_patches(
     margin = (psf_size[0] // 2, psf_size[1] // 2)
     B, C, K, H, W = result.size()
     result = patches_to_image(result.view(
-        B, C, n_rows, n_cols, H, W), add_tuple(overlap, subtract_tuple_by_constant(psf_size, 1)))[..., margin[0]:-margin[0], margin[1]:-margin[1]]
+        B, C, n_rows, n_cols, H, W), add_tuple(overlap, add_tuple(psf_size, (-1,) * len(psf_size))))[..., margin[0]:-margin[0], margin[1]:-margin[1]]
     return result
 
 
-def subtract_tuple_by_constant(a, constant):
-    return tuple(a[i] - constant for i in range(len(a)))
-
-
-def add_tuple(a, b):
-    assert len(a) == len(b)
+def add_tuple(a: tuple, b: tuple):
+    r"""
+    Add 2 tuples element-wise.
+    :param tuple a: First tuple
+    :param tuple b: Second tuple
+    """
+    assert len(a) == len(b), 'Input must have the same length'
     return tuple(a[i] + b[i] for i in range(len(a)))
