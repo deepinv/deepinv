@@ -110,7 +110,6 @@ prior = PnP(
         in_channels=n_channels,
         out_channels=n_channels,
         pretrained=None,
-        train=True,
         depth=7,
     ).to(device)
 )
