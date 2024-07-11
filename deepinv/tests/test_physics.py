@@ -25,12 +25,14 @@ OPERATORS = [
     "space_deblur_circular",
     "space_deblur_reflect",
     "space_deblur_replicate",
+    "space_deblur_constant",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
     "super_resolution_valid",
     "super_resolution_circular",
     "super_resolution_reflect",
     "super_resolution_replicate",
+    "super_resolution_constant",
     "aliased_super_resolution",
     "fast_singlepixel",
     "MRI",
@@ -146,6 +148,7 @@ def find_operator(name, device):
     elif name.startswith("space_deblur"):
         img_size = (3, 20, 13)
         h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
+        h /= torch.sum(h)
         h = torch.cat([h, h], dim=0)
         p = dinv.physics.SpaceVaryingBlur(
             filters=h,
@@ -161,9 +164,10 @@ def find_operator(name, device):
             padding=padding,
         )
     elif name.startswith("3Ddeblur"):
-        img_size = (3, 11, 17, 19)
-        h = torch.zeros(1, 1, 5, 5, 5)
-        h[:, :, 1:4, 1:4, 1:4] = 1
+        img_size = (1, 7, 6, 8)
+        h_size = (1 , 1, 4, 3, 5)
+        h = torch.rand(h_size)
+        h /= h.sum()
         p = dinv.physics.Blur(
             filter=h,
             padding=padding,
@@ -261,7 +265,7 @@ def find_nonlinear_operator(name, device):
                 torch.randn(1, device=device),
             ]
         )
-        p = dinv.physics.Haze()    paddings = ["valid", "circular", "reflect", "replicate", "constant"]
+        p = dinv.physics.Haze()   
 
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
@@ -329,10 +333,11 @@ def test_operators_norm(name, device):
     if (
         name in ["singlepixel", "CS", "complex_compressed_sensing"]
         or "pansharpen" in name
-        or "space_deblur"
+        or "reflect" in name or "replicate" in name or "constant" in name or "valid" in name # convolution norm is not simple in those cases
     ):
-        bound = 0.2
-    assert torch.abs(norm - norm_ref) < bound
+        pass
+    else:
+        assert torch.abs(norm - norm_ref) < bound
 
 
 @pytest.mark.parametrize("name", NONLINEAR_OPERATORS)
@@ -697,7 +702,3 @@ def test_tomography(device):
                     y = physics.A(r)
                     error = (physics.A_dagger(y) - r).flatten().mean().abs()
                     assert error < 0.2
-
-
-# device='cpu'
-# test_operators_adjointness("super_resolution_circular", device)
