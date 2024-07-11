@@ -146,10 +146,10 @@ def get_psf_product_convolution2d_patches(h, w, position: Tuple[int], overlap: T
         1), w.size(2), w.size(3), w.size(4))
     psf = 0.
 
-    print('n:', n)
-    print('patch_position_h', patch_position_h)
-    print('patch_position_w', patch_position_w)
-    print('index: ', index_h, index_w)
+    # print('n:', n)
+    # print('patch_position_h', patch_position_h)
+    # print('patch_position_w', patch_position_w)
+    # print('index: ', index_h, index_w)
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
             psf = psf + h[i, j, ...] * w[i, j, ...,
@@ -309,7 +309,7 @@ def patches_to_image(patches, overlap):
 
     output_size = (h + (num_patches_h - 1) * (h - overlap[0]),
                    w + (num_patches_w - 1) * (w - overlap[1]))
-    print(output_size)
+    # print(output_size)
     if not isinstance(patches, torch.Tensor):
         raise TypeError("Patches should be a torch.Tensor")
 
@@ -399,8 +399,12 @@ def product_convolution2d_patches(
     margin = (psf_size[0] // 2, psf_size[1] // 2)
     B, C, K, H, W = result.size()
     result = patches_to_image(result.view(
-        B, C, n_rows, n_cols, H, W), add_tuple(overlap, psf_size))[..., margin[0]:-margin[0], margin[1]:-margin[1]]
+        B, C, n_rows, n_cols, H, W), add_tuple(overlap, subtract_tuple_by_constant(psf_size, 1)))[..., margin[0]:-margin[0], margin[1]:-margin[1]]
     return result
+
+
+def subtract_tuple_by_constant(a, constant):
+    return tuple(a[i] - constant for i in range(len(a)))
 
 
 def add_tuple(a, b):
