@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any, Callable
 import os
 
@@ -92,7 +93,7 @@ class LsdirHR(torch.utils.data.Dataset):
     # for integrity of downloaded data
     checksums = {
         "train": "a83bdb97076d617e4965913195cc84d1",
-        "val": "74be16979710d4c4e7c6647856088456",
+        "val": "972ba478c530b76eb9404b038597f65f",
     }
 
     def __init__(

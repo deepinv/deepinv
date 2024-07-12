@@ -1,4 +1,4 @@
-from typing import Any, Callable, List
+from typing import Any, Callable, List, NamedTuple
 import os
 import re
 
@@ -32,7 +32,7 @@ class FMD(torch.utils.data.Dataset):
                    |                    |         |      -- HV110_P0500510049.png
                    |                    |         -- 20
                    |                    -- avg2
-                   |                    -- avg4
+                   |                    -- avg4TODO
                    |                    -- avg8
                    |                    -- gt
                    |                    -- raw
@@ -42,7 +42,10 @@ class FMD(torch.utils.data.Dataset):
                    |
                    -- WideField_BPAE_R.tar
 
-    | 1) There are 12 image types : Confocal_BPAE_B, ..., WideField_BPAE_R.
+    | 1) There are 12 image types : 
+    | Confocal_BPAE_B, Confocal_BPAE_G, Confocal_BPAE_R, Confocal_FISH, Confocal_MICE
+    | TwoPhoton_BPAE_B, TwoPhoton_BPAE_G, TwoPhoton_BPAE_R, TwoPhoton_MICE
+    | WideField_BPAE_B, WideField_BPAE_G, WideField_BPAE_R
     | 2) Each image type has its own folder.
     | 3) Each folder contains 6 subfolders- : gt, raw, avg2, avg4, avg8 and avg16.
     | 4) gt contains clean images, the others have different noise levels applied to images.
@@ -106,8 +109,8 @@ class FMD(torch.utils.data.Dataset):
         self,
         root: str,
         img_types: List[str],
-        noise_levels: List[int],
-        fovs: List[int],
+        noise_levels: List[int] = [1, 2, 4, 8, 16],
+        fovs: List[int] = list(range(1, 20+1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
@@ -133,8 +136,8 @@ class FMD(torch.utils.data.Dataset):
             "WideField_BPAE_G",
             "WideField_BPAE_B",
         ]
-        if not all(img_type in all_types for img_type in img_types):
-            raise ValueError(f"Wrong image type. Available types: {all_types}")
+        if img_types is None or not all(img_type in all_types for img_type in img_types):
+            raise ValueError(f"Wrong image type. Set `img_types` argument with these values: {all_types}")
 
         all_noise_levels = [1, 2, 4, 8, 16]
         if not all(level in all_noise_levels for level in noise_levels):
@@ -146,9 +149,9 @@ class FMD(torch.utils.data.Dataset):
             if not os.path.isdir(self.root):
                 os.makedirs(self.root)
 
-            for img_type in self.noise_levels:
+            for img_type in self.img_types:
                 filename = img_type + ".tar"
-                gdrive_id = gdrive_ids[filename]
+                gdrive_id = self.gdrive_ids[filename]
 
                 ## We need to access the content of a html file to retrieve information
                 ## Which will be needed to download the archive ------------------------
