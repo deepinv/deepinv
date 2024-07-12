@@ -336,16 +336,18 @@ def test_operators_norm(name, device):
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
         name in ["singlepixel", "CS", "complex_compressed_sensing"]
-        or "pansharpen" in name) :
+        or "pansharpen" in name
+    ):
         bound = 0.2
-    # convolution norm is not simple in those cases  
-    if ("reflect" in name
+    # convolution norm is not simple in those cases
+    if (
+        "reflect" in name
         or "replicate" in name
         or "constant" in name
-        or "valid" in name  
+        or "valid" in name
     ):
         pass
-    else:    
+    else:
         assert torch.abs(norm - norm_ref) < bound
 
 
