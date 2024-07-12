@@ -31,6 +31,7 @@ dependencies = [
     "wandb",
     "scipy",
     "datasets",
+    "pandas",
 ]
 
 [tool.setuptools]
@@ -73,6 +74,10 @@ denoisers = [
     "pyiqa",
     "kornia",
     "torchkbnufft"
+]
+
+dataset = [
+    "pydicom",
 ]
 
 
