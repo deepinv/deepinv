@@ -195,6 +195,7 @@ def find_operator(name, device):
             padding=padding,
             device=device,
             filter="bilinear",
+            dtype=dtype,
         )
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8)
@@ -293,6 +294,7 @@ def test_operators_adjointness(name, device):
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
+    print(error)
     assert error < 1e-3
 
     if (
@@ -303,6 +305,8 @@ def test_operators_adjointness(name, device):
 
     y = physics.A(x)
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
+
+    print(error2)
 
     assert error2 < 1e-3
 
@@ -332,14 +336,16 @@ def test_operators_norm(name, device):
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
         name in ["singlepixel", "CS", "complex_compressed_sensing"]
-        or "pansharpen" in name
-        or "reflect" in name
+        or "pansharpen" in name) :
+        bound = 0.2
+    # convolution norm is not simple in those cases  
+    if ("reflect" in name
         or "replicate" in name
         or "constant" in name
-        or "valid" in name  # convolution norm is not simple in those cases
+        or "valid" in name  
     ):
         pass
-    else:
+    else:    
         assert torch.abs(norm - norm_ref) < bound
 
 

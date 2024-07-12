@@ -245,6 +245,7 @@ class Downsampling(LinearPhysics):
             self.filter = torch.nn.Parameter(filter, requires_grad=False)
 
         imsize = self.imsize
+
         if self.filter is not None:
             if self.padding == "valid":
                 imsize = (
@@ -253,17 +254,13 @@ class Downsampling(LinearPhysics):
                     self.imsize[2] - self.filter.shape[-1] + 1,
                 )
             else:
-                h, w = self.filter.shape[-2:]
-                ih = (h - 1) % 2
-                iw = (w - 1) % 2
-
                 imsize = (
                     self.imsize[0],
-                    self.imsize[1] - ih + 1,
-                    self.imsize[2] - iw + 1,
+                    self.imsize[1],
+                    self.imsize[2],
                 )
 
-        x = torch.zeros((y.shape[0],) + imsize, device=y.device)
+        x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
             x = conv_transpose2d(x, self.filter, padding=self.padding)
@@ -327,7 +324,7 @@ class Blur(LinearPhysics):
     .. note::
 
         This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and :meth:`torch.nn.functional.conv3d_fft` for performing the convolutions in 3D.
+        and FFT for performing the convolutions in 3D as implemented in :meth:`deepinv.physics.functional.conv3d_fft`.
         It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
 
     |sep|
@@ -615,3 +612,9 @@ class SpaceVaryingBlur(LinearPhysics):
             self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
         if padding is not None:
             self.padding = padding
+
+
+# x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
+# x[:, :, 16, 16] = 1 # Define one white pixel in the middle
+# physics = Downsampling(filter = "gaussian", img_size=(1, 32, 32), factor=2, padding='circular')
+# y = physics(x)

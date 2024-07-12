@@ -239,7 +239,9 @@ def filter_fft_2d(filter, img_size, real_fft=True):
     ph = int((filter.shape[2] - 1) / 2)
     pw = int((filter.shape[3] - 1) / 2)
 
-    filt2 = torch.zeros(filter.shape[:2] + img_size[-2:], device=filter.device)
+    filt2 = torch.zeros(
+        tuple(filter.shape[:2]) + tuple(img_size[-2:]), device=filter.device
+    )
 
     filt2[..., : filter.shape[2], : filter.shape[3]] = filter
     filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))

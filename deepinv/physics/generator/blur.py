@@ -538,7 +538,6 @@ def bump_function(x, a=1.0, b=1.0):
     >>> R = torch.sqrt(X**2 + Y**2)
     >>> Z = bump_function(R, 3, 1)
     >>> Z = Z / torch.sum(Z)
-    >>> dinv.utils.plot(Z[None])
     """
     v = torch.zeros_like(x)
     v[torch.abs(x) <= a] = 1
@@ -665,19 +664,16 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     :Examples:
     >>> import torch
     >>> from deepinv.physics.generator import DiffractionBlurGenerator3D
-    >>> from deepinv.utils import plot_ortho3D
     >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, list_param=['Z0'])
     >>> dict = generator.step()
     >>> filter = dict['filter']
-    >>> plot_ortho3D(filter)
     >>> print(filter.shape)
-    torch.Size([1, 16, 16, 16])
+    torch.Size([1, 1, 21, 51, 51])
     >>> batch_size = 2
     >>> n_zernike = len(generator.generator2d.list_param)
     >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
-    >>> filter = dict['filter']
-    >>> plot_ortho3D(filter)
-    >>> pupil = dict['pupil']
+    >>> dict.keys()
+    dict_keys(['filter', 'pupil', 'coeff'])
 
 
     """
@@ -811,20 +807,19 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
     :Examples:
     >>> import torch
-    >>> from deepinv.physics.generator import DiffractionBlurGenerator3D
-    >>> from deepinv.utils import plot_ortho3D
-    >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, list_param=['Z0'])
+    >>> from deepinv.physics.generator import ConfocalBlurGenerator3D
+    >>> generator = ConfocalBlurGenerator3D((21, 51, 51), list_param=['Z0'])
     >>> dict = generator.step()
     >>> filter = dict['filter']
-    >>> plot_ortho3D(filter)
     >>> print(filter.shape)
-    torch.Size([1, 16, 16, 16])
+    torch.Size([1, 1, 21, 51, 51])
     >>> batch_size = 2
-    >>> n_zernike = len(generator.generator2d.list_param)
-    >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
-    >>> filter = dict['filter']
-    >>> plot_ortho3D(filter)
-    >>> pupil = dict['pupil']
+    >>> n_zernike = len(generator.generator_ill.generator2d.list_param)
+    >>> dict = generator.step(batch_size=batch_size,
+    ...                       coeff_ill = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs),
+    ...                       coeff_coll = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
+    >>> dict.keys()
+    dict_keys(['filter', 'coeff_ill', 'coeff_coll'])
 
 
     """
@@ -983,6 +978,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
         return {
             "filter": psf.expand(-1, self.shape[0], -1, -1, -1),
-            "coeff_coll": coeff_coll,
             "coeff_ill": coeff_ill,
+            "coeff_coll": coeff_coll,
         }

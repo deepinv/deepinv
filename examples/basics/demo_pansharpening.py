@@ -23,7 +23,7 @@ import torch
 # Here we show how to stack two operators, one that downsamples a color image and another that converts the color image
 # grayscale. This is equivalent to the :class:`deepinv.physics.Pansharpen` operator.
 
-img_size = (3, 64, 64)
+img_size = (3, 65, 65)
 factor = 2
 filter = "gaussian"
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -31,7 +31,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 physics1 = dinv.physics.Downsampling(
     img_size=img_size, factor=factor, filter=filter, device=device
 )
-physics2 = dinv.physics.Decolorize()
+physics2 = dinv.physics.Decolorize(device=device)
 physics_stacked = physics2 + physics1
 
 # %%
