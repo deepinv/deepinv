@@ -3,7 +3,15 @@ import shutil
 import PIL
 import pytest
 
-from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68, Flickr2kHR
+from deepinv.datasets import (
+    DIV2K,
+    Urban100HR,
+    Set14HR,
+    CBSD68,
+    Flickr2kHR,
+    LsdirHR,
+    FMD,
+)
 
 
 @pytest.fixture
@@ -133,4 +141,60 @@ def test_load_flickr2k_dataset(download_flickr2k):
     ), f"Dataset should have been of len 2650, instead got {len(dataset)}."
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
+    ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_lsdir():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "LSDIR"
+
+    # Download LSDIR raw dataset
+    LsdirHR(tmp_data_dir, mode="val", download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_load_lsdir_dataset(download_lsdir):
+    """Check that dataset contains 250 PIL images."""
+    dataset = LsdirHR(download_lsdir, mode="val", download=False)
+    assert (
+        len(dataset) == 250
+    ), f"Dataset should have been of len 250, instead got {len(dataset)}."
+    assert (
+        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
+    ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_fmd():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "FMD"
+
+    # indicates which subsets we want to download
+    types = ["TwoPhoton_BPAE_R"]
+
+    # Download FMD raw dataset
+    FMD(tmp_data_dir, img_types=types, download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_load_fmd_dataset(download_fmd):
+    """Check that dataset contains 5000 noisy PIL images with its ground truths."""
+    types = ["TwoPhoton_BPAE_R"]
+    dataset = FMD(download_fmd, img_types=types, download=True)
+    assert (
+        len(dataset) == 5000
+    ), f"Dataset should have been of len 5000, instead got {len(dataset)}."
+    assert (
+        type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."

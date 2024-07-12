@@ -32,7 +32,7 @@ class FMD(torch.utils.data.Dataset):
                    |                    |         |      -- HV110_P0500510049.png
                    |                    |         -- 20
                    |                    -- avg2
-                   |                    -- avg4TODO
+                   |                    -- avg4
                    |                    -- avg8
                    |                    -- gt
                    |                    -- raw
@@ -42,7 +42,7 @@ class FMD(torch.utils.data.Dataset):
                    |
                    -- WideField_BPAE_R.tar
 
-    | 1) There are 12 image types : 
+    | 1) There are 12 image types :
     | Confocal_BPAE_B, Confocal_BPAE_G, Confocal_BPAE_R, Confocal_FISH, Confocal_MICE
     | TwoPhoton_BPAE_B, TwoPhoton_BPAE_G, TwoPhoton_BPAE_R, TwoPhoton_MICE
     | WideField_BPAE_B, WideField_BPAE_G, WideField_BPAE_R
@@ -66,12 +66,17 @@ class FMD(torch.utils.data.Dataset):
 
     |sep|
 
-    # TODO
     :Examples:
 
         Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
+        >>> from deepinv.datasets import FMD
+        >>> img_types = ["TwoPhoton_BPAE_R"]
+        >>> dataset = FMD(root="fmd", img_types=img_types, download=True)  # download raw data at root and load dataset
+        >>> print(len(dataset))                                            # check that we have 5000 images
+        5000
+        >>> shutil.rmtree("fmd")                                           # remove raw data from disk
 
     """
 
@@ -110,7 +115,7 @@ class FMD(torch.utils.data.Dataset):
         root: str,
         img_types: List[str],
         noise_levels: List[int] = [1, 2, 4, 8, 16],
-        fovs: List[int] = list(range(1, 20+1)),
+        fovs: List[int] = list(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
@@ -136,8 +141,12 @@ class FMD(torch.utils.data.Dataset):
             "WideField_BPAE_G",
             "WideField_BPAE_B",
         ]
-        if img_types is None or not all(img_type in all_types for img_type in img_types):
-            raise ValueError(f"Wrong image type. Set `img_types` argument with these values: {all_types}")
+        if img_types is None or not all(
+            img_type in all_types for img_type in img_types
+        ):
+            raise ValueError(
+                f"Wrong image type. Set `img_types` argument with these values: {all_types}"
+            )
 
         all_noise_levels = [1, 2, 4, 8, 16]
         if not all(level in all_noise_levels for level in noise_levels):

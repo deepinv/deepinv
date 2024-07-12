@@ -48,20 +48,19 @@ class LsdirHR(torch.utils.data.Dataset):
 
     |sep|
 
-    # TODO
     :Examples:
 
         Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import LSDIR
-        >>> dataset = LSDIR(root="LSDIR", download=True)  # download raw data at root and load dataset
+        >>> val_dataset = LsdirHR(root="Lsdir", mode="val", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> print(dataset.check_dataset_exists())         # check that raw data has been downloaded correctly
+        >>> print(dataset.verify_split_dataset_integrity())                 # check that raw data has been downloaded correctly
         True
-        >>> print(len(dataset))                           # check that we have 100 images
-        2650
-        >>> shutil.rmtree("Flickr2K")                     # remove raw data from disk
+        >>> print(len(dataset))                                             # check that we have 250 images
+        250
+        >>> shutil.rmtree("Lsdir")                                          # remove raw data from disk
 
     """
 
