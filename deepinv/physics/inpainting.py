@@ -123,7 +123,6 @@ class Inpainting(DecomposablePhysics):
 
 
 class Demosaicing(Inpainting):
-    def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
         r"""
         Demosaicing operator.
 
@@ -151,6 +150,7 @@ class Demosaicing(Inpainting):
 
 
         """
+    def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
         if pattern == "bayer":
             if len(img_size) == 2:
                 img_size = (3, img_size[0], img_size[1])
