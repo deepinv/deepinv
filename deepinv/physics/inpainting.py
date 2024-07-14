@@ -123,34 +123,33 @@ class Inpainting(DecomposablePhysics):
 
 
 class Demosaicing(Inpainting):
+    r"""
+    Demosaicing operator.
+
+    The operator chooses one color per pixel according to the pattern specified.
+
+    :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).
+    :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
+    :param torch.device device: ``gpu`` or ``cpu``
+
+    |sep|
+
+    :Examples:
+
+        Demosaicing operator using Bayer pattern for a 4x4 image:
+
+        >>> from deepinv.physics import Demosaicing
+        >>> x = torch.ones(1, 3, 4, 4)
+        >>> physics = Demosaicing(img_size=(4, 4))
+        >>> physics(x)[0, 1, :, :] # Green channel
+        tensor([[0., 1., 0., 1.],
+                [1., 0., 1., 0.],
+                [0., 1., 0., 1.],
+                [1., 0., 1., 0.]])
+
+    """
+
     def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
-        r"""
-        Demosaicing operator.
-
-        The operator chooses one color per pixel according to the pattern specified.
-
-        :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).
-        :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
-        :param torch.device device: ``gpu`` or ``cpu``
-
-        |sep|
-
-        :Examples:
-
-            Demosaicing operator using Bayer pattern for a 4x4 image:
-
-            >>> from deepinv.physics import Demosaicing
-            >>> x = torch.ones(1, 3, 4, 4)
-            >>> physics = Demosaicing(img_size=(4, 4))
-            >>> physics(x)[0, 1, :, :] # Green channel
-            tensor([[0., 1., 0., 1.],
-                    [1., 0., 1., 0.],
-                    [0., 1., 0., 1.],
-                    [1., 0., 1., 0.]])
-
-
-
-        """
         if pattern == "bayer":
             if len(img_size) == 2:
                 img_size = (3, img_size[0], img_size[1])
