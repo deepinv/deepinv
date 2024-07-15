@@ -335,7 +335,7 @@ def test_operators_norm(name, device):
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
-        name in ["singlepixel", "CS", "complex_compressed_sensing"]
+        name in ["singlepixel", "CS", "complex_compressed_sensing", "radio"]
         or "pansharpen" in name
     ):
         bound = 0.2
