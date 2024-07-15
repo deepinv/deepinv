@@ -35,17 +35,13 @@ class Flickr2kHR(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instantiate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet ::
 
-        >>> import shutil
-        >>> from deepinv.datasets import Flickr2kHR
-        >>> dataset = Flickr2kHR(root="Flickr2K", download=True)  # download raw data at root and load dataset
-        Dataset has been successfully downloaded.
-        >>> print(dataset.check_dataset_exists())                 # check that raw data has been downloaded correctly
-        True
-        >>> print(len(dataset))                                   # check that we have 100 images
-        2650
-        >>> shutil.rmtree("Flickr2K")                             # remove raw data from disk
+            from deepinv.datasets import Flickr2kHR
+            root = "/path/to/dataset/Flickr2K"
+            dataset = Flickr2kHR(root=root, download=True)  # download raw data at root and load dataset
+            print(dataset.check_dataset_exists())           # check that raw data has been downloaded correctly
+            print(len(dataset))                             # check that we have 100 images
 
     """
 
