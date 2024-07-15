@@ -237,7 +237,8 @@ class SplittingModel(torch.nn.Module):
 
         return out
 
-    def _forward_split_output(self, y: torch.Tensor):
+    def _forward_split_output(self, y: torch.Tensor, physics: Physics):
+
         """Perform splitting at model output too, only at eval time
         """
         out = 0
