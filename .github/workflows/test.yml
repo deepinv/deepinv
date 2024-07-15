@@ -23,7 +23,7 @@ jobs:
           # Test with no optional dependencies
           - os: ubuntu-latest
             version_python: 3.9
-            extra: test
+            extra: dataset,test
             name: "no optional dependencies"
 
     env:
