@@ -92,3 +92,4 @@ Ready-made datasets available in the `deepinv.datasets` module.
     deepinv.datasets.Set14HR
     deepinv.datasets.CBSD68
     deepinv.datasets.FastMRISliceDataset
+    deepinv.datasets.LidcIdriSliceDataset

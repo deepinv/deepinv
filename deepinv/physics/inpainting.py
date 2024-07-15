@@ -176,8 +176,6 @@ class Demosaicing(Inpainting):
                 [0., 1., 0., 1.],
                 [1., 0., 1., 0.]])
 
-
-
     """
 
     def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
