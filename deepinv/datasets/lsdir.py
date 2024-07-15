@@ -56,9 +56,9 @@ class LsdirHR(torch.utils.data.Dataset):
         >>> from deepinv.datasets import LsdirHR
         >>> val_dataset = LsdirHR(root="Lsdir", mode="val", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> print(dataset.verify_split_dataset_integrity())                 # check that raw data has been downloaded correctly
+        >>> print(val_dataset.verify_split_dataset_integrity())             # check that raw data has been downloaded correctly
         True
-        >>> print(len(dataset))                                             # check that we have 250 images
+        >>> print(len(val_dataset))                                         # check that we have 250 images
         250
         >>> shutil.rmtree("Lsdir")                                          # remove raw data from disk
 
