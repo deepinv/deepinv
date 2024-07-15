@@ -14,15 +14,12 @@ import torch
 from deepinv.physics.generator import MotionBlurGenerator
 from deepinv.physics.generator import DiffractionBlurGenerator
 from deepinv.physics.generator import GeneratorMixture
-import sys
-sys.path.append('/home/minhhai/Works/dev/deepinv/deepinv/physics/')
-from generator.blur import ProductConvolutionPatchBlurGenerator
 from deepinv.physics.generator import (
     DiffractionBlurGenerator,
     ProductConvolutionBlurGenerator,
+    ProductConvolutionPatchBlurGenerator,
 )
 from deepinv.physics.blur import SpaceVaryingBlur
-
 
 
 # %%
