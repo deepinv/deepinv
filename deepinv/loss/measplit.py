@@ -52,7 +52,7 @@ class SplittingLoss(Loss):
         None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used.
     :param int MC_samples: Number of samples used for averaging. Must be greater than 0.
     :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)
-    :param bool eval_split_output: at evaluation time, pass the output through the output mask too. 
+    :param bool eval_split_output: at evaluation time, pass the output through the output mask too.
         i.e. :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.
         Only valid when y is same domain (and dimension) as x. Defaults to False.
     :param bool pixelwise: if True, create pixelwise splitting masks i.e. zero all channels simultaneously.
@@ -198,8 +198,7 @@ class SplittingModel(torch.nn.Module):
     def forward(
         self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
     ):
-        """Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.
-        """
+        """Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency."""
         out = 0
 
         if self.mask_generator is None:
@@ -223,7 +222,9 @@ class SplittingModel(torch.nn.Module):
 
                 for _ in range(MC_samples):
                     # Perform input masking
-                    mask = self.mask_generator.step(y.size(0), input_mask=getattr(physics, "mask", None))
+                    mask = self.mask_generator.step(
+                        y.size(0), input_mask=getattr(physics, "mask", None)
+                    )
                     y1 = inp.A(y, **mask)
                     physics1 = inp * physics  # A_1 = P*A
                     physics1.noise_model = physics.noise_model
@@ -237,15 +238,16 @@ class SplittingModel(torch.nn.Module):
         return out
 
     def _forward_split_output(self, y: torch.Tensor):
-        """Perform splitting at model output too, only at eval time
-        """
+        """Perform splitting at model output too, only at eval time"""
         out = 0
         normaliser = torch.zeros_like(y)
         inp = Inpainting(y.size()[1:], device=y.device)
 
         for _ in range(self.MC_samples):
             # Perform input masking
-            mask = self.mask_generator.step(y.size(0), input_mask=getattr(physics, "mask", None))
+            mask = self.mask_generator.step(
+                y.size(0), input_mask=getattr(physics, "mask", None)
+            )
             y1 = inp.A(y, **mask)
             physics1 = inp * physics  # A_1 = P*A
             physics1.noise_model = physics.noise_model
@@ -258,7 +260,7 @@ class SplittingModel(torch.nn.Module):
             inp2 = Inpainting(y.size()[1:], mask=mask2, device=y.device)
             out += inp2.A(x_hat)
             normaliser += mask2
-        
+
         out[normaliser != 0] /= normaliser[normaliser != 0]
 
         return out
