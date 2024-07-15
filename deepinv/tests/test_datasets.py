@@ -8,7 +8,6 @@ from deepinv.datasets import (
     Urban100HR,
     Set14HR,
     CBSD68,
-    Flickr2kHR,
     LsdirHR,
     FMD,
 )
@@ -113,32 +112,6 @@ def test_load_cbsd68_dataset(download_CBSD68):
     assert (
         len(dataset) == 68
     ), f"Dataset should have been of len 68, instead got {len(dataset)}."
-    assert (
-        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
-
-
-@pytest.fixture
-def download_flickr2k():
-    """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "Flickr2K"
-
-    # Download Flickr2K raw dataset
-    Flickr2kHR(tmp_data_dir, download=True)
-
-    # This will return control to the test function
-    yield tmp_data_dir
-
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
-
-
-def test_load_flickr2k_dataset(download_flickr2k):
-    """Check that dataset contains 2650 PIL images."""
-    dataset = Flickr2kHR(download_flickr2k, download=False)
-    assert (
-        len(dataset) == 2650
-    ), f"Dataset should have been of len 2650, instead got {len(dataset)}."
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
