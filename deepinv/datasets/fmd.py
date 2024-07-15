@@ -209,7 +209,12 @@ class FMD(torch.utils.data.Dataset):
                     folder_path = os.path.join(
                         self.root, img_type, noise_dirname, str(fov)
                     )
-                    noisy_img_list = sorted(os.listdir(folder_path))
+                    try:
+                        noisy_img_list = sorted(os.listdir(folder_path))
+                    except FileNotFoundError:
+                        raise RuntimeError(
+                            f"Data folder {folder_path} doesn't exist, please set `download=True`"
+                        )
                     for fname in noisy_img_list:
                         if fname.endswith(".png"):
                             self.noisy_sample_identifiers.append(
