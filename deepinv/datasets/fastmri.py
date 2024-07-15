@@ -10,6 +10,7 @@ LICENSE file in the root directory of this source tree.
 
 import random
 from pathlib import Path
+import pickle
 from typing import (
     Any,
     Callable,
