@@ -20,7 +20,7 @@ from deepinv.physics.generator import (
     ProductConvolutionPatchBlurGenerator,
 )
 from deepinv.physics.blur import SpaceVaryingBlur
-
+from deepinv.physics.functional.product_convolution import compute_patch_info
 
 # %%
 # Load test images
@@ -304,19 +304,23 @@ plot(psf_grid, titles="Space varying impulse responses")
 # %%
 patch_size = 64
 overlap = 32
-pc_generator = ProductConvolutionPatchBlurGenerator(
+patch_psf_generator = ProductConvolutionPatchBlurGenerator(
     psf_generator=psf_generator,
     image_size=img_size,
     patch_size=patch_size,
     overlap=overlap,
-
 )
+patch_info = {'patch_size': patch_size,
+              'overlap': overlap}
+params_pc = patch_psf_generator.step(batch_size, **patch_info)
 
-physics = SpaceVaryingBlur(method="product_convolution2d_patch", **params_pc)
+patch_physics = SpaceVaryingBlur(method="product_convolution2d_patch",
+                                 patch_info=patch_info,
+                                 **params_pc)
 
 dirac_comb = torch.zeros(img_size)[None, None]
 dirac_comb[0, 0, ::delta, ::delta] = 1
-psf_grid = physics(dirac_comb)
+
+psf_grid = physics(dirac_comb, filters=filters)
 plot(psf_grid, titles="Space varying impulse responses")
 
-# %%

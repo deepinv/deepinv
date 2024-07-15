@@ -8,7 +8,7 @@ from deepinv.physics.functional.multiplier import (
     multiplier_adjoint,
 )
 from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
-
+import numpy as np
 # PRODUCT CONVOLUTION ON THE WHOLE IMAGE, USING EIGEN-PSF
 
 
@@ -301,8 +301,7 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     psf = 0.
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
-            psf = psf + h[i, j, ...] * w[i, j, ..., patch_position_h[count_i]
-                : patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
+            psf = psf + h[i, j, ...] * w[i, j, ..., patch_position_h[count_i]                                         : patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
     return psf.flip(-1).flip(-2) if isinstance(psf, torch.Tensor) else psf
 
 

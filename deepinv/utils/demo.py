@@ -208,6 +208,7 @@ def load_url_image(
         transform_list.append(transforms.Grayscale())
     transform_list.append(transforms.ToTensor())
     transform = transforms.Compose(transform_list)
+    
     x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 

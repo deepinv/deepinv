@@ -509,7 +509,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
-    :method str method: 'product_convolution' or 'product_convolution_patch'.
+    :method str method: 'product_convolution' or 'product_convolution2d_patch'.
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
@@ -517,7 +517,8 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str device: cpu or cuda
 
     |sep|
-
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
     :Examples:
 
         We show how to instantiate a spatially varying blur operator.
@@ -567,9 +568,12 @@ class SpaceVaryingBlur(LinearPhysics):
             return product_convolution2d(
                 x, self.multipliers, self.filters, self.padding
             )
-        elif self.method == "product_convolution_patch":
+        elif self.method == "product_convolution2d_patch":
             if patch_info is not None:
                 self.patch_info = patch_info
+
+            print(self.multipliers.shape)
+            print(self.filters.shape)
             return product_convolution2d_patches(x, w=self.multipliers, h=self.filters, patch_size=self.patch_info['patch_size'], overlap=self.patch_info['overlap'])
         else:
             raise NotImplementedError(
@@ -597,7 +601,7 @@ class SpaceVaryingBlur(LinearPhysics):
             return product_convolution2d_adjoint(
                 y, self.multipliers, self.filters, self.padding
             )
-        elif self.method == "product_convolution_patch":
+        elif self.method == "product_convolution2d_patch":
             if patch_info is not None:
                 self.patch_info = patch_info
             return product_convolution2d_adjoint_patches(y, w=self.multipliers, h=self.filters, patch_size=self.patch_info['patch_size'], overlap=self.patch_info['overlap'])

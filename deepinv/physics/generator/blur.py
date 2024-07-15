@@ -6,7 +6,7 @@ from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import histogramdd
 from deepinv.physics.functional.interp import ThinPlateSpline
-from deepinv.physics.functional.product_convolution import unity_partition_function_2d, compute_patch_info
+from deepinv.physics.functional.product_convolution import unity_partition_function_2d, compute_patch_info, crop_unity_partition_2d
 
 
 class PSFGenerator(PhysicsGenerator):
@@ -699,6 +699,9 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
         w = unity_partition_function_2d(
             image_size, patch_size, overlap, mode='bump')
 
+        w, _ = crop_unity_partition_2d(
+            w, patch_size, overlap, psf_generator.psf_size)
+
         self.w = w.flatten(0, 1).unsqueeze(1).unsqueeze(
             2).to(**self.factory_kwargs)
 
@@ -729,9 +732,10 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
         num_patches = np.prod(compute_patch_info(
             self.image_size, patch_size, overlap)['num_patches'])
         filters = self.psf_generator.step(
-            batch_size * num_patches, **kwargs)
-        filters = filters.view(num_patches, batch_size, filter.size(
-            1), filter.size(2), filters.size(3))
+            batch_size * num_patches, **kwargs)['filter']
+
+        filters = filters.view(num_patches, batch_size, filters.size(
+            1), filters.size(2), filters.size(3))
         # Ending
         params_blur = {"filters": filters,
                        "multipliers": self.w, "padding": self.padding}
