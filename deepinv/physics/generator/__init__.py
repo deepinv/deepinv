@@ -4,6 +4,7 @@ from .blur import (
     DiffractionBlurGenerator,
     PSFGenerator,
     ProductConvolutionBlurGenerator,
+    ProductConvolutionPatchBlurGenerator,
 )
 from .mri import GaussianMaskGenerator, RandomMaskGenerator, EquispacedMaskGenerator
 from .noise import SigmaGenerator

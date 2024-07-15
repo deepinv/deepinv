@@ -10,6 +10,8 @@ from deepinv.physics.functional.multiplier import (
 )
 from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
 
+# PRODUCT CONVOLUTION ON THE WHOLE IMAGE, USING EIGEN-PSF
+
 
 def product_convolution2d(
     x: Tensor, w: Tensor, h: Tensor, padding: str = "valid"
@@ -49,6 +51,35 @@ def product_convolution2d(
     return result
 
 
+def product_convolution2d_adjoint(
+    y: Tensor, w: Tensor, h: Tensor, padding: str = "valid"
+) -> Tensor:
+    r"""
+
+    Product-convolution adjoint operator in 2d.
+
+    :param torch.Tensor x: Tensor of size (B, C, ...)
+    :param torch.Tensor w: Tensor of size (K, b, c, ...)
+    :param torch.Tensor h: Tensor of size (K, b, c, ...)
+    :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+        If `padding = 'valid'` the blurred output is smaller than the image (no padding),
+        otherwise the blurred output has the same size as the image.
+    """
+
+    K = w.shape[0]
+    for k in range(K):
+        if k == 0:
+            result = multiplier_adjoint(
+                conv_transpose2d(y, h[k], padding=padding), w[k]
+            )
+        else:
+            result += multiplier_adjoint(
+                conv_transpose2d(y, h[k], padding=padding), w[k]
+            )
+
+    return result
+
+
 def get_psf_product_convolution2d(h, w, position: Tuple[int]):
     r"""
     Get the PSF at the given position of the :meth:`deepinv.physics.functional.product_convolution2d` function.
@@ -58,13 +89,153 @@ def get_psf_product_convolution2d(h, w, position: Tuple[int]):
     """
     return torch.sum(h * w[..., position[0]:position[0]+1, position[1]:position[1] + 1], dim=0).flip(-1).flip(-2)
 
+# PRODUCT CONVOLUTION USING PATCHES
+
+
+def product_convolution2d_patches(
+    x: Tensor,
+    w: Tensor,
+    h: Tensor,
+    patch_size: Tuple[int] = (256, 256),
+    overlap: Tuple[int] = (128, 128),
+) -> Tensor:
+    r"""
+
+    Product-convolution operator in 2d. Details available in the following paper:
+
+    Escande, P., & Weiss, P. (2017).
+    `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
+    Journal of Mathematical Imaging and Vision, 58, 333-348.
+
+    The convolution is done by patches, using only 'valid' padding.
+    This forward operator performs
+
+    .. math::
+
+        y = \sum_{k=1}^K h_k \star (w_k \odot x)
+
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
+
+    :param torch.Tensor x: Tensor of size (B, C, H, W)
+    :param torch.Tensor w: Tensor of size (b, c, K, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
+
+    :param torch.Tensor w: Tensor of size (K, b, c, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Tensor of size (K, b, c, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
+
+    :return: torch.Tensor y
+    :rtype: tuple
+    """
+    if isinstance(patch_size, int):
+        patch_size = (patch_size, patch_size)
+    if isinstance(overlap, int):
+        overlap = (overlap, overlap)
+
+    psf_size = h.shape[-2:]
+    patches = image_to_patches(
+        x,
+        patch_size=patch_size,
+        overlap=overlap)  # (B, C, K1, K2, P1, P2)
+
+    n_rows, n_cols = patches.size(2), patches.size(3)
+    assert n_rows * \
+        n_cols == h.size(
+            2), 'The number of patches must be equal to the number of PSFs'
+
+    patches = patches.flatten(2, 3)
+    patches = patches * w
+
+    patches = F.pad(patches, pad=(
+        psf_size[1] - 1, psf_size[1] - 1, psf_size[0] - 1, psf_size[0] - 1), value=0, mode='constant')
+
+    result = []
+    for k in range(h.size(2)):
+        result.append(conv2d(
+            patches[:, :, k, ...], h[:, :, k, ...], padding='valid',
+        ))
+    # (B, C, K, H', W')
+
+    result = torch.stack(result, dim=2)
+    margin = (psf_size[0] - 1, psf_size[1] - 1)
+    B, C, K, H, W = result.size()
+    result = patches_to_image(result.view(
+        B, C, n_rows, n_cols, H, W), add_tuple(overlap, add_tuple(psf_size, (-1,) * len(psf_size))))[..., margin[0]:-margin[0], margin[1]:-margin[1]]
+    return result
+
+
+def product_convolution2d_adjoint_patches(
+    x: Tensor,
+    w: Tensor,
+    h: Tensor,
+    patch_size: Tuple[int] = (256, 256),
+    overlap: Tuple[int] = (128, 128),
+) -> Tensor:
+    r"""
+
+    Product-convolution operator in 2d. Details available in the following paper:
+
+    Escande, P., & Weiss, P. (2017).
+    `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
+    Journal of Mathematical Imaging and Vision, 58, 333-348.
+
+    The convolution is done by patches, using only 'valid' padding.
+    This forward operator performs
+
+    .. math::
+
+        y = \sum_{k=1}^K h_k \star (w_k \odot x)
+
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
+
+    :param torch.Tensor x: Tensor of size (B, C, H, W)
+    :param torch.Tensor w: Tensor of size (b, c, K, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
+
+    :return: torch.Tensor y
+    :rtype: tuple
+    """
+    if isinstance(patch_size, int):
+        patch_size = (patch_size, patch_size)
+    if isinstance(overlap, int):
+        overlap = (overlap, overlap)
+
+    psf_size = h.shape[-2:]
+    x = F.pad(x, pad=(
+        psf_size[1] - 1, psf_size[1] - 1, psf_size[0] - 1, psf_size[0] - 1), value=0, mode='constant')
+
+    patches = image_to_patches(
+        x,
+        patch_size=add_tuple(patch_size, add_tuple(
+            psf_size, (-1,) * len(psf_size))),
+        overlap=add_tuple(overlap, add_tuple(psf_size, (-1,) * len(psf_size)))
+    )
+    # (B, C, K1, K2, P1, P2)
+
+    n_rows, n_cols = patches.size(2), patches.size(3)
+    assert n_rows * \
+        n_cols == h.size(
+            2), 'The number of patches must be equal to the number of PSFs'
+
+    patches = patches.flatten(2, 3)
+    result = []
+    for k in range(h.size(2)):
+        result.append(conv_transpose2d(
+            patches[:, :, k, ...], h[:, :, k, ...], padding='valid'),
+        )
+    # (B, C, K, H', W')
+    result = torch.stack(result, dim=2)
+    margin = (psf_size[0] - 1, psf_size[1] - 1)
+    result = result[..., margin[0]: - margin[0], margin[1]: - margin[1]]
+    result = result * w
+    B, C, K, H, W = result.size()
+    result = patches_to_image(result.view(
+        B, C, n_rows, n_cols, H, W), overlap)
+    return result
+
 
 def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[int], overlap: Tuple[int], num_patches: Tuple[int]):
     r"""
     Get the PSF at the given position of the :meth:`deepinv.physics.functional.product_convolution2d_patches` function.
-
-    :param torch.Tensor w: Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
 
     :param torch.Tensor w: Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Tensor of size (b, K, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
@@ -76,6 +247,7 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     patch_size = w.shape[-2:]
     if isinstance(overlap, int):
         overlap = (overlap, overlap)
+
     p = patch_size
     o = overlap
     n = (math.floor(position[0] / (p[0] - o[0])),
@@ -85,6 +257,7 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     index_w = []
     patch_position_h = []
     patch_position_w = []
+    # position = (position[0] - psf_size[0] + 1, position[1] - psf_size[0] + 1)
 
     if n[0] == 0:
         index_h.append(n[0])
@@ -131,39 +304,11 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     psf = 0.
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
-            psf = psf + h[:, :, i, j, ...] * w[:, :, i, j, patch_position_h[count_i]:patch_position_h[count_i]+1, patch_position_w[count_j]:patch_position_w[count_j]+1]
+            psf = psf + h[:, :, i, j, ...] * w[:, :, i, j, patch_position_h[count_i]: patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
     return psf.flip(-1).flip(-2) if isinstance(psf, torch.Tensor) else psf
 
 
-def product_convolution2d_adjoint(
-    y: Tensor, w: Tensor, h: Tensor, padding: str = "valid"
-) -> Tensor:
-    r"""
-
-    Product-convolution adjoint operator in 2d.
-
-    :param torch.Tensor x: Tensor of size (B, C, ...)
-    :param torch.Tensor w: Tensor of size (K, b, c, ...)
-    :param torch.Tensor h: Tensor of size (K, b, c, ...)
-    :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
-        If `padding = 'valid'` the blurred output is smaller than the image (no padding),
-        otherwise the blurred output has the same size as the image.
-    """
-
-    K = w.shape[0]
-    for k in range(K):
-        if k == 0:
-            result = multiplier_adjoint(
-                conv_transpose2d(y, h[k], padding=padding), w[k]
-            )
-        else:
-            result += multiplier_adjoint(
-                conv_transpose2d(y, h[k], padding=padding), w[k]
-            )
-
-    return result
-
-
+# UTILITY FUNCTIONS
 def unity_partition_function_1d(image_size: int, patch_size: int, overlap: int, mode: str = 'bump'):
     r"""
     Define the partition function, which is 1 on [-a, a] and decrease to 0 on - (a + b) and (a + b)
@@ -209,6 +354,15 @@ def unity_partition_function_2d(image_size: Tuple[int],
     :param tuple overlap: overlap size of the patch in the format (height, width)
     :param str mode: 'linear' or 'bump' are supported. Defined how the function is decreased. Default to `bump`.
     """
+    if isinstance(image_size, int):
+        image_size = (image_size, image_size)
+
+    if isinstance(patch_size, int):
+        patch_size = (patch_size, patch_size)
+
+    if isinstance(overlap, int):
+        overlap = (overlap, overlap)
+
     masks_x = unity_partition_function_1d(
         image_size[0], patch_size[0], overlap[0], mode)
     masks_y = unity_partition_function_1d(
@@ -228,6 +382,15 @@ def crop_unity_partition_2d(masks, patch_size: Tuple[int], overlap: Tuple[int], 
         :rtype Tensor masks: mask of shape (K_h, K_w, patch_size, patch_size) representing the the mask corresponding to each patch.
         :rtype Tensor index: index of shape (K_h, K_w, 2) representing the index of the mask centers.
     """
+
+    if isinstance(patch_size, int):
+        patch_size = (patch_size, patch_size)
+
+    if isinstance(overlap, int):
+        overlap = (overlap, overlap)
+
+    if isinstance(psf_size, int):
+        psf_size = (psf_size, psf_size)
 
     diff_h = patch_size[0] - overlap[0]
     diff_w = patch_size[1] - overlap[1]
@@ -326,82 +489,17 @@ def patches_to_image(patches: Tuple[int], overlap: Tuple[int]):
     return output.contiguous()
 
 
-def product_convolution2d_patches(
-    x: Tensor,
-    w: Tensor,
-    h: Tensor,
-    patch_size: Tuple[int] = (256, 256),
-    overlap: Tuple[int] = (128, 128),
-) -> Tensor:
-    r"""
-
-    Product-convolution operator in 2d. Details available in the following paper:
-
-    Escande, P., & Weiss, P. (2017).
-    `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
-    Journal of Mathematical Imaging and Vision, 58, 333-348.
-
-    The convolution is done by patches, using only 'valid' padding.
-    This forward operator performs
-
-    .. math::
-
-        y = \sum_{k=1}^K h_k \star (w_k \odot x)
-
-    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
-
-    :param torch.Tensor x: Tensor of size (B, C, H, W)
-    :param torch.Tensor w: Tensor of size (b, c, K, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
-
-    :return: torch.Tensor y
-    :rtype: tuple
-    """
-    if isinstance(patch_size, int):
-        patch_size = (patch_size, patch_size)
-    if isinstance(overlap, int):
-        overlap = (overlap, overlap)
-
-    psf_size = h.shape[-2:]
-    patches = image_to_patches(
-        x,
-        patch_size=patch_size,
-        overlap=overlap)  # (B, C, K1, K2, P1, P2)
-
-    n_rows, n_cols = patches.size(2), patches.size(3)
-    assert n_rows * \
-        n_cols == h.size(
-            2), 'The number of patches must be equal to the number of PSFs'
-
-    patches = patches.flatten(2, 3)
-    patches = patches * w
-
-    patches = F.pad(patches, pad=(
-        psf_size[1] // 2, psf_size[1] // 2, psf_size[0] // 2, psf_size[0] // 2), value=0, mode='constant')
-
-    result = []
-    for k in range(h.size(2)):
-        result.append(conv2d(
-            patches[:, :, k, ...], h[:, :, k, ...], padding='constant',
-        ))
-    # (B, C, K, H', W')
-
-    result = torch.stack(result, dim=2)
-    margin = (psf_size[0] // 2, psf_size[1] // 2)
-    B, C, K, H, W = result.size()
-    result = patches_to_image(result.view(
-        B, C, n_rows, n_cols, H, W), add_tuple(overlap, add_tuple(psf_size, (-1,) * len(psf_size))))[..., margin[0]:-margin[0], margin[1]:-margin[1]]
-    return result
-
-
 def add_tuple(a: tuple, b: tuple, constant: float = 1) -> tuple:
     r"""
-    Add 2 tuples element-wise, where the second tuple is multiplied by constant
+    Add 2 tuples element-wise, where the second tuple is multiplied by constant:
 
-    output[i] = a[i] + b[i] * constant
+        `output[i] = a[i] + b[i] * constant`
 
     :param tuple a: First tuple
     :param tuple b: Second tuple
+    :param float constant: The constant to multiply the second tuple
+
+    :return: (tuple) the output tuple.
     """
     assert len(a) == len(b), 'Input must have the same length'
     return tuple(a[i] + constant * b[i] for i in range(len(a)))

@@ -1,3 +1,4 @@
+from deepinv.physics.functional.product_convolution import unity_partition_function_2d, compute_patch_info
 import torch
 import numpy as np
 from typing import List, Tuple
@@ -246,11 +247,14 @@ class DiffractionBlurGenerator(PSFGenerator):
         )
         self.pupil_size = pupil_size
 
-        lin_x = torch.linspace(-0.5, 0.5, self.pupil_size[0], **self.factory_kwargs)
-        lin_y = torch.linspace(-0.5, 0.5, self.pupil_size[1], **self.factory_kwargs)
+        lin_x = torch.linspace(-0.5, 0.5,
+                               self.pupil_size[0], **self.factory_kwargs)
+        lin_y = torch.linspace(-0.5, 0.5,
+                               self.pupil_size[1], **self.factory_kwargs)
 
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
-        XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
+        XX, YY = torch.meshgrid(
+            lin_x / self.fc, lin_y / self.fc, indexing="ij")
         self.rho = cart2pol(XX, YY)  # Cartesian coordinates
 
         # The list of Zernike polynomial functions
@@ -319,8 +323,8 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         psf3 = psf2[
             :,
-            self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
-            self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
+            self.pad_pre[0]: self.pupil_size[0] - self.pad_post[0],
+            self.pad_pre[1]: self.pupil_size[1] - self.pad_post[1],
         ].unsqueeze(1)
 
         psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
@@ -338,7 +342,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         :return: a tensor of shape `(batch_size, len(list_param))` coefficients in the Zernike decomposition.
 
         """
-        coeff = torch.rand((batch_size, len(self.list_param)), **self.factory_kwargs)
+        coeff = torch.rand((batch_size, len(self.list_param)),
+                           **self.factory_kwargs)
         coeff = (coeff - 0.5) * self.max_zernike_amplitude
         return coeff
 
@@ -422,16 +427,20 @@ def define_zernike():
     Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
     Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
     Z[20] = (
-        lambda x, y: sq12 * x * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12 * x * (16 * x**4 - 20 * x **
+                                 2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[21] = (
-        lambda x, y: sq12 * y * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12 * y * (16 * y**4 - 20 * y **
+                                 2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[22] = lambda x, y: sq7 * (
         20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
     )
-    Z[23] = lambda x, y: 2 * sq14 * x * y * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    Z[23] = lambda x, y: 2 * sq14 * x * y * \
+        (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * \
+        (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
     Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
     Z[26] = (
         lambda x, y: sq14
@@ -445,7 +454,8 @@ def define_zernike():
         * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
     )
     Z[28] = lambda x, y: sq14 * (
-        32 * x**6 - 48 * x**4 * r2(x, y) + 18 * x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
+        32 * x**6 - 48 * x**4 * r2(x, y) + 18 *
+        x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
     )
     Z[29] = (
         lambda x, y: 4
@@ -540,7 +550,8 @@ def bump_function(x, a=1.0, b=1.0):
     v = torch.zeros_like(x)
     v[torch.abs(x) <= a] = 1
     I = (torch.abs(x) > a) * (torch.abs(x) < a + b)
-    v[I] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[I]) - a) / b) ** 2)) / np.exp(-1.0)
+    v[I] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[I]) - a) / b)
+                     ** 2)) / np.exp(-1.0)
     return v
 
 
@@ -589,7 +600,8 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         self.img_size = img_size
         self.n_eigen_psf = n_eigen_psf
         self.spacing = (
-            spacing if spacing is not None else (img_size[0] // 8, img_size[1] // 8)
+            spacing if spacing is not None else (
+                img_size[0] // 8, img_size[1] // 8)
         )
         self.padding = padding
 
@@ -612,7 +624,8 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         # Computing the eigen-psfs
         psfs_reshape = psfs.reshape(n_psf, psf_size * psf_size)
         U, S, V = torch.svd_lowrank(psfs_reshape, q=self.n_eigen_psf)
-        eigen_psf = (V.T).reshape(self.n_eigen_psf, psf_size, psf_size)[:, None, None]
+        eigen_psf = (V.T).reshape(self.n_eigen_psf,
+                                  psf_size, psf_size)[:, None, None]
         coeffs = psfs_reshape @ V
 
         # Interpolating the psfs coefficients with Thinplate splines
@@ -629,5 +642,86 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         w = w.reshape(self.n_eigen_psf, n0, n1)[:, None, None]
 
         # Ending
-        params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
+        params_blur = {"filters": eigen_psf,
+                       "multipliers": w, "padding": self.padding}
+        return params_blur
+
+
+class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
+    r"""
+    Generates parameters of space-varying blurs.
+
+    The parameters generated are  ``{'filters' : torch.tensor(...), 'multipliers': torch.tensor(...), 'padding': 'valid'}``
+    see :meth:`deepinv.physics.SpaceVaryingBlur` for more details.
+
+    :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator
+        (e.g. ``generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)``)
+    :param tuple image_size: image size ``H x W``.
+    :param (Optional) tuple[int] patch_size: size of patch
+    :param (Optional) tuple[int] overlap: overlap size between patch
+    |sep|
+
+    :Examples:
+
+    >>> from deepinv.physics.generator import DiffractionBlurGenerator
+    >>> from deepinv.physics.generator import ProductConvolutionBlurGenerator
+    >>> psf_size = 7
+    >>> psf_generator = DiffractionBlurGenerator((psf_size, psf_size), fc=0.25)
+    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, img_size=(64, 64), n_eigen_psf=8)
+    >>> params = pc_generator.step(0)
+    >>> print(params.keys())
+    dict_keys(['filters', 'multipliers', 'padding'])
+
+    """
+
+    def __init__(
+        self,
+        psf_generator,
+        image_size: tuple[int],
+        patch_size: tuple[int],
+        overlap: tuple[int],
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.psf_generator = psf_generator
+        self.patch_size = patch_size
+        self.overlap = overlap
+        self.padding = 'valid'
+        self.image_size = image_size
+        self.w = unity_partition_function_2d(
+            image_size, patch_size, overlap, mode='bump')
+        self.patch_info = compute_patch_info(image_size, patch_size, overlap)
+        self.num_patches = np.prod(self.patch_info['num_patches'])
+
+    def step(self, batch_size: int = 1, patch_size: tuple[int] = None, overlap: tuple[int] = None, **kwargs):
+        r"""
+        Generates a random set of filters and multipliers for space-varying blurs.
+
+        :param int batch_size: number of space-varying blur parameters to generate.
+        :param (Optional) tuple[int] patch_size: size of patch
+        :param (Optional) tuple[int] overlap: overlap size between patch
+
+        :returns: a dictionary containing filters, multipliers and paddings.
+            - filters torch.Tensor: (K, B, C, psf_size, psf_size)
+            - multipliers torch.Tensor: (K, B, C, patch_size, patch_size)
+        """
+        if patch_size is not None:
+            if isinstance(patch_size, int):
+                patch_size = (patch_size, patch_size)
+            self.patch_size = patch_size
+        if overlap is not None:
+            if isinstance(overlap, int):
+                overlap = (overlap, overlap)
+            self.overlap = overlap
+
+        num_patches = np.prod(compute_patch_info(
+            self.image_size, patch_size, overlap)['num_patches'])
+        filters = self.psf_generator.step(
+            batch_size * num_patches, **kwargs)
+        filters = filters.view(num_patches, batch_size, filter.size(
+            1), filter.size(2), filters.size(3))
+        # Ending
+        params_blur = {"filters": filters,
+                       "multipliers": self.w, "padding": self.padding}
+
         return params_blur

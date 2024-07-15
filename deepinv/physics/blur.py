@@ -11,6 +11,9 @@ from deepinv.physics.functional import (
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
+    product_convolution2d_patches,
+    product_convolution2d_adjoint_patches,
+
 )
 
 
@@ -182,14 +185,16 @@ class Downsampling(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.factor = factor
-        assert isinstance(factor, int), "downsampling factor should be an integer"
+        assert isinstance(
+            factor, int), "downsampling factor should be an integer"
         # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(device)
         if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
+            self.filter = torch.nn.Parameter(
+                filter, requires_grad=False).to(device)
         elif filter is None:
             self.filter = filter
         elif filter == "gaussian":
@@ -208,7 +213,8 @@ class Downsampling(LinearPhysics):
             raise Exception("The chosen downsampling filter doesn't exist")
 
         if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
+            self.Fh = filter_fft_2d(
+                self.filter, img_size, real_fft=False).to(device)
             self.Fhc = torch.conj(self.Fh)
             self.Fh2 = self.Fhc * self.Fh
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
@@ -288,8 +294,10 @@ class Downsampling(LinearPhysics):
                 return b
 
             top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
-            below = torch.mean(splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
-            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            below = torch.mean(
+                splits(self.Fh2, self.factor), dim=-1) + 1 / gamma
+            rc = self.Fhc * (top / below).repeat(1, 1,
+                                                 self.factor, self.factor)
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
@@ -501,9 +509,11 @@ class SpaceVaryingBlur(LinearPhysics):
 
     :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
+    :method str method: 'product_convolution' or 'product_convolution_patch'.
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
+
     :param str device: cpu or cuda
 
     |sep|
@@ -529,14 +539,14 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, filters=None, multipliers=None, padding=None, **kwargs):
+    def __init__(self, filters=None, multipliers=None, padding=None, method: str = 'product_convolution2d', patch_info: dict = None, **kwargs):
         super().__init__(**kwargs)
-        self.method = "product_convolution2d"
-        if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding)
+        self.method = method
+        self.patch_info = patch_info
+        self.update_parameters(filters, multipliers, padding)
 
     def A(
-        self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
+        self, x: Tensor, filters=None, multipliers=None, padding=None, patch_info: dict = None, **kwargs
     ) -> Tensor:
         r"""
         Applies the space varying blur operator to the input image.
@@ -551,17 +561,22 @@ class SpaceVaryingBlur(LinearPhysics):
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
-        if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding)
+        self.update_parameters(filters, multipliers, padding)
 
+        if self.method == "product_convolution2d":
             return product_convolution2d(
                 x, self.multipliers, self.filters, self.padding
             )
+        elif self.method == "product_convolution_patch":
+            if patch_info is not None:
+                self.patch_info = patch_info
+            return product_convolution2d_patches(x, w=self.multipliers, h=self.filters, patch_size=self.patch_info['patch_size'], overlap=self.patch_info['overlap'])
         else:
-            raise NotImplementedError("Method not implemented in product-convolution")
+            raise NotImplementedError(
+                "Method not implemented in product-convolution")
 
     def A_adjoint(
-        self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
+        self, y: Tensor, filters=None, multipliers=None, padding=None, patch_info: dict = None, **kwargs
     ) -> Tensor:
         r"""
         Applies the adjoint operator.
@@ -582,8 +597,14 @@ class SpaceVaryingBlur(LinearPhysics):
             return product_convolution2d_adjoint(
                 y, self.multipliers, self.filters, self.padding
             )
+        elif self.method == "product_convolution_patch":
+            if patch_info is not None:
+                self.patch_info = patch_info
+            return product_convolution2d_adjoint_patches(y, w=self.multipliers, h=self.filters, patch_size=self.patch_info['patch_size'], overlap=self.patch_info['overlap'])
+
         else:
-            raise NotImplementedError("Method not implemented in product-convolution")
+            raise NotImplementedError(
+                "Method not implemented in product-convolution")
 
     def update_parameters(self, filters=None, multipliers=None, padding=None, **kwargs):
         r"""
@@ -596,6 +617,7 @@ class SpaceVaryingBlur(LinearPhysics):
         if filters is not None:
             self.filters = torch.nn.Parameter(filters, requires_grad=False)
         if multipliers is not None:
-            self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
+            self.multipliers = torch.nn.Parameter(
+                multipliers, requires_grad=False)
         if padding is not None:
             self.padding = padding
