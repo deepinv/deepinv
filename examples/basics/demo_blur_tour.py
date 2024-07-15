@@ -6,12 +6,23 @@ This example provides a tour of 2D blur operators in DeepInv.
 In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs.
 
 """
-
-import torch
-
-import deepinv as dinv
-from deepinv.utils.plotting import plot
+# %%
 from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.plotting import plot
+import deepinv as dinv
+import torch
+from deepinv.physics.generator import MotionBlurGenerator
+from deepinv.physics.generator import DiffractionBlurGenerator
+from deepinv.physics.generator import GeneratorMixture
+import sys
+sys.path.append('/home/minhhai/Works/dev/deepinv/deepinv/physics/')
+from generator.blur import ProductConvolutionPatchBlurGenerator
+from deepinv.physics.generator import (
+    DiffractionBlurGenerator,
+    ProductConvolutionBlurGenerator,
+)
+from deepinv.physics.blur import SpaceVaryingBlur
+
 
 
 # %%
@@ -84,7 +95,8 @@ plot(
 # For circular boundary conditions, an FFT implementation is also available. It is slower that :meth:`deepinv.physics.Blur`,
 # but inherits from :meth:`deepinv.physics.DecomposablePhysics`, so that the pseudo-inverse and regularized inverse are computed faster and more accurately.
 #
-physics = dinv.physics.BlurFFT(img_size=x_rgb[0].shape, filter=filter_0, device=device)
+physics = dinv.physics.BlurFFT(
+    img_size=x_rgb[0].shape, filter=filter_0, device=device)
 y = physics(x_rgb)
 plot(
     [x_rgb, filter_0, y],
@@ -116,9 +128,10 @@ plot(
 # %%
 # We can also define color filters. In that situation, each channel is convolved with the corresponding channel of the filter:
 psf_size = 9
-filter_rgb = torch.zeros((1, 3, psf_size, psf_size), device=device, dtype=dtype)
-filter_rgb[:, 0, :, psf_size // 2 : psf_size // 2 + 1] = 1.0 / psf_size
-filter_rgb[:, 1, psf_size // 2 : psf_size // 2 + 1, :] = 1.0 / psf_size
+filter_rgb = torch.zeros((1, 3, psf_size, psf_size),
+                         device=device, dtype=dtype)
+filter_rgb[:, 0, :, psf_size // 2: psf_size // 2 + 1] = 1.0 / psf_size
+filter_rgb[:, 1, psf_size // 2: psf_size // 2 + 1, :] = 1.0 / psf_size
 filter_rgb[:, 2, ...] = (
     torch.diag(torch.ones(psf_size, device=device, dtype=dtype)) / psf_size
 )
@@ -136,7 +149,6 @@ plot(
 # More advanced kernel generation methods are provided with the toolbox thanks to
 # the  :class:`deepinv.physics.generator.PSFGenerator`. In particular, motion blurs generators are implemented.
 
-from deepinv.physics.generator import MotionBlurGenerator
 
 # %%
 # In order to generate motion blur kernels, we just need to instantiate a generator with specific the psf size.
@@ -144,7 +156,8 @@ from deepinv.physics.generator import MotionBlurGenerator
 # generate 3 motion blurs. First, we instantiate the generator:
 #
 psf_size = 31
-motion_generator = MotionBlurGenerator((psf_size, psf_size), device=device, dtype=dtype)
+motion_generator = MotionBlurGenerator(
+    (psf_size, psf_size), device=device, dtype=dtype)
 # %%
 # To generate new filters, we call the step() function:
 filters = motion_generator.step(batch_size=3)
@@ -170,7 +183,6 @@ plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 # We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil
 # plane expanded in Zernike polynomials
 
-from deepinv.physics.generator import DiffractionBlurGenerator
 
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size), device=device, dtype=dtype
@@ -243,7 +255,6 @@ plot(
 # During training, it's more robust to train on multiple family of operators. This can be done
 # seamlessly with the :class:`deepinv.physics.generator.GeneratorMixture`.
 
-from deepinv.physics.generator import GeneratorMixture
 
 torch.cuda.manual_seed(4)
 torch.manual_seed(6)
@@ -263,11 +274,6 @@ for i in range(4):
 #
 # Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`
 
-from deepinv.physics.generator import (
-    DiffractionBlurGenerator,
-    ProductConvolutionBlurGenerator,
-)
-from deepinv.physics.blur import SpaceVaryingBlur
 
 psf_size = 32
 img_size = (256, 256)
@@ -297,3 +303,23 @@ dirac_comb = torch.zeros(img_size)[None, None]
 dirac_comb[0, 0, ::delta, ::delta] = 1
 psf_grid = physics(dirac_comb)
 plot(psf_grid, titles="Space varying impulse responses")
+
+# %%
+patch_size = 64
+overlap = 32
+pc_generator = ProductConvolutionPatchBlurGenerator(
+    psf_generator=psf_generator,
+    image_size=img_size,
+    patch_size=patch_size,
+    overlap=overlap,
+
+)
+
+physics = SpaceVaryingBlur(method="product_convolution2d_patch", **params_pc)
+
+dirac_comb = torch.zeros(img_size)[None, None]
+dirac_comb[0, 0, ::delta, ::delta] = 1
+psf_grid = physics(dirac_comb)
+plot(psf_grid, titles="Space varying impulse responses")
+
+# %%

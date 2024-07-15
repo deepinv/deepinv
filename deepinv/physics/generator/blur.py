@@ -1,4 +1,4 @@
-from deepinv.physics.functional.product_convolution import unity_partition_function_2d, compute_patch_info
+
 import torch
 import numpy as np
 from typing import List, Tuple
@@ -6,6 +6,7 @@ from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import histogramdd
 from deepinv.physics.functional.interp import ThinPlateSpline
+from deepinv.physics.functional.product_convolution import unity_partition_function_2d, compute_patch_info
 
 
 class PSFGenerator(PhysicsGenerator):
@@ -683,13 +684,24 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        if isinstance(patch_size, int):
+            patch_size = (patch_size, patch_size)
+        if isinstance(overlap, int):
+            overlap = (overlap, overlap)
+        if isinstance(image_size, int):
+            image_size = (image_size, image_size)
+
         self.psf_generator = psf_generator
         self.patch_size = patch_size
         self.overlap = overlap
         self.padding = 'valid'
         self.image_size = image_size
-        self.w = unity_partition_function_2d(
+        w = unity_partition_function_2d(
             image_size, patch_size, overlap, mode='bump')
+
+        self.w = w.flatten(0, 1).unsqueeze(1).unsqueeze(
+            2).to(**self.factory_kwargs)
+
         self.patch_info = compute_patch_info(image_size, patch_size, overlap)
         self.num_patches = np.prod(self.patch_info['num_patches'])
 

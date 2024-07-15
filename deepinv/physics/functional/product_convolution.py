@@ -117,9 +117,6 @@ def product_convolution2d_patches(
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
 
     :param torch.Tensor x: Tensor of size (B, C, H, W)
-    :param torch.Tensor w: Tensor of size (b, c, K, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
-
     :param torch.Tensor w: Tensor of size (K, b, c, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Tensor of size (K, b, c, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
 
@@ -140,18 +137,18 @@ def product_convolution2d_patches(
     n_rows, n_cols = patches.size(2), patches.size(3)
     assert n_rows * \
         n_cols == h.size(
-            2), 'The number of patches must be equal to the number of PSFs'
+            0), 'The number of patches must be equal to the number of PSFs'
 
     patches = patches.flatten(2, 3)
-    patches = patches * w
+    patches = patches * w.permute(1, 2, 0, 3, 4)
 
     patches = F.pad(patches, pad=(
         psf_size[1] - 1, psf_size[1] - 1, psf_size[0] - 1, psf_size[0] - 1), value=0, mode='constant')
 
     result = []
-    for k in range(h.size(2)):
+    for k in range(h.size(0)):
         result.append(conv2d(
-            patches[:, :, k, ...], h[:, :, k, ...], padding='valid',
+            patches[:, :, k, ...], h[k, ...], padding='valid',
         ))
     # (B, C, K, H', W')
 
@@ -164,7 +161,7 @@ def product_convolution2d_patches(
 
 
 def product_convolution2d_adjoint_patches(
-    x: Tensor,
+    y: Tensor,
     w: Tensor,
     h: Tensor,
     patch_size: Tuple[int] = (256, 256),
@@ -188,8 +185,8 @@ def product_convolution2d_adjoint_patches(
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
 
     :param torch.Tensor x: Tensor of size (B, C, H, W)
-    :param torch.Tensor w: Tensor of size (b, c, K, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param torch.Tensor w: Tensor of size (K, b, c, patch_size + psf_size, patch_size + psf_size). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Tensor of size (K, b, c, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
 
     :return: torch.Tensor y
     :rtype: tuple
@@ -200,11 +197,11 @@ def product_convolution2d_adjoint_patches(
         overlap = (overlap, overlap)
 
     psf_size = h.shape[-2:]
-    x = F.pad(x, pad=(
+    y = F.pad(y, pad=(
         psf_size[1] - 1, psf_size[1] - 1, psf_size[0] - 1, psf_size[0] - 1), value=0, mode='constant')
 
     patches = image_to_patches(
-        x,
+        y,
         patch_size=add_tuple(patch_size, add_tuple(
             psf_size, (-1,) * len(psf_size))),
         overlap=add_tuple(overlap, add_tuple(psf_size, (-1,) * len(psf_size)))
@@ -214,19 +211,19 @@ def product_convolution2d_adjoint_patches(
     n_rows, n_cols = patches.size(2), patches.size(3)
     assert n_rows * \
         n_cols == h.size(
-            2), 'The number of patches must be equal to the number of PSFs'
+            0), 'The number of patches must be equal to the number of PSFs'
 
     patches = patches.flatten(2, 3)
     result = []
-    for k in range(h.size(2)):
+    for k in range(h.size(0)):
         result.append(conv_transpose2d(
-            patches[:, :, k, ...], h[:, :, k, ...], padding='valid'),
+            patches[:, :, k, ...], h[k, ...], padding='valid'),
         )
     # (B, C, K, H', W')
     result = torch.stack(result, dim=2)
     margin = (psf_size[0] - 1, psf_size[1] - 1)
     result = result[..., margin[0]: - margin[0], margin[1]: - margin[1]]
-    result = result * w
+    result = result * w.permute(1, 2, 0, 3, 4)
     B, C, K, H, W = result.size()
     result = patches_to_image(result.view(
         B, C, n_rows, n_cols, H, W), overlap)
@@ -237,8 +234,8 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     r"""
     Get the PSF at the given position of the :meth:`deepinv.physics.functional.product_convolution2d_patches` function.
 
-    :param torch.Tensor w: Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, K, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param torch.Tensor w: Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
 
     :param Tuple[int] position: Position of the PSF patch
     :param Tuple[int] overlap: Overlap between PSF patches
@@ -296,15 +293,16 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
             patch_position_w.append(
                 position[1] - n[1] * (p[1] - o[1]))
 
-    h = h.view(h.size(0), h.size(
-        1), num_patches[0], num_patches[1], h.size(3), h.size(4))
-    w = w.view(w.size(0), w.size(
-        1), num_patches[0], num_patches[1],  w.size(3), w.size(4))
+    h = h.view(num_patches[0], num_patches[1], h.size(
+        1), h.size(2), h.size(3), h.size(4))
+
+    w = w.view(num_patches[0], num_patches[1], w.size(
+        1), w.size(2), w.size(3), w.size(4))
 
     psf = 0.
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
-            psf = psf + h[:, :, i, j, ...] * w[:, :, i, j, patch_position_h[count_i]: patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
+            psf = psf + h[i, j, ...] * w[i, j, ..., patch_position_h[count_i]: patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
     return psf.flip(-1).flip(-2) if isinstance(psf, torch.Tensor) else psf
 
 
