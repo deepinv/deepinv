@@ -216,7 +216,8 @@ class SplittingModel(torch.nn.Module):
             if not self.eval_split_input and not self.training:
                 return self.model(y, physics)
             elif self.eval_split_output and self.eval_split_input and not self.training:
-                return self._forward_split_output(y)
+                return self._forward_split_output(y, physics)
+
             else:
                 MC_samples = 1 if self.training else self.MC_samples
 
@@ -237,8 +238,10 @@ class SplittingModel(torch.nn.Module):
 
         return out
 
-    def _forward_split_output(self, y: torch.Tensor):
-        """Perform splitting at model output too, only at eval time"""
+    def _forward_split_output(self, y: torch.Tensor, physics: Physics):
+
+        """Perform splitting at model output too, only at eval time
+        """
         out = 0
         normaliser = torch.zeros_like(y)
         inp = Inpainting(y.size()[1:], device=y.device)
