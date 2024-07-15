@@ -217,7 +217,8 @@ class SplittingModel(torch.nn.Module):
             if not self.eval_split_input and not self.training:
                 return self.model(y, physics)
             elif self.eval_split_output and self.eval_split_input and not self.training:
-                return self._forward_split_output(y)
+                return self._forward_split_output(y, physics)
+
             else:
                 MC_samples = 1 if self.training else self.MC_samples
 
