@@ -22,14 +22,27 @@ from deepinv.optim.phase_retrieval import (
 )
 from deepinv.models.complex import to_complex_denoiser
 
+n_repeats = 50
+n_iter = 10000
+# 1-99, 99-141, 141-299
+start = 141
+end = 201
+# stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
+step_size = 3e-3
+
+shared_weights = False
+drop_tail = True
+n_layers = 2
+
+oversampling_name = f"oversampling_ratios_spec_{n_repeats}repeat_{n_iter}iter_2-4_drop.pt"
+res_name = f"res_spec_{n_repeats}repeat_{n_iter}iter_2-4_drop.pt"
+
 now = datetime.now()
 dt_string = now.strftime("%Y%m%d-%H%M%S")
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "data"
 SAVE_DIR = DATA_DIR / dt_string
-FIGURE_DIR = DATA_DIR / "first_results"
-LOAD_DIR = DATA_DIR / "latest" / "pseudorandom"
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
@@ -54,24 +67,13 @@ x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi).to(device)
 # Every element of the signal should have unit norm.
 assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
-repeat = 100
-
-# 1-99, 99-141, 141-299
-start = 141
-end = 299
-
-res_gd_spec = torch.empty((end - start) // 2, repeat)
+res_gd_spec = torch.empty((end - start) // 2, n_repeats)
 oversampling_ratios = torch.empty((end - start) // 2)
 
 data_fidelity = L2()
 prior = dinv.optim.prior.Zero()
-max_iter = 10000
 early_stop = True
 verbose = True
-# stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
-step_size = 3e-3
-
-n_layers = 2
 
 
 def spectral_methods_wrapper(y, physics, **kwargs):
@@ -88,18 +90,20 @@ for i in trange(start, end, 2):
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=early_stop,
-        max_iter=max_iter,
+        max_iter=n_iter,
         verbose=verbose,
         params_algo=params_algo,
         custom_init=spectral_methods_wrapper,
     )
-    for j in range(repeat):
+    for j in range(n_repeats):
         physics = dinv.physics.PseudoRandomPhaseRetrieval(
             n_layers=n_layers,
             input_shape=(1, img_size, img_size),
             output_shape=(1, i, i),
             dtype=torch.cfloat,
             device=device,
+            shared_weights=shared_weights,
+            drop_tail=drop_tail,
         )
         y = physics(x_phase)
 
@@ -111,10 +115,5 @@ for i in trange(start, end, 2):
         print(res_gd_spec[(i - start) // 2, j])
 
 # save results
-torch.save(
-    res_gd_spec, SAVE_DIR / "pseudorandom" / "res_gd_spec_2-9_2layer_100repeat.pt"
-)
-torch.save(
-    oversampling_ratios,
-    SAVE_DIR / "pseudorandom" / "oversampling_ratios_gd_spec_2-9_2layer_100repeat.pt",
-)
+torch.save(res_gd_spec, SAVE_DIR / "pseudorandom" / res_name)
+torch.save(oversampling_ratios, SAVE_DIR / "pseudorandom" / oversampling_name)

@@ -171,12 +171,16 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         output_shape,
         dtype=torch.cfloat,
         device="cpu",
+        shared_weights=False,
+        drop_tail=False,
         **kwargs,
     ):
         if output_shape is None:
             output_shape = input_shape
 
         self.n_layers = n_layers
+        self.shared_weights = shared_weights
+        self.drop_tail = drop_tail
 
         assert (
             input_shape[1] % 2 == 1 and input_shape[2] % 2 == 1
@@ -203,14 +207,25 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         self.device = device
 
         self.diagonals = []
-        for _ in range(self.n_layers):
+
+        if not shared_weights:
+            for _ in range(self.n_layers):
+                if self.mode == "oversampling":
+                    diagonal = torch.rand(self.output_shape, device=self.device)
+                else:
+                    diagonal = torch.rand(self.img_shape, device=self.device)
+                diagonal = 2 * torch.pi * diagonal
+                diagonal = torch.exp(1j * diagonal)
+                self.diagonals.append(diagonal)
+        else:
             if self.mode == "oversampling":
                 diagonal = torch.rand(self.output_shape, device=self.device)
             else:
                 diagonal = torch.rand(self.img_shape, device=self.device)
             diagonal = 2 * torch.pi * diagonal
             diagonal = torch.exp(1j * diagonal)
-            self.diagonals.append(diagonal)
+            for _ in range(self.n_layers):
+                self.diagonals.append(diagonal)
 
         def A(x):
             assert x.shape[1:] == self.img_shape, "x doesn't have the correct shape"
@@ -219,11 +234,17 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
                 zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
                 x = torch.nn.ZeroPad2d(zero_padding)(x)
 
-            for i in range(self.n_layers):
-                diagonal = self.diagonals[i]
+            if not drop_tail:
+                for i in range(self.n_layers):
+                    diagonal = self.diagonals[i]
+                    x = torch.fft.fft2(x, norm="ortho")
+                    x = diagonal * x
                 x = torch.fft.fft2(x, norm="ortho")
-                x = diagonal * x
-            x = torch.fft.fft2(x, norm="ortho")
+            else:
+                for i in range(self.n_layers):
+                    diagonal = self.diagonals[i]
+                    x = diagonal * x
+                    x = torch.fft.fft2(x, norm="ortho")
 
             if self.mode == "undersampling":
                 trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
@@ -242,7 +263,8 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
                 diagonal = self.diagonals[-i - 1]
                 y = torch.fft.ifft2(y, norm="ortho")
                 y = torch.conj(diagonal) * y
-            y = torch.fft.ifft2(y, norm="ortho")
+            if not drop_tail:
+                y = torch.fft.ifft2(y, norm="ortho")
 
             if self.mode == "oversampling":
                 zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
