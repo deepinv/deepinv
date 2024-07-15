@@ -36,8 +36,8 @@ def test_conv2d_adjointness():
         for pad in paddings:
             for sim in size_im:
                 for sfil in size_filt:
-                    x = torch.rand(sim)[None].to(dtype)
-                    h = torch.rand(sfil)[None].to(dtype)
+                    x = torch.rand(sim)[None]
+                    h = torch.rand(sfil)[None]
                     Ax = dinv.physics.functional.conv2d(x, h, padding=pad)
                     y = torch.rand_like(Ax)
                     Aty = dinv.physics.functional.conv_transpose2d(y, h, padding=pad)
@@ -75,9 +75,9 @@ def test_conv3d_norm():
         for pad in paddings:
             for sim in size_im:
                 for sfil in size_filt:
-                    x = torch.randn(sim)[None].to(dtype).to(device)
+                    x = torch.randn(sim)[None].to(device)
                     x /= torch.norm(x)
-                    h = torch.rand(sfil)[None].to(dtype).to(device)
+                    h = torch.rand(sfil)[None].to(device)
                     h /= h.sum()
 
                     zold = torch.zeros_like(x)
@@ -126,8 +126,8 @@ def test_conv3d_adjointness():
             for sim in size_im:
                 for sfil in size_filt:
                     # print(sim, sfil)
-                    x = torch.rand(sim)[None].to(dtype)
-                    h = torch.rand(sfil)[None].to(dtype)
+                    x = torch.rand(sim)[None]
+                    h = torch.rand(sfil)[None]
                     Ax = dinv.physics.functional.conv3d_fft(x, h, padding=pad)
                     y = torch.rand_like(Ax)
                     Aty = dinv.physics.functional.conv_transpose3d_fft(
@@ -165,8 +165,8 @@ def test_downsampling_adjointness():
         for pad in paddings:
             for sim in size_im:
                 for sfil in size_filt:
-                    x = torch.rand(sim)[None].to(dtype)
-                    h = torch.rand(sfil)[None].to(dtype)
+                    x = torch.rand(sim)[None]
+                    h = torch.rand(sfil)[None]
 
                     physics = dinv.physics.Downsampling(sim, filter=h, padding=pad)
 
