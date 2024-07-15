@@ -53,7 +53,7 @@ class LsdirHR(torch.utils.data.Dataset):
         Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
-        >>> from deepinv.datasets import LSDIR
+        >>> from deepinv.datasets import LsdirHR
         >>> val_dataset = LsdirHR(root="Lsdir", mode="val", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
         >>> print(dataset.verify_split_dataset_integrity())                 # check that raw data has been downloaded correctly
