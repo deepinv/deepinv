@@ -97,6 +97,7 @@ class CompressedSensing(LinearPhysics):
         dtype=torch.float,
         device="cpu",
         compute_inverse=False,
+        use_haar=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -123,8 +124,16 @@ class CompressedSensing(LinearPhysics):
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
-            self._A = torch.nn.Parameter(self._A, requires_grad=False)
+            if not use_haar:
+                self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
+                self._A = torch.nn.Parameter(self._A, requires_grad=False)
+            else:
+                print("Using Haar matrix")
+                self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
+                self._A, R = torch.linalg.qr(self._A)
+                L = torch.sgn(torch.diag(R))
+                self._A = self._A * L[None,:]
+                self._A = torch.nn.Parameter(self._A, requires_grad=False)
 
             if compute_inverse == True:
                 self._A_dagger = torch.linalg.pinv(self._A)

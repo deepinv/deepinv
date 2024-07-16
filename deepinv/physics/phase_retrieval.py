@@ -127,6 +127,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
+        use_haar=False,
         **kwargs,
     ):
         self.m = m
@@ -141,6 +142,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             channelwise=channelwise,
             dtype=dtype,
             device=device,
+            use_haar=use_haar,
         )
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
@@ -173,6 +175,7 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         device="cpu",
         shared_weights=False,
         drop_tail=False,
+        use_haal=False,
         **kwargs,
     ):
         if output_shape is None:

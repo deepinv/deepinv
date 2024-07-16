@@ -23,13 +23,17 @@ from deepinv.optim.phase_retrieval import (
 )
 from deepinv.models.complex import to_complex_denoiser
 
-repeat = 30
-max_iter = 5000
-step_size = 5e-3
+n_repeats = 20
+n_iter = 5000
+step_size = 1e-4
+use_haar = True
 #oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
-#oversampling_ratios = torch.arange(0.1, 2.1, 0.1)
-oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
+oversampling_ratios = torch.arange(1.0, 3.1, 0.1)
+#oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
+oversampling_name = f"oversampling_ratios_gd_spec_{n_repeats}repeat_{n_iter}iter_1-3_haar.pt"
+res_name = f"res_gd_spec_{n_repeats}repeat_{n_iter}iter_1-3_haar.pt"
 print("oversampling_ratios:", oversampling_ratios)
+
 
 now = datetime.now()
 dt_string = now.strftime("%Y%m%d-%H%M%S")
@@ -37,8 +41,6 @@ dt_string = now.strftime("%Y%m%d-%H%M%S")
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "data"
 SAVE_DIR = DATA_DIR / dt_string
-FIGURE_DIR = DATA_DIR / "first_results"
-LOAD_DIR = DATA_DIR / "latest" / "pseudorandom"
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
@@ -62,7 +64,7 @@ x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi).to(device)
 # Every element of the signal should have unit norm.
 assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
-res_gd_spec = torch.empty(oversampling_ratios.shape[0], repeat)
+res_gd_spec = torch.empty(oversampling_ratios.shape[0], n_repeats)
 
 data_fidelity = L2()
 prior = dinv.optim.prior.Zero()
@@ -80,17 +82,18 @@ for i in trange(oversampling_ratios.shape[0]):
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=early_stop,
-        max_iter=max_iter,
+        max_iter=n_iter,
         verbose=verbose,
         params_algo=params_algo,
         custom_init=spectral_methods_wrapper,
     )
-    for j in range(repeat):
+    for j in range(n_repeats):
         physics = dinv.physics.RandomPhaseRetrieval(
             m=int(oversampling_ratio * torch.prod(torch.tensor(x_phase.shape))),
             img_shape=(1, img_size, img_size),
             dtype=torch.cfloat,
             device=device,
+            use_haar=use_haar,
         )
         y = physics(x_phase)
 
@@ -101,9 +104,9 @@ for i in trange(oversampling_ratios.shape[0]):
 
 # save results
 torch.save(
-    res_gd_spec, SAVE_DIR / "random" / "res_gd_spec_2-9_30repeat.pt"
+    res_gd_spec, SAVE_DIR / "random" / res_name
 )
 torch.save(
     oversampling_ratios,
-    SAVE_DIR / "random" / "oversampling_ratios_gd_spec_2-9_30repeat.pt",
+    SAVE_DIR / "random" / oversampling_name,
 )
