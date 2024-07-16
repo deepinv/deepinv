@@ -236,9 +236,12 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     :param torch.Tensor w: Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
 
-    :param Tuple[int] position: Position of the PSF patch
+    :param Tuple[int] position: Position of the PSF patch (row, column)
     :param Tuple[int] overlap: Overlap between PSF patches
     :param Tuple[int] num_patches: Number of PSF patches
+
+
+    :return: PSF at the given position (B, C, psf_size, psf_size)
     """
     patch_size = w.shape[-2:]
     if isinstance(overlap, int):
@@ -301,7 +304,7 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     psf = 0.
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
-            psf = psf + h[i, j, ...] * w[i, j, ..., patch_position_h[count_i]                                         : patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
+            psf = psf + h[i, j, ...] * w[i, j, ..., patch_position_h[count_i]: patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
     return psf.flip(-1).flip(-2) if isinstance(psf, torch.Tensor) else psf
 
 

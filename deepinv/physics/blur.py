@@ -13,7 +13,8 @@ from deepinv.physics.functional import (
     product_convolution2d_adjoint,
     product_convolution2d_patches,
     product_convolution2d_adjoint_patches,
-
+    get_psf_product_convolution2d,
+    get_psf_product_convolution2d_patches,
 )
 
 
@@ -509,7 +510,8 @@ class SpaceVaryingBlur(LinearPhysics):
 
     :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
     :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
-    :method str method: 'product_convolution' or 'product_convolution2d_patch'.
+    :param str method: 'product_convolution' or 'product_convolution2d_patch'.
+    :param patch_info: dictionary of patch information: patch_size, overlap, number of patches in each dimension
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
@@ -609,6 +611,29 @@ class SpaceVaryingBlur(LinearPhysics):
         else:
             raise NotImplementedError(
                 "Method not implemented in product-convolution")
+
+    def get_psf(self, centers: Tensor = None):
+        r"""
+        :param torch.Tensor centers: (B, num_patches, 2)
+
+        :return: (num_patches, B, C, psf_size, psf_size)
+        """
+        h = self.filters
+        w = self.multipliers
+
+        psf = []
+        for b in range(centers.size(0)):
+            for k in range(centers.size(1)):
+                position = centers[b, k, :]
+                if self.method == 'product_convolution2d':
+                    psf.append(get_psf_product_convolution2d(
+                        h[:, b:b+1, ...], w[:, b:b+1, ...], position))
+                elif self.method == 'product_convolution2d_patch':
+                    psf.append(get_psf_product_convolution2d_patches(
+                        h[:, b:b+1, ...], w, position, overlap=self.patch_info['overlap'], num_patches=self.patch_info['num_patches']))
+
+        psf = torch.cat(psf, dim=0)
+        return psf.view(centers.size(1), centers.size(0), psf.size(1), psf.size(2), psf.size(3))
 
     def update_parameters(self, filters=None, multipliers=None, padding=None, **kwargs):
         r"""

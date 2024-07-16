@@ -730,7 +730,7 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
             self.overlap = overlap
 
         num_patches = np.prod(compute_patch_info(
-            self.image_size, patch_size, overlap)['num_patches'])
+            self.image_size, self.patch_size, self.overlap)['num_patches'])
         filters = self.psf_generator.step(
             batch_size * num_patches, **kwargs)['filter']
 
