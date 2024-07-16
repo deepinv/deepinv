@@ -306,11 +306,17 @@ i = torch.randint(0, img_size[0], (dirac_comb.size(0), num_patches, ))
 j = torch.randint(0, img_size[1], (dirac_comb.size(0), num_patches, ))
 centers = torch.stack((i, j), dim=-1)
 psf = physics.get_psf(centers=centers)
-plot(psf.flatten(0,1))
+plot(psf.flatten(0, 1))
 
 # %%
-patch_size = 64
-overlap = 32
+img_size = 512
+patch_size = 128
+overlap = 64
+psf_size = 31
+
+psf_generator = DiffractionBlurGenerator(
+    (psf_size, psf_size), device=device, dtype=dtype
+)
 patch_psf_generator = ProductConvolutionPatchBlurGenerator(
     psf_generator=psf_generator,
     image_size=img_size,
@@ -326,19 +332,68 @@ patch_physics = SpaceVaryingBlur(method="product_convolution2d_patch",
                                  patch_info=patch_info,
                                  **params_pc)
 
-dirac_comb = torch.zeros(img_size)[None, None]
+dirac_comb = torch.zeros(1, 1, img_size, img_size)
+delta = 2 * psf_size
 dirac_comb[0, 0, ::delta, ::delta] = 1
 
 psf_grid = patch_physics(dirac_comb)
-plot(psf_grid, titles="Space varying impulse responses")
+plot(psf_grid ** 0.1, titles="Space varying impulse responses")
 
 # %%
 num_patches = 4
 i = torch.randint(
-    patch_size, img_size[0] - patch_size, (dirac_comb.size(0), num_patches, ))
+    patch_size, img_size - patch_size, (dirac_comb.size(0), num_patches, ))
 j = torch.randint(
-    patch_size, img_size[1] - patch_size, (dirac_comb.size(0), num_patches, ))
+    patch_size, img_size - patch_size, (dirac_comb.size(0), num_patches, ))
 centers = torch.stack((i, j), dim=-1)
 psf = patch_physics.get_psf(centers=centers)
-plot(psf.flatten(0,1))
+plot(psf.flatten(0, 1) ** 0.5)
+# %%
+
+
+def generate_random_patch(tensor, centers, patch_size: tuple[int]):
+    """
+    Args:
+        tensor (Tensor): Tensor of patch_size (B, C, H, W) to be cropped.
+        centers (Tensor): (B, num_patches, 2)
+    Returns:
+        Tensor: Randomly cropped Tensor of shape (num_patches, B, C, patch_size, patch_size)
+    """
+    if isinstance(patch_size, int):
+        patch_size = (patch_size, patch_size)
+
+    if centers.size(0) == 1:
+        centers = centers.expand(tensor.size(0), -1, -1)
+    centers[..., 0].clamp_(
+        patch_size[0] // 2, tensor.size(-2) - patch_size[0] // 2)
+    centers[..., 1].clamp_(
+        patch_size[1] // 2, tensor.size(-1) - patch_size[1] // 2)
+    random_patch = []
+
+    for b in range(tensor.size(0)):
+        for k in range(centers.size(1)):
+            position = centers[b, k, :]
+            ih, iw = patch_size[0] % 2, patch_size[1] % 2
+            random_patch.append(tensor[b:b+1,
+                                       :,
+                                       position[0] - patch_size[0] // 2: position[0] + patch_size[0] // 2 + ih,
+                                       position[1] - patch_size[1] // 2: position[1] + patch_size[1] // 2 + iw])
+    return torch.stack(random_patch, dim=0)
+
+
+centers = torch.stack((
+    torch.arange(0, img_size, delta),
+    torch.arange(0, img_size, delta)), dim=1
+)[None, 1:-1, :]
+psf_grid_padded = torch.nn.functional.pad(
+    psf_grid, (psf_size // 2, psf_size // 2, psf_size // 2, psf_size // 2), mode='constant', value=0)
+
+psf = patch_physics.get_psf(centers)
+plot(psf.flatten(0, 1) ** 0.5)
+
+psf_hat = generate_random_patch(
+    psf_grid_padded, centers, patch_size=psf_size)
+plot(psf_hat.flatten(0, 1) ** 0.5)
+plot((psf_hat - psf).flatten(0, 1) ** 0.5)
+
 # %%
