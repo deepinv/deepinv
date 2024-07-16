@@ -692,6 +692,7 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
             image_size = (image_size, image_size)
 
         self.psf_generator = psf_generator
+        self.psf_size = psf_generator.psf_size
         self.patch_size = patch_size
         self.overlap = overlap
         self.padding = 'valid'
@@ -700,7 +701,7 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
             image_size, patch_size, overlap, mode='bump')
 
         w, _ = crop_unity_partition_2d(
-            w, patch_size, overlap, psf_generator.psf_size)
+            w, patch_size, overlap, self.psf_size)
 
         self.w = w.flatten(0, 1).unsqueeze(1).unsqueeze(
             2).to(**self.factory_kwargs)
@@ -724,17 +725,19 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
             if isinstance(patch_size, int):
                 patch_size = (patch_size, patch_size)
             self.patch_size = patch_size
+            self.num_patches = np.prod(compute_patch_info(
+                self.image_size, self.patch_size, self.overlap)['num_patches'])
         if overlap is not None:
             if isinstance(overlap, int):
                 overlap = (overlap, overlap)
             self.overlap = overlap
+            self.num_patches = np.prod(compute_patch_info(
+                self.image_size, self.patch_size, self.overlap)['num_patches'])
 
-        num_patches = np.prod(compute_patch_info(
-            self.image_size, self.patch_size, self.overlap)['num_patches'])
         filters = self.psf_generator.step(
-            batch_size * num_patches, **kwargs)['filter']
+            batch_size * self.num_patches, **kwargs)['filter']
 
-        filters = filters.view(num_patches, batch_size, filters.size(
+        filters = filters.view(self.num_patches, batch_size, filters.size(
             1), filters.size(2), filters.size(3))
         # Ending
         params_blur = {"filters": filters,
