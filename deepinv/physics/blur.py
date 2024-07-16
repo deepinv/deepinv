@@ -581,7 +581,12 @@ class SpaceVaryingBlur(LinearPhysics):
                 overlap = self.patch_info['overlap']
                 self.patch_info['num_patches'] = compute_patch_info(
                     self.image_size, patch_size, overlap)['num_patches']
-            return product_convolution2d_patches(x, w=self.multipliers, h=self.filters, patch_size=self.patch_info['patch_size'], overlap=self.patch_info['overlap'])
+
+            return product_convolution2d_patches(x,
+                                                 w=self.multipliers,
+                                                 h=self.filters,
+                                                 patch_size=self.patch_info['patch_size'],
+                                                 overlap=self.patch_info['overlap'])
         else:
             raise NotImplementedError(
                 "Method not implemented in product-convolution")
