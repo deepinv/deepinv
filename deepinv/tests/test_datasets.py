@@ -54,9 +54,9 @@ def download_urban100():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_urban100_dataset(download_Urban100):
+def test_load_urban100_dataset(download_urban100):
     """Check that dataset contains 100 PIL images."""
-    dataset = Urban100HR(download_Urban100, download=False)
+    dataset = Urban100HR(download_urban100, download=False)
     assert (
         len(dataset) == 100
     ), f"Dataset should have been of len 100, instead got {len(dataset)}."
@@ -80,9 +80,9 @@ def download_set14():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_set14_dataset(download_Set14):
+def test_load_set14_dataset(download_set14):
     """Check that dataset contains 14 PIL images."""
-    dataset = Set14HR(download_Set14, download=False)
+    dataset = Set14HR(download_set14, download=False)
     assert (
         len(dataset) == 14
     ), f"Dataset should have been of len 14, instead got {len(dataset)}."
@@ -106,9 +106,9 @@ def download_cbsd68():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_cbsd68_dataset(download_CBSD68):
+def test_load_cbsd68_dataset(download_cbsd68):
     """Check that dataset contains 68 PIL images."""
-    dataset = CBSD68(download_CBSD68, download=False)
+    dataset = CBSD68(download_cbsd68, download=False)
     assert (
         len(dataset) == 68
     ), f"Dataset should have been of len 68, instead got {len(dataset)}."
