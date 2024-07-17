@@ -745,7 +745,7 @@ class Trainer:
 
         return self.model
 
-    def test(self, test_dataloader):
+    def test(self, test_dataloader, **kwargs):
         r"""
         Test the model.
 
@@ -768,6 +768,7 @@ class Trainer:
             device=self.device,
             verbose=self.verbose,
             show_progress_bar=self.show_progress_bar,
+            **kwargs,
         )
 
 

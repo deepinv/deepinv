@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Optional
 from warnings import warn
 import torch
@@ -38,7 +39,7 @@ class SplittingLoss(Loss):
 
         To obtain the best test performance, the trained model should be averaged at test time
         over multiple realizations of the splitting, i.e.
-        :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`. To disable this, set ``MC_samples=1``.
+        :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`. To disable this, set ``eval_n_samples=1``.
 
     .. note::
 
@@ -50,11 +51,11 @@ class SplittingLoss(Loss):
         with the splitting ratio.
     :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
         None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used.
-    :param int MC_samples: Number of samples used for averaging. Must be greater than 0.
+    :param int eval_n_samples: Number of samples used for averaging at evaluation time. Must be greater than 0.
     :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)
     :param bool eval_split_output: at evaluation time, pass the output through the output mask too.
         i.e. :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.
-        Only valid when y is same domain (and dimension) as x. Defaults to False.
+        Only valid when y is same domain (and dimension) as x. Although better results may be observed on small datasets, more samples must be used for bigger images. Defaults to False.
     :param bool pixelwise: if True, create pixelwise splitting masks i.e. zero all channels simultaneously.
 
     |sep|
@@ -65,7 +66,7 @@ class SplittingLoss(Loss):
     >>> import deepinv as dinv
     >>> physics = dinv.physics.Inpainting(tensor_size=(1, 8, 8), mask=0.5)
     >>> model = dinv.models.MedianFilter()
-    >>> loss = dinv.loss.SplittingLoss(split_ratio=0.9, MC_samples=2)
+    >>> loss = dinv.loss.SplittingLoss(split_ratio=0.9, eval_n_samples=2)
     >>> model = loss.adapt_model(model) # important step!
     >>> x = torch.ones((1, 1, 8, 8))
     >>> y = physics(x)
@@ -82,7 +83,7 @@ class SplittingLoss(Loss):
         metric=torch.nn.MSELoss(),
         split_ratio: float = 0.9,
         mask_generator: Optional[PhysicsGenerator] = None,
-        MC_samples=5,
+        eval_n_samples=5,
         eval_split_input=True,
         eval_split_output=False,
         pixelwise=True,
@@ -92,7 +93,7 @@ class SplittingLoss(Loss):
         self.metric = metric
         self.mask_generator = mask_generator
         self.split_ratio = split_ratio
-        self.MC_samples = MC_samples
+        self.eval_n_samples = eval_n_samples
         self.eval_split_input = eval_split_input
         self.eval_split_output = eval_split_output
         self.pixelwise = pixelwise
@@ -125,7 +126,9 @@ class SplittingLoss(Loss):
 
         return loss_ms
 
-    def adapt_model(self, model: torch.nn.Module, MC_samples=None):
+    def adapt_model(
+        self, model: torch.nn.Module, eval_n_samples=None
+    ) -> SplittingModel:
         r"""
         Apply random splitting to input.
 
@@ -144,12 +147,12 @@ class SplittingLoss(Loss):
         For other parameters that control how splitting is applied, see the class parameters.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param int MC_samples: deprecated. Pass ``MC_samples`` at class initialisation instead.
+        :param int eval_n_samples: deprecated. Pass ``eval_n_samples`` at class initialisation instead.
         :return: (torch.nn.Module) Model modified for evaluation.
         """
-        if MC_samples is not None:
+        if eval_n_samples is not None:
             warn(
-                "MC_samples parameter is deprecated. Pass MC_samples at init: SplittingLoss(MC_samples=...)"
+                "eval_n_samples parameter is deprecated. Pass eval_n_samples at init: SplittingLoss(eval_n_samples=...)"
             )
 
         if isinstance(model, SplittingModel):
@@ -159,7 +162,7 @@ class SplittingLoss(Loss):
                 model,
                 split_ratio=self.split_ratio,
                 mask_generator=self.mask_generator,
-                MC_samples=self.MC_samples,
+                eval_n_samples=self.eval_n_samples,
                 eval_split_input=self.eval_split_input,
                 eval_split_output=self.eval_split_output,
                 pixelwise=self.pixelwise,
@@ -180,7 +183,7 @@ class SplittingModel(torch.nn.Module):
         model,
         split_ratio,
         mask_generator,
-        MC_samples,
+        eval_n_samples,
         eval_split_input,
         eval_split_output,
         pixelwise,
@@ -188,7 +191,7 @@ class SplittingModel(torch.nn.Module):
         super().__init__()
         self.model = model
         self.split_ratio = split_ratio
-        self.MC_samples = MC_samples
+        self.eval_n_samples = eval_n_samples
         self.mask = 0
         self.mask_generator = mask_generator
         self.eval_split_input = eval_split_input
@@ -219,9 +222,9 @@ class SplittingModel(torch.nn.Module):
                 return self._forward_split_output(y, physics)
 
             else:
-                MC_samples = 1 if self.training else self.MC_samples
+                eval_n_samples = 1 if self.training else self.eval_n_samples
 
-                for _ in range(MC_samples):
+                for _ in range(eval_n_samples):
                     # Perform input masking
                     mask = self.mask_generator.step(
                         y.size(0), input_mask=getattr(physics, "mask", None)
@@ -231,7 +234,7 @@ class SplittingModel(torch.nn.Module):
                     physics1.noise_model = physics.noise_model
 
                     # Forward pass
-                    out += self.model(y1, physics1) / MC_samples
+                    out += self.model(y1, physics1) / eval_n_samples
 
             if self.training and update_parameters:
                 self.mask = mask["mask"]
@@ -244,7 +247,7 @@ class SplittingModel(torch.nn.Module):
         normaliser = torch.zeros_like(y)
         inp = Inpainting(y.size()[1:], device=y.device)
 
-        for _ in range(self.MC_samples):
+        for _ in range(self.eval_n_samples):
             # Perform input masking
             mask = self.mask_generator.step(
                 y.size(0), input_mask=getattr(physics, "mask", None)
@@ -405,7 +408,7 @@ if __name__ == "__main__":
     # choose training losses
     split_ratio = 0.9
     loss = SplittingLoss(split_ratio=split_ratio)
-    f = loss.adapt_model(f, MC_samples=2)  # important step!
+    f = loss.adapt_model(f, eval_n_samples=2)  # important step!
 
     batch_size = 1
     imsize = (3, 128, 128)
