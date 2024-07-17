@@ -12,4 +12,4 @@ from .mri import (
     EquispacedMaskGenerator,
 )
 from .noise import SigmaGenerator
-from .inpainting import BernoulliSplittingMaskGenerator
+from .inpainting import BernoulliSplittingMaskGenerator,  GaussianSplittingMaskGenerator

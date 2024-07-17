@@ -183,6 +183,7 @@ For random inpainting we also provide generators to create random masks on-the-f
    :nosignatures:
 
    deepinv.physics.generator.BernoulliSplittingMaskGenerator
+   deepinv.physics.generator.GaussianSplittingMaskGenerator
 
 Blur & Super-Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^
