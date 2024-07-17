@@ -22,14 +22,20 @@ SIZES = [(5, 5), (6, 6)]
 NUM_CHANNELS = [1, 3]
 
 
+# MRI Generators
 C, T, H, W = 2, 12, 256, 512
 MRI_GENERATORS = ["gaussian", "random", "uniform"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
 
-INPAINTING_GENERATORS = ["bernoulli"]
-INPAINTING_IMG_SIZES = [(1, 64, 64), (1, 28, 31)]
+# Inpainting/Splitting Generators
+INPAINTING_IMG_SIZES = [
+    (2, 64, 40),
+    (2, 1000),
+    (2, 3, 64, 40),
+]  # (C,H,W), (C,M), (C,T,H,W)
+INPAINTING_GENERATORS = ["bernoulli", "gaussian"]
 
 
 def find_generator(name, size, num_channels, device):
@@ -307,7 +313,9 @@ def test_generation(name, device):
     assert torch.allclose(w, wref, atol=1e-6)
 
 
-### MRI GENERATORS
+######################
+### MRI GENERATORS ###
+######################
 
 
 @pytest.fixture
@@ -372,10 +380,9 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
         assert not torch.allclose(mask, mask2)
 
 
-### INPAINTING GENERATORS
-
-INPAINTING_IMG_SIZES = [(2, 64, 40), (2, 1000)]  # (C,H,W), (C,M)
-INPAINTING_GENERATORS = ["bernoulli"]
+#############################
+### INPAINTING GENERATORS ###
+#############################
 
 
 def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
@@ -387,6 +394,14 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
             pixelwise=pixelwise,
             rng=torch.Generator().manual_seed(0),
         )
+    elif name == "gaussian":
+        return dinv.physics.generator.GaussianSplittingMaskGenerator(
+            tensor_size=img_size,
+            split_ratio=split_ratio,
+            device=device,
+            pixelwise=pixelwise,
+            rng=np.random.default_rng(0),
+        )
     else:
         raise Exception("The generator chosen doesn't exist")
 
@@ -394,10 +409,15 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("generator_name", INPAINTING_GENERATORS)
 @pytest.mark.parametrize("img_size", INPAINTING_IMG_SIZES)
 @pytest.mark.parametrize("pixelwise", (False, True))
-def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, device):
-    # TODO test more different img_sizes + input_mask shapes for mask3
-    # TODO test pixelwise produces expected result
-    split_ratio = 0.5
+@pytest.mark.parametrize("split_ratio", (0.5))
+def test_inpainting_generators(
+    generator_name, batch_size, img_size, pixelwise, split_ratio, device
+):
+    if generator_name == "gaussian" and len(img_size) < 3:
+        pytest.skip(
+            "Gaussian splitting mask not valid for images of shape smaller than (C, H, W)"
+        )
+
     gen = choose_inpainting_generator(
         generator_name, img_size, split_ratio, pixelwise, device
     )  # Assume generator always receives "correct" img_size i.e. not one with dims missing
@@ -410,14 +430,16 @@ def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, 
             atol=1e-2,
         )
 
+    def correct_pixelwise(mask):
+        if pixelwise:
+            assert torch.all(mask[:, 0, ...] == mask[:, 1, ...])
+        else:
+            assert not torch.all(mask[:, 0, ...] == mask[:, 1, ...])
+
     # Standard generate mask
     mask1 = gen.step(batch_size=batch_size)["mask"]
     correct_ratio(mask1.sum() / np.prod((batch_size, *img_size)))
-
-    if pixelwise:
-        assert torch.all(mask1[:, 0, ...] == mask1[:, 1, ...])
-    else:
-        assert not torch.all(mask1[:, 0, ...] == mask1[:, 1, ...])
+    correct_pixelwise(mask1)
 
     # Standard without batch dim
     mask1 = gen.step(batch_size=None)["mask"]
@@ -430,11 +452,7 @@ def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, 
         "mask"
     ]  # should ignore batch_size
     correct_ratio(mask2.sum() / input_mask.sum())
-
-    if pixelwise:
-        assert torch.all(mask2[:, 0, ...] == mask2[:, 1, ...])
-    else:
-        assert not torch.all(mask2[:, 0, ...] == mask2[:, 1, ...])
+    correct_pixelwise(mask2)
 
     # As above but with no batch dimension in input_mask
     input_mask = torch.ones(*img_size)
@@ -450,11 +468,7 @@ def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, 
 
     # Generate splitting mask from already subsampled mask
     input_mask = torch.zeros(batch_size, *img_size)
-    input_mask[:, :, 10:20, ...] = 1
+    input_mask[..., 10:20] = 1
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
     correct_ratio(mask3.sum() / input_mask.sum())
-
-    if pixelwise:
-        assert torch.all(mask3[:, 0, ...] == mask3[:, 1, ...])
-    else:
-        assert not torch.all(mask3[:, 0, ...] == mask3[:, 1, ...])
+    correct_pixelwise(mask3)

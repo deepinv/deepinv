@@ -7,9 +7,9 @@ from deepinv.physics.generator import PhysicsGenerator
 
 
 class BernoulliSplittingMaskGenerator(PhysicsGenerator):
-    """Base generator for splitting masks.
+    """Base generator for splitting/inpainting masks.
 
-    Generates binary masks with an approximate given split ratio, according to a Bernoulli distribution.
+    Generates binary masks with an approximate given split ratio, according to a Bernoulli distribution. Can be used either for generating random inpainting masks for :class:`deepinv.physics.Inpainting`, or random splitting masks for :class:`deepinv.loss.SplittingLoss`.
 
     Optional pass in input_mask to subsample this mask given the split ratio. For mask ratio to be almost exactly as specified, use this option with a flat mask of ones as input.
 
@@ -37,7 +37,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param torch.device device: device where the tensor is stored (default: 'cpu').
-    :param np.random.Generator, torch.Generator rng: random number generator.
+    :param torch.Generator rng: torch random number generator.
     """
 
     def __init__(
@@ -55,11 +55,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.split_ratio = split_ratio
         self.pixelwise = pixelwise
         self.device = device
-        self.rng = (
-            rng
-            if rng is not None
-            else torch.Generator(device=self.device).manual_seed(0)
-        )
+        self.rng = rng or torch.Generator(device=self.device).manual_seed(0)
 
         if self.pixelwise and len(self.tensor_size) == 2:
             warn(
@@ -69,15 +65,15 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
             warn("For 1D tensor_size, pixelwise must be False.")
             self.pixelwise = False
 
-    def step(self, batch_size=1, input_mask=None) -> dict:
+    def step(self, batch_size=1, input_mask: torch.Tensor = None) -> dict:
         r"""
-        Create a bernoulli mask.
+        Generate a random mask.
 
         If ``input_mask`` is None, generates a standard random mask that can be used for :class:`deepinv.physics.Inpainting`.
         If ``input_mask`` is specified, splits the input mask into subsets given the split ratio.
 
         :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension > 1, batch_size is ignored.
-        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered.
+        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.
         :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}.
         :rtype: dict
         """
@@ -109,31 +105,41 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         return {"mask": mask}
 
-    def batch_step(self, input_mask=None) -> dict:
-        if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
-            # Sample indices from given input mask
-
-            # Check if pixelwise can be used
-            pixelwise = self.pixelwise
-            if pixelwise:
+    def check_pixelwise(self, input_mask=None) -> bool:
+        """Check if pixelwise can be used given input_mask dimensions"""
+        if (
+            isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1
+        ):  # Input mask is properly specified
+            if self.pixelwise:
                 if len(input_mask.shape) == 1:
                     warn("input_mask is only 1D so pixelwise cannot be used.")
-                    pixelwise = False
+                    return False
                 elif len(input_mask.shape) == 2 and len(input_mask.shape) < len(
                     self.tensor_size
                 ):
                     # When input_mask 2D, this can either be shape C,M or H,W.
                     # When input_mask C,M, tensor_size will also be C,M (as passed in from SplittingLoss) and pixelwise can be used safely.
                     # When input_mask H,W but tensor_size higher-dimensional e.g. C,H,W, then pixelwise should be set to False as it will happen anyway.
-                    pixelwise = False
+                    return False
                 elif not all(
                     torch.equal(input_mask[i], input_mask[0])
                     for i in range(1, input_mask.shape[0])
                 ):
                     warn("To use pixelwise, all channels must be same.")
-                    pixelwise = False
+                    return False
 
-            # Sample indices
+        return self.pixelwise
+
+    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+        r"""
+        Create one batch of splitting mask using uniform distribution.
+
+        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. Batch dimension should not be included in shape.
+        """
+        pixelwise = self.check_pixelwise(input_mask)
+
+        if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
+            # Sample indices from given input mask
             if pixelwise:
                 idx = input_mask[0, ...].nonzero(as_tuple=False)
             else:
@@ -152,13 +158,153 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                 mask[tuple(idx_out)] = 1
 
         else:
-
-            # Sample pixels from a uniform distribution
+            # Sample pixels from a uniform distribution as input_mask is not given
             mask = torch.ones(self.tensor_size, device=self.device)
             aux = torch.rand(self.tensor_size, generator=self.rng, device=self.device)
-            if not self.pixelwise:
+            if not pixelwise:
                 mask[aux > self.split_ratio] = 0
             else:
                 mask[:, aux[0, ...] > self.split_ratio] = 0
 
         return mask
+
+
+class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
+    """Randomly generate Gaussian splitting/inpainting masks.
+
+    Generates binary masks with an approximate given split ratio, where samples are weighted according to a spatial Gaussian distribution, where pixels near the center are less likely to be kept.
+    This mask is used for measurement splitting for MRI in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
+
+    Can be used either for generating random inpainting masks for :class:`deepinv.physics.Inpainting`, or random splitting masks for :class:`deepinv.loss.SplittingLoss`.
+
+    Optional pass in input_mask to subsample this mask given the split ratio.
+
+    Also handles both 2D mask (i.e. [C, H, W] from `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_) and 2D+time dynamic mask (i.e. [C, T, H, W] from `Acar et al. <https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4>`_) generation.
+
+    |sep|
+
+    :Examples:
+
+        Randomly split input mask using Gaussian weighting
+
+        >>> from deepinv.physics.generator import GaussianSplittingMaskGenerator
+        >>> from deepinv.physics import Inpainting
+        >>> physics = Inpainting((1, 3, 3), 0.9)
+        >>> gen = GaussianSplittingMaskGenerator((1, 3, 3), 0.6)
+        >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
+        torch.Size([2, 1, 3, 3])
+
+    :param Tuple tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
+    :param float split_ratio: ratio of values to be kept (i.e. ones).
+    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
+    :param float std_scale: scale parameter of 2D Gaussian, in pixels.
+    :param tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal.
+    :param torch.device device: device where the tensor is stored (default: 'cpu').
+    :param np.random.Generator rng: numpy random number generator. NOTE this is different from :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` which requires torch generator.
+    """
+
+    def __init__(
+        self,
+        tensor_size: Tuple,
+        split_ratio: float,
+        pixelwise: bool = True,
+        std_scale: float = 4.0,
+        center_block: Tuple[int] = (8, 8),
+        device: torch.device = torch.device("cpu"),
+        rng: np.random.Generator = None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            tensor_size=tensor_size,
+            split_ratio=split_ratio,
+            pixelwise=pixelwise,
+            device=device,
+            rng=rng,
+            **kwargs,
+        )
+        if len(tensor_size) < 3:
+            raise ValueError(
+                "tensor_size should be at least of shape (C, H, W). Gaussian splitting mask does not support signals of shape (C, M)."
+            )
+        self.std_scale = std_scale
+        self.center_block = center_block
+        self.rng = rng or np.random.default_rng(0)
+
+    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+        r"""
+        Create one batch of splitting mask using Gaussian distribution.
+
+        Adapted from https://github.com/byaman14/SSDU/blob/main/masks/ssdu_masks.py from `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
+
+        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. No batch dim in shape.
+        """
+        pixelwise = self.check_pixelwise()
+        _T = self.tensor_size[1] if len(self.tensor_size) > 3 else 1
+        _C = self.tensor_size[0] if not pixelwise else 1
+
+        # Create blank input mask if not specified. Create with time dim even if we only want static mask
+        if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
+            input_mask = torch.ones(_C, _T, *self.tensor_size[-2:], device=self.device)
+
+        if len(input_mask.shape) == 3:
+            input_mask = input_mask.unsqueeze(
+                1
+            )  # Create time dim even if we only want static mask
+
+        if pixelwise:
+            input_mask = input_mask[
+                [0], ...
+            ]  # Only use one channel (they are all the same...)
+
+        nx, ny = input_mask.shape[-2:]
+        centerx, centery = nx // 2, ny // 2
+
+        x, y = np.meshgrid(np.arange(0, nx, 1), np.arange(0, ny, 1), indexing="ij")
+
+        # Create PDF
+        gaussian = np.exp(
+            -(
+                (x - centerx) ** 2 / (2 * (nx / self.std_scale) ** 2)
+                + (y - centery) ** 2 / (2 * (ny / self.std_scale) ** 2)
+            )
+        )
+        prob_mask = input_mask * torch.tensor(
+            gaussian[..., :, :], device=input_mask.device
+        )
+
+        prob_mask[
+            ...,
+            centerx - self.center_block[0] // 2 : centerx + self.center_block[0] // 2,
+            centery - self.center_block[1] // 2 : centery + self.center_block[1] // 2,
+        ] = 0
+
+        norm_prob = prob_mask / prob_mask.sum(dim=(-2, -1), keepdim=True)
+
+        # Fill output mask
+        mask_out = torch.zeros_like(input_mask).flatten(-2)
+
+        for c in range(_C):
+            for t in range(_T):
+                ind = self.rng.choice(
+                    nx * ny,
+                    size=(input_mask[c, t, :, :].sum() * (1 - self.split_ratio))
+                    .ceil()
+                    .int()
+                    .item(),
+                    p=norm_prob[c, t, :, :].cpu().flatten(),
+                    replace=False,
+                )
+                mask_out[c, t, ind] = 1
+
+        # Invert mask for output and handle dimensions
+        mask_out = input_mask - mask_out.unflatten(-1, (nx, ny))
+
+        if len(self.tensor_size) == 3:
+            mask_out = mask_out[:, 0, ...]  # no actual time dim
+
+        if self.pixelwise:
+            mask_out = torch.cat([mask_out] * self.tensor_size[0], dim=0)
+
+        return mask_out

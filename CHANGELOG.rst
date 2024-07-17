@@ -8,6 +8,8 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+- Added Gaussian-weighted splitting mask (from Yaman et al.) (:gh:`279` by `Andrew Wang`_)
+
 New Features
 ^^^^^^^^^^^^
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
