@@ -11,6 +11,10 @@ class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
 
+    Implements measurement splitting loss from `Yaman et al. <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_ (SSDU) for MRI,
+    `Hendriksen et al. <https://arxiv.org/abs/2001.11801>`_ (Noise2Inverse) for CT,
+    `Acar et al. <https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4>`_ dynamic MRI.
+
     Splits the measurement and forward operator :math:`\forw{}` (of size :math:`m`)
     into two smaller pairs  :math:`(y_1,A_1)` (of size :math:`m_1`) and  :math:`(y_2,A_2)` (of size :math:`m_2`) ,
     to compute the self-supervised loss:
@@ -26,7 +30,6 @@ class SplittingLoss(Loss):
         If the forward operator has its own subsampling mask :math:`M_{\forw{}}`, e.g. :class:`deepinv.physics.Inpainting` or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
 
-    This loss was used in SSDU for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
