@@ -409,7 +409,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("generator_name", INPAINTING_GENERATORS)
 @pytest.mark.parametrize("img_size", INPAINTING_IMG_SIZES)
 @pytest.mark.parametrize("pixelwise", (False, True))
-@pytest.mark.parametrize("split_ratio", (0.5))
+@pytest.mark.parametrize("split_ratio", (0.5,))
 def test_inpainting_generators(
     generator_name, batch_size, img_size, pixelwise, split_ratio, device
 ):
@@ -448,9 +448,8 @@ def test_inpainting_generators(
 
     # Standard mask but by passing flat input_mask of ones
     input_mask = torch.ones(batch_size, *img_size)
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)[
-        "mask"
-    ]  # should ignore batch_size
+    # should ignore batch_size
+    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
     correct_ratio(mask2.sum() / input_mask.sum())
     correct_pixelwise(mask2)
 

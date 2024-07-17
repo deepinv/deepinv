@@ -38,7 +38,8 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # -  Use ``split_ratio`` to set the ratio of pixels used in the forward
 #    pass vs the loss;
 # -  Define custom masking methods using a ``mask_generator`` such as
-#    :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`;
+#    :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`
+#    or :class:`deepinv.physics.generator.GaussianSplittingMaskGenerator`;
 # -  Use ``eval_n_samples`` to set how many realisations of the random
 #    mask is used at evaluation time;
 # -  Optionally disable measurement splitting at evaluation time using

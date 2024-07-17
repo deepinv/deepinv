@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -20,7 +20,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         Generate random mask
 
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
-        >>> gen = BernoulliSplittingMaskGenerator((1, 3, 3), 0.6)
+        >>> gen = BernoulliSplittingMaskGenerator((1, 3, 3), split_ratio=0.6)
         >>> gen.step(batch_size=2)["mask"].shape
         torch.Size([2, 1, 3, 3])
 
@@ -29,7 +29,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
         >>> from deepinv.physics import Inpainting
         >>> physics = Inpainting((1, 3, 3), 0.9)
-        >>> gen = BernoulliSplittingMaskGenerator((1, 3, 3), 0.6)
+        >>> gen = BernoulliSplittingMaskGenerator((1, 3, 3), split_ratio=0.6)
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
         torch.Size([2, 1, 3, 3])
 
@@ -179,7 +179,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     Optional pass in input_mask to subsample this mask given the split ratio.
 
-    Also handles both 2D mask (i.e. [C, H, W] from `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_) and 2D+time dynamic mask (i.e. [C, T, H, W] from `Acar et al. <https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4>`_) generation.
+    Handles both 2D mask (i.e. [C, H, W] from `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_) and 2D+time dynamic mask (i.e. [C, T, H, W] from `Acar et al. <https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4>`_) generation. Does not handle 1D data (e.g. of shape [C, M])
 
     |sep|
 
@@ -190,7 +190,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         >>> from deepinv.physics.generator import GaussianSplittingMaskGenerator
         >>> from deepinv.physics import Inpainting
         >>> physics = Inpainting((1, 3, 3), 0.9)
-        >>> gen = GaussianSplittingMaskGenerator((1, 3, 3), 0.6)
+        >>> gen = GaussianSplittingMaskGenerator((1, 3, 3), split_ratio=0.6, center_block=0)
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
         torch.Size([2, 1, 3, 3])
 
@@ -198,7 +198,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param float split_ratio: ratio of values to be kept (i.e. ones).
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param float std_scale: scale parameter of 2D Gaussian, in pixels.
-    :param tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal.
+    :param int, tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal. Either int for square block or 2-tuple (h, w)
     :param torch.device device: device where the tensor is stored (default: 'cpu').
     :param np.random.Generator rng: numpy random number generator. NOTE this is different from :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` which requires torch generator.
     """
@@ -209,7 +209,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         split_ratio: float,
         pixelwise: bool = True,
         std_scale: float = 4.0,
-        center_block: Tuple[int] = (8, 8),
+        center_block: Union[Tuple[int], int] = (8, 8),
         device: torch.device = torch.device("cpu"),
         rng: np.random.Generator = None,
         *args,
@@ -229,7 +229,11 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
                 "tensor_size should be at least of shape (C, H, W). Gaussian splitting mask does not support signals of shape (C, M)."
             )
         self.std_scale = std_scale
-        self.center_block = center_block
+        self.center_block = (
+            (center_block, center_block)
+            if isinstance(center_block, int)
+            else center_block
+        )
         self.rng = rng or np.random.default_rng(0)
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
@@ -248,15 +252,21 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
             input_mask = torch.ones(_C, _T, *self.tensor_size[-2:], device=self.device)
 
+        if len(input_mask.shape) < len(self.tensor_size):
+            # Missing channel dim, so create it
+            no_channel_dim = True
+            input_mask = input_mask.unsqueeze(0)
+            _C = 1
+        else:
+            no_channel_dim = False
+
         if len(input_mask.shape) == 3:
-            input_mask = input_mask.unsqueeze(
-                1
-            )  # Create time dim even if we only want static mask
+            # Create time dim even if we only want static mask
+            input_mask = input_mask.unsqueeze(1)
 
         if pixelwise:
-            input_mask = input_mask[
-                [0], ...
-            ]  # Only use one channel (they are all the same...)
+            # Only use one channel (they are all the same...)
+            input_mask = input_mask[[0], ...]
 
         nx, ny = input_mask.shape[-2:]
         centerx, centery = nx // 2, ny // 2
@@ -304,7 +314,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         if len(self.tensor_size) == 3:
             mask_out = mask_out[:, 0, ...]  # no actual time dim
 
-        if self.pixelwise:
+        if self.pixelwise and not no_channel_dim:
             mask_out = torch.cat([mask_out] * self.tensor_size[0], dim=0)
 
         return mask_out
