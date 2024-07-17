@@ -175,7 +175,6 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         device="cpu",
         shared_weights=False,
         drop_tail=False,
-        use_haal=False,
         **kwargs,
     ):
         if output_shape is None:

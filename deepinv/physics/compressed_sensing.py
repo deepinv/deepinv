@@ -132,7 +132,7 @@ class CompressedSensing(LinearPhysics):
                 self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
                 self._A, R = torch.linalg.qr(self._A)
                 L = torch.sgn(torch.diag(R))
-                self._A = self._A * L[None,:]
+                self._A = self._A * L[None, :]
                 self._A = torch.nn.Parameter(self._A, requires_grad=False)
 
             if compute_inverse == True:
