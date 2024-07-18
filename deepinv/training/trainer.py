@@ -575,7 +575,7 @@ class Trainer:
             x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
 
             # Log metrics
-            logs = self.compute_metrics(x, x_net, y, physics_cur, logs)
+            logs = self.compute_metrics(x, x_net, y, physics_cur, logs, train=train)
 
             # Update the progress bar
             progress_bar.set_postfix(logs)
