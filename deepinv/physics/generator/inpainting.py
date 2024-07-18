@@ -33,7 +33,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
         torch.Size([2, 1, 3, 3])
 
-    :param Tuple tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param torch.device device: device where the tensor is stored (default: 'cpu').
@@ -42,7 +42,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        tensor_size: Tuple,
+        tensor_size: Tuple[int],
         split_ratio: float,
         pixelwise: bool = True,
         device: torch.device = torch.device("cpu"),
@@ -57,15 +57,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.device = device
         self.rng = rng or torch.Generator(device=self.device).manual_seed(0)
 
-        if self.pixelwise and len(self.tensor_size) == 2:
-            warn(
-                "Generating pixelwise mask assumes channel in first dimension. For 2D images (i.e. of shape (H,W)) ensure tensor_size is at least 3D (i.e. C,H,W). However, for tensor_size of shape (C,M), this will work as expected."
-            )
-        elif self.pixelwise and len(self.tensor_size) == 1:
-            warn("For 1D tensor_size, pixelwise must be False.")
-            self.pixelwise = False
-
-    def step(self, batch_size=1, input_mask: torch.Tensor = None) -> dict:
+    def step(self, batch_size=1, input_mask: torch.Tensor = None, **kwargs) -> dict:
         r"""
         Generate a random mask.
 
@@ -98,19 +90,29 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                     inp = input_mask[b]
                 elif isinstance(input_mask, torch.Tensor):
                     inp = input_mask
-                outs.append(self.batch_step(input_mask=inp))
+                outs.append(self.batch_step(input_mask=inp, **kwargs))
             mask = torch.stack(outs)
         else:
-            mask = self.batch_step(input_mask=input_mask)
+            mask = self.batch_step(input_mask=input_mask, **kwargs)
 
         return {"mask": mask}
 
     def check_pixelwise(self, input_mask=None) -> bool:
-        """Check if pixelwise can be used given input_mask dimensions"""
+        """Check if pixelwise can be used given input_mask dimensions and tensor_size dimensions"""
+        pixelwise = self.pixelwise
+
+        if pixelwise and len(self.tensor_size) == 2:
+            warn(
+                "Generating pixelwise mask assumes channel in first dimension. For 2D images (i.e. of shape (H,W)) ensure tensor_size is at least 3D (i.e. C,H,W). However, for tensor_size of shape (C,M), this will work as expected."
+            )
+        elif pixelwise and len(self.tensor_size) == 1:
+            warn("For 1D tensor_size, pixelwise must be False.")
+            pixelwise = False
+
         if (
             isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1
         ):  # Input mask is properly specified
-            if self.pixelwise:
+            if pixelwise:
                 if len(input_mask.shape) == 1:
                     warn("input_mask is only 1D so pixelwise cannot be used.")
                     return False
@@ -128,11 +130,11 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                     warn("To use pixelwise, all channels must be same.")
                     return False
 
-        return self.pixelwise
+        return pixelwise
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         r"""
-        Create one batch of splitting mask using uniform distribution.
+        Create one batch of splitting mask.
 
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. Batch dimension should not be included in shape.
         """
@@ -194,7 +196,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
         torch.Size([2, 1, 3, 3])
 
-    :param Tuple tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
     :param float split_ratio: ratio of values to be kept (i.e. ones).
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param float std_scale: scale parameter of 2D Gaussian, in pixels.
@@ -205,7 +207,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     def __init__(
         self,
-        tensor_size: Tuple,
+        tensor_size: Tuple[int],
         split_ratio: float,
         pixelwise: bool = True,
         std_scale: float = 4.0,
@@ -317,4 +319,116 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         if self.pixelwise and not no_channel_dim:
             mask_out = torch.cat([mask_out] * self.tensor_size[0], dim=0)
 
+        return mask_out
+
+
+class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
+    """Phase2Phase splitting mask generator for dynamic data.
+
+    To be exclusively used with :class:`deepinv.loss.Phase2PhaseLoss`.
+    Splits dynamic data (i.e. data of shape (B, C, T, H, W)) into even and odd phases in the T dimension.
+
+    Used in `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging <https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx>`_
+    for free-breathing MRI.
+
+    If input_mask not passed, a blank input mask is used instead.
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
+    :param torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.Generator rng: unused.
+    """
+
+    def __init__(
+        self,
+        tensor_size: Tuple[int],
+        device: torch.device = "cpu",
+        rng: torch.Generator = None,
+    ):
+        super().__init__(
+            tensor_size=tensor_size,
+            split_ratio=None,
+            pixelwise=None,
+            device=device,
+            rng=rng,
+        )
+
+    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+        if len(self.tensor_size) != 4:
+            raise ValueError("tensor_size must be of shape (C, T, H, W)")
+
+        if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
+            input_mask = torch.ones(self.tensor_size, device=self.device)
+
+        if tuple(input_mask.shape) != self.tensor_size:
+            raise ValueError("input_mask must be same shape as tensor_size")
+
+        mask_out = torch.zeros_like(input_mask)
+        mask_out[:, ::2] = input_mask[:, ::2]
+        return mask_out
+
+
+class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator):
+    """Artifact2Artifact splitting mask generator for dynamic data.
+
+    To be exclusively used with :class:`deepinv.loss.Artifact2ArtifactLoss`.
+    Randomly selects a chunk from dynamic data (i.e. data of shape (B, C, T, H, W)) in the T dimension and puts zeros in the rest of the mask.
+
+    When ``step`` called with ``persist_prev``, the selected chunk will be different from the previous time it was called.
+    This is used so input chunk is compared to a different output chunk.
+
+    Artifact2Artifact was introduced in `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
+    for free-breathing MRI.
+
+    If input_mask not passed, a blank input mask is used instead.
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
+    :param int, tuple[int] split_size: time-length of chunk. Must divide tensor_size[1] exactly. If tuple, one is randomly selected each time.
+    :param torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.Generator rng: torch random number generator.
+    """
+
+    def __init__(
+        self,
+        tensor_size: Tuple[int],
+        split_size: Union[int, Tuple[int]] = 2,
+        device: torch.device = "cpu",
+        rng: torch.Generator = None,
+    ):
+        super().__init__(tensor_size, device, rng)
+        self.split_size = split_size
+        self.prev_idx = None
+        self.prev_split_size = None
+
+    def batch_step(
+        self, input_mask: torch.Tensor = None, persist_prev: bool = False
+    ) -> dict:
+        def rand_select(arr):
+            return arr[
+                torch.randint(
+                    len(arr), (1,), generator=self.rng, device=self.device
+                ).item()
+            ]
+
+        # Do Phase2Phase step to check input dimensions
+        _ = super().batch_step(input_mask=input_mask)
+
+        # Choose split_size
+        split_size = self.split_size
+        if isinstance(self.split_size, (tuple, list)):
+            if persist_prev:
+                split_size = self.prev_split_size
+            else:
+                self.prev_split_size = split_size = rand_select(self.split_size)
+
+        # Randomly select one chunk. Don't select previous chunk if leave_prev_idx is True
+        idxs = list(range(input_mask.shape[1] // split_size))
+        if persist_prev:
+            idxs.remove(self.prev_idx)
+
+        self.prev_idx = idx = rand_select(idxs)
+
+        mask_out = torch.zeros_like(input_mask)
+        mask_out[:, split_size * idx : split_size * (idx + 1)] = input_mask[
+            :, split_size * idx : split_size * (idx + 1)
+        ]
         return mask_out

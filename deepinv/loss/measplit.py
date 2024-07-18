@@ -1,10 +1,16 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Tuple
+from copy import deepcopy
 from warnings import warn
 import torch
-from deepinv.physics import Inpainting, Denoising, Physics
+from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
-from deepinv.physics.generator import PhysicsGenerator, BernoulliSplittingMaskGenerator
+from deepinv.physics.generator import (
+    PhysicsGenerator,
+    BernoulliSplittingMaskGenerator,
+    Phase2PhaseSplittingMaskGenerator,
+    Artifact2ArtifactSplittingMaskGenerator,
+)
 
 
 class SplittingLoss(Loss):
@@ -30,6 +36,7 @@ class SplittingLoss(Loss):
         If the forward operator has its own subsampling mask :math:`M_{\forw{}}`, e.g. :class:`deepinv.physics.Inpainting` or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
 
+    This loss was used in SSDU for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
@@ -51,15 +58,15 @@ class SplittingLoss(Loss):
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
-        with the splitting ratio.
+        with the splitting ratio. Ignored if ``mask_generator`` passed.
     :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
-        None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used.
+        None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used, with the parameters ``split_ratio`` and ``pixelwise``.
     :param int eval_n_samples: Number of samples used for averaging at evaluation time. Must be greater than 0.
     :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)
     :param bool eval_split_output: at evaluation time, pass the output through the output mask too.
         i.e. :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.
         Only valid when y is same domain (and dimension) as x. Although better results may be observed on small datasets, more samples must be used for bigger images. Defaults to False.
-    :param bool pixelwise: if True, create pixelwise splitting masks i.e. zero all channels simultaneously.
+    :param bool pixelwise: if True, create pixelwise splitting masks i.e. zero all channels simultaneously. Ignored if ``mask_generator`` passed.
 
     |sep|
 
@@ -101,6 +108,22 @@ class SplittingLoss(Loss):
         self.eval_split_output = eval_split_output
         self.pixelwise = pixelwise
 
+    @staticmethod
+    def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+        inp = Inpainting(y.size()[1:], mask=mask, device=y.device)
+
+        # divide measurements y_i = M_i * y
+        y_split = inp.A(y)
+
+        # concatenate operators A_i = M_i * A
+        if physics is None:
+            return y_split
+
+        physics_split = inp * physics
+        physics_split.noise_model = physics.noise_model
+
+        return y_split, physics_split
+
     def forward(self, x_net, y, physics, model, **kwargs):
         r"""
         Computes the measurement splitting loss
@@ -112,22 +135,13 @@ class SplittingLoss(Loss):
         """
         mask = model.get_mask()
 
-        # create inpainting masks
+        # Create output mask M_2 = I - M_1
         mask2 = getattr(physics, "mask", 1.0) - mask
-        inp2 = Inpainting(y.size()[1:], mask=mask2, device=y.device)
-
-        # concatenate operators
-        physics2 = inp2 * physics  # A_2 = (I-P)*A
-        physics2.noise_model = physics.noise_model
-
-        # divide measurements
-        y2 = inp2.A(y)
+        y2, physics2 = self.split(mask2, y, physics)
 
         loss_ms = self.metric(physics2.A(x_net), y2)
 
-        loss_ms = loss_ms / mask2.mean()  # normalize loss
-
-        return loss_ms
+        return loss_ms / mask2.mean()  # normalize loss
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
@@ -201,6 +215,10 @@ class SplittingModel(torch.nn.Module):
         self.eval_split_output = eval_split_output
         self.pixelwise = pixelwise
 
+    @staticmethod
+    def split(mask, y, physics):
+        return SplittingLoss.split(mask, y, physics)
+
     def forward(
         self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
     ):
@@ -214,8 +232,6 @@ class SplittingModel(torch.nn.Module):
                 pixelwise=self.pixelwise,
                 device=y.device,
             )
-
-        inp = Inpainting(y.size()[1:], device=y.device)
 
         with torch.set_grad_enabled(self.training):
 
@@ -231,16 +247,14 @@ class SplittingModel(torch.nn.Module):
                     # Perform input masking
                     mask = self.mask_generator.step(
                         y.size(0), input_mask=getattr(physics, "mask", None)
-                    )
-                    y1 = inp.A(y, **mask)
-                    physics1 = inp * physics  # A_1 = P*A
-                    physics1.noise_model = physics.noise_model
+                    )["mask"]
+                    y1, physics1 = self.split(mask, y, physics)
 
                     # Forward pass
                     out += self.model(y1, physics1) / eval_n_samples
 
             if self.training and update_parameters:
-                self.mask = mask["mask"]
+                self.mask = mask
 
         return out
 
@@ -248,24 +262,20 @@ class SplittingModel(torch.nn.Module):
         """Perform splitting at model output too, only at eval time"""
         out = 0
         normaliser = torch.zeros_like(y)
-        inp = Inpainting(y.size()[1:], device=y.device)
 
         for _ in range(self.eval_n_samples):
             # Perform input masking
             mask = self.mask_generator.step(
                 y.size(0), input_mask=getattr(physics, "mask", None)
             )
-            y1 = inp.A(y, **mask)
-            physics1 = inp * physics  # A_1 = P*A
-            physics1.noise_model = physics.noise_model
+            y1, physics1 = self.split(mask, y, physics)
 
             # Forward pass
             x_hat = self.model(y1, physics1)
 
             # Output masking
             mask2 = getattr(physics, "mask", 1.0) - mask["mask"]
-            inp2 = Inpainting(y.size()[1:], mask=mask2, device=y.device)
-            out += inp2.A(x_hat)
+            out += self.split(mask2, x_hat)
             normaliser += mask2
 
         out[normaliser != 0] /= normaliser[normaliser != 0]
@@ -278,6 +288,116 @@ class SplittingModel(torch.nn.Module):
                 "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
             )
         return self.mask
+
+
+class Phase2PhaseLoss(SplittingLoss):
+    def __init__(self, tensor_size: Tuple, metric=torch.nn.MSELoss(), device="cpu"):
+        super().__init__()
+        self.name = "phase2phase"
+        self.tensor_size = tensor_size
+        self.metric = metric
+        self.device = device
+        self.mask_generator = Phase2PhaseSplittingMaskGenerator(
+            tensor_size=self.tensor_size, device=self.device
+        )
+
+    @staticmethod
+    def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+        y_split, physics_split = SplittingLoss.split(mask, y, physics=physics)
+
+        if len(mask.shape) < 5 or len(y.shape) < 5:
+            raise ValueError("mask must be of shape (B, C, T, H, W)")
+
+        def remove_zeros(arr, mask):
+            reducer = (
+                (mask != 0)[:, [0]]
+                .view(mask.shape[0], 1, mask.shape[2], -1)
+                .any(dim=3, keepdim=True)
+                .unsqueeze(-1)
+                .expand_as(mask)
+            )  # assume pixelwise i.e. no channel dim
+            return arr[reducer].view(
+                mask.shape[0], mask.shape[1], -1, mask.shape[3], mask.shape[4]
+            )
+
+        y_split_reduced = remove_zeros(y_split, mask)
+
+        if physics is None:
+            return y_split_reduced
+
+        physics_split_reduced = deepcopy(physics_split)
+        physics_split_reduced.update_parameters(
+            mask=remove_zeros(physics_split.mask, mask)
+        )
+
+        return y_split_reduced, physics_split_reduced
+
+    def adapt_model(self, model: torch.nn.Module):
+
+        class Phase2PhaseModel(SplittingModel):
+            @staticmethod
+            def split(
+                mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None
+            ):
+                return Phase2PhaseLoss.split(mask, y, physics)
+
+        if isinstance(model, SplittingModel):
+            return model
+        else:
+            return Phase2PhaseModel(
+                model,
+                mask_generator=self.mask_generator,
+                split_ratio=None,
+                eval_n_samples=0,
+                eval_split_input=False,
+                eval_split_output=False,
+                pixelwise=False,
+            )
+
+
+class Artifact2ArtifactLoss(Phase2PhaseLoss):
+    """_summary_
+        Artifact2Artifact was introduced in `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
+    for free-breathing MRI.
+    This implementation performs a Monte-Carlo-style version where the network output is only compared to one other chunk per iteration.
+    """
+
+    def __init__(
+        self,
+        tensor_size: Tuple,
+        split_size: int = 2,
+        metric=torch.nn.MSELoss(),
+        device="cpu",
+    ):
+        super().__init__(tensor_size, metric, device)
+        self.name = "artifact2artifact"
+        self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
+            tensor_size=self.tensor_size, split_size=split_size, device=self.device
+        )
+
+    def forward(self, x_net, y, physics, model, **kwargs):
+        r"""
+        Computes the measurement splitting loss
+
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+        :param torch.nn.Module model: Reconstruction function.
+        :return: (torch.Tensor) loss.
+        """
+        mask = model.get_mask()
+
+        # Create output mask by re-splitting leftover samples
+        mask2 = self.mask_generator.step(
+            y.size(0),
+            input_mask=getattr(physics, "mask", 1.0) - mask,
+            persist_prev=True,
+        )["mask"]
+
+        y2, physics2 = self.split(mask2, y, physics)
+
+        loss_ms = self.metric(physics2.A(x_net), y2)
+
+        return loss_ms / mask2.mean()
 
 
 class Neighbor2Neighbor(Loss):
