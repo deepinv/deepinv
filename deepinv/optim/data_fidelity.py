@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from deepinv.optim.utils import gradient_descent
-from deepinv.optim.optim_iterators.bregman import BregmanL2
+from .bregman import BregmanL2
 
 
 class DataFidelity(nn.Module):

@@ -16,7 +16,7 @@ from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.utils.plotting import plot, plot_curves
-from deepinv.optim.optim_iterators.bregman import BurgEntropy
+from deepinv.optim.bregman import BurgEntropy
 
 # %%
 # Setup paths for data loading and results.

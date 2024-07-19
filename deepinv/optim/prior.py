@@ -14,7 +14,7 @@ from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.optim.optim_iterators.bregman import BregmanL2
+from .bregman import BregmanL2
 
 
 class Prior(nn.Module):
