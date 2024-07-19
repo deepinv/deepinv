@@ -25,7 +25,7 @@ class ICNN(nn.Module):
         in_channels=3,
         dim_hidden=256,
         beta_softplus=100,
-        alpha=1e-6,
+        alpha=0.,
         pos_weights=False,
         rectifier_fn=torch.nn.ReLU(),
         device="cpu",
@@ -80,8 +80,8 @@ class ICNN(nn.Module):
 
     def forward(self, x):
         bsize = x.shape[0]
-        assert x.shape[-1] == x.shape[-2]
-        image_size = x.shape[-1]
+        # assert x.shape[-1] == x.shape[-2]
+        image_size = np.array([x.shape[-2], x.shape[-1]])
         y = x.clone()
         y = self.act(self.lin[0](y))
         size = [
@@ -97,11 +97,11 @@ class ICNN(nn.Module):
             for core in self.lin[1:]:
                 core.weight.data = self.rectifier_fn(core.weight.data)
 
-        for core, res, sz in zip(self.lin[1:-2], self.res[:-1], size[:-1]):
-            x_scaled = nn.functional.interpolate(x, (sz, sz), mode="bilinear")
+        for core, res, (s_x,s_y) in zip(self.lin[1:-2], self.res[:-1], size[:-1]):
+            x_scaled = nn.functional.interpolate(x, (s_x, s_y), mode="bilinear")
             y = self.act(core(y) + res(x_scaled))
 
-        x_scaled = nn.functional.interpolate(x, (size[-1], size[-1]), mode="bilinear")
+        x_scaled = nn.functional.interpolate(x, tuple(size[-1]), mode="bilinear")
         y = self.lin[-2](y) + self.res[-1](x_scaled)
         y = self.act(y)
         # avg pooling
@@ -140,9 +140,8 @@ class ICNN(nn.Module):
         return grad
 
 
-if __name__ == "__main__":
-    # torch.cuda.empty_cache()
-    net = ICNN(pos_weights=True)
-    x = torch.randn((2, 3, 256, 256))
-    x = net.grad(x)
-    print(x.shape)
+# if __name__ == "__main__":
+#     # torch.cuda.empty_cache()
+#     net = ICNN(pos_weights=True)
+#     x = torch.randn((2, 3, 200, 256))
+#     x = net.grad(x)
