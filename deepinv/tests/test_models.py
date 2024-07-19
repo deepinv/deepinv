@@ -542,14 +542,14 @@ def test_optional_dependencies(denoiser, dep):
         klass()
 
 
-def test_icnn(imsize, device):
+def test_icnn(device):
     from deepinv.models import ICNN
 
-    model = ICNN(in_channels=imsize[1], device=device)
+    model = ICNN(in_channels=3, device=device)
 
     torch.manual_seed(0)
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
-    x = torch.ones(imsize, device=device).unsqueeze(0)
+    x = torch.ones((1,3,128,128), device=device).unsqueeze(0)
     y = physics(x)
     potential = model(y)
     grad = model.grad(y)

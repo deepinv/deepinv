@@ -141,7 +141,6 @@ class ICNN(nn.Module):
 
 
 # if __name__ == "__main__":
-#     # torch.cuda.empty_cache()
 #     net = ICNN(pos_weights=True)
-#     x = torch.randn((2, 3, 200, 256))
+#     x = torch.randn((1, 3, 128, 128))
 #     x = net.grad(x)
