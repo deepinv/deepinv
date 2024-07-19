@@ -560,3 +560,11 @@ def test_optional_dependencies(denoiser, dep):
 #     mse_out = (x_net - x).pow(2).mean()
 #
 #     assert mse_out < mse_in
+
+
+def test_time_agnostic_net():
+    backbone_net = dinv.models.UNet(scales=2)
+    net = dinv.models.TimeAgnosticNet(backbone_net)
+    y = torch.rand(1, 1, 4, 8, 8) # B,C,T,H,W
+    x_net = net(y, None)
+    assert x_net.shape == y.shape
