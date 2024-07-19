@@ -549,7 +549,7 @@ def test_icnn(device):
 
     torch.manual_seed(0)
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
-    x = torch.ones((1,3,128,128), device=device).unsqueeze(0)
+    x = torch.ones((1, 3, 128, 128), device=device).unsqueeze(0)
     y = physics(x)
     potential = model(y)
     grad = model.grad(y)
