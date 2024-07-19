@@ -9,13 +9,13 @@ class TimeAgnosticNet(nn.Module):
 
     Adapt a static image reconstruction network to take time-varying input to create a time-agnostic network.
     The image reconstruction network then processes the data frame-by-frame.
-    
+
     Flattens time dimension into batch dimension at input, and unflattens at output.
 
     |sep|
 
     :Example:
-    
+
     >>> from deepinv.models import UNet, TimeAgnosticNet
     >>> model = UNet(scales=2)
     >>> model = TimeAgnosticNet(model)
