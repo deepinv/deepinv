@@ -540,7 +540,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         >>> print(l.item() > 0)
         True
 
-        Free-breathing MRI with Phase2Phase with an image network:
+        Free-breathing MRI with Artifact2Artifact with an image network:
 
         >>> class FlattenSpokesNet(torch.nn.Module): # Network wrapper to flatten dynamic input
         ...     def __init__(self, backbone_net):
