@@ -48,7 +48,7 @@ class CBSD68(torch.utils.data.Dataset):
     """
 
     # for integrity of downloaded data
-    checksum = "5340df21e964a94dd569cd91e01d1c76"
+    checksum = "18e128fbf5bb99ea7fca35f59683ea39"
 
     def __init__(
         self,
