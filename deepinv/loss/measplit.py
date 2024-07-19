@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from copy import deepcopy
 from warnings import warn
 import torch
@@ -110,6 +110,12 @@ class SplittingLoss(Loss):
 
     @staticmethod
     def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+        """Perform splitting given mask
+
+        :param torch.Tensor mask: splitting mask
+        :param torch.Tensor y: input data
+        :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If None, only y is split.
+        """
         inp = Inpainting(y.size()[1:], mask=mask, device=y.device)
 
         # divide measurements y_i = M_i * y
@@ -222,7 +228,9 @@ class SplittingModel(torch.nn.Module):
     def forward(
         self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
     ):
-        """Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency."""
+        """
+        Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.
+        """
         out = 0
 
         if self.mask_generator is None:
@@ -259,7 +267,9 @@ class SplittingModel(torch.nn.Module):
         return out
 
     def _forward_split_output(self, y: torch.Tensor, physics: Physics):
-        """Perform splitting at model output too, only at eval time"""
+        """
+        Perform splitting at model output too, only at eval time
+        """
         out = 0
         normaliser = torch.zeros_like(y)
 
@@ -291,7 +301,104 @@ class SplittingModel(torch.nn.Module):
 
 
 class Phase2PhaseLoss(SplittingLoss):
-    def __init__(self, tensor_size: Tuple, metric=torch.nn.MSELoss(), device="cpu"):
+    r"""
+    Phase2Phase loss for dynamic data.
+
+    Implements dynamic measurement splitting loss from `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging <https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx>`_
+    for free-breathing MRI.
+    This is a special case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
+
+    Splits the dynamic measurements into even time frames ("phases") at model input and odd phases to use for constructing the loss.
+    Equally, the physics mask (if it exists) is split as well: the even phases are used for the model (e.g. for data consistency in an unrolled network) and odd phases are used for the reference.
+    At test time, the full input is passed through the network.
+
+    .. warning::
+
+        The model should be adapted before training using the method :meth:`adapt_model` to include the splitting mechanism at the input.
+
+    .. warning::
+
+        Can only be used for dynamic data, i.e. where data (x, y) and `physics.mask` (if it exists) are of 5D shape (B, C, T, H, W).
+
+    .. note::
+
+        The original Phase2Phase takes in and reconstructs **static** images, where the underlying k-space data is a time-sequence,
+        where each time step (phase) consists of sampled radial spokes such that the whole measurement is a set of non-overlapping spokes.
+        To use our implementation to achieve this, simply add a time-flatten to your model input, and wrap the metric such that it uses a
+        time-flattened version of the reference k-space. See below for example.
+
+
+    By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
+    can be used as well.
+
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
+    :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
+    :param str or torch.device device: torch device.
+
+    |sep|
+
+    :Example:
+
+        Dynamic MRI with Phase2Phase with a video network:
+
+        >>> import torch
+        >>> from deepinv.models import UNet, TimeAgnosticNet
+        >>> from deepinv.physics import DynamicMRI, MRI
+        >>> from deepinv.loss import Phase2PhaseLoss
+        >>>
+        >>> x = torch.rand((1, 2, 4, 8, 8)) # B, C, T, H, W
+        >>> mask = torch.zeros((1, 2, 4, 8, 8))
+        >>> mask[:, :, torch.arange(4), torch.arange(4) % 8, :] = 1 # Create time-varying mask
+        >>>
+        >>> physics = DynamicMRI(img_size=(2, 4, 8, 8), mask=mask)
+        >>> loss = Phase2PhaseLoss((2, 4, 8, 8))
+        >>> model = TimeAgnosticNet(UNet(in_channels=2, out_channels=2, scales=2)) # Example video network
+        >>> model = loss.adapt_model(model)
+        >>>
+        >>> y = physics(x)
+        >>> x_net = model(y, physics, update_parameters=True) # save random mask in forward pass
+        >>> l = loss(x_net, y, physics, model)
+        >>> print(l.item() > 0)
+        True
+
+        Free-breathing MRI with Phase2Phase with an image network:
+
+        >>> class FlattenSpokesNet(torch.nn.Module): # Network wrapper to flatten dynamic input
+        ...     def __init__(self, backbone_net):
+        ...         super().__init__()
+        ...         self.backbone_net = backbone_net
+        ...
+        ...     def forward(self, y, physics, **kwargs):
+        ...         return self.backbone_net(y.sum(2), physics, **kwargs)
+        >>>
+        >>> class FlattenSpokesMetric(torch.nn.MSELoss): # Metric wrapper to flatten dynamic target
+        ...     def forward(self, estimate, target):
+        ...         return super().forward(estimate, target.sum(2))
+        >>>
+        >>> class FlattenSpokesPhase2PhaseLoss(Phase2PhaseLoss): # Phase2Phase wrapper to handle post-split flattening
+        ...     @staticmethod
+        ...     def split(mask, y, physics):
+        ...         y2, physics2 = Phase2PhaseLoss.split(mask, y, physics)
+        ...         return y2, physics2.to_mri()
+        >>>
+        >>> loss = FlattenSpokesPhase2PhaseLoss((2, 4, 8, 8), metric=FlattenSpokesMetric()) # Perform loss on all collected spokes
+        >>>
+        >>> model = UNet(in_channels=2, out_channels=2, scales=2) # Example image reconstruction network
+        >>> model = FlattenSpokesNet(model) # Adapt model to take dynamic input
+        >>> model = loss.adapt_model(model) # Adapt model to perform Phase2Phase
+        >>>
+        >>> y = physics(x)
+        >>> x_net = model(y, physics, update_parameters=True)
+        >>> l = loss(x_net, y, physics, model)
+        >>> print(l.item() > 0)
+        True
+
+    """
+
+    def __init__(
+        self, tensor_size: Tuple[int], metric=torch.nn.MSELoss(), device="cpu"
+    ):
         super().__init__()
         self.name = "phase2phase"
         self.tensor_size = tensor_size
@@ -303,10 +410,18 @@ class Phase2PhaseLoss(SplittingLoss):
 
     @staticmethod
     def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+        """Override splitting to actually remove masked pixels. In Phase2Phase, this corresponds to masked phases (i.e. time steps).
+
+        :param torch.Tensor mask: Phase2Phase mask
+        :param torch.Tensor y: input data
+        :param deepinv.physics.Physics physics: forward physics
+        """
         y_split, physics_split = SplittingLoss.split(mask, y, physics=physics)
 
-        if len(mask.shape) < 5 or len(y.shape) < 5:
-            raise ValueError("mask must be of shape (B, C, T, H, W)")
+        if len(mask.shape) < 5 or len(y.shape) < 5 or len(physics_split.mask.shape) < 5:
+            raise ValueError(
+                "mask, y and physics.mask must be of shape (B, C, T, H, W)"
+            )
 
         def remove_zeros(arr, mask):
             reducer = (
@@ -332,7 +447,13 @@ class Phase2PhaseLoss(SplittingLoss):
 
         return y_split_reduced, physics_split_reduced
 
-    def adapt_model(self, model: torch.nn.Module):
+    def adapt_model(self, model: torch.nn.Module) -> torch.nn.Module:
+        r"""
+        Apply Phase2Phase splitting to model input.
+
+        :param torch.nn.Module model: Reconstruction model.
+        :return: (torch.nn.Module) Model modified for evaluation.
+        """
 
         class Phase2PhaseModel(SplittingModel):
             @staticmethod
@@ -356,16 +477,107 @@ class Phase2PhaseLoss(SplittingLoss):
 
 
 class Artifact2ArtifactLoss(Phase2PhaseLoss):
-    """_summary_
-        Artifact2Artifact was introduced in `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
+    r"""
+    Artifact2Artifact loss for dynamic data.
+
+    Implements dynamic measurement splitting loss from `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
     for free-breathing MRI.
-    This implementation performs a Monte-Carlo-style version where the network output is only compared to one other chunk per iteration.
+    This is a special case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
+
+    At model input, choose a random time-chunk from the dynamic measurements, and another random chunk for constructing the loss.
+    Equally, the physics mask (if it exists) is split as well: the input chunk is used for the model (e.g. for data consistency in an unrolled network) and the output chunk is used as the reference.
+    At test time, the full input is passed through the network.
+    Note this implementation performs a Monte-Carlo-style version where the network output is only compared to one other chunk per iteration.
+
+    .. warning::
+
+        The model should be adapted before training using the method :meth:`adapt_model` to include the splitting mechanism at the input.
+
+    .. warning::
+
+        Can only be used for dynamic data, i.e. where data (x, y) and `physics.mask` (if it exists) are of 5D shape (B, C, T, H, W).
+
+    .. note::
+
+        The original Artifact2Artifact takes in and reconstructs **static** images, where the underlying k-space data is a time-sequence,
+        where each time step (phase) consists of sampled radial spokes such that the whole measurement is a set of non-overlapping spokes.
+        To use our implementation to achieve this, simply add a time-flatten to your model input, and wrap the metric such that it uses a
+        time-flattened version of the reference k-space. See below for example.
+
+
+    By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
+    can be used as well.
+
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
+    :param int, tuple[int] split_size: time-length of chunk. Must divide tensor_size[1] exactly. If tuple, one is randomly selected each time.
+    :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
+    :param str or torch.device device: torch device.
+
+    |sep|
+
+    :Example:
+
+        Dynamic MRI with Artifact2Artifact with a video network:
+
+        >>> import torch
+        >>> from deepinv.models import UNet, TimeAgnosticNet
+        >>> from deepinv.physics import DynamicMRI, MRI
+        >>> from deepinv.loss import Artifact2ArtifactLoss
+        >>>
+        >>> x = torch.rand((1, 2, 4, 8, 8)) # B, C, T, H, W
+        >>> mask = torch.zeros((1, 2, 4, 8, 8))
+        >>> mask[:, :, torch.arange(4), torch.arange(4) % 8, :] = 1 # Create time-varying mask
+        >>>
+        >>> physics = DynamicMRI(img_size=(2, 4, 8, 8), mask=mask)
+        >>> loss = Artifact2ArtifactLoss((2, 4, 8, 8))
+        >>> model = TimeAgnosticNet(UNet(in_channels=2, out_channels=2, scales=2)) # Example video network
+        >>> model = loss.adapt_model(model)
+        >>>
+        >>> y = physics(x)
+        >>> x_net = model(y, physics, update_parameters=True) # save random mask in forward pass
+        >>> l = loss(x_net, y, physics, model)
+        >>> print(l.item() > 0)
+        True
+
+        Free-breathing MRI with Phase2Phase with an image network:
+
+        >>> class FlattenSpokesNet(torch.nn.Module): # Network wrapper to flatten dynamic input
+        ...     def __init__(self, backbone_net):
+        ...         super().__init__()
+        ...         self.backbone_net = backbone_net
+        ...
+        ...     def forward(self, y, physics, **kwargs):
+        ...         return self.backbone_net(y.sum(2), physics, **kwargs)
+        >>>
+        >>> class FlattenSpokesMetric(torch.nn.MSELoss): # Metric wrapper to flatten dynamic target
+        ...     def forward(self, estimate, target):
+        ...         return super().forward(estimate, target.sum(2))
+        >>>
+        >>> class FlattenSpokesArtifact2ArtifactLoss(Artifact2ArtifactLoss): # Phase2Phase wrapper to handle post-split flattening
+        ...     @staticmethod
+        ...     def split(mask, y, physics):
+        ...         y2, physics2 = Artifact2ArtifactLoss.split(mask, y, physics)
+        ...         return y2, physics2.to_mri()
+        >>>
+        >>> loss = FlattenSpokesArtifact2ArtifactLoss((2, 4, 8, 8), metric=FlattenSpokesMetric()) # Perform loss on all collected spokes
+        >>>
+        >>> model = UNet(in_channels=2, out_channels=2, scales=2) # Example image reconstruction network
+        >>> model = FlattenSpokesNet(model) # Adapt model to take dynamic input
+        >>> model = loss.adapt_model(model) # Adapt model to perform Phase2Phase
+        >>>
+        >>> y = physics(x)
+        >>> x_net = model(y, physics, update_parameters=True)
+        >>> l = loss(x_net, y, physics, model)
+        >>> print(l.item() > 0)
+        True
+
     """
 
     def __init__(
         self,
-        tensor_size: Tuple,
-        split_size: int = 2,
+        tensor_size: Tuple[int],
+        split_size: Union[int, Tuple[int]] = 2,
         metric=torch.nn.MSELoss(),
         device="cpu",
     ):
@@ -376,14 +588,6 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        r"""
-        Computes the measurement splitting loss
-
-        :param torch.Tensor y: Measurements.
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module model: Reconstruction function.
-        :return: (torch.Tensor) loss.
-        """
         mask = model.get_mask()
 
         # Create output mask by re-splitting leftover samples
