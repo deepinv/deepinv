@@ -7,10 +7,19 @@ from torch import nn
 class ICNN(nn.Module):
     r"""
     Input Convex Neural Network (ICNN) with convolutional layers.
-    Mostly based on the implementation from the paper 
+    Mostly based on the implementation from the paper
     `What's in a Prior? Learned Proximal Networks for Inverse Problems <https://openreview.net/pdf?id=kNPcOaqC5r>`_,
     and from the implementation from the OOT libreary <https://ott-jax.readthedocs.io/en/latest/neural/_autosummary/ott.neural.networks.icnn.ICNN.html>.
+
+    :param int in_channels: Number of input channels.
+    :param int dim_hidden: Number of hidden units.
+    :param float beta_softplus: Beta parameter for the softplus activation function.
+    :param float alpha: Strongly convex parameter.
+    :param bool pos_weights: Whether to force positive weights in the forward pass.
+    :param torch.nn.Module rectifier_fn: Activation function to use to force postive weight.
+    :param str device: Device to use for the model.
     """
+
     def __init__(
         self,
         in_channels=3,
@@ -26,12 +35,24 @@ class ICNN(nn.Module):
         self.hidden = dim_hidden
         self.lin = nn.ModuleList(
             [
-                nn.Conv2d(in_channels, dim_hidden, 3, bias=True, stride=1, padding=1),  # 128
-                nn.Conv2d(dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1),  # 64
-                nn.Conv2d(dim_hidden, dim_hidden, 3, bias=False, stride=1, padding=1),  # 64
-                nn.Conv2d(dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1),  # 32
-                nn.Conv2d(dim_hidden, dim_hidden, 3, bias=False, stride=1, padding=1),  # 32
-                nn.Conv2d(dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1),  # 16
+                nn.Conv2d(
+                    in_channels, dim_hidden, 3, bias=True, stride=1, padding=1
+                ),  # 128
+                nn.Conv2d(
+                    dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1
+                ),  # 64
+                nn.Conv2d(
+                    dim_hidden, dim_hidden, 3, bias=False, stride=1, padding=1
+                ),  # 64
+                nn.Conv2d(
+                    dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1
+                ),  # 32
+                nn.Conv2d(
+                    dim_hidden, dim_hidden, 3, bias=False, stride=1, padding=1
+                ),  # 32
+                nn.Conv2d(
+                    dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1
+                ),  # 16
                 nn.Conv2d(dim_hidden, 64, 16, bias=False, stride=1, padding=0),  # 1
                 nn.Linear(64, 1),
             ]
@@ -81,7 +102,7 @@ class ICNN(nn.Module):
             y = self.act(core(y) + res(x_scaled))
 
         x_scaled = nn.functional.interpolate(x, (size[-1], size[-1]), mode="bilinear")
-        y = self.lin[-2](y) + self.res[-1](x_scaled) 
+        y = self.lin[-2](y) + self.res[-1](x_scaled)
         y = self.act(y)
         # avg pooling
         y = torch.mean(y, dim=(2, 3))
@@ -117,9 +138,9 @@ class ICNN(nn.Module):
             )[0]
 
         return grad
-    
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # torch.cuda.empty_cache()
     net = ICNN(pos_weights=True)
     x = torch.randn((2, 3, 256, 256))

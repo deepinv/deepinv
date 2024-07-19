@@ -10,13 +10,7 @@ LICENSE file in the root directory of this source tree.
 
 import random
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    NamedTuple,
-    Optional,
-    Union,
-)
+from typing import Any, Callable, NamedTuple, Optional, Union, Tuple
 import os
 import h5py
 import torch
@@ -220,7 +214,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.sample_identifiers)
 
-    def __getitem__(self, idx: int, mask: Optional[Callable] = None) -> tuple[Any, Any]:
+    def __getitem__(self, idx: int, mask: Optional[Callable] = None) -> Tuple[Any, Any]:
         r"""Returns the idx-th sample from the dataset, both kspace and target.
 
         The target data is compatible with the physics MRI operator and is a complex tensor of shape (2, H, W).
