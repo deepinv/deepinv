@@ -15,7 +15,7 @@ from .plotting import (
     resize_pad_square_tensor,
     scatter_plot,
 )
-from .demo import load_url_image
+from .demo import load_url_image, load_image
 from .nn import get_freer_gpu, TensorList, rand_like, zeros_like, randn_like, ones_like
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor

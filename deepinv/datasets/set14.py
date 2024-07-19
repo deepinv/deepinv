@@ -6,7 +6,7 @@ import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
-    download_zipfile,
+    download_archive,
     extract_zipfile,
 )
 
@@ -45,17 +45,17 @@ class Set14HR(torch.utils.data.Dataset):
 
         >>> import shutil
         >>> from deepinv.datasets import Set14HR
-        >>> dataset = Set14HR(root="Set14_DATA", download=True)  # download raw data at root and load dataset
+        >>> dataset = Set14HR(root="Set14", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.check_dataset_exists()                       # check that raw data has been downloaded correctly
+        >>> print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                         # check that we have 14 images
+        >>> print(len(dataset))                                  # check that we have 14 images
         14
-        >>> shutil.rmtree("Set14_DATA")                          # remove raw data from disk
+        >>> shutil.rmtree("Set14")                          # remove raw data from disk
 
     """
 
-    zipfile_urls = {
+    archive_urls = {
         "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
     }
 
@@ -86,13 +86,13 @@ class Set14HR(torch.utils.data.Dataset):
                         f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
-                for filename, url in self.zipfile_urls.items():
-                    # download zipfile from the Internet and save it locally
-                    download_zipfile(
+                for filename, url in self.archive_urls.items():
+                    # download zip file from the Internet and save it locally
+                    download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )
-                    # extract local zipfile
+                    # extract local zip file
                     extract_zipfile(os.path.join(self.root, filename), self.root)
 
                     if self.check_dataset_exists():

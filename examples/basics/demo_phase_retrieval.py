@@ -196,7 +196,6 @@ denoiser = DRUNet(
     in_channels=n_channels,
     out_channels=n_channels,
     pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
-    train=False,
     device=device,
 )
 # The original denoiser is designed for real-valued images, so we need to convert it to a complex-valued denoiser for phase retrieval problems.

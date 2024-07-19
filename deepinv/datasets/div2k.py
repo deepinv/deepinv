@@ -6,7 +6,7 @@ import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
-    download_zipfile,
+    download_archive,
     extract_zipfile,
 )
 
@@ -44,17 +44,17 @@ class DIV2K(torch.utils.data.Dataset):
 
         >>> import shutil
         >>> from deepinv.datasets import DIV2K
-        >>> dataset = DIV2K(root="DIV2K_DATA", mode="val", download=True)  # download raw data at root and load dataset
+        >>> dataset = DIV2K(root="DIV2K", mode="val", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
-        >>> dataset.verify_split_dataset_integrity()                       # check that raw data has been downloaded correctly
+        >>> print(dataset.verify_split_dataset_integrity())                # check that raw data has been downloaded correctly
         True
-        >>> len(dataset)                                                   # check that we have 100 images
+        >>> print(len(dataset))                                            # check that we have 100 images
         100
-        >>> shutil.rmtree("DIV2K_DATA")                                    # remove raw data from disk
+        >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk
     """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
-    zipfile_urls = {
+    archive_urls = {
         "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
         "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
     }
@@ -100,12 +100,12 @@ class DIV2K(torch.utils.data.Dataset):
                     if self.mode == "train"
                     else "DIV2K_valid_HR.zip"
                 )
-                # download zipfile from the Internet and save it locally
-                download_zipfile(
-                    url=self.zipfile_urls[zip_filename],
+                # download zip file from the Internet and save it locally
+                download_archive(
+                    url=self.archive_urls[zip_filename],
                     save_path=os.path.join(self.root, zip_filename),
                 )
-                # extract local zipfile
+                # extract local zip file
                 extract_zipfile(os.path.join(self.root, zip_filename), self.root)
 
                 if self.verify_split_dataset_integrity():

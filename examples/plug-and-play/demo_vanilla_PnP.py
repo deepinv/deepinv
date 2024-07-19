@@ -89,7 +89,6 @@ denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
     pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
-    train=False,
     device=device,
 )
 prior = PnP(denoiser=denoiser)
@@ -112,6 +111,10 @@ model = optim_builder(
         "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
     },
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem and plot the results.

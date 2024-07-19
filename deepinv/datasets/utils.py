@@ -2,6 +2,7 @@ import hashlib
 import os
 import shutil
 import zipfile
+import tarfile
 
 import requests
 from tqdm.auto import tqdm
@@ -43,8 +44,8 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_zipfile(url: str, save_path: str) -> None:
-    """Download zipfile from the Internet."""
+def download_archive(url: str, save_path: str) -> None:
+    """Download archive (zipball or tarball) from the Internet."""
     # Ensure the directory containing `save_path`` exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
@@ -52,7 +53,7 @@ def download_zipfile(url: str, save_path: str) -> None:
     # useful when downloading huge file
     response = requests.get(url, stream=True)
     file_size = int(response.headers.get("Content-Length", 0))
-    # use tqdm progress bar to follow progress on downloading zipfile
+    # use tqdm progress bar to follow progress on downloading archive
     with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
         with open(save_path, "wb") as file:
             # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
@@ -62,14 +63,25 @@ def download_zipfile(url: str, save_path: str) -> None:
 
 
 def extract_zipfile(file_path, extract_dir) -> None:
-    """Extract a local zipfile."""
+    """Extract a local zip file."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
-        # progress bar on the total number of files to be extracted
-        # since files may be very huge or very small, the extraction time vary per file
-        # thus the progres bar will not move linearly with time
+        # Progress bar on the total number of files to be extracted
+        # Since files may be very huge or very small, the extraction time vary per file
+        # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(zip_ref.infolist(), desc="Extracting"):
             zip_ref.extract(file_to_be_extracted, extract_dir)
+
+
+def extract_tarball(file_path, extract_dir) -> None:
+    """Extract a local tarball regardless of the compression algorithm used."""
+    # Open the tar file
+    with tarfile.open(file_path, "r:*") as tar_ref:
+        # Progress bar on the total number of files to be extracted
+        # Since files may be very huge or very small, the extraction time vary per file
+        # Thus the progress bar will not move linearly with time
+        for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
+            tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
 class PlaceholderDataset(Dataset):

@@ -82,25 +82,19 @@ dinv.utils.plot(
 # impose on the unknown image set :math:`x\in X`.
 #
 
+dataset = dinv.datasets.Urban100HR(
+    root="Urban100",
+    download=True,
+    transform=Compose([ToTensor(), Resize(256), CenterCrop(256)]),
+)
+
+train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
+
+train_dataloader = DataLoader(train_dataset, shuffle=True)
+test_dataloader = DataLoader(test_dataset)
+
+# Use physics to generate data online
 physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
-
-download_and_extract_archive(
-    "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz?download=true",
-    "Urban100",
-    filename="Urban100_HR.tar.gz",
-    md5="65d9d84a34b72c6f7ca1e26a12df1e4c",
-)
-
-train_dataset, test_dataset = random_split(
-    ImageFolder(
-        "Urban100", transform=Compose([ToTensor(), Resize(256), CenterCrop(256)])
-    ),
-    (0.8, 0.2),
-)
-
-train_dataloader, test_dataloader = DataLoader(train_dataset, shuffle=True), DataLoader(
-    test_dataset
-)
 
 
 # %%
@@ -155,7 +149,7 @@ ckpt = torch.hub.load_state_dict_from_url(
 
 model.load_state_dict(ckpt["state_dict"])
 
-x, _ = next(iter(train_dataloader))
+x = next(iter(train_dataloader))
 y = physics(x)
 x_hat = model(y)
 

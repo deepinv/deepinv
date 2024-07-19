@@ -300,7 +300,6 @@ class SCUNet(nn.Module):
         drop_path_rate=0.0,
         input_resolution=256,
         pretrained="download",
-        train=False,
         device="cpu",
     ):
         super(SCUNet, self).__init__()
@@ -438,11 +437,7 @@ class SCUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
-
-        if not train:
             self.eval()
-            for _, v in self.named_parameters():
-                v.requires_grad = False
 
         if device is not None:
             self.to(device)
@@ -483,7 +478,7 @@ class SCUNet(nn.Module):
 
 # if __name__ == '__main__':
 #     # torch.cuda.empty_cache()
-#     net = SCUNet(pretrained='download', device='cpu', train=False)
+#     net = SCUNet(pretrained='download', device='cpu')
 #
 #     x = torch.randn((2, 3, 64, 128))
 #     x = net(x)
