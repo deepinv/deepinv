@@ -541,6 +541,7 @@ def test_optional_dependencies(denoiser, dep):
     with pytest.raises(ImportError, match=f"pip install .*{dep}"):
         klass()
 
+
 def test_icnn(imsize, device):
     from deepinv.models import ICNN
 
