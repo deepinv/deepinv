@@ -13,7 +13,7 @@ For instance, one can simply write:
     >>> import torch
     >>> import deepinv as dinv
     >>>
-    >>> backbone = dinv.models.DRUNet(pretrained=None, train=True, device=torch.device("cuda"))
+    >>> backbone = dinv.models.DRUNet(pretrained=None, device=torch.device("cuda"))
     >>> model = dinv.models.ArtifactRemoval(backbone)
     >>> gpu_number = torch.cuda.device_count()  # number of GPUs to use
     >>> model = torch.nn.DataParallel(model, device_ids=list(range(gpu_number)))

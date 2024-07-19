@@ -122,6 +122,17 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         transform_kspace: Optional[Callable] = None,
         transform_target: Optional[Callable] = None,
     ) -> None:
+        self.root = root
+        self.test = test
+        self.challenge = challenge
+        self.recons_key = (
+            "reconstruction_esc" if challenge == "singlecoil" else "reconstruction_rss"
+        )
+        self.transforms = {
+            "transform_kspace": transform_kspace,
+            "transform_target": transform_target,
+        }
+
         # check that root is a folder
         if not os.path.isdir(root):
             raise ValueError(
@@ -140,16 +151,6 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             raise ValueError(
                 "Either set `sample_rate` (sample by slices) or `volume_sample_rate` (sample by volumes) but not both"
             )
-
-        self.transforms = {
-            "transform_kspace": transform_kspace,
-            "transform_target": transform_target,
-        }
-        self.recons_key = (
-            "reconstruction_esc" if challenge == "singlecoil" else "reconstruction_rss"
-        )
-        self.challenge = challenge
-        self.test = test
 
         ### LOAD DATA SAMPLE IDENTIFIERS -----------------------------------------------
 
