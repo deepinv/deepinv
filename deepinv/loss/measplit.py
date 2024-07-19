@@ -139,7 +139,8 @@ class SplittingLoss(Loss):
         :param torch.nn.Module model: Reconstruction function.
         :return: (torch.Tensor) loss.
         """
-        mask = model.get_mask()
+        # Get splitting mask and make sure it is subsampled from physics mask, if it exists
+        mask = model.get_mask() * getattr(physics, "mask", 1.0)
 
         # Create output mask M_2 = I - M_1
         mask2 = getattr(physics, "mask", 1.0) - mask
@@ -588,7 +589,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        mask = model.get_mask()
+        mask = model.get_mask() * getattr(physics, "mask", 1.0)
 
         # Create output mask by re-splitting leftover samples
         mask2 = self.mask_generator.step(
