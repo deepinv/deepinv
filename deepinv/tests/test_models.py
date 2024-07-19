@@ -541,6 +541,19 @@ def test_optional_dependencies(denoiser, dep):
     with pytest.raises(ImportError, match=f"pip install .*{dep}"):
         klass()
 
+def test_icnn(imsize, device):
+    from deepinv.models import ICNN
+
+    model = ICNN(in_channels=imsize[1], device=device)
+
+    torch.manual_seed(0)
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+    potential = model(y)
+    grad = model.grad(y)
+    assert grad.shape == x.shape
+
 
 # def test_dip(imsize, device): TODO: fix this test
 #     torch.manual_seed(0)
