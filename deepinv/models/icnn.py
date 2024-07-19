@@ -25,7 +25,7 @@ class ICNN(nn.Module):
         in_channels=3,
         dim_hidden=256,
         beta_softplus=100,
-        alpha=0.,
+        alpha=0.0,
         pos_weights=False,
         rectifier_fn=torch.nn.ReLU(),
         device="cpu",
@@ -97,7 +97,7 @@ class ICNN(nn.Module):
             for core in self.lin[1:]:
                 core.weight.data = self.rectifier_fn(core.weight.data)
 
-        for core, res, (s_x,s_y) in zip(self.lin[1:-2], self.res[:-1], size[:-1]):
+        for core, res, (s_x, s_y) in zip(self.lin[1:-2], self.res[:-1], size[:-1]):
             x_scaled = nn.functional.interpolate(x, (s_x, s_y), mode="bilinear")
             y = self.act(core(y) + res(x_scaled))
 
