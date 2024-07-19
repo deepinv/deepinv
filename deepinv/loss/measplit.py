@@ -108,6 +108,7 @@ class SplittingLoss(Loss):
         """
         mask = model.get_mask()
 
+        mask *= getattr(physics, "mask", 1.0)
         # create inpainting masks
         mask2 = getattr(physics, "mask", 1.0) - mask
         inp2 = Inpainting(y.size()[1:], mask=mask2, device=y.device)

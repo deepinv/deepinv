@@ -77,7 +77,7 @@ class BaseMaskGenerator(PhysicsGenerator):
         """
         raise NotImplementedError()
 
-    def step(self, batch_size=1) -> dict:
+    def step(self, batch_size=1, **kwargs) -> dict:
         r"""
         Create a mask of vertical lines.
 

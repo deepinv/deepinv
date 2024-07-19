@@ -114,8 +114,8 @@ def unfolded_builder(
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
         :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior prior: regularization prior.
-        Either a single instance (same prior for each iteration) or a list of instances of
-        deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
+        Either a single instance (same prior for each iteration - weight tied) or a list of instances of
+        deepinv.optim.Prior (distinct prior for each iteration - weight untied). Default: ``None``.
     :param int max_iter: number of iterations of the unfolded algorithm. Default: 5.
     :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.

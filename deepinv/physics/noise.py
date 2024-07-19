@@ -45,7 +45,13 @@ class GaussianNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         self.update_parameters(sigma)
-        return x + torch.randn_like(x) * self.sigma
+
+        if isinstance(sigma, torch.Tensor):
+            sigma = sigma[(..., ) + (None,)*(x.dim()-1)]
+        else:
+            sigma = self.sigma
+
+        return x + torch.randn_like(x) * sigma
 
     def update_parameters(self, sigma=None, **kwargs):
         r"""
