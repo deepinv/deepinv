@@ -10,9 +10,15 @@ TRANSFORMS = [
     "shift*scale",
     "scale+rotate",
     "scale*rotate",
-    ""
+    "scale|shift",
+    "rotate|scale",
     "BODMASshift+scale*rotate", # (shift+scale) * rotate
-    "shift+scale*rotate",] # shift + (scale*rotate)
+    "BODMASshift*scale|rotate", # shift * (scale|rotate)
+    "shift+scale*rotate", # shift + (scale*rotate)
+    "shift+scale|rotate", # shift + (scale|rotate)
+    "shift*scale|rotate" # (shift*scale) | rotate # NOTE no way here to do (shift+scale) | rotate
+
+] 
 [
     "homography",
     "euclidean",
@@ -33,6 +39,10 @@ def choose_transform(transform_name):
     if "+" in transform_name:
         names = transform_name.split("+")
         return choose_transform(names[0]) + choose_transform(names[1])
+    
+    if "|" in transform_name:
+        names = transform_name.split("|")
+        return choose_transform(names[0]) | choose_transform(names[1])
     
     if "BODMAS" not in transform_name:
         if "*" in transform_name:
@@ -98,7 +108,7 @@ def test_transforms(transform_name, image):
     image_t = transform(image)
 
     # Check if any constituent part of transform is a stacking
-    if transform.__class__.__name__ == "StackTransform" or getattr(transform, "t1", transform).__class__.__name__ == "StackTransform" or getattr(transform, "t2", transform).__class__.__name__ == "StackTransform":
+    if "+" in transform_name:
         assert image.shape[1:] == image_t.shape[1:]
         assert image.shape[0] * 2 == image_t.shape[0]
     else:
@@ -107,6 +117,5 @@ def test_transforms(transform_name, image):
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 def test_transform_identity(transform_name, pattern):
     t = choose_transform(transform_name)
-    print(t)
     assert check_correct_pattern(pattern, t.identity(pattern))
     assert check_correct_pattern(pattern, t.symmetrize(lambda x: x)(pattern))

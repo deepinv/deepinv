@@ -46,7 +46,7 @@ class Transform(torch.nn.Module):
         >>> torch.all(x == y)
         tensor(True)
 
-        Multiply transforms to create compound transforms (direct product of groups).
+        Multiply transforms to create compound transforms (direct product of groups) - similar to ``torchvision.transforms.Compose``:
 
         >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
         >>> rotoshift(x).shape
@@ -57,6 +57,12 @@ class Transform(torch.nn.Module):
         >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
         >>> transform(x).shape
         torch.Size([2, 1, 2, 2])
+
+        Randomly select from transforms - similar to ``torchvision.transforms.RandomApply``:
+
+        >>> transform = Rotate() | Shift() # Randomly select rotate or shift transforms
+        >>> transform(x).shape
+        torch.Size([1, 1, 2, 2])
 
         Symmetrize a function for Reynolds Averaging:
         
@@ -232,3 +238,35 @@ class Transform(torch.nn.Module):
                 
 
         return StackTransform(self, other)
+
+    def __or__(self, other: Transform):
+        """
+        Randomly selects from two transforms via the | operation.
+
+        :param deepinv.transform.Transform other: other transform
+        :return: (deepinv.transform.Transform) random selection operator
+        """
+
+        class EitherTransform(Transform):
+            def __init__(self, t1: Transform, t2: Transform):
+                super().__init__()
+                self.t1 = t1
+                self.t2 = t2
+                self.recent_choice = None
+            
+            def get_params(self, x: torch.Tensor) -> dict:
+                return self.t1.get_params(x) | self.t2.get_params(x)
+            
+            def choose(self):
+                self.recent_choice = choice = torch.randint(2, (1,), generator=self.rng).item()
+                return choice
+
+            def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+                choice = self.choose()
+                return self.t1.transform(x, **params) if choice else self.t2.transform(x, **params)
+            
+            def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
+                choice = self.recent_choice if self.recent_choice is not None else self.choose()
+                return self.t1.inverse(x, **params) if choice else self.t2.inverse(x, **params)
+
+        return EitherTransform(self, other)
