@@ -18,6 +18,8 @@ results/
 *.pth
 *.ckpt
 *.tar.gz
+*.gz
+*-ubyte
 *tmp
 *.tar
 *.ipynb

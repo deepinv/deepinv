@@ -59,7 +59,7 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     >>> model = dinv.unfolded.unfolded_builder(
     ...     iteration="PGD",
     ...     data_fidelity=dinv.optim.L2(),
-    ...     prior=dinv.optim.PnP(dinv.models.DnCNN(train=True)),
+    ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
     ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
     ...     trainable_params=["stepsize", "g_param"]
     ... )

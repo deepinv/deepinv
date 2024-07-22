@@ -141,9 +141,7 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
-)
+prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download").to(device))
 
 
 # we want to output the intermediate PGD update to finish with a denoising step.
@@ -166,6 +164,10 @@ model = optim_builder(
     get_output=custom_output,
     verbose=True,
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem.

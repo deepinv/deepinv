@@ -30,7 +30,6 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
-    "datasets",
 ]
 
 [tool.setuptools]
@@ -65,6 +64,7 @@ doc = [
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
+    "bm4d<4.2.4",
     "timm",
     "PyWavelets",
     "ptwt",
@@ -72,6 +72,13 @@ denoisers = [
     "pyiqa",
     "kornia",
     "torchkbnufft"
+]
+
+# optional dependencies for specific datasets
+dataset = [
+    "datasets",
+    "pandas",
+    "pydicom",
 ]
 
 

@@ -23,7 +23,7 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[denoisers,doc]
+          pip install -e .[dataset,denoisers,doc]
       - name: Install git repository optional dependencies
         run: |
           python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
