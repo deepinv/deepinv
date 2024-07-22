@@ -3,7 +3,7 @@ from typing import Union, Iterable
 import torch
 import torch.nn.functional as F
 from torch.nn import Module
-from deepinv.transform.base import Transform
+from deepinv.transform.base import Transform, Param
 
 
 def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator=None):
@@ -65,20 +65,21 @@ class Scale(Transform):
         # with coordinates in [-1, 1]
         center = torch.rand((b, 2), dtype=x.dtype, device=x.device, generator=self.rng)
 
-        return {"scale_factors": factor, "scale_centers": center}
+        # Scale params override negation
+        return {"factor": Param(factor, neg=lambda x: 1/x), "center": Param(center, neg=lambda x: x)}
 
-    def invert_params(self, params: dict) -> dict:
-        inverted = super().invert_params(params)
-        inverted["scale_factors"] = 1 / params["scale_factors"]
-        inverted["scale_centers"] = params["scale_centers"]
-        return inverted
+    # def invert_params(self, params: dict) -> dict:
+    #     inverted = super().invert_params(params)
+    #     inverted["factor"] = 1 / params["factor"]
+    #     inverted["center"] = params["center"]
+    #     return inverted
 
-    def transform(self, x: torch.Tensor, scale_factors: Union[torch.Tensor, Iterable]=[], scale_centers: Union[torch.Tensor, Iterable]=[], **kwargs) -> torch.Tensor:
+    def transform(self, x: torch.Tensor, factor: Union[torch.Tensor, Iterable]=[], center: Union[torch.Tensor, Iterable]=[], **kwargs) -> torch.Tensor:
         """Scale image given scale parameters.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param torch.Tensor, list scale_factors: iterable of scale factors to be used, one per n_trans*batch_size.
-        :param torch.Tensor, list scale_centers: iterable of scale centers, one per n_trans*batch_size.
+        :param torch.Tensor, list factor: iterable of scale factors to be used, one per n_trans*batch_size.
+        :param torch.Tensor, list center: iterable of scale centers, one per n_trans*batch_size.
         :return: torch.Tensor: scaled image.
         """
         # Prepare for multiple transforms
@@ -86,8 +87,8 @@ class Scale(Transform):
 
         b, _, h, w = x.shape
 
-        factor = scale_factors.view(b, 1, 1, 1).repeat(1, 1, 1, 2)
-        center = scale_centers.view(b, 1, 1, 2)
+        factor = factor.expand(b, 1, 1, 1).repeat(1, 1, 1, 2)
+        center = center.expand(b, 1, 1, 2)
         center = 2 * center - 1
 
         # Compute the sampling grid for the scale transformation

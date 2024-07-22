@@ -2,8 +2,19 @@ from __future__ import annotations
 import torch
 from typing import Tuple, Callable, Any
 
-class Param:
-    def __neg__()
+class Param(torch.Tensor):
+    """
+    Helper class that stores a tensor parameter for the sole purpose of allowing overriding negation.
+    """
+    @staticmethod
+    def __new__(cls, x, neg=None):
+        return torch.Tensor._make_subclass(cls, x)
+
+    def __init__(self, x, neg: Callable = lambda x: -x):
+        self._neg = neg
+
+    def __neg__(self):
+        return self._neg(torch.Tensor._make_subclass(torch.Tensor, self))
 
 class Transform(torch.nn.Module):
     """Base class for image transforms.
@@ -12,7 +23,7 @@ class Transform(torch.nn.Module):
 
     All transforms must implement ``get_params()`` to randomly generate e.g. rotation degrees or shift pixels, and ``transform()`` to deterministically transform an image given the params.
 
-    To implement a new transform, please reimplement ``get_params()``, ``invert_params()`` (if needed) and ``transform()`` (with a ``**kwargs`` argument).
+    To implement a new transform, please reimplement ``get_params()`` and ``transform()`` (with a ``**kwargs`` argument). See respective methods for details.
     
     Also handle deterministic (non-random) transformations by passing in fixed parameter values.
 
@@ -72,15 +83,16 @@ class Transform(torch.nn.Module):
 
         E.g. rotation degrees or shift amounts. Override this to implement a custom transform.
 
+        Params may be any Tensor-like object. For inverse transforms, params are negated by default.
+        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``Param`` class: ``p = Param(p, neg=lambda x: 1/x)``
+
         :param torch.Tensor x: input image
         :return dict: keyword args of transform parameters e.g. {'theta': 30}
         """
         return NotImplementedError()
 
     def invert_params(self, params: dict) -> dict:
-        """Invert transformation parameters.
-
-        This may need to be overriden for custom transforms. By default, it negates each parameter.
+        """Invert transformation parameters. Pass variable of type ``Param`` to override negation (e.g. to take reciprocal).
 
         :param dict params: transform parameters as dict
         :return dict: inverted parameters.
@@ -113,7 +125,9 @@ class Transform(torch.nn.Module):
         return self.transform(x, **(self.get_params(x) if not params else params))
     
     def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
-        """Perform random inverse transformation on image (i.e. when not a group)
+        """Perform random inverse transformation on image (i.e. when not a group).
+
+        For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
 
         :param torch.Tensor x: input image
         :return torch.Tensor: randomly transformed images
@@ -171,15 +185,14 @@ class Transform(torch.nn.Module):
             def get_params(self, x: torch.Tensor) -> dict:
                 return self.t1.get_params(x) | self.t2.get_params(x)
             
-            def invert_params(self, params: dict) -> dict:
-                return self.t1.invert_params(params) | self.t2.invert_params(params)
+            #def invert_params(self, params: dict) -> dict:
+            #    return self.t1.invert_params(params) | self.t2.invert_params(params)
 
             def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return self.t2.transform(self.t1.transform(x, **params), **params)
             
             def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
-                inv = self.invert_params(self.get_params(x) if not params else params)
-                return self.t1.transform(self.t2.transform(x, **inv), **inv)
+                return self.t1.inverse(self.t2.inverse(x, **params), **params)
 
         return ChainTransform(self, other)
 
@@ -200,8 +213,8 @@ class Transform(torch.nn.Module):
             def get_params(self, x: torch.Tensor) -> dict:
                 return self.t1.get_params(x) | self.t2.get_params(x)
             
-            def invert_params(self, params: dict) -> dict:
-                return self.t1.invert_params(params) | self.t2.invert_params(params)
+            #def invert_params(self, params: dict) -> dict:
+            #    return self.t1.invert_params(params) | self.t2.invert_params(params)
 
             def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return torch.cat((
