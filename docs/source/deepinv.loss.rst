@@ -124,6 +124,9 @@ For example, random transforms can be used as follows:
     >>> transform = Shift() # Define random shift transform
     >>> transform(x).shape
     torch.Size([1, 1, 2, 2])
+    >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1]) # Deterministic transform
+    >>> torch.all(x == y)
+    tensor(True)
     >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
     >>> transform(x).shape
     torch.Size([2, 1, 2, 2])
@@ -137,9 +140,6 @@ For example, random transforms can be used as follows:
     >>> f_s = rotoshift.symmetrize(f)
     >>> f_s(x).shape
     torch.Size([1, 1, 2, 2])
-    >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1]) # Deterministic transform
-    >>> torch.all(x == y)
-    tensor(True)
 
 .. autosummary::
    :toctree: stubs

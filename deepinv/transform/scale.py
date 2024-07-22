@@ -96,8 +96,14 @@ class Scale(Transform):
 
         b, _, h, w = x.shape
 
-        factor = factor.expand(b, 1, 1, 1).repeat(1, 1, 1, 2)
-        center = center.expand(b, 1, 1, 2)
+        if len(factor) < b:
+            factor = factor.expand(b, *factor.shape[1:])
+
+        if len(center) < b:
+            center = center.expand(b, *center.shape[1:])
+
+        factor = factor.view(b, 1, 1, 1).repeat(1, 1, 1, 2)
+        center = center.view(b, 1, 1, 2)
         center = 2 * center - 1
 
         # Compute the sampling grid for the scale transformation
