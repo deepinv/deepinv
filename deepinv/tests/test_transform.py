@@ -12,13 +12,12 @@ TRANSFORMS = [
     "scale*rotate",
     "scale|shift",
     "rotate|scale",
-    "BODMASshift+scale*rotate", # (shift+scale) * rotate
-    "BODMASshift*scale|rotate", # shift * (scale|rotate)
-    "shift+scale*rotate", # shift + (scale*rotate)
-    "shift+scale|rotate", # shift + (scale|rotate)
-    "shift*scale|rotate" # (shift*scale) | rotate # NOTE no way here to do (shift+scale) | rotate
-
-] 
+    "BODMASshift+scale*rotate",  # (shift+scale) * rotate
+    "BODMASshift*scale|rotate",  # shift * (scale|rotate)
+    "shift+scale*rotate",  # shift + (scale*rotate)
+    "shift+scale|rotate",  # shift + (scale|rotate)
+    "shift*scale|rotate",  # (shift*scale) | rotate # NOTE no way here to do (shift+scale) | rotate
+]
 [
     "homography",
     "euclidean",
@@ -35,15 +34,15 @@ def choose_transform(transform_name):
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(names[0]) * choose_transform(names[1])
-    
+
     if "+" in transform_name:
         names = transform_name.split("+")
         return choose_transform(names[0]) + choose_transform(names[1])
-    
+
     if "|" in transform_name:
         names = transform_name.split("|")
         return choose_transform(names[0]) | choose_transform(names[1])
-    
+
     if "BODMAS" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
@@ -67,7 +66,9 @@ def choose_transform(transform_name):
     elif transform_name == "rotate":
         return dinv.transform.Rotate()
     elif transform_name == "scale":
-        return dinv.transform.Scale(factors=[0.75]) #limit to 0.75 only to avoid severe edge effects
+        return dinv.transform.Scale(
+            factors=[0.75]
+        )  # limit to 0.75 only to avoid severe edge effects
     elif transform_name == "homography":
         return dinv.transform.projective.Homography()
     elif transform_name == "euclidean":
@@ -87,6 +88,7 @@ def image():
     # Random image
     return torch.randn(1, 3, 64, 64)
 
+
 @pytest.fixture
 def pattern():
     # Fixed binary image of small white square
@@ -94,13 +96,16 @@ def pattern():
     x[..., 50:70, 70:90] = 1
     return x
 
+
 def check_correct_pattern(x, x_t):
     """Check transformed image is same as original.
     Removes border effects on the small white square, caused by interpolation effects during transformation.
     Checks white square is in same location and not in another location.
     """
-    return torch.allclose(x[..., 55:65, 75:85], x_t[..., 55:65, 75:85], atol=1e-5) and \
-        torch.allclose(x[..., 75:85, 55:65], x_t[..., 75:85, 55:65])
+    return torch.allclose(
+        x[..., 55:65, 75:85], x_t[..., 55:65, 75:85], atol=1e-5
+    ) and torch.allclose(x[..., 75:85, 55:65], x_t[..., 75:85, 55:65])
+
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 def test_transforms(transform_name, image):
@@ -113,6 +118,7 @@ def test_transforms(transform_name, image):
         assert image.shape[0] * 2 == image_t.shape[0]
     else:
         assert image.shape == image_t.shape
+
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 def test_transform_identity(transform_name, pattern):

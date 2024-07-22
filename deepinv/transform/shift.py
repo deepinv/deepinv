@@ -3,6 +3,7 @@ from itertools import zip_longest
 import torch
 from deepinv.transform.base import Transform
 
+
 class Shift(Transform):
     r"""
     Fast integer 2D translations.
@@ -48,7 +49,13 @@ class Shift(Transform):
 
         return {"x_shift": x_shift, "y_shift": y_shift}
 
-    def transform(self, x: torch.Tensor, x_shift: Union[torch.Tensor, Iterable]=[], y_shift: Union[torch.Tensor, Iterable]=[], **kwargs) -> torch.Tensor:
+    def transform(
+        self,
+        x: torch.Tensor,
+        x_shift: Union[torch.Tensor, Iterable] = [],
+        y_shift: Union[torch.Tensor, Iterable] = [],
+        **kwargs,
+    ) -> torch.Tensor:
         """Shift image given shift parameters.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
@@ -57,6 +64,9 @@ class Shift(Transform):
         :return: torch.Tensor: transformed image.
         """
         return torch.cat(
-            [torch.roll(x, [sx, sy], [-2, -1]) for sx, sy in zip_longest(x_shift, y_shift, fillvalue=0)],
+            [
+                torch.roll(x, [sx, sy], [-2, -1])
+                for sx, sy in zip_longest(x_shift, y_shift, fillvalue=0)
+            ],
             dim=0,
         )

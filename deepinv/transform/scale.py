@@ -66,7 +66,10 @@ class Scale(Transform):
         center = torch.rand((b, 2), dtype=x.dtype, device=x.device, generator=self.rng)
 
         # Scale params override negation
-        return {"factor": Param(factor, neg=lambda x: 1/x), "center": Param(center, neg=lambda x: x)}
+        return {
+            "factor": Param(factor, neg=lambda x: 1 / x),
+            "center": Param(center, neg=lambda x: x),
+        }
 
     # def invert_params(self, params: dict) -> dict:
     #     inverted = super().invert_params(params)
@@ -74,7 +77,13 @@ class Scale(Transform):
     #     inverted["center"] = params["center"]
     #     return inverted
 
-    def transform(self, x: torch.Tensor, factor: Union[torch.Tensor, Iterable]=[], center: Union[torch.Tensor, Iterable]=[], **kwargs) -> torch.Tensor:
+    def transform(
+        self,
+        x: torch.Tensor,
+        factor: Union[torch.Tensor, Iterable] = [],
+        center: Union[torch.Tensor, Iterable] = [],
+        **kwargs,
+    ) -> torch.Tensor:
         """Scale image given scale parameters.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)

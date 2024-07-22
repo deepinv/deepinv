@@ -20,12 +20,12 @@ class Rotate(Transform):
     """
 
     def __init__(
-            self, 
-            *args, 
-            degrees: Union[float, int] = 360, 
-            interpolation_mode: InterpolationMode = InterpolationMode.NEAREST, 
-            **kwargs
-        ):
+        self,
+        *args,
+        degrees: Union[float, int] = 360,
+        interpolation_mode: InterpolationMode = InterpolationMode.NEAREST,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.group_size = degrees
         self.interpolation_mode = interpolation_mode
@@ -45,15 +45,22 @@ class Rotate(Transform):
                 : self.n_trans
             ]
         return {"theta": theta}
-    
-    def transform(self, x: torch.Tensor, theta: Union[torch.Tensor, Iterable]=[], **kwargs) -> torch.Tensor:
+
+    def transform(
+        self, x: torch.Tensor, theta: Union[torch.Tensor, Iterable] = [], **kwargs
+    ) -> torch.Tensor:
         """Rotate image given thetas.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
         :param torch.Tensor, list x_shift: iterable of rotation angles (degrees), one per n_trans.
         :return: torch.Tensor: transformed image.
         """
-        return torch.cat([rotate(x, float(_theta), interpolation=self.interpolation_mode) for _theta in theta])
+        return torch.cat(
+            [
+                rotate(x, float(_theta), interpolation=self.interpolation_mode)
+                for _theta in theta
+            ]
+        )
 
 
 # if __name__ == "__main__":
