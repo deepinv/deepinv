@@ -7,7 +7,7 @@ class Bregman(Potential):
     r"""
     Module for the Bregman framework with convex Bregman potential :math:`h`.
     Comes with methods to compute the potential, its gradient, its conjugate, its gradient and its Bregman divergence.
-    
+
     :param callable h: Potential function :math:`h(x)` to be used in the Bregman framework.
     """
 
@@ -16,7 +16,7 @@ class Bregman(Potential):
 
     def div(self, x, y, *args, **kwargs):
         r"""
-        Computes the Bregman divergence :math:`D_h(x,y)` 
+        Computes the Bregman divergence :math:`D_h(x,y)`
         with potential :math:`h`.
 
         :param torch.Tensor x: Left variable :math:`x` at which the divergence is computed.

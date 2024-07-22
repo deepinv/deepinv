@@ -3,6 +3,7 @@ import torch.nn as nn
 from deepinv.optim.utils import gradient_descent
 from .bregman import BregmanL2
 
+
 class Potential(nn.Module):
     r"""
     Base class for a potential :math:`h : \mathbb{R}^d \to \mathbb{R}` to be used in an optimization problem.
@@ -32,7 +33,7 @@ class Potential(nn.Module):
         :return: (torch.tensor) prior :math:`h(x)`.
         """
         return self.h(x, *args, **kwargs)
-    
+
     def conjugate(self, x, *args, **kwargs):
         r"""
         Computes the convex conjugate potential :math:`h^*(y) = \sup_{x} \langle x, y \rangle - h(x)`.
@@ -44,7 +45,6 @@ class Potential(nn.Module):
         grad = lambda z: self(z, *args, **kwargs) - torch.dot(z, x)
         return gradient_descent(grad, x)
 
-        
     def grad(self, x, *args, **kwargs):
         r"""
         Calculates the gradient of the potential term :math:`h` at :math:`x`.
@@ -59,7 +59,7 @@ class Potential(nn.Module):
                 self(x, *args, **kwargs), x, create_graph=True, only_inputs=True
             )[0]
         return grad
-    
+
     def grad_conj(self, x, *args, **kwargs):
         r"""
         Calculates the gradient of the convex conjugate potential :math:`h^*` at :math:`x`.
@@ -72,7 +72,10 @@ class Potential(nn.Module):
         with torch.enable_grad():
             x = x.requires_grad_()
             grad = torch.autograd.grad(
-                self.conjugate(x, *args, **kwargs), x, create_graph=True, only_inputs=True
+                self.conjugate(x, *args, **kwargs),
+                x,
+                create_graph=True,
+                only_inputs=True,
             )[0]
         return grad
 

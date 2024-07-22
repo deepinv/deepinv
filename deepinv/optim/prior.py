@@ -42,7 +42,7 @@ class Prior(Potential):
     """
 
     def __init__(self, g=None):
-        super().__init__(h = g)
+        super().__init__(h=g)
         self.explicit_prior = False if self._h is None else True
 
 
