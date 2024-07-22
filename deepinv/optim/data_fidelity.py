@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-
+from potential import Potential
 from deepinv.optim.utils import gradient_descent
-from .bregman import BregmanL2
+from bregman import BregmanL2
 
 
 class DataFidelity(nn.Module):

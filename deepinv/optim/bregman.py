@@ -1,71 +1,23 @@
 import torch
 import torch.nn as nn
+from potential import Potential
 
 
-class Bregman(nn.Module):
+class Bregman(Potential):
     r"""
     Module for the Bregman framework with convex Bregman potential :math:`h`.
+    Comes with methods to compute the potential, its gradient, its conjugate, its gradient and its Bregman divergence.
+    
+    :param callable h: Potential function :math:`h(x)` to be used in the Bregman framework.
     """
 
-    def __init__(self, h=None):
+    def __init__(self, g=None):
         super().__init__()
-        self._h = h
-
-    def h(self, x, *args, **kwargs):
-        r"""
-        Computes the potential :math:`h(x)`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) prior :math:`h(x)`.
-        """
-        return self._h(x, *args, **kwargs)
-
-    def forward(self, x, *args, **kwargs):
-        r"""
-        Computes the potential :math:`h(x)`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`h(x)`.
-        """
-        return self.h(x, *args, **kwargs)
-
-    def conjugate(self, x, *args, **kwargs):
-        r"""
-        Computes the convex conjugate potential :math:`h^*(y) = \sup_{x} \langle x, y \rangle - h(x)`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
-        """
-        pass
-
-    def grad(self, x, *args, **kwargs):
-        r"""
-        Calculates the gradient of the potential :math:`h` at :math:`x`.
-        By default, the gradient is computed using automatic differentiation.
-
-        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
-        """
-        with torch.enable_grad():
-            x = x.requires_grad_()
-            grad = torch.autograd.grad(
-                self.h(x, *args, **kwargs), x, create_graph=True, only_inputs=True
-            )[0]
-        return grad
-
-    def grad_conj(self, x, *args, **kwargs):
-        r"""
-        Calculates the gradient of the convex conjugate :math:`h^*` of :math:`h`.
-        It corresponds to the inverse of the gradient of :math:`h`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
-        """
-        pass
 
     def div(self, x, y, *args, **kwargs):
         r"""
-        Computes the Bregman divergence :math:`D_h(x,y)` with potential :math:`h`.
+        Computes the Bregman divergence :math:`D_h(x,y)` 
+        with potential :math:`h`.
 
         :param torch.Tensor x: Left variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Right variable :math:`y` at which the divergence is computed.
@@ -73,8 +25,8 @@ class Bregman(nn.Module):
         :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y`.
         """
         return (
-            self.h(x, *args, **kwargs)
-            - self.h(y, *args, **kwargs)
+            self(x, *args, **kwargs)
+            - self(y, *args, **kwargs)
             - torch.sum(
                 (self.grad(y, *args, **kwargs) * (x - y)).reshape(x.shape[0], -1),
                 dim=-1,

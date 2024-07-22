@@ -1,3 +1,5 @@
+from .potential import Potential
+from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2
 from .data_fidelity import (
     DataFidelity,
     L2,

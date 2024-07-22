@@ -1,5 +1,5 @@
 import numpy as np
-
+from potential import Potential
 import torch
 import torch.nn as nn
 
@@ -14,15 +14,14 @@ from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from .bregman import BregmanL2
+from bregman import BregmanL2
 
 
-class Prior(nn.Module):
+class Prior(Potential):
     r"""
     Prior term :math:`\reg{x}`.
 
-    This is the base class for the prior term :math:`\reg{x}`. Similarly to the :meth:`deepinv.optim.DataFidelity` class,
-    this class comes with methods for computing
+    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Poential class, it comes with methods for computing
     :math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.
     To implement a custom prior, for an explicit prior, overwrite :math:`\regname` (do not forget to specify
     `self.explicit_prior = True`)
@@ -43,116 +42,8 @@ class Prior(nn.Module):
     """
 
     def __init__(self, g=None):
-        super().__init__()
-        self._g = g
-        self.explicit_prior = False if self._g is None else True
-
-    def g(self, x, *args, **kwargs):
-        r"""
-        Computes the prior :math:`g(x)`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.tensor) prior :math:`g(x)`.
-        """
-        return self._g(x, *args, **kwargs)
-
-    def forward(self, x, *args, **kwargs):
-        r"""
-        Computes the prior :math:`g(x)`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.tensor) prior :math:`g(x)`.
-        """
-        return self.g(x, *args, **kwargs)
-
-    def grad(self, x, *args, **kwargs):
-        r"""
-        Calculates the gradient of the prior term :math:`\regname` at :math:`x`.
-        By default, the gradient is computed using automatic differentiation.
-
-        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x g`, computed in :math:`x`.
-        """
-        with torch.enable_grad():
-            x = x.requires_grad_()
-            grad = torch.autograd.grad(
-                self.g(x, *args, **kwargs), x, create_graph=True, only_inputs=True
-            )[0]
-        return grad
-
-    def prox(
-        self,
-        x,
-        *args,
-        gamma=1.0,
-        stepsize_inter=1.0,
-        max_iter_inter=50,
-        tol_inter=1e-3,
-        **kwargs,
-    ):
-        r"""
-        Calculates the proximity operator of :math:`\regname` at :math:`x`. By default, the proximity operator is computed using internal gradient descent.
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
-        :param float stepsize_inter: stepsize used for internal gradient descent
-        :param int max_iter_inter: maximal number of iterations for internal gradient descent.
-        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma g}(x)`, computed in :math:`x`.
-        """
-        grad = lambda z: gamma * self.grad(z, *args, **kwargs) + (z - x)
-        return gradient_descent(
-            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
-        )
-
-    def prox_conjugate(self, x, *args, gamma=1.0, lamb=1.0, **kwargs):
-        r"""
-        Calculates the proximity operator of the convex conjugate :math:`(\lambda g)^*` at :math:`x`, using the Moreau formula.
-
-        ::Warning:: Only valid for convex :math:`\regname`
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
-        :param float lamb: math:`\lambda` parameter in front of :math:`f`
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda g)^*}(x)`, computed in :math:`x`.
-        """
-        return x - gamma * self.prox(x / gamma, lamb / gamma, *args, **kwargs)
-
-    def bregman_prox(
-        self,
-        x,
-        *args,
-        gamma=1.0,
-        bregman_potential=BregmanL2(),
-        stepsize_inter=1.0,
-        max_iter_inter=50,
-        tol_inter=1e-3,
-        **kwargs,
-    ):
-        r"""
-        Calculates the Bregman proximity operator of :math:`\regname` at :math:`x` i.e.:
-
-        .. math::
-
-            \operatorname{prox^h}_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}\regname + D_h(u,x)
-
-        where :math:`D_h(x,y)` stands for the Bregman divergence with potential :math:`h`.
-
-        By default, the proximity operator is computed using internal gradient descent.
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
-        :param float stepsize_inter: stepsize used for internal gradient descent
-        :param int max_iter_inter: maximal number of iterations for internal gradient descent.
-        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma g}(x)`, computed in :math:`x`.
-        """
-        grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
-            bregman_potential(u) - bregman_potential(x)
-        )
-        return gradient_descent(
-            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
-        )
+        super().__init__(h = g)
+        self.explicit_prior = False if self._h is None else True
 
 
 class Zero(Prior):
@@ -164,7 +55,7 @@ class Zero(Prior):
         super().__init__()
         self.explicit_prior = True
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         r"""
         Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
@@ -294,7 +185,7 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         r"""
         Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
 
@@ -333,7 +224,7 @@ class L1Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         r"""
         Computes the regularizer :math:`\reg{x} = \| x \|_1`.
 
@@ -440,7 +331,7 @@ class WaveletPrior(Prior):
                 wvdim=self.wvdim,
             )
 
-    def g(self, x, *args, reduce=True, **kwargs):
+    def forward(self, x, *args, reduce=True, **kwargs):
         r"""
         Computes the regularizer
 
@@ -510,7 +401,7 @@ class TVPrior(Prior):
         self.explicit_prior = True
         self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         r"""
         Computes the regularizer
 
@@ -577,7 +468,7 @@ class PatchPrior(Prior):
         self.patch_size = patch_size
         self.pad = pad
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         if self.pad:
             x = torch.cat(
                 (
