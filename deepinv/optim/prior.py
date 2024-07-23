@@ -1,5 +1,4 @@
 import numpy as np
-from potential import Potential
 import torch
 import torch.nn as nn
 
@@ -10,11 +9,10 @@ except:
     Ff = ImportError("The FrEIA package is not installed.")
     Fm = ImportError("The FrEIA package is not installed.")
 
-from deepinv.optim.utils import gradient_descent
+from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from bregman import BregmanL2
 
 
 class Prior(Potential):

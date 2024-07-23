@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
+import deepinv
 from deepinv.optim.utils import gradient_descent
-from .bregman import BregmanL2
+
 
 
 class Potential(nn.Module):
     r"""
     Base class for a potential :math:`h : \mathbb{R}^d \to \mathbb{R}` to be used in an optimization problem.
-    Comes with methods to compute the potential, its gradient, its proximity operator and its Bregman proximity operator.
 
     :param callable h: Potential function :math:`h(x)` to be used in the optimization problem.
     """
@@ -120,26 +120,27 @@ class Potential(nn.Module):
     def bregman_prox(
         self,
         x,
+        bregman_potential,
         *args,
         gamma=1.0,
-        bregman_potential=BregmanL2(),
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
         **kwargs,
     ):
         r"""
-        Calculates the Bregman proximity operator of h` at :math:`x` i.e.:
+        Calculates the (right) Bregman proximity operator of h` at :math:`x`, with Bregman potential `bregman_potential`.
 
         .. math::
 
-            \operatorname{prox^h}_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}\regname + D_h(u,x)
+            \operatorname{prox^h}_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}\h + D_\phi(u,x)
 
-        where :math:`D_h(x,y)` stands for the Bregman divergence with potential :math:`h`.
+        where :math:`D_\phi(x,y)` stands for the Bregman divergence with potential :math:`\phi`.
 
         By default, the proximity operator is computed using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param dinv.optim.bregman.Bregman bregman_potential: Bregman potential to be used in the Bregman proximity operator.
         :param float gamma: stepsize of the proximity operator.
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
@@ -147,7 +148,7 @@ class Potential(nn.Module):
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma h}(x)`, computed in :math:`x`.
         """
         grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
-            bregman_potential(u) - bregman_potential(x)
+            bregman_potential.grad(u) - bregman_potential.grad(x)
         )
         return gradient_descent(
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter

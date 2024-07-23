@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-from potential import Potential
+from deepinv.optim.potential import Potential
 from deepinv.optim.utils import gradient_descent
-from bregman import BregmanL2
 
 
 class DataFidelity(nn.Module):
@@ -210,9 +209,9 @@ class DataFidelity(nn.Module):
         x,
         y,
         physics,
+        bregman_potential,
         *args,
         gamma=1.0,
-        bregman_potential=BregmanL2(),
         stepsize_inter=1.0,
         max_iter_inter=50,
         tol_inter=1e-3,
@@ -232,6 +231,7 @@ class DataFidelity(nn.Module):
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
+        :param dinv.optim.bregman.Bregman bregman_potential: Bregman potential :math:`h`.
         :param float gamma: stepsize of the proximity operator.
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
