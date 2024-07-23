@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.potential import Potential
 from deepinv.optim.utils import gradient_descent
 
 
