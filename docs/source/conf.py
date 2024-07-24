@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 project = "deepinverse"
 copyright = "2024, DeepInv"
-author = "Julian Tachella, Matthieu Terris, Samuel Hurault and Dongdong Chen"
+author = "Julian Tachella, Matthieu Terris, Samuel Hurault, Dongdong Chen and Andrew Wang"
 release = "0.1"
 
 # -- General configuration ---------------------------------------------------
