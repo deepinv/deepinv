@@ -1,10 +1,16 @@
 from typing import Any, Callable
 import os
 
-import datasets
 import torch
 
 from deepinv.datasets.utils import calculate_md5
+
+try:
+    import datasets
+except:
+    error_import = ImportError(
+        "datasets is not available. Please install the datasets package with `pip install datasets`."
+    )
 
 
 class CBSD68(torch.utils.data.Dataset):

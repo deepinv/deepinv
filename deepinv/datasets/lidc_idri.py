@@ -7,8 +7,13 @@ from typing import (
 import os
 import torch
 import numpy as np
-import pandas as pd
 
+try:
+    import pandas as pd
+except:
+    error_import = ImportError(
+        "pandas is not available. Please install the pandas package with `pip install pandas`."
+    )
 try:
     from pydicom import dcmread
 except:
