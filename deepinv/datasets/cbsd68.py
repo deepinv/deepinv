@@ -62,6 +62,9 @@ class CBSD68(torch.utils.data.Dataset):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
+        if isinstance(error_import, ImportError):
+            raise error_import
+
         self.root = root
         self.transform = transform
 
