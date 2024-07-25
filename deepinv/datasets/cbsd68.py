@@ -5,6 +5,7 @@ import torch
 
 from deepinv.datasets.utils import calculate_md5
 
+error_import = None
 try:
     import datasets
 except:
@@ -62,7 +63,7 @@ class CBSD68(torch.utils.data.Dataset):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        if isinstance(error_import, ImportError):
+        if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 
         self.root = root

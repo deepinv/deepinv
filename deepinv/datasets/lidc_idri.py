@@ -8,6 +8,7 @@ import os
 import torch
 import numpy as np
 
+error_import = None
 try:
     import pandas as pd
 except:
@@ -88,7 +89,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         root: str,
         transform: Optional[Callable] = None,
     ) -> None:
-        if isinstance(error_import, ImportError):
+        if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 
         self.root = root
