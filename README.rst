@@ -48,6 +48,16 @@ You can also install the latest version of ``deepinv`` directly from github:
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
+You can also install additional dependencies needed for some modules in deepinv.datasets and deepinv.models:
+
+.. code-block:: bash
+
+    pip install deepinv[dataset,denoisers]
+
+    # or
+
+    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv[dataset,denoisers]
+
 Getting Started
 ---------------
 Try out the following plug-and-play image inpainting example:
