@@ -135,7 +135,16 @@ def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
     return {"est": (x, z)}
 
 
-def plot_error_bars(oversamplings, datasets, labels, title="Performance"):
+def plot_error_bars(oversamplings,
+                    datasets,
+                    labels,
+                    axis=1,
+                    title="Performance",
+                    xlabel="Oversampling Ratio",
+                    ylabel="Consine Similarity",
+                    xscale="linear",
+                    yscale="linear",
+                    ):
 
     # Generate a color palette
     palette = sns.color_palette(n_colors=len(datasets))
@@ -152,9 +161,9 @@ def plot_error_bars(oversamplings, datasets, labels, title="Performance"):
             max_vals = data.max(dim=1).values.numpy()
             avg_vals = data.mean(dim=1).numpy()
         elif type(data) == pd.DataFrame:
-            min_vals = data.min(axis=1).values
-            max_vals = data.max(axis=1).values
-            avg_vals = data.mean(axis=1).values
+            min_vals = data.min(axis=axis).values
+            max_vals = data.max(axis=axis).values
+            avg_vals = data.mean(axis=axis).values
 
         # Calculate error bars
         yerr_lower = avg_vals - min_vals
@@ -184,8 +193,10 @@ def plot_error_bars(oversamplings, datasets, labels, title="Performance"):
         )
 
     # Adding labels and title
-    ax.set_xlabel("Oversampling Ratio")
-    ax.set_ylabel("Consine Similarity")
+    ax.set_xlabel(xlabel)
+    ax.set_xscale(xscale)
+    ax.set_ylabel(ylabel)
+    ax.set_yscale(yscale)
     ax.set_title(title)
     ax.legend()
 
