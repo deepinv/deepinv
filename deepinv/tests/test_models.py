@@ -544,6 +544,7 @@ def test_optional_dependencies(denoiser, dep):
 
 def test_icnn(device):
     from deepinv.models import ICNN
+
     model = ICNN(in_channels=3, device=device)
     torch.manual_seed(0)
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
