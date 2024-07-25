@@ -1,7 +1,7 @@
 from typing import Union, Iterable
 from itertools import zip_longest
 import torch
-from deepinv.transform.base import Transform
+from deepinv.transform.base import Transform, Param
 
 
 class Shift(Transform):
@@ -52,8 +52,8 @@ class Shift(Transform):
     def transform(
         self,
         x: torch.Tensor,
-        x_shift: Union[torch.Tensor, Iterable] = [],
-        y_shift: Union[torch.Tensor, Iterable] = [],
+        x_shift: Union[torch.Tensor, Iterable, Param] = [],
+        y_shift: Union[torch.Tensor, Iterable, Param] = [],
         **kwargs,
     ) -> torch.Tensor:
         """Shift image given shift parameters.

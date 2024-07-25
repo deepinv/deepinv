@@ -17,8 +17,6 @@ TRANSFORMS = [
     "shift+scale*rotate",  # shift + (scale*rotate)
     "shift+scale|rotate",  # shift + (scale|rotate)
     "shift*scale|rotate",  # (shift*scale) | rotate # NOTE no way here to do (shift+scale) | rotate
-]
-[
     "homography",
     "euclidean",
     "similarity",
@@ -60,25 +58,36 @@ def choose_transform(transform_name):
             reason="This test requires kornia. It should be "
             "installed with `pip install kornia`",
         )
+        proj_kwargs = {
+            "theta_max": 5,
+            "theta_z_max": 20,
+            "zoom_factor_min": 0.85,
+            "shift_max": 0.2,
+            "skew_max": 5,
+            "x_stretch_factor_min": 0.85,
+            "y_stretch_factor_min": 0.85,
+            "padding": "zeros",
+            "interpolation": "bicubic",
+        }
 
     if transform_name == "shift":
         return dinv.transform.Shift()
     elif transform_name == "rotate":
         return dinv.transform.Rotate()
     elif transform_name == "scale":
-        return dinv.transform.Scale(
-            factors=[0.75]
-        )  # limit to 0.75 only to avoid severe edge effects
+        # Limit to 0.75 only to avoid severe edge/interp effects
+        return dinv.transform.Scale(factors=[0.75])
     elif transform_name == "homography":
-        return dinv.transform.projective.Homography()
+        # Limit to avoid severe edge/interp effects. All the subgroups will zero their appropriate params.
+        return dinv.transform.projective.Homography(**proj_kwargs)
     elif transform_name == "euclidean":
-        return dinv.transform.projective.Euclidean()
+        return dinv.transform.projective.Euclidean(**proj_kwargs)
     elif transform_name == "similarity":
-        return dinv.transform.projective.Similarity()
+        return dinv.transform.projective.Similarity(**proj_kwargs)
     elif transform_name == "affine":
-        return dinv.transform.projective.Affine()
+        return dinv.transform.projective.Affine(**proj_kwargs)
     elif transform_name == "pantiltrotate":
-        return dinv.transform.projective.PanTiltRotate()
+        return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
     else:
         raise ValueError("Invalid transform_name provided")
 
@@ -90,21 +99,34 @@ def image():
 
 
 @pytest.fixture
-def pattern():
+def pattern_offset():
+    return 45, 65
+
+
+@pytest.fixture
+def pattern(pattern_offset):
     # Fixed binary image of small white square
     x = torch.zeros(1, 3, 256, 256)
-    x[..., 50:70, 70:90] = 1
+    h, w = pattern_offset
+    x[..., h : h + 30, w : w + 30] = 1
     return x
 
 
-def check_correct_pattern(x, x_t):
+def check_correct_pattern(x, x_t, pattern_offset):
     """Check transformed image is same as original.
     Removes border effects on the small white square, caused by interpolation effects during transformation.
     Checks white square is in same location and not in another location.
     """
+    h, w = pattern_offset
+    H, W = x.shape[-2:]
     return torch.allclose(
-        x[..., 55:65, 75:85], x_t[..., 55:65, 75:85], atol=1e-5
-    ) and torch.allclose(x[..., 75:85, 55:65], x_t[..., 75:85, 55:65])
+        x[..., h + 10 : h + 20, w + 10 : w + 20],
+        x_t[..., h + 10 : h + 20, w + 10 : w + 20],
+        atol=1e-5,
+    ) and torch.allclose(
+        x[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
+        x_t[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
+    )
 
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
@@ -121,7 +143,9 @@ def test_transforms(transform_name, image):
 
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
-def test_transform_identity(transform_name, pattern):
+def test_transform_identity(transform_name, pattern, pattern_offset):
     t = choose_transform(transform_name)
-    assert check_correct_pattern(pattern, t.identity(pattern))
-    assert check_correct_pattern(pattern, t.symmetrize(lambda x: x)(pattern))
+    assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
+    assert check_correct_pattern(
+        pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
+    )

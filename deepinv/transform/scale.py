@@ -71,17 +71,11 @@ class Scale(Transform):
             "center": Param(center, neg=lambda x: x),
         }
 
-    # def invert_params(self, params: dict) -> dict:
-    #     inverted = super().invert_params(params)
-    #     inverted["factor"] = 1 / params["factor"]
-    #     inverted["center"] = params["center"]
-    #     return inverted
-
     def transform(
         self,
         x: torch.Tensor,
-        factor: Union[torch.Tensor, Iterable] = [],
-        center: Union[torch.Tensor, Iterable] = [],
+        factor: Union[torch.Tensor, Iterable, Param] = [],
+        center: Union[torch.Tensor, Iterable, Param] = [],
         **kwargs,
     ) -> torch.Tensor:
         """Scale image given scale parameters.

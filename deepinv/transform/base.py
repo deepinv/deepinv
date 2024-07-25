@@ -195,9 +195,6 @@ class Transform(torch.nn.Module):
             def get_params(self, x: torch.Tensor) -> dict:
                 return self.t1.get_params(x) | self.t2.get_params(x)
 
-            # def invert_params(self, params: dict) -> dict:
-            #    return self.t1.invert_params(params) | self.t2.invert_params(params)
-
             def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return self.t2.transform(self.t1.transform(x, **params), **params)
 
@@ -222,9 +219,6 @@ class Transform(torch.nn.Module):
 
             def get_params(self, x: torch.Tensor) -> dict:
                 return self.t1.get_params(x) | self.t2.get_params(x)
-
-            # def invert_params(self, params: dict) -> dict:
-            #    return self.t1.invert_params(params) | self.t2.invert_params(params)
 
             def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return torch.cat(

@@ -3,7 +3,7 @@ import torch
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 import numpy as np
-from deepinv.transform.base import Transform
+from deepinv.transform.base import Transform, Param
 
 
 class Rotate(Transform):
@@ -47,7 +47,10 @@ class Rotate(Transform):
         return {"theta": theta}
 
     def transform(
-        self, x: torch.Tensor, theta: Union[torch.Tensor, Iterable] = [], **kwargs
+        self,
+        x: torch.Tensor,
+        theta: Union[torch.Tensor, Iterable, Param] = [],
+        **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.
 
