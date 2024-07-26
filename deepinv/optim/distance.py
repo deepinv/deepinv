@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.utils import gradient_descent
+from deepinv.optim.potential import Potential
 
-
-class Distance(nn.Module):
+class Distance(Potential):
     r"""
     Distance :math:`\distance{x}{y}`.
 
