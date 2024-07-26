@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from deepinv.optim.potential import Potential
 
+
 class Distance(Potential):
     r"""
     Distance :math:`\distance{x}{y}`.
@@ -15,9 +16,9 @@ class Distance(Potential):
     """
 
     def __init__(self, d=None):
-        super().__init__(h = d)
+        super().__init__(h=d)
 
-   
+
 class L2(Distance):
     r"""
     Implementation of :math:`\distancename` as the normalized :math:`\ell_2` norm

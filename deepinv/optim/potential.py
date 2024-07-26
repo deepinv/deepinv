@@ -4,7 +4,6 @@ import deepinv
 from deepinv.optim.utils import gradient_descent
 
 
-
 class Potential(nn.Module):
     r"""
     Base class for a potential :math:`h : \mathbb{R}^d \to \mathbb{R}` to be used in an optimization problem.

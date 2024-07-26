@@ -20,7 +20,7 @@ from .dpir import DPIR
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2
 from .potential import Potential
 from .distance import (
-    Distance, 
+    Distance,
     L2,
     L1,
     IndicatorL2,
