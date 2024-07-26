@@ -18,6 +18,16 @@ class Distance(Potential):
     def __init__(self, d=None):
         super().__init__(h=d)
 
+    def h(self, x, y, *args, **kwargs):
+        r"""
+        Computes the distance :math:`\distance{x}{y}`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}` of size `B` with `B` the size of the batch.
+        """
+        return self.h(x, y, *args, **kwargs)
+
 
 class L2(Distance):
     r"""
@@ -36,8 +46,6 @@ class L2(Distance):
     def __init__(self, sigma=1.0):
         super().__init__()
 
-        self.norm = 1 / (sigma**2)
-
     def h(self, x, y):
         r"""
         Computes the distance :math:`\distance{x}{y}`, i.e.
@@ -52,8 +60,7 @@ class L2(Distance):
         :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         z = x - y
-        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
-        return self.norm * d
+        return 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
 
     def grad(self, x, y):
         r"""
@@ -68,7 +75,7 @@ class L2(Distance):
         :param torch.Tensor y: Data :math:`y`.
         :return: (torch.Tensor) gradient of the distance function :math:`\nabla_{x}\distance{x}{y}`.
         """
-        return self.norm * (x - y)
+        return x - y
 
     def prox(self, x, y, gamma=1.0):
         r"""
@@ -86,8 +93,7 @@ class L2(Distance):
         :param float gamma: thresholding parameter.
         :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma \distancename}(x)`.
         """
-        gamma_ = self.norm * gamma
-        return (x + gamma_ * y) / (1 + gamma_)
+        return (x + gamma * y) / (1 + gamma)
 
 
 class IndicatorL2(Distance):
