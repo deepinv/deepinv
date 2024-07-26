@@ -196,6 +196,58 @@ def test_zero_prior():
         assert torch.allclose(xhat, x)
 
 
+def test_l12_prior():
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+    # create sparse ground truth
+    x = torch.zeros(30, 30)
+    x = torch.fill(x, 0.05)  # probability for bernoulli
+    n_chan = 3  # length of l2 axis
+    x = torch.bernoulli(x)
+    x = x.unsqueeze(0).unsqueeze(0).to(device)
+    x = x.tile(1, n_chan, 1, 1)
+    x[:, 0, ::] *= 0.7
+    x[:, 1, ::] *= 0.5
+    x[:, 2, ::] *= 0.2
+
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(0.7, 0.7), angle=0.0),
+        padding="circular",
+        device=device,
+        noise_model=dinv.physics.noise.GaussianNoise(sigma=0.01),
+    )
+
+    y = physics(x)
+    max_iter = 1000
+    stepsize = 1.0
+    lamb = 0.01
+
+    data_fidelity = L2()
+    prior = dinv.optim.prior.L12Prior(def_l2_axis=1)
+
+    params_algo = {
+        "stepsize": stepsize,
+        "lambda": lamb,
+    }
+
+    optim_algo = optim_builder(
+        "PGD",
+        prior=prior,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        thres_conv=1e-8,
+        verbose=True,
+        params_algo=params_algo,
+        early_stop=True,
+    )
+
+    x_hat = optim_algo(y, physics)
+
+    dinv.utils.plot([x, y, x_hat])
+
+    assert optim_algo.has_converged
+
+
 def test_data_fidelity_amplitude_loss(device):
     r"""
     Tests if the gradient computed with grad_d method of amplitude loss is consistent with the autograd gradient.
