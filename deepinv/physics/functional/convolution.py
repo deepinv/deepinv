@@ -4,16 +4,17 @@ from torch import Tensor
 import torch.fft as fft
 
 
-def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
+def conv2d(x: Tensor, filter: Tensor, padding: str = "valid", correlation = False) -> Tensor:
     r"""
     A helper function performing the 2d convolution of images `x` and `filter`. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transposed2d`
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
     filter center is at (hh, ww) where hh = h//2 if h is odd and hh = h//2 - 1 if h is even. Same for ww.
+    :param bool correlation: choose True if you want a cross-correlation (default False)
 
     ..note:
-        The convolution is in fact a correlation (filter is not flipped), similar to the torch conv2d.
+        Contrarily to Pytorch :meth:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
 
     If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
@@ -23,6 +24,9 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
     :return: (torch.Tensor) : the output
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+
+    if not correlation:
+        filter = torch.flip(filter, [-2, -1])
 
     # Get dimensions of the input and the filter
     B, C, H, W = x.size()
@@ -42,7 +46,6 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
         pw = w // 2
         iw = (w - 1) % 2
         pad = (pw, pw - iw, ph, ph - ih)  # because functional.pad is w,h instead of h,w
-        # pad = (pw, pw, ph, ph)
 
         x = F.pad(x, pad, mode=padding, value=0)
         B, C, H, W = x.size()
@@ -59,12 +62,13 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
     return output
 
 
-def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tensor:
+def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid", correlation = False) -> Tensor:
     r"""
     A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of this operation is :meth:`deepinv.physics.functional.conv2d`
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` ) where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
+    :param bool correlation: choose True if you want a cross-correlation (default False)
 
     If `b = 1` or `c = 1`, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
@@ -77,6 +81,9 @@ def conv_transpose2d(y: Tensor, filter: Tensor, padding: str = "valid") -> Tenso
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
+    if not correlation:
+        filter = torch.flip(filter, [-2, -1])
+        
     # Get dimensions of the input and the filter
     B, C, H, W = y.size()
     b, c, h, w = filter.size()
@@ -372,70 +379,3 @@ def conv_transpose3d_fft(
         return torch.roll(res, shifts=(d - 1, h - 1, w - 1), dims=(-3, -2, -1))
     else:
         return res
-
-
-# if __name__ == "__main__":
-#     from skimage.data import astronaut
-#     from skimage.transform import resize
-#     import deepinv as dinv
-#     from deepinv.physics.blur import gaussian_blur
-
-#     B = 4
-#     C = 3
-#     H = 1024
-#     W = 1024
-
-#     img = resize(astronaut(), (H, W))
-
-#     device = "cuda"
-#     dtype = torch.float32
-
-#     x = torch.from_numpy(img).permute(2, 0, 1)[None].to(device=device, dtype=dtype)
-#     x = x.expand(B, -1, -1, -1)
-
-#     filter = gaussian_blur(3.0).expand(B, C, -1, -1).to(device=device, dtype=dtype)
-#     padding = "circular"
-#     Ax = conv2d(x, filter.flip(-1).flip(-2), padding)
-#     dinv.utils.plot(Ax[0])
-
-#     y = torch.randn_like(Ax)
-#     z = conv_transpose2d(y, filter.flip(-1).flip(-2), padding)
-#     print((Ax * y).sum(dim=(1, 2, 3)) - (x * z).sum(dim=(1, 2, 3)))
-
-#     Ax_fft = conv2d_fft(x, filter)
-#     dinv.utils.plot(Ax_fft[0])
-
-#     y_fft = torch.randn_like(Ax_fft)
-#     z_fft = conv_transpose2d_fft(y_fft, filter)
-#     print((Ax_fft * y_fft).sum(dim=(1, 2, 3)) - (x * z_fft).sum(dim=(1, 2, 3)))
-#     print((Ax - Ax_fft).abs().sum())
-
-#     # Benchmark
-#     # from torch.utils.benchmark import Timer
-
-#     # for kernel_size in range(33, H // 2 - 1, 10):
-#     #     filter = torch.randn(
-#     #         (B, C, kernel_size * 2 + 1, kernel_size * 2 + 1), device=device, dtype=dtype
-#     #     )
-#     #     print("Kernel size: ", kernel_size * 2 + 1)
-#     #     conv_timer = Timer(
-#     #         stmt="conv2d(x, filter, padding)",
-#     #         globals=globals(),
-#     #         num_threads=1,
-#     #     )
-#     #     print("Conv: ", conv_timer.blocked_autorange(min_run_time=10).median)
-#     #     fft_timer = Timer(
-#     #         stmt="conv2d_fft(x, filter)",
-#     #         globals=globals(),
-#     #         num_threads=1,
-#     #     )
-#     #     print("FFT: ", conv_timer.blocked_autorange(min_run_time=10).median)
-
-
-# #%%
-# a = torch.zeros(1,1,7,7)
-# b = torch.zeros(1,1,6,6)
-# a[0,0,0,0] = 1
-# b[0,0,2,2] = 1
-# c = dinv.physics.functional.conv2d(a,b,padding='constant')
-# print(c)

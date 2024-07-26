@@ -47,7 +47,6 @@ def test_conv2d_adjointness(device):
 
                     assert torch.abs(Axy - Atyx) < 1e-3
 
-
 def test_conv3d_norm(device):
     torch.manual_seed(0)
     max_iter = 1000
@@ -180,3 +179,5 @@ def test_downsampling_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+    
