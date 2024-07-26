@@ -256,7 +256,7 @@ def find_nonlinear_operator(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_adjointness(name, device='cpu'):
+def test_operators_adjointness(name, device):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -288,7 +288,7 @@ def test_operators_adjointness(name, device='cpu'):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device='cpu'):
+def test_operators_norm(name, device):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -320,7 +320,7 @@ def test_operators_norm(name, device='cpu'):
 
 
 @pytest.mark.parametrize("name", NONLINEAR_OPERATORS)
-def test_nonlinear_operators(name, device='cpu'):
+def test_nonlinear_operators(name, device):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -336,7 +336,7 @@ def test_nonlinear_operators(name, device='cpu'):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device='cpu'):
+def test_pseudo_inverse(name, device):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -518,7 +518,7 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
-def test_blur(device='cpu'):
+def test_blur(device):
     r"""
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.
