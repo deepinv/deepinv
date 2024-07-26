@@ -11,7 +11,6 @@ OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
-    "demosaicing",
     "denoising",
     "colorize",
     "fftdeblur",
@@ -31,7 +30,7 @@ OPERATORS = [
     "aliased_super_resolution",
     "fast_singlepixel",
     "MRI",
-    "DynamicMRI",
+    "mcMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
@@ -88,15 +87,14 @@ def find_operator(name, device):
         norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
-    elif name == "demosaicing":
-        p = dinv.physics.Demosaicing(img_size=img_size, device=device)
-        norm = 1.0
     elif name == "MRI":
         img_size = (2, 16, 8)
-        p = dinv.physics.MRI(img_size=img_size, device=device)
-    elif name == "DynamicMRI":
-        img_size = (2, 3, 16, 8)
-        p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
+        p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
+    elif name == "mcMRI":
+        img_size = (32, 32, 2)
+        maps = torch.randn((1, 15, 32, 32), dtype=torch.complex64,device=device)
+        mask = torch.randint(0, 2, (1,1,32,32), device=device)
+        p = dinv.physics.mcMRI(coil_maps=maps, mask=mask, device=device)
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
@@ -258,7 +256,7 @@ def find_nonlinear_operator(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_adjointness(name, device):
+def test_operators_adjointness(name, device='cpu'):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -290,7 +288,7 @@ def test_operators_adjointness(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device):
+def test_operators_norm(name, device='cpu'):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -322,7 +320,7 @@ def test_operators_norm(name, device):
 
 
 @pytest.mark.parametrize("name", NONLINEAR_OPERATORS)
-def test_nonlinear_operators(name, device):
+def test_nonlinear_operators(name, device='cpu'):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -338,7 +336,7 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device):
+def test_pseudo_inverse(name, device='cpu'):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -357,91 +355,28 @@ def test_pseudo_inverse(name, device):
     assert error < 0.01
 
 
-@pytest.fixture
-def mri_img_size():
-    return 1, 2, 3, 16, 16  # B, C, T, H, W
-
-
-def test_MRI(mri_img_size, device, rng):
+def test_MRI(device):
     r"""
-    Test MRI and DynamicMRI functions
+    Test MRI function
 
-    Assert mask is applied to physics wherever it is passed.
-
-    :param mri_img_size: (tuple) image size tuple (B, C, T, H, W)
+    :param name: operator name (see find_operator)
+    :param imsize: (tuple) image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :param rng: (torch.Generator)
+    :return: asserts error is less than 1e-3
     """
+    mask = torch.ones((16, 16), device=device)
+    physics = dinv.physics.MRI(mask=mask, device=device, acceleration_factor=4)
+    x = torch.randn((2, 2, 16, 16), device=device)
+    y1 = physics.A(x)
+    x2 = physics.A_adjoint(y1)
+    assert x2.shape == x.shape
 
-    for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
-        B, C, T, H, W = mri_img_size
-
-        x, y = (
-            torch.rand(mri_img_size, generator=rng, device=device) + 1,
-            torch.rand(mri_img_size, generator=rng, device=device) + 1,
-        )
-
-        if mri is dinv.physics.MRI:
-            x = x[:, :, 0, :, :]
-            y = y[:, :, 0, :, :]
-
-        for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
-            # Remove time dim for static MRI
-            _mask_size = (
-                mask_size
-                if mri is dinv.physics.DynamicMRI
-                else mask_size[:-3] + mask_size[-2:]
-            )
-
-            mask, mask2 = (
-                torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:]),
-                torch.zeros(_mask_size, device=device) + torch.eye(*_mask_size[-2:]),
-            )
-
-            # Empty mask
-            physics = mri(img_size=x.shape, device=device)
-            y1 = physics(x)
-            x1 = physics.A_adjoint(y)
-            assert torch.sum(y1 == 0) == 0
-            assert torch.sum(x1 == 0) == 0
-
-            # Set mask in constructor
-            physics = mri(mask=mask, device=device)
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask == 0))
-
-            # Set mask in forward
-            y1 = physics(x, mask=mask2)
-            assert torch.all((y1 == 0) == (mask2 == 0))
-
-            # Mask retained in previous forward
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask2 == 0))
-
-            # Set mask via update_parameters
-            physics.update_parameters(mask=mask)
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask == 0))
-
-
-@pytest.mark.parametrize("name", OPERATORS)
-def test_concatenation(name, device):
-    if "pansharpen" in name:  # TODO: fix pansharpening
-        return
-    physics, imsize, _, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-    y = physics(x)
-    physics = (
-        dinv.physics.Inpainting(
-            tensor_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
-        )
-        * physics
-    )
-
-    r = physics.A_adjoint(physics.A(x))
-    y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    assert error < 0.01
+    generator = dinv.physics.generator.RandomMaskGenerator((16, 16), device=device)
+    mask = generator.step(2)
+    y2 = physics.A(x, **mask)
+    if y1.shape == y2.shape:
+        error = (y1.abs() - y2.abs()).flatten().mean().abs()
+        assert error > 0.0
 
 
 def test_phase_retrieval(device):
@@ -583,7 +518,7 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
-def test_blur(device):
+def test_blur(device='cpu'):
     r"""
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.

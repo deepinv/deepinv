@@ -1,4 +1,4 @@
-from .inpainting import Inpainting, Demosaicing
+from .inpainting import Inpainting
 from .compressed_sensing import CompressedSensing
 from .blur import Blur, Downsampling, BlurFFT, SpaceVaryingBlur
 from .range import Decolorize
@@ -18,7 +18,8 @@ from .noise import (
     UniformGaussianNoise,
     LogPoissonNoise,
 )
-from .mri import MRI, DynamicMRI
+from .mri import MRI
+from .mcmri import mcMRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
@@ -28,3 +29,4 @@ from .phase_retrieval import (
     RandomPhaseRetrieval,
 )
 from .radio import RadioInterferometry
+
