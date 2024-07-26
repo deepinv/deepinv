@@ -14,7 +14,7 @@ class mcMRI(LinearPhysics):
     Here the linear operator is defined as:
     .. math::
 
-        y = PSFx
+        y = PFSx
 
     where :math:`P` is the subsampling mask, :math:`S` are the coil sensitivity maps, :math:`F` is the Fourier transform.
 
