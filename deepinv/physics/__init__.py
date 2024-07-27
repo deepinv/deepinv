@@ -1,4 +1,4 @@
-from .inpainting import Inpainting
+from .inpainting import Inpainting, Demosaicing
 from .compressed_sensing import CompressedSensing
 from .blur import Blur, Downsampling, BlurFFT, SpaceVaryingBlur
 from .range import Decolorize
@@ -18,7 +18,7 @@ from .noise import (
     UniformGaussianNoise,
     LogPoissonNoise,
 )
-from .mri import MRI
+from .mri import MRI, DynamicMRI
 from .mcmri import MultiCoilMRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
