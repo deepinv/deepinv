@@ -19,7 +19,7 @@ from .noise import (
     LogPoissonNoise,
 )
 from .mri import MRI
-from .mcmri import mcMRI
+from .mcmri import MultiCoilMRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
