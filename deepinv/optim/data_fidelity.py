@@ -1,7 +1,6 @@
-import deepinv
-from deepinv.optim.distance import Distance
 from deepinv.optim import distance
 from deepinv.optim.potential import Potential
+from deepinv.physics import Physics
 import torch
 
 
@@ -11,7 +10,7 @@ class DataFidelity(Potential):
         self.d = d
         super().__init__()
 
-    def fn(self, x, y, *args, physics=deepinv.optim.Physics(), **kwargs):
+    def fn(self, x, y, *args, physics=Physics(), **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
 
@@ -40,7 +39,7 @@ class DataFidelity(Potential):
         :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         return physics.A_vjp(
-            x, super().grad(physics.A(x), y, physics=deepinv.optim.Physics(), *args, **kwargs)
+            x, super().grad(physics.A(x), y, physics=Physics(), *args, **kwargs)
         )
 
 

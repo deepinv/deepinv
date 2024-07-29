@@ -29,7 +29,7 @@ class Distance(Potential):
         return self._fn(x, y, *args, **kwargs)
 
 
-class L2(Distance):
+class L2Distance(Distance):
     r"""
     Implementation of :math:`\distancename` as the normalized :math:`\ell_2` norm
 
@@ -96,7 +96,7 @@ class L2(Distance):
         return (x + gamma * y) / (1 + gamma)
 
 
-class IndicatorL2(Distance):
+class IndicatorL2Distance(Distance):
     r"""
     Indicator of :math:`\ell_2` ball with radius :math:`r`.
 
@@ -162,7 +162,7 @@ class IndicatorL2(Distance):
         ).view(-1, 1, 1, 1)
 
 
-class KullbackLeibler(Distance):
+class KullbackLeiblerDistance(Distance):
     r"""
     "Generalized" Kullback-Leibler divergence. It is also the log-likelihood of the Poisson distribution.
 
@@ -228,15 +228,13 @@ class KullbackLeibler(Distance):
         return out / 2
 
 
-class L1(Distance):
+class L1Distance(Distance):
     r"""
-    :math:`\ell_1` data fidelity term.
-
-    In this case, the data fidelity term is defined as
+    :math:`\ell_1` distance
 
     .. math::
 
-        f(x) = \|Ax-y\|_1.
+        f(x) = \|x-y\|_1.
 
     """
 
@@ -290,17 +288,15 @@ class L1(Distance):
         return aux + y
 
 
-class AmplitudeLoss(Distance):
+class AmplitudeLossDistance(Distance):
     r"""
-    Amplitude loss as the data fidelity term for :meth:`deepinv.physics.PhaseRetrieval` reconstrunction.
-
-    In this case, the data fidelity term is defined as
+    Amplitude loss for :meth:`deepinv.physics.PhaseRetrieval` reconstrunction, defined as
 
     .. math::
 
-        f(x) = \sum_{i=1}^{m}{(\sqrt{|b_i x|^2}-\sqrt{y_i})^2},
+        f(x) = \sum_{i=1}^{m}{(\sqrt{|y_i - x|^2}-\sqrt{y_i})^2},
 
-    where :math:`b_i` is the i-th row of the linear operator :math:`B` of the phase retrieval class and :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
+    where :math:`y_i` is the i-th entry of the measurements, and :math:`m` is the number of measurements.
 
     """
 

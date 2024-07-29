@@ -1,9 +1,8 @@
 import torch
-from deepinv.optim.utils import conjugate_gradient
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
 from typing import Callable
-
+from deepinv.optim.utils import conjugate_gradient
 
 def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     r"""

@@ -19,12 +19,3 @@ from .epll import EPLL
 from .dpir import DPIR
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2
 from .potential import Potential
-from .distance import (
-    Distance,
-    L2,
-    L1,
-    IndicatorL2,
-    PoissonLikelihood,
-    AmplitudeLoss,
-    LogPoissonLikelihood,
-)
