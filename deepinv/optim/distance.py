@@ -27,6 +27,15 @@ class Distance(Potential):
         :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}` of size `B` with `B` the size of the batch.
         """
         return self._fn(x, y, *args, **kwargs)
+    
+    def forward(self, x, *args, **kwargs):
+        r"""
+         Computes the value of the potential :math:`h(x)`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
+        :return: (torch.tensor) prior :math:`h(x)`.
+        """
+        return self.fn(x, *args, **kwargs)
 
 
 class L2Distance(Distance):
