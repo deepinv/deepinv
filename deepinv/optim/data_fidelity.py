@@ -11,7 +11,7 @@ class DataFidelity(Potential):
         self.d = d
         super().__init__()
 
-    def h(self, x, y, *args, physics=Physics(), **kwargs):
+    def fn(self, x, y, *args, physics=Physics(), **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
 

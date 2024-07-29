@@ -16,9 +16,9 @@ class Distance(Potential):
     """
 
     def __init__(self, d=None):
-        super().__init__(h=d)
+        super().__init__(fn=d)
 
-    def h(self, x, y, *args, **kwargs):
+    def fn(self, x, y, *args, **kwargs):
         r"""
         Computes the distance :math:`\distance{x}{y}`.
 
@@ -26,7 +26,7 @@ class Distance(Potential):
         :param torch.Tensor y: Data :math:`y`.
         :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}` of size `B` with `B` the size of the batch.
         """
-        return self.h(x, y, *args, **kwargs)
+        return self._fn(x, y, *args, **kwargs)
 
 
 class L2(Distance):
@@ -46,7 +46,7 @@ class L2(Distance):
     def __init__(self, sigma=1.0):
         super().__init__()
 
-    def h(self, x, y):
+    def fn(self, x, y):
         r"""
         Computes the distance :math:`\distance{x}{y}`, i.e.
 
@@ -121,7 +121,7 @@ class IndicatorL2(Distance):
         super().__init__()
         self.radius = radius
 
-    def h(self, x, y, radius=None):
+    def fn(self, x, y, radius=None):
         r"""
         Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(x)`.
 
@@ -186,7 +186,7 @@ class KullbackLeibler(Distance):
         self.gain = gain
         self.normalize = normalize
 
-    def h(self, x, y):
+    def fn(self, x, y):
         r"""
         Computes the Kullback-Leibler divergence
 
@@ -243,7 +243,7 @@ class L1(Distance):
     def __init__(self):
         super().__init__()
 
-    def h(self, x, y):
+    def fn(self, x, y):
         diff = x - y
         return torch.norm(diff.reshape(diff.shape[0], -1), p=1, dim=-1)
 
@@ -307,7 +307,7 @@ class AmplitudeLoss(Distance):
     def __init__(self):
         super().__init__()
 
-    def h(self, u, y):
+    def fn(self, u, y):
         r"""
         Computes the amplitude loss.
 
@@ -356,7 +356,7 @@ class LogPoissonLikelihood(Distance):
         self.mu = mu
         self.N0 = N0
 
-    def h(self, x, y):
+    def fn(self, x, y):
         out1 = torch.exp(-x * self.mu) * self.N0
         out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
         return (out1 + out2).reshape(x.shape[0], -1).sum(dim=1)

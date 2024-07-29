@@ -53,7 +53,7 @@ class BregmanL2(Bregman):
     def __init__(self):
         super().__init__()
 
-    def h(self, x):
+    def fn(self, x):
         r"""
         Computes the L2 norm potential :math:`\phi(x) = \frac{1}{2} \|x\|_2^2`.
 
@@ -110,7 +110,7 @@ class BurgEntropy(Bregman):
     def __init__(self):
         super().__init__()
 
-    def h(self, x):
+    def fn(self, x):
         r"""
         Computes Burg's entropy potential :math:`\phi(x) = - \sum_i \log x_i`.
         The input :math:`x` must be postive.
@@ -159,7 +159,7 @@ class NegEntropy(Bregman):
     def __init__(self):
         super().__init__()
 
-    def h(self, x):
+    def fn(self, x):
         r"""
         Computes negative entropy potential :math:`\phi(x) = \sum_i x_i \log x_i`.
         The input :math:`x` must be postive.

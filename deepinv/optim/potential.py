@@ -8,21 +8,21 @@ class Potential(nn.Module):
     r"""
     Base class for a potential :math:`h : \mathbb{R}^d \to \mathbb{R}` to be used in an optimization problem.
 
-    :param callable h: Potential function :math:`h(x)` to be used in the optimization problem.
+    :param callable fn: Potential function :math:`h(x)` to be used in the optimization problem.
     """
 
-    def __init__(self, h=None):
+    def __init__(self, fn=None):
         super().__init__()
-        self._h = h
+        self._fn = fn
 
-    def h(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         r"""
         Computes the value of the potential :math:`h(x)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
         :return: (torch.tensor) prior :math:`h(x)`.
         """
-        return self._h(x, *args, **kwargs)
+        return self._fn(x, *args, **kwargs)
 
     def forward(self, x, *args, **kwargs):
         r"""

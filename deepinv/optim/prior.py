@@ -40,7 +40,7 @@ class Prior(Potential):
     """
 
     def __init__(self, g=None):
-        super().__init__(h=g)
+        super().__init__(fn=g)
         self.explicit_prior = False if self._h is None else True
 
 
@@ -183,7 +183,7 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def forward(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         r"""
         Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
 
@@ -222,7 +222,7 @@ class L1Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def forward(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         r"""
         Computes the regularizer :math:`\reg{x} = \| x \|_1`.
 
@@ -329,7 +329,7 @@ class WaveletPrior(Prior):
                 wvdim=self.wvdim,
             )
 
-    def forward(self, x, *args, reduce=True, **kwargs):
+    def fn(self, x, *args, reduce=True, **kwargs):
         r"""
         Computes the regularizer
 
@@ -399,7 +399,7 @@ class TVPrior(Prior):
         self.explicit_prior = True
         self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
 
-    def forward(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         r"""
         Computes the regularizer
 
@@ -466,7 +466,7 @@ class PatchPrior(Prior):
         self.patch_size = patch_size
         self.pad = pad
 
-    def forward(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         if self.pad:
             x = torch.cat(
                 (
@@ -573,7 +573,7 @@ class PatchNR(nn.Module):
                 )
             self.normalizing_flow.load_state_dict(weights)
 
-    def forward(self, x):
+    def fn(self, x):
         r"""
         Evaluates the negative log likelihood function of th PatchNR.
 
