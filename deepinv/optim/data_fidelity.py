@@ -1,4 +1,11 @@
-from deepinv.optim import distance
+from deepinv.optim.distance import (
+    L2Distance,
+    L1Distance,
+    IndicatorL2Distance,
+    AmplitudeLossDistance,
+    KullbackLeiblerDistance,
+    LogPoissonLikelihoodDistance,
+)
 from deepinv.optim.potential import Potential
 from deepinv.physics import Physics
 import torch
@@ -45,7 +52,7 @@ class DataFidelity(Potential):
 
 class L2(DataFidelity):
     r"""
-    Implementation of :math:`\distancename` as the normalized :math:`\ell_2` norm
+    Implementation of the data-fidelity as the normalized :math:`\ell_2` norm
 
     .. math::
 
@@ -87,7 +94,7 @@ class L2(DataFidelity):
 
     def __init__(self, sigma=1.0):
         super().__init__()
-        self.d = distance.L2()
+        self.d = L2Distance()
         self.norm = 1 / (sigma**2)
 
     def prox(self, x, y, physics, gamma=1.0):
@@ -112,10 +119,7 @@ class L2(DataFidelity):
 
 class IndicatorL2(DataFidelity):
     r"""
-    Indicator of :math:`\ell_2` ball with radius :math:`r`.
-
-    The indicator function of the $\ell_2$ ball with radius :math:`r`, denoted as \iota_{\mathcal{B}_2(y,r)(u)},
-    is defined as
+    Data-fidelity as the indicator of :math:`\ell_2` ball with radius :math:`r`.
 
     .. math::
 
@@ -134,7 +138,7 @@ class IndicatorL2(DataFidelity):
     def __init__(self, radius=None):
         super().__init__()
         self.radius = radius
-        self.distance = distance.IndicatorL2(radius=radius)
+        self.distance = IndicatorL2Distance(radius=radius)
 
     def prox(
         self,
@@ -212,9 +216,7 @@ class PoissonLikelihood(DataFidelity):
         self.bkg = bkg
         self.gain = gain
         self.normalize = normalize
-        self.distance = distance.KullbackLeibler(
-            gain=gain, bkg=bkg, normalize=normalize
-        )
+        self.distance = KullbackLeiblerDistance(gain=gain, bkg=bkg, normalize=normalize)
 
 
 class L1(DataFidelity):
@@ -231,7 +233,7 @@ class L1(DataFidelity):
 
     def __init__(self):
         super().__init__()
-        self.distance = distance.L1()
+        self.distance = L1Distance()
 
     def prox(
         self, x, y, physics, gamma=1.0, stepsize=None, crit_conv=1e-5, max_iter=100
@@ -288,7 +290,7 @@ class AmplitudeLoss(DataFidelity):
 
     def __init__(self):
         super().__init__()
-        self.distance = distance.AmplitudeLoss()
+        self.distance = AmplitudeLossDistance()
 
 
 class LogPoissonLikelihood(DataFidelity):
@@ -310,7 +312,7 @@ class LogPoissonLikelihood(DataFidelity):
         super().__init__()
         self.mu = mu
         self.N0 = N0
-        self.distance = distance.LogPoissonLikelihood(N0=N0, mu=mu)
+        self.distance = LogPoissonLikelihoodDistance(N0=N0, mu=mu)
 
 
 if __name__ == "__main__":

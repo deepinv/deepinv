@@ -332,7 +332,7 @@ class AmplitudeLossDistance(Distance):
         return (torch.sqrt(u + epsilon) - torch.sqrt(y)) / torch.sqrt(u + epsilon)
 
 
-class LogPoissonLikelihood(Distance):
+class LogPoissonLikelihoodDistance(Distance):
     r"""
     Log-Poisson negative log-likelihood.
 
