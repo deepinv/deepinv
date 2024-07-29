@@ -41,7 +41,7 @@ class Prior(Potential):
 
     def __init__(self, g=None):
         super().__init__(fn=g)
-        self.explicit_prior = False if self._g is None else True
+        self.explicit_prior = False if self._fn is None else True
 
 
 class Zero(Prior):

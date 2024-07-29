@@ -31,7 +31,7 @@ class Potential(nn.Module):
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
         :return: (torch.tensor) prior :math:`h(x)`.
         """
-        return self.h(x, *args, **kwargs)
+        return self.fn(x, *args, **kwargs)
 
     def conjugate(self, x, *args, **kwargs):
         r"""
