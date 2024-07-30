@@ -198,8 +198,8 @@ class SurePoissonLoss(Loss):
 
         loss_sure = (
             (y1 - y).pow(2)
-            -   (y / self.gain )
-            + 2.0 / self.tau * (b * (y / self.gain ) * (y2 - y1))
+            - (y / self.gain)
+            + 2.0 / self.tau * (b * (y / self.gain) * (y2 - y1))
         )
         loss_sure = loss_sure.reshape(y.size(0), -1).mean(1)
 
@@ -293,7 +293,7 @@ class SurePGLoss(Loss):
             .mean(1)
         )
 
-        offset = - (y/self.gain).reshape(y.size(0), -1).mean(1) - self.sigma2
+        offset = -(y / self.gain).reshape(y.size(0), -1).mean(1) - self.sigma2
 
         loss_div2 = (
             -2
