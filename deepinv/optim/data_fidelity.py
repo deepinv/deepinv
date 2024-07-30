@@ -1,4 +1,5 @@
 from deepinv.optim.distance import (
+    Distance,
     L2Distance,
     L1Distance,
     IndicatorL2Distance,
@@ -14,10 +15,10 @@ import torch
 class DataFidelity(Potential):
 
     def __init__(self, d=None):
-        self.d = d
         super().__init__()
+        self.d = Distance(d=d)
 
-    def fn(self, x, y, *args, physics=Physics(), **kwargs):
+    def fn(self, x, y, physics, *args, **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
 
@@ -46,7 +47,7 @@ class DataFidelity(Potential):
         :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         return physics.A_vjp(
-            x, super().grad(physics.A(x), y, physics=Physics(), *args, **kwargs)
+            x, self.d.grad(physics.A(x), y, *args, **kwargs)
         )
 
 
@@ -137,8 +138,8 @@ class IndicatorL2(DataFidelity):
 
     def __init__(self, radius=None):
         super().__init__()
+        self.d = IndicatorL2Distance(radius=radius)
         self.radius = radius
-        self.distance = IndicatorL2Distance(radius=radius)
 
     def prox(
         self,
@@ -173,7 +174,7 @@ class IndicatorL2(DataFidelity):
         radius = self.radius if radius is None else radius
 
         if physics.A(x).shape == x.shape and (physics.A(x) == x).all():  # Identity case
-            return self.distance.prox(x, y, gamma=None, radius=radius)
+            return self.d.prox(x, y, gamma=None, radius=radius)
         else:
             norm_AtA = physics.compute_norm(x, verbose=False)
             stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
@@ -183,7 +184,7 @@ class IndicatorL2(DataFidelity):
 
                 t = x - physics.A_adjoint(u)
                 u_ = u + stepsize * physics.A(t)
-                u = u_ - stepsize * self.distance.prox(
+                u = u_ - stepsize * self.d.prox(
                     u_ / stepsize, y, radius=radius, gamma=None
                 )
                 rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
@@ -213,10 +214,10 @@ class PoissonLikelihood(DataFidelity):
 
     def __init__(self, gain=1.0, bkg=0, normalize=True):
         super().__init__()
+        self.d = KullbackLeiblerDistance(gain=gain, bkg=bkg, normalize=normalize)
         self.bkg = bkg
         self.gain = gain
         self.normalize = normalize
-        self.distance = KullbackLeiblerDistance(gain=gain, bkg=bkg, normalize=normalize)
 
 
 class L1(DataFidelity):
@@ -233,7 +234,7 @@ class L1(DataFidelity):
 
     def __init__(self):
         super().__init__()
-        self.distance = L1Distance()
+        self.d = L1Distance()
 
     def prox(
         self, x, y, physics, gamma=1.0, stepsize=None, crit_conv=1e-5, max_iter=100
@@ -266,7 +267,7 @@ class L1(DataFidelity):
 
             t = x - physics.A_adjoint(u)
             u_ = u + stepsize * physics.A(t)
-            u = u_ - stepsize * self.distance.prox(u_ / stepsize, y, gamma / stepsize)
+            u = u_ - stepsize * self.d.prox(u_ / stepsize, y, gamma / stepsize)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
             print(rel_crit)
             if rel_crit < crit_conv and it > 2:
@@ -290,7 +291,7 @@ class AmplitudeLoss(DataFidelity):
 
     def __init__(self):
         super().__init__()
-        self.distance = AmplitudeLossDistance()
+        self.d = AmplitudeLossDistance()
 
 
 class LogPoissonLikelihood(DataFidelity):
@@ -302,7 +303,7 @@ class LogPoissonLikelihood(DataFidelity):
         \datafid{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
 
     Corresponds to LogPoissonNoise with the same arguments N0 and mu.
-    There is no closed-form of prox_d known.
+    There is no closed-form of the proximal operator known.
 
     :param float N0: average number of photons
     :param float mu: normalization constant
@@ -310,9 +311,9 @@ class LogPoissonLikelihood(DataFidelity):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0):
         super().__init__()
+        self.d = LogPoissonLikelihoodDistance(N0=N0, mu=mu)
         self.mu = mu
         self.N0 = N0
-        self.distance = LogPoissonLikelihoodDistance(N0=N0, mu=mu)
 
 
 if __name__ == "__main__":

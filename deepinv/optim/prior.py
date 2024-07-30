@@ -491,7 +491,7 @@ class PatchPrior(Prior):
         return reg
 
 
-class PatchNR(nn.Module):
+class PatchNR(Prior):
     r"""
     Patch prior via normalizing flows.
 
@@ -573,7 +573,7 @@ class PatchNR(nn.Module):
                 )
             self.normalizing_flow.load_state_dict(weights)
 
-    def fn(self, x):
+    def fn(self, x, *args, **kwargs):
         r"""
         Evaluates the negative log likelihood function of th PatchNR.
 

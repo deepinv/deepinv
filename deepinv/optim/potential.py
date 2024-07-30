@@ -55,7 +55,7 @@ class Potential(nn.Module):
         with torch.enable_grad():
             x = x.requires_grad_()
             grad = torch.autograd.grad(
-                self(x, *args, **kwargs), x, create_graph=True, only_inputs=True
+                self.forward(x, *args, **kwargs), x, create_graph=True, only_inputs=True
             )[0]
         return grad
 

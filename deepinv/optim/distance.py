@@ -28,14 +28,14 @@ class Distance(Potential):
         """
         return self._fn(x, y, *args, **kwargs)
     
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x, y, *args, **kwargs):
         r"""
          Computes the value of the potential :math:`h(x)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
         :return: (torch.tensor) prior :math:`h(x)`.
         """
-        return self.fn(x, *args, **kwargs)
+        return self.fn(x, y, *args, **kwargs)
 
 
 class L2Distance(Distance):
@@ -52,10 +52,10 @@ class L2Distance(Distance):
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
     """
 
-    def __init__(self, sigma=1.0):
+    def __init__(self):
         super().__init__()
 
-    def fn(self, x, y):
+    def fn(self, x, y, *args, **kwargs):
         r"""
         Computes the distance :math:`\distance{x}{y}`, i.e.
 
@@ -69,9 +69,10 @@ class L2Distance(Distance):
         :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         z = x - y
-        return 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
+        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
+        return d
 
-    def grad(self, x, y):
+    def grad(self, x, y, *args, **kwargs):
         r"""
         Computes the gradient of :math:`\distancename`, that is  :math:`\nabla_{x}\distance{x}{y}`, i.e.
 
@@ -86,7 +87,7 @@ class L2Distance(Distance):
         """
         return x - y
 
-    def prox(self, x, y, gamma=1.0):
+    def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
         Proximal operator of :math:`\gamma \distance{x}{y} = \frac{\gamma}{2\sigma^2}\|x-y\|^2`.
 
@@ -130,7 +131,7 @@ class IndicatorL2Distance(Distance):
         super().__init__()
         self.radius = radius
 
-    def fn(self, x, y, radius=None):
+    def fn(self, x, y, *args, radius=None, **kwargs):
         r"""
         Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(x)`.
 
@@ -145,7 +146,7 @@ class IndicatorL2Distance(Distance):
         loss = (dist > radius) * 1e16
         return loss
 
-    def prox(self, x, y, radius=None, gamma=None):
+    def prox(self, x, y, *args, radius=None, gamma=None, **kwargs):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 
@@ -195,7 +196,7 @@ class KullbackLeiblerDistance(Distance):
         self.gain = gain
         self.normalize = normalize
 
-    def fn(self, x, y):
+    def fn(self, x, y, *args, **kwargs):
         r"""
         Computes the Kullback-Leibler divergence
 
@@ -208,7 +209,7 @@ class KullbackLeiblerDistance(Distance):
             self.gain * x + self.bkg - y
         ).reshape(x.shape[0], -1).sum(dim=1)
 
-    def grad(self, x, y):
+    def grad(self, x, y, *args, **kwargs):
         r"""
         Gradient of the Kullback-Leibler divergence
 
@@ -219,7 +220,7 @@ class KullbackLeiblerDistance(Distance):
             y = y * self.gain
         return (1 / self.gain) * (torch.ones_like(x) - y / (self.gain * x + self.bkg))
 
-    def prox(self, x, y, gamma=1.0):
+    def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
         Proximal operator of the Kullback-Leibler divergence
 
@@ -250,11 +251,11 @@ class L1Distance(Distance):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x, y):
+    def fn(self, x, y, *args, **kwargs):
         diff = x - y
         return torch.norm(diff.reshape(diff.shape[0], -1), p=1, dim=-1)
 
-    def grad(self, x, y):
+    def grad(self, x, y, *args, **kwargs):
         r"""
         Gradient of the gradient of the :math:`\ell_1` norm, i.e.
 
@@ -274,7 +275,7 @@ class L1Distance(Distance):
         """
         return torch.sign(x - y)
 
-    def prox(self, u, y, gamma=1.0):
+    def prox(self, u, y, *args, gamma=1.0, **kwargs):
         r"""
         Proximal operator of the :math:`\ell_1` norm, i.e.
 
@@ -312,7 +313,7 @@ class AmplitudeLossDistance(Distance):
     def __init__(self):
         super().__init__()
 
-    def fn(self, u, y):
+    def fn(self, u, y, *args, **kwargs):
         r"""
         Computes the amplitude loss.
 
@@ -324,7 +325,7 @@ class AmplitudeLossDistance(Distance):
         d = torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
         return d
 
-    def grad(self, u, y, epsilon=1e-12):
+    def grad(self, u, y, *args, epsilon=1e-12, **kwargs):
         r"""
         Computes the gradient of the amplitude loss :math:`\distance{u}{y}`, i.e.,
 
@@ -350,7 +351,7 @@ class LogPoissonLikelihoodDistance(Distance):
         \distancz{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
 
     Corresponds to LogPoissonNoise with the same arguments N0 and mu.
-    There is no closed-form of prox_d known.
+    There is no closed-form of the prox known.
 
     :param float N0: average number of photons
     :param float mu: normalization constant
@@ -361,7 +362,7 @@ class LogPoissonLikelihoodDistance(Distance):
         self.mu = mu
         self.N0 = N0
 
-    def fn(self, x, y):
+    def fn(self, x, y, *args, **kwargs):
         out1 = torch.exp(-x * self.mu) * self.N0
         out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
         return (out1 + out2).reshape(x.shape[0], -1).sum(dim=1)
