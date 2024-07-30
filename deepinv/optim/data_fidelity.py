@@ -68,7 +68,7 @@ class L2(DataFidelity):
         >>> import torch
         >>> import deepinv as dinv
         >>> # define a loss function
-        >>> fidelity = dinv.optim.L2()
+        >>> fidelity = dinv.optim.data_fidelity.L2()
         >>>
         >>> x = torch.ones(1, 1, 3, 3)
         >>> mask = torch.ones_like(x)
@@ -96,7 +96,7 @@ class L2(DataFidelity):
         self.d = L2Distance()
         self.norm = 1 / (sigma**2)
 
-    def prox(self, x, y, physics, gamma=1.0):
+    def prox(self, x, y, physics, *args, gamma=1.0, **kwargs):
         r"""
         Proximal operator of :math:`\gamma \datafid{Ax}{y} = \frac{\gamma}{2\sigma^2}\|Ax-y\|^2`.
 
@@ -144,10 +144,12 @@ class IndicatorL2(DataFidelity):
         x,
         y,
         physics,
+        *args,
         radius=None,
         stepsize=None,
         crit_conv=1e-5,
         max_iter=100,
+        **kwargs
     ):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
@@ -235,7 +237,7 @@ class L1(DataFidelity):
         self.d = L1Distance()
 
     def prox(
-        self, x, y, physics, gamma=1.0, stepsize=None, crit_conv=1e-5, max_iter=100
+        self, x, y, physics, *args, gamma=1.0, stepsize=None, crit_conv=1e-5, max_iter=100, **kwargs
     ):
         r"""
         Proximal operator of the :math:`\ell_1` norm composed with A, i.e.

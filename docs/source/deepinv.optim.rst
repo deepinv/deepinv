@@ -125,13 +125,13 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.DataFidelity
-   deepinv.optim.L1
-   deepinv.optim.L2
-   deepinv.optim.IndicatorL2
-   deepinv.optim.PoissonLikelihood
-   deepinv.optim.LogPoissonLikelihood
-   deepinv.optim.AmplitudeLoss
+   deepinv.optim.data_fidelity.DataFidelity
+   deepinv.optim.data_fidelity.L1
+   deepinv.optim.data_fidelity.L2
+   deepinv.optim.data_fidelity.IndicatorL2
+   deepinv.optim.data_fidelity.PoissonLikelihood
+   deepinv.optim.data_fidelity.LogPoissonLikelihood
+   deepinv.optim.data_fidelity.AmplitudeLoss
 
 
 .. _priors:

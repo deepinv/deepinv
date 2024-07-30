@@ -45,7 +45,9 @@ from deepinv.datasets import PatchDataset
 from torch.utils.data import DataLoader
 from deepinv import Trainer
 from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
-from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
+from deepinv.optim.data_fidelity import LogPoissonLikelihood
+from deepinv.optim.prior import  PatchPrior, PatchNR
+from deepinv.optim import EPLL
 from deepinv.utils import cal_psnr, plot
 from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm

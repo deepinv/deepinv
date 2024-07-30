@@ -53,7 +53,7 @@ class Zero(Prior):
         super().__init__()
         self.explicit_prior = True
 
-    def forward(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         r"""
         Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
@@ -164,7 +164,7 @@ class ScorePrior(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def grad(self, x, sigma_denoiser):
+    def grad(self, x, sigma_denoiser, *args, **kwargs):
         r"""
         Applies the denoiser to the input signal.
 

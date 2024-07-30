@@ -12,7 +12,7 @@ class Bregman(Potential):
     """
 
     def __init__(self, phi=None):
-        super().__init__(h=phi)
+        super().__init__(fn=phi)
 
     def div(self, x, y, *args, **kwargs):
         r"""

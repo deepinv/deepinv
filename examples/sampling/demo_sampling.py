@@ -61,7 +61,7 @@ torch.manual_seed(0)
 #   -\log p(y|x) \propto \frac{1}{2\sigma^2} \|y-Ax\|^2
 
 # load Gaussian Likelihood
-likelihood = dinv.optim.L2(sigma=sigma)
+likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
 # %%
 # Define the prior

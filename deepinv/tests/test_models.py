@@ -224,8 +224,8 @@ def test_wavelet_models_identity():
         )
         level = 3
         prior = dinv.optim.prior.WaveletPrior(wvdim=wvdim, p=1, level=level)
-        g_nonflat = prior.g(x, reduce=False)
-        g_flat = prior.g(x, reduce=True)
+        g_nonflat = prior(x, reduce=False)
+        g_flat = prior(x, reduce=True)
         assert g_nonflat.dim() > 0
         assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
         assert g_flat.dim() == 0
