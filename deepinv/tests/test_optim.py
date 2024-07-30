@@ -685,7 +685,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    physics = dinv.physics.LinearPhysics()
     y = physics(x)
 
     data_fidelity = L2()  # The data fidelity term

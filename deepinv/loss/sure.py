@@ -142,14 +142,14 @@ class SurePoissonLoss(Loss):
 
     .. math::
 
-      y = \gamma z \quad \text{with}\quad z\sim \mathcal{P}(\frac{u}{\gamma}), \quad u=A(x).
+      y = \gamma z \quad \text{with}\quad z\sim \mathcal{P}(u*gamma), \quad u=A(x).
 
     The loss is computed as
 
     .. math::
 
-        \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y
-        +\frac{2\gamma}{m\tau}(b\odot y)^{\top} \left(A\inverse{y+\tau b}-A\inverse{y}\right)
+        \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{1}{\gamma m} 1^{\top}y
+        +\frac{2}{m \gamma \tau}(b\odot y)^{\top} \left(A\inverse{y+\tau b}-A\inverse{y}\right)
 
     where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector of size :math:`m`,
     :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
@@ -198,8 +198,8 @@ class SurePoissonLoss(Loss):
 
         loss_sure = (
             (y1 - y).pow(2)
-            - self.gain * y
-            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1))
+            -   (y / self.gain )
+            + 2.0 / self.tau * (b * (y / self.gain ) * (y2 - y1))
         )
         loss_sure = loss_sure.reshape(y.size(0), -1).mean(1)
 
@@ -214,18 +214,18 @@ class SurePGLoss(Loss):
 
     .. math::
 
-        y = \gamma z + \epsilon
+        y =  \frac{z}{\gamma} + \epsilon
 
-    where :math:`u = A(x)`, :math:`z \sim \mathcal{P}\left(\frac{u}{\gamma}\right)`,
+    where :math:`u = A(x)`, :math:`z \sim \mathcal{P}\left(\gamma * u \right)`,
     and :math:`\epsilon \sim \mathcal{N}(0, \sigma^2 I)`.
 
     The loss is computed as
 
     .. math::
 
-        & \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y-\sigma^2
-        +\frac{2}{m\tau_1}(b\odot (\gamma y + \sigma^2 I))^{\top} \left(A\inverse{y+\tau b}-A\inverse{y} \right) \\\\
-        & +\frac{2\gamma \sigma^2}{m\tau_2^2}c^{\top} \left( A\inverse{y+\tau c} + A\inverse{y-\tau c} - 2A\inverse{y} \right)
+        & \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{1}{\gamma m} 1^{\top}y-\sigma^2
+        +\frac{2}{m\tau_1}(b\odot (\frac{y}{\gamma}  + \sigma^2 I))^{\top} \left(A\inverse{y+\tau b}-A\inverse{y} \right) \\\\
+        & +\frac{2 \sigma^2}{m \gamma \tau_2^2}c^{\top} \left( A\inverse{y+\tau c} + A\inverse{y-\tau c} - 2A\inverse{y} \right)
 
     where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,
     :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
@@ -288,18 +288,17 @@ class SurePGLoss(Loss):
         loss_div1 = (
             2
             / self.tau1
-            * ((b1 * (self.gain * y + self.sigma2)) * (meas2 - meas1))
+            * ((b1 * ((y / self.gain) + self.sigma2)) * (meas2 - meas1))
             .reshape(y.size(0), -1)
             .mean(1)
         )
 
-        offset = -self.gain * y.reshape(y.size(0), -1).mean(1) - self.sigma2
+        offset = - (y/self.gain).reshape(y.size(0), -1).mean(1) - self.sigma2
 
         loss_div2 = (
             -2
             * self.sigma2
-            * self.gain
-            / (self.tau2**2)
+            / (self.gain * self.tau2**2)
             * (b2 * (meas2p + meas2n - 2 * meas1)).reshape(y.size(0), -1).mean(1)
         )
 

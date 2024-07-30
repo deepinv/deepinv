@@ -114,7 +114,7 @@ class Potential(nn.Module):
         :param float lamb: math:`\lambda` parameter in front of :math:`f`
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda h)^*}(x)`, computed in :math:`x`.
         """
-        return x - gamma * self.prox(x / gamma, lamb / gamma, *args, **kwargs)
+        return x - gamma * self.prox(x / gamma, *args, gamma = lamb / gamma, **kwargs)
 
     def bregman_prox(
         self,

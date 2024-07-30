@@ -108,10 +108,10 @@ class UniformGaussianNoise(torch.nn.Module):
 class PoissonNoise(torch.nn.Module):
     r"""
 
-    Poisson noise :math:`y = \mathcal{P}(\frac{x}{\gamma})`
+    Poisson noise :math:`y = \mathcal{P}(\gamma * x)`
     with gain :math:`\gamma>0`.
 
-    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`.
+    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \frac{y}{\gamma}`.
 
     |sep|
 
@@ -169,7 +169,7 @@ class PoissonNoise(torch.nn.Module):
 
 class PoissonGaussianNoise(torch.nn.Module):
     r"""
-    Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
+    Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\gamma*x)`
     and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
     |sep|

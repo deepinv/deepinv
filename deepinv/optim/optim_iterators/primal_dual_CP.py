@@ -107,8 +107,8 @@ class fStepCP(fStep):
             return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
         else:
             p = x + cur_params["stepsize_dual"] * w
-            return cur_data_fidelity.d.prox_conjugate(
-                p, y, gamma=cur_params["stepsize_dual"]
+            return cur_data_fidelity.prox_conjugate(
+                p, y, physics, gamma=cur_params["stepsize_dual"]
             )
 
 
