@@ -46,9 +46,7 @@ class DataFidelity(Potential):
         :param deepinv.physics.Physics physics: physics model.
         :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
-        return physics.A_vjp(
-            x, self.d.grad(physics.A(x), y, *args, **kwargs)
-        )
+        return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
 
 
 class L2(DataFidelity):

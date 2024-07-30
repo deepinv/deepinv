@@ -18,6 +18,6 @@ data_fidelity = L1()
 # Check prox
 threshold = 0.5
 prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
-prox = data_fidelity.d.prox(x, y, gamma = threshold)
+prox = data_fidelity.d.prox(x, y, gamma=threshold)
 print(prox)
 assert torch.allclose(prox, prox_manual)

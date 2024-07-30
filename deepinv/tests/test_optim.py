@@ -169,7 +169,7 @@ def test_data_fidelity_l1(device):
     # Check prox
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
-    assert torch.allclose(data_fidelity.d.prox(x, y, gamma = threshold), prox_manual)
+    assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
 
 
 def test_zero_prior():
