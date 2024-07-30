@@ -149,7 +149,7 @@ class IndicatorL2(DataFidelity):
         stepsize=None,
         crit_conv=1e-5,
         max_iter=100,
-        **kwargs
+        **kwargs,
     ):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
@@ -237,7 +237,16 @@ class L1(DataFidelity):
         self.d = L1Distance()
 
     def prox(
-        self, x, y, physics, *args, gamma=1.0, stepsize=None, crit_conv=1e-5, max_iter=100, **kwargs
+        self,
+        x,
+        y,
+        physics,
+        *args,
+        gamma=1.0,
+        stepsize=None,
+        crit_conv=1e-5,
+        max_iter=100,
+        **kwargs,
     ):
         r"""
         Proximal operator of the :math:`\ell_1` norm composed with A, i.e.
