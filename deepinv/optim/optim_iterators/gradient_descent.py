@@ -1,5 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-
+import torch
 
 class GDIteration(OptimIterator):
     r"""
