@@ -7,6 +7,7 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
+- Add transform symmetrisation and further transform arithmetic (:gh:`259` by `Andrew Wang`_)
 
 New Features
 ^^^^^^^^^^^^

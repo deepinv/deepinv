@@ -103,12 +103,18 @@ Metrics are generally used to evaluate the performance of a model. Some of them 
 
 
 Transforms
-^^^^^^^^^^
+----------
 
 This submodule contains different transforms which can be used for data augmentation or together with the equivariant losses. 
 The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. See the self-supervised example for a demonstration. Note these require ``kornia`` installed.
 
-Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, and chained by multiplying them (i.e. product group). For example, random transforms can be used as follows:
+Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, chained by multiplying them (i.e. product group), or joined via ``|`` to randomly select.
+
+Transforms can also be used to make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser` by performing Reynolds averaging using ``symmetrize()``.
+
+If needed, transforms can also be made deterministic by passing in specified parameters to the forward method.
+
+For example, random transforms can be used as follows:
 
 .. doctest::
 
@@ -118,11 +124,21 @@ Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can als
     >>> transform = Shift() # Define random shift transform
     >>> transform(x).shape
     torch.Size([1, 1, 2, 2])
+    >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1]) # Deterministic transform
+    >>> torch.all(x == y)
+    tensor(True)
     >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
     >>> transform(x).shape
     torch.Size([2, 1, 2, 2])
     >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
     >>> rotoshift(x).shape
+    torch.Size([1, 1, 2, 2])
+    >>> transform = Rotate() | Shift() # Randomly select rotate or shift transforms
+    >>> transform(x).shape
+    torch.Size([1, 1, 2, 2])
+    >>> f = lambda x: x.pow(2) # Function to be symmetrized
+    >>> f_s = rotoshift.symmetrize(f)
+    >>> f_s(x).shape
     torch.Size([1, 1, 2, 2])
 
 .. autosummary::

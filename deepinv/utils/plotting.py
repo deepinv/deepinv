@@ -485,6 +485,7 @@ def plot_inset(
     extract_size: float = 0.2,
     inset_loc: Union[Tuple, List] = (0.0, 0.5),
     inset_size: float = 0.4,
+    figsize: Tuple[int] = None,
     save_fn: str = None,
     show: bool = True,
     return_fig: bool = False,
@@ -506,12 +507,15 @@ def plot_inset(
     :param float extract_size: size of extract to be taken from image, defaults to 0.2
     :param list, tuple inset_loc: location or locations for inset to be plotted on image, defaults to (0., 0.5)
     :param float inset_size: size of inset to be plotted on image, defaults to 0.4
+    :param tuple[int] figsize: size of the figure.
     :param str save_fn: filename for plot to be saved, if None, don't save, defaults to None
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     """
 
-    fig = plot(img_list, titles, show=False, return_fig=True, cmap=cmap)
+    fig = plot(
+        img_list, titles, show=False, return_fig=True, cmap=cmap, figsize=figsize
+    )
     axs = fig.axes
     batch_size = img_list[0].shape[0]
 
@@ -604,6 +608,7 @@ def plot_videos(
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
+    figsize: Tuple[int] = None,
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
@@ -637,6 +642,7 @@ def plot_videos(
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
     :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
+    :param tuple[int] figsize: size of the figure.
     :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
@@ -658,6 +664,7 @@ def plot_videos(
             return_axs=True,
             fig=fig,
             axs=axs,
+            figsize=figsize,
         )
 
     fig, axs = animate(0)
