@@ -30,22 +30,23 @@ recon = "spectral"
 
 # pseudorandom settings
 img_size = 99
-n_layers = 2
+n_layers = 1
 shared_weights = False
 drop_tail = True
 
 # optim settings
 n_repeats = 100
 n_iter = 5000
-step_size = 1e-4
-start = 1
-end = 299
+start = 141
+end = 223
 output_sizes = torch.arange(start, end, 2)
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
 # save settings
-res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
+res_name = f"res_{model_name}_{n_layers}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
+
+print("res_name:", res_name)
 
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -76,7 +77,6 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 df_res = pd.DataFrame(
     {
         "oversampling_ratio": oversampling_ratios,
-        "step_size": None,
         **{f"repeat{i}": None for i in range(n_repeats)},
     }
 )

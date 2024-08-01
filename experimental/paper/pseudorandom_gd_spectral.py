@@ -26,11 +26,11 @@ from deepinv.optim.phase_retrieval import (
 
 # genral
 model_name = "pseudorandom"
-recon = "spectral"
+recon = "gd-spectral"
 
 # pseudorandom settings
 img_size = 99
-n_layers = 2
+n_layers = 4
 shared_weights = False
 drop_tail = True
 
@@ -41,17 +41,19 @@ early_stop = True
 verbose = True
 n_repeats = 100
 n_iter = 10000
+n_spec_iter = 5000
 # stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
 step_size = 3e-3
-start = 1
-end = 299
+start = 141
+end = 223
 output_sizes = torch.arange(start, end, 2)
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
 # save settings
-res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
+res_name = f"res_{model_name}_{n_layers}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
 
+print("res_name:", res_name)
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 BASE_DIR = Path(".")
@@ -88,8 +90,8 @@ df_res = pd.DataFrame(
 
 
 def spectral_methods_wrapper(y, physics, **kwargs):
-    x = spectral_methods(y, physics, n_iter=5000, **kwargs)
-    z = spectral_methods(y, physics, n_iter=5000, **kwargs)
+    x = spectral_methods(y, physics, n_iter=n_spec_iter, **kwargs)
+    z = spectral_methods(y, physics, n_iter=n_spec_iter, **kwargs)
     return {"est": (x, z)}
 
 
