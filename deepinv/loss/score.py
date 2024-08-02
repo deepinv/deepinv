@@ -61,8 +61,8 @@ class ScoreLoss(Loss):
         >>> import deepinv as dinv
         >>> sigma = 0.1
         >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-        >>> model = dinv.models.DnCNN(layers=1, download=False)
-        >>> loss = dinv.loss.ScoreLoss(noise_model=dinv.physics.GaussianNoise(sigma), total_batches=1, delta=(0.001, 0.1))
+        >>> model = dinv.models.DnCNN(depth=2, pretrained=None)
+        >>> loss = dinv.loss.ScoreLoss(noise_model=physics.noise_model, total_batches=1, delta=(0.001, 0.1))
         >>> model = loss.adapt_model(model) # important step!
         >>> x = torch.ones((1, 3, 5, 5))
         >>> y = physics(x)
