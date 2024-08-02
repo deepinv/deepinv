@@ -67,7 +67,7 @@ class ScoreLoss(Loss):
         >>> x = torch.ones((1, 3, 5, 5))
         >>> y = physics(x)
         >>> x_net = model(y, physics, update_parameters=True) # save score loss in forward
-        >>> l = loss(x_net, y, physics, model)
+        >>> l = loss(model)
         >>> print(l.item() > 0)
         True
     """
@@ -78,7 +78,7 @@ class ScoreLoss(Loss):
         self.delta = delta
         self.noise_model = noise_model
 
-    def forward(self, x_net, physics, model, **kwargs):
+    def forward(self, model, **kwargs):
         r"""
         Computes the Score Loss.
 

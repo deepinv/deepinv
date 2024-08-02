@@ -92,6 +92,6 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
     # initial_psnr = trainer.test(test_dataloader)[0]
 
     trainer.train()
-    final_psnr = trainer.test(test_dataloader)[0]
+    final_test = trainer.test(test_dataloader)
 
-    assert final_psnr["PSNR"] > 0
+    assert final_test["PSNR"] > 0
