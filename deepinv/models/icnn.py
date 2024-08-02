@@ -6,7 +6,8 @@ from torch import nn
 
 class ICNN(nn.Module):
     r"""
-    Input Convex Neural Network (ICNN) with convolutional layers.
+    Input Convex Neural Network.
+    
     Mostly based on the implementation from the paper
     `What's in a Prior? Learned Proximal Networks for Inverse Problems <https://openreview.net/pdf?id=kNPcOaqC5r>`_,
     and from the implementation from the `OOT libreary <https://ott-jax.readthedocs.io/en/latest/neural/_autosummary/ott.neural.networks.icnn.ICNN.html>`_.
