@@ -235,7 +235,9 @@ class SplittingModel(torch.nn.Module):
                     out += self.model(y1, physics1) / MC_samples
 
             if self.training and update_parameters:
-                self.mask = mask["mask"].clone() # clone is needed to avoid in-place operation
+                self.mask = mask[
+                    "mask"
+                ].clone()  # clone is needed to avoid in-place operation
 
         return out
 

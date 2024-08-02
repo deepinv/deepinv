@@ -55,9 +55,9 @@ class ScoreLoss(Loss):
         >>> sigma = 0.1
         >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
         >>> model = dinv.models.DnCNN(layers=1, download=False)
-        >>> loss = dinv.loss.ScoreLoss(sigma=sigma)
+        >>> loss = dinv.loss.ScoreLoss(noise_model=dinv.physics.GaussianNoise(sigma), total_batches=1, delta=(0.001, 0.1))
         >>> model = loss.adapt_model(model) # important step!
-        >>> x = torch.ones((1, 1, 8, 8))
+        >>> x = torch.ones((1, 3, 5, 5))
         >>> y = physics(x)
         >>> x_net = model(y, physics, update_parameters=True) # save score loss in forward
         >>> l = loss(x_net, y, physics, model)
