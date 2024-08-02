@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add ICNN model (:gh:`281` by `Samuel Hurault`_)
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
 - Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
