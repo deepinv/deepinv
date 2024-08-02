@@ -208,6 +208,7 @@ We provide the implementation of typical blur kernels such as Gaussian, bilinear
    deepinv.physics.blur.gaussian_blur
    deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
+   deepinv.physics.blur.sinc_filter
 
 
 We also provide a set of generators to simulate various types of blur, which can be used to train blind or semi-blind
@@ -360,6 +361,7 @@ or simply as
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
+   deepinv.physics.GammaNoise
 
 
 The parameters of noise distributions can also be created from a :meth:`deepinv.physics.generator.PhysicsGenerator`,

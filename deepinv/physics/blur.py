@@ -72,6 +72,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
 
     return filt.unsqueeze(0).unsqueeze(0)
 
+
 def kaiser_window(beta, length):
     """Return the Kaiser window of length `length` and shape parameter `beta`."""
     if beta < 0:
@@ -83,19 +84,35 @@ def kaiser_window(beta, length):
     half = (length - 1) / 2
     n = torch.arange(length)
     beta = torch.tensor(beta)
-    return torch.i0(
-        beta * torch.sqrt(1 - ((n - half) / half) ** 2)
-    ) / torch.i0(beta)
+    return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
 
 
 def sinc_filter(factor=2, length=11, windowed=True):
     r"""
     Anti-aliasing sinc filter multiplied by a Kaiser window.
 
+    The kaiser window parameter is computed as follows:
+
+    .. math::
+
+        A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
+
+    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+
+    .. math::
+
+        \begin{equation*}
+            \beta = \begin{cases}
+                0 & \text{if } A \leq 21 \\
+                0.5842 \cdot (A - 21)^{0.4} + 0.07886 \cdot (A - 21) & \text{if } 21 < A \leq 50 \\
+                0.1102 \cdot (A - 8.7) & \text{otherwise}
+            \end{cases}
+        \end{equation*}
+
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 1/factor
+    deltaf = 1 / factor
 
     n = torch.arange(length) - (length - 1) / 2
     filter = torch.sinc(n / factor)
@@ -116,6 +133,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
     filter = filter.unsqueeze(0).unsqueeze(0)
     filter = filter / filter.sum()
     return filter
+
 
 def bilinear_filter(factor=2):
     r"""

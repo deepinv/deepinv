@@ -2,6 +2,7 @@ import torch
 from deepinv.loss import PSNR
 from deepinv.training import Trainer
 
+
 def test(
     model,
     test_dataloader,
@@ -13,7 +14,6 @@ def test(
     plot_images=False,
     save_folder=None,
     plot_convergence_metrics=False,
-    plot_only_first_batch=True,
     verbose=True,
     rescale_mode="clip",
     show_progress_bar=True,
@@ -54,10 +54,23 @@ def test(
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """
-    trainer = Trainer(model, physics=physics, train_dataloader=None, eval_dataloader=None, optimizer=None,
-                      metrics=metrics, online_measurements=online_measurements, physics_generator=physics_generator,
-                      device=device, plot_images=plot_images, plot_convergence_metrics=plot_convergence_metrics, verbose=verbose,
-                      rescale_mode=rescale_mode, no_learning_method=no_learning_method,
-                      show_progress_bar=show_progress_bar, **kwargs)
+    trainer = Trainer(
+        model,
+        physics=physics,
+        train_dataloader=None,
+        eval_dataloader=None,
+        optimizer=None,
+        metrics=metrics,
+        online_measurements=online_measurements,
+        physics_generator=physics_generator,
+        device=device,
+        plot_images=plot_images,
+        plot_convergence_metrics=plot_convergence_metrics,
+        verbose=verbose,
+        rescale_mode=rescale_mode,
+        no_learning_method=no_learning_method,
+        show_progress_bar=show_progress_bar,
+        **kwargs,
+    )
 
     return trainer.test(test_dataloader, save_path=save_folder)

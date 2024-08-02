@@ -161,7 +161,7 @@ class Trainer:
 
     model: torch.nn.Module
     physics: Union[Physics, List[Physics]]
-    optimizer: torch.optim.Optimizer
+    optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     losses: Union[Loss, List[Loss]] = SupLoss()
@@ -604,9 +604,8 @@ class Trainer:
 
             if train:
                 logs["step"] = epoch
-            self.log_metrics_wandb(logs, train)  # Log metrics to wandb
 
-        if last_batch or not train:
+            self.log_metrics_wandb(logs, train)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
 
@@ -627,7 +626,8 @@ class Trainer:
         save_images = self.save_folder_im is not None
 
         if plot_images or save_images:
-            imgs, titles, grid_image, caption = prepare_images(x, y, x_net, physics, rescale_mode=self.rescale_mode)
+            x_nl = self.no_learning_inferece(y, physics)
+            imgs, titles, grid_image, caption = prepare_images(x, y, x_net, x_nl, rescale_mode=self.rescale_mode)
 
         if plot_images:
             plot(

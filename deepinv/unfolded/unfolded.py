@@ -73,7 +73,11 @@ class BaseUnfold(BaseOptim):
                 param_value = self.init_params_algo[param_key]
                 self.init_params_algo[param_key] = nn.ParameterList(
                     [
-                        nn.Parameter(torch.tensor(el).float().to(device)) if not isinstance(el, torch.Tensor) else nn.Parameter(el.float().to(device))
+                        (
+                            nn.Parameter(torch.tensor(el).float().to(device))
+                            if not isinstance(el, torch.Tensor)
+                            else nn.Parameter(el.float().to(device))
+                        )
                         for el in param_value
                     ]
                 )

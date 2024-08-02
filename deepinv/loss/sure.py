@@ -55,7 +55,7 @@ def exact_div(y, physics, model):
     return out / (c * h * w)
 
 
-def mc_div(y1, y, f, physics, tau, precond=lambda x:x):
+def mc_div(y1, y, f, physics, tau, precond=lambda x: x):
     r"""
     Monte-Carlo estimation for the divergence of A(f(x)).
 

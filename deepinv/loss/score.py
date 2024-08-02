@@ -1,4 +1,5 @@
 import torch
+import deepinv.physics
 from deepinv.loss.loss import Loss
 
 
@@ -21,7 +22,8 @@ class ScoreLoss(Loss):
     :math:`\sigma` is sampled from :math:`N(0,I\delta^2)` with :math:`\delta` annealed during training
     from a maximum value to a minimum value.
 
-    At test/evaluation time, the method uses Tweedie's formula to estimate the score:
+    At test/evaluation time, the method uses Tweedie's formula to estimate the score,
+    which depends on the noise model used. For example, for Gaussian noise, the reconstruction model is given by
 
     .. math::
 
@@ -33,7 +35,12 @@ class ScoreLoss(Loss):
         to :meth:`adapt_model` which returns the full reconstruction network
         :meth:`R`, which is mandatory to compute the loss properly.
 
-    :param float sigma: Noise level of the measurements, assumes Gaussian Noise.
+    .. warning::
+
+        This class does not support general inverse problems, it is only designed for denoising problems.
+
+    :param torch.nn.Module noise_model: Noise distribution corrupting the measurements
+        (see :ref:`the physics docs <physics>`).
     :param int total_batches: Total number of training batches (epochs * number of batches per epoch).
     :param tuple delta: Tuple of two floats representing the minimum and maximum noise level,
         which are annealed during training.
@@ -57,11 +64,12 @@ class ScoreLoss(Loss):
         >>> print(l.item() > 0)
         True
     """
-    def __init__(self, sigma, total_batches, delta=(.001, .1)):
+
+    def __init__(self, noise_model, total_batches, delta=(0.001, 0.1)):
         super(ScoreLoss, self).__init__()
         self.total_batches = total_batches
         self.delta = delta
-        self.sigma = sigma
+        self.noise_model = noise_model
 
     def forward(self, x_net, physics, model, **kwargs):
         r"""
@@ -100,9 +108,12 @@ class ScoreModel(torch.nn.Module):
     def forward(self, y, physics, update_parameters=False):
         if self.training:
             self.counter += 1
-            w = self.counter/self.total_batches
-            delta = self.max * (1-w) + self.min * w
-            sigma = torch.randn((y.size(0), 1, 1, 1), device=y.device) * delta
+            w = self.counter / self.total_batches
+            delta = self.max * (1 - w) + self.min * w
+            sigma = (
+                torch.randn((y.size(0),) + (1,) * (y.dim() - 1), device=y.device)
+                * delta
+            )
         else:
             sigma = self.min
 
@@ -114,7 +125,20 @@ class ScoreModel(torch.nn.Module):
         if update_parameters:
             self.error = (extra_noise + grad * sigma).pow(2).mean()
 
-        return y_plus + self.sigma**2 * grad
+        if (
+            self.noise_model == deepinv.physics.GaussianNoise
+            or deepinv.physics.UniformGaussianNoise
+        ):
+            out = y_plus + self.noise_model.sigma**2 * grad
+        elif self.noise_model == deepinv.physics.PoissonNoise:
+            out = self.noise_model.gain * (y_plus + 0.5) * grad.exp()
+        elif self.noise_model == deepinv.physics.GammaNoise:
+            l = self.noise_model.l
+            out = l * y_plus / ((l - 1) - y * grad)
+        else:
+            raise NotImplementedError("Noise model not implemented")
+
+        return out
 
     def get_error(self):
         return self.error

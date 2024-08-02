@@ -65,7 +65,7 @@ def torch2cpu(img):
     )
 
 
-def prepare_images(x, y, x_net, physics, rescale_mode="min_max"):
+def prepare_images(x, y, x_net, x_nl, rescale_mode="min_max"):
     r"""
     Prepare the images for plotting.
 
@@ -74,39 +74,15 @@ def prepare_images(x, y, x_net, physics, rescale_mode="min_max"):
     :param torch.Tensor x: Ground truth.
     :param torch.Tensor y: Measurement.
     :param torch.Tensor x_net: Reconstruction network output.
-    :param deepinv.physics.Physics physics: Physics operator.
+    :param torch.Tensor x_nl: No-learning reconstruction.
     :returns: The images, the titles, the grid image, and the caption.
     """
     with torch.no_grad():
-        if len(y.shape) == len(x.shape) and y.shape != x.shape:
-            y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
-            if hasattr(physics, "A_adjoint"):
-                imgs = [y_reshaped, physics.A_adjoint(y), x_net, x]
-                caption = (
-                    "From top to bottom: input, backprojection, output, target"
-                )
-                titles = ["Input", "Backprojection", "Output", "Target"]
-            else:
-                imgs = [y_reshaped, x_net, x]
-                titles = ["Input", "Output", "Target"]
-                caption = "From top to bottom: input, output, target"
-        else:
-            if hasattr(physics, "A_adjoint"):
-                if isinstance(physics, torch.nn.DataParallel):
-                    back = physics.module.A_adjoint(y)
-                else:
-                    back = physics.A_adjoint(y)
-                imgs = [back, x_net, x]
-                titles = ["Backprojection", "Output", "Target"]
-                caption = "From top to bottom: backprojection, output, target"
-            elif y.shape == x.shape:
-                imgs = [y, x_net, x]
-                titles = ["Measurement", "Output", "Target"]
-                caption = "From top to bottom: measurement, output, target"
-            else:
-                imgs = [x_net, x]
-                caption = "From top to bottom: output, target"
-                titles = ["Output", "Target"]
+        imgs = [x, y, x_nl, x_net]
+        titles = ["Ground truth", "Measurement", "No-learning", "Reconstruction"]
+        caption = (
+            "From left to right: Ground truth, Measurement, No-learning, Reconstruction"
+        )
 
         vis_array = torch.cat(imgs, dim=0)
         for i in range(len(vis_array)):
@@ -120,14 +96,15 @@ def prepare_images(x, y, x_net, physics, rescale_mode="min_max"):
 
 
 def preprocess_img(im, rescale_mode="min_max"):
+    r"""
+    Preprocesses an image tensor for plotting.
+
+    :param torch.Tensor im: the image to preprocess.
+    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
+    :return: the preprocessed image.
+    """
     if im.shape[1] == 2:  # for complex images
-        pimg = (
-            im
-            .pow(2)
-            .sum(dim=1, keepdim=True)
-            .sqrt()
-            .type(torch.float32)
-        )
+        pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
     elif im.shape[1] > 3:
         pimg = im.type(torch.float32)
     else:
@@ -138,6 +115,7 @@ def preprocess_img(im, rescale_mode="min_max"):
 
     pimg = rescale_img(pimg, rescale_mode=rescale_mode)
     return pimg
+
 
 def tensor2uint(img):
     img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
@@ -152,12 +130,19 @@ def numpy2uint(img):
 
 
 def rescale_img(img, rescale_mode="min_max"):
+    r"""
+    Rescale an image tensor.
+
+    :param torch.Tensor img: the image to rescale.
+    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
+    :return: the rescaled image.
+    """
     if rescale_mode == "min_max":
         shape = img.shape
         img = img.reshape(shape[0], -1)
         mini = img.min(1)[0]
         maxi = img.max(1)[0]
-        idx = (mini > maxi)
+        idx = mini < maxi
         mini = mini[idx].unsqueeze(1)
         maxi = maxi[idx].unsqueeze(1)
         img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
@@ -248,7 +233,9 @@ def plot(
         col_imgs = []
         im = preprocess_img(im, rescale_mode=rescale_mode)
         for i in range(min(im.shape[0], max_imgs)):
-            col_imgs.append(im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy())
+            col_imgs.append(
+                im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
+            )
         imgs.append(col_imgs)
 
     if figsize is None:
@@ -342,7 +329,6 @@ def scatter_plot(
     """
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
-
 
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
