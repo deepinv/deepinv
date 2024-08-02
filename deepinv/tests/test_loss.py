@@ -183,7 +183,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
 
     # test the untrained model
-    initial_psnr = dinv.test(
+    initial_test = dinv.test(
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
@@ -207,7 +207,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         verbose=False,
     )
 
-    final_psnr = dinv.test(
+    final_test = dinv.test(
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
@@ -215,7 +215,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         device=device,
     )
 
-    assert final_psnr[0] > initial_psnr[0]
+    assert final_test["PSNR"] > initial_test["PSNR"]
 
 
 def test_sure_losses(device):
