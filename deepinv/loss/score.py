@@ -73,7 +73,7 @@ class ScoreLoss(Loss):
         True
     """
 
-    def __init__(self, noise_model, total_batches, delta=(0.001, 0.1)):
+    def __init__(self, noise_model=None, total_batches=1000, delta=(0.001, 0.1)):
         super(ScoreLoss, self).__init__()
         self.total_batches = total_batches
         self.delta = delta
