@@ -39,8 +39,15 @@ class ScoreLoss(Loss):
 
         This class does not support general inverse problems, it is only designed for denoising problems.
 
+    .. warning::
+
+        This class uses the inference formula :math:`R(y) = y + y \gamma S(y)` for the Poisson noise case,
+        where :math:`\gamma` is the gain parameter, which differs from the one proposed in Noise2Score.
+
     :param torch.nn.Module noise_model: Noise distribution corrupting the measurements
-        (see :ref:`the physics docs <physics>`).
+        (see :ref:`the physics docs <physics>`). Options are :class:`deepinv.physics.GaussianNoise`,
+         :class:`deepinv.physics.PoissonNoise`, :class:`deepinv.physics.GammaNoise` and
+         :class:`deepinv.physics.UniformGaussianNoise`.
     :param int total_batches: Total number of training batches (epochs * number of batches per epoch).
     :param tuple delta: Tuple of two floats representing the minimum and maximum noise level,
         which are annealed during training.
@@ -92,20 +99,22 @@ class ScoreLoss(Loss):
         if isinstance(model, ScoreModel):
             return model
         else:
-            return ScoreModel(model, self.sigma, self.delta, self.total_batches)
+            return ScoreModel(model, self.noise_model, self.delta, self.total_batches)
 
 
 class ScoreModel(torch.nn.Module):
-    def __init__(self, model, sigma, delta, total_batches):
+    def __init__(self, model, noise_model, delta, total_batches):
         super(ScoreModel, self).__init__()
         self.base_model = model
         self.min = delta[0]
         self.max = delta[1]
-        self.sigma = sigma
+        self.noise_model = noise_model
         self.counter = 0
         self.total_batches = total_batches
 
     def forward(self, y, physics, update_parameters=False):
+        noise_class = self.noise_model.__class__.__name__
+
         if self.training:
             self.counter += 1
             w = self.counter / self.total_batches
@@ -118,25 +127,26 @@ class ScoreModel(torch.nn.Module):
             sigma = self.min
 
         extra_noise = torch.randn_like(y)
+
         y_plus = y + extra_noise * sigma
 
         grad = self.base_model(y_plus, physics)
 
         if update_parameters:
-            self.error = (extra_noise + grad * sigma).pow(2).mean()
+            error = extra_noise + grad * sigma
+            self.error = error.pow(2).mean()
 
-        if (
-            self.noise_model == deepinv.physics.GaussianNoise
-            or deepinv.physics.UniformGaussianNoise
-        ):
-            out = y_plus + self.noise_model.sigma**2 * grad
-        elif self.noise_model == deepinv.physics.PoissonNoise:
-            out = self.noise_model.gain * (y_plus + 0.5) * grad.exp()
-        elif self.noise_model == deepinv.physics.GammaNoise:
+        if noise_class in ["GaussianNoise", "UniformGaussianNoise"]:
+            out = y + self.noise_model.sigma**2 * grad
+        elif noise_class == "PoissonNoise":
+            if not self.noise_model.normalize:
+                y *= self.noise_model.gain
+            out = y + self.noise_model.gain * y * grad
+        elif noise_class == "GammaNoise":
             l = self.noise_model.l
-            out = l * y_plus / ((l - 1) - y * grad)
+            out = l * y / ((l - 1.0) - y * grad)
         else:
-            raise NotImplementedError("Noise model not implemented")
+            raise NotImplementedError(f"Noise model {noise_class} not implemented")
 
         return out
 

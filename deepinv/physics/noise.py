@@ -178,8 +178,8 @@ class GammaNoise(torch.nn.Module):
     Gamma noise :math:`y = \mathcal{G}(\ell, x/\ell)`
 
     Follows the shape, scale parameterization of the Gamma distribution,
-    where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`.
-    see https://en.wikipedia.org/wiki/Gamma_distribution.
+    where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
+    see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
 
     Distribution for modelling speckle noise (eg. SAR images),
     where :math:`\ell>0` controls the noise level (smaller values correspond to higher noise).
@@ -189,6 +189,8 @@ class GammaNoise(torch.nn.Module):
 
     def __init__(self, l=1.0):
         super().__init__()
+        if isinstance(l, int):
+            l = float(l)
         self.update_parameters(l)
 
     def forward(self, x, l=None, **kwargs):
@@ -200,17 +202,17 @@ class GammaNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         self.update_parameters(l)
-        d = torch.distributions.gamma.Gamma(l, l / x)
+        d = torch.distributions.gamma.Gamma(self.l, self.l / x)
         return d.sample()
 
-    def update_parameters(self, ell=None, **kwargs):
+    def update_parameters(self, l=None, **kwargs):
         r"""
         Updates the noise level.
 
         :param float, torch.Tensor ell: noise level.
         """
-        if ell is not None:
-            self.ell = to_nn_parameter(ell)
+        if l is not None:
+            self.l = to_nn_parameter(l)
 
 
 class PoissonGaussianNoise(torch.nn.Module):

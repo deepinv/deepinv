@@ -307,20 +307,21 @@ class Trainer:
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"]
 
-    def log_metrics_wandb(self, logs, train=True):
+    def log_metrics_wandb(self, logs, epoch, train=True):
         r"""
         Log the metrics to wandb.
 
         It logs the metrics to wandb.
 
         :param dict logs: Dictionary containing the metrics to log.
+        :param int epoch: Current epoch.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
         if not train:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
-            wandb.log(logs)
+            wandb.log(logs, step=epoch)
 
     def check_clip_grad(self):
         r"""
@@ -608,7 +609,7 @@ class Trainer:
             if train:
                 logs["step"] = epoch
 
-            self.log_metrics_wandb(logs, train)  # Log metrics to wandb
+            self.log_metrics_wandb(logs, epoch, train)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, convergence_metrics=None, train=True):
@@ -650,7 +651,7 @@ class Trainer:
                 )
                 log_dict_post_epoch[post_str + " samples"] = images
                 log_dict_post_epoch["step"] = epoch
-                wandb.log(log_dict_post_epoch)
+                wandb.log(log_dict_post_epoch, step=epoch)
 
         if save_images:
             # save images
