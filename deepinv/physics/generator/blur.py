@@ -734,13 +734,19 @@ class ProductConvolutionPatchBlurGenerator(PhysicsGenerator):
             self.num_patches = np.prod(compute_patch_info(
                 self.image_size, self.patch_size, self.overlap)['num_patches'])
 
-        filters = self.psf_generator.step(
-            batch_size * self.num_patches, **kwargs)['filter']
+        params = self.psf_generator.step(
+            batch_size * self.num_patches, **kwargs)
+
+        filters = params["filter"]
+        new_params = dict(params)
+        del new_params["filter"]
 
         filters = filters.view(self.num_patches, batch_size, filters.size(
             1), filters.size(2), filters.size(3))
         # Ending
-        params_blur = {"filters": filters,
-                       "multipliers": self.w, "padding": self.padding}
+        params_blur = dict({"filters": filters,
+                            "multipliers": self.w,
+                            "padding": self.padding},
+                           **new_params)
 
         return params_blur

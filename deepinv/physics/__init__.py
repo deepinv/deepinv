@@ -28,3 +28,4 @@ from .phase_retrieval import (
     RandomPhaseRetrieval,
 )
 from .radio import RadioInterferometry
+from . import functional
