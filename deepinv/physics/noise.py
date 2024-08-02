@@ -108,10 +108,10 @@ class UniformGaussianNoise(torch.nn.Module):
 class PoissonNoise(torch.nn.Module):
     r"""
 
-    Poisson noise :math:`y = \mathcal{P}(\gamma * x)`
+    Poisson noise :math:`y = \mathcal{P}(\frac{x}{\gamma})`
     with gain :math:`\gamma>0`.
 
-    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \frac{y}{\gamma}`.
+    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`.
 
     |sep|
 
@@ -151,13 +151,13 @@ class PoissonNoise(torch.nn.Module):
         self.update_parameters(gain)
 
         y = torch.poisson(
-            torch.clip(x * self.gain, min=0.0) if self.clip_positive else x * self.gain
+            torch.clip(x / self.gain, min=0.0) if self.clip_positive else x / self.gain
         )
         if self.normalize:
-            y /= self.gain
+            y *= self.gain
         return y
 
-    def update_parameters(self, gain=None, **kwargs):
+    def update_parameters(self, gain, **kwargs):
         r"""
         Updates the gain of the noise.
 
@@ -169,7 +169,7 @@ class PoissonNoise(torch.nn.Module):
 
 class PoissonGaussianNoise(torch.nn.Module):
     r"""
-    Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\gamma*x)`
+    Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
     and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
     |sep|
@@ -207,7 +207,7 @@ class PoissonGaussianNoise(torch.nn.Module):
         """
         self.update_parameters(gain, sigma)
 
-        y = torch.poisson(x * self.gain) / self.gain
+        y = torch.poisson(x / self.gain) * self.gain
 
         y += torch.randn_like(x) * self.sigma
         return y

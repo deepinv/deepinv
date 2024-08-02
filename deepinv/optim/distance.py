@@ -204,9 +204,9 @@ class KullbackLeiblerDistance(Distance):
         :param torch.Tensor y: measurement :math:`y`.
         """
         if self.normalize:
-            y = y * self.gain
-        return (-y * torch.log(self.gain * x + self.bkg)).flatten().sum() + (
-            self.gain * x + self.bkg - y
+            y = y / self.gain
+        return (-y * torch.log(x / self.gain + self.bkg)).flatten().sum() + (
+            (x / self.gain) + self.bkg - y
         ).reshape(x.shape[0], -1).sum(dim=1)
 
     def grad(self, x, y, *args, **kwargs):
@@ -217,8 +217,8 @@ class KullbackLeiblerDistance(Distance):
         :param torch.Tensor y: measurement :math:`y`.
         """
         if self.normalize:
-            y = y * self.gain
-        return (1 / self.gain) * (torch.ones_like(x) - y / (self.gain * x + self.bkg))
+            y = y / self.gain
+        return self.gain * (torch.ones_like(x) - y / ((x / self.gain) + self.bkg))
 
     def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
@@ -229,11 +229,11 @@ class KullbackLeiblerDistance(Distance):
         :param float gamma: proximity operator step size.
         """
         if self.normalize:
-            y = y * self.gain
+            y = y / self.gain
         out = (
             x
-            - (self.gain / gamma)
-            * ((x - self.gain / gamma).pow(2) + 4 * y / gamma).sqrt()
+            - (1 / (self.gain * gamma))
+            * ((x - (1 / self.gain * gamma)).pow(2) + 4 * y / gamma).sqrt()
         )
         return out / 2
 
