@@ -337,5 +337,4 @@ G = trainer.train()
 # optimisation to a relatively high tolerance for speed.
 #
 
-psnr = trainer.test(test_dataloader)[0]
-print("Test PSNR", psnr)
+trainer.test(test_dataloader)
