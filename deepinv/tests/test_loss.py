@@ -54,7 +54,7 @@ def choose_loss(loss_name):
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
-        loss.append(dinv.loss.ScoreLoss(1.0))
+        loss.append(dinv.loss.ScoreLoss(dinv.physics.GaussianNoise(0.1), 100))
     elif loss_name == "sup":
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":

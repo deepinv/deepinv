@@ -16,7 +16,6 @@ from torchvision.utils import save_image
 import inspect
 
 
-
 @dataclass
 class Trainer:
     r"""Trainer(model, physics, optimizer, train_dataloader, ...)
@@ -524,7 +523,9 @@ class Trainer:
                     x_lin = self.no_learning_inferece(y, physics)
                     metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
                     self.logs_metrics_linear[k].update(metric.detach().cpu().numpy())
-                    logs[f"{l.__class__.__name__} no learning"] = self.logs_metrics_linear[k].avg
+                    logs[f"{l.__class__.__name__} no learning"] = (
+                        self.logs_metrics_linear[k].avg
+                    )
 
         return logs
 
@@ -558,7 +559,9 @@ class Trainer:
         elif self.no_learning_method == "y":
             x_nl = y
         else:
-            raise ValueError(f"No learning reconstruction method {self.no_learning_method} not recognized")
+            raise ValueError(
+                f"No learning reconstruction method {self.no_learning_method} not recognized"
+            )
 
         return x_nl
 
@@ -608,7 +611,6 @@ class Trainer:
             self.log_metrics_wandb(logs, train)  # Log metrics to wandb
             self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
 
-
     def plot(self, epoch, physics, x, y, x_net, convergence_metrics=None, train=True):
         r"""
         Plot and optinally save the reconstructions.
@@ -627,7 +629,9 @@ class Trainer:
 
         if plot_images or save_images:
             x_nl = self.no_learning_inferece(y, physics)
-            imgs, titles, grid_image, caption = prepare_images(x, y, x_net, x_nl, rescale_mode=self.rescale_mode)
+            imgs, titles, grid_image, caption = prepare_images(
+                x, y, x_net, x_nl, rescale_mode=self.rescale_mode
+            )
 
         if plot_images:
             plot(
@@ -660,8 +664,11 @@ class Trainer:
                 self.img_counter += len(imgs[0])
 
         if self.plot_convergence_metrics and convergence_metrics is not None:
-            plot_curves(convergence_metrics, save_dir=f"{self.save_folder_im}/convergence_metrics/", show=True)
-
+            plot_curves(
+                convergence_metrics,
+                save_dir=f"{self.save_folder_im}/convergence_metrics/",
+                show=True,
+            )
 
     def save_model(self, epoch, eval_metrics=None, state={}):
         r"""
@@ -799,9 +806,7 @@ class Trainer:
 
         return self.model
 
-    def test(
-        self, test_dataloader, save_path=None, compare_no_learning=True
-    ):
+    def test(self, test_dataloader, save_path=None, compare_no_learning=True):
         r"""
         Test the model.
 
@@ -825,9 +830,7 @@ class Trainer:
 
         self.current_iterators = [iter(loader) for loader in test_dataloader]
 
-        batches = min(
-            [len(loader) - loader.drop_last for loader in test_dataloader]
-        )
+        batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
         self.model.eval()
         for i in (
@@ -853,7 +856,9 @@ class Trainer:
                 out[name] = self.logs_metrics_linear[k].avg
                 out[name + "_std"] = self.logs_metrics_linear[k].std
                 if self.verbose:
-                    print(f"{name}: {self.logs_metrics_linear[k].avg:.3f} +- {self.logs_metrics_linear[k].std:.3f}")
+                    print(
+                        f"{name}: {self.logs_metrics_linear[k].avg:.3f} +- {self.logs_metrics_linear[k].std:.3f}"
+                    )
 
             name = self.metrics[k].__class__.__name__
             out[name] = l.avg

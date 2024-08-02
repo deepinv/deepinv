@@ -52,6 +52,7 @@ NOISES = [
     "Uniform",
     "Neighbor2Neighbor",
     "LogPoisson",
+    "Gamma",
 ]
 
 
@@ -524,6 +525,7 @@ def choose_noise(noise_type):
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
+    l = 2.0
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -538,6 +540,8 @@ def choose_noise(noise_type):
         noise_model = dinv.physics.PoissonNoise(gain)
     elif noise_type == "LogPoisson":
         noise_model = dinv.physics.LogPoissonNoise(N0, mu)
+    elif noise_type == "Gamma":
+        noise_model = dinv.physics.GammaNoise(l)
     else:
         raise Exception("Noise model not found")
 
