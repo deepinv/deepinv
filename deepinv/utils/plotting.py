@@ -65,6 +65,80 @@ def torch2cpu(img):
     )
 
 
+def prepare_images(x, y, x_net, physics, rescale_mode="min_max"):
+    r"""
+    Prepare the images for plotting.
+
+    It prepares the images for plotting by rescaling them and concatenating them in a grid.
+
+    :param torch.Tensor x: Ground truth.
+    :param torch.Tensor y: Measurement.
+    :param torch.Tensor x_net: Reconstruction network output.
+    :param deepinv.physics.Physics physics: Physics operator.
+    :returns: The images, the titles, the grid image, and the caption.
+    """
+    with torch.no_grad():
+        if len(y.shape) == len(x.shape) and y.shape != x.shape:
+            y_reshaped = torch.nn.functional.interpolate(y, size=x.shape[2])
+            if hasattr(physics, "A_adjoint"):
+                imgs = [y_reshaped, physics.A_adjoint(y), x_net, x]
+                caption = (
+                    "From top to bottom: input, backprojection, output, target"
+                )
+                titles = ["Input", "Backprojection", "Output", "Target"]
+            else:
+                imgs = [y_reshaped, x_net, x]
+                titles = ["Input", "Output", "Target"]
+                caption = "From top to bottom: input, output, target"
+        else:
+            if hasattr(physics, "A_adjoint"):
+                if isinstance(physics, torch.nn.DataParallel):
+                    back = physics.module.A_adjoint(y)
+                else:
+                    back = physics.A_adjoint(y)
+                imgs = [back, x_net, x]
+                titles = ["Backprojection", "Output", "Target"]
+                caption = "From top to bottom: backprojection, output, target"
+            elif y.shape == x.shape:
+                imgs = [y, x_net, x]
+                titles = ["Measurement", "Output", "Target"]
+                caption = "From top to bottom: measurement, output, target"
+            else:
+                imgs = [x_net, x]
+                caption = "From top to bottom: output, target"
+                titles = ["Output", "Target"]
+
+        vis_array = torch.cat(imgs, dim=0)
+        for i in range(len(vis_array)):
+            vis_array[i] = rescale_img(vis_array[i], rescale_mode=rescale_mode)
+        grid_image = make_grid(vis_array, nrow=y.shape[0])
+
+    for k in range(len(imgs)):
+        imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
+
+    return imgs, titles, grid_image, caption
+
+
+def preprocess_img(im, rescale_mode="min_max"):
+    if im.shape[1] == 2:  # for complex images
+        pimg = (
+            im
+            .pow(2)
+            .sum(dim=1, keepdim=True)
+            .sqrt()
+            .type(torch.float32)
+        )
+    elif im.shape[1] > 3:
+        pimg = im.type(torch.float32)
+    else:
+        if torch.is_complex(im):
+            pimg = im.abs().type(torch.float32)
+        else:
+            pimg = im.type(torch.float32)
+
+    pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+    return pimg
+
 def tensor2uint(img):
     img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
     if img.ndim == 3:
@@ -79,8 +153,15 @@ def numpy2uint(img):
 
 def rescale_img(img, rescale_mode="min_max"):
     if rescale_mode == "min_max":
-        if img.max() != img.min():
-            img = (img - img.min()) / (img.max() - img.min())
+        shape = img.shape
+        img = img.reshape(shape[0], -1)
+        mini = img.min(1)[0]
+        maxi = img.max(1)[0]
+        idx = (mini > maxi)
+        mini = mini[idx].unsqueeze(1)
+        maxi = maxi[idx].unsqueeze(1)
+        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
+        img = img.reshape(shape)
     elif rescale_mode == "clip":
         img = img.clamp(min=0.0, max=1.0)
     else:
@@ -165,25 +246,9 @@ def plot(
     imgs = []
     for im in img_list:
         col_imgs = []
+        im = preprocess_img(im, rescale_mode=rescale_mode)
         for i in range(min(im.shape[0], max_imgs)):
-            if im.shape[1] == 2:  # for complex images
-                pimg = (
-                    im[i, :, :, :]
-                    .pow(2)
-                    .sum(dim=0)
-                    .sqrt()
-                    .unsqueeze(0)
-                    .type(torch.float32)
-                )
-            elif im.shape[1] > 3:
-                pimg = im[i, 0:3, :, :].type(torch.float32)
-            else:
-                if torch.is_complex(im):
-                    pimg = im[i, :, :, :].abs().type(torch.float32)
-                else:
-                    pimg = im[i, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-            col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
+            col_imgs.append(im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy())
         imgs.append(col_imgs)
 
     if figsize is None:
@@ -218,12 +283,12 @@ def plot(
         else:
             plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
-        plt.savefig(save_dir / "images.png", dpi=1200)
+        plt.savefig(save_dir / "images.svg", dpi=1200)
+        save_dir_i = Path(save_dir) / Path(titles[i])
+        save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
-                plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
-                )
+                plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
 
@@ -278,9 +343,6 @@ def scatter_plot(
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
-    if save_dir:
-        save_dir = Path(save_dir)
-        save_dir.mkdir(parents=True, exist_ok=True)
 
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
@@ -317,12 +379,13 @@ def scatter_plot(
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
+
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
+            save_dir_i = Path(save_dir) / Path(titles[i])
+            save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_scatter):
-                plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
-                )
+                plt.imsave(save_dir_i / Path(str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
 

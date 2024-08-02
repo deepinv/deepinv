@@ -210,8 +210,6 @@ class SplittingModel(torch.nn.Module):
                 device=y.device,
             )
 
-        inp = Inpainting(y.size()[1:], device=y.device)
-
         with torch.set_grad_enabled(self.training):
 
             if not self.eval_split_input and not self.training:
@@ -221,6 +219,8 @@ class SplittingModel(torch.nn.Module):
 
             else:
                 MC_samples = 1 if self.training else self.MC_samples
+
+                inp = Inpainting(y.size()[1:], device=y.device)
 
                 for _ in range(MC_samples):
                     # Perform input masking
@@ -235,7 +235,7 @@ class SplittingModel(torch.nn.Module):
                     out += self.model(y1, physics1) / MC_samples
 
             if self.training and update_parameters:
-                self.mask = mask["mask"]
+                self.mask = mask["mask"].clone() # clone is needed to avoid in-place operation
 
         return out
 

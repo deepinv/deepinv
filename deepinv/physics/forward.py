@@ -405,6 +405,30 @@ class LinearPhysics(Physics):
         """
         return self.A_adjoint(v)
 
+    def A_A_adjoint(self, y, **kwargs):
+        r"""
+        A helper function that computes :math:`A A^{\top}y`.
+
+        This function can speed up computation when :math:`A A^{\top}` is available in closed form.
+        Otherwise it just cals :meth:`deepinv.physics.LinearPhysics.A` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+
+        :param torch.Tensor y: measurement.
+        :return: (torch.Tensor) the product :math:`AA^{\top}y`.
+        """
+        return self.A(self.A_adjoint(y, **kwargs), **kwargs)
+
+    def A_adjoint_A(self, x, **kwargs):
+        r"""
+        A helper function that computes :math:`A^{\top}Ax`.
+
+        This function can speed up computation when :math:`A^{\top}A` is available in closed form.
+        Otherwise it just cals :meth:`deepinv.physics.LinearPhysics.A` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+
+        :param torch.Tensor x: signal/image.
+        :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
+        """
+        return self.A_adjoint(self.A(x, **kwargs), **kwargs)
+
     def __mul__(self, other):
         r"""
         Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
@@ -565,7 +589,7 @@ class LinearPhysics(Physics):
 
         """
         b = self.A_adjoint(y, **kwargs) + 1 / gamma * z
-        H = lambda x: self.A_adjoint(self.A(x, **kwargs), **kwargs) + 1 / gamma * x
+        H = lambda x: self.A_adjoint_A(x, **kwargs) + 1 / gamma * x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
@@ -589,7 +613,7 @@ class LinearPhysics(Physics):
         overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
 
         if not overcomplete:
-            A = lambda x: self.A(self.A_adjoint(x))
+            A = lambda x: self.A_A_adjoint(x)
             b = y
         else:
             A = lambda x: self.A_adjoint(self.A(x))
@@ -705,6 +729,30 @@ class DecomposablePhysics(LinearPhysics):
             mask = torch.conj(self.mask)
 
         return self.V(mask * self.U_adjoint(y))
+
+    def A_A_adjoint(self, y, mask=None, **kwargs):
+        r"""
+        A helper function that computes :math:`A A^{\top}y`.
+
+        Using the SVD decomposition, we have :math:`A A^{\top} = U\text{diag}(s^2)U^{\top}`.
+
+        :param torch.Tensor y: measurement.
+        :return: (torch.Tensor) the product :math:`AA^{\top}y`.
+        """
+        self.update_parameters(mask=mask, **kwargs)
+        return self.U(self.mask * self.mask * self.U_adjoint(y))
+
+    def A_adjoint_A(self, x, mask=None, **kwargs):
+        r"""
+        A helper function that computes :math:`A^{\top} A x`.
+
+        Using the SVD decomposition, we have :math:`A^{\top}A = V\text{diag}(s^2)V^{\top}`.
+
+        :param torch.Tensor x: signal/image.
+        :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
+        """
+        self.update_parameters(mask=mask, **kwargs)
+        return self.V(self.mask * self.mask * self.V_adjoint(x))
 
     def U(self, x):
         return self._U(x)

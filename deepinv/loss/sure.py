@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import deepinv.physics
 from deepinv.loss.loss import Loss
 
 
@@ -54,7 +55,7 @@ def exact_div(y, physics, model):
     return out / (c * h * w)
 
 
-def mc_div(y1, y, f, physics, tau):
+def mc_div(y1, y, f, physics, tau, precond=lambda x:x):
     r"""
     Monte-Carlo estimation for the divergence of A(f(x)).
 
@@ -62,12 +63,13 @@ def mc_div(y1, y, f, physics, tau):
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
     :param torch.nn.Module f: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
-    :return: (float) hutch divergence.
+    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
+    :param bool pinv: If ``True``, the pseudo-inverse of the forward operator is used. Default ``False``.
+    :return: (float) Ramani MC divergence.
     """
     b = torch.randn_like(y)
     y2 = physics.A(f(y + b * tau, physics))
-    out = (b * (y2 - y1) / tau).reshape(y.size(0), -1).mean(1)
-    return out
+    return (precond(b) * precond(y2 - y1) / tau).reshape(y.size(0), -1).mean(1)
 
 
 class SureGaussianLoss(Loss):
@@ -85,11 +87,12 @@ class SureGaussianLoss(Loss):
 
     .. math::
 
-        \frac{1}{m}\|y - A\inverse{y}\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(A\inverse{y+\tau b_i} -
+        \frac{1}{m}\|B(y - A\inverse{y})\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} B^{\top} \left(A\inverse{y+\tau b_i} -
         A\inverse{y}\right)
 
     where :math:`R` is the trainable network, :math:`A` is the forward operator,
     :math:`y` is the noisy measurement vector of size :math:`m`, :math:`A` is the forward operator,
+    :math:`B` is an optional linear mapping which should be approximately :math:`A^{\dagger}` (or any stable approximation),
     :math:`b\sim\mathcal{N}(0,I)` and :math:`\tau\geq 0` is a hyperparameter controlling the
     Monte Carlo approximation of the divergence.
 
@@ -108,13 +111,18 @@ class SureGaussianLoss(Loss):
 
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
+    :param Callable, str B: Optional linear metric :math:`B`, which can be used to improve
+        the performance of the loss. If 'A_dagger', the pseudo-inverse of the forward operator is used.
+        Otherwise the metric should be a linear operator that approximates the pseudo-inverse of the forward operator
+        such as :meth:`deepinv.physics.LinearPhysics.prox_l2` with large :math:`\gamma`. By default, the identity is used.
     """
 
-    def __init__(self, sigma, tau=1e-2):
+    def __init__(self, sigma, tau=1e-2, B=lambda x: x):
         super(SureGaussianLoss, self).__init__()
         self.name = "SureGaussian"
         self.sigma2 = sigma**2
         self.tau = tau
+        self.metric = B
 
     def forward(self, y, x_net, physics, model, **kwargs):
         r"""
@@ -127,9 +135,14 @@ class SureGaussianLoss(Loss):
         :return: torch.nn.Tensor loss of size (batch_size,)
         """
 
+        if self.metric == "A_dagger":
+            metric = lambda x: physics.A_dagger(x)
+        else:
+            metric = self.metric
+
         y1 = physics.A(x_net)
-        div = 2 * self.sigma2 * mc_div(y1, y, model, physics, self.tau)
-        mse = (y1 - y).pow(2).reshape(y.size(0), -1).mean(1)
+        div = 2 * self.sigma2 * mc_div(y1, y, model, physics, self.tau, metric)
+        mse = metric(y1 - y).pow(2).reshape(y.size(0), -1).mean(1)
         loss_sure = mse + div - self.sigma2
         return loss_sure
 
@@ -193,14 +206,12 @@ class SurePoissonLoss(Loss):
         y1 = physics.A(x_net)
         y2 = physics.A(model(y + self.tau * b, physics))
 
-        # compute m (size of y)
-        # m = y.numel() #(torch.abs(y) > 1e-5).flatten().sum()
-
         loss_sure = (
             (y1 - y).pow(2)
             - self.gain * y
-            + 2.0 / self.tau * (b * y * self.gain * (y2 - y1))
+            + (2.0 / self.tau) * self.gain * (b * y * (y2 - y1))
         )
+
         loss_sure = loss_sure.reshape(y.size(0), -1).mean(1)
 
         return loss_sure
@@ -245,9 +256,12 @@ class SurePGLoss(Loss):
     :param float sigma: Standard deviation of the Gaussian noise.
     :param float gamma: Gain of the Poisson Noise.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
+    :param float tau2: Approximation constant for the second derivative.
+    :param bool second_derivative: If ``False``, the last term in the loss (approximating the second derivative) is removed
+        to speed up computations, at the cost of a possibly inexact loss. Default ``True``.
     """
 
-    def __init__(self, sigma, gain, tau1=1e-3, tau2=1e-2):
+    def __init__(self, sigma, gain, tau1=1e-3, tau2=1e-2, second_derivative=True):
         super(SurePGLoss, self).__init__()
         self.name = "SurePG"
         # self.sure_loss_weight = sure_loss_weight
@@ -255,6 +269,7 @@ class SurePGLoss(Loss):
         self.gain = gain
         self.tau1 = tau1
         self.tau2 = tau2
+        self.second_derivative = second_derivative
 
     def forward(self, y, x_net, physics, model, **kwargs):
         r"""
@@ -277,11 +292,6 @@ class SurePGLoss(Loss):
 
         meas1 = physics.A(x_net)
         meas2 = physics.A(model(y + self.tau1 * b1, physics))
-        meas2p = physics.A(model(y + self.tau2 * b2, physics))
-        meas2n = physics.A(model(y - self.tau2 * b2, physics))
-
-        # compute m (size of y)
-        # m = (torch.abs(y) > 1e-5).flatten().sum()
 
         loss_mc = (meas1 - y).pow(2).reshape(y.size(0), -1).mean(1)
 
@@ -295,13 +305,18 @@ class SurePGLoss(Loss):
 
         offset = -self.gain * y.reshape(y.size(0), -1).mean(1) - self.sigma2
 
-        loss_div2 = (
-            -2
-            * self.sigma2
-            * self.gain
-            / (self.tau2**2)
-            * (b2 * (meas2p + meas2n - 2 * meas1)).reshape(y.size(0), -1).mean(1)
-        )
+        if self.second_derivative:
+            meas2p = physics.A(model(y + self.tau2 * b2, physics))
+            meas2n = physics.A(model(y - self.tau2 * b2, physics))
+            loss_div2 = (
+                -2
+                * self.sigma2
+                * self.gain
+                / (self.tau2**2)
+                * (b2 * (meas2p + meas2n - 2 * meas1)).reshape(y.size(0), -1).mean(1)
+            )
+        else:
+            loss_div2 = torch.zeros_like(loss_div1)
 
         loss_sure = loss_mc + loss_div1 + loss_div2 + offset
         return loss_sure
