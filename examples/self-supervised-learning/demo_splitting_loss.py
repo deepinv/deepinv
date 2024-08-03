@@ -76,7 +76,7 @@ train_dataset = datasets.MNIST(root=".", train=True, transform=transform, downlo
 test_dataset = datasets.MNIST(root=".", train=False, transform=transform, download=True)
 
 physics = dinv.physics.Tomography(
-    angles=28, img_width=28, noise_model=dinv.physics.noise.GaussianNoise(0.1)
+    angles=28, img_width=28, noise_model=dinv.physics.noise.GaussianNoise(0.1), device=device
 )
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
