@@ -21,20 +21,16 @@ from deepinv.optim.phase_retrieval import (
     cosine_similarity,
     spectral_methods,
     default_preprocessing,
-    spectral_methods_wrapper,
 )
 
 model_name = "random"
-recon = "gd_spectral"
+recon = "spectral"
 n_repeats = 100
 n_iter = 5000
-oversampling_ratios = torch.arange(1.0, 3.1, 0.1)
-# oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
-# oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
+oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
-step_size = 1e-4
-use_haar = False
+
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 BASE_DIR = Path(".")
@@ -70,48 +66,22 @@ df_res = pd.DataFrame(
     }
 )
 
-data_fidelity = L2()
-prior = dinv.optim.prior.Zero()
-early_stop = True
-verbose = True
-
 for i in trange(oversampling_ratios.shape[0]):
     oversampling_ratio = oversampling_ratios[i]
-    if oversampling_ratio < 2.0:
-        step_size = 1e-4
-    else:
-        step_size = 3e-3
     print(f"oversampling_ratio: {oversampling_ratio}")
-    df_res.loc[i, "step_size"] = step_size
-    params_algo = {
-        "stepsize": (step_size * oversampling_ratio).item(),
-        "g_params": 0.00,
-    }
-    print("stepsize:", params_algo["stepsize"])
-    model = optim_builder(
-        iteration="PGD",
-        prior=prior,
-        data_fidelity=data_fidelity,
-        early_stop=early_stop,
-        max_iter=n_iter,
-        verbose=verbose,
-        params_algo=params_algo,
-        custom_init=spectral_methods_wrapper,
-    )
     for j in range(n_repeats):
         physics = dinv.physics.RandomPhaseRetrieval(
-            m=int(oversampling_ratio * torch.prod(torch.tensor(x_phase.shape))),
+            m=int(oversampling_ratio * img_size**2),
             img_shape=(1, img_size, img_size),
             dtype=torch.cfloat,
             device=device,
-            use_haar=use_haar,
         )
         y = physics(x_phase)
 
-        x_phase_gd_spec, _ = model(y, physics, x_gt=x_phase, compute_metrics=True)
-
-        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_spec).item()
-        print(df_res.loc[i, f"repeat{j}"])
+        x_phase_spec = spectral_methods(y, physics, n_iter=n_iter)
+        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_spec).item()
+        # print the cosine similarity
+        print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
 # save results
 df_res.to_csv(SAVE_DIR / model_name / res_name)

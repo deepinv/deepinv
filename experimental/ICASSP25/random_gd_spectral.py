@@ -27,8 +27,8 @@ from deepinv.optim.phase_retrieval import (
 model_name = "random"
 recon = "gd_spectral"
 n_repeats = 100
-n_iter = 5000
-oversampling_ratios = torch.arange(1.0, 3.1, 0.1)
+n_iter = 10000
+oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
 # oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
 # oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
 n_oversampling = oversampling_ratios.shape[0]
@@ -70,13 +70,6 @@ df_res = pd.DataFrame(
     }
 )
 
-
-def random_init(y, physics):
-    x = torch.randn_like(x_phase)
-    z = torch.randn_like(x_phase)
-    return {"est": (x, z)}
-
-
 data_fidelity = L2()
 prior = dinv.optim.prior.Zero()
 early_stop = True
@@ -103,7 +96,7 @@ for i in trange(oversampling_ratios.shape[0]):
         max_iter=n_iter,
         verbose=verbose,
         params_algo=params_algo,
-        custom_init=random_init,
+        custom_init=spectral_methods_wrapper,
     )
     for j in range(n_repeats):
         physics = dinv.physics.RandomPhaseRetrieval(
@@ -115,9 +108,9 @@ for i in trange(oversampling_ratios.shape[0]):
         )
         y = physics(x_phase)
 
-        x_phase_gd_rand, _ = model(y, physics, x_gt=x_phase, compute_metrics=True)
+        x_phase_gd_spec, _ = model(y, physics, x_gt=x_phase, compute_metrics=True)
 
-        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_rand).item()
+        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_spec).item()
         print(df_res.loc[i, f"repeat{j}"])
 
 # save results

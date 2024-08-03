@@ -98,6 +98,7 @@ def plot(
     cmap="gray",
     fontsize=17,
     interpolation="none",
+    save: str = None,
 ):
     r"""
     Plots a list of images.
@@ -197,6 +198,10 @@ def plot(
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
+
+    if save:
+        plt.savefig(save)
+
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_imgs in enumerate(imgs):

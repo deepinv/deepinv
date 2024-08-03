@@ -135,16 +135,18 @@ def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
     return {"est": (x, z)}
 
 
-def plot_error_bars(oversamplings,
-                    datasets,
-                    labels,
-                    axis=1,
-                    title="Performance",
-                    xlabel="Oversampling Ratio",
-                    ylabel="Consine Similarity",
-                    xscale="linear",
-                    yscale="linear",
-                    ):
+def plot_error_bars(
+    oversamplings,
+    datasets,
+    labels,
+    axis=1,
+    title="Performance",
+    xlabel="Oversampling Ratio",
+    ylabel="Consine Similarity",
+    xscale="linear",
+    yscale="linear",
+    save: str = None,
+):
 
     # Generate a color palette
     palette = sns.color_palette(n_colors=len(datasets))
@@ -157,13 +159,18 @@ def plot_error_bars(oversamplings,
         print(label)
         # Calculate statistics
         if type(data) == torch.Tensor:
-            min_vals = data.min(dim=1).values.numpy()
-            max_vals = data.max(dim=1).values.numpy()
+            std_vals = data.std(dim=1).numpy()
             avg_vals = data.mean(dim=1).numpy()
+            min_vals = avg_vals - std_vals
+            max_vals = avg_vals + std_vals
         elif type(data) == pd.DataFrame:
-            min_vals = data.min(axis=axis).values
-            max_vals = data.max(axis=axis).values
+            for column in data.columns:
+                if "repeat" not in column:
+                    data.drop(columns=column, inplace=True)
+            std_vals = data.std(axis=axis).values
             avg_vals = data.mean(axis=axis).values
+            min_vals = avg_vals - std_vals
+            max_vals = avg_vals + std_vals
 
         # Calculate error bars
         yerr_lower = avg_vals - min_vals
@@ -199,6 +206,10 @@ def plot_error_bars(oversamplings,
     ax.set_yscale(yscale)
     ax.set_title(title)
     ax.legend()
+
+    if save is not None:
+        plt.savefig(save)
+        print(f"Figure saved to {save}")
 
     # Show plot
     plt.show()
