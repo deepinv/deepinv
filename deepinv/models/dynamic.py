@@ -7,8 +7,8 @@ class TimeAgnosticNet(nn.Module):
     r"""
     Time-agnostic network wrapper.
 
-    Adapt a static image reconstruction network to take time-varying input to create a time-agnostic network.
-    The image reconstruction network then processes the data frame-by-frame.
+    Adapts a static image reconstruction network to process time-varying inputs.
+    The image reconstruction network then processes the data independently frame-by-frame.
 
     Flattens time dimension into batch dimension at input, and unflattens at output.
 

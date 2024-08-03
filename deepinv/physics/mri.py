@@ -253,7 +253,7 @@ class DynamicMRI(MRI):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_mri(self, mask: Optional[torch.Tensor] = None) -> MRI:
+    def to_static_mri(self, mask: Optional[torch.Tensor] = None) -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.

@@ -565,6 +565,6 @@ def test_optional_dependencies(denoiser, dep):
 def test_time_agnostic_net():
     backbone_net = dinv.models.UNet(scales=2)
     net = dinv.models.TimeAgnosticNet(backbone_net)
-    y = torch.rand(1, 1, 4, 8, 8)  # B,C,T,H,W
+    y = torch.rand(1, 1, 2, 4, 4)  # B,C,T,H,W
     x_net = net(y, None)
     assert x_net.shape == y.shape

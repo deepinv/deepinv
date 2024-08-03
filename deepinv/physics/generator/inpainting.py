@@ -36,7 +36,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
-    :param torch.device device: device where the tensor is stored (default: 'cpu').
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: torch random number generator.
     """
 
@@ -136,7 +136,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         r"""
         Create one batch of splitting mask.
 
-        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. Batch dimension should not be included in shape.
+        :param torch.Tensor, None input_mask: optional mask to be split. If ``None``, all pixels are considered. If not ``None``, only pixels where ``mask==1`` are considered. Batch dimension should not be included in shape.
         """
         pixelwise = self.check_pixelwise(input_mask)
 
@@ -201,8 +201,8 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param float std_scale: scale parameter of 2D Gaussian, in pixels.
     :param int, tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal. Either int for square block or 2-tuple (h, w)
-    :param torch.device device: device where the tensor is stored (default: 'cpu').
-    :param np.random.Generator rng: numpy random number generator. NOTE this is different from :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` which requires torch generator.
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
+    :param np.random.Generator rng: numpy random number generator. Note this is different from :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` which requires torch generator.
     """
 
     def __init__(
@@ -334,7 +334,7 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     If input_mask not passed, a blank input mask is used instead.
 
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
-    :param torch.device device: device where the tensor is stored (default: 'cpu').
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: unused.
     """
 
@@ -382,8 +382,8 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
     If input_mask not passed, a blank input mask is used instead.
 
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
-    :param int, tuple[int] split_size: time-length of chunk. Must divide tensor_size[1] exactly. If tuple, one is randomly selected each time.
-    :param torch.device device: device where the tensor is stored (default: 'cpu').
+    :param int, tuple[int] split_size: time-length of chunk. Must divide ``tensor_size[1]`` exactly. If ``tuple``, one is randomly selected each time.
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: torch random number generator.
     """
 
