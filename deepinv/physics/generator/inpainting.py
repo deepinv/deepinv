@@ -147,7 +147,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
             else:
                 idx = input_mask.nonzero(as_tuple=False)
 
-            shuff = idx[torch.randperm(len(idx), generator=self.rng)]
+            shuff = idx[
+                torch.randperm(len(idx), generator=self.rng, device=self.device)
+            ]
             idx_out = shuff[: int(self.split_ratio * len(idx))].t()
 
             mask = torch.zeros_like(input_mask)
