@@ -232,7 +232,10 @@ class SplittingModel(torch.nn.Module):
         Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.
         """
 
-        if self.mask_generator is None or self.mask_generator.tensor_size != y.size()[1:]:
+        if (
+            self.mask_generator is None
+            or self.mask_generator.tensor_size != y.size()[1:]
+        ):
             self.mask_generator = BernoulliSplittingMaskGenerator(
                 tensor_size=y.size()[1:],
                 split_ratio=self.split_ratio,
@@ -247,9 +250,13 @@ class SplittingModel(torch.nn.Module):
             elif self.eval_split_output and self.eval_split_input and not self.training:
                 return self._forward_split_input_output(y, physics)
             else:
-                return self._forward_split_input(y, physics, update_parameters=update_parameters)
+                return self._forward_split_input(
+                    y, physics, update_parameters=update_parameters
+                )
 
-    def _forward_split_input(self, y: torch.Tensor, physics: Physics, update_parameters: bool = False):
+    def _forward_split_input(
+        self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
+    ):
         eval_n_samples = 1 if self.training else self.eval_n_samples
         out = 0
 
@@ -265,7 +272,7 @@ class SplittingModel(torch.nn.Module):
 
         if self.training and update_parameters:
             self.mask = mask.clone()
-        
+
         return out
 
     def _forward_split_input_output(self, y: torch.Tensor, physics: Physics):

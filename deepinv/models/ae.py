@@ -31,7 +31,7 @@ class AutoEncoder(torch.nn.Module):
 
     def forward(self, x, sigma=None):
         B, *S = x.shape
- 
+
         x = x.reshape(B, -1)
 
         encoded = self.encoder(x)

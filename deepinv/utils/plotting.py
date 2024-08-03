@@ -660,7 +660,7 @@ def plot_videos(
             return_axs=True,
             fig=fig,
             axs=axs,
-            figsize=figsize
+            figsize=figsize,
         )
 
     fig, axs = animate(0)
