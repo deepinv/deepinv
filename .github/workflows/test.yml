@@ -18,7 +18,7 @@ jobs:
           # Test with all dependencies
           - os: ubuntu-latest
             version_python: 3.9
-            extra: denoisers,test
+            extra: dataset,denoisers,test
             name: "all dependencies"
           # Test with all dependencies
           - os: windows-latest
@@ -28,7 +28,7 @@ jobs:
           # Test with no optional dependencies
           - os: ubuntu-latest
             version_python: 3.9
-            extra: test
+            extra: dataset,test
             name: "no optional dependencies"
 
     env:

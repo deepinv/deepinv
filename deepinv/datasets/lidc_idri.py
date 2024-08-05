@@ -7,8 +7,14 @@ from typing import (
 import os
 import torch
 import numpy as np
-import pandas as pd
 
+error_import = None
+try:
+    import pandas as pd
+except:
+    error_import = ImportError(
+        "pandas is not available. Please install the pandas package with `pip install pandas`."
+    )
 try:
     from pydicom import dcmread
 except:
@@ -83,7 +89,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         root: str,
         transform: Optional[Callable] = None,
     ) -> None:
-        if isinstance(error_import, ImportError):
+        if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 
         self.root = root

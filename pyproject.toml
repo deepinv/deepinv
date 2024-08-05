@@ -30,8 +30,6 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
-    "datasets",
-    "pandas",
 ]
 
 [tool.setuptools]
@@ -76,7 +74,10 @@ denoisers = [
     "torchkbnufft"
 ]
 
+# optional dependencies for specific datasets
 dataset = [
+    "datasets",
+    "pandas",
     "pydicom",
 ]
 
