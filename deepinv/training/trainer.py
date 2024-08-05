@@ -226,6 +226,7 @@ class Trainer:
         self.epoch_start = 0
         self.load_model()
 
+        self.conv_metrics = None
         # wandb initialization
         if self.wandb_vis:
             if wandb.run is None:
@@ -425,7 +426,7 @@ class Trainer:
 
         return samples
 
-    def model_inference(self, y, physics, x=None):
+    def model_inference(self, y, physics, x=None, **kwargs):
         r"""
         Perform the model inference.
 
@@ -433,6 +434,7 @@ class Trainer:
 
         :param torch.Tensor y: Measurement.
         :param deepinv.physics.Physics physics: Current physics operator.
+        :param torch.Tensor x: Optional ground truth, used for computing convergence metrics.
         :returns: The network reconstruction.
         """
         y = y.to(self.device)
@@ -443,15 +445,14 @@ class Trainer:
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
 
-        conv_metrics = None
         if self.plot_convergence_metrics:
-            x_net, conv_metrics = self.model(
+            x_net, self.conv_metrics = self.model(
                 y, physics, x_gt=x, compute_metrics=True, **kwargs
             )
         else:
             x_net = self.model(y, physics, **kwargs)
 
-        return x_net, conv_metrics
+        return x_net
 
     def compute_loss(self, physics, x, y, train=True):
         r"""
@@ -472,7 +473,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # Evaluate reconstruction network
-        x_net, conv_metrics = self.model_inference(y=y, physics=physics, x=x)
+        x_net = self.model_inference(y=y, physics=physics, x=x)
 
         if train or self.display_losses_eval:
             # Compute the losses
@@ -502,7 +503,7 @@ class Trainer:
             # Optimizer step
             self.optimizer.step()
 
-        return x_net, logs, conv_metrics
+        return x_net, logs
 
     def compute_metrics(self, x, x_net, y, physics, logs, train=True):
         r"""
@@ -595,9 +596,7 @@ class Trainer:
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            x_net, logs, conv_metrics = self.compute_loss(
-                physics_cur, x, y, train=train
-            )
+            x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
@@ -630,7 +629,6 @@ class Trainer:
                 x,
                 y,
                 x_net,
-                convergence_metrics=conv_metrics,
                 train=train,
             )  # plot images
 
@@ -686,12 +684,13 @@ class Trainer:
 
                 self.img_counter += len(imgs[0])
 
-        if self.plot_convergence_metrics and convergence_metrics is not None:
+        if self.plot_convergence_metrics and self.conv_metrics is not None:
             plot_curves(
-                convergence_metrics,
+                self.conv_metrics,
                 save_dir=f"{self.save_folder_im}/convergence_metrics/",
                 show=True,
             )
+            self.conv_metrics = None
 
     def save_model(self, epoch, eval_metrics=None, state={}):
         r"""
