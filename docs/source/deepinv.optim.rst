@@ -126,7 +126,7 @@ Data Fidelity
 -------------
 This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
 :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`. 
-The class :meth:`deepinv.optim.Distance` is implmented as a child class from :meth:`deepinv.optim.Potential`.
+The class :meth:`deepinv.optim.Distance` is implemented as a child class from :meth:`deepinv.optim.Potential`.
 
 This data-fidelity class thus comes with methods, such as :math:`\operatorname{prox}_{\distancename\circ A}` and
 :math:`\nabla (\distancename \circ A)` (among others), on which optimization algorithms rely.

@@ -14,8 +14,10 @@ import torch
 
 class DataFidelity(Potential):
     r"""
-    Base class for a data fidelity term :math:`f(x) = \distance{A(x)}{y}`to be used in an optimization problem.
+    Base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
+    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`. 
 
+    :param callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
     """
 
     def __init__(self, d=None):
