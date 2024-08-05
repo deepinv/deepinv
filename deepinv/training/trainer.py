@@ -426,7 +426,7 @@ class Trainer:
 
         return samples
 
-    def model_inference(self, y, physics, x=None, **kwargs):
+    def model_inference(self, y, physics, x=None, train=True, **kwargs):
         r"""
         Perform the model inference.
 
@@ -445,7 +445,7 @@ class Trainer:
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
 
-        if self.plot_convergence_metrics:
+        if self.plot_convergence_metrics and not train:
             x_net, self.conv_metrics = self.model(
                 y, physics, x_gt=x, compute_metrics=True, **kwargs
             )
@@ -473,7 +473,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics, x=x)
+        x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
 
         if train or self.display_losses_eval:
             # Compute the losses
@@ -632,7 +632,7 @@ class Trainer:
                 train=train,
             )  # plot images
 
-    def plot(self, epoch, physics, x, y, x_net, convergence_metrics=None, train=True):
+    def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
         Plot and optinally save the reconstructions.
 
@@ -684,7 +684,7 @@ class Trainer:
 
                 self.img_counter += len(imgs[0])
 
-        if self.plot_convergence_metrics and self.conv_metrics is not None:
+        if self.conv_metrics is not None:
             plot_curves(
                 self.conv_metrics,
                 save_dir=f"{self.save_folder_im}/convergence_metrics/",
