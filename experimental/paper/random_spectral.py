@@ -34,7 +34,7 @@ res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampli
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 BASE_DIR = Path(".")
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = BASE_DIR / "runs"
 SAVE_DIR = DATA_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
