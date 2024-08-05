@@ -17,38 +17,38 @@ class ScoreLoss(Loss):
         \| \epsilon + \sigma S(y+ \sigma \epsilon) \|^2
 
     where :math:`y` is the noisy measurement,
-    :math:`S` is the model approximating the score of the noisy measurement distribution :meth:`\nabla \log p(y)`,
+    :math:`S` is the model approximating the score of the noisy measurement distribution :math:`\nabla \log p(y)`,
     :math:`\epsilon` is sampled from :math:`N(0,I)` and
     :math:`\sigma` is sampled from :math:`N(0,I\delta^2)` with :math:`\delta` annealed during training
     from a maximum value to a minimum value.
 
     At test/evaluation time, the method uses Tweedie's formula to estimate the score,
-    which depends on the noise model used. For example, for Gaussian noise, the reconstruction model is given by
+    which depends on the noise model used:
 
-    .. math::
-
-        R(y) = y + \sigma^2 S(y)
+    - Gaussian noise: :math:`R(y) = y + \sigma^2 S(y)`
+    - Poisson noise: :math:`R(y) = y + \gamma y S(y)`
+    - Gamma noise: :math:`R(y) = \frac{\ell y}{(\ell-1)-y S(y)}`
 
     .. warning::
 
         The user should provide a backbone model :math:`S`
         to :meth:`adapt_model` which returns the full reconstruction network
-        :meth:`R`, which is mandatory to compute the loss properly.
+        :math:`R`, which is mandatory to compute the loss properly.
 
     .. warning::
+
+        This class uses the inference formula for the Poisson noise case
+        which differs from the one proposed in Noise2Score.
+
+    .. note::
 
         This class does not support general inverse problems, it is only designed for denoising problems.
 
-    .. warning::
-
-        This class uses the inference formula :math:`R(y) = y + y \gamma S(y)` for the Poisson noise case,
-        where :math:`\gamma` is the gain parameter, which differs from the one proposed in Noise2Score.
-
     :param None, torch.nn.Module noise_model: Noise distribution corrupting the measurements
         (see :ref:`the physics docs <physics>`). Options are :class:`deepinv.physics.GaussianNoise`,
-         :class:`deepinv.physics.PoissonNoise`, :class:`deepinv.physics.GammaNoise` and
-         :class:`deepinv.physics.UniformGaussianNoise`. By default, it uses the noise model associated with
-         the physics operator provided in the forward method.
+        :class:`deepinv.physics.PoissonNoise`, :class:`deepinv.physics.GammaNoise` and
+        :class:`deepinv.physics.UniformGaussianNoise`. By default, it uses the noise model associated with
+        the physics operator provided in the forward method.
     :param int total_batches: Total number of training batches (epochs * number of batches per epoch).
     :param tuple delta: Tuple of two floats representing the minimum and maximum noise level,
         which are annealed during training.
