@@ -6,7 +6,9 @@ from deepinv.optim.utils import gradient_descent
 
 class Potential(nn.Module):
     r"""
-    Base class for a potential :math:`h : \mathbb{R}^d \to \mathbb{R}` to be used in an optimization problem.
+    Base class for a potential :math:`h : \xset \to \mathbb{R}` to be used in an optimization problem.
+
+    Comes with methods to compute the potential gradient, its proximity operator, its convex conjugate (and associated gradient and prox).
 
     :param callable fn: Potential function :math:`h(x)` to be used in the optimization problem.
     """
@@ -26,7 +28,7 @@ class Potential(nn.Module):
 
     def forward(self, x, *args, **kwargs):
         r"""
-         Computes the value of the potential :math:`h(x)`.
+        Computes the value of the potential :math:`h(x)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
         :return: (torch.tensor) prior :math:`h(x)`.

@@ -13,6 +13,10 @@ import torch
 
 
 class DataFidelity(Potential):
+    r"""
+    Base class for a data fidelity term :math:`f(x) = \distance{A(x)}{y}`to be used in an optimization problem.
+
+    """
 
     def __init__(self, d=None):
         super().__init__()
