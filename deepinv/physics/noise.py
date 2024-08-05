@@ -157,7 +157,7 @@ class PoissonNoise(torch.nn.Module):
             y *= self.gain
         return y
 
-    def update_parameters(self, gain, **kwargs):
+    def update_parameters(self, gain=None, **kwargs):
         r"""
         Updates the gain of the noise.
 
