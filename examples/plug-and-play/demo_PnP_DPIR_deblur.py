@@ -160,5 +160,4 @@ test(
     save_folder=save_folder,
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
-    plot_only_first_batch=False,  # By default only the first batch is plotted.
 )
