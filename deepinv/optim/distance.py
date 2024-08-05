@@ -8,6 +8,7 @@ class Distance(Potential):
     Distance :math:`\distance{x}{y}`.
 
     This is the base class for a distance :math:`\distance{x}{y}` between a variable :math:`x` and an observation :math:`y`.
+    Comes with methods to compute the distance gradient, proximal operator or convex conjugate with respect to the variable :math:`x`.
 
     .. warning::
         All variables have a batch dimension as first dimension.
@@ -22,18 +23,19 @@ class Distance(Potential):
         r"""
         Computes the distance :math:`\distance{x}{y}`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
-        :param torch.Tensor y: Data :math:`y`.
-        :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}` of size `B` with `B` the size of the batch.
+        :param torch.Tensor x: Variable :math:`x`.
+        :param torch.Tensor y: Observation :math:`y`.
+        :return: (torch.Tensor) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
         """
         return self._fn(x, y, *args, **kwargs)
 
     def forward(self, x, y, *args, **kwargs):
         r"""
-         Computes the value of the potential :math:`h(x)`.
+        Computes the value of the distance :math:`\distance{x}{y}`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) prior :math:`h(x)`.
+        :param torch.Tensor x: Variable :math:`x`.
+        :param torch.Tensor y: Observation :math:`y`.
+        :return: (torch.Tensor) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
         """
         return self.fn(x, y, *args, **kwargs)
 
@@ -43,13 +45,7 @@ class L2Distance(Distance):
     Implementation of :math:`\distancename` as the normalized :math:`\ell_2` norm
 
     .. math::
-
         f(x) = \frac{1}{2\sigma^2}\|x-y\|^2
-
-    It can be used to define a log-likelihood function associated with additive Gaussian noise
-    by setting an appropriate noise level :math:`\sigma`.
-
-    :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
     """
 
     def __init__(self):
@@ -61,7 +57,7 @@ class L2Distance(Distance):
 
         .. math::
 
-            \distance{x}{y} = \frac{1}{2\sigma^2}\|x-y\|^2
+            \distance{x}{y} = \frac{1}{2}\|x-y\|^2
 
 
         :param torch.Tensor u: Variable :math:`x` at which the data fidelity is computed.
@@ -78,24 +74,24 @@ class L2Distance(Distance):
 
         .. math::
 
-            \nabla_{x}\distance{x}{y} = \frac{1}{\sigma^2}(x-y)
+            \nabla_{x}\distance{x}{y} = x-y
 
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :param torch.Tensor y: Data :math:`y`.
+        :param torch.Tensor y: Observation :math:`y`.
         :return: (torch.Tensor) gradient of the distance function :math:`\nabla_{x}\distance{x}{y}`.
         """
         return x - y
 
     def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
-        Proximal operator of :math:`\gamma \distance{x}{y} = \frac{\gamma}{2\sigma^2}\|x-y\|^2`.
+        Proximal operator of :math:`\gamma \distance{x}{y} = \frac{1}{2} \|x-y\|^2`.
 
         Computes :math:`\operatorname{prox}_{\gamma \distancename}`, i.e.
 
         .. math::
 
-           \operatorname{prox}_{\gamma \distancename} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|u-y\|_2^2+\frac{1}{2}\|u-x\|_2^2
+           \operatorname{prox}_{\gamma \distancename} = \underset{u}{\text{argmin}} \frac{\gamma}{2}\|u-y\|_2^2+\frac{1}{2}\|u-x\|_2^2
 
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
@@ -136,7 +132,7 @@ class IndicatorL2Distance(Distance):
         Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(x)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the indicator is computed. :math:`u` is assumed to be of shape (B, ...) where B is the batch size.
-        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :param torch.Tensor y: Observation :math:`y` of the same dimension as :math:`u`.
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
         :return: (torch.Tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
@@ -159,7 +155,7 @@ class IndicatorL2Distance(Distance):
 
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`x`.
+        :param torch.Tensor y: Observation :math:`y` of the same dimension as :math:`x`.
         :param float gamma: step-size. Note that this parameter is not used in this function.
         :param float radius: radius of the :math:`\ell_2` ball.
         :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
@@ -200,8 +196,8 @@ class KullbackLeiblerDistance(Distance):
         r"""
         Computes the Kullback-Leibler divergence
 
-        :param torch.Tensor x: signal :math:`x` at which the function is computed.
-        :param torch.Tensor y: measurement :math:`y`.
+        :param torch.Tensor x: Variable :math:`x` at which the distance is computed.
+        :param torch.Tensor y: Observation :math:`y`.
         """
         if self.normalize:
             y = y / self.gain
@@ -218,7 +214,7 @@ class KullbackLeiblerDistance(Distance):
         """
         if self.normalize:
             y = y / self.gain
-        return self.gain * (torch.ones_like(x) - y / ((x / self.gain) + self.bkg))
+        return self.gain * (torch.ones_like(x) - y / (x / self.gain + self.bkg))
 
     def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
