@@ -143,9 +143,8 @@ model.eval()
 #
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
-plot_images = True  # plot images. Images are saved in save_folder.
+plot_convergence_metrics = True  # Metrics are saved in save_folder.
+plot_images = True  # Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -159,8 +158,7 @@ test(
     device=device,
     plot_images=plot_images,
     save_folder=save_folder,
-    plot_metrics=plot_metrics,
+    plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
-    wandb_vis=wandb_vis,
     plot_only_first_batch=False,  # By default only the first batch is plotted.
 )
