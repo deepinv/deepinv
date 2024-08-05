@@ -588,6 +588,9 @@ class Trainer:
             # Compute loss and perform backprop
             x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
 
+            # detach the network output for metrics and plotting
+            x_net = x_net.detach()
+
             # Log metrics
             logs = self.compute_metrics(x, x_net, y, physics_cur, logs, train=train)
 

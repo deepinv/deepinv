@@ -103,17 +103,18 @@ def preprocess_img(im, rescale_mode="min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the preprocessed image.
     """
-    if im.shape[1] == 2:  # for complex images
-        pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
-    elif im.shape[1] > 3:
-        pimg = im.type(torch.float32)
-    else:
-        if torch.is_complex(im):
-            pimg = im.abs().type(torch.float32)
-        else:
+    with torch.no_grad():
+        if im.shape[1] == 2:  # for complex images
+            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
+        elif im.shape[1] > 3:
             pimg = im.type(torch.float32)
+        else:
+            if torch.is_complex(im):
+                pimg = im.abs().type(torch.float32)
+            else:
+                pimg = im.type(torch.float32)
 
-    pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
     return pimg
 
 
