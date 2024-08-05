@@ -162,7 +162,7 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     get_output=custom_output,
-    verbose=True,
+    verbose=False,
 )
 
 # Set the model to evaluation mode. We do not require training here.

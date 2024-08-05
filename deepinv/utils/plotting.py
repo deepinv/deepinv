@@ -78,11 +78,14 @@ def prepare_images(x, y, x_net, x_nl, rescale_mode="min_max"):
     :returns: The images, the titles, the grid image, and the caption.
     """
     with torch.no_grad():
-        imgs = [x, y, x_nl, x_net]
-        titles = ["Ground truth", "Measurement", "No-learning", "Reconstruction"]
-        caption = (
-            "From left to right: Ground truth, Measurement, No-learning, Reconstruction"
-        )
+        if y.shape == x.shape:
+            imgs = [x, y, x_nl, x_net]
+            titles = ["Ground truth", "Measurement", "No learning", "Reconstruction"]
+            caption = "From left to right: Ground truth, Measurement, No-learning, Reconstruction"
+        else:
+            imgs = [x, x_nl, x_net]
+            titles = ["Ground truth", "No learning", "Reconstruction"]
+            caption = "From left to right: Ground truth, Measurement, Reconstruction"
 
         vis_array = torch.cat(imgs, dim=0)
         for i in range(len(vis_array)):

@@ -425,7 +425,7 @@ class Trainer:
 
         return samples
 
-    def model_inference(self, y, physics):
+    def model_inference(self, y, physics, x=None):
         r"""
         Perform the model inference.
 
@@ -437,12 +437,21 @@ class Trainer:
         """
         y = y.to(self.device)
 
+        kwargs = {}
+
         # check if the forward has 'update_parameters' method, and if so, update the parameters
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
-            x_net = self.model(y, physics, update_parameters=True)
+            kwargs["update_parameters"] = True
+
+        conv_metrics = None
+        if self.plot_convergence_metrics:
+            x_net, conv_metrics = self.model(
+                y, physics, x_gt=x, compute_metrics=True, **kwargs
+            )
         else:
-            x_net = self.model(y, physics)
-        return x_net
+            x_net = self.model(y, physics, **kwargs)
+
+        return x_net, conv_metrics
 
     def compute_loss(self, physics, x, y, train=True):
         r"""
@@ -463,7 +472,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics)
+        x_net, conv_metrics = self.model_inference(y=y, physics=physics, x=x)
 
         if train or self.display_losses_eval:
             # Compute the losses
@@ -493,7 +502,7 @@ class Trainer:
             # Optimizer step
             self.optimizer.step()
 
-        return x_net, logs
+        return x_net, logs, conv_metrics
 
     def compute_metrics(self, x, x_net, y, physics, logs, train=True):
         r"""
@@ -586,7 +595,9 @@ class Trainer:
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
+            x_net, logs, conv_metrics = self.compute_loss(
+                physics_cur, x, y, train=train
+            )
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
@@ -613,7 +624,15 @@ class Trainer:
                 logs["step"] = epoch
 
             self.log_metrics_wandb(logs, epoch, train)  # Log metrics to wandb
-            self.plot(epoch, physics_cur, x, y, x_net, train=train)  # plot images
+            self.plot(
+                epoch,
+                physics_cur,
+                x,
+                y,
+                x_net,
+                convergence_metrics=conv_metrics,
+                train=train,
+            )  # plot images
 
     def plot(self, epoch, physics, x, y, x_net, convergence_metrics=None, train=True):
         r"""
