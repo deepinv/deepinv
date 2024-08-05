@@ -140,18 +140,19 @@ def plot_error_bars(
     datasets,
     labels,
     axis=1,
-    title="Performance",
+    title:str=None,
     xlabel="Oversampling Ratio",
     ylabel="Consine Similarity",
     xscale="linear",
     yscale="linear",
-    save: str = None,
+    save:str=None,
+    figsize=(10, 6),
 ):
 
     # Generate a color palette
     palette = sns.color_palette(n_colors=len(datasets))
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=figsize)
 
     for i, (oversampling, data, label) in enumerate(
         zip(oversamplings, datasets, labels)
@@ -204,7 +205,8 @@ def plot_error_bars(
     ax.set_xscale(xscale)
     ax.set_ylabel(ylabel)
     ax.set_yscale(yscale)
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     ax.legend()
 
     if save is not None:
