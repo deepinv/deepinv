@@ -253,7 +253,9 @@ test_dataloader = DataLoader(
 method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
 plot_images = True  # Images are saved in save_folder.
-plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm.
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 
 trainer = dinv.Trainer(

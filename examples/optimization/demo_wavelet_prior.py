@@ -150,7 +150,9 @@ prior = dinv.optim.prior.WaveletPrior(level=4, wv="db8", p=1, device=device)
 
 # Logging parameters
 verbose = True
-plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm.
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 lamb = 0.1  # wavelet regularisation parameter

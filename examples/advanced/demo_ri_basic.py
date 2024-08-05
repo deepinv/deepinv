@@ -314,7 +314,9 @@ from deepinv.optim.optimizers import optim_builder
 # Logging parameters
 verbose = True
 
-plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm.
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)

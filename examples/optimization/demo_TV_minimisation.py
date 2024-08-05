@@ -138,7 +138,9 @@ prior = dinv.optim.prior.TVPrior(n_it_max=20)
 
 # Logging parameters
 verbose = True
-plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm.
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0
