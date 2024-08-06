@@ -622,12 +622,13 @@ class SpaceVaryingBlur(LinearPhysics):
             raise NotImplementedError(
                 "Method not implemented in product-convolution")
 
-    def get_psf(self, centers: Tensor = None):
+    def get_psf(self, centers: Tensor = None, **kwargs):
         r"""
         :param torch.Tensor centers: (B, num_patches, 2)
 
         :return: (num_patches, B, C, psf_size, psf_size)
         """
+        self.update_parameters(**kwargs)
         h = self.filters
         w = self.multipliers
 
