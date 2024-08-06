@@ -1,8 +1,11 @@
-from deepinv.physics.forward import Physics, LinearPhysics
-from deepinv.physics.compressed_sensing import CompressedSensing
-from deepinv.optim.phase_retrieval import spectral_methods
-import torch
+import math
+
 import numpy as np
+import torch
+
+from deepinv.physics.compressed_sensing import CompressedSensing
+from deepinv.physics.forward import Physics, LinearPhysics
+from deepinv.optim.phase_retrieval import compare,merge_order,spectral_methods
 
 
 class PhaseRetrieval(Physics):
@@ -184,23 +187,45 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
         self.shared_weights = shared_weights
         self.drop_tail = drop_tail
 
-        assert (
-            input_shape[1] % 2 == 1 and input_shape[2] % 2 == 1
-        ), "The image should have odd numbers of pixels per edge."
-        self.img_shape = input_shape
+        height_order = compare(input_shape[1:], output_shape[1:])
+        width_order = compare(input_shape[2:], output_shape[2:])
 
-        assert (
-            output_shape[1] % 2 == 1 and output_shape[2] % 2 == 1
-        ), "The output image should have odd numbers of pixels per edge."
-        self.output_shape = output_shape
+        order = merge_order(height_order, width_order)
 
-        if output_shape[1] > input_shape[1]:
+        if order == "<":
             self.mode = "oversampling"
-        elif output_shape[1] < input_shape[1]:
+        elif order == ">":
             self.mode = "undersampling"
-        else:
+        elif order == "=":
             self.mode = "equisampling"
+        else:
+            raise ValueError(f"Does not support different sampling schemes on height and width.")
+        
+        change_top = math.ceil(abs(input_shape[1] - output_shape[1])/2)
+        change_bottom = math.floor(abs(input_shape[1] - output_shape[1])/2)
+        change_left = math.ceil(abs(input_shape[2] - output_shape[2])/2)
+        change_right = math.floor(abs(input_shape[2] - output_shape[2])/2)
+        assert change_top + change_bottom == abs(input_shape[1] - output_shape[1])
+        assert change_left + change_right == abs(input_shape[2] - output_shape[2])
 
+        def padding(tensor: torch.Tensor):
+            return torch.nn.ZeroPad2d((change_left,change_right,change_top,change_bottom))(tensor)
+        self.padding = padding
+
+        def trimming(tensor: torch.Tensor):
+            if change_bottom == 0:
+                tensor = tensor[...,change_top:,:]
+            else:
+                tensor = tensor[...,change_top:-change_bottom,:]
+            if change_right == 0:
+                tensor = tensor[...,change_left:]
+            else:
+                tensor = tensor[...,change_left:-change_right]
+            return tensor
+        self.trimming = trimming
+
+        self.img_shape = input_shape
+        self.output_shape = output_shape
         self.n = torch.prod(torch.tensor(self.img_shape))
         self.m = torch.prod(torch.tensor(self.output_shape))
         self.oversampling_ratio = self.m / self.n
@@ -230,36 +255,28 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
                 self.diagonals.append(diagonal)
 
         def A(x):
-            assert x.shape[1:] == self.img_shape, "x doesn't have the correct shape"
+            assert x.shape[1:] == self.img_shape, f"x doesn't have the correct shape {x.shape[1:]} != {self.img_shape}"
 
             if self.mode == "oversampling":
-                zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
-                x = torch.nn.ZeroPad2d(zero_padding)(x)
+                x = self.padding(x)
 
             if not drop_tail:
-                for i in range(self.n_layers):
-                    diagonal = self.diagonals[i]
-                    x = torch.fft.fft2(x, norm="ortho")
-                    x = diagonal * x
                 x = torch.fft.fft2(x, norm="ortho")
-            else:
-                for i in range(self.n_layers):
-                    diagonal = self.diagonals[i]
-                    x = diagonal * x
-                    x = torch.fft.fft2(x, norm="ortho")
+            for i in range(self.n_layers):
+                diagonal = self.diagonals[i]
+                x = diagonal * x
+                x = torch.fft.fft2(x, norm="ortho")
 
             if self.mode == "undersampling":
-                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
-                x = x[:, :, trimming:-trimming, trimming:-trimming]
+                x = self.trimming(x)
 
             return x
 
         def A_adjoint(y):
-            assert y.shape[1:] == self.output_shape, "y doesn't have the correct shape"
+            assert y.shape[1:] == self.output_shape, f"y doesn't have the correct shape {y.shape[1:]} != {self.output_shape}"
 
             if self.mode == "undersampling":
-                trimming = int((self.img_shape[1] - self.output_shape[1]) / 2)
-                y = torch.nn.ZeroPad2d(trimming)(y)
+                y = self.padding(y)
 
             for i in range(self.n_layers):
                 diagonal = self.diagonals[-i - 1]
@@ -269,8 +286,7 @@ class PseudoRandomPhaseRetrieval(PhaseRetrieval):
                 y = torch.fft.ifft2(y, norm="ortho")
 
             if self.mode == "oversampling":
-                zero_padding = int((self.output_shape[1] - self.img_shape[1]) / 2)
-                y = y[:, :, zero_padding:-zero_padding, zero_padding:-zero_padding]
+                y = self.trimming(y)
 
             return y
 

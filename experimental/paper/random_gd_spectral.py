@@ -28,12 +28,11 @@ model_name = "random"
 recon = "gd_spectral"
 n_repeats = 100
 n_iter = 10000
-oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
-# oversampling_ratios = torch.cat((torch.arange(0.1,4.1,0.1),torch.arange(4.2,9.2,0.4)))
+# oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
+oversampling_ratios = torch.cat((torch.arange(0.1,3.1,0.1),torch.arange(3.5,9.5,0.5)))
 # oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
-step_size = 1e-4
 use_haar = False
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -50,7 +49,7 @@ device
 
 
 # Set up the variable to fetch dataset and operators.
-img_size = 99
+img_size = 64
 url = get_image_url("SheppLogan.png")
 x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
@@ -79,8 +78,10 @@ for i in trange(oversampling_ratios.shape[0]):
     oversampling_ratio = oversampling_ratios[i]
     if oversampling_ratio < 2.0:
         step_size = 1e-4
-    else:
+    elif oversampling_ratio < 3.0:
         step_size = 3e-3
+    else:
+        step_size = 1e-2
     print(f"oversampling_ratio: {oversampling_ratio}")
     df_res.loc[i, "step_size"] = step_size
     params_algo = {

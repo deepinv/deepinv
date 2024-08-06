@@ -27,7 +27,8 @@ model_name = "random"
 recon = "spectral"
 n_repeats = 100
 n_iter = 5000
-oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
+#oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
+oversampling_ratios = torch.cat((torch.arange(0.1,3.1,0.1),torch.arange(3.5,9.5,0.5)))
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
 
@@ -46,7 +47,7 @@ device
 
 
 # Set up the variable to fetch dataset and operators.
-img_size = 99
+img_size = 64
 url = get_image_url("SheppLogan.png")
 x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device

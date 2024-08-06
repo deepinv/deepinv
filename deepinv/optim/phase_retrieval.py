@@ -3,6 +3,25 @@ import pandas as pd
 import seaborn as sns
 import torch
 
+def compare(a:int,b:int):
+    if a > b:
+        return ">"
+    elif a < b:
+        return "<"
+    else:
+        return "="
+
+def merge_order(a:str,b:str):
+    if a == ">" and b == "<":
+        return "!"
+    elif a == "<" and b == ">":
+        return "!"
+    elif a == ">" or b == ">":
+        return ">"
+    elif a == "<" or b == "<":
+        return "<"
+    else:
+        return "="
 
 def default_preprocessing(y, physics):
     return torch.max(1 - 1 / y, torch.tensor(-5.0))
@@ -75,8 +94,8 @@ def spectral_methods(
     x_true=None,
     log: bool = False,
     log_metric=cosine_similarity,
-    early_stop: bool = False,
-    rtol: float = 1e-8,
+    early_stop: bool = True,
+    rtol: float = 1e-5,
 ):
     r"""
     Utility function for spectral methods.
@@ -118,8 +137,6 @@ def spectral_methods(
         if early_stop:
             if torch.linalg.norm(x_new - x) / torch.linalg.norm(x) < rtol:
                 print(f"Power iteration early stopping at iteration {i}.")
-                print(x_new - x)
-                print(x)
                 break
         x = x_new
     x = x * torch.sqrt(y.sum())
@@ -131,7 +148,7 @@ def spectral_methods(
 
 def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
     x = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
-    z = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
+    z = x.detach().clone()
     return {"est": (x, z)}
 
 
