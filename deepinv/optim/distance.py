@@ -53,7 +53,7 @@ class L2Distance(Distance):
 
     def fn(self, x, y, *args, **kwargs):
         r"""
-        Computes the distance :math:`\distance{x}{y}`, i.e.
+        Computes the distance :math:`\distance{x}{y}` i.e.
 
         .. math::
 
