@@ -100,7 +100,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # with a trainable denoising prior based on the DnCNN architecture.
 
 # Select the data fidelity term
-data_fidelity = dinv.optim.L2()
+data_fidelity = dinv.optim.data_fidelity.L2()
 n_channels = 2  # real + imaginary parts
 
 # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each

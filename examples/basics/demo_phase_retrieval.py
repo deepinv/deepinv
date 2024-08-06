@@ -92,7 +92,7 @@ y = physics(x_phase)
 # %%
 # Reconstruction with gradient descent and random initialization
 # ---------------------------------------------------------------
-# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and directly call its ``grad`` method to run a gradient descent algorithm. The initial guess is a random complex signal.
+# First, we use the function :class:`deepinv.optim.data_fidelity.L2` as the data fidelity function, and directly call its ``grad`` method to run a gradient descent algorithm. The initial guess is a random complex signal.
 
 data_fidelity = L2()
 # Step size for the gradient descent

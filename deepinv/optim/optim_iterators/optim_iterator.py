@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.data_fidelity import L2
 
 
 class OptimIterator(nn.Module):

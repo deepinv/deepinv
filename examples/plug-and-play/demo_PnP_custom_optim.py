@@ -114,7 +114,7 @@ class fStepCV(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_data_fidelity.prox_d_conjugate(u, y, gamma=cur_params["sigma"])
+        return cur_data_fidelity.d.prox_conjugate(u, y, gamma=cur_params["sigma"])
 
 
 class gStepCV(gStep):
