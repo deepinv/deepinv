@@ -11,6 +11,7 @@ OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
+    "demosaicing",
     "denoising",
     "colorize",
     "fftdeblur",
@@ -30,12 +31,15 @@ OPERATORS = [
     "aliased_super_resolution",
     "fast_singlepixel",
     "MRI",
+    "DynamicMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
     "pansharpen_reflect",
     "pansharpen_replicate",
     "complex_compressed_sensing",
+    "radio",
+    "radio_weighted",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -84,9 +88,15 @@ def find_operator(name, device):
         norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
+    elif name == "demosaicing":
+        p = dinv.physics.Demosaicing(img_size=img_size, device=device)
+        norm = 1.0
     elif name == "MRI":
         img_size = (2, 16, 8)
-        p = dinv.physics.MRI(mask=torch.ones(img_size[-2], img_size[-1]), device=device)
+        p = dinv.physics.MRI(img_size=img_size, device=device)
+    elif name == "DynamicMRI":
+        img_size = (2, 3, 16, 8)
+        p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
@@ -177,6 +187,46 @@ def find_operator(name, device):
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
+    elif "radio" in name:
+        dtype = torch.complex64
+        img_size = (1, 64, 64)
+        pytest.importorskip(
+            "torchkbnufft",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+
+        # Generate regular grid for sampling
+        y = torch.linspace(-1, 1, img_size[-2])
+        x = torch.linspace(-1, 1, img_size[-1])
+        grid_y, grid_x = torch.meshgrid(y, x)
+        uv = torch.stack((grid_y, grid_x), dim=-1) * torch.pi  # normalize [-pi, pi]
+
+        # Reshape to [nb_points x 2]
+        uv = uv.view(-1, 2)
+        uv = uv.to(device)
+
+        if "weighted" in name:
+            dataWeight = torch.linspace(
+                0.01, 0.99, uv.shape[0], device=device
+            )  # take a non-trivial weight
+        else:
+            dataWeight = torch.tensor(
+                [
+                    1.0,
+                ]
+            )
+
+        p = dinv.physics.RadioInterferometry(
+            img_size=img_size[1:],
+            samples_loc=uv.permute((1, 0)),
+            dataWeight=dataWeight,
+            real_projection=False,
+            dtype=torch.float,
+            device=device,
+            noise_model=dinv.physics.GaussianNoise(0.0),
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
@@ -219,12 +269,16 @@ def test_operators_adjointness(name, device):
     :return: asserts adjointness
     """
     physics, imsize, _, dtype = find_operator(name, device)
+
+    if name == "radio":
+        dtype = torch.complex64
+
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
     if (
-        "pansharpen" in name
+        "pansharpen" in name or "radio" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         return
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
@@ -246,6 +300,9 @@ def test_operators_norm(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts norm is in (.8,1.2)
     """
+    if name == "radio_weighted":  # weighted nufft norm is not tested
+        return
+
     if name == "singlepixel" or name == "CS":
         device = torch.device("cpu")
 
@@ -300,30 +357,91 @@ def test_pseudo_inverse(name, device):
     assert error < 0.01
 
 
-def test_MRI(device):
+@pytest.fixture
+def mri_img_size():
+    return 1, 2, 3, 16, 16  # B, C, T, H, W
+
+
+def test_MRI(mri_img_size, device, rng):
     r"""
-    Test MRI function
+    Test MRI and DynamicMRI functions
 
-    :param name: operator name (see find_operator)
-    :param imsize: (tuple) image size tuple in (C, H, W)
+    Assert mask is applied to physics wherever it is passed.
+
+    :param mri_img_size: (tuple) image size tuple (B, C, T, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :return: asserts error is less than 1e-3
+    :param rng: (torch.Generator)
     """
-    mask = torch.ones((16, 16), device=device)
-    physics = dinv.physics.MRI(mask=mask, device=device, acceleration_factor=4)
-    x = torch.randn((2, 2, 16, 16), device=device)
-    y1 = physics.A(x)
-    x2 = physics.A_adjoint(y1)
-    assert x2.shape == x.shape
 
-    generator = dinv.physics.generator.AccelerationMaskGenerator(
-        (16, 16), device=device
+    for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
+        B, C, T, H, W = mri_img_size
+
+        x, y = (
+            torch.rand(mri_img_size, generator=rng, device=device) + 1,
+            torch.rand(mri_img_size, generator=rng, device=device) + 1,
+        )
+
+        if mri is dinv.physics.MRI:
+            x = x[:, :, 0, :, :]
+            y = y[:, :, 0, :, :]
+
+        for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
+            # Remove time dim for static MRI
+            _mask_size = (
+                mask_size
+                if mri is dinv.physics.DynamicMRI
+                else mask_size[:-3] + mask_size[-2:]
+            )
+
+            mask, mask2 = (
+                torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:]),
+                torch.zeros(_mask_size, device=device) + torch.eye(*_mask_size[-2:]),
+            )
+
+            # Empty mask
+            physics = mri(img_size=x.shape, device=device)
+            y1 = physics(x)
+            x1 = physics.A_adjoint(y)
+            assert torch.sum(y1 == 0) == 0
+            assert torch.sum(x1 == 0) == 0
+
+            # Set mask in constructor
+            physics = mri(mask=mask, device=device)
+            y1 = physics(x)
+            assert torch.all((y1 == 0) == (mask == 0))
+
+            # Set mask in forward
+            y1 = physics(x, mask=mask2)
+            assert torch.all((y1 == 0) == (mask2 == 0))
+
+            # Mask retained in previous forward
+            y1 = physics(x)
+            assert torch.all((y1 == 0) == (mask2 == 0))
+
+            # Set mask via update_parameters
+            physics.update_parameters(mask=mask)
+            y1 = physics(x)
+            assert torch.all((y1 == 0) == (mask == 0))
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_concatenation(name, device):
+    if "pansharpen" in name:  # TODO: fix pansharpening
+        return
+    physics, imsize, _, dtype = find_operator(name, device)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    y = physics(x)
+    physics = (
+        dinv.physics.Inpainting(
+            tensor_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
+        )
+        * physics
     )
-    mask = generator.step(2)
-    y2 = physics.A(x, **mask)
-    if y1.shape == y2.shape:
-        error = (y1.abs() - y2.abs()).flatten().mean().abs()
-        assert error > 0.0
+
+    r = physics.A_adjoint(physics.A(x))
+    y = physics.A(r)
+    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    assert error < 0.01
 
 
 def test_phase_retrieval(device):

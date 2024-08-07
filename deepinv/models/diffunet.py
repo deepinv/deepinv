@@ -264,6 +264,7 @@ class DiffUNet(nn.Module):
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
             self.load_state_dict(ckpt, strict=True)
+            self.eval()
 
     def convert_to_fp16(self):
         """
@@ -785,24 +786,6 @@ class QKVAttention(nn.Module):
     @staticmethod
     def count_flops(model, _x, y):
         return count_flops_attn(model, _x, y)
-
-
-def checkpoint(func, inputs, params, flag):
-    """
-    Evaluate a function without caching intermediate activations, allowing for
-    reduced memory at the expense of extra compute in the backward pass.
-
-    :param func: the function to evaluate.
-    :param inputs: the argument sequence to pass to `func`.
-    :param params: a sequence of parameters `func` depends on but does not
-                   explicitly take as arguments.
-    :param flag: if False, disable gradient checkpointing.
-    """
-    if flag:
-        args = tuple(inputs) + tuple(params)
-        return CheckpointFunction.apply(func, len(inputs), *args)
-    else:
-        return func(*inputs)
 
 
 """

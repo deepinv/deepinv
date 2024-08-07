@@ -1,14 +1,16 @@
+from typing import Optional
+from warnings import warn
 import torch
-from deepinv.physics import Inpainting
-import numpy as np
+from deepinv.physics import Inpainting, Denoising, Physics
 from deepinv.loss.loss import Loss
+from deepinv.physics.generator import PhysicsGenerator, BernoulliSplittingMaskGenerator
 
 
 class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
 
-    Splits the measurement and forward operator (of size :math:`m`)
+    Splits the measurement and forward operator :math:`\forw{}` (of size :math:`m`)
     into two smaller pairs  :math:`(y_1,A_1)` (of size :math:`m_1`) and  :math:`(y_2,A_2)` (of size :math:`m_2`) ,
     to compute the self-supervised loss:
 
@@ -16,26 +18,86 @@ class SplittingLoss(Loss):
 
         \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2
 
-    where :math:`R` is the trainable network. See https://pubmed.ncbi.nlm.nih.gov/32614100/.
+    where :math:`R` is the trainable network, :math:`A_1 = M_1 \forw{}, A_2 = M_2 \forw{}`, and :math:`M_i` are randomly generated masks (i.e. diagonal matrices) such that :math:`M_1+M_2=\mathbb{I}_m`.
+
+    .. note::
+
+        If the forward operator has its own subsampling mask :math:`M_{\forw{}}`, e.g. :class:`deepinv.physics.Inpainting` or :class:`deepinv.physics.MRI`,
+        the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
+
+    This loss was used in SSDU for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
+
+    .. warning::
+
+        The model should be adapted before training using the method :meth:`adapt_model` to include the splitting mechanism at the input.
+
+    .. note::
+
+        To obtain the best test performance, the trained model should be averaged at test time
+        over multiple realizations of the splitting, i.e.
+        :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`. To disable this, set ``MC_samples=1``.
+
+    .. note::
+
+        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=True``. This is done in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
 
     :param torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
         with the splitting ratio.
-    :param bool regular_mask: If ``True``, it will use a regular mask, otherwise it uses a random mask.
+    :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
+        None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used.
+    :param int MC_samples: Number of samples used for averaging. Must be greater than 0.
+    :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)
+    :param bool eval_split_output: at evaluation time, pass the output through the output mask too.
+        i.e. :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.
+        Only valid when y is same domain (and dimension) as x. Defaults to False.
+    :param bool pixelwise: if True, create pixelwise splitting masks i.e. zero all channels simultaneously.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.Inpainting(tensor_size=(1, 8, 8), mask=0.5)
+    >>> model = dinv.models.MedianFilter()
+    >>> loss = dinv.loss.SplittingLoss(split_ratio=0.9, MC_samples=2)
+    >>> model = loss.adapt_model(model) # important step!
+    >>> x = torch.ones((1, 1, 8, 8))
+    >>> y = physics(x)
+    >>> x_net = model(y, physics, update_parameters=True) # save random mask in forward pass
+    >>> l = loss(x_net, y, physics, model)
+    >>> print(l.item() > 0)
+    True
+
+
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), split_ratio=0.9, regular_mask=False):
+    def __init__(
+        self,
+        metric=torch.nn.MSELoss(),
+        split_ratio: float = 0.9,
+        mask_generator: Optional[PhysicsGenerator] = None,
+        MC_samples=5,
+        eval_split_input=True,
+        eval_split_output=False,
+        pixelwise=True,
+    ):
         super().__init__()
         self.name = "ms"
         self.metric = metric
-        self.regular_mask = regular_mask
+        self.mask_generator = mask_generator
         self.split_ratio = split_ratio
+        self.MC_samples = MC_samples
+        self.eval_split_input = eval_split_input
+        self.eval_split_output = eval_split_output
+        self.pixelwise = pixelwise
 
-    def forward(self, y, physics, model, **kwargs):
+    def forward(self, x_net, y, physics, model, **kwargs):
         r"""
         Computes the measurement splitting loss
 
@@ -44,33 +106,172 @@ class SplittingLoss(Loss):
         :param torch.nn.Module model: Reconstruction function.
         :return: (torch.Tensor) loss.
         """
-        tsize = y.size()[1:]
-
-        # sample a splitting
-        mask = torch.ones(tsize).to(y.device)
-        if not self.regular_mask:
-            mask[torch.rand_like(mask) > self.split_ratio] = 0
-        else:
-            stride = int(1 / (1 - self.split_ratio))
-            start = np.random.randint(stride)
-            mask[..., start::stride, start::stride] = 0.0
+        mask = model.get_mask()
 
         # create inpainting masks
-        inp = Inpainting(tsize, mask, device=y.device)
-        inp2 = Inpainting(tsize, 1 - mask, device=y.device)
+        mask2 = getattr(physics, "mask", 1.0) - mask
+        inp2 = Inpainting(y.size()[1:], mask=mask2, device=y.device)
 
         # concatenate operators
-        physics1 = inp * physics  # A_1 = P*A
         physics2 = inp2 * physics  # A_2 = (I-P)*A
+        physics2.noise_model = physics.noise_model
 
         # divide measurements
-        y1 = inp.A(y)
         y2 = inp2.A(y)
 
-        loss_ms = self.metric(physics2.A(model(y1, physics1)), y2)
-        loss_ms /= 1 - self.split_ratio  # normalize loss
+        loss_ms = self.metric(physics2.A(x_net), y2)
+
+        loss_ms = loss_ms / mask2.mean()  # normalize loss
 
         return loss_ms
+
+    def adapt_model(self, model: torch.nn.Module, MC_samples=None):
+        r"""
+        Apply random splitting to input.
+
+        This method modifies a reconstruction
+        model :math:`R` to include the splitting mechanism at the input:
+
+        .. math::
+
+            \hat{R}(y, A) = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}
+
+        where :math:`N\geq 1` is the number of Monte Carlo samples,
+        and :math:`y_1^{(i)}` and :math:`A_1^{(i)}` are obtained by
+        randomly splitting the measurements :math:`y` and operator :math:`A`.
+        During training (i.e. when ``model.train()``), we use only one sample, i.e. :math:`N=1`
+        for computational efficiency, whereas at test time, we use multiple samples for better performance.
+        For other parameters that control how splitting is applied, see the class parameters.
+
+        :param torch.nn.Module model: Reconstruction model.
+        :param int MC_samples: deprecated. Pass ``MC_samples`` at class initialisation instead.
+        :return: (torch.nn.Module) Model modified for evaluation.
+        """
+        if MC_samples is not None:
+            warn(
+                "MC_samples parameter is deprecated. Pass MC_samples at init: SplittingLoss(MC_samples=...)"
+            )
+
+        if isinstance(model, SplittingModel):
+            return model
+        else:
+            return SplittingModel(
+                model,
+                split_ratio=self.split_ratio,
+                mask_generator=self.mask_generator,
+                MC_samples=self.MC_samples,
+                eval_split_input=self.eval_split_input,
+                eval_split_output=self.eval_split_output,
+                pixelwise=self.pixelwise,
+            )
+
+
+class SplittingModel(torch.nn.Module):
+    """
+    Model wrapper when using SplittingLoss.
+
+    Performs input splitting during forward pass. At evaluation, perform forward passes for multiple realisations of splitting mask and average.
+
+    For parameters, see :class:`deepinv.loss.SplittingLoss`
+    """
+
+    def __init__(
+        self,
+        model,
+        split_ratio,
+        mask_generator,
+        MC_samples,
+        eval_split_input,
+        eval_split_output,
+        pixelwise,
+    ):
+        super().__init__()
+        self.model = model
+        self.split_ratio = split_ratio
+        self.MC_samples = MC_samples
+        self.mask = 0
+        self.mask_generator = mask_generator
+        self.eval_split_input = eval_split_input
+        self.eval_split_output = eval_split_output
+        self.pixelwise = pixelwise
+
+    def forward(
+        self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
+    ):
+        """Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency."""
+        out = 0
+
+        if self.mask_generator is None:
+            self.mask_generator = BernoulliSplittingMaskGenerator(
+                tensor_size=y.size()[1:],
+                split_ratio=self.split_ratio,
+                pixelwise=self.pixelwise,
+                device=y.device,
+            )
+
+        inp = Inpainting(y.size()[1:], device=y.device)
+
+        with torch.set_grad_enabled(self.training):
+
+            if not self.eval_split_input and not self.training:
+                return self.model(y, physics)
+            elif self.eval_split_output and self.eval_split_input and not self.training:
+                return self._forward_split_output(y, physics)
+
+            else:
+                MC_samples = 1 if self.training else self.MC_samples
+
+                for _ in range(MC_samples):
+                    # Perform input masking
+                    mask = self.mask_generator.step(
+                        y.size(0), input_mask=getattr(physics, "mask", None)
+                    )
+                    y1 = inp.A(y, **mask)
+                    physics1 = inp * physics  # A_1 = P*A
+                    physics1.noise_model = physics.noise_model
+
+                    # Forward pass
+                    out += self.model(y1, physics1) / MC_samples
+
+            if self.training and update_parameters:
+                self.mask = mask["mask"]
+
+        return out
+
+    def _forward_split_output(self, y: torch.Tensor, physics: Physics):
+        """Perform splitting at model output too, only at eval time"""
+        out = 0
+        normaliser = torch.zeros_like(y)
+        inp = Inpainting(y.size()[1:], device=y.device)
+
+        for _ in range(self.MC_samples):
+            # Perform input masking
+            mask = self.mask_generator.step(
+                y.size(0), input_mask=getattr(physics, "mask", None)
+            )
+            y1 = inp.A(y, **mask)
+            physics1 = inp * physics  # A_1 = P*A
+            physics1.noise_model = physics.noise_model
+
+            # Forward pass
+            x_hat = self.model(y1, physics1)
+
+            # Output masking
+            mask2 = getattr(physics, "mask", 1.0) - mask["mask"]
+            inp2 = Inpainting(y.size()[1:], mask=mask2, device=y.device)
+            out += inp2.A(x_hat)
+            normaliser += mask2
+
+        out[normaliser != 0] /= normaliser[normaliser != 0]
+
+        return out
+
+    def get_mask(self):
+        if not isinstance(self.mask, torch.Tensor):
+            raise ValueError(
+                "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
+            )
+        return self.mask
 
 
 class Neighbor2Neighbor(Loss):
@@ -190,31 +391,35 @@ class Neighbor2Neighbor(Loss):
         return loss_n2n
 
 
-# if __name__ == "__main__":
-#     import deepinv as dinv
-#
-#     sigma = 0.1
-#     physics = dinv.physics.Denoising()
-#     physics.noise_model = dinv.physics.GaussianNoise(sigma)
-#
-#     # choose a reconstruction architecture
-#     backbone = dinv.models.MedianFilter()
-#     f = dinv.models.ArtifactRemoval(backbone)
-#     batch_size = 1
-#     imsize = (3, 128, 128)
-#
-#     for split_ratio in np.linspace(0.7, 0.99, 10):
-#         x = torch.ones((batch_size,) + imsize, device=dinv.device)
-#         y = physics(x)
-#
-#         # choose training losses
-#         loss = SplittingLoss(split_ratio=split_ratio, regular_mask=True)
-#         x_net = f(y, physics)
-#         mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
-#         split_loss = loss(y, physics, f)
-#
-#         print(
-#             f"split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}"
-#         )
-#         rel_error = (split_loss - mse).abs() / mse
-#         print(f"rel_error: {rel_error:.2f}")
+if __name__ == "__main__":
+    import deepinv as dinv
+    import torch
+    import numpy as np
+
+    sigma = 0.1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+    # choose a reconstruction architecture
+    backbone = dinv.models.MedianFilter()
+    f = dinv.models.ArtifactRemoval(backbone)
+    # choose training losses
+    split_ratio = 0.9
+    loss = SplittingLoss(split_ratio=split_ratio)
+    f = loss.adapt_model(f, MC_samples=2)  # important step!
+
+    batch_size = 1
+    imsize = (3, 128, 128)
+    device = "cuda"
+
+    x = torch.ones((batch_size,) + imsize, device=device)
+    y = physics(x)
+
+    x_net = f(y, physics)
+    mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
+    split_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
+
+    print(
+        f"split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}"
+    )
+    rel_error = (split_loss - mse).abs() / mse
+    print(f"rel_error: {rel_error:.2f}")

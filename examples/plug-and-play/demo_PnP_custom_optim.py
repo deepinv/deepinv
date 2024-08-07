@@ -218,7 +218,6 @@ denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
     pretrained="download_lipschitz",
-    train=False,
     device=device,
 )
 prior = PnP(denoiser=denoiser)

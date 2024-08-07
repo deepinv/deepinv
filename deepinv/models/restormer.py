@@ -80,118 +80,118 @@ class Restormer(nn.Module):
         dual_pixel_task: bool = False,
         pretrained: Optional[str] = "denoising",
         device: Optional[torch.device] = None,
-        train=False,
     ) -> None:
         super(Restormer, self).__init__()
 
         # stores the filename of pretrained weights, used later in the code to download the pth file from the HuggingFace Hub
         weights_pth_filename = None
         # When loading pretrained weights from HuggingFace Hub, we check if our model is compatible with the weights.
-        if pretrained == "denoising":
-            self.is_standard_denoising_network(
-                in_channels,
-                out_channels,
-                dim,
-                num_blocks,
-                num_refinement_blocks,
-                heads,
-                ffn_expansion_factor,
-                bias,
-                LayerNorm_type,
-                dual_pixel_task,
-            )
-            if in_channels == 1:
-                weights_pth_filename = "gaussian_gray_denoising_blind.pth"
-            elif in_channels == 3:
-                weights_pth_filename = "gaussian_color_denoising_blind.pth"
-        elif pretrained == "denoising_real":
-            self.is_standard_denoising_network(
-                in_channels,
-                out_channels,
-                dim,
-                num_blocks,
-                num_refinement_blocks,
-                heads,
-                ffn_expansion_factor,
-                bias,
-                LayerNorm_type,
-                dual_pixel_task,
-            )
-            assert (
-                in_channels == 3
-            ), f"Real denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
-            weights_pth_filename = "real_denoising.pth"
-        elif pretrained == "denoising_gray":
-            self.is_standard_denoising_network(
-                in_channels,
-                out_channels,
-                dim,
-                num_blocks,
-                num_refinement_blocks,
-                heads,
-                ffn_expansion_factor,
-                bias,
-                LayerNorm_type,
-                dual_pixel_task,
-            )
-            assert (
-                in_channels == 1
-            ), f"Real denoising / EXPECTED in_channels == 1, INSTEAD of {in_channels}"
-            weights_pth_filename = "gaussian_gray_denoising_blind.pth"
-        elif pretrained == "denoising_color":
-            self.is_standard_denoising_network(
-                in_channels,
-                out_channels,
-                dim,
-                num_blocks,
-                num_refinement_blocks,
-                heads,
-                ffn_expansion_factor,
-                bias,
-                LayerNorm_type,
-                dual_pixel_task,
-            )
-            assert (
-                in_channels == 3
-            ), f"Color denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
-            weights_pth_filename = "gaussian_color_denoising_blind.pth"
-        elif pretrained == "deraining":
-            self.is_standard_deraining_network(
-                in_channels,
-                out_channels,
-                dim,
-                num_blocks,
-                num_refinement_blocks,
-                heads,
-                ffn_expansion_factor,
-                bias,
-                LayerNorm_type,
-                dual_pixel_task,
-            )
-            weights_pth_filename = "deraining.pth"
-        elif pretrained == "defocus_deblurring":
-            self.is_standard_deblurring_network(
-                in_channels,
-                out_channels,
-                dim,
-                num_blocks,
-                num_refinement_blocks,
-                heads,
-                ffn_expansion_factor,
-                bias,
-                LayerNorm_type,
-                dual_pixel_task,
-            )
-            if dual_pixel_task:
-                assert (
-                    in_channels == 6
-                ), f"Dual defocus deblurring / EXPECTED in_channels == 6, INSTEAD of {in_channels}"
-                weights_pth_filename = "dual_pixel_defocus_deblurring.pth"
-            else:
+        if pretrained is not None:
+            if pretrained == "denoising":
+                self.is_standard_denoising_network(
+                    in_channels,
+                    out_channels,
+                    dim,
+                    num_blocks,
+                    num_refinement_blocks,
+                    heads,
+                    ffn_expansion_factor,
+                    bias,
+                    LayerNorm_type,
+                    dual_pixel_task,
+                )
+                if in_channels == 1:
+                    weights_pth_filename = "gaussian_gray_denoising_blind.pth"
+                elif in_channels == 3:
+                    weights_pth_filename = "gaussian_color_denoising_blind.pth"
+            elif "denoising_real" in pretrained:
+                self.is_standard_denoising_network(
+                    in_channels,
+                    out_channels,
+                    dim,
+                    num_blocks,
+                    num_refinement_blocks,
+                    heads,
+                    ffn_expansion_factor,
+                    bias,
+                    LayerNorm_type,
+                    dual_pixel_task,
+                )
                 assert (
                     in_channels == 3
-                ), f"Single defocus deblurring / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
-                weights_pth_filename = "single_image_defocus_deblurring.pth"
+                ), f"Real denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                weights_pth_filename = "real_denoising.pth"
+            elif "denoising_gray" in pretrained:
+                self.is_standard_denoising_network(
+                    in_channels,
+                    out_channels,
+                    dim,
+                    num_blocks,
+                    num_refinement_blocks,
+                    heads,
+                    ffn_expansion_factor,
+                    bias,
+                    LayerNorm_type,
+                    dual_pixel_task,
+                )
+                assert (
+                    in_channels == 1
+                ), f"Real denoising / EXPECTED in_channels == 1, INSTEAD of {in_channels}"
+                weights_pth_filename = "gaussian_gray_denoising_blind.pth"
+            elif "denoising_color" in pretrained:
+                self.is_standard_denoising_network(
+                    in_channels,
+                    out_channels,
+                    dim,
+                    num_blocks,
+                    num_refinement_blocks,
+                    heads,
+                    ffn_expansion_factor,
+                    bias,
+                    LayerNorm_type,
+                    dual_pixel_task,
+                )
+                assert (
+                    in_channels == 3
+                ), f"Color denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                weights_pth_filename = "gaussian_color_denoising_blind.pth"
+            elif pretrained == "deraining":
+                self.is_standard_deraining_network(
+                    in_channels,
+                    out_channels,
+                    dim,
+                    num_blocks,
+                    num_refinement_blocks,
+                    heads,
+                    ffn_expansion_factor,
+                    bias,
+                    LayerNorm_type,
+                    dual_pixel_task,
+                )
+                weights_pth_filename = "deraining.pth"
+            elif pretrained == "defocus_deblurring":
+                self.is_standard_deblurring_network(
+                    in_channels,
+                    out_channels,
+                    dim,
+                    num_blocks,
+                    num_refinement_blocks,
+                    heads,
+                    ffn_expansion_factor,
+                    bias,
+                    LayerNorm_type,
+                    dual_pixel_task,
+                )
+                if dual_pixel_task:
+                    assert (
+                        in_channels == 6
+                    ), f"Dual defocus deblurring / EXPECTED in_channels == 6, INSTEAD of {in_channels}"
+                    weights_pth_filename = "dual_pixel_defocus_deblurring.pth"
+                else:
+                    assert (
+                        in_channels == 3
+                    ), f"Single defocus deblurring / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                    weights_pth_filename = "single_image_defocus_deblurring.pth"
 
         self.patch_embed = OverlapPatchEmbed(in_channels, dim)
 
@@ -335,7 +335,8 @@ class Restormer(nn.Module):
             ckpt_restormer = torch.load(
                 pretrained, map_location=lambda storage, loc: storage
             )
-            self.load_state_dict(ckpt_restormer, strict=True)
+            self.load_state_dict(ckpt_restormer["params"], strict=True)
+            self.eval()
         elif weights_pth_filename is not None:
             print(f"Loading from {weights_pth_filename}")
             url = get_weights_url(
@@ -347,10 +348,9 @@ class Restormer(nn.Module):
                 file_name=weights_pth_filename,
             )
             self.load_state_dict(ckpt_restormer["params"], strict=True)
+            self.eval()
         elif pretrained is not None:
             raise ValueError(f"pretrained value error, {pretrained}")
-
-        self.training = train
 
         if device is not None:
             self.to(device)

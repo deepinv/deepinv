@@ -31,7 +31,8 @@ class EILoss(Loss):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
-    :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``True``.
+    :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
+        This option is useful for super-resolution problems, see https://arxiv.org/abs/2312.11232.
     """
 
     def __init__(
@@ -40,7 +41,7 @@ class EILoss(Loss):
         metric=torch.nn.MSELoss(),
         apply_noise=True,
         weight=1.0,
-        no_grad=True,
+        no_grad=False,
     ):
         super(EILoss, self).__init__()
         self.name = "ei"
@@ -61,8 +62,12 @@ class EILoss(Loss):
         """
 
         if self.no_grad:
+            # NOTE: Calling both torch.no_grad() and detach() is not redundant.
+            # One avoids unnecessary computations and makes the code more efficient
+            # while the other ensures that x2 is marked as a leaf in the computational graph.
             with torch.no_grad():
                 x2 = self.T(x_net)
+                x2 = x2.detach()
         else:
             x2 = self.T(x_net)
 

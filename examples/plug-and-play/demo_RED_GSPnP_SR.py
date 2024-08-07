@@ -76,6 +76,7 @@ p = dinv.physics.Downsampling(
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
+
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
 measurement_dir = DATA_DIR / dataset_name / operation
 dinv_dataset_path = dinv.datasets.generate_dataset(
@@ -140,9 +141,7 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
-)
+prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download").to(device))
 
 
 # we want to output the intermediate PGD update to finish with a denoising step.
@@ -165,6 +164,10 @@ model = optim_builder(
     get_output=custom_output,
     verbose=True,
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem.

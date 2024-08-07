@@ -183,7 +183,7 @@ class Downsampling(LinearPhysics):
         super().__init__(**kwargs)
         self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
-        assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
+        # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
         self.imsize = img_size
         self.padding = padding
         if isinstance(filter, torch.nn.Parameter):
@@ -342,9 +342,9 @@ class Blur(LinearPhysics):
 
     def __init__(self, filter=None, padding="valid", device="cpu", **kwargs):
         super().__init__(**kwargs)
+        self.device = device
         self.padding = padding
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
+        self.update_parameters(filter)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -355,8 +355,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter)
 
         return conv2d(x, self.filter, self.padding)
 
@@ -369,11 +368,23 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter)
 
         return conv_transpose2d(y, self.filter, self.padding)
+
+    def update_parameters(self, filter=None, **kwargs):
+        r"""
+        Updates the current filter.
+
+        :param torch.Tensor filter: New filter to be applied to the input image.
+        """
+        if filter is not None:
+            self.filter = torch.nn.Parameter(
+                filter.to(self.device), requires_grad=False
+            )
+
+        if hasattr(self.noise_model, "update_parameters"):
+            self.noise_model.update_parameters(**kwargs)
 
 
 class BlurFFT(DecomposablePhysics):
@@ -417,32 +428,18 @@ class BlurFFT(DecomposablePhysics):
                   [0.0000, 0.0000, 0.0000]]]])
     """
 
-    def __init__(self, img_size, filter, device="cpu", **kwargs):
+    def __init__(self, img_size, filter=None, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.device = device
         self.img_size = img_size
-        self.set_mask(filter)
-
-    def set_mask(self, filter):
-        if self.img_size[0] > filter.shape[1]:
-            filter = filter.repeat(1, self.img_size[0], 1, 1)
-        self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
-
-        mask = filter_fft_2d(filter, self.img_size).to(self.device)
-        self.angle = torch.angle(mask)
-        self.angle = torch.exp(-1.0j * self.angle).to(self.device)
-        mask = torch.abs(mask).unsqueeze(-1)
-        mask = torch.cat([mask, mask], dim=-1)
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
-        if filter is not None:
-            self.set_mask(filter)
+        self.update_parameters(filter)
         return super().A(x)
 
     def A_adjoint(self, x, filter=None, **kwargs):
-        if filter is not None:
-            self.set_mask(filter)
+        self.update_parameters(filter)
         return super().A_adjoint(x)
 
     def V_adjoint(self, x):
@@ -464,6 +461,29 @@ class BlurFFT(DecomposablePhysics):
 
     def V(self, x):
         return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
+
+    def update_parameters(self, filter=None, **kwargs):
+        r"""
+        Updates the current filter.
+
+        :param torch.Tensor filter: New filter to be applied to the input image.
+        """
+        if filter is not None:
+            if self.img_size[0] > filter.shape[1]:
+                filter = filter.repeat(1, self.img_size[0], 1, 1)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                self.device
+            )
+
+            mask = filter_fft_2d(filter, self.img_size).to(self.device)
+            self.angle = torch.angle(mask)
+            self.angle = torch.exp(-1.0j * self.angle).to(self.device)
+            mask = torch.abs(mask).unsqueeze(-1)
+            mask = torch.cat([mask, mask], dim=-1)
+            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+
+        if hasattr(self.noise_model, "update_parameters"):
+            self.noise_model.update_parameters(**kwargs)
 
 
 class SpaceVaryingBlur(LinearPhysics):
@@ -513,15 +533,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
-            self.set_params(filters, multipliers, padding)
-
-    def set_params(self, filters, multipliers, padding):
-        if filters is not None:
-            self.filters = torch.nn.Parameter(filters, requires_grad=False)
-        if multipliers is not None:
-            self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
-        if padding is not None:
-            self.padding = padding
+            self.update_parameters(filters, multipliers, padding)
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
@@ -540,7 +552,7 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            self.set_params(filters, multipliers, padding)
+            self.update_parameters(filters, multipliers, padding)
 
             return product_convolution2d(
                 x, self.multipliers, self.filters, self.padding
@@ -565,10 +577,25 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            self.set_params(filters, multipliers, padding)
+            self.update_parameters(filters, multipliers, padding)
 
             return product_convolution2d_adjoint(
                 y, self.multipliers, self.filters, self.padding
             )
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
+
+    def update_parameters(self, filters=None, multipliers=None, padding=None, **kwargs):
+        r"""
+        Updates the current parameters.
+
+        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+        """
+        if filters is not None:
+            self.filters = torch.nn.Parameter(filters, requires_grad=False)
+        if multipliers is not None:
+            self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
+        if padding is not None:
+            self.padding = padding

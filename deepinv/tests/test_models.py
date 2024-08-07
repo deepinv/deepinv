@@ -86,7 +86,7 @@ def choose_denoiser(name, imsize):
     else:
         raise Exception("Unknown denoiser")
 
-    return out
+    return out.eval()
 
 
 def test_TVs_adjoint():
@@ -125,9 +125,8 @@ def test_TVs_adjoint():
 def test_wavelet_adjoints():
     pytest.importorskip(
         "ptwt",
-        reason="This test requires pytorch_wavelets. It should be "
-        "installed with `pip install "
-        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        reason="This test requires ptwt. It should be "
+        "installed with `pip install ptwt`",
     )
 
     torch.manual_seed(0)
@@ -256,7 +255,6 @@ def test_TV_models_identity():
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     model = choose_denoiser(denoiser, imsize).to(device)
-
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
@@ -286,9 +284,11 @@ def test_equivariant(imsize, device):
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
-    model = dinv.models.EquivariantDenoiser(
-        model, transform="rotoflips", random=True
-    ).to(device)
+    model = (
+        dinv.models.EquivariantDenoiser(model, transform="rotoflips", random=True)
+        .to(device)
+        .eval()
+    )
 
     torch.manual_seed(0)
     sigma = 0.2
@@ -342,7 +342,7 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 def test_drunet_inputs(imsize_1_channel, device):
     f = dinv.models.DRUNet(
         in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
-    )
+    ).eval()
 
     torch.manual_seed(0)
     sigma = 0.2
@@ -540,6 +540,19 @@ def test_optional_dependencies(denoiser, dep):
     klass = getattr(dinv.models, denoiser)
     with pytest.raises(ImportError, match=f"pip install .*{dep}"):
         klass()
+
+
+def test_icnn(device):
+    from deepinv.models import ICNN
+
+    model = ICNN(in_channels=3, device=device)
+    torch.manual_seed(0)
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+    x = torch.ones((1, 3, 128, 128), device=device)
+    y = physics(x)
+    potential = model(y)
+    grad = model.grad(y)
+    assert grad.shape == x.shape
 
 
 # def test_dip(imsize, device): TODO: fix this test

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
-LOSSES = ["sup", "mcei", "mcei-scale", "r2r"]
+LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
 
 
@@ -42,8 +42,16 @@ def choose_loss(loss_name):
     elif loss_name == "mcei-scale":
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Scale()))
+    elif loss_name == "mcei-homography":
+        pytest.importorskip(
+            "kornia",
+            reason="This test requires kornia. It should be "
+            "installed with `pip install kornia`",
+        )
+        loss.append(dinv.loss.MCLoss())
+        loss.append(dinv.loss.EILoss(dinv.transform.Homography()))
     elif loss_name == "splittv":
-        loss.append(dinv.loss.SplittingLoss(regular_mask=True, split_ratio=0.25))
+        loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
         loss.append(dinv.loss.ScoreLoss(1.0))
@@ -92,7 +100,7 @@ def test_sure(noise_type, device):
 
     # choose noise
     torch.manual_seed(0)  # for reproducibility
-    physics = dinv.physics.Denoising(noise=noise)
+    physics = dinv.physics.Denoising(noise)
 
     batch_size = 1
     x = torch.ones((batch_size,) + imsize, device=device)
@@ -258,10 +266,14 @@ def test_measplit(device):
     y = physics(x)
 
     # choose training losses
-    loss = dinv.loss.SplittingLoss(split_ratio=0.5, regular_mask=True)
-    split_loss = loss(y, physics, f)
-
     loss = dinv.loss.Neighbor2Neighbor()
-    n2n_loss = loss(y, physics, f)
+    n2n_loss = loss(y=y, physics=physics, model=f)
+
+    loss = dinv.loss.SplittingLoss(split_ratio=0.5)
+    f = loss.adapt_model(f)
+    x_net = f(y, physics, update_parameters=True)
+    split_loss = loss(x_net=x_net, y=y, physics=physics, model=f)
+    f.eval()
+    x_net2 = f(y, physics)
 
     assert split_loss > 0 and n2n_loss > 0

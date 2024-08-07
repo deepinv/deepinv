@@ -92,6 +92,9 @@ The following example shows how operators and their parameter can be instantiate
    >>> # default usage
    >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
    >>> y = physics(x)
+   >>> theta2 = torch.randn((1, 1, 2, 2)) # a random 2x2 filter
+   >>> physics.update_parameters(filter=theta2)
+   >>> y2 = physics(x)
    >>>
    >>> # A second possibility
    >>> physics = Blur() # a blur operator without convolution filter
@@ -138,7 +141,7 @@ it is possible to sum generators as follows:
 .. doctest::
 
     >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
-    ...    + dinv.physics.generator.AccelerationMaskGenerator((32, 32))
+    ...    + dinv.physics.generator.RandomMaskGenerator((32, 32))
     >>> params = mask_generator.step(batch_size=4)
     >>> print(sorted(params.keys()))
     ['mask', 'sigma']
@@ -170,6 +173,16 @@ Pixelwise operators operate in the pixel domain and are used for denoising, inpa
    deepinv.physics.Denoising
    deepinv.physics.Inpainting
    deepinv.physics.Decolorize
+   deepinv.physics.Demosaicing
+
+For random inpainting we also provide generators to create random masks on-the-fly. These can also be used as splitting masks for :class:`deepinv.loss.SplittingLoss`
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.BernoulliSplittingMaskGenerator
 
 Blur & Super-Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -210,7 +223,7 @@ deblurring networks.
 
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
+In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
 
 .. autosummary::
    :toctree: stubs
@@ -218,16 +231,20 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    :nosignatures:
 
    deepinv.physics.MRI
+   deepinv.physics.DynamicMRI
 
 
-We provide generators for sampling acceleration masks:
+We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.physics.generator.AccelerationMaskGenerator
+   deepinv.physics.generator.BaseMaskGenerator
+   deepinv.physics.generator.GaussianMaskGenerator
+   deepinv.physics.generator.RandomMaskGenerator
+   deepinv.physics.generator.EquispacedMaskGenerator
 
 Tomography 
 ^^^^^^^^^^
@@ -267,6 +284,19 @@ Compressive operators are implemented in the following classes:
 
    deepinv.physics.CompressedSensing
    deepinv.physics.SinglePixelCamera
+
+
+Radio interferometric imaging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The radio interferometric imaging operator is implemented in the following class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.RadioInterferometry
 
 
 Single-photon lidar

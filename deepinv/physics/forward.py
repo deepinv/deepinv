@@ -248,6 +248,24 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
+    def update(self, **kwargs):
+        r"""
+        Update the parameters of the forward operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        if hasattr(self, "update_parameters"):
+            self.update_parameters(**kwargs)
+        else:
+            raise NotImplementedError(
+                "update_parameters method not implemented for this physics operator"
+            )
+
+        # if self.noise_model is not None:
+        # check if noise model has a method named update_parameters
+        if hasattr(self.noise_model, "update_parameters"):
+            self.noise_model.update_parameters(**kwargs)
+
 
 class LinearPhysics(Physics):
     r"""
@@ -469,7 +487,7 @@ class LinearPhysics(Physics):
             tol=self.tol,
         )
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True):
+    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
 
@@ -488,8 +506,8 @@ class LinearPhysics(Physics):
         x /= torch.norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
-            y = self.A(x)
-            y = self.A_adjoint(y)
+            y = self.A(x, **kwargs)
+            y = self.A_adjoint(y, **kwargs)
             z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
@@ -503,7 +521,7 @@ class LinearPhysics(Physics):
 
         return z.real
 
-    def adjointness_test(self, u):
+    def adjointness_test(self, u, **kwargs):
         r"""
         Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
 
@@ -513,18 +531,18 @@ class LinearPhysics(Physics):
 
         """
         u_in = u  # .type(self.dtype)
-        Au = self.A(u_in)
+        Au = self.A(u_in, **kwargs)
 
         if isinstance(Au, tuple) or isinstance(Au, list):
             V = [randn_like(au) for au in Au]
-            Atv = self.A_adjoint(V)
+            Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
             for au, v in zip(Au, V):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:
             v = randn_like(Au)
-            Atv = self.A_adjoint(v)
+            Atv = self.A_adjoint(v, **kwargs)
 
             s1 = (v.conj() * Au).flatten().sum()
 
@@ -532,7 +550,7 @@ class LinearPhysics(Physics):
 
         return s1.conj() - s2
 
-    def prox_l2(self, z, y, gamma):
+    def prox_l2(self, z, y, gamma, **kwargs):
         r"""
         Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
 
@@ -546,8 +564,8 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) estimated signal tensor
 
         """
-        b = self.A_adjoint(y) + 1 / gamma * z
-        H = lambda x: self.A_adjoint(self.A(x)) + 1 / gamma * x
+        b = self.A_adjoint(y, **kwargs) + 1 / gamma * z
+        H = lambda x: self.A_adjoint(self.A(x, **kwargs), **kwargs) + 1 / gamma * x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
@@ -647,10 +665,8 @@ class DecomposablePhysics(LinearPhysics):
         self._U = U
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
-        self.mask = torch.nn.Parameter(
-            torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask,
-            requires_grad=False,
-        )
+        mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
+        self.mask = mask
 
     def A(self, x, mask=None, **kwargs):
         r"""
@@ -664,8 +680,8 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
 
         """
-        if mask is not None:
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+
+        self.update_parameters(mask=mask, **kwargs)
 
         return self.U(self.mask * self.V_adjoint(x))
 
@@ -681,8 +697,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) output tensor
         """
 
-        if mask is not None:
-            self.mask = mask
+        self.update_parameters(mask=mask, **kwargs)
 
         if isinstance(self.mask, float):
             mask = self.mask
@@ -722,7 +737,7 @@ class DecomposablePhysics(LinearPhysics):
         x = self.V(self.V_adjoint(b) / scaling)
         return x
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y, mask=None, **kwargs):
         r"""
         Computes :math:`A^{\dagger}y = x` in an efficient manner leveraging the singular vector decomposition.
 
@@ -730,6 +745,9 @@ class DecomposablePhysics(LinearPhysics):
         :return: (torch.Tensor) The reconstructed image :math:`x`.
 
         """
+
+        # TODO should this happen here or at the end of A_dagger?
+        self.update_parameters(mask=mask, **kwargs)
 
         # avoid division by singular value = 0
 
@@ -740,6 +758,15 @@ class DecomposablePhysics(LinearPhysics):
             mask = 1 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the singular values of the operator.
+
+        """
+        for key, value in kwargs.items():
+            if value is not None and hasattr(self, key):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
 class Denoising(DecomposablePhysics):
@@ -760,8 +787,7 @@ class Denoising(DecomposablePhysics):
         >>> from deepinv.physics import Denoising, GaussianNoise
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = Denoising()
-        >>> physics.noise_model = GaussianNoise(sigma=0.1)
+        >>> physics = Denoising(GaussianNoise(sigma=0.1))
         >>> with torch.no_grad():
         ...     physics(x)
         tensor([[[[ 0.7302, -0.2064, -1.0712],
@@ -770,8 +796,5 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise=GaussianNoise(sigma=0.1), **kwargs):
-        super().__init__(**kwargs)
-        if noise is None:
-            noise = GaussianNoise(sigma=0.0)
-        self.noise_model = noise
+    def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
+        super().__init__(noise_model=noise_model, **kwargs)

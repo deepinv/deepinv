@@ -8,17 +8,31 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
-
 New Features
 ^^^^^^^^^^^^
-
+- Add ICNN model (:gh:`281` by `Samuel Hurault`_)
+- Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
+- Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
+- Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
+- Plot video/animation functionality (:gh:`245` by `Andrew Wang`_)
+- Added update_parameters for parameter-dependent physics (:gh:`241` by Julian Tachella) - 11/06/2024
+- Added evaluation functions for R2R and Splitting losses (:gh:`241` by Julian Tachella) - 11/06/2024
+- Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024
+- Add projective and affine transformations for EI or data augmentation (:gh:`173` by `Andrew Wang`_)
+- Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
+- Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
+- Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
 
 Fixed
 ^^^^^
-
+- Fixed the gradient stopping in EILoss (:gh:`263` by `Jérémy Scanvic`_) - 27/06/2024
+- Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
+- Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
+- Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
+- Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
 - Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
 
 
@@ -55,9 +69,12 @@ New Features
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
 - Added Restormer model (:gh:`185` by Antoine Regnier and Maxime SONG) - 18/04/2024
 - Added DIV2K built-in dataset (:gh:`203` by Maxime SONG) - 03/05/2024
+- Added Urban100 built-in dataset (:gh:`237` by Maxime SONG) - 07/06/2024
+- Added Set14 / CBSD68 / fastMRI buit-in datasets (:gh:`248` :gh:`249` :gh:`229` by Maxime SONG) - 25/06/2024 
 
 Fixed
 ^^^^^
+- Fixed the None prior (:gh:`233` by `Samuel Hurault`_) - 04/06/2024
 - Fixed the conjugate gradient torch.nograd for teh demos, accelerated)
 - Fixed torch.nograd in demos for faster generation of the doc
 - Corrected the padding for the convolution
@@ -166,3 +183,6 @@ Authors
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
+.. _Chao Tang: https://github.com/ChaoTang0330
+.. _Tobias Liaudat: https://github.com/tobias-liaudat
+.. _Andrew Wang: https://andrewwango.github.io/about/

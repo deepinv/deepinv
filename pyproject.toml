@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.8"
 version = "0.2.0"
 dependencies = [
-    "numpy",
+    "numpy<=1.26",
     "matplotlib",
     "hdf5storage",
     "tqdm",
@@ -29,6 +29,7 @@ dependencies = [
     "torchvision",
     "einops",
     "wandb",
+    "scipy",
 ]
 
 [tool.setuptools]
@@ -63,11 +64,21 @@ doc = [
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
+    "bm4d<4.2.4",
     "timm",
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa"
+    "pyiqa",
+    "kornia",
+    "torchkbnufft"
+]
+
+# optional dependencies for specific datasets
+dataset = [
+    "datasets",
+    "pandas",
+    "pydicom",
 ]
 
 

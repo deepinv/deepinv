@@ -57,6 +57,7 @@ Deep Denoisers
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
+   deepinv.models.ICNN
 
 
 
@@ -77,6 +78,34 @@ equivariant denoiser.
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+
+.. _adversarial-networks:
+Adversarial Networks
+--------------------
+
+Discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.PatchGANDiscriminator
+   deepinv.models.ESRGANDiscriminator
+   deepinv.models.DCGANGenerator
+   deepinv.models.DCGANDiscriminator
+   deepinv.models.CSGMGenerator
+
+Complex Denoisers
+--------------------------
+Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval, require processing complex-valued images.The function :class:`deepinv.models.complex.to_complex_denoiser` can convert any real-valued denoiser into a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_complex_denoiser(denoiser)``.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.complex.to_complex_denoiser
 
 
 

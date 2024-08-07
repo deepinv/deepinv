@@ -88,3 +88,11 @@ Ready-made datasets available in the `deepinv.datasets` module.
    :nosignatures:
 
     deepinv.datasets.DIV2K
+    deepinv.datasets.Urban100HR
+    deepinv.datasets.Set14HR
+    deepinv.datasets.CBSD68
+    deepinv.datasets.FastMRISliceDataset
+    deepinv.datasets.LidcIdriSliceDataset
+    deepinv.datasets.Flickr2kHR
+    deepinv.datasets.LsdirHR
+    deepinv.datasets.FMD
