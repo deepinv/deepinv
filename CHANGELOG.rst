@@ -8,6 +8,9 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+- Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
+- Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
+
 New Features
 ^^^^^^^^^^^^
 - Add ICNN model (:gh:`281` by `Samuel Hurault`_)

@@ -575,7 +575,7 @@ class Trainer:
             x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
 
             # Log metrics
-            logs = self.compute_metrics(x, x_net, y, physics_cur, logs)
+            logs = self.compute_metrics(x, x_net, y, physics_cur, logs, train=train)
 
             # Update the progress bar
             progress_bar.set_postfix(logs)
@@ -768,7 +768,7 @@ class Trainer:
 
         return self.model
 
-    def test(self, test_dataloader):
+    def test(self, test_dataloader, **kwargs):
         r"""
         Test the model.
 
@@ -791,6 +791,7 @@ class Trainer:
             device=self.device,
             verbose=self.verbose,
             show_progress_bar=self.show_progress_bar,
+            **kwargs,
         )
 
 

@@ -3,7 +3,11 @@ Self-supervised learning with measurement splitting
 ===================================================
 
 We demonstrate self-supervised learning with measurement splitting, to
-train a denoiser network on the MNIST dataset.
+train a denoiser network on the MNIST dataset. The physics here is noisy
+computed tomography, as is the case in
+`Noise2Inverse <https://arxiv.org/abs/2001.11801>`__. Note this example
+can also be easily applied to undersampled multicoil MRI as is the case
+in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__.
 
 Measurement splitting constructs a ground-truth free loss
 :math:`\frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2` by splitting
@@ -34,29 +38,31 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # -  Use ``split_ratio`` to set the ratio of pixels used in the forward
 #    pass vs the loss;
 # -  Define custom masking methods using a ``mask_generator`` such as
-#    :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`;
-# -  Use ``MC_samples`` to set how many realisations of the random mask is
-#    used at evaluation time;
+#    :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`
+#    or :class:`deepinv.physics.generator.GaussianSplittingMaskGenerator`;
+# -  Use ``eval_n_samples`` to set how many realisations of the random
+#    mask is used at evaluation time;
 # -  Optionally disable measurement splitting at evaluation time using
-#    ``eval_split_input``.
+#    ``eval_split_input`` (as is the case in
+#    `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__).
 # -  Average over both input and output masks at evaluation time using
-#    ``eval_split_output``.
+#    ``eval_split_output``. See :class:`deepinv.loss.SplittingLoss` for
+#    details.
 #
 # Note that after the model has been defined, the loss must also "adapt"
 # the model.
 #
 
-loss = dinv.loss.SplittingLoss(
-    split_ratio=0.6, eval_split_input=True, eval_split_output=True, MC_samples=5
-)
+loss = dinv.loss.SplittingLoss(split_ratio=0.6, eval_split_input=True, eval_n_samples=5)
 
 
 # %%
 # Prepare data
 # ~~~~~~~~~~~~
 #
-# We use the ``torchvision`` MNIST dataset, and use Poisson noise physics
-# for the forward operator.
+# We use the ``torchvision`` MNIST dataset, and use noisy tomography
+# physics (with number of angles equal to the image size) for the forward
+# operator.
 #
 # .. note::
 #
@@ -69,7 +75,12 @@ transform = transforms.Compose([transforms.ToTensor()])
 train_dataset = datasets.MNIST(root=".", train=True, transform=transform, download=True)
 test_dataset = datasets.MNIST(root=".", train=False, transform=transform, download=True)
 
-physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
+physics = dinv.physics.Tomography(
+    angles=28,
+    img_width=28,
+    noise_model=dinv.physics.noise.GaussianNoise(0.1),
+    device=device,
+)
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
@@ -97,7 +108,7 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 #
 # To reduce training time, we use a pretrained model. Here we demonstrate
 # training with 100 images for 1 epoch, after having loaded a pretrained
-# model trained that was with 1000 images for 100 epochs.
+# model trained that was with 1000 images for 20 epochs.
 #
 # .. note::
 #
@@ -105,14 +116,14 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 #
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), pinv=True
 )
 model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
 # Load pretrained model
-file_name = "demo_measplit_mnist_denoising.pth"
+file_name = "demo_measplit_mnist_tomography.pth"
 url = get_weights_url(model_name="measplit", file_name=file_name)
 ckpt = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
@@ -147,31 +158,30 @@ model = trainer.train()
 
 # %%
 # Test and visualise the model outputs using a small test set. We set the
-# output to average over 50 iterations of random mask realisations. The
-# trained model improves on the no-learning reconstruction by ~3dB.
+# output to average over 5 iterations of random mask realisations. The
+# trained model improves on the no-learning reconstruction by ~7dB.
 #
 
 trainer.plot_images = True
-model.MC_samples = 50
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, pinv=True)
 
 
 # %%
-# Since this is a denoising example, above, we have set
-# ``eval_split_output`` to True (see :class:`deepinv.loss.SplittingLoss`
-# for details). Alternatively, we get worse results when we set
-# ``eval_split_output`` to False:
+# Demonstrate the effect of not averaging over multiple realisations of
+# the splitting mask at evaluation time, by setting ``eval_n_samples=1``.
+# We have a worse performance:
 #
 
-model.eval_split_output = False
-trainer.test(test_dataloader)
+model.eval_n_samples = 1
+trainer.test(test_dataloader, pinv=True)
 
 
 # %%
 # Furthermore, we can disable measurement splitting at evaluation
 # altogether by setting ``eval_split_input`` to False (this is done in
-# `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__):
+# `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__). This generally is
+# worse than MC averaging:
 #
 
 model.eval_split_input = False
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, pinv=True)

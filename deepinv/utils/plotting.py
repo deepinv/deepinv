@@ -606,6 +606,7 @@ def plot_videos(
     display: bool = False,
     save_fn: str = None,
     return_anim: bool = False,
+    figsize=None,
     anim_writer: str = None,
     **anim_kwargs,
 ):
@@ -640,6 +641,7 @@ def plot_videos(
     :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
+    :param tuple[int] figsize: size of the figure.
     :param \**anim_kwargs: keyword args for matplotlib FuncAnimation init
     """
     if isinstance(vid_list, torch.Tensor):
@@ -658,6 +660,7 @@ def plot_videos(
             return_axs=True,
             fig=fig,
             axs=axs,
+            figsize=figsize,
         )
 
     fig, axs = animate(0)
