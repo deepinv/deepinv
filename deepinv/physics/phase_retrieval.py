@@ -131,6 +131,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         dtype=torch.cfloat,
         device="cpu",
         use_haar=False,
+        test=False,
         **kwargs,
     ):
         self.m = m
@@ -146,6 +147,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             dtype=dtype,
             device=device,
             use_haar=use_haar,
+            test=test,
         )
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"

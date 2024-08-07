@@ -98,6 +98,7 @@ class CompressedSensing(LinearPhysics):
         device="cpu",
         compute_inverse=False,
         use_haar=False,
+        test=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -112,6 +113,10 @@ class CompressedSensing(LinearPhysics):
         else:
             n = int(np.prod(img_shape))
 
+        if test:
+            self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
+            return
+
         if self.fast:
             self.n = n
             self.D = torch.ones(self.n, device=device)
@@ -125,8 +130,7 @@ class CompressedSensing(LinearPhysics):
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
             if not use_haar:
-                self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
-                self._A = torch.nn.Parameter(self._A, requires_grad=False)
+                self._A = torch.nn.Parameter(torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m), requires_grad=False)
             else:
                 print("Using Haar matrix")
                 self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
@@ -140,10 +144,10 @@ class CompressedSensing(LinearPhysics):
                 self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
 
             self._A_adjoint = (
-                torch.nn.Parameter(self._A.conj().T, requires_grad=False)
-                .type(dtype)
-                .to(device)
-            )
+                    torch.nn.Parameter(self._A.conj().T, requires_grad=False)
+                    .type(dtype)
+                    .to(device)
+                )
 
     def A(self, x):
         N, C = x.shape[:2]
