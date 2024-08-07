@@ -104,6 +104,22 @@ class ScoreLoss(Loss):
 
 
 class ScoreModel(torch.nn.Module):
+    r"""
+    Score model for the ScoreLoss.
+
+
+    :param torch.nn.Module model: Backbone model approximating the score.
+    :param None, torch.nn.Module noise_model: Noise distribution corrupting the measurements
+        (see :ref:`the physics docs <physics>`). Options are :class:`deepinv.physics.GaussianNoise`,
+        :class:`deepinv.physics.PoissonNoise`, :class:`deepinv.physics.GammaNoise` and
+        :class:`deepinv.physics.UniformGaussianNoise`. By default, it uses the noise model associated with
+        the physics operator provided in the forward method.
+    :param tuple delta: Tuple of two floats representing the minimum and maximum noise level,
+        which are annealed during training.
+    :param int total_batches: Total number of training batches (epochs * number of batches per epoch).
+
+    """
+
     def __init__(self, model, noise_model, delta, total_batches):
         super(ScoreModel, self).__init__()
         self.base_model = model
@@ -114,6 +130,13 @@ class ScoreModel(torch.nn.Module):
         self.total_batches = total_batches
 
     def forward(self, y, physics, update_parameters=False):
+        r"""
+        Computes the reconstruction of the noisy measurements.
+
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+        :param bool update_parameters: If True, updates the parameters of the model.
+        """
 
         if self.noise_model is None:
             noise_model = physics.noise_model

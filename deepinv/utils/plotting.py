@@ -65,7 +65,7 @@ def torch2cpu(img):
     )
 
 
-def prepare_images(x, y, x_net, x_nl, rescale_mode="min_max"):
+def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
     r"""
     Prepare the images for plotting.
 
@@ -78,14 +78,22 @@ def prepare_images(x, y, x_net, x_nl, rescale_mode="min_max"):
     :returns: The images, the titles, the grid image, and the caption.
     """
     with torch.no_grad():
+        imgs = [x]
+        titles = ["Ground truth"]
+        caption = "From left to right: Ground truth, "
         if y.shape == x.shape:
-            imgs = [x, y, x_nl, x_net]
-            titles = ["Ground truth", "Measurement", "No learning", "Reconstruction"]
-            caption = "From left to right: Ground truth, Measurement, No-learning, Reconstruction"
-        else:
-            imgs = [x, x_nl, x_net]
-            titles = ["Ground truth", "No learning", "Reconstruction"]
-            caption = "From left to right: Ground truth, Measurement, Reconstruction"
+            imgs.append(y)
+            titles.append("Measurement")
+            caption += "Measurement, "
+
+        if x_nl is not None:
+            imgs.append(x_nl)
+            titles.append("No learning")
+            caption += "No learning, "
+
+        imgs.append(x_net)
+        titles.append("Reconstruction")
+        caption += "Reconstruction"
 
         vis_array = torch.cat(imgs, dim=0)
         for i in range(len(vis_array)):

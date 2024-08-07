@@ -155,7 +155,7 @@ class Trainer:
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
-        :meth:`deepinv.Trainer.no_learning_inferece` method.
+        :meth:`deepinv.Trainer.no_learning_inference` method.
     """
 
     model: torch.nn.Module
@@ -531,7 +531,7 @@ class Trainer:
                 logs[l.__class__.__name__] = current_log.avg
 
                 if not train and self.compare_no_learning:
-                    x_lin = self.no_learning_inferece(y, physics)
+                    x_lin = self.no_learning_inference(y, physics)
                     metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
                     self.logs_metrics_linear[k].update(metric.detach().cpu().numpy())
                     logs[f"{l.__class__.__name__} no learning"] = (
@@ -540,7 +540,7 @@ class Trainer:
 
         return logs
 
-    def no_learning_inferece(self, y, physics):
+    def no_learning_inference(self, y, physics):
         r"""
         Perform the no learning inference.
 
@@ -649,7 +649,11 @@ class Trainer:
         save_images = self.save_folder_im is not None
 
         if plot_images or save_images:
-            x_nl = self.no_learning_inferece(y, physics)
+            if self.compare_no_learning:
+                x_nl = self.no_learning_inference(y, physics)
+            else:
+                x_nl = None
+
             imgs, titles, grid_image, caption = prepare_images(
                 x, y, x_net, x_nl, rescale_mode=self.rescale_mode
             )
