@@ -23,7 +23,7 @@ import torch
 # Here we show how to stack two operators, one that downsamples a color image and another that converts the color image
 # grayscale. This is equivalent to the :class:`deepinv.physics.Pansharpen` operator.
 
-img_size = (3, 65, 65)
+img_size = (3, 64, 64)
 factor = 2
 filter = "gaussian"
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"

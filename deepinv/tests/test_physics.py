@@ -294,7 +294,6 @@ def test_operators_adjointness(name, device):
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
-    print(error)
     assert error < 1e-3
 
     if (
@@ -305,8 +304,6 @@ def test_operators_adjointness(name, device):
 
     y = physics.A(x)
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
-
-    print(error2)
 
     assert error2 < 1e-3
 
@@ -713,3 +710,50 @@ def test_tomography(device):
                     y = physics.A(r)
                     error = (physics.A_dagger(y) - r).flatten().mean().abs()
                     assert error < 0.2
+
+
+def test_downsampling_adjointness(device):
+    r"""
+    Tests downsampling+blur operator adjointness for various image and filter sizes
+
+    :param device: (torch.device) cpu or cuda:x
+    """
+    torch.manual_seed(0)
+
+    nchannels = ((1, 1), (3, 1), (3, 3))
+
+    for nchan_im, nchan_filt in nchannels:
+
+        size_im = (
+            [nchan_im, 5, 5],
+            [nchan_im, 6, 6],
+            [nchan_im, 5, 6],
+            [nchan_im, 6, 5],
+        )
+        size_filt = (
+            [nchan_filt, 3, 3],
+            [nchan_filt, 4, 4],
+            [nchan_filt, 3, 4],
+            [nchan_filt, 4, 3],
+        )
+
+        paddings = ("valid", "constant", "circular", "reflect", "replicate")
+
+        for pad in paddings:
+            for sim in size_im:
+                for sfil in size_filt:
+                    x = torch.rand(sim)[None].to(device)
+                    h = torch.rand(sfil)[None].to(device)
+
+                    physics = dinv.physics.Downsampling(
+                        sim, filter=h, padding=pad, device=device
+                    )
+
+                    Ax = physics.A(x)
+                    y = torch.rand_like(Ax)
+                    Aty = physics.A_adjoint(y)
+
+                    Axy = torch.sum(Ax * y)
+                    Atyx = torch.sum(Aty * x)
+
+                    assert torch.abs(Axy - Atyx) < 1e-3

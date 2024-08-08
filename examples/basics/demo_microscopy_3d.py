@@ -27,14 +27,6 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
-
-# volume_data = io.imread(
-#     "/home/fsarron/mambo/data/deepinv/BBBC050/Images/Emb1_t001.tif"
-# ).astype(int)
-# volume_data = (
-#     torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0).expand(1, -1, -1, -1, -1)
-# )
-# x = volume_data / volume_data.max()
 volume_data = load_np_url(
     "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
 )
@@ -63,6 +55,7 @@ plot_ortho3D(
     titles=["signal", "filter", "measurement"],
     suptitle="3D convolution",
     interpolation="nearest",
+    figsize=(13, 5),
 )
 
 

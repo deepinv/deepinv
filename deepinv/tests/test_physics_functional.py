@@ -47,6 +47,7 @@ def test_conv2d_adjointness(device):
 
                     assert torch.abs(Axy - Atyx) < 1e-3
 
+
 def test_conv3d_norm(device):
     torch.manual_seed(0)
     max_iter = 1000
@@ -137,47 +138,3 @@ def test_conv3d_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
-
-
-def test_downsampling_adjointness(device):
-    torch.manual_seed(0)
-
-    nchannels = ((1, 1), (3, 1), (3, 3))
-
-    for nchan_im, nchan_filt in nchannels:
-
-        size_im = (
-            [nchan_im, 5, 5],
-            [nchan_im, 6, 6],
-            [nchan_im, 5, 6],
-            [nchan_im, 6, 5],
-        )
-        size_filt = (
-            [nchan_filt, 3, 3],
-            [nchan_filt, 4, 4],
-            [nchan_filt, 3, 4],
-            [nchan_filt, 4, 3],
-        )
-
-        paddings = ("valid", "constant", "circular", "reflect", "replicate")
-
-        for pad in paddings:
-            for sim in size_im:
-                for sfil in size_filt:
-                    x = torch.rand(sim)[None].to(device)
-                    h = torch.rand(sfil)[None].to(device)
-
-                    physics = dinv.physics.Downsampling(
-                        sim, filter=h, padding=pad, device=device
-                    )
-
-                    Ax = physics.A(x)
-                    y = torch.rand_like(Ax)
-                    Aty = physics.A_adjoint(y)
-
-                    Axy = torch.sum(Ax * y)
-                    Atyx = torch.sum(Aty * x)
-
-                    assert torch.abs(Axy - Atyx) < 1e-3
-
-    

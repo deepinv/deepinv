@@ -612,9 +612,3 @@ class SpaceVaryingBlur(LinearPhysics):
             self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
         if padding is not None:
             self.padding = padding
-
-
-# x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
-# x[:, :, 16, 16] = 1 # Define one white pixel in the middle
-# physics = Downsampling(filter = "gaussian", img_size=(1, 32, 32), factor=2, padding='circular')
-# y = physics(x)

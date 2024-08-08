@@ -14,9 +14,6 @@ from deepinv.utils import cal_psnr, plot
 import torch
 from deepinv.utils.demo import load_url_image, get_image_url
 
-# if torch.cuda.is_available():
-#     torch.cuda.empty_cache()
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # %%
