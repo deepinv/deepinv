@@ -150,6 +150,7 @@ ckpt = torch.hub.load_state_dict_from_url(
 model.load_state_dict(ckpt["state_dict"])
 
 x = next(iter(train_dataloader))
+x = x.to(device)
 y = physics(x)
 x_hat = model(y)
 

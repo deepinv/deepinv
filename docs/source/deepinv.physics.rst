@@ -223,7 +223,9 @@ deblurring networks.
 
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
-
+   deepinv.physics.generator.DiffractionBlurGenerator3D
+   deepinv.physics.generator.ProductConvolutionBlurGenerator
+   
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
@@ -414,8 +416,8 @@ Similar to the PyTorch structure, they are available within :py:mod:`deepinv.phy
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
-   deepinv.physics.functional.conv3d
-   deepinv.physics.functional.conv_transpose3d
+   deepinv.physics.functional.conv3d_fft
+   deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
    deepinv.physics.functional.multiplier
    deepinv.physics.functional.multiplier_adjoint

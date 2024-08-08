@@ -6,6 +6,8 @@ from .convolution import (
     filter_fft_2d,
     conv3d,
     conv_transpose3d,
+    conv3d_fft,
+    conv_transpose3d_fft,
 )
 
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint
