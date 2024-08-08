@@ -10,7 +10,7 @@ def conv2d(x: Tensor, filter: Tensor, padding: str = "valid", correlation = Fals
 
     :param torch.Tensor x: Image of size `(B, C, W, H)`.
     :param torch.Tensor filter: Filter of size `(b, c, w, h)` where `b` can be either `1` or `B` and `c` can be either `1` or `C`.
-    filter center is at (hh, ww) where hh = h//2 if h is odd and hh = h//2 - 1 if h is even. Same for ww.
+    filter center is at `(hh, ww)` where `hh = h//2` if h is odd and `hh = h//2 - 1` if h is even. Same for `ww`.
     :param bool correlation: choose True if you want a cross-correlation (default False)
 
     ..note:
@@ -287,9 +287,9 @@ def conv3d_fft(
     Padding conditions include ``'circular'`` and ``'valid'``.
 
     .. note::
-        The filter center is located at (d//2, h//2, w//2)
+        The filter center is located at `(d//2, h//2, w//2)`.
 
-    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`x` if ``padding = 'circular'``, (B, C, D-d+1, W-w+1, H-h+1) if ``padding = 'valid'``
+    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`x` if ``padding = 'circular'``, ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'``
     """
 
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"

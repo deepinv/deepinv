@@ -2,7 +2,7 @@ r"""
 3D diffraction PSF
 =======================================
 
-This example provides a tour of 3D blur operators in DeepInv.
+This example provides a tour of 3D blur operators in the library.
 In particular, we show how to use Diffraction Blurs (Fresnel diffraction) to simulate 
 fluorescence microscopes.
 
@@ -70,7 +70,7 @@ plot_ortho3D(
 # Diffraction PSF generation
 # --------------------------
 #
-# Advanced kernel generation methods are provided with the toolbox thanks to
+# Advanced kernel generation methods are provided in the toolbox thanks to
 # the class :class:`deepinv.physics.generator.PSFGenerator`, that we used to construct
 # PSF generators for different type of microscopes.
 
