@@ -57,6 +57,7 @@ Deep Denoisers
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
+   deepinv.models.ICNN
 
 
 

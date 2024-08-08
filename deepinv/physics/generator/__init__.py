@@ -8,6 +8,16 @@ from .blur import (
     ConfocalBlurGenerator3D,
     bump_function,
 )
-from .mri import GaussianMaskGenerator, RandomMaskGenerator, EquispacedMaskGenerator
+from .mri import (
+    BaseMaskGenerator,
+    GaussianMaskGenerator,
+    RandomMaskGenerator,
+    EquispacedMaskGenerator,
+)
 from .noise import SigmaGenerator
-from .inpainting import BernoulliMaskGenerator
+from .inpainting import (
+    BernoulliSplittingMaskGenerator,
+    GaussianSplittingMaskGenerator,
+    Artifact2ArtifactSplittingMaskGenerator,
+    Phase2PhaseSplittingMaskGenerator,
+)

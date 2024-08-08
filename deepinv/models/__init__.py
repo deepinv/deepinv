@@ -17,6 +17,7 @@ from .bm3d import BM3D
 from .equivariant import EquivariantDenoiser
 from .epll import EPLLDenoiser
 from .restormer import Restormer
+from .icnn import ICNN
 from .gan import (
     PatchGANDiscriminator,
     ESRGANDiscriminator,
@@ -25,3 +26,4 @@ from .gan import (
     DCGANDiscriminator,
 )
 from .complex import to_complex_denoiser
+from .dynamic import TimeAgnosticNet

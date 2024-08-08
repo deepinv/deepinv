@@ -25,6 +25,10 @@ class MRI(DecomposablePhysics):
 
     A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
 
+    .. note::
+
+        We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
+
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (C,H,W), or (B,C,H,W) where H, W are the image height and width, C is channels (typically 2) and B is batch size.
     :param tuple img_size: if mask not specified, blank mask of ones is created using img_size, where img_size can be of any shape specified above.
@@ -149,10 +153,14 @@ class DynamicMRI(MRI):
     This operator has a simple singular value decomposition, so it inherits the structure of
     :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
-    The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
+    The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, T, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
     A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
+
+    .. note::
+
+        We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
@@ -244,6 +252,18 @@ class DynamicMRI(MRI):
         :return torch.Tensor: noisy measurements
         """
         return self.noise_model(x, **kwargs) * self.mask
+
+    def to_static_mri(self, mask: Optional[torch.Tensor] = None) -> MRI:
+        """Convert dynamic MRI to static MRI by removing time dimension.
+
+        :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.
+        :return MRI: static MRI physics
+        """
+        return MRI(
+            mask=self.mask.sum(2) if mask is None else mask,
+            img_size=self.img_size,
+            device=self.device,
+        )
 
 
 #

@@ -24,6 +24,7 @@ def test(
     plot_only_first_batch=True,
     plot_measurements=True,
     show_progress_bar=True,
+    pinv=False,
     **kwargs,
 ):
     r"""
@@ -55,6 +56,7 @@ def test(
     :param bool plot_only_first_batch: Plot only the first batch of the test set.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool show_progress_bar: Show progress bar.
+    :param bool pinv: For plotting "No learning" reconstruction. If ``True`` prefer pseudo-inverse :math:`A^{\dagger}y` over default transpose, if the physics implements the pseudo-inverse.
     :returns: A tuple of floats (test_psnr, test_std_psnr, linear_std_psnr, linear_std_psnr) with the PSNR of the
         reconstruction network and a simple linear inverse on the test set.
     """
@@ -143,18 +145,27 @@ def test(
             else:
                 x_net = model(y, physics_cur)
 
-            if hasattr(physics_cur, "A_adjoint"):
-                if isinstance(physics_cur, torch.nn.DataParallel):
-                    x_init = physics_cur.module.A_adjoint(y)
+            phys = (
+                physics_cur.module
+                if isinstance(physics_cur, torch.nn.DataParallel)
+                else physics_cur
+            )
+
+            # TODO match this code to Trainer.prepare_images
+            if pinv:
+                if hasattr(physics_cur, "A_dagger"):
+                    x_init = phys.A_dagger(y)
+                elif hasattr(physics_cur, "A_adjoint"):
+                    x_init = phys.A_adjoint(y)
                 else:
-                    x_init = physics_cur.A_adjoint(y)
-            elif hasattr(physics_cur, "A_dagger"):
-                if isinstance(physics_cur, torch.nn.DataParallel):
-                    x_init = physics_cur.module.A_dagger(y)
-                else:
-                    x_init = physics_cur.A_dagger(y)
+                    x_init = zeros_like(x)
             else:
-                x_init = zeros_like(x)
+                if hasattr(physics_cur, "A_adjoint"):
+                    x_init = phys.A_adjoint(y)
+                elif hasattr(physics_cur, "A_dagger"):
+                    x_init = phys.A_dagger(y)
+                else:
+                    x_init = zeros_like(x)
 
             # Compute the metrics over the batch
             for k, l in enumerate(metrics):
@@ -186,7 +197,7 @@ def test(
                             save_dir=save_folder_im,
                             show=plot_images,
                             return_fig=True,
-                            rescale_mode="clip",
+                            rescale_mode="min_max",
                         )
 
                 if plot_metrics:

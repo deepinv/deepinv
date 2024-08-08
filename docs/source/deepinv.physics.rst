@@ -175,6 +175,18 @@ Pixelwise operators operate in the pixel domain and are used for denoising, inpa
    deepinv.physics.Decolorize
    deepinv.physics.Demosaicing
 
+For random inpainting we also provide generators to create random masks on-the-fly. These can also be used as splitting masks for :class:`deepinv.loss.SplittingLoss` and its variations.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.BernoulliSplittingMaskGenerator
+   deepinv.physics.generator.GaussianSplittingMaskGenerator
+   deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
+   deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
+
 Blur & Super-Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Different types of blur operators are available, from simple stationary kernels to space-varying ones.
@@ -234,6 +246,7 @@ We provide generators for creating random and non-random acceleration masks usin
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator

@@ -8,9 +8,13 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+- Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
+- Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
+
 New Features
 ^^^^^^^^^^^^
-- Add 3D Blur physics operator, with 3D diffraction microscope blur generators (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
+- Add 3D Blur physics operator, with 3D diffraction microscope blur generators (:gh: `277` by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
+- Add ICNN model (:gh:`281` by `Samuel Hurault`_)
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
 - Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
@@ -20,13 +24,16 @@ New Features
 - Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024
 - Add projective and affine transformations for EI or data augmentation (:gh:`173` by `Andrew Wang`_)
 - Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
+- Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
+- Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
 
 Fixed
 ^^^^^
-- Fixed padding in conv_transpose2d (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
+- Fixed padding in conv_transpose2d and made conv_2d a true convolution (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
 - Fixed the gradient stopping in EILoss (:gh:`263` by `Jérémy Scanvic`_) - 27/06/2024
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
+- Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
