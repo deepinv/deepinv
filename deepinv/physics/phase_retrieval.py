@@ -152,6 +152,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
 
+    def release_memory(self):
+        del self.B
+        torch.cuda.empty_cache()
+        return
 
 class PseudoRandomPhaseRetrieval(PhaseRetrieval):
     r"""

@@ -114,7 +114,7 @@ class CompressedSensing(LinearPhysics):
             n = int(np.prod(img_shape))
 
         if test:
-            self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
+            self._A = torch.randn((m, n), device=device, dtype=dtype)
             return
 
         if self.fast:

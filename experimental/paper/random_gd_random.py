@@ -32,7 +32,7 @@ n_iter = 10000
 oversampling_ratios = torch.cat((torch.arange(0.1,3.1,0.1),torch.arange(3.5,9.5,0.5)))
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
-step_size = 1e-4
+step_size = 1e-2
 use_haar = False
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
