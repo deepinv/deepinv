@@ -1,13 +1,6 @@
 import torch
 
 
-def to_nn_parameter(x):
-    if isinstance(x, torch.Tensor):
-        return torch.nn.Parameter(x, requires_grad=False)
-    else:
-        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)
-
-
 class GaussianNoise(torch.nn.Module):
     r"""
 
@@ -386,3 +379,10 @@ class LogPoissonNoise(torch.nn.Module):
 
         if N0 is not None:
             self.N0 = to_nn_parameter(N0)
+
+
+def to_nn_parameter(x):
+    if isinstance(x, torch.Tensor):
+        return torch.nn.Parameter(x, requires_grad=False)
+    else:
+        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)

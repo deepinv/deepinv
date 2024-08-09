@@ -2,49 +2,6 @@ import torch
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
-from typing import Callable
-
-
-def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
-    r"""
-    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
-
-
-    The generated function can be simply called as ``A_adjoint(y)``, for example:
-
-    >>> import torch
-    >>> from deepinv.physics.forward import adjoint_function
-    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
-    >>> x = torch.randn((4, 1, 5, 5))
-    >>> y = A(x)
-    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
-    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
-    True
-
-
-    :param callable A: linear operator :math:`A`.
-    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
-        The first dimension, i.e. batch size, should be equal or lower than the batch size B
-        of the input tensor to the adjoint operator.
-    :param str device: device where the adjoint operator is computed.
-    :return: (Callable) function that computes the adjoint of :math:`A`.
-
-    """
-    x = torch.ones(input_size, device=device, dtype=dtype)
-    (_, vjpfunc) = torch.func.vjp(A, x)
-    batches = x.size()[0]
-
-    def adjoint(y):
-        if y.size()[0] < batches:
-            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
-            y2[: y.size()[0], ...] = y
-            return vjpfunc(y2)[0][: y.size()[0], ...]
-        elif y.size()[0] > batches:
-            raise ValueError("Batch size of A_adjoint input is larger than expected")
-        else:
-            return vjpfunc(y)[0]
-
-    return adjoint
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -846,3 +803,45 @@ class Denoising(DecomposablePhysics):
 
     def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(noise_model=noise_model, **kwargs)
+
+
+def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
+    r"""
+    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
+
+
+    The generated function can be simply called as ``A_adjoint(y)``, for example:
+
+    >>> import torch
+    >>> from deepinv.physics.forward import adjoint_function
+    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
+    >>> x = torch.randn((4, 1, 5, 5))
+    >>> y = A(x)
+    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
+    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
+    True
+
+
+    :param callable A: linear operator :math:`A`.
+    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
+        The first dimension, i.e. batch size, should be equal or lower than the batch size B
+        of the input tensor to the adjoint operator.
+    :param str device: device where the adjoint operator is computed.
+    :return: (Callable) function that computes the adjoint of :math:`A`.
+
+    """
+    x = torch.ones(input_size, device=device, dtype=dtype)
+    (_, vjpfunc) = torch.func.vjp(A, x)
+    batches = x.size()[0]
+
+    def adjoint(y):
+        if y.size()[0] < batches:
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
+            y2[: y.size()[0], ...] = y
+            return vjpfunc(y2)[0][: y.size()[0], ...]
+        elif y.size()[0] > batches:
+            raise ValueError("Batch size of A_adjoint input is larger than expected")
+        else:
+            return vjpfunc(y)[0]
+
+    return adjoint
