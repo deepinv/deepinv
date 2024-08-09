@@ -20,6 +20,7 @@ from .noise import (
     GammaNoise,
 )
 from .mri import MRI, DynamicMRI
+from .mcmri import MultiCoilMRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
@@ -29,3 +30,4 @@ from .phase_retrieval import (
     RandomPhaseRetrieval,
 )
 from .radio import RadioInterferometry
+

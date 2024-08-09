@@ -37,6 +37,7 @@ OPERATORS = [
     "fast_singlepixel",
     "MRI",
     "DynamicMRI",
+    "MultiCoilMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
@@ -103,6 +104,11 @@ def find_operator(name, device):
     elif name == "DynamicMRI":
         img_size = (2, 3, 16, 8)
         p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
+    elif name == "MultiCoilMRI":
+        img_size = (32, 32, 2)
+        maps = torch.randn((1, 15, 32, 32), dtype=torch.complex64,device=device)
+        mask = torch.randint(0, 2, (1,1,32,32), device=device)
+        p = dinv.physics.MultiCoilMRI(coil_maps=maps, mask=mask, device=device)
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
