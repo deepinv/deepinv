@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BaseOptim &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DataFidelity" href="deepinv.optim.DataFidelity.html" />
+    <link rel="prev" title="optim_builder" href="deepinv.optim.optim_builder.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.optim.html">Optim</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="deepinv.optim.optim_builder.html">optim_builder</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">BaseOptim</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#deepinv.optim.BaseOptim"><code class="docutils literal notranslate"><span class="pre">BaseOptim</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.check_conv_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.check_conv_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.check_iteration_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.check_iteration_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.forward"><code class="docutils literal notranslate"><span class="pre">BaseOptim.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.init_iterate_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.init_iterate_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.init_metrics_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.init_metrics_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.update_data_fidelity_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.update_data_fidelity_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.update_metrics_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.update_metrics_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.update_params_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.update_params_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.BaseOptim.update_prior_fn"><code class="docutils literal notranslate"><span class="pre">BaseOptim.update_prior_fn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#examples-using-baseoptim">Examples using <code class="docutils literal notranslate"><span class="pre">BaseOptim</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#data-fidelity">Data Fidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#priors">Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#iterators">Iterators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#utils">Utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.optim.html">Optim</a></li>
+      <li class="breadcrumb-item active">BaseOptim</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.optim.BaseOptim.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="baseoptim">
+<h1>BaseOptim<a class="headerlink" href="#baseoptim" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.optim.</span></span><span class="sig-name descname"><span class="pre">BaseOptim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_algo={'lambda':</span> <span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'stepsize':</span> <span class="pre">1.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_fidelity=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter=100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crit_conv='residual'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thres_conv=1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">early_stop=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_cost=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backtracking=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_backtracking=0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_backtracking=0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_metrics=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_init=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_output=&lt;function</span> <span class="pre">BaseOptim.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anderson_acceleration=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_size=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_anderson_acc=1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps_anderson_acc=0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Class for optimization algorithms, consists in iterating a fixed-point operator.</p>
+<p>Module solving the problem</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation}
+\label{eq:min_prob}
+\tag{1}
+\underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+\end{equation}\]</div>
+<p>where the first term <span class="math notranslate nohighlight">\(\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}\)</span> enforces data-fidelity, the second
+term <span class="math notranslate nohighlight">\(\regname:\xset\mapsto \mathbb{R}_{+}\)</span> acts as a regularization and
+<span class="math notranslate nohighlight">\(\lambda &gt; 0\)</span> is a regularization parameter. More precisely, the data-fidelity term penalizes the discrepancy
+between the data <span class="math notranslate nohighlight">\(y\)</span> and the forward operator <span class="math notranslate nohighlight">\(A\)</span> applied to the variable <span class="math notranslate nohighlight">\(x\)</span>, as</p>
+<div class="math notranslate nohighlight">
+\[\datafid{x}{y} = \distance{Ax}{y}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\distance{\cdot}{\cdot}\)</span> is a distance function, and where <span class="math notranslate nohighlight">\(A:\xset\mapsto \yset\)</span> is the forward
+operator (see <a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.Physics()</span></code></a>)</p>
+<p>Optimization algorithms for minimising the problem above can be written as fixed point algorithms,
+i.e. for <span class="math notranslate nohighlight">\(k=1,2,...\)</span></p>
+<div class="math notranslate nohighlight">
+\[\qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)\]</div>
+<p>where <span class="math notranslate nohighlight">\(x_k\)</span> is a variable converging to the solution of the minimization problem, and
+<span class="math notranslate nohighlight">\(z_k\)</span> is an additional variable that may be required in the computation of the fixed point operator.</p>
+<p>The <a class="reference internal" href="deepinv.optim.optim_builder.html#deepinv.optim.optim_builder" title="deepinv.optim.optim_builder"><code class="xref py py-func docutils literal notranslate"><span class="pre">optim_builder()</span></code></a> function can be used to instantiate this class with a specific fixed point operator.</p>
+<p>If the algorithm is minimizing an explicit and fixed cost function <span class="math notranslate nohighlight">\(F(x) =  \datafid{x}{y} + \lambda \reg{x}\)</span>,
+the value of the cost function is computed along the iterations and can be used for convergence criterion.
+Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
+the largest stepsize <span class="math notranslate nohighlight">\(\tau\)</span> such that, at each iteration, sufficient decrease of the cost function <span class="math notranslate nohighlight">\(F\)</span> is achieved.
+More precisely, Given <span class="math notranslate nohighlight">\(\gamma \in (0,1/2)\)</span> and <span class="math notranslate nohighlight">\(\eta \in (0,1)\)</span> and an initial stepsize <span class="math notranslate nohighlight">\(\tau &gt; 0\)</span>,
+the following update rule is applied at each iteration <span class="math notranslate nohighlight">\(k\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\text{ while } F(x_k) - F(x_{k+1}) &lt; \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau\]</div>
+<p>The variable <code class="docutils literal notranslate"><span class="pre">params_algo</span></code> is a dictionary containing all the relevant parameters for running the algorithm.
+If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
+If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.</p>
+<p>The variable <code class="docutils literal notranslate"><span class="pre">data_fidelity</span></code> is a list of instances of <a class="reference internal" href="deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity()</span></code></a> (or a single instance).
+If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
+The same holds for the variable <code class="docutils literal notranslate"><span class="pre">prior</span></code> which is a list of instances of <a class="reference internal" href="deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.Prior()</span></code></a> (or a single instance).</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># This minimal example shows how to use the BaseOptim class to solve the problem</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create the measurement operator A</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A_forward</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">A</span> <span class="o">@</span> <span class="n">v</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A_adjoint</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">A</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">@</span> <span class="n">v</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the physics model associated to this operator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span><span class="p">(</span><span class="n">A</span><span class="o">=</span><span class="n">A_forward</span><span class="p">,</span> <span class="n">A_adjoint</span><span class="o">=</span><span class="n">A_adjoint</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the measurement y</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the data fidelity term</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">data_fidelity</span><span class="o">.</span><span class="n">L2</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the prior</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prior</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Prior</span><span class="p">(</span><span class="n">g</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the parameters of the algorithm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params_algo</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the fixed-point iterator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">iterator</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">optim_iterators</span><span class="o">.</span><span class="n">PGDIteration</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define the optimization algorithm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimalgo</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">BaseOptim</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">params_algo</span><span class="o">=</span><span class="n">params_algo</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Run the optimization algorithm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span> <span class="n">xhat</span> <span class="o">=</span> <span class="n">optimalgo</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">xhat</span><span class="p">)</span>
+<span class="go">tensor([1., 1.], dtype=torch.float64)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>iterator</strong> (<em>deepinv.optim.optim_iterators.OptimIterator</em>) – Fixed-point iterator of the optimization algorithm of interest.</p></li>
+<li><p><strong>params_algo</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing all the relevant parameters for running the algorithm,
+e.g. the stepsize, regularisation parameter, denoising standard deviation.
+Each value of the dictionary can be either Iterable (distinct value for each iteration) or
+a single float (same value for each iteration).
+Default: <cite>{“stepsize”: 1.0, “lambda”: 1.0}</cite>. See <a class="reference internal" href="../deepinv.optim.html#optim-params"><span class="std std-ref">Parameters</span></a> for more details.</p></li>
+<li><p><strong>deepinv.optim.DataFidelity</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>,</em>) – data-fidelity term.
+Either a single instance (same data-fidelity for each iteration) or a list of instances of
+<a class="reference internal" href="deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity()</span></code></a> (distinct data-fidelity for each iteration). Default: <cite>None</cite>.</p></li>
+<li><p><strong>deepinv.optim.Prior</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>,</em>) – regularization prior.
+Either a single instance (same prior for each iteration) or a list of instances of
+<a class="reference internal" href="deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.Prior()</span></code></a> (distinct prior for each iteration). Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – maximum number of iterations of the optimization algorithm. Default: 100.</p></li>
+<li><p><strong>crit_conv</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – convergence criterion to be used for claiming convergence, either <code class="docutils literal notranslate"><span class="pre">&quot;residual&quot;</span></code> (residual
+of the iterate norm) or <cite>“cost”</cite> (on the cost function). Default: <code class="docutils literal notranslate"><span class="pre">&quot;residual&quot;</span></code></p></li>
+<li><p><strong>thres_conv</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – value of the threshold for claiming convergence. Default: <code class="docutils literal notranslate"><span class="pre">1e-05</span></code>.</p></li>
+<li><p><strong>early_stop</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether to stop the algorithm once the convergence criterion is reached. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>has_cost</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether the algorithm has an explicit cost function or not. Default: <cite>False</cite>.</p></li>
+<li><p><strong>custom_metrics</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing custom metrics to be computed at each iteration.</p></li>
+<li><p><strong>backtracking</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether to apply a backtracking strategy for stepsize selection. Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>gamma_backtracking</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – <span class="math notranslate nohighlight">\(\gamma\)</span> parameter in the backtracking selection. Default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code>.</p></li>
+<li><p><strong>eta_backtracking</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – <span class="math notranslate nohighlight">\(\eta\)</span> parameter in the backtracking selection. Default: <code class="docutils literal notranslate"><span class="pre">0.9</span></code>.</p></li>
+<li><p><strong>custom_init</strong> (<em>function</em>) – initializes the algorithm with <code class="docutils literal notranslate"><span class="pre">custom_init(y,</span> <span class="pre">physics)</span></code>.</p></li>
+<li><p><strong>get_output</strong> (<em>function</em>) – get the image output given the current dictionary update containing primal and auxiliary variables <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">=</span> <span class="pre">{('est'</span> <span class="pre">:</span> <span class="pre">(primal,</span> <span class="pre">aux)}</span></code>. Default : <code class="docutils literal notranslate"><span class="pre">X['est'][0]</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default value) algorithm is initialized with <span class="math notranslate nohighlight">\(A^Ty\)</span>. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>anderson_acceleration</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>history_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – size of the history of iterates used for Anderson acceleration. Default: <code class="docutils literal notranslate"><span class="pre">5</span></code>.</p></li>
+<li><p><strong>beta_anderson_acc</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – momentum of the Anderson acceleration step. Default: <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.</p></li>
+<li><p><strong>eps_anderson_acc</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – regularization parameter of the Anderson acceleration step. Default: <code class="docutils literal notranslate"><span class="pre">1e-4</span></code>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether to print relevant information of the algorithm during its run,
+such as convergence criterion at each iterate. Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a torch model that solves the optimization problem.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.check_conv_fn">
+<span class="sig-name descname"><span class="pre">check_conv_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">it</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.check_conv_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.check_conv_fn" title="Link to this definition"></a></dt>
+<dd><p>Checks the convergence of the algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>it</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – iteration number.</p></li>
+<li><p><strong>X_prev</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the primal and dual previous iterates.</p></li>
+<li><p><strong>X</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the current primal and dual iterates.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return bool<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the algorithm has converged, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.check_iteration_fn">
+<span class="sig-name descname"><span class="pre">check_iteration_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.check_iteration_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.check_iteration_fn" title="Link to this definition"></a></dt>
+<dd><p>Performs stepsize backtracking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X_prev</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the primal and dual previous iterates.</p></li>
+<li><p><strong>X</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the current primal and dual iterates.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_gt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.forward" title="Link to this definition"></a></dt>
+<dd><p>Runs the fixed-point iteration algorithm for solving <a class="reference internal" href="../deepinv.optim.html#optim"><span class="std std-ref">(1)</span></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – measurement vector.</p></li>
+<li><p><strong>physics</strong> (<em>deepinv.physics</em>) – physics of the problem for the acquisition of <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p></li>
+<li><p><strong>x_gt</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – (optional) ground truth image, for plotting the PSNR across optim iterations.</p></li>
+<li><p><strong>compute_metrics</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether to compute the metrics or not. Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <code class="docutils literal notranslate"><span class="pre">compute_metrics</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>,  returns (torch.Tensor) the output of the algorithm.
+Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.init_iterate_fn">
+<span class="sig-name descname"><span class="pre">init_iterate_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.init_iterate_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.init_iterate_fn" title="Link to this definition"></a></dt>
+<dd><p>Initializes the iterate of the algorithm.
+The first iterate is stored in a dictionary of the form <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">=</span> <span class="pre">{'est':</span> <span class="pre">(x_0,</span> <span class="pre">u_0),</span> <span class="pre">'cost':</span> <span class="pre">F_0}</span></code> where:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">est</span></code> is a tuple containing the first primal and auxiliary iterates.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cost</span></code> is the value of the cost function at the first iterate.</p></li>
+</ul>
+</div></blockquote>
+<p>By default, the first (primal, auxiliary) iterate of the algorithm is chosen as <span class="math notranslate nohighlight">\((A^{\top}y, A^{\top}y)\)</span>.
+A custom initialization is possible with the custom_init argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – measurement vector.</p></li>
+<li><p><strong>deepinv.physics</strong> – physics of the problem.</p></li>
+<li><p><strong>F_fn</strong> – function that computes the cost function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a dictionary containing the first iterate of the algorithm.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.init_metrics_fn">
+<span class="sig-name descname"><span class="pre">init_metrics_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_init</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_gt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.init_metrics_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.init_metrics_fn" title="Link to this definition"></a></dt>
+<dd><p>Initializes the metrics.</p>
+<p>Metrics are computed for each batch and for each iteration.
+They are represented by a list of list, and <code class="docutils literal notranslate"><span class="pre">metrics[metric_name][i,j]</span></code> contains the metric <code class="docutils literal notranslate"><span class="pre">metric_name</span></code>
+computed for batch i, at iteration j.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X_init</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the primal and auxiliary initial iterates.</p></li>
+<li><p><strong>x_gt</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – ground truth image, required for PSNR computation. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dict<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the metrics.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.update_data_fidelity_fn">
+<span class="sig-name descname"><span class="pre">update_data_fidelity_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">it</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.update_data_fidelity_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.update_data_fidelity_fn" title="Link to this definition"></a></dt>
+<dd><p>For each data_fidelity function in <cite>data_fidelity</cite>, selects the data_fidelity value for iteration <code class="docutils literal notranslate"><span class="pre">it</span></code>
+(if this data_fidelity depends on the iteration number).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>it</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – iteration number.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a dictionary containing the data_fidelity of iteration <code class="docutils literal notranslate"><span class="pre">it</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.update_metrics_fn">
+<span class="sig-name descname"><span class="pre">update_metrics_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_gt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.update_metrics_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.update_metrics_fn" title="Link to this definition"></a></dt>
+<dd><p>Function that compute all the metrics, across all batches, for the current iteration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metrics</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the metrics. Each metric is computed for each batch.</p></li>
+<li><p><strong>X_prev</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the primal and dual previous iterates.</p></li>
+<li><p><strong>X</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing the current primal and dual iterates.</p></li>
+<li><p><strong>x_gt</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – ground truth image, required for PSNR computation. Default: None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dict<span class="colon">:</span></dt>
+<dd class="field-even"><p>a dictionary containing the updated metrics.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.update_params_fn">
+<span class="sig-name descname"><span class="pre">update_params_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">it</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.update_params_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.update_params_fn" title="Link to this definition"></a></dt>
+<dd><p>For each parameter <code class="docutils literal notranslate"><span class="pre">params_algo</span></code>, selects the parameter value for iteration <code class="docutils literal notranslate"><span class="pre">it</span></code>
+(if this parameter depends on the iteration number).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>it</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – iteration number.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a dictionary containing the parameters of iteration <code class="docutils literal notranslate"><span class="pre">it</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.BaseOptim.update_prior_fn">
+<span class="sig-name descname"><span class="pre">update_prior_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">it</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#BaseOptim.update_prior_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.BaseOptim.update_prior_fn" title="Link to this definition"></a></dt>
+<dd><p>For each prior function in <cite>prior</cite>, selects the prior value for iteration <code class="docutils literal notranslate"><span class="pre">it</span></code>
+(if this prior depends on the iteration number).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>it</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – iteration number.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a dictionary containing the prior of iteration <code class="docutils literal notranslate"><span class="pre">it</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-baseoptim">
+<span id="sphx-glr-backref-deepinv-optim-baseoptim"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">BaseOptim</span></code>:<a class="headerlink" href="#examples-using-baseoptim" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.  The following example and data are taken from Aghabiglou et al. (2024).  If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib."><img alt="" src="../_images/sphx_glr_demo_ri_basic_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/advanced/demo_ri_basic.html#sphx-glr-auto-examples-advanced-demo-ri-basic-py"><span class="std std-ref">Radio interferometric imaging with deepinverse</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="../_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:"><img alt="" src="../_images/sphx_glr_demo_phase_retrieval_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_phase_retrieval.html#sphx-glr-auto-examples-basics-demo-phase-retrieval-py"><span class="std std-ref">Random phase retrieval and reconstruction methods.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \epsilon where A is a convolutional operator and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_TV_minimisation_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_TV_minimisation.html#sphx-glr-auto-examples-optimization-demo-tv-minimisation-py"><span class="std std-ref">Image deblurring with Total-Variation (TV) prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \epsilon where A is a mask and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_wavelet_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_wavelet_prior.html#sphx-glr-auto-examples-optimization-demo-wavelet-prior-py"><span class="std std-ref">Image inpainting with wavelet prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography."><img alt="" src="../_images/sphx_glr_demo_vanilla_PnP_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="../_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior."><img alt="" src="../_images/sphx_glr_demo_RED_GSPnP_SR_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to define your own optimization algorithm. For example, here, we implement the Condat-Vu Primal-Dual algorithm, and apply it for Single Pixel Camera reconstruction."><img alt="" src="../_images/sphx_glr_demo_PnP_custom_optim_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_custom_optim.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-custom-optim-py"><span class="std std-ref">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</span></a></p>
+  <div class="sphx-glr-thumbnail-title">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.optim.optim_builder.html" class="btn btn-neutral float-left" title="optim_builder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.optim.DataFidelity.html" class="btn btn-neutral float-right" title="DataFidelity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

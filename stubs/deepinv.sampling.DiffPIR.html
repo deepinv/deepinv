@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiffPIR &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DPS" href="deepinv.sampling.DPS.html" />
+    <link rel="prev" title="DDRM" href="deepinv.sampling.DDRM.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="deepinv.sampling.MonteCarlo.html">MonteCarlo</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.sampling.html#diffusion">Diffusion</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.sampling.DDRM.html">DDRM</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">DiffPIR</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.sampling.DiffPIR"><code class="docutils literal notranslate"><span class="pre">DiffPIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-diffpir">Examples using <code class="docutils literal notranslate"><span class="pre">DiffPIR</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.sampling.DPS.html">DPS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.sampling.DiffusionSampler.html">DiffusionSampler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.sampling.html#markov-chain-monte-carlo-langevin">Markov Chain Monte Carlo Langevin</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+      <li class="breadcrumb-item active">DiffPIR</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.sampling.DiffPIR.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="diffpir">
+<h1>DiffPIR<a class="headerlink" href="#diffpir" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.sampling.DiffPIR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.sampling.</span></span><span class="sig-name descname"><span class="pre">DiffPIR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_fidelity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zeta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">7.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DiffPIR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DiffPIR" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Diffusion PnP Image Restoration (DiffPIR).</p>
+<p>This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described
+in <a class="reference external" href="https://arxiv.org/abs/2305.08995">https://arxiv.org/abs/2305.08995</a>.</p>
+<p>The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
+is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
+for <span class="math notranslate nohighlight">\(t\)</span> decreasing from <span class="math notranslate nohighlight">\(T\)</span> to <span class="math notranslate nohighlight">\(1\)</span>:</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[\begin{split}\begin{equation*}
+\begin{aligned}
+x_{0}^{t} &amp;= D_{\theta}(x_t, \frac{\sqrt{1-\overline{\alpha}_t}}{\sqrt{\overline{\alpha}_t}}) \\
+\widehat{x}_{0}^{t} &amp;= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\
+\widehat{\varepsilon} &amp;= \left(x_t - \sqrt{\overline{\alpha}_t} \,\,
+\widehat{x}_{0}^t\right)/\sqrt{1-\overline{\alpha}_t} \\
+\varepsilon_t &amp;= \mathcal{N}(0, \mathbf{I}) \\
+x_{t-1} &amp;= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t}
+\left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),
+\end{aligned}
+\end{equation*}\end{split}\]</div>
+</div></blockquote>
+<p>where <span class="math notranslate nohighlight">\(D_\theta(\cdot,\sigma)\)</span> is a Gaussian denoiser network with noise level <span class="math notranslate nohighlight">\(\sigma\)</span>
+and <span class="math notranslate nohighlight">\(f(y, \cdot)\)</span> is the data fidelity
+term.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The algorithm might require careful tunning of the hyperparameters <span class="math notranslate nohighlight">\(\lambda\)</span> and <span class="math notranslate nohighlight">\(\zeta\)</span> to
+obtain optimal results.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – a conditional noise estimation model</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the noise level of the data</p></li>
+<li><p><strong>data_fidelity</strong> (<a class="reference internal" href="deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><em>deepinv.optim.DataFidelity</em></a>) – the data fidelity operator</p></li>
+<li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – the number of iterations to run the algorithm (default: 100)</p></li>
+<li><p><strong>zeta</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – hyperparameter <span class="math notranslate nohighlight">\(\zeta\)</span> for the sampling step (must be between 0 and 1). Default: 1.0.</p></li>
+<li><p><strong>lambda</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – hyperparameter <span class="math notranslate nohighlight">\(\lambda\)</span> for the data fidelity step
+(<span class="math notranslate nohighlight">\(\rho_t = \lambda \frac{\sigma_n^2}{\bar{\sigma}_t^2}\)</span> in the paper where the optimal value range
+between 3.0 and 25.0 depending on the problem). Default: <code class="docutils literal notranslate"><span class="pre">7.0</span></code>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, print progress</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – the device to use for the computations</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Denoising diffusion restoration model using a pretrained DRUNet denoiser:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">device</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_freer_gpu</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;cpu&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="c1"># Define a plain gray 32x32 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">mask</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">tensor_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+<span class="gp">... </span>  <span class="n">noise_model</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="mf">0.1</span><span class="p">),</span>
+<span class="gp">... </span>  <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># Measurements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DRUNet</span><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;download&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">DiffPIR</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">model</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">data_fidelity</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">L2</span><span class="p">()</span>
+<span class="gp">... </span><span class="p">)</span> <span class="c1"># Define the DiffPIR model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xhat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span> <span class="c1"># Run the DiffPIR algorithm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cal_psnr</span><span class="p">(</span><span class="n">xhat</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cal_psnr</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="c1"># Should be closer to the original</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.sampling.DiffPIR.find_nearest">
+<span class="sig-name descname"><span class="pre">find_nearest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DiffPIR.find_nearest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DiffPIR.find_nearest" title="Link to this definition"></a></dt>
+<dd><p>Find the argmin of the nearest value in an array.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.sampling.DiffPIR.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.forward.LinearPhysics"><span class="pre">LinearPhysics</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DiffPIR.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DiffPIR.forward" title="Link to this definition"></a></dt>
+<dd><p>Runs the diffusion to obtain a random sample of the posterior distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – the measurements.</p></li>
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><em>deepinv.physics.LinearPhysics</em></a>) – the physics operator.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the noise level of the data.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – the seed for the random number generator.</p></li>
+<li><p><strong>x_init</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – the initial guess for the reconstruction.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.sampling.DiffPIR.get_alpha_beta">
+<span class="sig-name descname"><span class="pre">get_alpha_beta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DiffPIR.get_alpha_beta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DiffPIR.get_alpha_beta" title="Link to this definition"></a></dt>
+<dd><p>Get the alpha and beta sequences for the algorithm. This is necessary for mapping noise levels to timesteps.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.sampling.DiffPIR.get_alpha_prod">
+<span class="sig-name descname"><span class="pre">get_alpha_prod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.02</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_train_timesteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DiffPIR.get_alpha_prod"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DiffPIR.get_alpha_prod" title="Link to this definition"></a></dt>
+<dd><p>Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.sampling.DiffPIR.get_noise_schedule">
+<span class="sig-name descname"><span class="pre">get_noise_schedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DiffPIR.get_noise_schedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DiffPIR.get_noise_schedule" title="Link to this definition"></a></dt>
+<dd><p>Get the noise schedule for the algorithm.</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-diffpir">
+<span id="sphx-glr-backref-deepinv-sampling-diffpir"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">DiffPIR</span></code>:<a class="headerlink" href="#examples-using-diffpir" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from Zhou et al.. The full algorithm is implemented in deepinv.sampling.DiffPIR."><img alt="" src="../_images/sphx_glr_demo_diffpir_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_diffpir.html#sphx-glr-auto-examples-sampling-demo-diffpir-py"><span class="std std-ref">Implementing DiffPIR</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Implementing DiffPIR</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.sampling.DDRM.html" class="btn btn-neutral float-left" title="DDRM" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.sampling.DPS.html" class="btn btn-neutral float-right" title="DPS" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

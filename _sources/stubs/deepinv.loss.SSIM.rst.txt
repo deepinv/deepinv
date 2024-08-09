@@ -1,0 +1,15 @@
+﻿SSIM
+====
+
+.. currentmodule:: deepinv.loss
+
+.. autoclass:: SSIM
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.loss.SSIM:
+
+.. minigallery:: deepinv.loss.SSIM
+    :add-heading: Examples using ``SSIM``:

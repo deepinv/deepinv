@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.optim.optim_iterators.optim_iterator &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../../index.html">
+            
+              <img src="../../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.optim.optim_iterators.optim_iterator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.optim.optim_iterators.optim_iterator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">deepinv.optim.data_fidelity</span> <span class="kn">import</span> <span class="n">L2</span>
+
+
+<div class="viewcode-block" id="OptimIterator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator">[docs]</a>
+<span class="k">class</span> <span class="nc">OptimIterator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for all :meth:`Optim` iterators.</span>
+
+<span class="sd">    An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions</span>
+<span class="sd">    :math:`F = f + \lambda g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics</span>
+<span class="sd">    and g is a regularizer. The fixed point iteration takes the form</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)</span>
+
+<span class="sd">    where :math:`x` is a &quot;primal&quot; variable converging to the solution of the minimization problem, and</span>
+<span class="sd">    :math:`z` is a &quot;dual&quot; variable.</span>
+
+
+<span class="sd">    .. note::</span>
+<span class="sd">        By an abuse of terminology, we call &quot;primal&quot; and &quot;dual&quot; variables the variables that are updated</span>
+<span class="sd">        at each step and which may correspond to the actual primal and dual variables from </span>
+<span class="sd">        (for instance in the case of the PD algorithm), but not necessarily (for instance in the case of the</span>
+<span class="sd">        PGD algorithm).</span>
+
+
+<span class="sd">    The implementation of the fixed point algorithm in :meth:`deepinv.optim`  is split in two steps, alternating between</span>
+<span class="sd">    a step on f and a step on g, that is for :math:`k=1,2,...`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\</span>
+<span class="sd">        x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)</span>
+
+<span class="sd">    where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are the steps on f and g respectively.</span>
+
+<span class="sd">    :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.</span>
+<span class="sd">    :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.</span>
+<span class="sd">    :param bool has_cost: If True, the function F is computed at each iteration. Default: False.</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">F_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">has_cost</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OptimIterator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_first</span> <span class="o">=</span> <span class="n">g_first</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">F_fn</span> <span class="o">=</span> <span class="n">F_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span> <span class="o">=</span> <span class="n">has_cost</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">F_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f_step</span> <span class="o">=</span> <span class="n">fStep</span><span class="p">(</span><span class="n">g_first</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">g_first</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_step</span> <span class="o">=</span> <span class="n">gStep</span><span class="p">(</span><span class="n">g_first</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">g_first</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requires_grad_g</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requires_prox_g</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="OptimIterator.relaxation_step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator.relaxation_step">[docs]</a>
+    <span class="k">def</span> <span class="nf">relaxation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs a relaxation step of the form :math:`\beta u + (1-\beta) v`.</span>
+
+<span class="sd">        :param torch.Tensor u: First tensor.</span>
+<span class="sd">        :param torch.Tensor v: Second tensor.</span>
+<span class="sd">        :param float beta: Relaxation parameter.</span>
+<span class="sd">        :return: Relaxed tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">u</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">v</span></div>
+
+
+<div class="viewcode-block" id="OptimIterator.forward">
+<a class="viewcode-back" href="../../../../stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">cur_data_fidelity</span><span class="p">,</span> <span class="n">cur_prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda g`, alternating</span>
+<span class="sd">        between a step on :math:`f` and a step on :math:`g`.</span>
+<span class="sd">        The primal and dual variables as well as the estimated cost at the current iterate are stored in a dictionary</span>
+<span class="sd">        $X$ of the form `{&#39;est&#39;: (x,z), &#39;cost&#39;: F}`.</span>
+
+<span class="sd">        :param dict X: Dictionary containing the current iterate and the estimated cost.</span>
+<span class="sd">        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.</span>
+<span class="sd">        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.</span>
+<span class="sd">        :param dict cur_params: Dictionary containing the current parameters of the algorithm.</span>
+<span class="sd">        :param torch.Tensor y: Input data.</span>
+<span class="sd">        :param deepinv.physics physics: Instance of the physics modeling the observation.</span>
+<span class="sd">        :return: Dictionary `{&quot;est&quot;: (x, z), &quot;cost&quot;: F}` containing the updated current iterate and the estimated current cost.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_prev</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_first</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_step</span><span class="p">(</span><span class="n">x_prev</span><span class="p">,</span> <span class="n">cur_data_fidelity</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_step</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">cur_prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_step</span><span class="p">(</span><span class="n">x_prev</span><span class="p">,</span> <span class="n">cur_prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_step</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">cur_data_fidelity</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relaxation_step</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_prev</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">[</span><span class="s2">&quot;beta&quot;</span><span class="p">])</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">F_fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cur_data_fidelity</span><span class="p">,</span> <span class="n">cur_prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">),</span> <span class="s2">&quot;cost&quot;</span><span class="p">:</span> <span class="n">F</span><span class="p">}</span></div>
+</div>
+
+
+
+<span class="k">class</span> <span class="nc">fStep</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Module for the single iteration steps on the data-fidelity term :math:`f`.</span>
+
+<span class="sd">    :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.</span>
+<span class="sd">    :param kwargs: Additional keyword arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">fStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_first</span> <span class="o">=</span> <span class="n">g_first</span>
+
+        <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cur_data_fidelity</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">):</span>
+<span class="w">            </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Single iteration step on the data-fidelity term :math:`f`.</span>
+
+<span class="sd">            :param torch.Tensor x: Current iterate.</span>
+<span class="sd">            :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.</span>
+<span class="sd">            :param dict cur_params: Dictionary containing the current parameters of the algorithm.</span>
+<span class="sd">            :param torch.Tensor y: Input data.</span>
+<span class="sd">            :param deepinv.physics physics: Instance of the physics modeling the observation.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">gStep</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Module for the single iteration steps on the prior term :math:` \lambda g`.</span>
+
+<span class="sd">    :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.</span>
+<span class="sd">    :param kwargs: Additional keyword arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">gStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_first</span> <span class="o">=</span> <span class="n">g_first</span>
+
+        <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cur_prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">):</span>
+<span class="w">            </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Single iteration step on the prior term :math:`g`.</span>
+
+<span class="sd">            :param torch.Tensor x: Current iterate.</span>
+<span class="sd">            :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.</span>
+<span class="sd">            :param dict cur_params: Dictionary containing the current parameters of the algorithm.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

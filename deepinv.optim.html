@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Optim &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="optim_builder" href="stubs/deepinv.optim.optim_builder.html" />
+    <link rel="prev" title="to_complex_denoiser" href="stubs/deepinv.models.complex.to_complex_denoiser.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Optim</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_builder.html">optim_builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html">BaseOptim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-fidelity">Data Fidelity</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.DataFidelity.html">DataFidelity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.L1.html">L1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.L2.html">L2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.IndicatorL2.html">IndicatorL2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.PoissonLikelihood.html">PoissonLikelihood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.LogPoissonLikelihood.html">LogPoissonLikelihood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.AmplitudeLoss.html">AmplitudeLoss</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#priors">Priors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.Prior.html">Prior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.PnP.html">PnP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.RED.html">RED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.ScorePrior.html">ScorePrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.Tikhonov.html">Tikhonov</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.L1Prior.html">L1Prior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.WaveletPrior.html">WaveletPrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.TVPrior.html">TVPrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.PatchPrior.html">PatchPrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.PatchNR.html">PatchNR</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#iterators">Iterators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.FixedPoint.html">FixedPoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generic-optimizers">Generic Optimizers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.OptimIterator.html">OptimIterator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.GDIteration.html">GDIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.PGDIteration.html">PGDIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.FISTAIteration.html">FISTAIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.CPIteration.html">CPIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.ADMMIteration.html">ADMMIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.DRSIteration.html">DRSIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.HQSIteration.html">HQSIteration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.SMIteration.html">SMIteration</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.utils.conjugate_gradient.html">conjugate_gradient</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.utils.gradient_descent.html">gradient_descent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.utils.GaussianMixtureModel.html">GaussianMixtureModel</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Optim</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/deepinv.optim.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="optim">
+<span id="id1"></span><h1>Optim<a class="headerlink" href="#optim" title="Link to this heading"></a></h1>
+<p>This package contains a collection of routines that optimize</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation}
+\label{eq:min_prob}
+\tag{1}
+\underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda \reg{x},
+\end{equation}\]</div>
+<p>where the first term <span class="math notranslate nohighlight">\(\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}\)</span> enforces data-fidelity, the second
+term <span class="math notranslate nohighlight">\(\regname:\xset\mapsto \mathbb{R}_{+}\)</span> acts as a regularization and
+<span class="math notranslate nohighlight">\(\lambda &gt; 0\)</span> is a regularization parameter. More precisely, the data-fidelity term penalizes the discrepancy
+between the data <span class="math notranslate nohighlight">\(y\)</span> and the forward operator <span class="math notranslate nohighlight">\(A\)</span> applied to the variable <span class="math notranslate nohighlight">\(x\)</span>, as</p>
+<div class="math notranslate nohighlight">
+\[\datafid{x}{y} = \distance{A(x)}{y}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\distance{\cdot}{\cdot}\)</span> is a distance function, and where <span class="math notranslate nohighlight">\(A:\xset\mapsto \yset\)</span> is the forward
+operator (see <a class="reference internal" href="stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.Physics()</span></code></a>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The regularization term often (but not always) depends on a hyperparameter <span class="math notranslate nohighlight">\(\sigma\)</span> that can be either fixed
+or estimated. For example, if the regularization is implicitly defined by a denoiser,
+the hyperparameter is the noise level.</p>
+</div>
+<p>A typical example of optimization problem is the <span class="math notranslate nohighlight">\(\ell_1\)</span>-regularized least squares problem, where the data-fidelity term is
+the squared <span class="math notranslate nohighlight">\(\ell_2\)</span>-norm and the regularization term is the <span class="math notranslate nohighlight">\(\ell_1\)</span>-norm. In this case, a possible
+algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm writing as</p>
+<div class="math notranslate nohighlight">
+\[\qquad x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname} \left( x_k - \gamma \nabla \datafidname(x_k, y) \right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\operatorname{prox}_{\lambda \regname}\)</span> is the proximity operator of the regularization term, <span class="math notranslate nohighlight">\(\gamma\)</span> is the
+step size of the algorithm, and <span class="math notranslate nohighlight">\(\nabla \datafidname\)</span> is the gradient of the data-fidelity term.</p>
+<p>The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the <span class="math notranslate nohighlight">\(\ell_1\)</span>-regularized
+least squares problem.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.optim</span> <span class="kn">import</span> <span class="n">L2</span><span class="p">,</span> <span class="n">TVPrior</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Forward operator, here inpainting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span><span class="n">tensor_size</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">L2</span><span class="p">()</span>  <span class="c1"># The data fidelity term</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prior</span> <span class="o">=</span> <span class="n">TVPrior</span><span class="p">()</span>  <span class="c1"># The prior term</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lambd</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># Regularization parameter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Compute the squared norm of the operator A</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">norm_A2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stepsize</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">norm_A2</span>  <span class="c1"># stepsize for the PGD algorithm</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># PGD algorithm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">max_iter</span> <span class="o">=</span> <span class="mi">20</span>  <span class="c1"># number of iterations</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_k</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># initial guess</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">u</span> <span class="o">=</span> <span class="n">x_k</span> <span class="o">-</span> <span class="n">stepsize</span><span class="o">*</span><span class="n">data_fidelity</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">x_k</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>  <span class="c1"># Gradient step</span>
+<span class="gp">... </span>    <span class="n">x_k</span> <span class="o">=</span> <span class="n">prior</span><span class="o">.</span><span class="n">prox</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">lambd</span><span class="o">*</span><span class="n">stepsize</span><span class="p">)</span>  <span class="c1"># Proximal step</span>
+<span class="gp">... </span>    <span class="n">cost</span> <span class="o">=</span> <span class="n">data_fidelity</span><span class="p">(</span><span class="n">x_k</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span> <span class="o">+</span> <span class="n">lambd</span><span class="o">*</span><span class="n">prior</span><span class="p">(</span><span class="n">x_k</span><span class="p">)</span>  <span class="c1"># Compute the cost</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cost</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">)</span>
+<span class="go">tensor([True])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Estimated solution: &#39;</span><span class="p">,</span> <span class="n">x_k</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+<span class="go">Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])</span>
+</pre></div>
+</div>
+<p>Optimization algorithms such as the one above can be written as fixed point algorithms,
+i.e. for <span class="math notranslate nohighlight">\(k=1,2,...\)</span></p>
+<div class="math notranslate nohighlight">
+\[\qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is a variable converging to the solution of the minimization problem, and
+<span class="math notranslate nohighlight">\(z\)</span> is an additional (dual) variable that may be required in the computation of the fixed point operator.</p>
+<p>The function <a class="reference internal" href="stubs/deepinv.optim.optim_builder.html#deepinv.optim.optim_builder" title="deepinv.optim.optim_builder"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.optim_builder()</span></code></a> returns an instance of <a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim()</span></code></a> with the
+optimization algorithm of choice, either a predefined one (<code class="docutils literal notranslate"><span class="pre">&quot;PGD&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ADMM&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;HQS&quot;</span></code>, etc.),
+or with a user-defined one.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_builder.html#deepinv.optim.optim_builder" title="deepinv.optim.optim_builder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_builder</span></code></a></p></td>
+<td><p>Helper function for building an instance of the <code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseOptim()</span></code> class.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Optimization algorithm inherit from the base class <a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim()</span></code></a>, which serves as a common interface
+for all optimization algorithms.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim</span></code></a></p></td>
+<td><p>Class for optimization algorithms, consists in iterating a fixed-point operator.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="data-fidelity">
+<span id="id2"></span><h2>Data Fidelity<a class="headerlink" href="#data-fidelity" title="Link to this heading"></a></h2>
+<p>This is the base class for the data fidelity term <span class="math notranslate nohighlight">\(\distance{A(x)}{y}\)</span> where <span class="math notranslate nohighlight">\(A\)</span> is the forward operator,
+<span class="math notranslate nohighlight">\(x\in\xset\)</span> is a variable and <span class="math notranslate nohighlight">\(y\in\yset\)</span> is the data, and where <span class="math notranslate nohighlight">\(d\)</span> is a convex function.</p>
+<p>This class comes with methods, such as <span class="math notranslate nohighlight">\(\operatorname{prox}_{\distancename\circ A}\)</span> and
+<span class="math notranslate nohighlight">\(\nabla (\distancename \circ A)\)</span> (among others), on which optimization algorithms rely.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity</span></code></a></p></td>
+<td><p>Data fidelity term <span class="math notranslate nohighlight">\(\datafid{x}{y}=\distance{\forw{x}}{y}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.L1.html#deepinv.optim.L1" title="deepinv.optim.L1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L1</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\ell_1\)</span> data fidelity term.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.L2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L2</span></code></a></p></td>
+<td><p>Implementation of <span class="math notranslate nohighlight">\(\distancename\)</span> as the normalized <span class="math notranslate nohighlight">\(\ell_2\)</span> norm</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.IndicatorL2.html#deepinv.optim.IndicatorL2" title="deepinv.optim.IndicatorL2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.IndicatorL2</span></code></a></p></td>
+<td><p>Indicator of <span class="math notranslate nohighlight">\(\ell_2\)</span> ball with radius <span class="math notranslate nohighlight">\(r\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.PoissonLikelihood.html#deepinv.optim.PoissonLikelihood" title="deepinv.optim.PoissonLikelihood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PoissonLikelihood</span></code></a></p></td>
+<td><p>Poisson negative log-likelihood.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.LogPoissonLikelihood.html#deepinv.optim.LogPoissonLikelihood" title="deepinv.optim.LogPoissonLikelihood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.LogPoissonLikelihood</span></code></a></p></td>
+<td><p>Log-Poisson negative log-likelihood.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.AmplitudeLoss.html#deepinv.optim.AmplitudeLoss" title="deepinv.optim.AmplitudeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.AmplitudeLoss</span></code></a></p></td>
+<td><p>Amplitude loss as the data fidelity term for <a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval()</span></code></a> reconstrunction.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="priors">
+<span id="id3"></span><h2>Priors<a class="headerlink" href="#priors" title="Link to this heading"></a></h2>
+<p>This is the base class for implementing prior functions <span class="math notranslate nohighlight">\(\reg{x}\)</span> where <span class="math notranslate nohighlight">\(x\in\xset\)</span> is a variable and
+where <span class="math notranslate nohighlight">\(\regname\)</span> is a function.</p>
+<p>Similarly to the <a class="reference internal" href="stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity()</span></code></a> class, this class comes with methods for computing
+<span class="math notranslate nohighlight">\(\operatorname{prox}_{g}\)</span> and <span class="math notranslate nohighlight">\(\nabla \regname\)</span>.  This base class is used to implement user-defined differentiable
+priors, such as the Tikhonov regularisation, but also implicit priors. For instance, in PnP methods, the method
+computing the proximity operator is overwritten by a method performing denoising.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Prior</span></code></a></p></td>
+<td><p>Prior term <span class="math notranslate nohighlight">\(\reg{x}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.PnP.html#deepinv.optim.PnP" title="deepinv.optim.PnP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PnP</span></code></a></p></td>
+<td><p>Plug-and-play prior <span class="math notranslate nohighlight">\(\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.RED.html#deepinv.optim.RED" title="deepinv.optim.RED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.RED</span></code></a></p></td>
+<td><p>Regularization-by-Denoising (RED) prior <span class="math notranslate nohighlight">\(\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior</span></code></a></p></td>
+<td><p>Score via MMSE denoiser <span class="math notranslate nohighlight">\(\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov" title="deepinv.optim.Tikhonov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Tikhonov</span></code></a></p></td>
+<td><p>Tikhonov regularizer <span class="math notranslate nohighlight">\(\reg{x} = \frac{1}{2}\| x \|_2^2\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior" title="deepinv.optim.L1Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L1Prior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\ell_1\)</span> prior <span class="math notranslate nohighlight">\(\reg{x} = \| x \|_1\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior" title="deepinv.optim.WaveletPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.WaveletPrior</span></code></a></p></td>
+<td><p>Wavelet prior <span class="math notranslate nohighlight">\(\reg{x} = \|\Psi x\|_{p}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior" title="deepinv.optim.TVPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.TVPrior</span></code></a></p></td>
+<td><p>Total variation (TV) prior <span class="math notranslate nohighlight">\(\reg{x} = \| D x \|_{1,2}\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.PatchPrior.html#deepinv.optim.PatchPrior" title="deepinv.optim.PatchPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PatchPrior</span></code></a></p></td>
+<td><p>Patch prior <span class="math notranslate nohighlight">\(g(x) = \sum_i h(P_i x)\)</span> for some prior <span class="math notranslate nohighlight">\(h(x)\)</span> on the space of patches.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR" title="deepinv.optim.PatchNR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PatchNR</span></code></a></p></td>
+<td><p>Patch prior via normalizing flows.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameters">
+<span id="optim-params"></span><h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<p>The parameters of the optimization algorithm, such as
+stepsize, regularisation parameter, denoising standard deviation, etc.
+are stored in a dictionary <code class="docutils literal notranslate"><span class="pre">&quot;params_algo&quot;</span></code>, whose typical entries are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 29.4%" />
+<col style="width: 35.3%" />
+<col style="width: 35.3%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Meaning</p></th>
+<th class="head"><p>Recommended Values</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code></p></td>
+<td><p>Step size of the optimization algorithm.</p></td>
+<td><div class="line-block">
+<div class="line">Should be positive. Depending on the algorithm,</div>
+<div class="line">needs to be small enough for convergence;</div>
+<div class="line">e.g. for PGD with <code class="docutils literal notranslate"><span class="pre">g_first=False</span></code>,</div>
+<div class="line">should be smaller than <span class="math notranslate nohighlight">\(1/(\|A\|_2^2)\)</span>.</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Regularization parameter <span class="math notranslate nohighlight">\(\lambda\)</span></div>
+<div class="line">multiplying the regularization term.</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Optional parameter <span class="math notranslate nohighlight">\(\sigma\)</span> which <span class="math notranslate nohighlight">\(\regname\)</span> depends on.</div>
+<div class="line">For priors based on denoisers,</div>
+<div class="line">corresponds to the noise level.</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;beta&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Relaxation parameter used in</div>
+<div class="line">ADMM, DRS, CP.</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize_dual&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Step size in the dual update in the</div>
+<div class="line">Primal Dual algorithm (only required by CP).</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
+a single float (same value for each iteration).</p>
+</section>
+<section id="iterators">
+<h2>Iterators<a class="headerlink" href="#iterators" title="Link to this heading"></a></h2>
+<p>An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
+<span class="math notranslate nohighlight">\(F = \datafidname + \lambda \regname\)</span> where <span class="math notranslate nohighlight">\(\datafidname\)</span> is a data-fidelity term  that will be modeled
+by an instance of physics and <span class="math notranslate nohighlight">\(\regname\)</span> is a regularizer. The fixed point iteration takes the form</p>
+<div class="math notranslate nohighlight">
+\[\qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...)\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is a variable converging to the solution of the minimization problem, and
+<span class="math notranslate nohighlight">\(z\)</span> is an additional variable that may be required in the computation of the fixed point operator.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.FixedPoint.html#deepinv.optim.FixedPoint" title="deepinv.optim.FixedPoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.FixedPoint</span></code></a></p></td>
+<td><p>Fixed-point iterations module.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The implementation of the fixed point algorithm in <code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim()</span></code>,
+following standard optimization theory, is split in two steps:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
+x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\operatorname{step}_{\datafidname}\)</span> and <span class="math notranslate nohighlight">\(\operatorname{step}_g\)</span> are gradient and/or proximal steps
+on <span class="math notranslate nohighlight">\(\datafidname\)</span> and <span class="math notranslate nohighlight">\(\regname\)</span>, while using additional inputs, such as <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(y\)</span>, but also stepsizes,
+relaxation parameters, etc…</p>
+<p>The fStep and gStep classes precisely implement these steps.</p>
+<section id="generic-optimizers">
+<h3>Generic Optimizers<a class="headerlink" href="#generic-optimizers" title="Link to this heading"></a></h3>
+<p>The following files contain the base classes for implementing generic optimizers:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator" title="deepinv.optim.OptimIterator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.OptimIterator</span></code></a></p></td>
+<td><p>Base class for all <code class="xref py py-meth docutils literal notranslate"><span class="pre">Optim()</span></code> iterators.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.GDIteration.html#deepinv.optim.optim_iterators.GDIteration" title="deepinv.optim.optim_iterators.GDIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.GDIteration</span></code></a></p></td>
+<td><p>Iterator for Gradient Descent.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.PGDIteration.html#deepinv.optim.optim_iterators.PGDIteration" title="deepinv.optim.optim_iterators.PGDIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.PGDIteration</span></code></a></p></td>
+<td><p>Iterator for proximal gradient descent.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.FISTAIteration.html#deepinv.optim.optim_iterators.FISTAIteration" title="deepinv.optim.optim_iterators.FISTAIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.FISTAIteration</span></code></a></p></td>
+<td><p>Iterator for fast iterative soft-thresholding (FISTA).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.CPIteration.html#deepinv.optim.optim_iterators.CPIteration" title="deepinv.optim.optim_iterators.CPIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.CPIteration</span></code></a></p></td>
+<td><p>Iterator for Chambolle-Pock.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.ADMMIteration.html#deepinv.optim.optim_iterators.ADMMIteration" title="deepinv.optim.optim_iterators.ADMMIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.ADMMIteration</span></code></a></p></td>
+<td><p>Iterator for alternating direction method of multipliers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.DRSIteration.html#deepinv.optim.optim_iterators.DRSIteration" title="deepinv.optim.optim_iterators.DRSIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.DRSIteration</span></code></a></p></td>
+<td><p>Iterator for Douglas-Rachford Splitting.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.HQSIteration.html#deepinv.optim.optim_iterators.HQSIteration" title="deepinv.optim.optim_iterators.HQSIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.HQSIteration</span></code></a></p></td>
+<td><p>Single iteration of half-quadratic splitting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.SMIteration.html#deepinv.optim.optim_iterators.SMIteration" title="deepinv.optim.optim_iterators.SMIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.SMIteration</span></code></a></p></td>
+<td><p>Iterator for Spectral Methods for <a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval()</span></code></a>.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="utils">
+<h2>Utils<a class="headerlink" href="#utils" title="Link to this heading"></a></h2>
+<p>We provide some useful utilities for optimization algorithms.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.conjugate_gradient.html#deepinv.optim.utils.conjugate_gradient" title="deepinv.optim.utils.conjugate_gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.conjugate_gradient</span></code></a></p></td>
+<td><p>Standard conjugate gradient algorithm.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.gradient_descent.html#deepinv.optim.utils.gradient_descent" title="deepinv.optim.utils.gradient_descent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.gradient_descent</span></code></a></p></td>
+<td><p>Standard gradient descent algorithm`.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel" title="deepinv.optim.utils.GaussianMixtureModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.GaussianMixtureModel</span></code></a></p></td>
+<td><p>Gaussian mixture model including parameter estimation.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stubs/deepinv.models.complex.to_complex_denoiser.html" class="btn btn-neutral float-left" title="to_complex_denoiser" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stubs/deepinv.optim.optim_builder.html" class="btn btn-neutral float-right" title="optim_builder" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

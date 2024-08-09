@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prior &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PnP" href="deepinv.optim.PnP.html" />
+    <link rel="prev" title="AmplitudeLoss" href="deepinv.optim.AmplitudeLoss.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.optim.html">Optim</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="deepinv.optim.optim_builder.html">optim_builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deepinv.optim.BaseOptim.html">BaseOptim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#data-fidelity">Data Fidelity</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.optim.html#priors">Priors</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Prior</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.optim.Prior"><code class="docutils literal notranslate"><span class="pre">Prior</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-prior">Examples using <code class="docutils literal notranslate"><span class="pre">Prior</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.PnP.html">PnP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.RED.html">RED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.ScorePrior.html">ScorePrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.Tikhonov.html">Tikhonov</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.L1Prior.html">L1Prior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.WaveletPrior.html">WaveletPrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.TVPrior.html">TVPrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.PatchPrior.html">PatchPrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.optim.PatchNR.html">PatchNR</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#iterators">Iterators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#utils">Utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.optim.html">Optim</a></li>
+      <li class="breadcrumb-item active">Prior</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.optim.Prior.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="prior">
+<h1>Prior<a class="headerlink" href="#prior" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.optim.Prior">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.optim.</span></span><span class="sig-name descname"><span class="pre">Prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/prior.html#Prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.Prior" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Prior term <span class="math notranslate nohighlight">\(\reg{x}\)</span>.</p>
+<p>This is the base class for the prior term <span class="math notranslate nohighlight">\(\reg{x}\)</span>. Similarly to the <a class="reference internal" href="deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity()</span></code></a> class,
+this class comes with methods for computing
+<span class="math notranslate nohighlight">\(\operatorname{prox}_{g}\)</span> and <span class="math notranslate nohighlight">\(\nabla \regname\)</span>.
+To implement a custom prior, for an explicit prior, overwrite <span class="math notranslate nohighlight">\(\regname\)</span> (do not forget to specify
+<cite>self.explicit_prior = True</cite>)</p>
+<p>This base class is also used to implement implicit priors. For instance, in PnP methods, the method computing the
+proximity operator is overwritten by a method performing denoising. For an implicit prior, overwrite <cite>grad</cite>
+or <cite>prox</cite>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The methods for computing the proximity operator and the gradient of the prior rely on automatic
+differentiation. These methods should not be used when the prior is not differentiable, although they will
+not raise an error.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>g</strong> (<em>callable</em>) – Prior function <span class="math notranslate nohighlight">\(g(x)\)</span>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.Prior.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/prior.html#Prior.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.Prior.forward" title="Link to this definition"></a></dt>
+<dd><p>Computes the prior <span class="math notranslate nohighlight">\(g(x)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Variable <span class="math notranslate nohighlight">\(x\)</span> at which the prior is computed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.tensor) prior <span class="math notranslate nohighlight">\(g(x)\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.Prior.g">
+<span class="sig-name descname"><span class="pre">g</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/prior.html#Prior.g"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.Prior.g" title="Link to this definition"></a></dt>
+<dd><p>Computes the prior <span class="math notranslate nohighlight">\(g(x)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Variable <span class="math notranslate nohighlight">\(x\)</span> at which the prior is computed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.tensor) prior <span class="math notranslate nohighlight">\(g(x)\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.Prior.grad">
+<span class="sig-name descname"><span class="pre">grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/prior.html#Prior.grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.Prior.grad" title="Link to this definition"></a></dt>
+<dd><p>Calculates the gradient of the prior term <span class="math notranslate nohighlight">\(\regname\)</span> at <span class="math notranslate nohighlight">\(x\)</span>.
+By default, the gradient is computed using automatic differentiation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Variable <span class="math notranslate nohighlight">\(x\)</span> at which the gradient is computed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.tensor) gradient <span class="math notranslate nohighlight">\(\nabla_x g\)</span>, computed in <span class="math notranslate nohighlight">\(x\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.Prior.prox">
+<span class="sig-name descname"><span class="pre">prox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stepsize_inter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter_inter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol_inter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/prior.html#Prior.prox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.Prior.prox" title="Link to this definition"></a></dt>
+<dd><p>Calculates the proximity operator of <span class="math notranslate nohighlight">\(\regname\)</span> at <span class="math notranslate nohighlight">\(x\)</span>. By default, the proximity operator is computed using internal gradient descent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Variable <span class="math notranslate nohighlight">\(x\)</span> at which the proximity operator is computed.</p></li>
+<li><p><strong>gamma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – stepsize of the proximity operator.</p></li>
+<li><p><strong>stepsize_inter</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – stepsize used for internal gradient descent</p></li>
+<li><p><strong>max_iter_inter</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – maximal number of iterations for internal gradient descent.</p></li>
+<li><p><strong>tol_inter</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.tensor) proximity operator <span class="math notranslate nohighlight">\(\operatorname{prox}_{\gamma g}(x)\)</span>, computed in <span class="math notranslate nohighlight">\(x\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.optim.Prior.prox_conjugate">
+<span class="sig-name descname"><span class="pre">prox_conjugate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/prior.html#Prior.prox_conjugate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.Prior.prox_conjugate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the proximity operator of the convex conjugate <span class="math notranslate nohighlight">\((\lambda g)^*\)</span> at <span class="math notranslate nohighlight">\(x\)</span>, using the Moreau formula.</p>
+<p>::Warning:: Only valid for convex <span class="math notranslate nohighlight">\(\regname\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Variable <span class="math notranslate nohighlight">\(x\)</span> at which the proximity operator is computed.</p></li>
+<li><p><strong>gamma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – stepsize of the proximity operator.</p></li>
+<li><p><strong>lamb</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – math:<cite>lambda</cite> parameter in front of <span class="math notranslate nohighlight">\(f\)</span></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.tensor) proximity operator <span class="math notranslate nohighlight">\(\operatorname{prox}_{\gamma \lambda g)^*}(x)\)</span>, computed in <span class="math notranslate nohighlight">\(x\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-prior">
+<span id="sphx-glr-backref-deepinv-optim-prior"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">Prior</span></code>:<a class="headerlink" href="#examples-using-prior" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.  The following example and data are taken from Aghabiglou et al. (2024).  If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib."><img alt="" src="../_images/sphx_glr_demo_ri_basic_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/advanced/demo_ri_basic.html#sphx-glr-auto-examples-advanced-demo-ri-basic-py"><span class="std std-ref">Radio interferometric imaging with deepinverse</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="../_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model. The architecture of the model and its training are described in the constrained unfolded demo."><img alt="" src="../_images/sphx_glr_demo_loading_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_loading.html#sphx-glr-auto-examples-basics-demo-loading-py"><span class="std std-ref">Saving and loading models</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Saving and loading models</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:"><img alt="" src="../_images/sphx_glr_demo_phase_retrieval_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_phase_retrieval.html#sphx-glr-auto-examples-basics-demo-phase-retrieval-py"><span class="std std-ref">Random phase retrieval and reconstruction methods.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \epsilon where A is a convolutional operator and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_TV_minimisation_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_TV_minimisation.html#sphx-glr-auto-examples-optimization-demo-tv-minimisation-py"><span class="std std-ref">Image deblurring with Total-Variation (TV) prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \epsilon where A is a mask and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_wavelet_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_wavelet_prior.html#sphx-glr-auto-examples-optimization-demo-wavelet-prior-py"><span class="std std-ref">Image inpainting with wavelet prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example we use patch priors for limited angle computed tomography. More precisely, we consider the  inverse problem y = \mathrm{noisy}(Ax), where A is the discretized Radon transform with 100 equispace angles between 20 and 160 degrees. For the reconstruction, we minimize the variational problem"><img alt="" src="../_images/sphx_glr_demo_patch_priors_CT_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/patch-priors/demo_patch_priors_CT.html#sphx-glr-auto-examples-patch-priors-demo-patch-priors-ct-py"><span class="std std-ref">Patch priors for limited-angle computed tomography</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Patch priors for limited-angle computed tomography</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography."><img alt="" src="../_images/sphx_glr_demo_vanilla_PnP_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="../_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior."><img alt="" src="../_images/sphx_glr_demo_RED_GSPnP_SR_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to define your own optimization algorithm. For example, here, we implement the Condat-Vu Primal-Dual algorithm, and apply it for Single Pixel Camera reconstruction."><img alt="" src="../_images/sphx_glr_demo_PnP_custom_optim_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_custom_optim.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-custom-optim-py"><span class="std std-ref">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</span></a></p>
+  <div class="sphx-glr-thumbnail-title">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction from incomplete and noisy measurements."><img alt="" src="../_images/sphx_glr_demo_sampling_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_sampling.html#sphx-glr-auto-examples-sampling-demo-sampling-py"><span class="std std-ref">Uncertainty quantification with PnP-ULA.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Uncertainty quantification with PnP-ULA.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin Algorithm (PreconULA) that takes advantage of the singular value decomposition of the forward operator to accelerate the sampling."><img alt="" src="../_images/sphx_glr_demo_custom_kernel_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_custom_kernel.html#sphx-glr-auto-examples-sampling-demo-custom-kernel-py"><span class="std std-ref">Building your custom sampling algorithm.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Building your custom sampling algorithm.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only."><img alt="" src="../_images/sphx_glr_demo_equivariant_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with Equivariant Imaging for MRI.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use vanilla unfolded Plug-and-Play. The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly. For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="../_images/sphx_glr_demo_vanilla_unfolded_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_vanilla_unfolded.html#sphx-glr-auto-examples-unfolded-demo-vanilla-unfolded-py"><span class="std std-ref">Vanilla Unfolded algorithm for super-resolution</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla Unfolded algorithm for super-resolution</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement the LISTA algorithm for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a soft-thresholding proximal operator with learnable thresholding parameters."><img alt="" src="../_images/sphx_glr_demo_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_LISTA.html#sphx-glr-auto-examples-unfolded-demo-lista-py"><span class="std std-ref">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This a toy example to show you how to use DEQ to solve a deblurring problem.  Note that this is a small dataset for training. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="../_images/sphx_glr_demo_DEQ_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_DEQ.html#sphx-glr-auto-examples-unfolded-demo-deq-py"><span class="std std-ref">Deep Equilibrium (DEQ) algorithms for image deblurring</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Deep Equilibrium (DEQ) algorithms for image deblurring</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function. The algorithm is trained on a dataset of compressed sensing measurements of MNIST images."><img alt="" src="../_images/sphx_glr_demo_custom_prior_unfolded_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_custom_prior_unfolded.html#sphx-glr-auto-examples-unfolded-demo-custom-prior-unfolded-py"><span class="std std-ref">Learned iterative custom prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned iterative custom prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Adler, Jonas, and Ozan Öktem.  &quot;Learned primal-dual reconstruction.&quot;  IEEE transactions on medical imaging 37.6 (2018): 1322-1332."><img alt="" src="../_images/sphx_glr_demo_learned_primal_dual_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_learned_primal_dual.html#sphx-glr-auto-examples-unfolded-demo-learned-primal-dual-py"><span class="std std-ref">Learned Primal-Dual algorithm for CT scan.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned Primal-Dual algorithm for CT scan.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:"><img alt="" src="../_images/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_unfolded_constrained_LISTA.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constrained-lista-py"><span class="std std-ref">Unfolded Chambolle-Pock for constrained image inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.optim.AmplitudeLoss.html" class="btn btn-neutral float-left" title="AmplitudeLoss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.optim.PnP.html" class="btn btn-neutral float-right" title="PnP" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

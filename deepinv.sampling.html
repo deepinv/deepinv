@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diffusion Algorithms &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MonteCarlo" href="stubs/deepinv.sampling.MonteCarlo.html" />
+    <link rel="prev" title="PDNet_DualBlock" href="stubs/deepinv.models.PDNet_DualBlock.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Diffusion Algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.MonteCarlo.html">MonteCarlo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#diffusion">Diffusion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.sampling.DDRM.html">DDRM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.sampling.DiffPIR.html">DiffPIR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.sampling.DPS.html">DPS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.sampling.DiffusionSampler.html">DiffusionSampler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#markov-chain-monte-carlo-langevin">Markov Chain Monte Carlo Langevin</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.sampling.ULA.html">ULA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.sampling.SKRock.html">SKRock</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Diffusion Algorithms</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/deepinv.sampling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="diffusion-algorithms">
+<span id="sampling"></span><h1>Diffusion Algorithms<a class="headerlink" href="#diffusion-algorithms" title="Link to this heading"></a></h1>
+<p>This package contains posterior sampling algorithms.</p>
+<div class="math notranslate nohighlight">
+\[- \log p(x|y,A) \propto d(Ax,y) + \reg{x},\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is the image to be reconstructed, <span class="math notranslate nohighlight">\(y\)</span> are the measurements,
+<span class="math notranslate nohighlight">\(d(Ax,y) \propto - \log p(y|x,A)\)</span> is the negative log-likelihood and <span class="math notranslate nohighlight">\(\reg{x}  \propto - \log p_{\sigma}(x)\)</span>
+is the negative log-prior.</p>
+<p>The negative log likelihood can be set using <a class="reference internal" href="stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity()</span></code></a>, which includes Gaussian noise,
+Poisson noise, etc. The negative log prior can be approximated using <a class="reference internal" href="stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior()</span></code></a> with a
+<a class="reference internal" href="deepinv.denoisers.html#denoisers"><span class="std std-ref">pretrained denoiser</span></a>, which leverages Tweedie’s formula, i.e.,</p>
+<div class="math notranslate nohighlight">
+\[- \nabla \log p_{\sigma}(x) \propto \left(x-\denoiser{x}{\sigma}\right)/\sigma^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)\)</span> is the prior convolved with a Gaussian kernel,
+<span class="math notranslate nohighlight">\(\denoiser{\cdot}{\sigma}\)</span> is a (trained or model-based) denoiser with noise level <span class="math notranslate nohighlight">\(\sigma\)</span>,
+which is typically set to a low value.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The approximation of the prior obtained via
+<a class="reference internal" href="stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior()</span></code></a> is also valid for maximum-a-posteriori (MAP) denoisers,
+but <span class="math notranslate nohighlight">\(p_{\sigma}(x)\)</span> is not given by the convolution with a Gaussian kernel, but rather
+given by the Moreau-Yosida envelope of <span class="math notranslate nohighlight">\(p(x)\)</span>, i.e.,</p>
+<div class="math notranslate nohighlight">
+\[p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.\]</div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo" title="deepinv.sampling.MonteCarlo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.MonteCarlo</span></code></a></p></td>
+<td><p>Base class for Monte Carlo sampling.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="diffusion">
+<h2>Diffusion<a class="headerlink" href="#diffusion" title="Link to this heading"></a></h2>
+<p>We provide various sota diffusion methods for sampling from the posterior distribution.
+Diffusion methods produce a sample from the posterior <code class="docutils literal notranslate"><span class="pre">x</span></code> given a
+measurement <code class="docutils literal notranslate"><span class="pre">y</span></code> as <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">model(y,</span> <span class="pre">physics)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">model</span></code> is the diffusion algorithm and <code class="docutils literal notranslate"><span class="pre">physics</span></code> is the forward operator.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM" title="deepinv.sampling.DDRM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.DDRM</span></code></a></p></td>
+<td><p>Denoising Diffusion Restoration Models (DDRM).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR" title="deepinv.sampling.DiffPIR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.DiffPIR</span></code></a></p></td>
+<td><p>Diffusion PnP Image Restoration (DiffPIR).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS" title="deepinv.sampling.DPS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.DPS</span></code></a></p></td>
+<td><p>Diffusion Posterior Sampling (DPS).</p></td>
+</tr>
+</tbody>
+</table>
+<p>Diffusion methods obtain a single sample per call. If multiple samples are required, the
+<a class="reference internal" href="stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler" title="deepinv.sampling.DiffusionSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionSampler</span></code></a> can be used to convert a diffusion method into a sampler that
+obtains multiple samples to compute posterior statistics such as the mean or variance.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler" title="deepinv.sampling.DiffusionSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionSampler</span></code></a></p></td>
+<td><p>Turns a diffusion method into a Monte Carlo sampler</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="markov-chain-monte-carlo-langevin">
+<h2>Markov Chain Monte Carlo Langevin<a class="headerlink" href="#markov-chain-monte-carlo-langevin" title="Link to this heading"></a></h2>
+<p>We also provide MCMC methods for sampling from the posterior distribution based on the unadjusted Langevin algorithm.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.sampling.ULA.html#deepinv.sampling.ULA" title="deepinv.sampling.ULA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.ULA</span></code></a></p></td>
+<td><p>Projected Plug-and-Play Unadjusted Langevin Algorithm.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.sampling.SKRock.html#deepinv.sampling.SKRock" title="deepinv.sampling.SKRock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.sampling.SKRock</span></code></a></p></td>
+<td><p>Plug-and-Play SKROCK algorithm.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stubs/deepinv.models.PDNet_DualBlock.html" class="btn btn-neutral float-left" title="PDNet_DualBlock" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stubs/deepinv.sampling.MonteCarlo.html" class="btn btn-neutral float-right" title="MonteCarlo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.loss.metric &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.loss.metric</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.loss.metric</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">autograd</span> <span class="k">as</span> <span class="n">autograd</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.loss</span> <span class="kn">import</span> <span class="n">Loss</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils</span> <span class="kn">import</span> <span class="n">cal_psnr</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pyiqa</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">pyiqa</span> <span class="o">=</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;The pyiqa package is not installed.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">check_pyiqa</span><span class="p">():</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pyiqa</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;Metric not available. Please install the pyiqa package with `pip install pyiqa`.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">pyiqa</span>
+
+
+<div class="viewcode-block" id="NIQE">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.NIQE.html#deepinv.loss.NIQE">[docs]</a>
+<span class="k">class</span> <span class="nc">NIQE</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Natural Image Quality Evaluator (NIQE) metric.</span>
+
+<span class="sd">    It is a no-reference image quality metric that estimates the quality of images.</span>
+
+<span class="sd">    :param str device: device to use for the metric computation. Default: &#39;cpu&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">check_pyiqa</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">pyiqa</span><span class="o">.</span><span class="n">create_metric</span><span class="p">(</span><span class="s2">&quot;niqe&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NIQE.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.NIQE.html#deepinv.loss.NIQE.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the NIQE metric (no reference).</span>
+
+<span class="sd">        :param torch.Tensor x_net: input tensor.</span>
+<span class="sd">        :return: torch.Tensor size (batch_size,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">x_net</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LPIPS">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.LPIPS.html#deepinv.loss.LPIPS">[docs]</a>
+<span class="k">class</span> <span class="nc">LPIPS</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Learned Perceptual Image Patch Similarity (LPIPS) metric.</span>
+
+<span class="sd">    Computes the perceptual similarity between two images, based on a pre-trained deep neural network.</span>
+
+<span class="sd">    :param bool train: if ``True``, the metric is used for training. Default: ``False``.</span>
+<span class="sd">    :param str device: device to use for the metric computation. Default: &#39;cpu&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">check_pyiqa</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">pyiqa</span><span class="o">.</span><span class="n">create_metric</span><span class="p">(</span><span class="s2">&quot;lpips&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="n">train</span>
+
+<div class="viewcode-block" id="LPIPS.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.LPIPS.html#deepinv.loss.LPIPS.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the LPIPS metric.</span>
+
+<span class="sd">        :param torch.Tensor x: reference image.</span>
+<span class="sd">        :param torch.Tensor x_net: reconstructed image.</span>
+<span class="sd">        :return: torch.Tensor size (batch_size,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">loss</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="k">else</span> <span class="n">loss</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SSIM">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SSIM.html#deepinv.loss.SSIM">[docs]</a>
+<span class="k">class</span> <span class="nc">SSIM</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Structural Similarity Index (SSIM) metric.</span>
+
+<span class="sd">    See https://en.wikipedia.org/wiki/Structural_similarity for more information.</span>
+
+<span class="sd">    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.</span>
+<span class="sd">    :param bool train: if ``True``, the metric is used for training. Default: ``False``.</span>
+<span class="sd">    :param str device: device to use for the metric computation. Default: &#39;cpu&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multiscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">check_pyiqa</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">multiscale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">pyiqa</span><span class="o">.</span><span class="n">create_metric</span><span class="p">(</span><span class="s2">&quot;ms-ssim&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">pyiqa</span><span class="o">.</span><span class="n">create_metric</span><span class="p">(</span><span class="s2">&quot;ssim&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="n">train</span>
+
+<div class="viewcode-block" id="SSIM.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SSIM.html#deepinv.loss.SSIM.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the SSIM metric.</span>
+
+<span class="sd">        :param torch.Tensor x: reference image.</span>
+<span class="sd">        :param torch.Tensor x_net: reconstructed image.</span>
+<span class="sd">        :return: torch.Tensor size (batch_size,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">loss</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="k">else</span> <span class="n">loss</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PSNR">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.PSNR.html#deepinv.loss.PSNR">[docs]</a>
+<span class="k">class</span> <span class="nc">PSNR</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Peak Signal-to-Noise Ratio (PSNR) metric.</span>
+
+<span class="sd">    If the tensors have size (N, C, H, W), then the PSNR is computed as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \text{PSNR} = \frac{20}{N} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|a- b\|^2_2 / (CHW) }}</span>
+
+<span class="sd">    where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a</span>
+<span class="sd">    normalized image), and :math:`a` and :math:`b` are the estimate and reference images.</span>
+
+<span class="sd">    :param float max_pixel: maximum pixel value</span>
+<span class="sd">    :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_pixel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PSNR</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="o">=</span> <span class="n">max_pixel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+
+<div class="viewcode-block" id="PSNR.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.PSNR.html#deepinv.loss.PSNR.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the PSNR metric.</span>
+
+<span class="sd">        :param torch.Tensor x: reference image.</span>
+<span class="sd">        :param torch.Tensor x_net: reconstructed image.</span>
+<span class="sd">        :return: torch.Tensor size (batch_size,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cal_psnr</span><span class="p">(</span>
+            <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">,</span> <span class="n">mean_batch</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">to_numpy</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LpNorm">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.LpNorm.html#deepinv.loss.LpNorm">[docs]</a>
+<span class="k">class</span> <span class="nc">LpNorm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :math:`\ell_p` metric for :math:`p&gt;0`.</span>
+
+
+<span class="sd">    If ``onesided=False`` then the metric is defined as</span>
+<span class="sd">    :math:`d(x,y)=\|x-y\|_p^p`.</span>
+
+<span class="sd">    Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as</span>
+<span class="sd">    :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">onesided</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onesided</span> <span class="o">=</span> <span class="n">onesided</span>
+
+<div class="viewcode-block" id="LpNorm.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.LpNorm.html#deepinv.loss.LpNorm.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">onesided</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="o">-</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="k">def</span> <span class="nf">mse</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">l1</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">r1_penalty</span><span class="p">(</span><span class="n">real_pred</span><span class="p">,</span> <span class="n">real_img</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;R1 regularization for discriminator. The core idea is to</span>
+<span class="sd">    penalize the gradient on real data alone: when the</span>
+<span class="sd">    generator distribution produces the true data distribution</span>
+<span class="sd">    and the discriminator is equal to 0 on the data manifold, the</span>
+<span class="sd">    gradient penalty ensures that the discriminator cannot create</span>
+<span class="sd">    a non-zero gradient orthogonal to the data manifold without</span>
+<span class="sd">    suffering a loss in the GAN game.</span>
+<span class="sd">    Ref:</span>
+<span class="sd">    Eq. 9 in Which training methods for GANs do actually converge.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">grad_real</span> <span class="o">=</span> <span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">outputs</span><span class="o">=</span><span class="n">real_pred</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">inputs</span><span class="o">=</span><span class="n">real_img</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">grad_penalty</span> <span class="o">=</span> <span class="n">grad_real</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">grad_real</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">grad_penalty</span>
+
+
+<span class="k">def</span> <span class="nf">g_path_regularize</span><span class="p">(</span><span class="n">fake_img</span><span class="p">,</span> <span class="n">latents</span><span class="p">,</span> <span class="n">mean_path_length</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">fake_img</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+        <span class="n">fake_img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">fake_img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">grad</span> <span class="o">=</span> <span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="n">fake_img</span> <span class="o">*</span> <span class="n">noise</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">inputs</span><span class="o">=</span><span class="n">latents</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">path_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">path_mean</span> <span class="o">=</span> <span class="n">mean_path_length</span> <span class="o">+</span> <span class="n">decay</span> <span class="o">*</span> <span class="p">(</span><span class="n">path_lengths</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">-</span> <span class="n">mean_path_length</span><span class="p">)</span>
+
+    <span class="n">path_penalty</span> <span class="o">=</span> <span class="p">(</span><span class="n">path_lengths</span> <span class="o">-</span> <span class="n">path_mean</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">path_penalty</span><span class="p">,</span> <span class="n">path_lengths</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">path_mean</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">gradient_penalty_loss</span><span class="p">(</span><span class="n">discriminator</span><span class="p">,</span> <span class="n">real_data</span><span class="p">,</span> <span class="n">fake_data</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate gradient penalty for wgan-gp.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        discriminator (nn.Module): Network for the discriminator.</span>
+<span class="sd">        real_data (Tensor): Real input data.</span>
+<span class="sd">        fake_data (Tensor): Fake input data.</span>
+<span class="sd">        weight (Tensor): Weight tensor. Default: None.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: A tensor for gradient penalty.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">real_data</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">real_data</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># interpolate between real_data and fake_data</span>
+    <span class="n">interpolates</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">real_data</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">fake_data</span>
+    <span class="n">interpolates</span> <span class="o">=</span> <span class="n">autograd</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">interpolates</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">disc_interpolates</span> <span class="o">=</span> <span class="n">discriminator</span><span class="p">(</span><span class="n">interpolates</span><span class="p">)</span>
+    <span class="n">gradients</span> <span class="o">=</span> <span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">outputs</span><span class="o">=</span><span class="n">disc_interpolates</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">interpolates</span><span class="p">,</span>
+        <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">disc_interpolates</span><span class="p">),</span>
+        <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">only_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gradients</span> <span class="o">=</span> <span class="n">gradients</span> <span class="o">*</span> <span class="n">weight</span>
+
+    <span class="n">gradients_penalty</span> <span class="o">=</span> <span class="p">((</span><span class="n">gradients</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gradients_penalty</span> <span class="o">/=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">gradients_penalty</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Computation times &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Computation times</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sg_execution_times.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="computation-times">
+<span id="sphx-glr-sg-execution-times"></span><h1>Computation times<a class="headerlink" href="#computation-times" title="Link to this heading"></a></h1>
+<p><strong>15:41.906</strong> total execution time for 40 files <strong>from all galleries</strong>:</p>
+<div class="docutils container">
+<style scoped>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+</style>
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" class="init">
+$(document).ready( function () {
+    $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+} );
+</script><table class="table table-striped sg-datatable docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Example</p></th>
+<th class="head"><p>Time</p></th>
+<th class="head"><p>Mem (MB)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/adversarial-learning/demo_gan_imaging.html#sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Imaging inverse problems with adversarial networks</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/adversarial-learning/demo_gan_imaging.py</span></code>)</p></td>
+<td><p>02:23.404</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/self-supervised-learning/demo_ei_transforms.py</span></code>)</p></td>
+<td><p>02:14.086</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/patch-priors/demo_epll.html#sphx-glr-auto-examples-patch-priors-demo-epll-py"><span class="std std-ref">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/patch-priors/demo_epll.py</span></code>)</p></td>
+<td><p>02:05.738</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/sampling/demo_dps.html#sphx-glr-auto-examples-sampling-demo-dps-py"><span class="std std-ref">Implementing DPS</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/sampling/demo_dps.py</span></code>)</p></td>
+<td><p>01:33.193</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/advanced/demo_ri_basic.html#sphx-glr-auto-examples-advanced-demo-ri-basic-py"><span class="std std-ref">Radio interferometric imaging with deepinverse</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/advanced/demo_ri_basic.py</span></code>)</p></td>
+<td><p>01:19.071</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_phase_retrieval.html#sphx-glr-auto-examples-basics-demo-phase-retrieval-py"><span class="std std-ref">Random phase retrieval and reconstruction methods.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_phase_retrieval.py</span></code>)</p></td>
+<td><p>01:06.309</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/unfolded/demo_LISTA.html#sphx-glr-auto-examples-unfolded-demo-lista-py"><span class="std std-ref">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/unfolded/demo_LISTA.py</span></code>)</p></td>
+<td><p>00:51.057</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/optimization/demo_3D_wavelets.html#sphx-glr-auto-examples-optimization-demo-3d-wavelets-py"><span class="std std-ref">3D wavelet denoising</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/optimization/demo_3D_wavelets.py</span></code>)</p></td>
+<td><p>00:42.481</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/unfolded/demo_unfolded_constrained_LISTA.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constrained-lista-py"><span class="std std-ref">Unfolded Chambolle-Pock for constrained image inpainting</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/unfolded/demo_unfolded_constrained_LISTA.py</span></code>)</p></td>
+<td><p>00:33.152</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/unfolded/demo_DEQ.html#sphx-glr-auto-examples-unfolded-demo-deq-py"><span class="std std-ref">Deep Equilibrium (DEQ) algorithms for image deblurring</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/unfolded/demo_DEQ.py</span></code>)</p></td>
+<td><p>00:24.273</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/self-supervised-learning/demo_equivariant_imaging.py</span></code>)</p></td>
+<td><p>00:20.472</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/patch-priors/demo_patch_priors_CT.html#sphx-glr-auto-examples-patch-priors-demo-patch-priors-ct-py"><span class="std std-ref">Patch priors for limited-angle computed tomography</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/patch-priors/demo_patch_priors_CT.py</span></code>)</p></td>
+<td><p>00:14.805</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/self-supervised-learning/demo_splitting_loss.html#sphx-glr-auto-examples-self-supervised-learning-demo-splitting-loss-py"><span class="std std-ref">Self-supervised learning with measurement splitting</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/self-supervised-learning/demo_splitting_loss.py</span></code>)</p></td>
+<td><p>00:14.360</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/plug-and-play/demo_PnP_custom_optim.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-custom-optim-py"><span class="std std-ref">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/plug-and-play/demo_PnP_custom_optim.py</span></code>)</p></td>
+<td><p>00:09.862</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/unfolded/demo_custom_prior_unfolded.html#sphx-glr-auto-examples-unfolded-demo-custom-prior-unfolded-py"><span class="std std-ref">Learned iterative custom prior</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/unfolded/demo_custom_prior_unfolded.py</span></code>)</p></td>
+<td><p>00:09.359</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/plug-and-play/demo_RED_GSPnP_SR.py</span></code>)</p></td>
+<td><p>00:09.204</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/sampling/demo_diffpir.html#sphx-glr-auto-examples-sampling-demo-diffpir-py"><span class="std std-ref">Implementing DiffPIR</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/sampling/demo_diffpir.py</span></code>)</p></td>
+<td><p>00:07.886</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_train_inpainting.html#sphx-glr-auto-examples-basics-demo-train-inpainting-py"><span class="std std-ref">Training a reconstruction network.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_train_inpainting.py</span></code>)</p></td>
+<td><p>00:07.372</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/optimization/demo_TV_minimisation.html#sphx-glr-auto-examples-optimization-demo-tv-minimisation-py"><span class="std std-ref">Image deblurring with Total-Variation (TV) prior</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/optimization/demo_TV_minimisation.py</span></code>)</p></td>
+<td><p>00:06.810</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/self-supervised-learning/demo_sure_denoising.html#sphx-glr-auto-examples-self-supervised-learning-demo-sure-denoising-py"><span class="std std-ref">Self-supervised denoising with the SURE loss.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/self-supervised-learning/demo_sure_denoising.py</span></code>)</p></td>
+<td><p>00:06.265</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/unfolded/demo_learned_primal_dual.html#sphx-glr-auto-examples-unfolded-demo-learned-primal-dual-py"><span class="std std-ref">Learned Primal-Dual algorithm for CT scan.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/unfolded/demo_learned_primal_dual.py</span></code>)</p></td>
+<td><p>00:05.613</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_microscopy_3d.html#sphx-glr-auto-examples-basics-demo-microscopy-3d-py"><span class="std std-ref">3D diffraction PSF</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_microscopy_3d.py</span></code>)</p></td>
+<td><p>00:04.917</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/sampling/demo_ddrm.html#sphx-glr-auto-examples-sampling-demo-ddrm-py"><span class="std std-ref">Image reconstruction with a diffusion model</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/sampling/demo_ddrm.py</span></code>)</p></td>
+<td><p>00:04.693</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_physics_tour.html#sphx-glr-auto-examples-basics-demo-physics-tour-py"><span class="std std-ref">A tour of forward sensing operators</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_physics_tour.py</span></code>)</p></td>
+<td><p>00:04.520</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/plug-and-play/demo_PnP_DPIR_deblur.py</span></code>)</p></td>
+<td><p>00:03.975</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/unfolded/demo_vanilla_unfolded.html#sphx-glr-auto-examples-unfolded-demo-vanilla-unfolded-py"><span class="std std-ref">Vanilla Unfolded algorithm for super-resolution</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/unfolded/demo_vanilla_unfolded.py</span></code>)</p></td>
+<td><p>00:03.836</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/self-supervised-learning/demo_multioperator_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-multioperator-imaging-py"><span class="std std-ref">Self-supervised learning from incomplete measurements of multiple operators.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/self-supervised-learning/demo_multioperator_imaging.py</span></code>)</p></td>
+<td><p>00:03.525</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/optimization/demo_wavelet_prior.html#sphx-glr-auto-examples-optimization-demo-wavelet-prior-py"><span class="std std-ref">Image inpainting with wavelet prior</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/optimization/demo_wavelet_prior.py</span></code>)</p></td>
+<td><p>00:02.606</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/plug-and-play/demo_vanilla_PnP.py</span></code>)</p></td>
+<td><p>00:02.306</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_blur_tour.html#sphx-glr-auto-examples-basics-demo-blur-tour-py"><span class="std std-ref">A tour of blur operators</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_blur_tour.py</span></code>)</p></td>
+<td><p>00:01.494</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_custom_prior.py</span></code>)</p></td>
+<td><p>00:01.105</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_dip.html#sphx-glr-auto-examples-basics-demo-dip-py"><span class="std std-ref">Reconstructing an image using the deep image prior.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_dip.py</span></code>)</p></td>
+<td><p>00:01.044</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/self-supervised-learning/demo_n2n_denoising.html#sphx-glr-auto-examples-self-supervised-learning-demo-n2n-denoising-py"><span class="std std-ref">Self-supervised denoising with the Neighbor2Neighbor loss.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/self-supervised-learning/demo_n2n_denoising.py</span></code>)</p></td>
+<td><p>00:00.705</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/sampling/demo_sampling.html#sphx-glr-auto-examples-sampling-demo-sampling-py"><span class="std std-ref">Uncertainty quantification with PnP-ULA.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/sampling/demo_sampling.py</span></code>)</p></td>
+<td><p>00:00.645</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/basics/demo_dataset.html#sphx-glr-auto-examples-basics-demo-dataset-py"><span class="std std-ref">Creating your own dataset</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_dataset.py</span></code>)</p></td>
+<td><p>00:00.457</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_pansharpening.html#sphx-glr-auto-examples-basics-demo-pansharpening-py"><span class="std std-ref">Stacking and concatenating forward operators.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_pansharpening.py</span></code>)</p></td>
+<td><p>00:00.401</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/basics/demo_loading.html#sphx-glr-auto-examples-basics-demo-loading-py"><span class="std std-ref">Saving and loading models</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_loading.py</span></code>)</p></td>
+<td><p>00:00.352</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_lidar.html#sphx-glr-auto-examples-basics-demo-lidar-py"><span class="std std-ref">Single photon lidar operator for depth ranging.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_lidar.py</span></code>)</p></td>
+<td><p>00:00.228</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="auto_examples/sampling/demo_custom_kernel.html#sphx-glr-auto-examples-sampling-demo-custom-kernel-py"><span class="std std-ref">Building your custom sampling algorithm.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/sampling/demo_custom_kernel.py</span></code>)</p></td>
+<td><p>00:00.165</p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="auto_examples/basics/demo_physics.html#sphx-glr-auto-examples-basics-demo-physics-py"><span class="std std-ref">Creating a forward operator.</span></a> (<code class="docutils literal notranslate"><span class="pre">../../examples/basics/demo_physics.py</span></code>)</p></td>
+<td><p>00:00.162</p></td>
+<td><p>0.0</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

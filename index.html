@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepInverse: a Pytorch library for imaging with deep learning &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Physics" href="deepinv.physics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="#">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">DeepInverse: a Pytorch library for imaging with deep learning</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="deepinverse-a-pytorch-library-for-imaging-with-deep-learning">
+<h1>DeepInverse: a Pytorch library for imaging with deep learning<a class="headerlink" href="#deepinverse-a-pytorch-library-for-imaging-with-deep-learning" title="Link to this heading"></a></h1>
+<p><a class="reference external" href="https://github.com/deepinv/deepinv/actions/workflows/test.yml"><img alt="Test Status" src="https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/deepinv/deepinv/actions/workflows/documentation.yml"><img alt="Docs Status" src="https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg" /></a> <a class="reference external" href="https://www.python.org/downloads/release/python-360/"><img alt="Python 3.6+" src="https://img.shields.io/badge/python-3.6%2B-blue" /></a> <a class="reference external" href="https://codecov.io/gh/deepinv/deepinv"><img alt="codecov" src="https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh" /></a> <a class="reference external" href="https://github.com/psf/black"><img alt="Black" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a></p>
+<p>Deep Inverse is a Pytorch based library for solving imaging inverse problems with deep learning.</p>
+<p>Github repository: <a class="reference external" href="https://github.com/deepinv/deepinv">https://github.com/deepinv/deepinv</a>.</p>
+</section>
+<section id="featuring">
+<h1>Featuring<a class="headerlink" href="#featuring" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p>  Large collection of <a class="reference internal" href="deepinv.physics.html#physics"><span class="std std-ref">predefined imaging operators</span></a> (MRI, CT, deblurring, inpainting, etc.)</p></li>
+<li><p> <a class="reference internal" href="deepinv.loss.html#loss"><span class="std std-ref">Training losses</span></a> for inverse problems (self-supervised learning, regularization, etc.).</p></li>
+<li><p> Many <a class="reference internal" href="deepinv.denoisers.html#denoisers"><span class="std std-ref">pretrained deep denoisers</span></a> which can be used for <a class="reference internal" href="deepinv.iterative.html#iterative"><span class="std std-ref">plug-and-play restoration</span></a>.</p></li>
+<li><p> Framework for <a class="reference internal" href="deepinv.datasets.html#datasets"><span class="std std-ref">building datasets</span></a> for inverse problems.</p></li>
+<li><p> Easy-to-build <a class="reference internal" href="deepinv.unfolded.html#unfolded"><span class="std std-ref">unfolded architectures</span></a> (ADMM, forward-backward, deep equilibrium, etc.).</p></li>
+<li><p> <a class="reference internal" href="deepinv.sampling.html#sampling"><span class="std std-ref">Diffusion algorithms</span></a> for image restoration and uncertainty quantification (Langevin, diffusion, etc.).</p></li>
+<li><p> A large number of well-explained <a class="reference internal" href="auto_examples/index.html#examples"><span class="std std-ref">examples</span></a>, from basics to state-of-the-art methods.</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/deepinv_schematic.png"><img alt="_images/deepinv_schematic.png" class="align-center" src="_images/deepinv_schematic.png" style="width: 1000px;" /></a>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>Install the latest version of <code class="docutils literal notranslate"><span class="pre">deepinv</span></code> via pip:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>deepinv
+</pre></div>
+</div>
+<p>You can also install the latest version of <code class="docutils literal notranslate"><span class="pre">deepinv</span></code> directly from github:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deepinv/deepinv.git#egg<span class="o">=</span>deepinv
+</pre></div>
+</div>
+</section>
+<section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<p>Try out one of the following deblurring examples (or pick from <a class="reference internal" href="auto_examples/index.html#examples"><span class="std std-ref">full list of examples</span></a>):</p>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of 2D blur operators in DeepInv. In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs."><img alt="" src="_images/sphx_glr_demo_blur_tour_thumb.png" />
+<p><a class="reference internal" href="auto_examples/basics/demo_blur_tour.html#sphx-glr-auto-examples-basics-demo-blur-tour-py"><span class="std std-ref">A tour of blur operators</span></a></p>
+  <div class="sphx-glr-thumbnail-title">A tour of blur operators</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \epsilon where A is a convolutional operator and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem."><img alt="" src="_images/sphx_glr_demo_TV_minimisation_thumb.png" />
+<p><a class="reference internal" href="auto_examples/optimization/demo_TV_minimisation.html#sphx-glr-auto-examples-optimization-demo-tv-minimisation-py"><span class="std std-ref">Image deblurring with Total-Variation (TV) prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin Algorithm (PreconULA) that takes advantage of the singular value decomposition of the forward operator to accelerate the sampling."><img alt="" src="_images/sphx_glr_demo_custom_kernel_thumb.png" />
+<p><a class="reference internal" href="auto_examples/sampling/demo_custom_kernel.html#sphx-glr-auto-examples-sampling-demo-custom-kernel-py"><span class="std std-ref">Building your custom sampling algorithm.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Building your custom sampling algorithm.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from Zhou et al.. The full algorithm is implemented in deepinv.sampling.DiffPIR."><img alt="" src="_images/sphx_glr_demo_diffpir_thumb.png" />
+<p><a class="reference internal" href="auto_examples/sampling/demo_diffpir.html#sphx-glr-auto-examples-sampling-demo-diffpir-py"><span class="std std-ref">Implementing DiffPIR</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Implementing DiffPIR</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This a toy example to show you how to use DEQ to solve a deblurring problem.  Note that this is a small dataset for training. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="_images/sphx_glr_demo_DEQ_thumb.png" />
+<p><a class="reference internal" href="auto_examples/unfolded/demo_DEQ.html#sphx-glr-auto-examples-unfolded-demo-deq-py"><span class="std std-ref">Deep Equilibrium (DEQ) algorithms for image deblurring</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Deep Equilibrium (DEQ) algorithms for image deblurring</div>
+</div></div><div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="finding-help">
+<h1>Finding Help<a class="headerlink" href="#finding-help" title="Link to this heading"></a></h1>
+<p>If you have any questions or suggestions, please join the conversation in our
+<a class="reference external" href="https://discord.gg/qBqY5jKw3p">Discord server</a>. The recommended way to get in touch with the developers is to open an issue on the
+<a class="reference external" href="https://github.com/deepinv/deepinv/issues">issue tracker</a>.</p>
+</section>
+<section id="lead-developers">
+<h1>Lead Developers<a class="headerlink" href="#lead-developers" title="Link to this heading"></a></h1>
+<p><a class="reference external" href="https://tachella.github.io/">Julian Tachella</a>, <a class="reference external" href="http://dongdongchen.com/">Dongdong Chen</a>,
+<a class="reference external" href="https://github.com/samuro95/">Samuel Hurault</a>, <a class="reference external" href="https://matthieutrs.github.io">Matthieu Terris</a>
+and <a class="reference external" href="https://andrewwango.github.io/about">Andrew Wang</a>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.html" class="btn btn-neutral float-right" title="Physics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

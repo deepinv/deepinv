@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>generate_dataset &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PatchDataset" href="deepinv.datasets.PatchDataset.html" />
+    <link rel="prev" title="HDF5Dataset" href="deepinv.datasets.HDF5Dataset.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.datasets.html#hd5dataset">HD5Dataset</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.HDF5Dataset.html">HDF5Dataset</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">generate_dataset</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.datasets.generate_dataset"><code class="docutils literal notranslate"><span class="pre">generate_dataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-generate-dataset">Examples using <code class="docutils literal notranslate"><span class="pre">generate_dataset</span></code>:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.datasets.html#patchdataset">PatchDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.datasets.html#image-datasets">Image Datasets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.datasets.html">Datasets</a></li>
+      <li class="breadcrumb-item active">generate_dataset</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.datasets.generate_dataset.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="generate-dataset">
+<h1>generate_dataset<a class="headerlink" href="#generate-dataset" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.datasets.generate_dataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.datasets.</span></span><span class="sig-name descname"><span class="pre">generate_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_datapoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_datapoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dinv_dataset'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supervised</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress_bar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/datasets/datagenerator.html#generate_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.datasets.generate_dataset" title="Link to this definition"></a></dt>
+<dd><p>Bases:</p>
+<p>Generates dataset of signal/measurement pairs from base dataset.</p>
+<p>It generates the measurement data using the forward operator provided by the user.
+The dataset is saved in HD5 format and can be easily loaded using the HD5Dataset class.
+The generated dataset contains a train and test splits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_dataset</strong> (<em>torch.data.Dataset</em>) – base dataset (e.g., MNIST, CelebA, etc.)
+with images used for generating associated measurements
+via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the
+HD5Dataset class.</p></li>
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a>) – Forward operator used to generate the measurement data.
+It can be either a single operator or a list of forward operators. In the latter case, the dataset will be
+assigned evenly across operators.</p></li>
+<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – folder where the dataset and forward operator will be saved.</p></li>
+<li><p><strong>test_dataset</strong> (<em>torch.data.Dataset</em>) – if included, the function will also generate measurements associated to the
+test dataset.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><em>torch.device</em></a>) – which indicates cpu or gpu.</p></li>
+<li><p><strong>train_datapoints</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><em>None</em>) – Desired number of datapoints in the training dataset. If set to <code class="docutils literal notranslate"><span class="pre">None</span></code>, it will use the
+number of datapoints in the base dataset. This is useful for generating a larger train dataset via data
+augmentation (which should be chosen in the train_dataset).</p></li>
+<li><p><strong>test_datapoints</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><em>None</em>) – Desired number of datapoints in the test dataset. If set to <code class="docutils literal notranslate"><span class="pre">None</span></code>, it will use the
+number of datapoints in the base test dataset.</p></li>
+<li><p><strong>physics_generator</strong> (<em>None</em><em>, </em><a class="reference internal" href="deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.PhysicsGenerator"><em>deepinv.physics.generator.PhysicsGenerator</em></a>) – Optional physics generator for generating
+the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.</p></li>
+<li><p><strong>dataset_filename</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – desired filename of the dataset.</p></li>
+<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – batch size for generating the measurement data
+(it only affects the speed of the generating process)</p></li>
+<li><p><strong>num_workers</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of workers for generating the measurement data
+(it only affects the speed of the generating process)</p></li>
+<li><p><strong>supervised</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Generates supervised pairs (x,y) of measurements and signals.
+If set to <code class="docutils literal notranslate"><span class="pre">False</span></code>, it will generate a training dataset with measurements only (y)
+and a test dataset with pairs (x,y)</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Output progress information in the console.</p></li>
+<li><p><strong>show_progress_bar</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Show progress bar during the generation
+of the dataset (if verbose is set to True).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<section id="examples-using-generate-dataset">
+<span id="sphx-glr-backref-deepinv-datasets-generate-dataset"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">generate_dataset</span></code>:<a class="headerlink" href="#examples-using-generate-dataset" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train various networks using adversarial training for deblurring problems. We demonstrate running training and inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and UAIR implemented in the library, and how to simply train your own GAN by using deepinv.training.AdversarialTrainer. These examples can also be easily extended to train more complicated GANs such as CycleGAN."><img alt="" src="../_images/sphx_glr_demo_gan_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/adversarial-learning/demo_gan_imaging.html#sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Imaging inverse problems with adversarial networks</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Imaging inverse problems with adversarial networks</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create your own dataset for deep image inverse problems from a base dataset of images. Here we use Set3C as a base dataset of natural images. This base dataset contains 3 images."><img alt="" src="../_images/sphx_glr_demo_dataset_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_dataset.html#sphx-glr-auto-examples-basics-demo-dataset-py"><span class="std std-ref">Creating your own dataset</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Creating your own dataset</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to train a simple reconstruction network for an image inpainting inverse problem."><img alt="" src="../_images/sphx_glr_demo_train_inpainting_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_train_inpainting.html#sphx-glr-auto-examples-basics-demo-train-inpainting-py"><span class="std std-ref">Training a reconstruction network.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Training a reconstruction network.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="../_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="../_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior."><img alt="" src="../_images/sphx_glr_demo_RED_GSPnP_SR_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate self-supervised learning with measurement splitting, to train a denoiser network on the MNIST dataset. The physics here is noisy computed tomography, as is the case in Noise2Inverse. Note this example can also be easily applied to undersampled multicoil MRI as is the case in SSDU."><img alt="" src="../_images/sphx_glr_demo_splitting_loss_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_splitting_loss.html#sphx-glr-auto-examples-self-supervised-learning-demo-splitting-loss-py"><span class="std std-ref">Self-supervised learning with measurement splitting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with measurement splitting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a denoiser network in a fully self-supervised way, i.e., using noisy images only via the SURE loss, which exploits knowledge about the noise distribution."><img alt="" src="../_images/sphx_glr_demo_sure_denoising_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_sure_denoising.html#sphx-glr-auto-examples-self-supervised-learning-demo-sure-denoising-py"><span class="std std-ref">Self-supervised denoising with the SURE loss.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised denoising with the SURE loss.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a denoiser network in a fully self-supervised way, i.e., using noisy images only via the Neighbor2Neighbor loss, which exploits the local correlation of natural images."><img alt="" src="../_images/sphx_glr_demo_n2n_denoising_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_n2n_denoising.html#sphx-glr-auto-examples-self-supervised-learning-demo-n2n-denoising-py"><span class="std std-ref">Self-supervised denoising with the Neighbor2Neighbor loss.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised denoising with the Neighbor2Neighbor loss.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a reconstruction network for an inpainting inverse problem on a fully self-supervised way, i.e., using measurement data only."><img alt="" src="../_images/sphx_glr_demo_multioperator_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_multioperator_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-multioperator-imaging-py"><span class="std std-ref">Self-supervised learning from incomplete measurements of multiple operators.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning from incomplete measurements of multiple operators.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only."><img alt="" src="../_images/sphx_glr_demo_equivariant_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with Equivariant Imaging for MRI.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use vanilla unfolded Plug-and-Play. The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly. For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="../_images/sphx_glr_demo_vanilla_unfolded_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_vanilla_unfolded.html#sphx-glr-auto-examples-unfolded-demo-vanilla-unfolded-py"><span class="std std-ref">Vanilla Unfolded algorithm for super-resolution</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla Unfolded algorithm for super-resolution</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement the LISTA algorithm for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a soft-thresholding proximal operator with learnable thresholding parameters."><img alt="" src="../_images/sphx_glr_demo_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_LISTA.html#sphx-glr-auto-examples-unfolded-demo-lista-py"><span class="std std-ref">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This a toy example to show you how to use DEQ to solve a deblurring problem.  Note that this is a small dataset for training. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="../_images/sphx_glr_demo_DEQ_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_DEQ.html#sphx-glr-auto-examples-unfolded-demo-deq-py"><span class="std std-ref">Deep Equilibrium (DEQ) algorithms for image deblurring</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Deep Equilibrium (DEQ) algorithms for image deblurring</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function. The algorithm is trained on a dataset of compressed sensing measurements of MNIST images."><img alt="" src="../_images/sphx_glr_demo_custom_prior_unfolded_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_custom_prior_unfolded.html#sphx-glr-auto-examples-unfolded-demo-custom-prior-unfolded-py"><span class="std std-ref">Learned iterative custom prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned iterative custom prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:"><img alt="" src="../_images/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_unfolded_constrained_LISTA.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constrained-lista-py"><span class="std std-ref">Unfolded Chambolle-Pock for constrained image inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.datasets.HDF5Dataset.html" class="btn btn-neutral float-left" title="HDF5Dataset" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.datasets.PatchDataset.html" class="btn btn-neutral float-right" title="PatchDataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

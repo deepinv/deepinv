@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>optim_builder &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=35a8b989"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="BaseOptim" href="deepinv.optim.BaseOptim.html" />
+    <link rel="prev" title="Optim" href="../deepinv.optim.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.optim.html">Optim</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">optim_builder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#deepinv.optim.optim_builder"><code class="docutils literal notranslate"><span class="pre">optim_builder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#examples-using-optim-builder">Examples using <code class="docutils literal notranslate"><span class="pre">optim_builder</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="deepinv.optim.BaseOptim.html">BaseOptim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#data-fidelity">Data Fidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#priors">Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#iterators">Iterators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.optim.html#utils">Utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.optim.html">Optim</a></li>
+      <li class="breadcrumb-item active">optim_builder</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.optim.optim_builder.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="optim-builder">
+<h1>optim_builder<a class="headerlink" href="#optim-builder" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="deepinv.optim.optim_builder">
+<span class="sig-prename descclassname"><span class="pre">deepinv.optim.</span></span><span class="sig-name descname"><span class="pre">optim_builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_algo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'g_param':</span> <span class="pre">0.05,</span> <span class="pre">'lambda':</span> <span class="pre">1.0,</span> <span class="pre">'stepsize':</span> <span class="pre">1.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_fidelity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/optim/optimizers.html#optim_builder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.optim.optim_builder" title="Link to this definition"></a></dt>
+<dd><p>Helper function for building an instance of the <a class="reference internal" href="deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseOptim()</span></code></a> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>iteration</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a><em>, </em><em>deepinv.optim.optim_iterators.OptimIterator</em>) – either the name of the algorithm to be used,
+or directly an optim iterator.
+If an algorithm name (string), should be either <code class="docutils literal notranslate"><span class="pre">&quot;GD&quot;</span></code> (gradient descent),
+<code class="docutils literal notranslate"><span class="pre">&quot;PGD&quot;</span></code> (proximal gradient descent), <code class="docutils literal notranslate"><span class="pre">&quot;ADMM&quot;</span></code> (ADMM),
+<code class="docutils literal notranslate"><span class="pre">&quot;HQS&quot;</span></code> (half-quadratic splitting), <code class="docutils literal notranslate"><span class="pre">&quot;CP&quot;</span></code> (Chambolle-Pock) or <code class="docutils literal notranslate"><span class="pre">&quot;DRS&quot;</span></code> (Douglas Rachford).</p></li>
+<li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – maximum number of iterations of the optimization algorithm. Default: 100.</p></li>
+<li><p><strong>params_algo</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – dictionary containing all the relevant parameters for running the algorithm,
+e.g. the stepsize, regularisation parameter, denoising standart deviation.
+Each value of the dictionary can be either Iterable (distinct value for each iteration) or
+a single float (same value for each iteration). See <a class="reference internal" href="../deepinv.optim.html#optim-params"><span class="std std-ref">Parameters</span></a> for more details.
+Default: <code class="docutils literal notranslate"><span class="pre">{&quot;stepsize&quot;:</span> <span class="pre">1.0,</span> <span class="pre">&quot;lambda&quot;:</span> <span class="pre">1.0}</span></code>.</p></li>
+<li><p><strong>deepinv.optim.DataFidelity</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>,</em>) – data-fidelity term.
+Either a single instance (same data-fidelity for each iteration) or a list of instances of
+<a class="reference internal" href="deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity()</span></code></a> (distinct data-fidelity for each iteration). Default: <cite>None</cite>.</p></li>
+<li><p><strong>prior</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>, </em><a class="reference internal" href="deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><em>deepinv.optim.Prior</em></a>) – regularization prior.
+Either a single instance (same prior for each iteration) or a list of instances of
+deepinv.optim.Prior (distinct prior for each iteration). Default: <cite>None</cite>.</p></li>
+<li><p><strong>F_fn</strong> (<em>callable</em>) – Custom user input cost function. default: <cite>None</cite>.</p></li>
+<li><p><strong>g_first</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – whether to perform the step on <span class="math notranslate nohighlight">\(g\)</span> before that on <span class="math notranslate nohighlight">\(f\)</span> before or not. default: <cite>False</cite></p></li>
+<li><p><strong>kwargs</strong> – additional arguments to be passed to the <a class="reference internal" href="deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseOptim()</span></code></a> class.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>an instance of the <a class="reference internal" href="deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseOptim()</span></code></a> class.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<section id="examples-using-optim-builder">
+<h2>Examples using <code class="docutils literal notranslate"><span class="pre">optim_builder</span></code>:<a class="headerlink" href="#examples-using-optim-builder" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.  The following example and data are taken from Aghabiglou et al. (2024).  If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib."><img alt="" src="../_images/sphx_glr_demo_ri_basic_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/advanced/demo_ri_basic.html#sphx-glr-auto-examples-advanced-demo-ri-basic-py"><span class="std std-ref">Radio interferometric imaging with deepinverse</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="../_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:"><img alt="" src="../_images/sphx_glr_demo_phase_retrieval_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_phase_retrieval.html#sphx-glr-auto-examples-basics-demo-phase-retrieval-py"><span class="std std-ref">Random phase retrieval and reconstruction methods.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \epsilon where A is a convolutional operator and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_TV_minimisation_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_TV_minimisation.html#sphx-glr-auto-examples-optimization-demo-tv-minimisation-py"><span class="std std-ref">Image deblurring with Total-Variation (TV) prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \epsilon where A is a mask and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_wavelet_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_wavelet_prior.html#sphx-glr-auto-examples-optimization-demo-wavelet-prior-py"><span class="std std-ref">Image inpainting with wavelet prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography."><img alt="" src="../_images/sphx_glr_demo_vanilla_PnP_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="../_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior."><img alt="" src="../_images/sphx_glr_demo_RED_GSPnP_SR_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to define your own optimization algorithm. For example, here, we implement the Condat-Vu Primal-Dual algorithm, and apply it for Single Pixel Camera reconstruction."><img alt="" src="../_images/sphx_glr_demo_PnP_custom_optim_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_custom_optim.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-custom-optim-py"><span class="std std-ref">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</span></a></p>
+  <div class="sphx-glr-thumbnail-title">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../deepinv.optim.html" class="btn btn-neutral float-left" title="Optim" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.optim.BaseOptim.html" class="btn btn-neutral float-right" title="BaseOptim" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>
