@@ -15,8 +15,11 @@ from deepinv.physics.functional import (
     product_convolution2d_adjoint_patches,
     get_psf_product_convolution2d,
     get_psf_product_convolution2d_patches,
+    get_psf_product_convolution2d_patches_v2
 )
 from deepinv.physics.functional.product_convolution import compute_patch_info
+from typing import Tuple
+from functools import partial
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
@@ -543,15 +546,18 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, filters=None, multipliers=None, padding=None, method: str = 'product_convolution2d', patch_info: dict = None, **kwargs):
+    def __init__(self, filters=None, multipliers=None, padding=None, method: str = 'product_convolution2d', patch_size: Tuple[int] = None, overlap: Tuple[int] = None, **kwargs):
         super().__init__(**kwargs)
         self.method = method
-        self.patch_info = patch_info
+        if method == 'product_convolution2d_patch':
+            self.patch_size = patch_size
+            self.overlap = overlap
+
         self.update_parameters(filters, multipliers, padding)
         self.image_size = None
 
     def A(
-        self, x: Tensor, filters=None, multipliers=None, padding=None, patch_info: dict = None, **kwargs
+        self, x: Tensor, filters=None, multipliers=None, padding=None, patch_size: Tuple[int] = None, overlap: Tuple[int] = None, ** kwargs
     ) -> Tensor:
         r"""
         Applies the space varying blur operator to the input image.
@@ -572,27 +578,27 @@ class SpaceVaryingBlur(LinearPhysics):
                 x, self.multipliers, self.filters, self.padding
             )
         elif self.method == "product_convolution2d_patch":
-            if patch_info is not None:
-                self.patch_info = patch_info
+            if patch_size is not None:
+                self.patch_size = patch_size
+            if overlap is not None:
+                self.overlap = overlap
+
             if tuple(x.shape[-2:]) != self.image_size:
                 self.image_size = tuple(x.shape[-2:])
-
-                patch_size = self.patch_info['patch_size']
-                overlap = self.patch_info['overlap']
-                self.patch_info['num_patches'] = compute_patch_info(
-                    self.image_size, patch_size, overlap)['num_patches']
-
+                self.update_patch_info(
+                    self.image_size, self.patch_size, self.overlap)
+            self.check_patch_info()
             return product_convolution2d_patches(x,
                                                  w=self.multipliers,
                                                  h=self.filters,
-                                                 patch_size=self.patch_info['patch_size'],
-                                                 overlap=self.patch_info['overlap'])
+                                                 patch_size=self.patch_size,
+                                                 overlap=self.overlap)
         else:
             raise NotImplementedError(
                 "Method not implemented in product-convolution")
 
     def A_adjoint(
-        self, y: Tensor, filters=None, multipliers=None, padding=None, patch_info: dict = None, **kwargs
+        self, y: Tensor, filters=None, multipliers=None, padding=None, patch_size: Tuple[int] = None, overlap: Tuple[int] = None, **kwargs
     ) -> Tensor:
         r"""
         Applies the adjoint operator.
@@ -614,15 +620,22 @@ class SpaceVaryingBlur(LinearPhysics):
                 y, self.multipliers, self.filters, self.padding
             )
         elif self.method == "product_convolution2d_patch":
-            if patch_info is not None:
-                self.patch_info = patch_info
-            return product_convolution2d_adjoint_patches(y, w=self.multipliers, h=self.filters, patch_size=self.patch_info['patch_size'], overlap=self.patch_info['overlap'])
+            if patch_size is not None:
+                self.patch_size = patch_size
+            if overlap is not None:
+                self.overlap = overlap
+
+            self.update_patch_info(
+                self.image_size, self.patch_size, self.overlap)
+            self.check_patch_info()
+
+            return product_convolution2d_adjoint_patches(y, w=self.multipliers, h=self.filters, patch_size=self.patch_size, overlap=self.overlap)
 
         else:
             raise NotImplementedError(
                 "Method not implemented in product-convolution")
 
-    def get_psf(self, centers: Tensor = None, **kwargs):
+    def get_psf(self, centers: Tensor = None, patch_size: Tuple[int] = None, overlap: Tuple[int] = None, **kwargs):
         r"""
         :param torch.Tensor centers: (B, num_patches, 2)
 
@@ -632,18 +645,55 @@ class SpaceVaryingBlur(LinearPhysics):
         h = self.filters
         w = self.multipliers
 
-        psf = []
-        for b in range(centers.size(0)):
-            for k in range(centers.size(1)):
-                position = centers[b, k, :]
-                if self.method == 'product_convolution2d':
-                    psf.append(get_psf_product_convolution2d(
-                        h[:, b:b+1, ...], w[:, b:b+1, ...], position))
-                elif self.method == 'product_convolution2d_patch':
-                    psf.append(get_psf_product_convolution2d_patches(
-                        h[:, b:b+1, ...], w, position, overlap=self.patch_info['overlap'], num_patches=self.patch_info['num_patches']))
+        if self.method == "product_convolution2d_patch":
+            if patch_size is not None:
+                self.patch_size = patch_size
+            if overlap is not None:
+                self.overlap = overlap
 
-        return torch.stack(psf, dim=0)
+            self.update_patch_info(
+                self.image_size, self.patch_size, self.overlap)
+            self.check_patch_info()
+
+        # Method 1: Simple nested loops
+        # psf = []
+        # for b in range(centers.size(0)):
+        #     for k in range(centers.size(1)):
+        #         position = centers[b, k, :]
+        #         if self.method == 'product_convolution2d':
+        #             psf.append(get_psf_product_convolution2d(
+        #                 h[:, b:b+1, ...], w[:, b:b+1, ...], position))
+        #         elif self.method == 'product_convolution2d_patch':
+        #             psf.append(get_psf_product_convolution2d_patches(
+        #                 h[:, b:b+1, ...], w, position, overlap=self.overlap, num_patches=self.num_patches))
+        # return torch.stack(psf, dim=0)
+        # Method 2: New function
+        psf = []
+        for k in range(centers.size(1)):
+            position = centers[:, k, :]
+            if self.method == 'product_convolution2d':
+                psf.append(get_psf_product_convolution2d(
+                    h, w, position))
+            elif self.method == 'product_convolution2d_patch':
+                psf.append(get_psf_product_convolution2d_patches_v2(
+                    h, w, position, overlap=self.overlap, num_patches=self.num_patches))
+        return torch.stack(psf, dim=1)
+
+        # Method 3: vmap - automatic vectorization
+        # if self.method == 'product_convolution2d':
+        #     func = get_psf_product_convolution2d
+        #     func_vmap_over_b = torch.vmap(func, in_dims=(1, 1, 1))
+        #     func_vmap_full = torch.vmap(
+        #         func_vmap_over_b, in_dims=(None, None, 1))
+        # elif self.method == 'product_convolution2d_patch':
+        #     func = partial(get_psf_product_convolution2d_patches,
+        #                    overlap=self.overlap, num_patches=self.num_patches)
+        #     func_vmap_over_b = torch.vmap(func, in_dims=(1, None, 0))
+        #     func_vmap_full = torch.vmap(
+        #         func_vmap_over_b, in_dims=(None, None, 1))
+
+        # psf = func_vmap_full(h, w, centers)
+        # return psf
 
     def update_parameters(self, filters=None, multipliers=None, padding=None, **kwargs):
         r"""
@@ -660,3 +710,22 @@ class SpaceVaryingBlur(LinearPhysics):
                 multipliers, requires_grad=False)
         if padding is not None:
             self.padding = padding
+
+    def update_patch_info(self, image_size, patch_size, overlap):
+        if isinstance(image_size, int):
+            image_size = (image_size, image_size)
+        if isinstance(patch_size, int):
+            patch_size = (patch_size, patch_size)
+        if isinstance(overlap, int):
+            overlap = (overlap, overlap)
+
+        self.image_size = image_size
+        self.patch_size = patch_size
+        self.overlap = overlap
+        self.num_patches = compute_patch_info(
+            image_size, patch_size, overlap)['num_patches']
+
+    def check_patch_info(self):
+        if self.patch_size is None or self.overlap is None:
+            raise ValueError(
+                "Patch information is required for product_convolution2d_patch method. Please specify the patch_size and overlap")

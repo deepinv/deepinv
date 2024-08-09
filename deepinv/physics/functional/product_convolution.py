@@ -1,7 +1,7 @@
 import math
 import torch.nn.functional as F
 import torch
-from typing import Tuple
+from typing import Tuple, Union
 from torch import Tensor
 from deepinv.physics.functional.multiplier import (
     multiplier,
@@ -86,7 +86,7 @@ def get_psf_product_convolution2d(h, w, position: Tuple[int]):
     :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
     :param Tuple[int] position: Position of the PSF patch
     """
-    return torch.sum(h * w[..., position[0]:position[0]+1, position[1]:position[1] + 1], dim=0).flip(-1).flip(-2)
+    return torch.sum(h * w[..., position[0]:position[0]+1, position[1]:position[1] + 1], dim=0).flip((-1, -2))
 
 # PRODUCT CONVOLUTION USING PATCHES
 
@@ -301,14 +301,170 @@ def get_psf_product_convolution2d_patches(h: Tensor, w: Tensor, position: Tuple[
     w = w.view(num_patches[0], num_patches[1], w.size(
         1), w.size(2), w.size(3), w.size(4))
 
+    if len(index_h) == 0 * len(index_w) == 0:
+        raise ValueError(
+            f'The position center {position} is not valid for PSF of shape {h.shape} and image of shape {w.shape[-2:]}')
+
+    # Method 1: Simple for loop solution
     psf = 0.
     for count_i, i in enumerate(index_h):
         for count_j, j in enumerate(index_w):
-            psf = psf + h[i, j, ...] * w[i, j, ..., patch_position_h[count_i]: patch_position_h[count_i]+1, patch_position_w[count_j]: patch_position_w[count_j]+1]
-    return psf.flip(-1).flip(-2) if isinstance(psf, torch.Tensor) else psf
+            psf = psf + h[i, j, ...] * w[i, j,
+                                         ...,
+                                         patch_position_h[count_i]: patch_position_h[count_i]+1,
+                                         patch_position_w[count_j]: patch_position_w[count_j]+1]
 
+    # Method 2: Advanced indexing (a little faster)
+    # index_h = torch.tensor(index_h, dtype=torch.long, device=h.device)
+    # index_w = torch.tensor(index_w, dtype=torch.long, device=h.device)
+    # patch_position_h = torch.tensor(
+    #     patch_position_h, dtype=torch.long, device=h.device)
+    # patch_position_w = torch.tensor(
+    #     patch_position_w, dtype=torch.long, device=h.device)
+
+    # h_selected = h[index_h[:, None], index_w[None, :], ...]
+    # w_selected = w[index_h[:, None], index_w[None, :], ...,
+    #                 patch_position_h[:, None], patch_position_w[None, :]]
+    # psf = torch.sum(h_selected * w_selected[..., None, None], dim=(0, 1))
+    return psf.flip((-1, -2))
+
+
+def get_psf_product_convolution2d_patches_v2(h: Tensor, w: Tensor, position: Tuple[int], overlap: Tuple[int], num_patches: Tuple[int]):
+    r"""
+    Get the PSF at the given position of the :meth:`deepinv.physics.functional.product_convolution2d_patches` function.
+
+    :param torch.Tensor w: Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+
+    :param Tuple[int] position: Position of the PSF patch (B, 2)
+    :param Tuple[int] overlap: Overlap between PSF patches
+    :param Tuple[int] num_patches: Number of PSF patches
+
+
+    :return: PSF at the given position (B, C, psf_size, psf_size)
+    """
+    patch_size = w.shape[-2:]
+    index_h = []
+    index_w = []
+    patch_position_h = []
+    patch_position_w = []
+    for p in position:
+        ih, iw, ph, pw = get_index_and_position(
+            p.tolist(), patch_size, overlap, num_patches)
+        if len(ih) == 0 or len(iw) == 0:
+            raise ValueError(
+                f'The position center {p} is not valid for PSF of shape {h.shape} and image of shape {w.shape[-2:]}')
+        index_h.append(ih)
+        index_w.append(iw)
+        patch_position_h.append(ph)
+        patch_position_w.append(pw)
+
+    # (B, x)
+    index_h = torch.tensor(index_h, device=h.device, dtype=torch.long)
+    index_w = torch.tensor(index_w, device=h.device, dtype=torch.long)
+    patch_position_h = torch.tensor(
+        patch_position_h, device=h.device, dtype=torch.long)
+    patch_position_w = torch.tensor(
+        patch_position_w, device=h.device, dtype=torch.long)
+
+    # Reshape the PSF and the multipliers
+    h = h.view(num_patches[0], num_patches[1], h.size(
+        1), h.size(2), h.size(3), h.size(4))
+
+    w = w.view(num_patches[0], num_patches[1], w.size(
+        1), w.size(2), w.size(3), w.size(4))
+
+    batch_index = torch.arange(h.size(2), device=h.device, dtype=torch.long)
+    # print('h', h.shape)
+    # print('w', w.shape)
+    # print('index_h', index_h.shape)
+    # print('index_w', index_w.shape)
+    # print('patch_position_h', patch_position_h.shape)
+    # print('patch_position_w', patch_position_w.shape)
+
+    h_selected = h[index_h[:, None, :],
+                   index_w[:, :, None],
+                   batch_index[:, None, None],
+                   ...]
+    w_selected = w[index_h[:, None, :],
+                   index_w[:, :, None],
+                   torch.arange(w.size(2), device=w.device,
+                                dtype=torch.long)[:, None, None],
+                   ...,
+                   patch_position_h[:, None, :],
+                   patch_position_w[:, :, None]]
+
+    # print(h_selected.shape, w_selected.shape)
+    psf = torch.sum(h_selected * w_selected[..., None, None], dim=(1, 2))
+
+    return psf.flip((-1, -2)) if isinstance(psf, torch.Tensor) else psf
 
 # UTILITY FUNCTIONS
+
+
+def get_index_and_position(position: Tuple[int],  patch_size: Tuple[int], overlap: Tuple[int], num_patches: Tuple[int]):
+    r"""
+    Get the PSF index at the given position of the :meth:`deepinv.physics.functional.product_convolution2d_patches` function.
+
+    :param Tuple[int] position: Position of the point of which we want to infer the PSf (row, column)
+    :param Tuple[int] overlap: Overlap between PSF patches
+    :param Tuple[int] num_patches: Number of PSF patches
+
+
+    :return: index_h, index_w, patch_position_h, patch_position_w
+    """
+    overlap = as_pair(overlap)
+    patch_size = as_pair(patch_size)
+
+    p = patch_size
+    o = overlap
+    n = (math.floor(position[0] / (p[0] - o[0])),
+         math.floor(position[1] / (p[1] - o[1])))
+
+    index_h = []
+    index_w = []
+    patch_position_h = []
+    patch_position_w = []
+
+    if n[0] == 0:
+        index_h.append(n[0])
+        patch_position_h.append(position[0])
+    elif n[0] == num_patches[0] and position[0] < n[0] * (p[0] - o[0]) + o[0]:
+        index_h.append(n[0] - 1)
+        patch_position_h.append(position[0] - (n[0] - 1) * (p[0] - o[0]))
+
+    elif n[0] > num_patches[0]:
+        pass
+    else:
+        if position[0] <= n[0] * (p[0] - o[0]) + o[0]:
+            index_h.extend([n[0] - 1, n[0]])
+            patch_position_h.extend([
+                position[0] - (n[0] - 1) * (p[0] - o[0]), position[0] - n[0] * (p[0] - o[0])])
+        else:
+            index_h.append(n[0])
+            patch_position_h.append(
+                position[0] - n[0] * (p[0] - o[0]))
+
+    if n[1] == 0:
+        index_w.append(n[1])
+        patch_position_w.append(position[1] - n[1] * (p[1] - o[1]))
+    elif n[1] == num_patches[1] and position[1] < n[1] * (p[1] - o[1]) + o[1]:
+        index_w.append(n[1] - 1)
+        patch_position_w.append(position[1] - (n[1] - 1) * (p[1] - o[1]))
+    elif n[1] > num_patches[1] - 1:
+        pass
+    else:
+        if position[1] <= n[1] * (p[1] - o[1]) + o[1]:
+            index_w.extend([n[1] - 1, n[1]])
+            patch_position_w.extend([
+                position[1] - (n[1] - 1) * (p[1] - o[1]), position[1] - n[1] * (p[1] - o[1])])
+        else:
+            index_w.append(n[1])
+            patch_position_w.append(
+                position[1] - n[1] * (p[1] - o[1]))
+    return index_h, index_w, patch_position_h, patch_position_w
+
+
 def unity_partition_function_1d(image_size: int, patch_size: int, overlap: int, mode: str = 'bump'):
     r"""
     Define the partition function, which is 1 on [-a, a] and decrease to 0 on - (a + b) and (a + b)
@@ -571,3 +727,10 @@ def bump_function(x, a=1.0, b=1.0):
     v[I] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[I]) - a) / b)
                      ** 2)) / np.exp(-1.0)
     return v
+
+
+def as_pair(input: Union[Tuple, int]):
+    if isinstance(input, int):
+        return (input, input)
+    elif isinstance(input, tuple):
+        return input
