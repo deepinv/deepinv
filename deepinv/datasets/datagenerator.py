@@ -12,14 +12,15 @@ class HDF5Dataset(data.Dataset):
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
+    :param transform: A torchvision transform to apply to the data.
     """
 
-    def __init__(self, path, train=True):
+    def __init__(self, path, train=True, transform=None):
         super().__init__()
         self.data_info = []
         self.data_cache = {}
         self.unsupervised = False
-
+        self.transform = transform
         hd5 = h5py.File(path, "r")
         if train:
             if "x_train" in hd5:
@@ -37,6 +38,9 @@ class HDF5Dataset(data.Dataset):
         x = y
         if not self.unsupervised:
             x = torch.from_numpy(self.x[index]).type(torch.float)
+
+        if self.transform is not None:
+            x = self.transform(x)
 
         return x, y
 

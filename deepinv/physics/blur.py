@@ -16,125 +16,6 @@ from deepinv.physics.functional import (
 )
 
 
-def gaussian_blur(sigma=(1, 1), angle=0):
-    r"""
-    Gaussian blur filter.
-
-    Defined as
-
-    .. math::
-        \begin{equation*}
-            G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
-        \end{equation*}
-
-    where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
-    by an angle :math:`\theta`:
-
-    .. math::
-
-        \begin{align*}
-            x' &= x \cos(\theta) - y \sin(\theta) \\
-            y' &= x \sin(\theta) + y \cos(\theta)
-        \end{align*}
-
-    with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
-
-
-    :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
-        if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
-    :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
-    """
-    if isinstance(sigma, (int, float)):
-        sigma = (sigma, sigma)
-
-    s = max(sigma)
-    c = int(s / 0.3 + 1)
-    k_size = 2 * c + 1
-
-    delta = torch.arange(k_size)
-
-    x, y = torch.meshgrid(delta, delta, indexing="ij")
-    x = x - c
-    y = y - c
-    filt = (x / sigma[0]).pow(2)
-    filt += (y / sigma[1]).pow(2)
-    filt = torch.exp(-filt / 2.0)
-
-    filt = (
-        rotate(
-            filt.unsqueeze(0).unsqueeze(0),
-            angle,
-            interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
-        )
-        .squeeze(0)
-        .squeeze(0)
-    )
-
-    filt = filt / filt.flatten().sum()
-
-    return filt.unsqueeze(0).unsqueeze(0)
-
-
-def bilinear_filter(factor=2):
-    r"""
-    Bilinear filter.
-
-    It has size (2*factor, 2*factor) and is defined as
-
-    .. math::
-
-        \begin{equation*}
-            w(x, y) = \begin{cases}
-                (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
-                0 & \text{otherwise}
-            \end{cases}
-        \end{equation*}
-
-    for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
-
-    :param int factor: downsampling factor
-    """
-    x = np.arange(start=-factor + 0.5, stop=factor, step=1) / factor
-    w = 1 - np.abs(x)
-    w = np.outer(w, w)
-    w = w / np.sum(w)
-    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
-
-
-def bicubic_filter(factor=2):
-    r"""
-    Bicubic filter.
-
-    It has size (4*factor, 4*factor) and is defined as
-
-    .. math::
-
-        \begin{equation*}
-            w(x, y) = \begin{cases}
-                (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
-                a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
-                0 & \text{otherwise}
-            \end{cases}
-        \end{equation*}
-
-    for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
-
-    :param int factor: downsampling factor
-    """
-    x = np.arange(start=-2 * factor + 0.5, stop=2 * factor, step=1) / factor
-    a = -0.5
-    x = np.abs(x)
-    w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
-    w += (
-        (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
-        * (x > 1)
-        * (x < 2)
-    )
-    w = np.outer(w, w)
-    w = w / np.sum(w)
-    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
-
-
 class Downsampling(LinearPhysics):
     r"""
     Downsampling operator for super-resolution problems.
@@ -612,3 +493,184 @@ class SpaceVaryingBlur(LinearPhysics):
             self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
         if padding is not None:
             self.padding = padding
+
+
+def gaussian_blur(sigma=(1, 1), angle=0):
+    r"""
+    Gaussian blur filter.
+
+    Defined as
+
+    .. math::
+        \begin{equation*}
+            G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
+        \end{equation*}
+
+    where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
+    by an angle :math:`\theta`:
+
+    .. math::
+
+        \begin{align*}
+            x' &= x \cos(\theta) - y \sin(\theta) \\
+            y' &= x \sin(\theta) + y \cos(\theta)
+        \end{align*}
+
+    with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
+
+
+    :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
+        if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
+    :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
+    """
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+
+    s = max(sigma)
+    c = int(s / 0.3 + 1)
+    k_size = 2 * c + 1
+
+    delta = torch.arange(k_size)
+
+    x, y = torch.meshgrid(delta, delta, indexing="ij")
+    x = x - c
+    y = y - c
+    filt = (x / sigma[0]).pow(2)
+    filt += (y / sigma[1]).pow(2)
+    filt = torch.exp(-filt / 2.0)
+
+    filt = (
+        rotate(
+            filt.unsqueeze(0).unsqueeze(0),
+            angle,
+            interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+        )
+        .squeeze(0)
+        .squeeze(0)
+    )
+
+    filt = filt / filt.flatten().sum()
+
+    return filt.unsqueeze(0).unsqueeze(0)
+
+
+def kaiser_window(beta, length):
+    """Return the Kaiser window of length `length` and shape parameter `beta`."""
+    if beta < 0:
+        raise ValueError("beta must be greater than 0")
+    if length < 1:
+        raise ValueError("length must be greater than 0")
+    if length == 1:
+        return torch.tensor([1.0])
+    half = (length - 1) / 2
+    n = torch.arange(length)
+    beta = torch.tensor(beta)
+    return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
+
+
+def sinc_filter(factor=2, length=11, windowed=True):
+    r"""
+    Anti-aliasing sinc filter multiplied by a Kaiser window.
+
+    The kaiser window parameter is computed as follows:
+
+    .. math::
+
+        A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
+
+    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+
+    .. math::
+
+        \begin{equation*}
+            \beta = \begin{cases}
+                0 & \text{if } A \leq 21 \\
+                0.5842 \cdot (A - 21)^{0.4} + 0.07886 \cdot (A - 21) & \text{if } 21 < A \leq 50 \\
+                0.1102 \cdot (A - 8.7) & \text{otherwise}
+            \end{cases}
+        \end{equation*}
+
+    :param float factor: Downsampling factor.
+    :param int length: Length of the filter.
+    """
+    deltaf = 1 / factor
+
+    n = torch.arange(length) - (length - 1) / 2
+    filter = torch.sinc(n / factor)
+
+    if windowed:
+        A = 2.285 * (length - 1) * 3.14 * deltaf + 7.95
+        if A <= 21:
+            beta = 0
+        elif A <= 50:
+            beta = 0.5842 * (A - 21) ** 0.4 + 0.07886 * (A - 21)
+        else:
+            beta = 0.1102 * (A - 8.7)
+
+        filter = filter * kaiser_window(beta, length)
+
+    filter = filter.unsqueeze(0)
+    filter = filter * filter.T
+    filter = filter.unsqueeze(0).unsqueeze(0)
+    filter = filter / filter.sum()
+    return filter
+
+
+def bilinear_filter(factor=2):
+    r"""
+    Bilinear filter.
+
+    It has size (2*factor, 2*factor) and is defined as
+
+    .. math::
+
+        \begin{equation*}
+            w(x, y) = \begin{cases}
+                (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
+                0 & \text{otherwise}
+            \end{cases}
+        \end{equation*}
+
+    for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
+
+    :param int factor: downsampling factor
+    """
+    x = np.arange(start=-factor + 0.5, stop=factor, step=1) / factor
+    w = 1 - np.abs(x)
+    w = np.outer(w, w)
+    w = w / np.sum(w)
+    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
+
+
+def bicubic_filter(factor=2):
+    r"""
+    Bicubic filter.
+
+    It has size (4*factor, 4*factor) and is defined as
+
+    .. math::
+
+        \begin{equation*}
+            w(x, y) = \begin{cases}
+                (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
+                a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
+                0 & \text{otherwise}
+            \end{cases}
+        \end{equation*}
+
+    for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
+
+    :param int factor: downsampling factor
+    """
+    x = np.arange(start=-2 * factor + 0.5, stop=2 * factor, step=1) / factor
+    a = -0.5
+    x = np.abs(x)
+    w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
+    w += (
+        (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
+        * (x > 1)
+        * (x < 2)
+    )
+    w = np.outer(w, w)
+    w = w / np.sum(w)
+    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)

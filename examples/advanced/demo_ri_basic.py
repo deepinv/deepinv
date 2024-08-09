@@ -313,7 +313,10 @@ from deepinv.optim.optimizers import optim_builder
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
@@ -355,7 +358,7 @@ imgs = [
 plot(imgs, titles=["GT", "Linear", "Recons."], cmap="inferno", cbar=True)
 
 # plot convergence curves
-if plot_metrics:
+if plot_convergence_metrics:
     plot_curves(metrics)
 
 # %%
