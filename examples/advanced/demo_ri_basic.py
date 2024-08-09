@@ -155,7 +155,7 @@ class RadioInterferometry(LinearPhysics):
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
 image_gdth = load_np_url(get_image_dataset_url("3c353_gdth", file_type="npy"))
-image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0)
+image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0).to(device)
 
 
 def to_logimage(im, rescale=False, dr=5000):
@@ -244,7 +244,7 @@ print("Operator norm: ", opnorm)
 # The PSF, defined as :math:`\operatorname{PSF} = A \delta` (where :math:`\delta` is a Dirac), can be computed
 # with the help of the :meth:`deepinv.utils.nn.dirac_like` function.
 
-dirac = dirac_like(image_gdth)
+dirac = dirac_like(image_gdth).to(device)
 PSF = physics.A_adjoint(physics.A(dirac))
 print("PSF peak value: ", PSF.max().item())
 

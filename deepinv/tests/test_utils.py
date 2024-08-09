@@ -109,3 +109,12 @@ def test_plot_videos():
         [x, y], display=True
     )  # this should generate warning without IPython installed
     deepinv.utils.plot_videos([x, y], save_fn="vid.gif")
+
+
+def test_plot_ortho3D():
+    for c in range(1, 5):
+        x = torch.ones((1, c, 2, 2, 2))
+        imgs = [x, x]
+        deepinv.utils.plot_ortho3D(imgs, titles=["a", "b"], show=False)
+        deepinv.utils.plot_ortho3D(x, titles="a", show=False)
+        deepinv.utils.plot_ortho3D(imgs, show=False)

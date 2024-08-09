@@ -8,8 +8,12 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+- Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
+- Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
+
 New Features
 ^^^^^^^^^^^^
+- Add 3D Blur physics operator, with 3D diffraction microscope blur generators (:gh: `277` by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
 - Add ICNN model (:gh:`281` by `Samuel Hurault`_)
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
@@ -25,6 +29,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed padding in conv_transpose2d and made conv_2d a true convolution (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
 - Fixed the gradient stopping in EILoss (:gh:`263` by `Jérémy Scanvic`_) - 27/06/2024
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)

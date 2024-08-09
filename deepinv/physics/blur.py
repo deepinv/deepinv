@@ -11,6 +11,8 @@ from deepinv.physics.functional import (
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
+    conv3d_fft,
+    conv_transpose3d_fft,
 )
 
 
@@ -305,6 +307,7 @@ class Downsampling(LinearPhysics):
             self.filter = torch.nn.Parameter(filter, requires_grad=False)
 
         imsize = self.imsize
+
         if self.filter is not None:
             if self.padding == "valid":
                 imsize = (
@@ -315,11 +318,11 @@ class Downsampling(LinearPhysics):
             else:
                 imsize = (
                     self.imsize[0],
-                    self.imsize[1] - (self.filter.shape[-2] + 1) % 2,
-                    self.imsize[2] - (self.filter.shape[-1] + 1) % 2,
+                    self.imsize[1],
+                    self.imsize[2],
                 )
 
-        x = torch.zeros((y.shape[0],) + imsize, device=y.device)
+        x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
             x = conv_transpose2d(x, self.filter, padding=self.padding)
@@ -369,18 +372,22 @@ class Blur(LinearPhysics):
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
-    This class uses :meth:`torch.nn.functional.conv2d` for performing the convolutions.
-
-    :param torch.Tensor filter: Tensor of size (1, 1, H, W) or (1, C, H, W) containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
+    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D, containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image. (default is ``'valid'``)
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``). Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
     :param str device: cpu or cuda.
 
 
     .. note::
 
-        This class allows to change the filter at runtime by passing a new filter to the forward method, e.g.,
+        This class makes it possible to change the filter at runtime by passing a new filter to the forward method, e.g.,
         ``y = physics(x, w)``. The new filter :math:`w` is stored as the current filter.
+
+    .. note::
+
+        This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
+        and FFT for performing the convolutions in 3D as implemented in :meth:`deepinv.physics.functional.conv3d_fft`.
+        It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
 
     |sep|
 
@@ -419,7 +426,10 @@ class Blur(LinearPhysics):
         """
         self.update_parameters(filter)
 
-        return conv2d(x, self.filter, self.padding)
+        if x.dim() == 4:
+            return conv2d(x, filter=self.filter, padding=self.padding)
+        elif x.dim() == 5:
+            return conv3d_fft(x, filter=self.filter, padding=self.padding)
 
     def A_adjoint(self, y, filter=None, **kwargs):
         r"""
@@ -432,7 +442,10 @@ class Blur(LinearPhysics):
         """
         self.update_parameters(filter)
 
-        return conv_transpose2d(y, self.filter, self.padding)
+        if y.dim() == 4:
+            return conv_transpose2d(y, filter=self.filter, padding=self.padding)
+        elif y.dim() == 5:
+            return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
 
     def update_parameters(self, filter=None, **kwargs):
         r"""
