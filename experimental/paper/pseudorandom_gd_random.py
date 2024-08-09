@@ -26,7 +26,7 @@ from deepinv.optim.phase_retrieval import (
 
 # genral
 model_name = "pseudorandom"
-recon = "spectral"
+recon = "gd-rand"
 
 # pseudorandom settings
 img_size = 64
@@ -35,8 +35,15 @@ shared_weights = False
 drop_tail = True
 
 # optim settings
+data_fidelity = L2()
+prior = dinv.optim.prior.Zero()
+early_stop = True
+verbose = True
 n_repeats = 100
-n_iter = 5000
+n_iter = 10000
+n_spec_iter = 5000
+# stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
+step_size = 1e-2
 start = 2
 end = 194
 output_sizes = torch.arange(start, end, 2)
@@ -47,7 +54,6 @@ n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{n_layers}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
 
 print("res_name:", res_name)
-
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 BASE_DIR = Path(".")
@@ -60,7 +66,6 @@ print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device
-
 
 # Set up the variable to fetch dataset and operators.
 url = get_image_url("SheppLogan.png")
@@ -77,15 +82,37 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 df_res = pd.DataFrame(
     {
         "oversampling_ratio": oversampling_ratios,
+        "step_size": None,
         **{f"repeat{i}": None for i in range(n_repeats)},
     }
 )
+
+
+def random_init(y, physics):
+    x = torch.randn_like(x_phase)
+    z = x.detach().clone()
+    return {"est": (x, z)}
+
 
 for i in trange(n_oversampling):
     oversampling_ratio = oversampling_ratios[i]
     output_size = output_sizes[i]
     print(f"output_size: {output_size}")
     print(f"oversampling_ratio: {oversampling_ratio}")
+    step_size = step_size * oversampling_ratio
+    df_res.loc[i, "step_size"] = step_size
+    params_algo = {"stepsize": step_size.item(), "g_params": 0.00}
+    print("stepsize:", params_algo["stepsize"])
+    model = optim_builder(
+        iteration="PGD",
+        prior=prior,
+        data_fidelity=data_fidelity,
+        early_stop=early_stop,
+        max_iter=n_iter,
+        verbose=verbose,
+        params_algo=params_algo,
+        custom_init=random_init,
+    )
     for j in range(n_repeats):
         physics = dinv.physics.PseudoRandomPhaseRetrieval(
             n_layers=n_layers,
@@ -98,8 +125,8 @@ for i in trange(n_oversampling):
         )
         y = physics(x_phase)
 
-        x_phase_spec = spectral_methods(y, physics, n_iter=n_iter)
-        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_spec).item()
+        x_phase_gd_spec = model(y, physics, x_gt=x_phase)
+        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_spec).item()
         # print the cosine similarity
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
