@@ -150,7 +150,7 @@ trainer = dinv.Trainer(
     save_path=None,
     verbose=True,
     show_progress_bar=False,
-    wandb_vis=False,
+    no_learning_method='A_dagger' # use pseudo-inverse as a no learning baseline
 )
 
 model = trainer.train()
@@ -184,4 +184,4 @@ trainer.test(test_dataloader, pinv=True)
 #
 
 model.eval_split_input = False
-trainer.test(test_dataloader, pinv=True)
+trainer.test(test_dataloader)

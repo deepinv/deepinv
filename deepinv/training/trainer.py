@@ -188,7 +188,7 @@ class Trainer:
     display_losses_eval: bool = False
     rescale_mode: str = "clip"
     compare_no_learning: bool = False
-    no_learning_method: str = "A_dagger"
+    no_learning_method: str = "A_adjoint"
 
     def setup_train(self):
         r"""
