@@ -150,7 +150,7 @@ trainer = dinv.Trainer(
     save_path=None,
     verbose=True,
     show_progress_bar=False,
-    no_learning_method='A_dagger' # use pseudo-inverse as a no learning baseline
+    no_learning_method="A_dagger",  # use pseudo-inverse as a no learning baseline
 )
 
 model = trainer.train()
