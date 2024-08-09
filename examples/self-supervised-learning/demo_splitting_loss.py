@@ -150,7 +150,7 @@ trainer = dinv.Trainer(
     save_path=None,
     verbose=True,
     show_progress_bar=False,
-    no_learning_method="A_dagger",  # use pseudo-inverse as a no learning baseline
+    no_learning_method="A_dagger",  # use pseudo-inverse as no-learning baseline
 )
 
 model = trainer.train()
@@ -163,7 +163,7 @@ model = trainer.train()
 #
 
 trainer.plot_images = True
-trainer.test(test_dataloader, pinv=True)
+trainer.test(test_dataloader)
 
 
 # %%
@@ -173,7 +173,7 @@ trainer.test(test_dataloader, pinv=True)
 #
 
 model.eval_n_samples = 1
-trainer.test(test_dataloader, pinv=True)
+trainer.test(test_dataloader)
 
 
 # %%
