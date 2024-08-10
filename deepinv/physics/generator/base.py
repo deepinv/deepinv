@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from typing import List, Union
+import warnings
 
 
 class PhysicsGenerator(nn.Module):
@@ -15,6 +16,8 @@ class PhysicsGenerator(nn.Module):
     :param Callable step: a function that generates the parameters of the physics, e.g.,
         the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
         the corresponding key and value pairs.
+    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation. 
+        If ``None``, the default Generator of PyTorch will be used. This `rng` will be passed to the `step` function.
     :param str device: cpu or cuda
     :param torch.dtype dtype: the data type of the generated parameters
 
@@ -39,7 +42,7 @@ class PhysicsGenerator(nn.Module):
     """
 
     def __init__(
-        self, step=lambda **kwargs: {}, random_generator: torch.Generator = None, device="cpu", dtype=torch.float32, **kwargs
+        self, step=lambda **kwargs: {}, rng: torch.Generator = None, device="cpu", dtype=torch.float32, **kwargs
     ) -> None:
         super().__init__()
 
@@ -47,29 +50,39 @@ class PhysicsGenerator(nn.Module):
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
 
-        self.initial_random_state = random_generator.graphsafe_get_state()
+        self.initial_random_state = rng.get_state()
         # Make sure that the random generator is on the same device as the physic generator
-        if random_generator.device != torch.device(device):
-            self.random_generator = torch.Generator(
-                device).graphsafe_set_state(self.initial_random_state)
+        if rng.device != torch.device(device):
+            self.rng = torch.Generator(
+                device).set_state(self.initial_random_state)
         else:
-            self.random_generator = random_generator
+            self.rng = rng
 
         # Set attributes
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def step(self, batch_size=1, **kwargs):
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
         r"""
         Generates a batch of parameters for the forward operator.
 
         :param int batch_size: the number of samples to generate.
         :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
         """
-        if not kwargs:
+        self.rng_manual_seed(seed)
+        if kwargs is not None:
             self.kwargs = kwargs
 
-        return self.step_func(**kwargs)
+        return self.step_func(batch_size, self.rng, seed, **kwargs)
+
+    def rng_manual_seed(self, seed: int = None):
+        if seed is not None:
+            if self.rng is not None:
+                self.rng = self.rng.manual_seed(seed)
+            else:
+                torch.manual_seed(seed)
+                raise warnings.warn(
+                    "Cannot set seed when rng is None! The `torch.manual_seed` is triggered.")
 
     def __add__(self, other):
         r"""
@@ -124,7 +137,7 @@ class GeneratorMixture(PhysicsGenerator):
         self.probs = probs
         self.cum_probs = torch.cumsum(probs, dim=0)
 
-    def step(self, batch_size=1, **kwargs):
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
         r"""
         Returns a new set of physics' parameters,
         according to the probabilities given in the constructor.
@@ -135,4 +148,4 @@ class GeneratorMixture(PhysicsGenerator):
         # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
         p = torch.rand(1).item()  # np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
-        return self.generators[idx].step(batch_size, **kwargs)
+        return self.generators[idx].step(batch_size, seed, **kwargs)
