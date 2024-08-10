@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import List
+from typing import List, Union
 
 
 class PhysicsGenerator(nn.Module):
@@ -39,13 +39,22 @@ class PhysicsGenerator(nn.Module):
     """
 
     def __init__(
-        self, step=lambda **kwargs: {}, device="cpu", dtype=torch.float32, **kwargs
+        self, step=lambda **kwargs: {}, random_generator: torch.Generator = None, device="cpu", dtype=torch.float32, **kwargs
     ) -> None:
         super().__init__()
 
         self.step_func = step
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
+
+        self.initial_random_state = random_generator.graphsafe_get_state()
+        # Make sure that the random generator is on the same device as the physic generator
+        if random_generator.device != torch.device(device):
+            self.random_generator = torch.Generator(
+                device).graphsafe_set_state(self.initial_random_state)
+        else:
+            self.random_generator = random_generator
+
         # Set attributes
         for k, v in kwargs.items():
             setattr(self, k, v)
