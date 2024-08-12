@@ -30,7 +30,7 @@ recon = "gd-rand"
 
 # pseudorandom settings
 img_size = 64
-n_layers = 2
+n_layers = 1
 shared_weights = False
 drop_tail = True
 
@@ -41,11 +41,10 @@ early_stop = True
 verbose = True
 n_repeats = 100
 n_iter = 10000
-n_spec_iter = 5000
 # stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
-step_size = 1e-2
-start = 2
-end = 194
+step_size = 1e-8
+start = 90
+end = 144
 output_sizes = torch.arange(start, end, 2)
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]

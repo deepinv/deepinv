@@ -164,17 +164,48 @@ def plot_error_bars(
     yscale="linear",
     save:str=None,
     figsize=(10, 6),
+    marker=".",
+    markersize=10,
+    capsize=5,
+    font="Times New Roman",
+    fontsize=14,
+    labelsize=16,
+    error_bar='quantile',
+    xlim=(0,9.5),
+    xticks = range(1, 10),
+    error_bar_linestyle='--',
+    structured_color='red',
+    iid_color='blue',
 ):
 
     # Generate a color palette
     palette = sns.color_palette(n_colors=len(datasets))
 
+    plt.rcParams['font.family'] = font
+    plt.rcParams['font.size'] = fontsize
+    plt.rcParams['axes.labelsize'] = labelsize
     plt.figure(figsize=figsize)
 
     for i, (oversampling, data, label) in enumerate(
         zip(oversamplings, datasets, labels)
     ):
         print(label)
+
+        if 'structured' in label:
+            color = structured_color
+        elif 'iid' in label:
+            color = iid_color
+        else:
+            color = 'green'
+
+        if 'gd rand' in label:
+            linestyle = ':'
+        elif 'gd spec' in label:
+            linestyle = '-'
+        else:
+            linestyle = '--'
+
+        print(color,label)
         # Calculate statistics
         if type(data) == torch.Tensor:
             std_vals = data.std(dim=1).numpy()
@@ -185,10 +216,15 @@ def plot_error_bars(
             for column in data.columns:
                 if "repeat" not in column:
                     data.drop(columns=column, inplace=True)
-            std_vals = data.std(axis=axis).values
-            avg_vals = data.mean(axis=axis).values
-            min_vals = avg_vals - std_vals
-            max_vals = avg_vals + std_vals
+            if error_bar == 'quantile':
+                avg_vals = data.quantile(0.50, axis=axis).values
+                min_vals = data.quantile(0.25, axis=axis).values
+                max_vals = data.quantile(0.75, axis=axis).values
+            elif error_bar == 'std':
+                avg_vals = data.mean(axis=axis).values
+                std_vals = data.std(axis=axis).values
+                min_vals = avg_vals - std_vals
+                max_vals = avg_vals + std_vals
 
         # Calculate error bars
         yerr_lower = avg_vals - min_vals
@@ -198,30 +234,32 @@ def plot_error_bars(
         df = pd.DataFrame(
             {
                 "x": oversampling,
-                "avg": avg_vals,
+                "mid": avg_vals,
                 "yerr_lower": yerr_lower,
                 "yerr_upper": yerr_upper,
             }
         )
 
         # Plotting
-        color = palette[i]
-        ax = sns.lineplot(data=df, x="x", y="avg", marker="o", label=label, color=color)
+        ax = sns.lineplot(data=df, x="x", y="mid", marker=marker, label=label, color=color, markersize=markersize, linestyle=linestyle)
         # Adding error bars
-        ax.errorbar(
+        eb = ax.errorbar(
             df["x"],
-            df["avg"],
+            df["mid"],
             yerr=[df["yerr_lower"], df["yerr_upper"]],
-            fmt="o",
-            capsize=5,
+            fmt=marker,
+            capsize=capsize,
             color=color,
         )
+        eb[-1][0].set_linestyle(error_bar_linestyle)
 
     # Adding labels and title
     ax.set_xlabel(xlabel)
     ax.set_xscale(xscale)
     ax.set_ylabel(ylabel)
     ax.set_yscale(yscale)
+    ax.set_xlim(xlim)
+    ax.set_xticks(xticks)
     if title:
         ax.set_title(title)
     ax.legend()
