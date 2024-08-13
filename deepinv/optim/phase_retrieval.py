@@ -1,3 +1,4 @@
+from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -156,10 +157,12 @@ def plot_error_bars(
     oversamplings,
     datasets,
     labels,
+    xlim=None,
+    xticks=None,
     axis=1,
     title:str=None,
     xlabel="Oversampling Ratio",
-    ylabel="Consine Similarity",
+    ylabel="Cosine Similarity",
     xscale="linear",
     yscale="linear",
     save:str=None,
@@ -171,11 +174,13 @@ def plot_error_bars(
     fontsize=14,
     labelsize=16,
     error_bar='quantile',
-    xlim=(0,9.5),
-    xticks = range(1, 10),
+    quantiles=[0.10,0.50,0.90],
     error_bar_linestyle='--',
     structured_color='red',
     iid_color='blue',
+    plot='reconstruction',
+    legend_loc='upper left',
+    show=True,
 ):
 
     # Generate a color palette
@@ -191,19 +196,31 @@ def plot_error_bars(
     ):
         print(label)
 
-        if 'structured' in label:
-            color = structured_color
-        elif 'iid' in label:
-            color = iid_color
-        else:
-            color = 'green'
+        if plot == 'reconstruction':
+            if 'structured' in label:
+                color = structured_color
+            elif 'iid' in label:
+                color = iid_color
+        elif plot == 'layer':
+            if '1 layer' in label:
+                color = palette[0]
+            elif '2 layers' in label:
+                color = palette[1]
+            elif '3 layers' in label:
+                color = palette[2]
+            elif '4 layers' in label:
+                color = palette[3]
+        elif plot == 'time':
+            color = palette[i]
 
         if 'gd rand' in label:
             linestyle = ':'
         elif 'gd spec' in label:
             linestyle = '-'
-        else:
+        elif 'spec' in label:
             linestyle = '--'
+        else:
+            linestyle = '-'
 
         print(color,label)
         # Calculate statistics
@@ -213,13 +230,14 @@ def plot_error_bars(
             min_vals = avg_vals - std_vals
             max_vals = avg_vals + std_vals
         elif type(data) == pd.DataFrame:
-            for column in data.columns:
-                if "repeat" not in column:
-                    data.drop(columns=column, inplace=True)
+            if plot == 'reconstruction' or plot == 'layer':
+                for column in data.columns:
+                    if "repeat" not in column:
+                        data.drop(columns=column, inplace=True)
             if error_bar == 'quantile':
-                avg_vals = data.quantile(0.50, axis=axis).values
-                min_vals = data.quantile(0.25, axis=axis).values
-                max_vals = data.quantile(0.75, axis=axis).values
+                min_vals = data.quantile(quantiles[0], axis=axis).values
+                avg_vals = data.quantile(quantiles[1], axis=axis).values
+                max_vals = data.quantile(quantiles[2], axis=axis).values
             elif error_bar == 'std':
                 avg_vals = data.mean(axis=axis).values
                 std_vals = data.std(axis=axis).values
@@ -242,31 +260,62 @@ def plot_error_bars(
 
         # Plotting
         ax = sns.lineplot(data=df, x="x", y="mid", marker=marker, label=label, color=color, markersize=markersize, linestyle=linestyle)
-        # Adding error bars
-        eb = ax.errorbar(
-            df["x"],
-            df["mid"],
-            yerr=[df["yerr_lower"], df["yerr_upper"]],
-            fmt=marker,
-            capsize=capsize,
-            color=color,
-        )
-        eb[-1][0].set_linestyle(error_bar_linestyle)
+        if plot != 'time':
+            # Adding error bars
+            eb = ax.errorbar(
+                df["x"],
+                df["mid"],
+                yerr=[df["yerr_lower"], df["yerr_upper"]],
+                fmt=marker,
+                capsize=capsize,
+                color=color,
+            )
+            eb[-1][0].set_linestyle(error_bar_linestyle)
+    
+    if plot == 'reconstruction':
+        legend_contents = [
+            (Patch(visible=False), r'$\bf{Model}$'),
+            (plt.Line2D([], [], linestyle='-', color=structured_color), 'structured random'),
+            (plt.Line2D([], [], linestyle='-', color=iid_color), 'i.i.d. random'),
+            #(Patch(visible=False), ''),  # spacer
+            (Patch(visible=False), r'$\bf{Algorithm}$'),
+            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'gradient descent, spectral init'),
+            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'spectral methods'),
+            (plt.Line2D([], [], linestyle=':', marker='.',color='black'), 'gradient descent'),
+        ]
+        ax.legend(*zip(*legend_contents),loc=legend_loc)
+    elif plot == 'layer':
+        legend_contents = [
+            (Patch(visible=False), '$\\bf{Structure}$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[0]), r'$FD$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[1]), r'$FDFD$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[2]), r'$FDFDFD$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[3]), r'$FDFDFDFD$'),
+            #(Patch(visible=False), ''),  # spacer
+            (Patch(visible=False), '$\\bf{Algorithm}$'),
+            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'gradient descent, spectral init'),
+            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'spectral methods'),
+        ]
+        ax.legend(*zip(*legend_contents),loc=legend_loc)
+    elif plot == 'time':
+        ax.legend(loc=legend_loc)
 
     # Adding labels and title
     ax.set_xlabel(xlabel)
     ax.set_xscale(xscale)
     ax.set_ylabel(ylabel)
     ax.set_yscale(yscale)
-    ax.set_xlim(xlim)
-    ax.set_xticks(xticks)
+    if xlim:
+        ax.set_xlim(xlim,auto=True)
+    if xticks:
+        ax.set_xticks(xticks)
     if title:
         ax.set_title(title)
-    ax.legend()
 
     if save is not None:
         plt.savefig(save)
         print(f"Figure saved to {save}")
 
     # Show plot
-    plt.show()
+    if show:
+        plt.show()
