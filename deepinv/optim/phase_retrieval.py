@@ -178,7 +178,7 @@ def plot_error_bars(
     error_bar_linestyle='--',
     structured_color='red',
     iid_color='blue',
-    plot='reconstruction',
+    plot='other',
     legend_loc='upper left',
     show=True,
 ):
@@ -212,7 +212,9 @@ def plot_error_bars(
                 color = palette[3]
         elif plot == 'time':
             color = palette[i]
-
+        else:
+            color = palette[i]
+        
         if 'gd rand' in label:
             linestyle = ':'
         elif 'gd spec' in label:

@@ -23,14 +23,15 @@ from deepinv.optim.phase_retrieval import (
     default_preprocessing,
 )
 
-model_name = "random"
+model_name = "random-haar"
 recon = "spectral"
 n_repeats = 100
 n_iter = 5000
-img_size = 192
+img_size = 64
+use_haar = True
 #oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
 #oversampling_ratios = torch.cat((torch.arange(0.1,3.1,0.1),torch.arange(3.5,9.5,0.5)))
-oversampling_ratios = torch.arange(0.1,1.1,0.1)
+oversampling_ratios = torch.arange(1.0,4.2,0.2)
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{img_size}size_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
 print("save name:",res_name)
@@ -40,8 +41,6 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "runs"
 SAVE_DIR = DATA_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
-Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
-Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -77,6 +76,7 @@ for i in trange(oversampling_ratios.shape[0]):
             img_shape=(1, img_size, img_size),
             dtype=torch.cfloat,
             device=device,
+            use_haar=use_haar,
         )
         y = physics(x_phase)
 
@@ -86,4 +86,4 @@ for i in trange(oversampling_ratios.shape[0]):
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
 # save results
-df_res.to_csv(SAVE_DIR / model_name / res_name)
+df_res.to_csv(SAVE_DIR / res_name)
