@@ -161,6 +161,7 @@ def download_fmd():
     shutil.rmtree(tmp_data_dir)
 
 
+@pytest.mark.skip(reason="Downloading FMD dataset is unreliable for testing.")
 def test_load_fmd_dataset(download_fmd):
     """Check that dataset contains 5000 noisy PIL images with its ground truths."""
     types = ["TwoPhoton_BPAE_R"]

@@ -4,6 +4,9 @@ from .blur import (
     DiffractionBlurGenerator,
     PSFGenerator,
     ProductConvolutionBlurGenerator,
+    DiffractionBlurGenerator3D,
+    ConfocalBlurGenerator3D,
+    bump_function,
 )
 from .mri import (
     BaseMaskGenerator,
@@ -12,4 +15,9 @@ from .mri import (
     EquispacedMaskGenerator,
 )
 from .noise import SigmaGenerator
-from .inpainting import BernoulliSplittingMaskGenerator
+from .inpainting import (
+    BernoulliSplittingMaskGenerator,
+    GaussianSplittingMaskGenerator,
+    Artifact2ArtifactSplittingMaskGenerator,
+    Phase2PhaseSplittingMaskGenerator,
+)

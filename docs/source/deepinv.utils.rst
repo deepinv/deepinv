@@ -44,6 +44,7 @@ We provide some plotting functions that are adapted to inverse problems.
         deepinv.utils.plot_parameters
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
+        deepinv.utils.plot_ortho3D
 
 
 TensorList

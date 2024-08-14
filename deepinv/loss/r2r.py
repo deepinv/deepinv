@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from deepinv.loss.loss import Loss
 
@@ -45,6 +46,7 @@ class R2RLoss(Loss):
 
     :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
     :param float alpha: scaling factor of the perturbation.
+    :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
 
     |sep|
 
@@ -55,8 +57,8 @@ class R2RLoss(Loss):
         >>> sigma = 0.1
         >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
         >>> model = dinv.models.MedianFilter()
-        >>> loss = dinv.loss.R2RLoss(sigma=sigma)
-        >>> model = loss.adapt_model(model, MC_samples=2) # important step!
+        >>> loss = dinv.loss.R2RLoss(sigma=sigma, eval_n_samples=2)
+        >>> model = loss.adapt_model(model) # important step!
         >>> x = torch.ones((1, 1, 8, 8))
         >>> y = physics(x)
         >>> x_net = model(y, physics, update_parameters=True) # save extra noise in forward pass
@@ -66,12 +68,15 @@ class R2RLoss(Loss):
 
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), sigma=0.1, alpha=0.5):
+    def __init__(
+        self, metric=torch.nn.MSELoss(), sigma=0.1, alpha=0.5, eval_n_samples=5
+    ):
         super(R2RLoss, self).__init__()
         self.name = "r2r"
         self.metric = metric
         self.sigma = sigma
         self.alpha = alpha
+        self.eval_n_samples = eval_n_samples
 
     def forward(self, x_net, y, physics, model, **kwargs):
         r"""
@@ -87,7 +92,7 @@ class R2RLoss(Loss):
         y_minus = y - pert / self.alpha
         return self.metric(physics.A(x_net), y_minus)
 
-    def adapt_model(self, model, MC_samples=5):
+    def adapt_model(self, model: torch.nn.Module) -> R2RModel:
         r"""
         Adds noise to model input.
 
@@ -106,30 +111,29 @@ class R2RLoss(Loss):
         :param torch.nn.Module model: Reconstruction model.
         :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
         :param float alpha: scaling factor of the perturbation.
-        :param int MC_samples: number of samples used for the Monte Carlo approximation.
         :return: (torch.nn.Module) Modified model.
         """
         if isinstance(model, R2RModel):
             return model
         else:
-            return R2RModel(model, self.sigma, self.alpha, MC_samples)
+            return R2RModel(model, self.sigma, self.alpha, self.eval_n_samples)
 
 
 class R2RModel(torch.nn.Module):
-    def __init__(self, model, sigma, alpha, MC_samples=5):
+    def __init__(self, model, sigma, alpha, eval_n_samples):
         super(R2RModel, self).__init__()
         self.model = model
         self.extra_noise = 0
         self.sigma = sigma
         self.alpha = alpha
-        self.MC_samples = MC_samples
+        self.eval_n_samples = eval_n_samples
 
     def forward(self, y, physics, update_parameters=False):
-        MC = 1 if self.training else self.MC_samples
+        eval_n_samples = 1 if self.training else self.eval_n_samples
 
         out = 0
         with torch.set_grad_enabled(self.training):
-            for i in range(MC):
+            for i in range(eval_n_samples):
                 extra_noise = torch.randn_like(y) * self.sigma
                 y_plus = y + extra_noise * self.alpha
                 out += self.model(y_plus, physics)
@@ -137,7 +141,7 @@ class R2RModel(torch.nn.Module):
             if self.training and update_parameters:  # save the noise
                 self.extra_noise = extra_noise
 
-            out = out / MC
+            out = out / eval_n_samples
         return out
 
     def get_noise(self):

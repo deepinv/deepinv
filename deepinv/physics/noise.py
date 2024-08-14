@@ -1,13 +1,6 @@
 import torch
 
 
-def to_nn_parameter(x):
-    if isinstance(x, torch.Tensor):
-        return torch.nn.Parameter(x, requires_grad=False)
-    else:
-        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)
-
-
 class GaussianNoise(torch.nn.Module):
     r"""
 
@@ -45,7 +38,13 @@ class GaussianNoise(torch.nn.Module):
         :returns: noisy measurements
         """
         self.update_parameters(sigma)
-        return x + torch.randn_like(x) * self.sigma
+
+        if isinstance(sigma, torch.Tensor):
+            sigma = sigma[(...,) + (None,) * (x.dim() - 1)]
+        else:
+            sigma = self.sigma
+
+        return x + torch.randn_like(x) * sigma
 
     def update_parameters(self, sigma=None, **kwargs):
         r"""
@@ -165,6 +164,48 @@ class PoissonNoise(torch.nn.Module):
         """
         if gain is not None:
             self.gain = to_nn_parameter(gain)
+
+
+class GammaNoise(torch.nn.Module):
+    r"""
+    Gamma noise :math:`y = \mathcal{G}(\ell, x/\ell)`
+
+    Follows the shape, scale parameterization of the Gamma distribution,
+    where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
+    see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
+
+    Distribution for modelling speckle noise (eg. SAR images),
+    where :math:`\ell>0` controls the noise level (smaller values correspond to higher noise).
+
+    :param float, torch.Tensor l: noise level.
+    """
+
+    def __init__(self, l=1.0):
+        super().__init__()
+        if isinstance(l, int):
+            l = float(l)
+        self.update_parameters(l)
+
+    def forward(self, x, l=None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :returns: noisy measurements
+        """
+        self.update_parameters(l)
+        d = torch.distributions.gamma.Gamma(self.l, self.l / x)
+        return d.sample()
+
+    def update_parameters(self, l=None, **kwargs):
+        r"""
+        Updates the noise level.
+
+        :param float, torch.Tensor ell: noise level.
+        """
+        if l is not None:
+            self.l = to_nn_parameter(l)
 
 
 class PoissonGaussianNoise(torch.nn.Module):
@@ -338,3 +379,10 @@ class LogPoissonNoise(torch.nn.Module):
 
         if N0 is not None:
             self.N0 = to_nn_parameter(N0)
+
+
+def to_nn_parameter(x):
+    if isinstance(x, torch.Tensor):
+        return torch.nn.Parameter(x, requires_grad=False)
+    else:
+        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)
