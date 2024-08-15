@@ -25,33 +25,27 @@ class SigmaGenerator(PhysicsGenerator):
 
     """
 
-    def __init__(self, sigma_min=0.01, sigma_max=0.5, device: str = "cpu"):
-        super().__init__(shape=(1,), device=device)
+    def __init__(self, sigma_min=0.01, sigma_max=0.5, rng: torch.Generator = None, device: str = "cpu"):
+        super().__init__(shape=(1,), device=device, rng=rng)
         self.device = device
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
 
-    def step(self, batch_size=1, **kwargs):
+    def step(self, batch_size=1, seed: int = None, **kwargs):
         r"""
         Generates a batch of noise levels.
 
         :param int batch_size: batch size
+        :param int seed: the seed for the random number generator.
 
         :return: dictionary with key **'sigma'**: tensor of size (batch_size,).
         :rtype: dict
 
         """
+        self.rng_manual_seed(seed)
         sigma = (
-            torch.rand(batch_size, device=self.device)
+            torch.rand(batch_size, device=self.device, generator=self.rng)
             * (self.sigma_max - self.sigma_min)
             + self.sigma_min
         )
         return {"sigma": sigma}
-
-
-# if __name__ == "__main__":
-#     import deepinv as dinv
-#     from deepinv.physics.generator import RandomMaskGenerator
-#
-#     mask_generator = SigmaGenerator() + RandomMaskGenerator((32, 32))
-#     sigmas = mask_generator.step(4)

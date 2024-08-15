@@ -6,6 +6,58 @@ import torch
 from deepinv.physics.generator import PhysicsGenerator
 
 
+def random_choice(a: torch.Tensor, size: Tuple[int] = None, replace: bool = True, p: torch.Tensor = None, rng: torch.Generator = None):
+    r"""
+    PyTorch equivalent of `numpy.random.choice`
+    :param torch.Tensor a: the 1-D input tensor
+    :param size: output shape.
+    :param bool replace: whether to sample with replacement. 
+        Default is True, meaning that a value of `a` can be selected multiple times.
+    :param torch.Tensor p: the probabilities for each entry in `a`.  
+        If not given, the sample assumes a uniform distribution over all entries in `a`.
+
+    :return: the generated random samples in the same device as `a`.
+    """
+    if isinstance(a, int):
+        if rng is not None:
+            device = rng.device
+        elif p is not None:
+            device = p.device
+        else:
+            device = torch.device("cpu")
+        a = torch.arange(a, device=device)
+    if a.ndim > 1:
+        warn(
+            f"The input must be a one-dimensional tensor, but got input of shape {a.shape}. The input will be flattened.")
+        a = a.flatten()
+    if p is None:
+        if not replace:
+            if np.prod(size) > a.numel():
+                raise ValueError(
+                    "Cannot take a larger sample than population when 'replace=False'")
+            else:
+                indices = torch.randperm(a.size(0), generator=rng, device=a.device)[
+                    :np.prod(size)].view(size)
+        else:
+            indices = torch.randint(low=0, high=a.size(
+                0), size=size, device=a.device, generator=rng)
+    else:
+        if p.ndim > 1:
+            warn(
+                f"The probability must be a one-dimensional tensor, but got input of shape {p.shape}. The input will be flattened.")
+            p = p.flatten()
+        if p.sum() != 1:
+            raise ValueError("The probabilities must sum up to 1.")
+        if p.shape != a.shape:
+            raise ValueError(
+                "The probabilities and the input tensor should have the same shape.")
+
+        indices = torch.multinomial(p, num_samples=np.prod(
+            size), replacement=replace, generator=rng).view(size)
+
+    return a[indices]
+
+
 class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     """Base generator for splitting/inpainting masks.
 
@@ -56,7 +108,6 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.split_ratio = split_ratio
         self.pixelwise = pixelwise
         self.device = device
-        self.rng = rng or torch.Generator(device=self.device).manual_seed(0)
 
     def step(self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs) -> dict:
         r"""
@@ -67,6 +118,8 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension > 1, batch_size is ignored.
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.
+        :param int seed: the seed for the random number generator.
+
         :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}.
         :rtype: dict
         """
@@ -100,7 +153,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         return {"mask": mask}
 
     def check_pixelwise(self, input_mask=None) -> bool:
-        """Check if pixelwise can be used given input_mask dimensions and tensor_size dimensions"""
+        r"""Check if pixelwise can be used given input_mask dimensions and tensor_size dimensions"""
         pixelwise = self.pixelwise
 
         if pixelwise and len(self.tensor_size) == 2:
@@ -219,7 +272,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         std_scale: float = 4.0,
         center_block: Union[Tuple[int], int] = (8, 8),
         device: torch.device = torch.device("cpu"),
-        rng: np.random.Generator = None,
+        rng: torch.Generator = None,
         *args,
         **kwargs,
     ):
@@ -242,7 +295,6 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             if isinstance(center_block, int)
             else center_block
         )
-        self.rng = rng or np.random.default_rng(0)
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         r"""
@@ -280,11 +332,11 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         nx, ny = input_mask.shape[-2:]
         centerx, centery = nx // 2, ny // 2
 
-        x, y = np.meshgrid(np.arange(0, nx, 1),
-                           np.arange(0, ny, 1), indexing="ij")
+        x, y = torch.meshgrid(torch.arange(0, nx, 1, device=self.device),
+                              torch.arange(0, ny, 1, device=self.device), indexing="ij")
 
         # Create PDF
-        gaussian = np.exp(
+        gaussian = torch.exp(
             -(
                 (x - centerx) ** 2 / (2 * (nx / self.std_scale) ** 2)
                 + (y - centery) ** 2 / (2 * (ny / self.std_scale) ** 2)
@@ -307,14 +359,14 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
         for c in range(_C):
             for t in range(_T):
-                ind = self.rng.choice(
+                ind = random_choice(
                     nx * ny,
                     size=(input_mask[c, t, :, :].sum()
                           * (1 - self.split_ratio))
                     .ceil()
                     .int()
                     .item(),
-                    p=norm_prob[c, t, :, :].cpu().flatten(),
+                    p=norm_prob[c, t, :, :].flatten(),
                     replace=False,
                 )
                 mask_out[c, t, ind] = 1

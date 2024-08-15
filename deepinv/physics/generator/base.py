@@ -50,13 +50,16 @@ class PhysicsGenerator(nn.Module):
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
 
-        self.initial_random_state = rng.get_state()
-        # Make sure that the random generator is on the same device as the physic generator
-        if rng.device != torch.device(device):
-            self.rng = torch.Generator(
-                device).set_state(self.initial_random_state)
+        if rng is None:
+            self.rng = torch.Generator(device=device)
         else:
-            self.rng = rng
+            # Make sure that the random generator is on the same device as the physic generator
+            if rng.device != torch.device(device):
+                self.rng = torch.Generator(
+                    device).set_state(rng.get_state())
+            else:
+                self.rng = rng
+        self.initial_random_state = self.rng.get_state()
 
         # Set attributes
         for k, v in kwargs.items():
@@ -67,6 +70,7 @@ class PhysicsGenerator(nn.Module):
         Generates a batch of parameters for the forward operator.
 
         :param int batch_size: the number of samples to generate.
+        :param int seed: the seed for the random number generator.
         :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
         """
         self.rng_manual_seed(seed)
@@ -76,6 +80,13 @@ class PhysicsGenerator(nn.Module):
         return self.step_func(batch_size, self.rng, seed, **kwargs)
 
     def rng_manual_seed(self, seed: int = None):
+        r"""
+        Sets the seed for the random number generator.
+
+        :param int seed: the seed to set for the random number generator.
+         If not provided, the current state of the random number generator is used.
+         Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
+        """
         if seed is not None:
             if self.rng is not None:
                 self.rng = self.rng.manual_seed(seed)

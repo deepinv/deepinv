@@ -140,6 +140,7 @@ class MotionBlurGenerator(PSFGenerator):
         :param int batch_size: batch_size.
         :param float sigma: the standard deviation of the Gaussian Process
         :param float l: the length scale of the trajectory
+        :param int seed: the seed for the random number generator.
 
         :return: dictionary with key **'filter'**: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
         """
@@ -308,6 +309,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         :param int batch_size: batch_size.
         :param torch.Tensor coeff: batch_size x len(list_param) coefficients of the Zernike decomposition (defaults is None)
+        :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
             **'coeff'**: list of sampled Zernike coefficients in this realization, **'pupil'**: the pupil function
