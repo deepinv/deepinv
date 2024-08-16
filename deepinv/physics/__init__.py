@@ -17,6 +17,7 @@ from .noise import (
     UniformNoise,
     UniformGaussianNoise,
     LogPoissonNoise,
+    GammaNoise,
 )
 from .mri import MRI, DynamicMRI
 from .tomography import Tomography

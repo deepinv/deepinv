@@ -150,7 +150,9 @@ prior = dinv.optim.prior.WaveletPrior(level=4, wv="db8", p=1, device=device)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 lamb = 0.1  # wavelet regularisation parameter
@@ -201,6 +203,6 @@ plot(
     titles=["Input", "GT", "Linear", "Recons."],
 )
 
-# plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+# plot convergence curves
+if plot_convergence_metrics:
     plot_curves(metrics)

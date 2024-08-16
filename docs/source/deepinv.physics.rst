@@ -211,6 +211,7 @@ We provide the implementation of typical blur kernels such as Gaussian, bilinear
    deepinv.physics.blur.gaussian_blur
    deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
+   deepinv.physics.blur.sinc_filter
 
 
 We also provide a set of generators to simulate various types of blur, which can be used to train blind or semi-blind
@@ -223,7 +224,9 @@ deblurring networks.
 
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
-
+   deepinv.physics.generator.DiffractionBlurGenerator3D
+   deepinv.physics.generator.ProductConvolutionBlurGenerator
+   
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
@@ -363,6 +366,7 @@ or simply as
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
+   deepinv.physics.GammaNoise
 
 
 The parameters of noise distributions can also be created from a :meth:`deepinv.physics.generator.PhysicsGenerator`,
@@ -414,8 +418,8 @@ Similar to the PyTorch structure, they are available within :py:mod:`deepinv.phy
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
-   deepinv.physics.functional.conv3d
-   deepinv.physics.functional.conv_transpose3d
+   deepinv.physics.functional.conv3d_fft
+   deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
    deepinv.physics.functional.multiplier
    deepinv.physics.functional.multiplier_adjoint

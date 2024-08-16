@@ -66,6 +66,7 @@ about the forward measurement process.
     deepinv.loss.SurePGLoss
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
+    deepinv.loss.ScoreLoss
 
 
 .. _adversarial-losses:

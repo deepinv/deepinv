@@ -3,7 +3,7 @@ import numpy as np
 from typing import List, Tuple
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.functional import histogramdd
+from deepinv.physics.functional import histogramdd, conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 
 
@@ -261,6 +261,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         lin_x = torch.linspace(-0.5, 0.5, self.pupil_size[0], **self.factory_kwargs)
         lin_y = torch.linspace(-0.5, 0.5, self.pupil_size[1], **self.factory_kwargs)
+        self.step_rho = lin_x[1] - lin_x[0]
 
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
         XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
@@ -326,8 +327,10 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         pupil1 = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
         pupil2 = torch.exp(-2.0j * torch.pi * pupil1)
-        indicator = bump_function(self.rho, 1.0)
-        pupil3 = pupil2 * indicator
+        indicator_circ = bump_function(
+            self.rho, 1 - self.step_rho / 2, b=self.step_rho / 2
+        )
+        pupil3 = pupil2 * indicator_circ
         psf1 = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil3)))
         psf2 = torch.real(psf1 * torch.conj(psf1))
 
@@ -568,7 +571,6 @@ def bump_function(x, a=1.0, b=1.0):
     >>> R = torch.sqrt(X**2 + Y**2)
     >>> Z = bump_function(R, 3, 1)
     >>> Z = Z / torch.sum(Z)
-    >>> dinv.utils.plot(Z[None])
     """
     v = torch.zeros_like(x)
     v[torch.abs(x) <= a] = 1
@@ -688,3 +690,351 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         # Ending
         params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
         return params_blur
+
+
+class DiffractionBlurGenerator3D(PSFGenerator):
+    r"""
+    Generates 3D diffraction limited kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
+    See :meth:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
+
+    :param tuple psf_size: give in the order (depth, height, width)
+    :param int num_channels: number of channels. Default to 1.
+
+    :param list[str] list_param: list of activated Zernike coefficients, defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
+    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
+    :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * fc. `Must be greater than fc`. Defaults to `0.3`.
+    :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
+    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
+            If an int is given, a square pupil is considered.
+    :param float stepz_pixel: Ratio between the physical size of the z direction to that in the x/y direction of the voxels in the 3D image.
+
+    :return: a DiffractionBlurGenerator object
+
+    .. note::
+        NA: numerical aperture, NI: refraction index of the immersion medium,
+        emission_wavelength: wavelength of the light,
+        pixel_size : physical size of the pixels in the xy plane
+        in the same unit as emission_wavelength
+
+    |sep|
+
+    :Examples:
+    >>> import torch
+    >>> from deepinv.physics.generator import DiffractionBlurGenerator3D
+    >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, list_param=['Z0'])
+    >>> dict = generator.step()
+    >>> filter = dict['filter']
+    >>> print(filter.shape)
+    torch.Size([1, 1, 21, 51, 51])
+    >>> batch_size = 2
+    >>> n_zernike = len(generator.generator2d.list_param)
+    >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
+    >>> dict.keys()
+    dict_keys(['filter', 'pupil', 'coeff'])
+
+
+    """
+
+    def __init__(
+        self,
+        psf_size: tuple,
+        num_channels: int = 1,
+        device: str = "cpu",
+        dtype: type = torch.float32,
+        list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
+        fc: float = 0.2,
+        kb: float = 0.25,
+        max_zernike_amplitude: float = 0.15,
+        pupil_size: Tuple[int] = (512, 512),
+        stepz_pixel: float = 1.0,
+    ):
+
+        if len(psf_size) != 3:
+            raise ValueError(
+                "You should provide a tuple of len == 3 to generate 3D PSFs."
+            )
+
+        kwargs = {
+            "list_param": list_param,
+            "fc": fc,
+            "pupil_size": pupil_size,
+            "max_zernike_amplitude": max_zernike_amplitude,
+        }
+        super().__init__(
+            psf_size=psf_size,
+            num_channels=num_channels,
+            device=device,
+            dtype=dtype,
+            **kwargs,
+        )
+
+        self.generator2d = DiffractionBlurGenerator(
+            psf_size=psf_size[1:],
+            num_channels=num_channels,
+            device=device,
+            dtype=dtype,
+            **kwargs,
+        )
+
+        self.stepz_pixel = stepz_pixel
+        self.kb = kb
+        self.nzs = self.psf_size[0]
+
+    def __update__(self):
+        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
+        self.generator2d.rho = self.generator2d.rho.to(**self.factory_kwargs)
+        self.generator2d.Z = self.generator2d.Z.to(**self.factory_kwargs)
+
+    def step(self, batch_size: int = 1, coeff: torch.Tensor = None):
+        r"""
+        Generate a batch of PSF with a batch of Zernike coefficients
+
+        :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+             **'pupil'**: the pupil function, **'coeff'**: list of sampled Zernike coefficients in this realization,
+        :rtype: dict
+        """
+        self.__update__()
+
+        gen_dict = self.generator2d.step(batch_size=batch_size, coeff=coeff)
+
+        pupil3 = gen_dict["pupil"]
+
+        defocus = (
+            torch.linspace(-self.nzs / 2, self.nzs / 2, self.nzs, **self.factory_kwargs)
+            * self.stepz_pixel
+        )
+
+        d = ((self.kb) ** 2 - (self.generator2d.rho * self.fc) ** 2 + 0j) ** 0.5
+
+        propKer = torch.exp(-1j * 2 * torch.pi * d * defocus[:, None, None]) + 0j
+        p = pupil3[:, None, ...] * propKer[None, ...]
+        p[torch.isnan(p)] = 0
+        pshift = torch.fft.fftshift(p, dim=(-2, -1))
+        pfft = torch.fft.fft2(pshift, dim=(-2, -1))
+        psf1 = torch.fft.ifftshift(pfft, dim=(-2, -1))
+        psf2 = torch.real(psf1 * torch.conj(psf1))
+
+        psf3 = psf2[
+            :,
+            :,
+            self.generator2d.pad_pre[0] : self.generator2d.pupil_size[0]
+            - self.generator2d.pad_post[0],
+            self.generator2d.pad_pre[1] : self.generator2d.pupil_size[1]
+            - self.generator2d.pad_post[1],
+        ].unsqueeze(1)
+
+        psf = psf3 / torch.sum(psf3, dim=(-3, -2, -1), keepdim=True)
+
+        return {
+            "filter": psf.expand(-1, self.shape[0], -1, -1, -1),
+            "pupil": pupil3,
+            "coeff": gen_dict["coeff"],
+        }
+
+
+class ConfocalBlurGenerator3D(PSFGenerator):
+    r"""
+    Generates the 3D psf of confocal laser scanning microsope.
+
+    :param tuple psf_size: give in the order (depth, height, width)
+    :param int num_channels: number of channels. Default to 1.
+
+    :param list[str] list_param: list of activated Zernike coefficients, defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
+
+
+    :param float NI: Refractive index of  the immersion medium. Defaults to 1.51 (oil),
+    :param float NA: Numerical aperture. Should be less than NI. Defaults to 1.37.
+    :param float lambda_ill: Wavelength of the illumination light (fluorescence excitation). Defaults to 489e-9.
+    :param floatlambda_coll: Wavelength of the collection light (fluorescence emission). Defaults to 395e-9.
+    :param float pixelsize_XY: Physical pixel size in the lateral direction (height, width). Defaults to 50e-9.
+    :param float pixelsize_Z:  Physical pixel size in the axial direction (depth). Defaults to 100e-9.
+    :param float pinhole_radius: Radius of pinhole in Airy units. Defaults to 1.
+    :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.1.
+    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
+            If an int is given, a square pupil is considered.
+    :return: a DiffractionBlurGenerator object
+
+    .. note::
+        NA: numerical aperture, NI: refraction index of the immersion medium,
+        emission_wavelength: wavelength of the light,
+        pixel_size : physical size of the pixels in the xy plane
+        in the same unit as emission_wavelength
+
+    |sep|
+
+    :Examples:
+    >>> import torch
+    >>> from deepinv.physics.generator import ConfocalBlurGenerator3D
+    >>> generator = ConfocalBlurGenerator3D((21, 51, 51), list_param=['Z0'])
+    >>> dict = generator.step()
+    >>> filter = dict['filter']
+    >>> print(filter.shape)
+    torch.Size([1, 1, 21, 51, 51])
+    >>> batch_size = 2
+    >>> n_zernike = len(generator.generator_ill.generator2d.list_param)
+    >>> dict = generator.step(batch_size=batch_size,
+    ...                       coeff_ill = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs),
+    ...                       coeff_coll = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
+    >>> dict.keys()
+    dict_keys(['filter', 'coeff_ill', 'coeff_coll'])
+
+
+    """
+
+    def __init__(
+        self,
+        psf_size: tuple,
+        num_channels: int = 1,
+        device: str = "cpu",
+        dtype: type = torch.float32,
+        list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
+        NI: float = 1.51,
+        NA: float = 1.37,
+        lambda_ill: float = 489e-9,
+        lambda_coll: float = 395e-9,
+        pixelsize_XY: float = 50e-9,
+        pixelsize_Z: float = 100e-9,
+        pinhole_radius: float = 1,
+        max_zernike_amplitude: float = 0.1,
+        pupil_size: Tuple[int] = (512, 512),
+    ):
+
+        if len(psf_size) != 3:
+            raise ValueError(
+                "You should provide a tuple of len == 3 to generate 3D PSFs."
+            )
+
+        kwargs = {
+            "list_param": list_param,
+            "pupil_size": pupil_size,
+            "max_zernike_amplitude": max_zernike_amplitude,
+        }
+        super().__init__(
+            psf_size=psf_size,
+            num_channels=num_channels,
+            device=device,
+            dtype=dtype,
+            **kwargs,
+        )
+
+        self.fc_ill = (
+            NA / lambda_ill
+        ) * pixelsize_XY  # cutoff frequency for illumination
+        self.kb_ill = (NI / lambda_ill) * pixelsize_XY  # wavenumber for illumination
+
+        self.fc_coll = (
+            NA / lambda_coll
+        ) * pixelsize_XY  # cutoff freauency for collection
+        self.kb_coll = (NI / lambda_coll) * pixelsize_XY  # wavenumber for collection
+
+        self.pinhole_radius = pinhole_radius
+        self.pixelsize_XY = pixelsize_XY
+        self.pixel_size_Z = pixelsize_Z
+
+        self.lambda_ill = lambda_ill
+        self.lambda_coll = lambda_coll
+        self.NI = NI
+        self.NA = NA
+
+        # Initialize generator for the Illumniation PSF
+        self.generator_ill = DiffractionBlurGenerator3D(
+            psf_size=psf_size,
+            fc=self.fc_ill,
+            kb=self.kb_ill,
+            stepz_pixel=int(pixelsize_Z / pixelsize_XY),
+            **self.factory_kwargs,
+        )
+
+        # Initialize generator for the Collection PSF
+        self.generator_coll = DiffractionBlurGenerator3D(
+            psf_size=psf_size,
+            fc=self.fc_coll,
+            kb=self.kb_coll,
+            stepz_pixel=int(pixelsize_Z / pixelsize_XY),
+            **self.factory_kwargs,
+        )
+
+    def __update__(self):
+        self.generator_ill.generator2d.rho = self.generator_ill.generator2d.rho.to(
+            **self.factory_kwargs
+        )
+        self.generator_ill.generator2d.Z = self.generator_ill.generator2d.Z.to(
+            **self.factory_kwargs
+        )
+
+        self.generator_coll.generator2d.rho = self.generator_coll.generator2d.rho.to(
+            **self.factory_kwargs
+        )
+        self.generator_coll.generator2d.Z = self.generator_coll.generator2d.Z.to(
+            **self.factory_kwargs
+        )
+
+    def step(
+        self,
+        batch_size: int = 1,
+        coeff_ill: torch.Tensor = None,
+        coeff_coll: torch.Tensor = None,
+    ):
+        r"""
+        Generate a batch of 3D confocal PSF with a batch of Zernike coefficients
+        for illumination and collection
+
+        :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+              **'coeff_ill'**: list of sampled Zernike coefficients in this realization of illumination,
+              **'coeff_coll'**: list of sampled Zernike coefficients in this realization of collection,
+
+        :rtype: dict
+        """
+        self.__update__()
+
+        dict_ill = self.generator_ill.step(
+            batch_size=batch_size, coeff=coeff_ill
+        )  # generate illumuinition PSF
+        psf_ill = dict_ill["filter"]
+        coeff_ill = dict_ill["coeff"]
+        dict_coll = self.generator_coll.step(
+            batch_size=batch_size, coeff=coeff_coll
+        )  # generate collection PSF
+        psf_coll = dict_coll["filter"]
+        coeff_coll = dict_coll["coeff"]
+
+        ## convolution of by the collection PSF by pinhole
+        # 1. Define the pinhole D
+        airy_unit = 0.61 * self.lambda_coll / self.NA  ## 1 Airy Unit
+        PH_radius = self.pinhole_radius * airy_unit
+        lin_x = torch.linspace(
+            -1.5 * PH_radius,
+            1.5 * PH_radius,
+            int(3 * PH_radius / self.pixelsize_XY),
+            **self.factory_kwargs,
+        )
+        lin_y = torch.linspace(
+            -1.5 * PH_radius,
+            1.5 * PH_radius,
+            int(3 * PH_radius / self.pixelsize_XY),
+            **self.factory_kwargs,
+        )
+        PH_step_rho = lin_x[1] - lin_x[0]
+        # The plane is discretized on [-1.5 * r_pinhole, 1.5 * r_pinhole] x  [-1.5 * r_pinhole, 1.5 * r_pinhole]
+        XX, YY = torch.meshgrid(lin_x, lin_y, indexing="ij")
+        PH_rho = torch.sqrt(XX**2 + YY**2)  # Cartesian coordinates
+        D = bump_function(
+            PH_rho, PH_radius - PH_step_rho / 2, b=PH_step_rho / 2
+        )  # D(r) in equation
+
+        # 2. Apply 2D convolution in all z planes
+        psf_coll_convolved = torch.zeros(psf_coll.shape, **self.factory_kwargs)
+        for i in range(psf_coll.shape[-3]):
+            psf_coll_convolved[:, :, i] = conv2d(
+                psf_coll[:, :, i], filter=D[None, None], padding="constant"
+            )
+
+        psf_confocal = psf_ill * psf_coll_convolved  # final PSF of confocal microscope
+
+        psf = psf_confocal / torch.sum(psf_confocal, dim=(-3, -2, -1), keepdim=True)
+
+        return {
+            "filter": psf.expand(-1, self.shape[0], -1, -1, -1),
+            "coeff_ill": coeff_ill,
+            "coeff_coll": coeff_coll,
+        }
