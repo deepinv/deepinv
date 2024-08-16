@@ -54,9 +54,10 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.tensor_size = tensor_size
         self.split_ratio = split_ratio
         self.pixelwise = pixelwise
-        self.device = device
 
-    def step(self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs) -> dict:
+    def step(
+        self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs
+    ) -> dict:
         r"""
         Generate a random mask.
 
@@ -71,9 +72,11 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         :rtype: dict
         """
         self.rng_manual_seed(seed)
+
         if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
             self.tensor_size
         ):
+            input_mask = input_mask.to(self.device)
             if input_mask.shape[0] > 1:
                 # Batch dim exists in input_mask and it's > 1
                 batch_size = input_mask.shape[0]
@@ -143,6 +146,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         pixelwise = self.check_pixelwise(input_mask)
 
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
+            input_mask = input_mask.to(self.device)
             # Sample indices from given input mask
             if pixelwise:
                 idx = input_mask[0, ...].nonzero(as_tuple=False)
@@ -150,8 +154,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                 idx = input_mask.nonzero(as_tuple=False)
 
             shuff = idx[
-                torch.randperm(len(idx), generator=self.rng,
-                               device=self.device)
+                torch.randperm(len(idx), generator=self.rng, device=self.device)
             ]
             idx_out = shuff[: int(self.split_ratio * len(idx))].t()
 
@@ -167,8 +170,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         else:
             # Sample pixels from a uniform distribution as input_mask is not given
             mask = torch.ones(self.tensor_size, device=self.device)
-            aux = torch.rand(self.tensor_size,
-                             generator=self.rng, device=self.device)
+            aux = torch.rand(self.tensor_size, generator=self.rng, device=self.device)
             if not pixelwise:
                 mask[aux > self.split_ratio] = 0
             else:
@@ -208,7 +210,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param float std_scale: scale parameter of 2D Gaussian, in pixels.
     :param int, tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal. Either int for square block or 2-tuple (h, w)
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
-    :param np.random.Generator rng: numpy random number generator. Note this is different from :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` which requires torch generator.
+    :param torch.Generator rng: random number generator.
     """
 
     def __init__(
@@ -257,8 +259,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
         # Create blank input mask if not specified. Create with time dim even if we only want static mask
         if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
-            input_mask = torch.ones(
-                _C, _T, *self.tensor_size[-2:], device=self.device)
+            input_mask = torch.ones(_C, _T, *self.tensor_size[-2:], device=self.device)
 
         if len(input_mask.shape) < len(self.tensor_size):
             # Missing channel dim, so create it
@@ -279,8 +280,11 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         nx, ny = input_mask.shape[-2:]
         centerx, centery = nx // 2, ny // 2
 
-        x, y = torch.meshgrid(torch.arange(0, nx, 1, device=self.device),
-                              torch.arange(0, ny, 1, device=self.device), indexing="ij")
+        x, y = torch.meshgrid(
+            torch.arange(0, nx, 1, device=self.device),
+            torch.arange(0, ny, 1, device=self.device),
+            indexing="ij",
+        )
 
         # Create PDF
         gaussian = torch.exp(
@@ -293,8 +297,8 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
         prob_mask[
             ...,
-            centerx - self.center_block[0] // 2: centerx + self.center_block[0] // 2,
-            centery - self.center_block[1] // 2: centery + self.center_block[1] // 2,
+            centerx - self.center_block[0] // 2 : centerx + self.center_block[0] // 2,
+            centery - self.center_block[1] // 2 : centery + self.center_block[1] // 2,
         ] = 0
 
         norm_prob = prob_mask / prob_mask.sum(dim=(-2, -1), keepdim=True)
@@ -306,8 +310,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             for t in range(_T):
                 ind = random_choice(
                     nx * ny,
-                    size=(input_mask[c, t, :, :].sum()
-                          * (1 - self.split_ratio))
+                    size=(input_mask[c, t, :, :].sum() * (1 - self.split_ratio))
                     .ceil()
                     .int()
                     .item(),
@@ -425,8 +428,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
             if persist_prev:
                 split_size = self.prev_split_size
             else:
-                self.prev_split_size = split_size = rand_select(
-                    self.split_size)
+                self.prev_split_size = split_size = rand_select(self.split_size)
 
         # Randomly select one chunk. Don't select previous chunk if leave_prev_idx is True
         idxs = list(range(input_mask.shape[1] // split_size))
@@ -436,7 +438,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
         self.prev_idx = idx = rand_select(idxs)
 
         mask_out = torch.zeros_like(input_mask)
-        mask_out[:, split_size * idx: split_size * (idx + 1)] = input_mask[
-            :, split_size * idx: split_size * (idx + 1)
+        mask_out[:, split_size * idx : split_size * (idx + 1)] = input_mask[
+            :, split_size * idx : split_size * (idx + 1)
         ]
         return mask_out

@@ -110,9 +110,11 @@ class ThinPlateSpline:
 
         # Build the linear system AP = Y
         one = torch.ones((1, 1, n_c, 1), device=self.device).expand(
-            X.size(0), X.size(1), -1, -1)
+            X.size(0), X.size(1), -1, -1
+        )
         zeros = torch.zeros((1, 1, d_s + 1, d_s + 1), device=self.device).expand(
-            X.size(0), X.size(1), -1, -1)
+            X.size(0), X.size(1), -1, -1
+        )
 
         X_p = torch.cat([one, X], dim=-1)
 
@@ -120,26 +122,37 @@ class ThinPlateSpline:
             [
                 torch.cat(
                     [
-                        phi + self.alpha * torch.eye(n_c, device=self.device)[None, None].expand(
-                            X.size(0), X.size(1), -1, -1),
+                        phi
+                        + self.alpha
+                        * torch.eye(n_c, device=self.device)[None, None].expand(
+                            X.size(0), X.size(1), -1, -1
+                        ),
                         X_p,
-                    ], dim=-1
+                    ],
+                    dim=-1,
                 ),
                 torch.cat(
                     [
                         X_p.transpose(-1, -2),
                         zeros,
-                    ], dim=-1
+                    ],
+                    dim=-1,
                 ),
-            ], dim=-2
+            ],
+            dim=-2,
         )
 
         Y = torch.cat(
-            [Y, torch.zeros((1, 1, d_s + 1, Y.size(-1)), device=self.device).expand(
-                Y.size(0), Y.size(1), -1, -1)], dim=-2)
+            [
+                Y,
+                torch.zeros((1, 1, d_s + 1, Y.size(-1)), device=self.device).expand(
+                    Y.size(0), Y.size(1), -1, -1
+                ),
+            ],
+            dim=-2,
+        )
 
-        self.parameters = torch.linalg.solve(
-            A, Y)  # pylint: disable=not-callable
+        self.parameters = torch.linalg.solve(A, Y)  # pylint: disable=not-callable
         self._fitted = True
 
         return self
@@ -163,11 +176,10 @@ class ThinPlateSpline:
 
         phi = self._radial_distance(X)
 
-        one = torch.ones(
-            (1, 1, X.shape[-2], 1), device=self.device).expand(X.size(0), X.size(1), -1, -1)
-        X = torch.cat(
-            [phi, one, X], dim=-1
+        one = torch.ones((1, 1, X.shape[-2], 1), device=self.device).expand(
+            X.size(0), X.size(1), -1, -1
         )
+        X = torch.cat([phi, one, X], dim=-1)
         return torch.matmul(X, self.parameters)
 
     def _radial_distance(self, X: torch.Tensor) -> torch.Tensor:

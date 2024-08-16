@@ -25,7 +25,13 @@ class SigmaGenerator(PhysicsGenerator):
 
     """
 
-    def __init__(self, sigma_min=0.01, sigma_max=0.5, rng: torch.Generator = None, device: str = "cpu"):
+    def __init__(
+        self,
+        sigma_min=0.01,
+        sigma_max=0.5,
+        rng: torch.Generator = None,
+        device: str = "cpu",
+    ):
         super().__init__(shape=(1,), device=device, rng=rng)
         self.device = device
         self.sigma_min = sigma_min

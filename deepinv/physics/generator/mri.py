@@ -20,7 +20,7 @@ class BaseMaskGenerator(PhysicsGenerator):
     :param Tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps
     :param int acceleration: acceleration factor, defaults to 4
     :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space). If 0, there is no fixed low-freq sampling. Defaults to None.
-    :param torch.Generator rng: numpy random generator, defaults to None
+    :param torch.Generator rng: torch random generator, defaults to None
     """
 
     def __init__(
@@ -29,10 +29,11 @@ class BaseMaskGenerator(PhysicsGenerator):
         acceleration: int = 4,
         center_fraction: Optional[float] = None,
         rng: torch.Generator = None,
+        device="cpu",
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs, rng=rng)
+        super().__init__(*args, **kwargs, rng=rng, device=device)
         self.img_size = img_size
         self.acc = acceleration
 
@@ -53,8 +54,7 @@ class BaseMaskGenerator(PhysicsGenerator):
         elif len(self.img_size) == 4:
             self.C, self.T, self.H, self.W = self.img_size
         else:
-            raise ValueError(
-                "img_size must be (H, W) or (C, H, W) or (C, T, H, W)")
+            raise ValueError("img_size must be (H, W) or (C, H, W) or (C, T, H, W)")
 
         self.n_center = int(self.center_fraction * self.W)
         self.n_lines = int(self.W // self.acc - self.n_center)
@@ -91,8 +91,7 @@ class BaseMaskGenerator(PhysicsGenerator):
         self.rng_manual_seed(seed)
         _T = self.T if self.T > 0 else 1
         mask = self.sample_mask(
-            torch.zeros((batch_size, self.C, _T, self.H, self.W),
-                        **self.factory_kwargs)
+            torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs)
         )
 
         if self.T == 0:
@@ -139,17 +138,17 @@ class RandomMaskGenerator(BaseMaskGenerator):
 
         # lines are never randomly sampled from the already sampled center
         pdf[
-            self.W // 2 - self.n_center // 2: self.W // 2 + ceildiv(self.n_center, 2)
+            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)
         ] = 0
 
         # normalise distribution
-        pdf /= torch.sum(pdf)
-
+        pdf = pdf / torch.sum(pdf)
         # select low-frequency lines according to pdf
         for b in range(mask.shape[0]):
             for t in range(mask.shape[2]):
                 idx = random_choice(
-                    self.W, self.n_lines, replace=False, p=pdf, rng=self.rng)
+                    self.W, self.n_lines, replace=False, p=pdf, rng=self.rng
+                )
                 mask[b, :, t, :, idx] = 1
 
         # central lines are always sampled
@@ -158,7 +157,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
             :,
             :,
             :,
-            self.W // 2 - self.n_center // 2: self.W // 2 + ceildiv(self.n_center, 2),
+            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2),
         ] = 1
 
         return mask
@@ -201,10 +200,13 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
-        def normal_pdf(length, sensitivity): return torch.exp(
-            -sensitivity *
-            (torch.arange(length, device=self.device) - length / 2) ** 2
-        )
+
+        def normal_pdf(length, sensitivity):
+            return torch.exp(
+                -sensitivity
+                * (torch.arange(length, device=self.device) - length / 2) ** 2
+            )
+
         pdf = normal_pdf(self.W, 0.5 / (self.W / 10.0) ** 2)
         lmda = self.W / (2.0 * self.acc)
 
@@ -243,24 +245,31 @@ class EquispacedMaskGenerator(BaseMaskGenerator):
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         pad = (self.W - self.n_center + 1) // 2
-        mask[:, :, :, :, pad: pad + self.n_center] = 1
+        mask[:, :, :, :, pad : pad + self.n_center] = 1
 
         # determine acceleration rate by adjusting for the number of low frequencies
         adjusted_accel = (self.acc * (self.n_center - self.W)) / (
             self.n_center * self.acc - self.W
         )
         offset = torch.randint(
-            0, round(adjusted_accel), size=(mask.shape[0]), device=self.device, generator=self.rng)
+            low=0,
+            high=round(adjusted_accel),
+            size=(mask.size(0),),
+            device=self.device,
+            generator=self.rng,
+        )
 
         for b in range(mask.shape[0]):
             for t in range(mask.shape[2]):
                 accel_samples = (
                     torch.arange(
-                        (t + offset[b]) % adjusted_accel, self.W -
-                        1, adjusted_accel, device=self.device
+                        (t + offset[b]) % adjusted_accel,
+                        self.W - 1,
+                        adjusted_accel,
+                        device=self.device,
                     )
                     .round()
-                    .dtype(torch.int)
+                    .type(torch.int32)
                 )
                 mask[b, :, t, :, accel_samples] = 1
 

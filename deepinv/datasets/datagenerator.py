@@ -160,7 +160,6 @@ def generate_dataset(
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if train_dataset is not None:
-
             hf.create_dataset("y_train", (n_train_g,) + y.shape[1:], dtype="float")
             if supervised:
                 hf.create_dataset("x_train", (n_train_g,) + x.shape[1:], dtype="float")
@@ -175,7 +174,6 @@ def generate_dataset(
                     disable=(not verbose or not show_progress_bar),
                 )
             ):
-
                 desc = (
                     f"Generating dataset operator {g + 1}"
                     if G > 1
@@ -196,7 +194,6 @@ def generate_dataset(
                 batches = len(train_dataloader) - int(train_dataloader.drop_last)
                 iterator = iter(train_dataloader)
                 for _ in range(batches):
-
                     x = next(iterator)
                     x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                     x = x.to(device)
@@ -233,7 +230,6 @@ def generate_dataset(
             batches = len(test_dataloader) - int(test_dataloader.drop_last)
             iterator = iter(test_dataloader)
             for i in range(batches):
-
                 x = next(iterator)
                 x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                 x = x.to(device)

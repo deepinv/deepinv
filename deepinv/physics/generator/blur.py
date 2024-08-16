@@ -19,14 +19,14 @@ class PSFGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        psf_size: tuple = (31, 31),
+        psf_size: Tuple[int] = (31, 31),
         num_channels: int = 1,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        assert (
-            len(psf_size) == 2
-        ), "The psf size should be a tuple with two elements, height x width"
+        if isinstance(psf_size, int):
+            psf_size = (psf_size, psf_size)
+
         self.shape = (num_channels,) + psf_size
         self.psf_size = psf_size
         self.num_channels = num_channels
@@ -117,8 +117,9 @@ class MotionBlurGenerator(PSFGenerator):
         :param float l: the length scale of the trajectory.
         :return: the trajectory of shape `(batch_size, n_steps)`
         """
-        vec = torch.randn(batch_size, self.n_steps,
-                          generator=self.rng, **self.factory_kwargs)
+        vec = torch.randn(
+            batch_size, self.n_steps, generator=self.rng, **self.factory_kwargs
+        )
         time = torch.linspace(-torch.pi, torch.pi, self.n_steps, **self.factory_kwargs)[
             None
         ]
@@ -133,7 +134,13 @@ class MotionBlurGenerator(PSFGenerator):
             ),
         ]
 
-    def step(self, batch_size: int = 1, sigma: float = None, l: float = None, seed: int = None):
+    def step(
+        self,
+        batch_size: int = 1,
+        sigma: float = None,
+        l: float = None,
+        seed: int = None,
+    ):
         r"""
         Generate a random motion blur PSF with parameters :math:`\sigma` and :math:`l`
 
@@ -252,14 +259,11 @@ class DiffractionBlurGenerator(PSFGenerator):
         )
         self.pupil_size = pupil_size
 
-        lin_x = torch.linspace(-0.5, 0.5,
-                               self.pupil_size[0], **self.factory_kwargs)
-        lin_y = torch.linspace(-0.5, 0.5,
-                               self.pupil_size[1], **self.factory_kwargs)
+        lin_x = torch.linspace(-0.5, 0.5, self.pupil_size[0], **self.factory_kwargs)
+        lin_y = torch.linspace(-0.5, 0.5, self.pupil_size[1], **self.factory_kwargs)
 
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
-        XX, YY = torch.meshgrid(
-            lin_x / self.fc, lin_y / self.fc, indexing="ij")
+        XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
         self.rho = cart2pol(XX, YY)  # Cartesian coordinates
 
         # The list of Zernike polynomial functions
@@ -329,8 +333,8 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         psf3 = psf2[
             :,
-            self.pad_pre[0]: self.pupil_size[0] - self.pad_post[0],
-            self.pad_pre[1]: self.pupil_size[1] - self.pad_post[1],
+            self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
+            self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
         ].unsqueeze(1)
 
         psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
@@ -348,8 +352,11 @@ class DiffractionBlurGenerator(PSFGenerator):
         :return: a tensor of shape `(batch_size, len(list_param))` coefficients in the Zernike decomposition.
 
         """
-        coeff = torch.rand((batch_size, len(self.list_param)), generator=self.rng,
-                           **self.factory_kwargs)
+        coeff = torch.rand(
+            (batch_size, len(self.list_param)),
+            generator=self.rng,
+            **self.factory_kwargs,
+        )
         coeff = (coeff - 0.5) * self.max_zernike_amplitude
         return coeff
 
@@ -433,20 +440,22 @@ def define_zernike():
     Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
     Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
     Z[20] = (
-        lambda x, y: sq12 * x * (16 * x**4 - 20 * x **
-                                 2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12
+        * x
+        * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[21] = (
-        lambda x, y: sq12 * y * (16 * y**4 - 20 * y **
-                                 2 * r2(x, y) + 5 * r2(x, y) ** 2)
+        lambda x, y: sq12
+        * y
+        * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
     )
     Z[22] = lambda x, y: sq7 * (
         20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
     )
-    Z[23] = lambda x, y: 2 * sq14 * x * y * \
-        (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * \
-        (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    Z[23] = lambda x, y: 2 * sq14 * x * y * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    Z[24] = (
+        lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
+    )
     Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
     Z[26] = (
         lambda x, y: sq14
@@ -460,8 +469,10 @@ def define_zernike():
         * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
     )
     Z[28] = lambda x, y: sq14 * (
-        32 * x**6 - 48 * x**4 * r2(x, y) + 18 *
-        x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
+        32 * x**6
+        - 48 * x**4 * r2(x, y)
+        + 18 * x**2 * r2(x, y) ** 2
+        - r2(x, y) ** 3
     )
     Z[29] = (
         lambda x, y: 4
@@ -488,12 +499,18 @@ def define_zernike():
     Z[33] = (
         lambda x, y: 4
         * (7 * r2(x, y) - 6)
-        * (4 * x**2 * y * (x**2 - y**2) + y * (r2(x, y) ** 2 - 8 * x**2 * y**2))
+        * (
+            4 * x**2 * y * (x**2 - y**2)
+            + y * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+        )
     )
     Z[34] = lambda x, y: (
         4
         * (7 * r2(x, y) - 6)
-        * (x * (r2(x, y) ** 2 - 8 * x**2 * y**2) - 4 * x * y**2 * (x**2 - y**2))
+        * (
+            x * (r2(x, y) ** 2 - 8 * x**2 * y**2)
+            - 4 * x * y**2 * (x**2 - y**2)
+        )
     )
     Z[35] = lambda x, y: (
         8 * x**2 * y * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
@@ -556,8 +573,7 @@ def bump_function(x, a=1.0, b=1.0):
     v = torch.zeros_like(x)
     v[torch.abs(x) <= a] = 1
     I = (torch.abs(x) > a) * (torch.abs(x) < a + b)
-    v[I] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[I]) - a) / b)
-                     ** 2)) / np.exp(-1.0)
+    v[I] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[I]) - a) / b) ** 2)) / np.exp(-1.0)
     return v
 
 
@@ -597,7 +613,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         psf_generator: PSFGenerator,
         image_size: Tuple[int],
         n_eigen_psf: int = 10,
-        spacing:  Tuple[int] = None,
+        spacing: Tuple[int] = None,
         padding: str = "valid",
         **kwargs,
     ) -> None:
@@ -610,27 +626,30 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         self.psf_generator = psf_generator
         self.image_size = image_size
         self.n_eigen_psf = n_eigen_psf
-        self.spacing = (spacing if spacing is not None else (
-            self.image_size[0] // 8, self.image_size[1] // 8)
+        self.spacing = (
+            spacing
+            if spacing is not None
+            else (self.image_size[0] // 8, self.image_size[1] // 8)
         )
         self.padding = padding
 
-        self.n_psf_prid = (self.image_size[0] // self.spacing[0]) * \
-            (self.image_size[1] // self.spacing[1])
+        self.n_psf_prid = (self.image_size[0] // self.spacing[0]) * (
+            self.image_size[1] // self.spacing[1]
+        )
 
         # Interpolating the psf_grid coefficients with Thinplate splines
         T0 = torch.linspace(
-            0, 1, self.image_size[0] // self.spacing[0], **self.factory_kwargs)
+            0, 1, self.image_size[0] // self.spacing[0], **self.factory_kwargs
+        )
         T1 = torch.linspace(
-            0, 1, self.image_size[1] // self.spacing[1], **self.factory_kwargs)
-        yy, xx = torch.meshgrid(T0, T1)
+            0, 1, self.image_size[1] // self.spacing[1], **self.factory_kwargs
+        )
+        yy, xx = torch.meshgrid(T0, T1, indexing="ij")
         self.X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
 
-        T0 = torch.linspace(
-            0, 1, self.image_size[0], **self.factory_kwargs)
-        T1 = torch.linspace(
-            0, 1, self.image_size[1], **self.factory_kwargs)
-        yy, xx = torch.meshgrid(T0, T1)
+        T0 = torch.linspace(0, 1, self.image_size[0], **self.factory_kwargs)
+        T1 = torch.linspace(0, 1, self.image_size[1], **self.factory_kwargs)
+        yy, xx = torch.meshgrid(T0, T1, indexing="ij")
         self.XX = torch.stack((yy.flatten(), xx.flatten()), dim=1)
 
         self.tps = ThinPlateSpline(0.0, **self.factory_kwargs)
@@ -648,18 +667,17 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         self.psf_generator.rng_manual_seed(seed)
 
         # Generating psf_grid on a grid
-        psf_grid = self.psf_generator.step(
-            self.n_psf_prid * batch_size)["filter"]
+        psf_grid = self.psf_generator.step(self.n_psf_prid * batch_size)["filter"]
         psf_size = psf_grid.shape[-2:]
         psf_grid = psf_grid.view(
-            batch_size, self.n_psf_prid, psf_grid.size(1), *psf_size)
+            batch_size, self.n_psf_prid, psf_grid.size(1), *psf_size
+        )
 
         # Computing the eigen-psf
         psf_grid = psf_grid.flatten(-2, -1).transpose(1, 2)
         _, _, V = torch.linalg.svd(psf_grid, full_matrices=False)
-        V = V[..., :self.n_eigen_psf, :].transpose(-1, -2)
-        eigen_psf = V.reshape(V.size(0),
-                              V.size(1), self.n_eigen_psf, *psf_size)
+        V = V[..., : self.n_eigen_psf, :].transpose(-1, -2)
+        eigen_psf = V.reshape(V.size(0), V.size(1), self.n_eigen_psf, *psf_size)
 
         coeffs = torch.matmul(psf_grid, V)
 
@@ -668,6 +686,5 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         w = w.reshape(w.size(0), w.size(1), self.n_eigen_psf, *self.image_size)
 
         # Ending
-        params_blur = {"filters": eigen_psf,
-                       "multipliers": w, "padding": self.padding}
+        params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
         return params_blur

@@ -16,7 +16,7 @@ class PhysicsGenerator(nn.Module):
     :param Callable step: a function that generates the parameters of the physics, e.g.,
         the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
         the corresponding key and value pairs.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation. 
+    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used. This `rng` will be passed to the `step` function.
     :param str device: cpu or cuda
     :param torch.dtype dtype: the data type of the generated parameters
@@ -29,10 +29,9 @@ class PhysicsGenerator(nn.Module):
 
         >>> import torch
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
-        >>> _ = torch.manual_seed(0)
         >>> # combine a PhysicsGenerator for blur and noise level parameters
         >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
-        >>> params_dict = generator.step(batch_size=1) # dict_keys(['filter', 'sigma'])
+        >>> params_dict = generator.step(batch_size=1, seed=0) # dict_keys(['filter', 'sigma'])
         >>> print(params_dict['filter'])
         tensor([[[[0.0000, 0.1006, 0.0000],
                   [0.0000, 0.8994, 0.0000],
@@ -42,23 +41,27 @@ class PhysicsGenerator(nn.Module):
     """
 
     def __init__(
-        self, step=lambda **kwargs: {}, rng: torch.Generator = None, device="cpu", dtype=torch.float32, **kwargs
+        self,
+        step=lambda **kwargs: {},
+        rng: torch.Generator = None,
+        device="cpu",
+        dtype=torch.float32,
+        **kwargs,
     ) -> None:
         super().__init__()
 
         self.step_func = step
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
-
+        self.device = device
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            if rng.device != torch.device(device):
-                self.rng = torch.Generator(
-                    device).set_state(rng.get_state())
-            else:
-                self.rng = rng
+            assert (
+                rng.device == device
+            ), "The random generator is not on the same device as the Physic Generator"
+            self.rng = rng
         self.initial_random_state = self.rng.get_state()
 
         # Set attributes
@@ -93,7 +96,8 @@ class PhysicsGenerator(nn.Module):
             else:
                 torch.manual_seed(seed)
                 raise warnings.warn(
-                    "Cannot set seed when rng is None! The `torch.manual_seed` is triggered.")
+                    "Cannot set seed when rng is None! The `torch.manual_seed` is triggered."
+                )
 
     def __add__(self, other):
         r"""
@@ -140,8 +144,13 @@ class GeneratorMixture(PhysicsGenerator):
 
     """
 
-    def __init__(self, generators: List[PhysicsGenerator], probs: List[float]) -> None:
-        super().__init__()
+    def __init__(
+        self,
+        generators: List[PhysicsGenerator],
+        probs: List[float],
+        rng: torch.Generator = None,
+    ) -> None:
+        super().__init__(rng=rng)
         probs = torch.tensor(probs)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
@@ -154,9 +163,9 @@ class GeneratorMixture(PhysicsGenerator):
         according to the probabilities given in the constructor.
 
         :param int batch_size: the number of samples to generate.
+        :param int seed: the seed for the random number generator.
         :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
-        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
-        p = torch.rand(1).item()  # np.random.uniform()
+        p = torch.rand(1, generator=self.rng).item()  # np.random.uniform()
         idx = torch.searchsorted(self.cum_probs, p)
         return self.generators[idx].step(batch_size, seed, **kwargs)
