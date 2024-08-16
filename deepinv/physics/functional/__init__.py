@@ -19,3 +19,4 @@ from .hist import histogram, histogramdd
 from .downsampling import downsample
 from .radon import Radon, IRadon, RampFilter
 from .interp import ThinPlateSpline
+from .random import random_choice

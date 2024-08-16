@@ -570,10 +570,10 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator
         (e.g. ``generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)``)
-    :param tuple img_size: image size ``H x W``.
-    :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psfs.
+    :param tuple image_size: image size ``H x W``.
+    :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psf_grid.
         Defaults to 10.
-    :param tuple spacing: steps between the psfs used for interpolation (defaults ``(H//8, W//8)``).
+    :param tuple spacing: steps between the psf_grid used for interpolation (defaults ``(H//8, W//8)``).
     :param str padding: boundary conditions in (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``).
         Defaults to ``'valid'``.
 
@@ -585,7 +585,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     >>> from deepinv.physics.generator import ProductConvolutionBlurGenerator
     >>> psf_size = 7
     >>> psf_generator = DiffractionBlurGenerator((psf_size, psf_size), fc=0.25)
-    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, img_size=(64, 64), n_eigen_psf=8)
+    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, image_size=(64, 64), n_eigen_psf=8)
     >>> params = pc_generator.step(0)
     >>> print(params.keys())
     dict_keys(['filters', 'multipliers', 'padding'])
@@ -594,58 +594,78 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        psf_generator,
-        img_size: tuple,
+        psf_generator: PSFGenerator,
+        image_size: Tuple[int],
         n_eigen_psf: int = 10,
-        spacing: tuple = None,
+        spacing:  Tuple[int] = None,
         padding: str = "valid",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        if isinstance(image_size, int):
+            image_size = (image_size, image_size)
+        if isinstance(spacing, int):
+            spacing = (spacing, spacing)
+
         self.psf_generator = psf_generator
-        self.img_size = img_size
+        self.image_size = image_size
         self.n_eigen_psf = n_eigen_psf
-        self.spacing = (
-            spacing if spacing is not None else (
-                img_size[0] // 8, img_size[1] // 8)
+        self.spacing = (spacing if spacing is not None else (
+            self.image_size[0] // 8, self.image_size[1] // 8)
         )
         self.padding = padding
 
-    def step(self, batch_size: int = 1, **kwargs):
+        self.n_psf_prid = (self.image_size[0] // self.spacing[0]) * \
+            (self.image_size[1] // self.spacing[1])
+
+        # Interpolating the psf_grid coefficients with Thinplate splines
+        T0 = torch.linspace(
+            0, 1, self.image_size[0] // self.spacing[0], **self.factory_kwargs)
+        T1 = torch.linspace(
+            0, 1, self.image_size[1] // self.spacing[1], **self.factory_kwargs)
+        yy, xx = torch.meshgrid(T0, T1)
+        self.X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
+
+        T0 = torch.linspace(
+            0, 1, self.image_size[0], **self.factory_kwargs)
+        T1 = torch.linspace(
+            0, 1, self.image_size[1], **self.factory_kwargs)
+        yy, xx = torch.meshgrid(T0, T1)
+        self.XX = torch.stack((yy.flatten(), xx.flatten()), dim=1)
+
+        self.tps = ThinPlateSpline(0.0, **self.factory_kwargs)
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
         r"""
         Generates a random set of filters and multipliers for space-varying blurs.
 
         :param int batch_size: number of space-varying blur parameters to generate.
+        :param int seed: the seed for the random number generator.
+
         :returns: a dictionary containing filters, multipliers and paddings.
         """
+        self.rng_manual_seed(seed)
+        self.psf_generator.rng_manual_seed(seed)
 
-        # Generating psfs on a grid
-        n0, n1 = self.img_size
-        s0, s1 = self.spacing
+        # Generating psf_grid on a grid
+        psf_grid = self.psf_generator.step(
+            self.n_psf_prid * batch_size)["filter"]
+        psf_size = psf_grid.shape[-2:]
+        psf_grid = psf_grid.view(
+            batch_size, self.n_psf_prid, psf_grid.size(1), *psf_size)
 
-        n_psf = (n0 // s0) * (n1 // s1)
-        psfs = self.psf_generator.step(n_psf)["filter"]
-        psf_size = psfs.shape[-1]
+        # Computing the eigen-psf
+        psf_grid = psf_grid.flatten(-2, -1).transpose(1, 2)
+        _, _, V = torch.linalg.svd(psf_grid, full_matrices=False)
+        V = V[..., :self.n_eigen_psf, :].transpose(-1, -2)
+        eigen_psf = V.reshape(V.size(0),
+                              V.size(1), self.n_eigen_psf, *psf_size)
 
-        # Computing the eigen-psfs
-        psfs_reshape = psfs.reshape(n_psf, psf_size * psf_size)
-        U, S, V = torch.svd_lowrank(psfs_reshape, q=self.n_eigen_psf)
-        eigen_psf = (V.T).reshape(self.n_eigen_psf,
-                                  psf_size, psf_size)[:, None, None]
-        coeffs = psfs_reshape @ V
+        coeffs = torch.matmul(psf_grid, V)
 
-        # Interpolating the psfs coefficients with Thinplate splines
-        T0 = torch.linspace(0, 1, n0 // s0, **self.factory_kwargs)
-        T1 = torch.linspace(0, 1, n1 // s1, **self.factory_kwargs)
-        yy, xx = torch.meshgrid(T0, T1)
-        X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
-        tps = ThinPlateSpline(0.0, **self.factory_kwargs)
-        tps.fit(X, coeffs)
-        T0 = torch.linspace(0, 1, n0, **self.factory_kwargs)
-        T1 = torch.linspace(0, 1, n1, **self.factory_kwargs)
-        yy, xx = torch.meshgrid(T0, T1)
-        w = tps.transform(torch.stack((yy.flatten(), xx.flatten()), dim=1)).T
-        w = w.reshape(self.n_eigen_psf, n0, n1)[:, None, None]
+        self.tps.fit(self.X, coeffs)
+        w = self.tps.transform(self.XX).transpose(-1, -2)
+        w = w.reshape(w.size(0), w.size(1), self.n_eigen_psf, *self.image_size)
 
         # Ending
         params_blur = {"filters": eigen_psf,
