@@ -748,7 +748,6 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         pupil_size: Tuple[int] = (512, 512),
         stepz_pixel: float = 1.0,
     ):
-
         if len(psf_size) != 3:
             raise ValueError(
                 "You should provide a tuple of len == 3 to generate 3D PSFs."
@@ -898,7 +897,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         max_zernike_amplitude: float = 0.1,
         pupil_size: Tuple[int] = (512, 512),
     ):
-
         if len(psf_size) != 3:
             raise ValueError(
                 "You should provide a tuple of len == 3 to generate 3D PSFs."

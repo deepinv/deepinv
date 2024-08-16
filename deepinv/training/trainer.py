@@ -534,9 +534,9 @@ class Trainer:
                     x_lin = self.no_learning_inference(y, physics)
                     metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
                     self.logs_metrics_linear[k].update(metric.detach().cpu().numpy())
-                    logs[f"{l.__class__.__name__} no learning"] = (
-                        self.logs_metrics_linear[k].avg
-                    )
+                    logs[
+                        f"{l.__class__.__name__} no learning"
+                    ] = self.logs_metrics_linear[k].avg
 
         return logs
 
@@ -876,7 +876,6 @@ class Trainer:
 
         out = {}
         for k, l in enumerate(self.logs_metrics_eval):
-
             if compare_no_learning:
                 name = self.metrics[k].__class__.__name__ + " no learning"
                 out[name] = self.logs_metrics_linear[k].avg

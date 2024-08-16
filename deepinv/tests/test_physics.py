@@ -727,7 +727,6 @@ def test_downsampling_adjointness(device):
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
-
         size_im = (
             [nchan_im, 5, 5],
             [nchan_im, 6, 6],
