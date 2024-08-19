@@ -428,15 +428,15 @@ class SCUNet(nn.Module):
             if pretrained == "download":
                 name = "scunet_color_real_psnr.pth"
                 url = get_weights_url(model_name="scunet", file_name=name)
-                ckpt_drunet = torch.hub.load_state_dict_from_url(
+                ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:
-                ckpt_drunet = torch.load(
-                    pretrained, map_location=lambda storage, loc: storage
+                ckpt = torch.load(
+                    pretrained, weights_only=True, map_location=lambda storage, loc: storage
                 )
 
-            self.load_state_dict(ckpt_drunet, strict=True)
+            self.load_state_dict(ckpt, strict=True)
             self.eval()
 
         if device is not None:
