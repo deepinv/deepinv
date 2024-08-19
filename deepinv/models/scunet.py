@@ -432,9 +432,7 @@ class SCUNet(nn.Module):
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:
-                ckpt = torch.load(
-                    pretrained, map_location=lambda storage, loc: storage
-                )
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
             self.load_state_dict(ckpt, strict=True)
             self.eval()
