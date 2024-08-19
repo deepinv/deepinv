@@ -650,6 +650,221 @@ class DPS(nn.Module):
             return xt
 
 
+class BlindDPS(nn.Module):
+    r"""
+    Blind Diffusion Posterior Sampling (BlindDPS).
+
+    This class implements the Blind Diffusion Posterior Sampling algorithm, 
+    an extension of the DPS algorithm for blind inverse problems 
+    where both the image and the blur kernel are unknown, described in https://arxiv.org/abs/2211.10656.
+
+    The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
+
+    .. math::
+
+            \begin{equation*}
+            \begin{aligned}
+            \widehat{\mathbf{x}}_{t} &= D_{\theta_x}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
+            \\
+            \widehat{\mathbf{k}}_{t} &= D_{\theta_k}(\mathbf{k}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
+            \\
+            \mathbf{g}_t^x &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t, \mathbf{k}_t) | \mathbf{y} ) \\
+            \mathbf{g}_t^k &= \nabla_{\mathbf{k}_t} \log p( \widehat{\mathbf{k}}_{t}(\mathbf{x}_t, \mathbf{k}_t) | \mathbf{y} ) \\
+            \mathbf{\varepsilon}_t^x &= \mathcal{N}(0, \mathbf{I}) \\
+            \mathbf{\varepsilon}_t^k &= \mathcal{N}(0, \mathbf{I}) \\
+            \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t + b_t \, \, \widehat{\mathbf{x}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^x - \eta \, \mathbf{g}_t^x, \\
+            \mathbf{k}_{t-1} &= a_t \,\, \mathbf{k}_t + b_t \, \, \widehat{\mathbf{k}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^k - \eta \, \mathbf{g}_t^k,
+            \end{aligned}
+            \end{equation*}
+
+    :param torch.nn.Module model_x: the denoiser network for the image
+    :param torch.nn.Module model_k: the denoiser network for the blur kernel
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param int max_iter: the number of diffusion iterations to run the algorithm (default: 1000)
+    :param float eta: DDIM hyperparameter which controls the stochasticity
+    :param float reg_factor: regularization factor for the kernel
+    :param float grad_factor: gradient step for the likelihood of the image and the kernel
+    :param bool verbose: if True, print progress
+    :param str device: the device to use for the computations
+    :param bool save_iterates: if True, save the iterates during the diffusion process
+    """
+
+    def __init__(
+        self,
+        model_x,
+        model_k,
+        data_fidelity,
+        max_iter=1000,
+        eta=1.0,
+        reg_factor=1.0,
+        grad_factor=0.3,
+        verbose=False,
+        device="cpu",
+        save_iterates=False,
+    ):
+        super(BlindDPS, self).__init__()
+        self.model_x = model_x
+        self.model_k = model_k
+        self.data_fidelity = data_fidelity
+        self.max_iter = max_iter
+        self.eta = eta
+        self.reg_factor = reg_factor
+        self.grad_factor = grad_factor
+        self.verbose = verbose
+        self.device = device
+        self.save_iterates = save_iterates
+
+        self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
+        self.num_train_timesteps = 1000
+
+        self.betas, self.alpha_cumprod = self.compute_alpha_betas()
+
+    def compute_alpha_betas(self):
+        r"""
+        Get the beta and alpha sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
+        """
+        betas = np.linspace(
+            self.beta_start, self.beta_end, self.num_train_timesteps, dtype=np.float32
+        )
+        betas = torch.from_numpy(betas).to(self.device)
+
+        alpha_cumprod = (
+            1 - torch.cat([torch.zeros(1).to(betas.device), betas], dim=0)
+        ).cumprod(dim=0)
+        return betas, alpha_cumprod
+
+    def get_alpha(self, alpha_cumprod, t):
+        a = alpha_cumprod.index_select(0, t + 1).view(-1, 1, 1, 1)
+        return a
+
+    def forward(
+        self,
+        y,
+        x_true,
+        physics: deepinv.physics.Physics,
+        seed=None,
+        x_init=None,
+        k_init=None,
+    ):
+        r"""
+        Runs the blind diffusion process to jointly estimate the image and blur kernel.
+
+        :param torch.Tensor y: the measurements.
+        :param torch.Tensor x_true: the ground truth image.
+        :param deepinv.physics.Blur physics: the physics operator.
+        :param int seed: the seed for the random number generator.
+        :param torch.Tensor x_init: the initial guess for the image.
+        :param torch.Tensor k_init: the initial guess for the kernel.
+        """
+
+        if seed:
+            torch.manual_seed(seed)
+
+        # Initialization
+        if x_init is None:
+            x = torch.randn_like(x_true)
+        else:
+            x = x_init
+
+        if k_init is None:
+            k = torch.randn_like(physics.filter)
+        else:
+            k = k_init
+
+        skip = self.num_train_timesteps // self.max_iter
+        batch_size = y.shape[0]
+
+        seq = range(0, self.num_train_timesteps, skip)
+        seq_next = [-1] + list(seq[:-1])
+        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+
+        if self.save_iterates:
+            xs = [x]
+            ks = [k]
+
+        xt = x.to(self.device)
+        kt = k.to(self.device)
+
+        for i, j in tqdm(time_pairs, disable=(not self.verbose)):
+            t = (torch.ones(batch_size) * i).to(self.device)
+            next_t = (torch.ones(batch_size) * j).to(self.device)
+
+            at = self.get_alpha(self.alpha_cumprod, t.long())
+            at_next = self.get_alpha(self.alpha_cumprod, next_t.long())
+
+            with torch.enable_grad():
+                xt.requires_grad_(True)
+                kt.requires_grad_(True)
+
+                # 1. Denoising step
+                aux_x = xt / 2 + 0.5
+                x0_t = 2 * self.model_x(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+                x0_t = torch.clip(x0_t, -1.0, 1.0)
+
+                aux_k = kt / 2 + 0.5
+                k0_t = 2 * self.model_k(aux_k, (1 - at).sqrt() / at.sqrt() / 2) - 1
+                k0_t = (k0_t + 1.0) / 2.0  # DDPM step uses mean kernel estimate
+                k0_t_norm = k0_t / k0_t.sum()  # Normalized for likelihood computation
+
+                # Here the update_param in the Blur operator is breaking the compute graph
+                physics_cur = deepinv.physics.Blur(
+                    filter=k0_t_norm,
+                    padding="circular",
+                    noise_model=deepinv.physics.GaussianNoise(sigma=0.0),
+                    device=self.device,
+                )
+
+                y0_t = physics_cur.A(x0_t)
+
+                # 2. Likelihood gradient approximation
+                ll_x = torch.linalg.norm(y0_t - y)
+                ll_k = torch.linalg.norm(
+                    y0_t - y
+                ) + self.reg_factor * torch.linalg.vector_norm(
+                    k0_t_norm.flatten(), ord=0
+                )
+
+            norm_grad_x = torch.autograd.grad(
+                outputs=ll_x, inputs=xt, retain_graph=True
+            )[0].detach()
+            norm_grad_k = torch.autograd.grad(outputs=ll_k, inputs=kt)[0].detach()
+
+            sigma_tilde = (
+                (1 - at / at_next) * (1 - at_next) / (1 - at)
+            ).sqrt() * self.eta
+            c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
+
+            # 3. Noise step
+            epsilon_x = torch.randn_like(xt)
+            epsilon_k = torch.randn_like(kt)
+
+            # 4. DDPM(IM) step
+            xt_next = (
+                (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
+                + sigma_tilde * epsilon_x
+                + c2 * xt / (1 - at).sqrt()
+                - self.grad_factor * norm_grad_x
+            )
+
+            kt_next = (
+                (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * (2 * k0_t - 1)
+                + sigma_tilde * epsilon_k
+                + c2 * kt / (1 - at).sqrt()
+                - self.grad_factor * norm_grad_k
+            )
+
+            if self.save_iterates:
+                xs.append(xt_next.to("cpu"))
+                ks.append(kt_next.to("cpu"))
+            xt = xt_next.clone()
+            kt = kt_next.clone()
+
+        if self.save_iterates:
+            return xs, ks
+        else:
+            return xt, kt
+
+
 # if __name__ == "__main__":
 #     import deepinv as dinv
 #     from deepinv.models.denoiser import Denoiser
