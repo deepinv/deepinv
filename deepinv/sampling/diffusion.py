@@ -755,7 +755,6 @@ class BlindDPS(nn.Module):
     def forward(
         self,
         y,
-        x_true,
         physics: deepinv.physics.Physics,
         seed=None,
         x_init=None,
@@ -765,7 +764,6 @@ class BlindDPS(nn.Module):
         Runs the blind diffusion process to jointly estimate the image and blur kernel.
 
         :param torch.Tensor y: the measurements.
-        :param torch.Tensor x_true: the ground truth image.
         :param deepinv.physics.Blur physics: the physics operator.
         :param int seed: the seed for the random number generator.
         :param torch.Tensor x_init: the initial guess for the image.
@@ -777,7 +775,7 @@ class BlindDPS(nn.Module):
 
         # Initialization
         if x_init is None:
-            x = torch.randn_like(x_true)
+            x = torch.randn_like(y)
         else:
             x = x_init
 
