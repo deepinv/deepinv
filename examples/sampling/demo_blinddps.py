@@ -127,9 +127,8 @@ betas = get_betas()
 # The key difference is that the denoised kernel produced by the diffusion model is normalized to have unit norm.
 # The authors also add a regularization term to the likelihood gradient step of the kernel to promote sparsity.
 # The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
-
-#     .. math::
-
+#
+# .. math::
 #             \begin{equation*}
 #             \begin{aligned}
 #             \widehat{\mathbf{x}}_{t} &= D_{\theta_x}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
@@ -144,12 +143,12 @@ betas = get_betas()
 #             \mathbf{k}_{t-1} &= a_t \,\, \mathbf{k}_t + b_t \, \, \widehat{\mathbf{k}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^k + \, \mathbf{g}_t^k,
 #             \end{aligned}
 #             \end{equation*}
-
+#
 #     where :math:`D_{\theta_x}(\cdot)` is an image denoising network for noise level :math:`\sigma`,
 #     :math:`D_{\theta_k}(\cdot)` is a kernel denoising network for noise level :math:`\sigma`
 #     :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
-
-#     .. math::
+#
+# .. math::
 #             \begin{equation*}
 #             \begin{aligned}
 #               \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
@@ -288,13 +287,13 @@ plot(
 # BlindDPS Algorithm
 # --------------
 #
-# As we visited all the key components of DPS, we are now ready to define the algorithm. For every denoising
-# timestep, the algorithm iterates the following
+# Now let's assemble all the components into the final algorithm.
+# For every denoising timestep, the algorithm iterates the following
 #
-# 1. Get :math:`\hat{\mathbf{x}}` using the denoiser network.
-# 2. Compute :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)` through backpropagation.
-# 3. Perform reverse diffusion sampling with DDPM(IM), corresponding to an update with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)`.
-# 4. Take a gradient step with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)`.
+# 1. Get :math:`\hat{\mathbf{x}}` and :math:`\hat{\mathbf{k}}` using each of the denoiser networks.
+# 2. Compute :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)` and :math:`\nabla_{\mathbf{k}_t} \log p(\mathbf{y}|\hat{\mathbf{k}}_t)` through backpropagation.
+# 3. Perform reverse diffusion sampling with DDPM(IM), corresponding to an update with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)` and :math:`\nabla_{\mathbf{k}_t} \log p(\mathbf{k}_t)`.
+# 4. Take a gradient step with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)` and :math:`\nabla_{\mathbf{k}_t} \log p(\mathbf{y}|\hat{\mathbf{k}}_t)`.
 #
 # There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. As the `DDIM sampler
 # <https://arxiv.org/abs/2010.02502)>`_ is a generalization of DDPM in a sense that it retrieves DDPM when
@@ -308,19 +307,12 @@ plot(
 # .. math::
 #
 #           \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_{t}(\mathbf{x}_t)) \simeq
-#           \rho \nabla_{\mathbf{x}_t} \|\mathbf{y} - \mathbf{A}\hat{\mathbf{x}}_{t}\|_2
+#           \rho \nabla_{\mathbf{x}_t} \|\mathbf{y} - \mathbf{A}\hat{\mathbf{x}}_{t}\|^2_2
 #
 # With these in mind, let us solve the inverse problem with DPS!
 
 
-# %%
-# .. note::
-#
-#   We only use 200 steps to reduce the computational time of this example. As suggested by the authors of DPS, the
-#   algorithm works best with ``num_steps = 1000``.
-#
-
-num_steps = 200
+num_steps = 1000
 
 skip = num_train_timesteps // num_steps
 
