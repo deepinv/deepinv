@@ -327,6 +327,18 @@ time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 x0 = x_true * 2.0 - 1.0
 y = physics(x0.to(device))
 
+# estimated physics model containing the blur kernel to be estimated
+physics_est = dinv.physics.BlurFFT(
+    filter=torch.randn_like(k_true),
+    img_size=x0.shape[1:],
+    padding="circular",
+    noise_model=dinv.physics.GaussianNoise(sigma=0.0),
+    device=device,
+)
+
+# as we need to backprop through the blur kernel, we need to set the ``requires_grad`` flag to True
+physics_est.filter = torch.nn.Parameter(torch.randn_like(k_true), requires_grad=True)
+
 # initial sample from x_T and k_T
 x = torch.randn_like(x0)
 k = torch.randn_like(k_true)
@@ -372,15 +384,8 @@ for i, j in tqdm(time_pairs):
         # This one is for the gradient step
         k0_t_norm = k0_t / k0_t.sum()
 
-        # Here need to redefine the physics model otherwise the compute graph is broken
-        physics_cur = Blur(
-            filter=torch.ones_like(k0_t_norm),
-            padding="circular",
-            noise_model=dinv.physics.GaussianNoise(sigma=0.0),
-            device=device,
-        )
-
-        y0_t = physics_cur.A(x0_t, filter=k0_t_norm)
+        # Apply the physics containing the estimated kernel
+        y0_t = physics_est.A(x0_t)
 
         # 2. likelihood gradient approximation
         ll_x = torch.linalg.norm(y0_t - y)
@@ -415,6 +420,9 @@ for i, j in tqdm(time_pairs):
         + c2 * kt / (1 - at).sqrt()
         - grad_factor * norm_grad_k
     )
+
+    # update the blur kernel of the estimated physics
+    physics_est.filter.data = kt_next
 
     x0_preds.append(x0_t.detach().to("cpu"))
     k0_preds.append(k0_t.detach().to("cpu"))
