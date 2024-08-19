@@ -433,7 +433,7 @@ class SCUNet(nn.Module):
                 )
             else:
                 ckpt = torch.load(
-                    pretrained, weights_only=True, map_location=lambda storage, loc: storage
+                    pretrained, map_location=lambda storage, loc: storage
                 )
 
             self.load_state_dict(ckpt, strict=True)
