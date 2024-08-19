@@ -668,15 +668,30 @@ class BlindDPS(nn.Module):
             \\
             \widehat{\mathbf{k}}_{t} &= D_{\theta_k}(\mathbf{k}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
             \\
-            \mathbf{g}_t^x &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t, \mathbf{k}_t) | \mathbf{y} ) \\
-            \mathbf{g}_t^k &= \nabla_{\mathbf{k}_t} \log p( \widehat{\mathbf{k}}_{t}(\mathbf{x}_t, \mathbf{k}_t) | \mathbf{y} ) \\
+            \mathbf{g}_t^x &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
+            \mathbf{g}_t^k &= \nabla_{\mathbf{k}_t} \log p( \widehat{\mathbf{k}}_{t}(\mathbf{k}_t) | \mathbf{y} ) \\
             \mathbf{\varepsilon}_t^x &= \mathcal{N}(0, \mathbf{I}) \\
             \mathbf{\varepsilon}_t^k &= \mathcal{N}(0, \mathbf{I}) \\
-            \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t + b_t \, \, \widehat{\mathbf{x}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^x - \eta \, \mathbf{g}_t^x, \\
-            \mathbf{k}_{t-1} &= a_t \,\, \mathbf{k}_t + b_t \, \, \widehat{\mathbf{k}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^k - \eta \, \mathbf{g}_t^k,
+            \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t + b_t \, \, \widehat{\mathbf{x}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^x + \, \mathbf{g}_t^x, \\
+            \mathbf{k}_{t-1} &= a_t \,\, \mathbf{k}_t + b_t \, \, \widehat{\mathbf{k}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^k + \, \mathbf{g}_t^k,
             \end{aligned}
             \end{equation*}
+    
+    where :math:`D_{\theta_x}(\cdot)` is an image denoising network for noise level :math:`\sigma`,
+    :math:`D_{\theta_k}(\cdot)` is a kernel denoising network for noise level :math:`\sigma`
+    :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
 
+    .. math::
+            \begin{equation*}
+            \begin{aligned}
+              \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
+              \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
+              a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
+              b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
+              \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.
+            \end{aligned}
+            \end{equation*}
+            
     :param torch.nn.Module model_x: the denoiser network for the image
     :param torch.nn.Module model_k: the denoiser network for the blur kernel
     :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator

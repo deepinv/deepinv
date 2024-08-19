@@ -61,6 +61,7 @@ where ``model`` is the diffusion algorithm and ``physics`` is the forward operat
     deepinv.sampling.DDRM
     deepinv.sampling.DiffPIR
     deepinv.sampling.DPS
+    deepinv.sampling.BlindDPS
 
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
