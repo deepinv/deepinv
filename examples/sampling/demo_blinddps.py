@@ -238,6 +238,21 @@ plot(
 #           usually output images in the range [0, 1]. This is why we rescale the images before applying the steps.
 from deepinv.physics.functional.convolution import conv2d
 
+blur_std = 3.0
+sigma = 5.1 / 255.0
+
+k_true = dinv.physics.blur.gaussian_blur(sigma=blur_std, angle=0.0).to(device)
+k_true = torch.nn.functional.pad(k_true, (21, 20, 21, 20))
+
+physics = dinv.physics.Blur(
+    filter=k_true,
+    padding="reflect",
+    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    device=device,
+)
+
+y = physics(2 * x_true - 1)
+
 k0 = k_true / (k_true.max() - k_true.min())  # sum = 1 -> [0, 1]
 k0 = k0 * 2.0 - 1.0  # [0, 1] -> [-1, 1]
 x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
@@ -313,7 +328,7 @@ plot(
 # With these in mind, let us solve the inverse problem with DPS!
 
 
-num_steps = 100
+num_steps = 1000
 
 skip = num_train_timesteps // num_steps
 
@@ -324,7 +339,19 @@ seq = range(0, num_train_timesteps, skip)
 seq_next = [-1] + list(seq[:-1])
 time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 
-# measurement
+blur_std = 3.0
+sigma = 5.1 / 255.0
+
+k_true = dinv.physics.blur.gaussian_blur(sigma=blur_std, angle=0.0).to(device)
+k_true = torch.nn.functional.pad(k_true, (21, 20, 21, 20))
+
+physics = dinv.physics.Blur(
+    filter=k_true,
+    padding="reflect",
+    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    device=device,
+)
+
 x0 = x_true * 2.0 - 1.0
 y = physics(x0.to(device))
 
@@ -333,6 +360,7 @@ class PhysicsEst(dinv.physics.Blur):
     r"""
     Estimated physics model containing the blur kernel to be estimated
     """
+
     def __init__(self, filter, img_size, padding, noise_model, device):
         super().__init__(
             filter=filter,
