@@ -20,6 +20,7 @@ import numpy as np
 import torch
 
 import deepinv as dinv
+import deepinv.physics.functional
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image, get_image_url
@@ -312,7 +313,7 @@ plot(
 # With these in mind, let us solve the inverse problem with DPS!
 
 
-num_steps = 1000
+num_steps = 10
 
 skip = num_train_timesteps // num_steps
 
@@ -327,17 +328,49 @@ time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 x0 = x_true * 2.0 - 1.0
 y = physics(x0.to(device))
 
-# estimated physics model containing the blur kernel to be estimated
-physics_est = dinv.physics.BlurFFT(
+
+class PhysicsEst(dinv.physics.Blur):
+    r"""
+    Estimated physics model containing the blur kernel to be estimated
+    """
+    def __init__(self, filter, img_size, padding, noise_model, device):
+        super().__init__(
+            filter=filter,
+            img_size=img_size,
+            padding=padding,
+            noise_model=noise_model,
+            device=device,
+        )
+
+        self.unnormalized_filter = torch.nn.Parameter(filter, requires_grad=True)
+
+    def normalize_filter(self, filter):
+        return filter / filter.sum()
+
+    def A(self, x, **kwargs):
+        r"""
+        Applies the filter to the input image.
+
+        :param torch.Tensor x: input image.
+        :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
+            If not ``None``, it uses this filter instead of the one defined in the class, and
+            the provided filter is stored as the current filter.
+        """
+        # self.normalized_filter = self.unnormalized_filter / self.unnormalized_filter.sum()
+        return deepinv.physics.functional.conv2d(x, filter=self.normalize_filter(self.unnormalized_filter),
+                                                 padding=self.padding)
+
+
+physics_est = PhysicsEst(
     filter=torch.randn_like(k_true),
     img_size=x0.shape[1:],
-    padding="circular",
+    padding="reflect",
     noise_model=dinv.physics.GaussianNoise(sigma=0.0),
     device=device,
 )
 
 # as we need to backprop through the blur kernel, we need to set the ``requires_grad`` flag to True
-physics_est.filter = torch.nn.Parameter(torch.randn_like(k_true), requires_grad=True)
+# physics_est.filter = torch.nn.Parameter(torch.randn_like(k_true), requires_grad=True)
 
 # initial sample from x_T and k_T
 x = torch.randn_like(x0)
@@ -360,11 +393,11 @@ for i, j in tqdm(time_pairs):
     at_next = compute_alpha(betas, next_t.long())
 
     xt = xs[-1].to(device)
-    kt = ks[-1].to(device)
+    kt = physics_est.unnormalized_filter.to(device)
 
     with torch.enable_grad():
         xt.requires_grad_()
-        kt.requires_grad_()
+        # kt.requires_grad_()
 
         # 1. denoising step
         # we call the denoiser using standard deviation instead of the time step.
@@ -381,8 +414,11 @@ for i, j in tqdm(time_pairs):
 
         # This mean kernel estimate is for the DDPM step
         k0_t = (k0_t + 1.0) / 2.0
-        # This one is for the gradient step
+        # This one is for the regularization
         k0_t_norm = k0_t / k0_t.sum()
+
+        # update the blur kernel of the estimated physics
+        physics_est.unnormalized_filter.data = k0_t
 
         # Apply the physics containing the estimated kernel
         y0_t = physics_est.A(x0_t)
@@ -421,8 +457,7 @@ for i, j in tqdm(time_pairs):
         - grad_factor * norm_grad_k
     )
 
-    # update the blur kernel of the estimated physics
-    physics_est.filter.data = kt_next
+    physics_est.unnormalized_filter.data = kt_next
 
     x0_preds.append(x0_t.detach().to("cpu"))
     k0_preds.append(k0_t.detach().to("cpu"))
