@@ -37,7 +37,7 @@ class PhysicsGenerator(nn.Module):
                   [0.0000, 0.8994, 0.0000],
                   [0.0000, 0.0000, 0.0000]]]])
         >>> print(params_dict['sigma'])
-        tensor([0.1577])
+        tensor([0.2532])
     """
 
     def __init__(
@@ -80,7 +80,7 @@ class PhysicsGenerator(nn.Module):
         if kwargs is not None:
             self.kwargs = kwargs
 
-        return self.step_func(batch_size, self.rng, seed, **kwargs)
+        return self.step_func(batch_size, seed, **kwargs)
 
     def rng_manual_seed(self, seed: int = None):
         r"""
@@ -107,9 +107,11 @@ class PhysicsGenerator(nn.Module):
         :returns: A new generator that generates a larger dictionary with parameters of the two generators.
         """
 
-        def step(**kwargs):
-            x = self.step(**kwargs)
-            y = other.step(**kwargs)
+        def step(batch_size: int = 1, seed: int = None, **kwargs):
+            self.rng_manual_seed(seed)
+            other.rng_manual_seed(seed)
+            x = self.step(batch_size, seed=seed, **kwargs)
+            y = other.step(batch_size, seed=seed, **kwargs)
             d = {k: x.get(k, 0) + y.get(k, 0) for k in set(x) | set(y)}
             return d
 

@@ -573,7 +573,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator
         (e.g. ``generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)``)
-    :param tuple image_size: image size ``H x W``.
+    :param tuple img_size: image size ``H x W``.
     :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psf_grid.
         Defaults to 10.
     :param tuple spacing: steps between the psf_grid used for interpolation (defaults ``(H//8, W//8)``).
@@ -588,7 +588,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     >>> from deepinv.physics.generator import ProductConvolutionBlurGenerator
     >>> psf_size = 7
     >>> psf_generator = DiffractionBlurGenerator((psf_size, psf_size), fc=0.25)
-    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, image_size=(64, 64), n_eigen_psf=8)
+    >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, img_size=(64, 64), n_eigen_psf=8)
     >>> params = pc_generator.step(0)
     >>> print(params.keys())
     dict_keys(['filters', 'multipliers', 'padding'])
@@ -598,44 +598,44 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     def __init__(
         self,
         psf_generator: PSFGenerator,
-        image_size: Tuple[int],
+        img_size: Tuple[int],
         n_eigen_psf: int = 10,
         spacing: Tuple[int] = None,
         padding: str = "valid",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        if isinstance(image_size, int):
-            image_size = (image_size, image_size)
+        if isinstance(img_size, int):
+            img_size = (img_size, img_size)
         if isinstance(spacing, int):
             spacing = (spacing, spacing)
 
         self.psf_generator = psf_generator
-        self.image_size = image_size
+        self.img_size = img_size
         self.n_eigen_psf = n_eigen_psf
         self.spacing = (
             spacing
             if spacing is not None
-            else (self.image_size[0] // 8, self.image_size[1] // 8)
+            else (self.img_size[0] // 8, self.img_size[1] // 8)
         )
         self.padding = padding
 
-        self.n_psf_prid = (self.image_size[0] // self.spacing[0]) * (
-            self.image_size[1] // self.spacing[1]
+        self.n_psf_prid = (self.img_size[0] // self.spacing[0]) * (
+            self.img_size[1] // self.spacing[1]
         )
 
         # Interpolating the psf_grid coefficients with Thinplate splines
         T0 = torch.linspace(
-            0, 1, self.image_size[0] // self.spacing[0], **self.factory_kwargs
+            0, 1, self.img_size[0] // self.spacing[0], **self.factory_kwargs
         )
         T1 = torch.linspace(
-            0, 1, self.image_size[1] // self.spacing[1], **self.factory_kwargs
+            0, 1, self.img_size[1] // self.spacing[1], **self.factory_kwargs
         )
         yy, xx = torch.meshgrid(T0, T1, indexing="ij")
         self.X = torch.stack((yy.flatten(), xx.flatten()), dim=1)
 
-        T0 = torch.linspace(0, 1, self.image_size[0], **self.factory_kwargs)
-        T1 = torch.linspace(0, 1, self.image_size[1], **self.factory_kwargs)
+        T0 = torch.linspace(0, 1, self.img_size[0], **self.factory_kwargs)
+        T1 = torch.linspace(0, 1, self.img_size[1], **self.factory_kwargs)
         yy, xx = torch.meshgrid(T0, T1, indexing="ij")
         self.XX = torch.stack((yy.flatten(), xx.flatten()), dim=1)
 
@@ -670,7 +670,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
         self.tps.fit(self.X, coeffs)
         w = self.tps.transform(self.XX).transpose(-1, -2)
-        w = w.reshape(w.size(0), w.size(1), self.n_eigen_psf, *self.image_size)
+        w = w.reshape(w.size(0), w.size(1), self.n_eigen_psf, *self.img_size)
 
         # Ending
         params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
@@ -903,12 +903,14 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         self.fc_ill = (
             NA / lambda_ill
         ) * pixelsize_XY  # cutoff frequency for illumination
-        self.kb_ill = (NI / lambda_ill) * pixelsize_XY  # wavenumber for illumination
+        # wavenumber for illumination
+        self.kb_ill = (NI / lambda_ill) * pixelsize_XY
 
         self.fc_coll = (
             NA / lambda_coll
         ) * pixelsize_XY  # cutoff freauency for collection
-        self.kb_coll = (NI / lambda_coll) * pixelsize_XY  # wavenumber for collection
+        # wavenumber for collection
+        self.kb_coll = (NI / lambda_coll) * pixelsize_XY
 
         self.pinhole_radius = pinhole_radius
         self.pixelsize_XY = pixelsize_XY
@@ -981,9 +983,9 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         psf_coll = dict_coll["filter"]
         coeff_coll = dict_coll["coeff"]
 
-        ## convolution of by the collection PSF by pinhole
+        # convolution of by the collection PSF by pinhole
         # 1. Define the pinhole D
-        airy_unit = 0.61 * self.lambda_coll / self.NA  ## 1 Airy Unit
+        airy_unit = 0.61 * self.lambda_coll / self.NA  # 1 Airy Unit
         PH_radius = self.pinhole_radius * airy_unit
         lin_x = torch.linspace(
             -1.5 * PH_radius,
