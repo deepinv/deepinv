@@ -589,7 +589,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     >>> psf_size = 7
     >>> psf_generator = DiffractionBlurGenerator((psf_size, psf_size), fc=0.25)
     >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator, img_size=(64, 64), n_eigen_psf=8)
-    >>> params = pc_generator.step(0)
+    >>> params = pc_generator.step(1)
     >>> print(params.keys())
     dict_keys(['filters', 'multipliers', 'padding'])
 
