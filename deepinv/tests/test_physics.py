@@ -150,15 +150,16 @@ def find_operator(name, device):
         img_size = (3, 20, 13)
         h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
         h /= torch.sum(h)
-        h = torch.cat([h, h], dim=0)
+        h = torch.cat([h, h], dim=2)
         p = dinv.physics.SpaceVaryingBlur(
             filters=h,
             multipliers=torch.ones(
                 (
-                    2,
                     1,
+                    img_size[0],
+                    2,
                 )
-                + img_size,
+                + img_size[-2:],
                 device=device,
             )
             * 0.5,
@@ -403,7 +404,8 @@ def test_MRI(mri_img_size, device, rng):
 
     for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
         B, C, T, H, W = mri_img_size
-
+        if rng.device != device:
+            rng = torch.Generator(device=device)
         x, y = (
             torch.rand(mri_img_size, generator=rng, device=device) + 1,
             torch.rand(mri_img_size, generator=rng, device=device) + 1,
@@ -422,8 +424,10 @@ def test_MRI(mri_img_size, device, rng):
             )
 
             mask, mask2 = (
-                torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:]),
-                torch.zeros(_mask_size, device=device) + torch.eye(*_mask_size[-2:]),
+                torch.ones(_mask_size, device=device)
+                - torch.eye(*_mask_size[-2:], device=device),
+                torch.zeros(_mask_size, device=device)
+                + torch.eye(*_mask_size[-2:], device=device),
             )
 
             # Empty mask
@@ -503,7 +507,10 @@ def test_phase_retrieval_Avjp(device):
         m=10, img_shape=(1, 3, 3), device=device
     )
     loss = L2()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+    def func(x):
+        return loss(x, torch.ones_like(physics(x)), physics)[0]
+
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -521,7 +528,10 @@ def test_linear_physics_Avjp(device):
     x = torch.randn((1, 1, 3, 3), dtype=torch.float, device=device, requires_grad=True)
     physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
     loss = L2()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+    def func(x):
+        return loss(x, torch.ones_like(physics(x)), physics)[0]
+
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -580,13 +590,14 @@ def test_noise(device, noise_type):
     r"""
     Tests noise models.
     """
-    physics = dinv.physics.DecomposablePhysics()
+    physics = dinv.physics.DecomposablePhysics(device=device)
     physics.noise_model = choose_noise(noise_type)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
     y1 = physics(
         x
-    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+        # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    )
     assert y1.shape == x.shape
 
 
@@ -606,7 +617,8 @@ def test_noise_domain(device):
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
-    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+        # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    )
     assert y1.shape == x.shape
 
     assert y1[0, 0, 0, 0] == 0
