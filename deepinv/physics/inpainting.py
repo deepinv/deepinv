@@ -58,8 +58,8 @@ class Inpainting(DecomposablePhysics):
         >>> physics = Inpainting(mask=0.7, tensor_size=x.shape[1:])
         >>> physics(x)
         tensor([[[[ 1.5410, -0.0000, -2.1788],
-                  [ 0.5684, -1.0845, -1.3986],
-                  [ 0.4033,  0.0000, -0.7193]]]])
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.0000]]]])
 
         Generate random masks on-the-fly using mask generators:
 
@@ -68,7 +68,7 @@ class Inpainting(DecomposablePhysics):
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = Inpainting(tensor_size=x.shape[1:])
         >>> gen = BernoulliSplittingMaskGenerator(x.shape[1:], split_ratio=0.7)
-        >>> params = gen.step(batch_size=1) # Generate random mask
+        >>> params = gen.step(batch_size=1, seed = 0) # Generate random mask
         >>> physics(x, **params) # Set mask on-the-fly
         tensor([[[[-0.4033, -0.0000,  0.1820],
                   [-0.8567,  1.1006, -1.0712],

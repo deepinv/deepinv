@@ -649,6 +649,8 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         :param int seed: the seed for the random number generator.
 
         :returns: a dictionary containing filters, multipliers and paddings.
+            filters: a tensor of shape (B, C, n_eigen_psf, psf_size, psf_size).
+            multipliers: a tensor of shape (B, C, n_eigen_psf, H, W).
         """
         self.rng_manual_seed(seed)
         self.psf_generator.rng_manual_seed(seed)
