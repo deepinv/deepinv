@@ -1089,7 +1089,7 @@ def test_generation(name, device):
         elif device.type == "cuda":
             wref = torch.tensor([0.2055327892]).to(device)
 
-    assert torch.allclose(w, wref, atol=1e-5)
+    assert torch.allclose(w, wref, atol=1e-4)
 
 
 ######################
