@@ -140,6 +140,7 @@ def test_generation(name, device):
     params = generator.step(batch_size=batch_size, seed=0)
 
     if name == "MotionBlurGenerator":
+        atol = 1e-6
         w = params["filter"]
         if device.type == "cpu":
             wref = torch.tensor(
@@ -231,6 +232,7 @@ def test_generation(name, device):
             ).to(device)
 
     elif name == "DiffractionBlurGenerator":
+        atol = 1e-6
         w = params["filter"]
         if device.type == "cpu":
             wref = torch.tensor(
@@ -323,6 +325,7 @@ def test_generation(name, device):
 
     elif name == "ProductConvolutionBlurGenerator":
         w = params["filters"]
+        atol = 1e-3
         if device.type == "cpu":
             wref = torch.tensor(
                 [
@@ -1084,12 +1087,13 @@ def test_generation(name, device):
 
     elif name == "SigmaGenerator":
         w = params["sigma"]
+        atol = 1e-6
         if device.type == "cpu":
             wref = torch.tensor([0.2531657219])
         elif device.type == "cuda":
             wref = torch.tensor([0.2055327892]).to(device)
 
-    assert torch.allclose(w, wref, atol=1e-4)
+    assert torch.allclose(w, wref, atol=atol)
 
 
 ######################
