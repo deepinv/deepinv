@@ -1,14 +1,19 @@
+from deepinv.physics.generator import (
+    GaussianMaskGenerator,
+    EquispacedMaskGenerator,
+    RandomMaskGenerator,
+)
 import pytest
 import numpy as np
 import torch
 import deepinv as dinv
 import itertools
 
-from deepinv.physics.generator import (
-    GaussianMaskGenerator,
-    EquispacedMaskGenerator,
-    RandomMaskGenerator,
-)
+# Avoiding nondeterministic algorithms
+import os
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+torch.use_deterministic_algorithms(True)
+torch.backends.cudnn.deterministic = True
 
 # Generators to test (make sure they appear in find_generator as well)
 GENERATORS = [
@@ -95,7 +100,8 @@ def test_shape(name, size, num_channels, device):
     assert list(params.keys()) == keys
 
     if "filter" in params.keys():
-        assert params["filter"].shape == (batch_size, num_channels, size[0], size[1])
+        assert params["filter"].shape == (
+            batch_size, num_channels, size[0], size[1])
 
 
 @pytest.mark.parametrize("name", GENERATORS)
@@ -1117,7 +1123,8 @@ def choose_mri_generator(generator_name, img_size, acc, center_fraction):
 @pytest.mark.parametrize("acc", MRI_ACCELERATIONS)
 @pytest.mark.parametrize("center_fraction", MRI_CENTER_FRACTIONS)
 def test_mri_generator(generator_name, img_size, batch_size, acc, center_fraction):
-    generator = choose_mri_generator(generator_name, img_size, acc, center_fraction)
+    generator = choose_mri_generator(
+        generator_name, img_size, acc, center_fraction)
     # test across different accs and centre fracations
     H, W = img_size[-2:]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
@@ -1222,7 +1229,8 @@ def test_inpainting_generators(
     # Standard mask but by passing flat input_mask of ones
     input_mask = torch.ones(batch_size, *img_size)
     # should ignore batch_size
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
+    mask2 = gen.step(batch_size=batch_size,
+                     input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask2.sum() / input_mask.sum())
     correct_pixelwise(mask2)
 
@@ -1235,12 +1243,14 @@ def test_inpainting_generators(
 
     # As above but with img_size missing channel dimension (bad practice)
     input_mask = torch.ones(*img_size[1:], device=device)
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
+    mask2 = gen.step(batch_size=batch_size,
+                     input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # Generate splitting mask from already subsampled mask
     input_mask = torch.zeros(batch_size, *img_size, device=device)
     input_mask[..., 10:20] = 1
-    mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
+    mask3 = gen.step(batch_size=batch_size,
+                     input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask3.sum() / input_mask.sum())
     correct_pixelwise(mask3)
