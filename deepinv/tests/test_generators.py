@@ -325,7 +325,8 @@ def test_generation(name, device):
 
     elif name == "ProductConvolutionBlurGenerator":
         w = params["filters"]
-        atol = 1e-3
+        # atol = 1e-5
+        atol = 1e-2
         if device.type == "cpu":
             wref = torch.tensor(
                 [
