@@ -81,8 +81,7 @@ def find_operator(name, device):
 
     if name == "CS":
         m = 30
-        p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device)
+        p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
@@ -94,8 +93,7 @@ def find_operator(name, device):
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(
-            tensor_size=img_size, mask=0.5, device=device)
+        p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
@@ -120,8 +118,7 @@ def find_operator(name, device):
         norm = 0.4
     elif name == "aliased_pansharpen":
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(
-            img_size=img_size, device=device, filter=None)
+        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter=None)
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
@@ -138,8 +135,7 @@ def find_operator(name, device):
     elif name.startswith("deblur"):
         img_size = (3, 17, 19)
         p = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(
-                sigma=(0.25, 0.1), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.25, 0.1), angle=45.0),
             padding=padding,
             device=device,
         )
@@ -225,8 +221,7 @@ def find_operator(name, device):
         y = torch.linspace(-1, 1, img_size[-2])
         x = torch.linspace(-1, 1, img_size[-1])
         grid_y, grid_x = torch.meshgrid(y, x)
-        uv = torch.stack((grid_y, grid_x), dim=-1) * \
-            torch.pi  # normalize [-pi, pi]
+        uv = torch.stack((grid_y, grid_x), dim=-1) * torch.pi  # normalize [-pi, pi]
 
         # Reshape to [nb_points x 2]
         uv = uv.view(-1, 2)
@@ -507,8 +502,7 @@ def test_phase_retrieval_Avjp(device):
     """
     # essential to enable autograd
     torch.set_grad_enabled(True)
-    x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat,
-                    device=device, requires_grad=True)
+    x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
     physics = dinv.physics.RandomPhaseRetrieval(
         m=10, img_shape=(1, 3, 3), device=device
     )
@@ -531,10 +525,8 @@ def test_linear_physics_Avjp(device):
     """
     # essential to enable autograd
     torch.set_grad_enabled(True)
-    x = torch.randn((1, 1, 3, 3), dtype=torch.float,
-                    device=device, requires_grad=True)
-    physics = dinv.physics.CompressedSensing(
-        m=10, img_shape=(1, 3, 3), device=device)
+    x = torch.randn((1, 1, 3, 3), dtype=torch.float, device=device, requires_grad=True)
+    physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
     loss = L2()
 
     def func(x):
@@ -621,8 +613,7 @@ def test_noise_domain(device):
     mask[1, 1, 1] = 0
     mask[2, 2, 2] = 0
 
-    physics = dinv.physics.Inpainting(
-        tensor_size=x.shape, mask=mask, device=device)
+    physics = dinv.physics.Inpainting(tensor_size=x.shape, mask=mask, device=device)
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
