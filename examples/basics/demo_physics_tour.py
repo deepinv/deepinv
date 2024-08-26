@@ -183,7 +183,7 @@ plot(
 # The class :class:`deepinv.physics.Decolorize` is associated with a simple
 # color-to-gray operator.
 
-physics = dinv.physics.Decolorize()
+physics = dinv.physics.Decolorize(device=device)
 
 y = physics(x)
 

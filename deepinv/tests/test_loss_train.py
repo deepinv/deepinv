@@ -9,8 +9,6 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.training import train
-from deepinv.training import test as feature_test
 
 
 def test_generate_dataset(tmp_path, imsize, device):
@@ -142,7 +140,7 @@ def test_optim_algo(name_algo, imsize, device):
     losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
     optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
 
-    trained_unfolded_model = train(
+    trainer = dinv.Trainer(
         model=model_unfolded,
         train_dataloader=train_dataloader,
         eval_dataloader=test_dataloader,
@@ -153,19 +151,10 @@ def test_optim_algo(name_algo, imsize, device):
         device=device,
         save_path=str(CKPT_DIR),
         verbose=True,
-        wandb_vis=False,
         online_measurements=True,
     )
-
-    results = feature_test(
-        model=trained_unfolded_model,
-        test_dataloader=test_dataloader,
-        physics=physics,
-        device=device,
-        plot_images=False,
-        verbose=True,
-        wandb_vis=False,
-    )
+    trainer.train()
+    trainer.test(test_dataloader)
 
 
 def test_epll_parameter_estimation(imsize, dummy_dataset, device):

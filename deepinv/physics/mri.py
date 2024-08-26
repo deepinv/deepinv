@@ -253,6 +253,18 @@ class DynamicMRI(MRI):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
+    def to_static_mri(self, mask: Optional[torch.Tensor] = None) -> MRI:
+        """Convert dynamic MRI to static MRI by removing time dimension.
+
+        :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.
+        :return MRI: static MRI physics
+        """
+        return MRI(
+            mask=self.mask.sum(2) if mask is None else mask,
+            img_size=self.img_size,
+            device=self.device,
+        )
+
 
 #
 # reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
