@@ -23,7 +23,7 @@ import deepinv as dinv
 import deepinv.physics.functional
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_url_image, get_image_url, load_image
 from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -328,7 +328,7 @@ plot(
 # With these in mind, let us solve the inverse problem with DPS!
 
 
-num_steps = 1000
+num_steps = 20
 
 skip = num_train_timesteps // num_steps
 
