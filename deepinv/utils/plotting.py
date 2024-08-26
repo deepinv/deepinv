@@ -141,7 +141,7 @@ def numpy2uint(img):
     return np.uint8((img * 255.0).round())
 
 
-def rescale_img(img, rescale_mode="min_max"):
+def rescale_img(im, rescale_mode="min_max"):
     r"""
     Rescale an image tensor.
 
@@ -149,6 +149,7 @@ def rescale_img(img, rescale_mode="min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
+    img = im.clone()
     if rescale_mode == "min_max":
         shape = img.shape
         img = img.reshape(shape[0], -1)
@@ -241,9 +242,11 @@ def plot(
         titles = [titles]
 
     imgs = []
-    for im in img_list:
+    for img in img_list:
         col_imgs = []
-        im = preprocess_img(im, rescale_mode=rescale_mode)
+        print('Hey before : ', img.max())
+        im = preprocess_img(img, rescale_mode=rescale_mode)
+        print('Hey here ', im.max())
         for i in range(min(im.shape[0], max_imgs)):
             col_imgs.append(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
