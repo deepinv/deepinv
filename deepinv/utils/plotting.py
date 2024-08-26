@@ -242,11 +242,9 @@ def plot(
         titles = [titles]
 
     imgs = []
-    for img in img_list:
+    for im in img_list:
         col_imgs = []
-        print('Hey before : ', img.max())
-        im = preprocess_img(img, rescale_mode=rescale_mode)
-        print('Hey here ', im.max())
+        im = preprocess_img(im, rescale_mode=rescale_mode)
         for i in range(min(im.shape[0], max_imgs)):
             col_imgs.append(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
