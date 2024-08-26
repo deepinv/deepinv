@@ -159,6 +159,8 @@ def plot_error_bars(
     labels,
     xlim=None,
     xticks=None,
+    ylim=None,
+    yticks=None,
     axis=1,
     title:str=None,
     xlabel="Oversampling Ratio",
@@ -173,6 +175,7 @@ def plot_error_bars(
     font="Times New Roman",
     fontsize=14,
     labelsize=16,
+    ticksize=16,
     error_bar='quantile',
     quantiles=[0.10,0.50,0.90],
     error_bar_linestyle='--',
@@ -180,6 +183,7 @@ def plot_error_bars(
     iid_color='blue',
     plot='other',
     legend_loc='upper left',
+    transparent=True,
     show=True,
 ):
 
@@ -261,7 +265,7 @@ def plot_error_bars(
         )
 
         # Plotting
-        ax = sns.lineplot(data=df, x="x", y="mid", marker=marker, label=label, color=color, markersize=markersize, linestyle=linestyle)
+        ax = sns.lineplot(data=df, x="x", y="mid", marker=marker, label=label, color=color, markersize=markersize, linestyle=linestyle, zorder=2)
         if plot != 'time':
             # Adding error bars
             eb = ax.errorbar(
@@ -271,6 +275,7 @@ def plot_error_bars(
                 fmt=marker,
                 capsize=capsize,
                 color=color,
+                zorder=2,
             )
             eb[-1][0].set_linestyle(error_bar_linestyle)
     
@@ -281,11 +286,11 @@ def plot_error_bars(
             (plt.Line2D([], [], linestyle='-', color=iid_color), 'i.i.d. random'),
             #(Patch(visible=False), ''),  # spacer
             (Patch(visible=False), r'$\bf{Algorithm}$'),
-            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'gradient descent, spectral init'),
-            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'spectral methods'),
-            (plt.Line2D([], [], linestyle=':', marker='.',color='black'), 'gradient descent'),
+            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
+            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'SM'),
+            (plt.Line2D([], [], linestyle=':', marker='.',color='black'), 'GD'),
         ]
-        ax.legend(*zip(*legend_contents),loc=legend_loc)
+        legend = ax.legend(*zip(*legend_contents),loc=legend_loc)
     elif plot == 'layer':
         legend_contents = [
             (Patch(visible=False), '$\\bf{Structure}$'),
@@ -295,12 +300,15 @@ def plot_error_bars(
             (plt.Line2D([], [], linestyle='-', color=palette[3]), r'$FDFDFDFD$'),
             #(Patch(visible=False), ''),  # spacer
             (Patch(visible=False), '$\\bf{Algorithm}$'),
-            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'gradient descent, spectral init'),
-            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'spectral methods'),
+            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
+            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'SM'),
         ]
-        ax.legend(*zip(*legend_contents),loc=legend_loc)
+        legend = ax.legend(*zip(*legend_contents),loc=legend_loc)
     elif plot == 'time':
-        ax.legend(loc=legend_loc)
+        legend = ax.legend(loc=legend_loc)
+    # set legend on the bottom layer
+    legend.set_zorder(1)
+
 
     # Adding labels and title
     ax.set_xlabel(xlabel)
@@ -311,11 +319,20 @@ def plot_error_bars(
         ax.set_xlim(xlim,auto=True)
     if xticks:
         ax.set_xticks(xticks)
+    if ylim:
+        ax.set_ylim(ylim,auto=True)
+    if yticks:
+        ax.set_yticks(yticks)
     if title:
         ax.set_title(title)
 
+    # Set the tick size
+    ax.tick_params(axis='both', which='major', labelsize=ticksize)
+    ax.tick_params(axis='both', which='minor', labelsize=ticksize)
+
+
     if save is not None:
-        plt.savefig(save)
+        plt.savefig(save,transparent=transparent)
         print(f"Figure saved to {save}")
 
     # Show plot

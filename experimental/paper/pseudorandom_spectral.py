@@ -30,15 +30,15 @@ recon = "spectral"
 
 # pseudorandom settings
 img_size = 64
-n_layers = 2
+n_layers = 1
 shared_weights = False
-drop_tail = True
+drop_tail = False
 
 # optim settings
 n_repeats = 100
 n_iter = 5000
-start = 2
-end = 194
+start = 64
+end = 144
 output_sizes = torch.arange(start, end, 2)
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
@@ -104,4 +104,4 @@ for i in trange(n_oversampling):
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
 # save results
-df_res.to_csv(SAVE_DIR / model_name / res_name)
+df_res.to_csv(SAVE_DIR / res_name)

@@ -29,10 +29,10 @@ model_name = "pseudorandom"
 recon = "gd-spectral"
 
 # pseudorandom settings
-img_size = 99
-n_layers = 4
+img_size = 64
+n_layers = 1
 shared_weights = False
-drop_tail = True
+drop_tail = False
 
 # optim settings
 data_fidelity = L2()
@@ -44,8 +44,8 @@ n_iter = 10000
 n_spec_iter = 5000
 # stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
 step_size = 3e-3
-start = 141
-end = 223
+start = 64
+end = 144
 output_sizes = torch.arange(start, end, 2)
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
@@ -136,4 +136,4 @@ for i in trange(n_oversampling):
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
 # save results
-df_res.to_csv(SAVE_DIR / model_name / res_name)
+df_res.to_csv(SAVE_DIR / res_name)
