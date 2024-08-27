@@ -99,6 +99,12 @@ class PhysicsGenerator(nn.Module):
                     "Cannot set seed when rng is None! The `torch.manual_seed` is triggered."
                 )
 
+    def reset_rng(self):
+        r"""
+        Reset the random number generator to its initial state.
+        """
+        self.rng.set_state(self.initial_random_state)
+
     def __add__(self, other):
         r"""
         Creates a new generator from the sum of two generators.
