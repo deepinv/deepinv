@@ -1,14 +1,15 @@
-import requests
-import shutil
 import os
+import shutil
 import zipfile
+from io import BytesIO
+
+import numpy as np
+import requests
 import torch
 import torchvision
-import numpy as np
-from torchvision import transforms
 from PIL import Image
-from io import BytesIO
 from tqdm import tqdm
+from torchvision import transforms
 
 
 class MRIData(torch.utils.data.Dataset):
@@ -236,3 +237,60 @@ def load_np_url(url=None):
     response.raise_for_status()
     array = np.load(BytesIO(response.content))
     return array
+
+
+def demo_mri_model(device):
+    """Demo MRI reconstruction model for use in relevant examples.
+
+    As a reconstruction network, we use an unrolled network (half-quadratic splitting) with a trainable denoising prior based on the DnCNN architecture.
+
+    :param str, torch.device device: device
+    :return torch.nn.Module: model
+    """
+    from deepinv.optim.prior import PnP
+    from deepinv.optim import L2
+    from deepinv.models import DnCNN
+    from deepinv.unfolded import unfolded_builder
+
+    # Select the data fidelity term
+    data_fidelity = L2()
+    n_channels = 2  # real + imaginary parts
+
+    # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
+    # iteration. For fixed trained model prior across iterations, initialize with a single model.
+    prior = PnP(
+        denoiser=DnCNN(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained=None,
+            depth=7,
+        ).to(device)
+    )
+
+    # Unrolled optimization algorithm parameters
+    max_iter = 3  # number of unfolded layers
+    lamb = [1.0] * max_iter  # initialization of the regularization parameter
+    stepsize = [1.0] * max_iter  # initialization of the step sizes.
+    sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
+    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
+        "stepsize": stepsize,
+        "g_param": sigma_denoiser,
+        "lambda": lamb,
+    }
+
+    trainable_params = [
+        "lambda",
+        "stepsize",
+        "g_param",
+    ]  # define which parameters from 'params_algo' are trainable
+
+    # Define the unfolded trainable model.
+    model = unfolded_builder(
+        "HQS",
+        params_algo=params_algo,
+        trainable_params=trainable_params,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        prior=prior,
+    )
+    return model

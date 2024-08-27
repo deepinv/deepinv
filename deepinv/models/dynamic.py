@@ -1,9 +1,9 @@
 from torch import Tensor, rand
 import torch.nn as nn
-from deepinv.physics import Physics
+from deepinv.physics import Physics, TimeMixin
 
 
-class TimeAgnosticNet(nn.Module):
+class TimeAgnosticNet(nn.Module, TimeMixin):
     r"""
     Time-agnostic network wrapper.
 
@@ -32,14 +32,6 @@ class TimeAgnosticNet(nn.Module):
         super().__init__()
         self.backbone_net = backbone_net
 
-    def flatten(self, a: Tensor) -> Tensor:
-        B, C, T, H, W = a.shape
-        return a.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)
-
-    def unflatten(self, a: Tensor, batch_size=1) -> Tensor:
-        BT, C, H, W = a.shape
-        return a.reshape(batch_size, BT // batch_size, C, H, W).permute(0, 2, 1, 3, 4)
-
     def forward(self, y: Tensor, physics: Physics, **kwargs):
         r"""
         Reconstructs a signal estimate from measurements y
@@ -48,3 +40,45 @@ class TimeAgnosticNet(nn.Module):
         :param deepinv.physics.Physics physics: forward operator acting on dynamic inputs
         """
         return self.unflatten(self.backbone_net(self.flatten(y), physics, **kwargs))
+
+
+class TimeAveragingNet(
+    nn.Module, TimeMixin
+):  # Network wrapper to flatten dynamic input
+    r"""
+    Time-averaging network wrapper.
+
+    Adapts a static image reconstruction network for time-varying inputs to output static reconstructions.
+    Average the data across the time dim before passing into network.
+
+    .. note::
+
+        The input physics is assumed to be a temporal physics which produced the temporal measurements y (potentially with temporal mask ``mask``).
+        It must either implement a ``to_static`` method to remove the time dimension, or already be a static physics (e.g. :class:`deepinv.physics.MRI`).
+
+    |sep|
+
+    :Example:
+
+    >>> from deepinv.models import UNet, TimeAveragingNet
+    >>> model = UNet(scales=2)
+    >>> model = TimeAveragingNet(model)
+    >>> y = rand(1, 1, 4, 8, 8) # B,C,T,H,W
+    >>> x_net = model(y, None)
+    >>> x_net.shape
+    torch.Size([1, 1, 8, 8]) # B,C,H,W
+
+    :param torch.nn.Module backbone_net: Base network which can only take static inputs (B,C,H,W)
+    :param torch.device device: cpu or gpu.
+    """
+
+    def __init__(self, backbone_net):
+        super().__init__()
+        self.backbone_net = backbone_net
+
+    def forward(self, y, physics: TimeMixin, **kwargs):
+        return self.backbone_net(
+            self.average(y, getattr(physics, "mask", None)),
+            getattr(physics, "to_static", lambda: physics)(),
+            **kwargs,
+        )

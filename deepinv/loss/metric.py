@@ -2,8 +2,13 @@ import math
 import torch
 import torch.nn as nn
 from torch import autograd as autograd
+from torchmetrics.functional import (
+    structural_similarity_index_measure,
+    multiscale_structural_similarity_index_measure,
+)
+
 from deepinv.loss.loss import Loss
-from deepinv.utils import cal_psnr
+from deepinv.utils import cal_psnr, cal_mse
 
 
 try:
@@ -72,15 +77,6 @@ class LPIPS(Loss):
 
 
 class SSIM(Loss):
-    r"""
-    Structural Similarity Index (SSIM) metric.
-
-    See https://en.wikipedia.org/wiki/Structural_similarity for more information.
-
-    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
-    :param bool train: if ``True``, the metric is used for training. Default: ``False``.
-    :param str device: device to use for the metric computation. Default: 'cpu'.
-    """
 
     def __init__(self, multiscale=False, train=False, device="cpu"):
         super().__init__()
@@ -101,6 +97,43 @@ class SSIM(Loss):
         """
         loss = self.metric(x, x_net)
         return (1 - loss) if self.train else loss
+
+
+class MSE(Loss):
+    def forward(self, x_net, x, **kwargs):
+        return cal_mse(x_net, x)
+
+
+class NMSE(MSE):
+    def forward(self, x_net, x, **kwargs):
+        return cal_mse(x_net, x) / cal_mse(x, 0)
+
+
+class SSIM(Loss):
+    r"""
+    Structural Similarity Index (SSIM) metric using torchmetrics.
+
+    See https://en.wikipedia.org/wiki/Structural_similarity for more information.
+
+    :param bool train: if ``True``, the metric is used for training. Default: ``False``.
+    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
+    :param \**torchmetric_kwargs: kwargs for torchmetrics SSIM. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
+    """
+
+    def __init__(self, train=False, multiscale=False, **torchmetric_kwargs):
+        super().__init__()
+        self.train = train
+        self.multiscale = multiscale
+        self.torchmetric_kwargs = torchmetric_kwargs
+
+    def forward(self, x_net, x, *args, data_range=1.0, **kwargs):
+        ssim = (
+            multiscale_structural_similarity_index_measure
+            if self.multiscale
+            else structural_similarity_index_measure
+        )
+        m = ssim(x_net, x, data_range=data_range, **self.torchmetric_kwargs)
+        return (1 - m) if self.train else m
 
 
 class PSNR(Loss):
