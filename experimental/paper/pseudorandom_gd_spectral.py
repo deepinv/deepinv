@@ -46,7 +46,8 @@ n_spec_iter = 5000
 step_size = 3e-3
 start = 64
 end = 144
-output_sizes = torch.arange(start, end, 2)
+# output_sizes = torch.arange(start, end, 2)
+output_sizes = torch.tensor([92,98,104,108,112,116,120,124,128,132,136,140])
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
@@ -60,15 +61,12 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "runs"
 SAVE_DIR = DATA_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
-Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
-Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device
 
 # Set up the variable to fetch dataset and operators.
-img_size = 99
 url = get_image_url("SheppLogan.png")
 x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
@@ -88,13 +86,6 @@ df_res = pd.DataFrame(
     }
 )
 
-
-def spectral_methods_wrapper(y, physics, **kwargs):
-    x = spectral_methods(y, physics, n_iter=n_spec_iter, **kwargs)
-    z = spectral_methods(y, physics, n_iter=n_spec_iter, **kwargs)
-    return {"est": (x, z)}
-
-
 for i in trange(n_oversampling):
     oversampling_ratio = oversampling_ratios[i]
     output_size = output_sizes[i]
@@ -103,7 +94,7 @@ for i in trange(n_oversampling):
     if oversampling_ratio < 2.0:
         step_size = 1e-4
     else:
-        step_size = 3e-3
+        step_size = 1e-4
     step_size = step_size * oversampling_ratio
     df_res.loc[i, "step_size"] = step_size
     params_algo = {"stepsize": step_size.item(), "g_params": 0.00}
@@ -129,6 +120,9 @@ for i in trange(n_oversampling):
             drop_tail=drop_tail,
         )
         y = physics(x_phase)
+
+        x_phase_spec = spectral_methods(y, physics, n_iter=n_spec_iter)
+        print("spec cosine similarity: ", cosine_similarity(x_phase, x_phase_spec).item())
 
         x_phase_gd_spec = model(y, physics, x_gt=x_phase)
         df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_spec).item()

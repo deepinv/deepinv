@@ -40,8 +40,6 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "runs"
 SAVE_DIR = DATA_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
-Path(SAVE_DIR / "random").mkdir(parents=True, exist_ok=True)
-Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"

@@ -208,11 +208,11 @@ def plot_error_bars(
         elif plot == 'layer':
             if '1 layer' in label:
                 color = palette[0]
-            elif '2 layers' in label:
+            elif '1.5 layers' in label:
                 color = palette[1]
-            elif '3 layers' in label:
+            elif '2 layers' in label:
                 color = palette[2]
-            elif '4 layers' in label:
+            elif '3 layers' in label:
                 color = palette[3]
         elif plot == 'time':
             color = palette[i]
@@ -295,9 +295,9 @@ def plot_error_bars(
         legend_contents = [
             (Patch(visible=False), '$\\bf{Structure}$'),
             (plt.Line2D([], [], linestyle='-', color=palette[0]), r'$FD$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[1]), r'$FDFD$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[2]), r'$FDFDFD$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[3]), r'$FDFDFDFD$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[1]), r'$FDF$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[2]), r'$FDFD$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[3]), r'$FDFDFD$'),
             #(Patch(visible=False), ''),  # spacer
             (Patch(visible=False), '$\\bf{Algorithm}$'),
             (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),

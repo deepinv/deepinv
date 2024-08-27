@@ -39,7 +39,8 @@ n_repeats = 100
 n_iter = 5000
 start = 64
 end = 144
-output_sizes = torch.arange(start, end, 2)
+# output_sizes = torch.arange(start, end, 2)
+output_sizes = torch.tensor([132,136,140])
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
