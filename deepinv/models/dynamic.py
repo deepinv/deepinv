@@ -65,8 +65,8 @@ class TimeAveragingNet(
     >>> model = TimeAveragingNet(model)
     >>> y = rand(1, 1, 4, 8, 8) # B,C,T,H,W
     >>> x_net = model(y, None)
-    >>> x_net.shape
-    torch.Size([1, 1, 8, 8]) # B,C,H,W
+    >>> x_net.shape # B,C,H,W
+    torch.Size([1, 1, 8, 8])
 
     :param torch.nn.Module backbone_net: Base network which can only take static inputs (B,C,H,W)
     :param torch.device device: cpu or gpu.
