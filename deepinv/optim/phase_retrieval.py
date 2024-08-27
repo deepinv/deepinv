@@ -294,10 +294,10 @@ def plot_error_bars(
     elif plot == 'layer':
         legend_contents = [
             (Patch(visible=False), '$\\bf{Structure}$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[0]), r'$FD$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[1]), r'$FDF$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[2]), r'$FDFD$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[3]), r'$FDFDFD$'),
+            (plt.Line2D([], [], linestyle='-', color=palette[0]), 'FD'),
+            (plt.Line2D([], [], linestyle='-', color=palette[1]), 'FDF'),
+            (plt.Line2D([], [], linestyle='-', color=palette[2]), 'FDFD'),
+            (plt.Line2D([], [], linestyle='-', color=palette[3]), 'FDFDFD'),
             #(Patch(visible=False), ''),  # spacer
             (Patch(visible=False), '$\\bf{Algorithm}$'),
             (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
