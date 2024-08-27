@@ -145,7 +145,7 @@ def rescale_img(im, rescale_mode="min_max"):
     r"""
     Rescale an image tensor.
 
-    :param torch.Tensor img: the image to rescale.
+    :param torch.Tensor im: the image to rescale.
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
