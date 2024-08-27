@@ -13,7 +13,10 @@ from pathlib import Path
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, demo_mri_model
 from deepinv.models.utils import get_weights_url
-from deepinv.physics.generator import GaussianMaskGenerator, BernoulliSplittingMaskGenerator
+from deepinv.physics.generator import (
+    GaussianMaskGenerator,
+    BernoulliSplittingMaskGenerator,
+)
 
 torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -22,19 +25,23 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Prep data
 # ---------
-# 
+#
 # Original model trained with a dataset of 150 samples. We use 5 here in
 # this demo to fine-tune the original model. Set to 150 to train model
 # from scratch.
-# 
+#
 
 batch_size = 1
 H = 128
 
 transform = transforms.Compose([transforms.Resize(H)])
 
-train_dataset = load_dataset("fastmri_knee_singlecoil", Path("."), transform, train=True)
-test_dataset = load_dataset("fastmri_knee_singlecoil", Path("."), transform, train=False)
+train_dataset = load_dataset(
+    "fastmri_knee_singlecoil", Path("."), transform, train=True
+)
+test_dataset = load_dataset(
+    "fastmri_knee_singlecoil", Path("."), transform, train=False
+)
 
 train_dataset = Subset(train_dataset, torch.arange(5))
 test_dataset = Subset(test_dataset, torch.arange(30))
@@ -46,16 +53,18 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # %%
 # Prep physics
 # ------------
-# 
+#
 # Simulate a sequential k-space sampler, that, over the course of 4
 # phases, samples 64 lines (i.e. 2x total undersampling) with Gaussian
 # weighting (plus a few extra for the ACS signals in the centre of the
 # k-space)
-# 
+#
 
 x = next(iter(train_dataloader))
 
-mask_full = GaussianMaskGenerator((2, H, H), acceleration=2, device=device).step(batch_size=batch_size)["mask"]
+mask_full = GaussianMaskGenerator((2, H, H), acceleration=2, device=device).step(
+    batch_size=batch_size
+)["mask"]
 
 full_physics = dinv.physics.MRI(mask=mask_full)
 y_full = full_physics(x)
@@ -72,8 +81,8 @@ for _ in range(2):
     for m in masks:
         m1 = splitter.step(batch_size=batch_size, input_mask=m)["mask"]
         m2 = m - m1
-        m1[..., H//2 - acs//2: H//2 + acs//2] = 1
-        m2[..., H//2 - acs//2: H//2 + acs//2] = 1
+        m1[..., H // 2 - acs // 2 : H // 2 + acs // 2] = 1
+        m2[..., H // 2 - acs // 2 : H // 2 + acs // 2] = 1
         new_masks.extend([m1, m2])
     masks = new_masks
 
@@ -90,23 +99,26 @@ y = physics(x)
 physics.A_adjoint(y, keep_time_dim=True).shape
 
 print(x.shape, y.shape, mask.shape)
-dinv.utils.plot_videos([physics.repeat(x, mask), y, mask, physics.A_adjoint(y, keep_time_dim=True)], display=True)
+dinv.utils.plot_videos(
+    [physics.repeat(x, mask), y, mask, physics.A_adjoint(y, keep_time_dim=True)],
+    display=True,
+)
 
-#just for debug
+# just for debug
 dinv.utils.plot([x, physics.average(y), physics.average(mask), physics.A_adjoint(y)])
 
-#Total acceleration
+# Total acceleration
 print((2 * 128 * 128) / mask.sum())
 
 
 # %%
 # Prep model
 # ----------
-# 
+#
 # As a reconstruction network, we use an unrolled network (half-quadratic
 # splitting) with a trainable denoising prior based on the DnCNN
 # architecture. See ``demo`` for details TODO
-# 
+#
 
 model = demo_mri_model(device=device)
 
@@ -114,12 +126,14 @@ model = demo_mri_model(device=device)
 # %%
 # Prep loss
 # ---------
-# 
+#
 # Perform loss on all collected spokes by setting dynamic_model to False.
 # Then adapt model to perform Artifact2Artifact
-# 
+#
 
-loss = dinv.loss.Artifact2ArtifactLoss((2, 4, H, H), split_size=1, dynamic_model=False, device=device)
+loss = dinv.loss.Artifact2ArtifactLoss(
+    (2, 4, H, H), split_size=1, dynamic_model=False, device=device
+)
 
 model = loss.adapt_model(model)
 
@@ -127,10 +141,10 @@ model = loss.adapt_model(model)
 # %%
 # Train
 # -----
-# 
+#
 # Original model trained for 100 epochs. We demonstrate fine-tuning with 1
 # epoch for speed. Report PSNR and SSIM.
-# 
+#
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
@@ -163,7 +177,7 @@ trainer = dinv.Trainer(
 
 model = trainer.train()
 
-#torch.save({"state_dict": model.state_dict(), "optimizer": optimizer.state_dict()}, "a2a_model.pth")
+# torch.save({"state_dict": model.state_dict(), "optimizer": optimizer.state_dict()}, "a2a_model.pth")
 
 trainer.test(test_dataloader)
 
@@ -178,4 +192,4 @@ trainer.test(test_dataloader)
 # -  Extra docs
 # -  Check pytests
 # -  TODOs in files
-# 
+#
