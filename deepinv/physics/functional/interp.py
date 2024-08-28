@@ -98,8 +98,8 @@ class ThinPlateSpline:
         """
         X = X.to(self.device)
         Y = Y.to(self.device)
-        X = _ensure_4d(X)
-        Y = _ensure_4d(Y)
+        X = _ensure_batched_2d(X)
+        Y = _ensure_batched_2d(Y)
 
         assert X.shape[2] == Y.shape[2]
 
@@ -171,7 +171,7 @@ class ThinPlateSpline:
         assert self._fitted, "Please call fit first."
 
         X = X.to(self.device)
-        X = _ensure_4d(X)
+        X = _ensure_batched_2d(X)
         assert X.shape[-1] == self.control_points.shape[-1]
 
         phi = self._radial_distance(X)
@@ -203,7 +203,7 @@ class ThinPlateSpline:
         return dist**2 * torch.log(dist)
 
 
-def _ensure_4d(tensor: torch.Tensor) -> torch.Tensor:
+def _ensure_batched_2d(tensor: torch.Tensor) -> torch.Tensor:
     r"""Ensure that tensor is a 2d tensor
 
     In case of 1d tensor, let's expand the last dim

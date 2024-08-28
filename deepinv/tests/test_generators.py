@@ -130,6 +130,31 @@ def test_generation_newparams(name, device):
 
 
 @pytest.mark.parametrize("name", GENERATORS)
+def test_generation_seed(name, device):
+    r"""
+    Tests generators shape.
+    """
+    size = (32, 32)
+    generator, size, _ = find_generator(name, size, 1, device)
+    batch_size = 1
+
+    if name == "MotionBlurGenerator":
+        param_key = ["filter"]
+    elif name == "DiffractionBlurGenerator":
+        param_key = ["filter"]
+    elif name == "ProductConvolutionBlurGenerator":
+        param_key = ["filters", "multipliers"]
+    elif name == "SigmaGenerator":
+        param_key = ["sigma"]
+
+    params0 = generator.step(batch_size=batch_size, seed=42)
+    params1 = generator.step(batch_size=batch_size, seed=42)
+
+    for key in param_key:
+        assert torch.allclose(params0[key], params1[key])
+
+
+@pytest.mark.parametrize("name", GENERATORS)
 def test_generation(name, device):
     r"""
     Tests generators shape.

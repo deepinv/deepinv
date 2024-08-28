@@ -507,10 +507,7 @@ def test_phase_retrieval_Avjp(device):
         m=10, img_shape=(1, 3, 3), device=device
     )
     loss = L2()
-
-    def func(x):
-        return loss(x, torch.ones_like(physics(x)), physics)[0]
-
+    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -528,10 +525,7 @@ def test_linear_physics_Avjp(device):
     x = torch.randn((1, 1, 3, 3), dtype=torch.float, device=device, requires_grad=True)
     physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
     loss = L2()
-
-    def func(x):
-        return loss(x, torch.ones_like(physics(x)), physics)[0]
-
+    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()

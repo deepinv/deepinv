@@ -50,7 +50,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         *args,
         **kwargs,
     ):
-        super().__init__(*args, rng=rng, device=device, dtype=dtype, **kwargs)
+        super().__init__(*args, device=device, dtype=dtype, rng=rng, **kwargs)
         self.tensor_size = tensor_size
         self.split_ratio = split_ratio
         self.pixelwise = pixelwise

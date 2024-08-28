@@ -20,7 +20,7 @@ class BaseMaskGenerator(PhysicsGenerator):
     :param Tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps
     :param int acceleration: acceleration factor, defaults to 4
     :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space). If 0, there is no fixed low-freq sampling. Defaults to None.
-    :param torch.Generator rng: torch random generator, defaults to None
+    :param torch.Generator rng: torch random generator. Defaults to None.
     """
 
     def __init__(

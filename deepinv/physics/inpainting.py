@@ -32,7 +32,7 @@ class Inpainting(DecomposablePhysics):
     :param tuple tensor_size: size of the input images without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously. If existing mask passed (i.e. mask is Tensor), this has no effect.
-
+    :param torch.Generator rng: a pseudorandom random number generator for the mask generation. Default to None.
     |sep|
 
     :Examples:
@@ -81,7 +81,15 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    def __init__(self, tensor_size, mask=None, pixelwise=True, device="cpu", **kwargs):
+    def __init__(
+        self,
+        tensor_size,
+        mask=None,
+        pixelwise=True,
+        device="cpu",
+        rng: torch.Generator = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
@@ -92,6 +100,7 @@ class Inpainting(DecomposablePhysics):
                 split_ratio=mask,
                 pixelwise=pixelwise,
                 device=device,
+                rng=rng,
             )
             mask = gen.step(batch_size=None)["mask"]
         elif mask is None:

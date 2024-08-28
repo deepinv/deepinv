@@ -13,7 +13,7 @@ class PSFGenerator(PhysicsGenerator):
 
 
     :param tuple psf_size: the shape of the generated PSF in 2D
-        ``(kernel_size, kernel_size)``.
+        ``(kernel_size, kernel_size)``. If an `int` is given, it will be used for both dimensions.
     :param int num_channels: number of images channels. Defaults to 1.
     """
 
@@ -574,9 +574,9 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator
         (e.g. ``generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)``)
     :param tuple img_size: image size ``H x W``.
-    :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psf_grid.
+    :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psf grids.
         Defaults to 10.
-    :param tuple spacing: steps between the psf_grid used for interpolation (defaults ``(H//8, W//8)``).
+    :param tuple spacing: steps between the psf grids used for interpolation (defaults ``(H//8, W//8)``).
     :param str padding: boundary conditions in (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``).
         Defaults to ``'valid'``.
 
@@ -905,15 +905,13 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         self.fc_ill = (
             NA / lambda_ill
         ) * pixelsize_XY  # cutoff frequency for illumination
-        # wavenumber for illumination
-        self.kb_ill = (NI / lambda_ill) * pixelsize_XY
+        self.kb_ill = (NI / lambda_ill) * pixelsize_XY  # wavenumber for illumination
 
         self.fc_coll = (
             NA / lambda_coll
         ) * pixelsize_XY  # cutoff freauency for collection
         # wavenumber for collection
-        self.kb_coll = (NI / lambda_coll) * pixelsize_XY
-
+        self.kb_coll = (NI / lambda_coll) * pixelsize_XY  # wavenumber for collection
         self.pinhole_radius = pinhole_radius
         self.pixelsize_XY = pixelsize_XY
         self.pixel_size_Z = pixelsize_Z
@@ -987,7 +985,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
         # convolution of by the collection PSF by pinhole
         # 1. Define the pinhole D
-        airy_unit = 0.61 * self.lambda_coll / self.NA  # 1 Airy Unit
+        airy_unit = 0.61 * self.lambda_coll / self.NA
         PH_radius = self.pinhole_radius * airy_unit
         lin_x = torch.linspace(
             -1.5 * PH_radius,

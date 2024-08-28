@@ -60,7 +60,7 @@ class PhysicsGenerator(nn.Module):
             # Make sure that the random generator is on the same device as the physic generator
             assert (
                 rng.device == device
-            ), "The random generator is not on the same device as the Physic Generator"
+            ), "The random generator is not on the same device as the Physics Generator"
             self.rng = rng
         self.initial_random_state = self.rng.get_state()
 
@@ -91,13 +91,7 @@ class PhysicsGenerator(nn.Module):
          Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
         """
         if seed is not None:
-            if self.rng is not None:
-                self.rng = self.rng.manual_seed(seed)
-            else:
-                torch.manual_seed(seed)
-                raise warnings.warn(
-                    "Cannot set seed when rng is None! The `torch.manual_seed` is triggered."
-                )
+            self.rng = self.rng.manual_seed(seed)
 
     def reset_rng(self):
         r"""
