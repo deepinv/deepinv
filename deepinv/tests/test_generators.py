@@ -174,7 +174,6 @@ def test_generation(name, device):
     params = generator.step(batch_size=batch_size, seed=0)
 
     if name == "MotionBlurGenerator":
-        atol = 1e-6
         w = params["filter"]
         if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor(
@@ -266,7 +265,6 @@ def test_generation(name, device):
             ).to(device)
 
     elif name == "DiffractionBlurGenerator":
-        atol = 1e-6
         w = params["filter"]
         if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor(
@@ -359,8 +357,6 @@ def test_generation(name, device):
 
     elif name == "ProductConvolutionBlurGenerator":
         w = params["filters"]
-        # atol = 1e-5
-        atol = 1e-2
         if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor(
                 [
@@ -1122,20 +1118,11 @@ def test_generation(name, device):
 
     elif name == "SigmaGenerator":
         w = params["sigma"]
-        atol = 1e-6
         if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor([0.2531657219])
         elif torch.device(device) == torch.device("cuda"):
             wref = torch.tensor([0.2055327892]).to(device)
-
-    print(
-        "----------------------------------------------------------------DEVICE: ",
-        device,
-    )
-    print((w - wref).abs().max().item())
-    print((w - wref).abs().mean().item())
-    print((w - wref).abs().min().item())
-    assert torch.allclose(w, wref, atol=atol)
+    assert torch.allclose(w, wref, atol=1e-8)
 
 
 ######################
