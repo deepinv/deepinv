@@ -44,6 +44,11 @@ INPAINTING_IMG_SIZES = [
 ]  # (C,H,W), (C,M), (C,T,H,W)
 INPAINTING_GENERATORS = ["bernoulli", "gaussian"]
 
+# All devices to test
+DEVICES = ["cpu"]
+if torch.cuda.is_available():
+    DEVICES.append("cuda")
+
 
 def find_generator(name, size, num_channels, device):
     r"""
@@ -88,6 +93,7 @@ def find_generator(name, size, num_channels, device):
 @pytest.mark.parametrize("name", GENERATORS)
 @pytest.mark.parametrize("size", SIZES)
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
+@pytest.mark.parametrize("device", DEVICES)
 def test_shape(name, size, num_channels, device):
     r"""
     Tests generators shape.
@@ -105,6 +111,7 @@ def test_shape(name, size, num_channels, device):
 
 
 @pytest.mark.parametrize("name", GENERATORS)
+@pytest.mark.parametrize("device", DEVICES)
 def test_generation_newparams(name, device):
     r"""
     Tests generators shape.
@@ -130,6 +137,7 @@ def test_generation_newparams(name, device):
 
 
 @pytest.mark.parametrize("name", GENERATORS)
+@pytest.mark.parametrize("device", DEVICES)
 def test_generation_seed(name, device):
     r"""
     Tests generators shape.
@@ -155,6 +163,7 @@ def test_generation_seed(name, device):
 
 
 @pytest.mark.parametrize("name", GENERATORS)
+@pytest.mark.parametrize("device", DEVICES)
 def test_generation(name, device):
     r"""
     Tests generators shape.
@@ -167,7 +176,7 @@ def test_generation(name, device):
     if name == "MotionBlurGenerator":
         atol = 1e-6
         w = params["filter"]
-        if device.type == "cpu":
+        if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor(
                 [
                     [
@@ -211,7 +220,7 @@ def test_generation(name, device):
                     ]
                 ]
             )
-        elif device.type == "cuda":
+        elif torch.device(device) == torch.device("cuda"):
             wref = torch.tensor(
                 [
                     [
@@ -259,7 +268,7 @@ def test_generation(name, device):
     elif name == "DiffractionBlurGenerator":
         atol = 1e-6
         w = params["filter"]
-        if device.type == "cpu":
+        if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor(
                 [
                     [
@@ -303,7 +312,7 @@ def test_generation(name, device):
                     ]
                 ]
             )
-        elif device.type == "cuda":
+        elif torch.device(device) == torch.device("cuda"):
             wref = torch.tensor(
                 [
                     [
@@ -352,7 +361,7 @@ def test_generation(name, device):
         w = params["filters"]
         # atol = 1e-5
         atol = 1e-2
-        if device.type == "cpu":
+        if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor(
                 [
                     [
@@ -731,7 +740,7 @@ def test_generation(name, device):
                     ]
                 ]
             )
-        elif device.type == "cuda":
+        elif torch.device(device) == torch.device("cuda"):
             wref = torch.tensor(
                 [
                     [
@@ -1114,11 +1123,15 @@ def test_generation(name, device):
     elif name == "SigmaGenerator":
         w = params["sigma"]
         atol = 1e-6
-        if device.type == "cpu":
+        if torch.device(device) == torch.device("cpu"):
             wref = torch.tensor([0.2531657219])
-        elif device.type == "cuda":
+        elif torch.device(device) == torch.device("cuda"):
             wref = torch.tensor([0.2055327892]).to(device)
 
+    print(
+        "----------------------------------------------------------------DEVICE: ",
+        device,
+    )
     print((w - wref).abs().max().item())
     print((w - wref).abs().mean().item())
     print((w - wref).abs().min().item())
@@ -1222,6 +1235,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("img_size", INPAINTING_IMG_SIZES)
 @pytest.mark.parametrize("pixelwise", (False, True))
 @pytest.mark.parametrize("split_ratio", (0.5,))
+@pytest.mark.parametrize("device", DEVICES)
 def test_inpainting_generators(
     generator_name, batch_size, img_size, pixelwise, split_ratio, device
 ):

@@ -58,9 +58,9 @@ class PhysicsGenerator(nn.Module):
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert (
-                rng.device == device
-            ), "The random generator is not on the same device as the Physics Generator"
+            assert rng.device == torch.device(
+                device
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
         self.initial_random_state = self.rng.get_state()
 
