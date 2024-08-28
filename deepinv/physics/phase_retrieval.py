@@ -89,6 +89,11 @@ class PhaseRetrieval(Physics):
         :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
         """
         return 2 * self.B_adjoint(self.B(x) * v)
+    
+    def release_memory(self):
+        del self.B
+        torch.cuda.empty_cache()
+        return
 
 
 class RandomPhaseRetrieval(PhaseRetrieval):
@@ -152,10 +157,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
 
-    def release_memory(self):
-        del self.B
-        torch.cuda.empty_cache()
-        return
 
 class PseudoRandomPhaseRetrieval(PhaseRetrieval):
     r"""

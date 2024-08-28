@@ -31,7 +31,7 @@ img_size = 64
 use_haar = True
 #oversampling_ratios = torch.arange(0.1, 9.1, 0.1)
 #oversampling_ratios = torch.cat((torch.arange(0.1,3.1,0.1),torch.arange(3.5,9.5,0.5)))
-oversampling_ratios = torch.arange(1.0,4.2,0.2)
+oversampling_ratios = torch.arange(2.0,5.2,0.2)
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{img_size}size_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
 print("save name:",res_name)

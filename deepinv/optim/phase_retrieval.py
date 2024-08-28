@@ -1,3 +1,5 @@
+import os
+
 from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -167,7 +169,7 @@ def plot_error_bars(
     ylabel="Cosine Similarity",
     xscale="linear",
     yscale="linear",
-    save:str=None,
+    save_dir:str=None,
     figsize=(10, 6),
     marker=".",
     markersize=10,
@@ -214,6 +216,8 @@ def plot_error_bars(
                 color = palette[2]
             elif '3 layers' in label:
                 color = palette[3]
+            elif 'haar' in label:
+                color = palette[4]
         elif plot == 'time':
             color = palette[i]
         else:
@@ -298,6 +302,7 @@ def plot_error_bars(
             (plt.Line2D([], [], linestyle='-', color=palette[1]), 'FDF'),
             (plt.Line2D([], [], linestyle='-', color=palette[2]), 'FDFD'),
             (plt.Line2D([], [], linestyle='-', color=palette[3]), 'FDFDFD'),
+            (plt.Line2D([], [], linestyle='-', color=palette[4]), 'Random Orthogonal'),
             #(Patch(visible=False), ''),  # spacer
             (Patch(visible=False), '$\\bf{Algorithm}$'),
             (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
@@ -331,9 +336,9 @@ def plot_error_bars(
     ax.tick_params(axis='both', which='minor', labelsize=ticksize)
 
 
-    if save is not None:
-        plt.savefig(save,transparent=transparent)
-        print(f"Figure saved to {save}")
+    if save_dir is not None:
+        plt.savefig(save_dir,transparent=transparent)
+        print(f"Figure saved to {save_dir}")
 
     # Show plot
     if show:

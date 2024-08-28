@@ -28,12 +28,12 @@ model_name = "random"
 recon = "gd_spectral"
 n_repeats = 100
 n_iter = 10000
-oversampling_ratios = torch.arange(2.0, 2.6, 0.1)
+oversampling_ratios = torch.arange(2.0, 5.2, 0.2)
 #oversampling_ratios = torch.cat((torch.arange(0.1,3.1,0.1),torch.arange(3.5,9.5,0.5)))
 # oversampling_ratios = torch.cat((torch.arange(2.1, 5.1, 0.1),torch.arange(5.2, 9.2, 0.2)))
 n_oversampling = oversampling_ratios.shape[0]
 res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
-use_haar = False
+use_haar = True
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 BASE_DIR = Path(".")
@@ -74,12 +74,16 @@ verbose = True
 
 for i in trange(oversampling_ratios.shape[0]):
     oversampling_ratio = oversampling_ratios[i]
-    if oversampling_ratio < 2.5:
+    # if oversampling_ratio < 2.5:
+    #     step_size = 1e-4
+    # elif oversampling_ratio < 3.0:
+    #     step_size = 3e-3
+    # else:
+    #     step_size = 1e-2
+    if oversampling_ratio < 2.0:
         step_size = 1e-4
-    elif oversampling_ratio < 3.0:
-        step_size = 3e-3
     else:
-        step_size = 1e-2
+        step_size = 3e-3
     print(f"oversampling_ratio: {oversampling_ratio}")
     df_res.loc[i, "step_size"] = step_size
     params_algo = {

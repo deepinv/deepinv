@@ -30,17 +30,18 @@ recon = "spectral"
 
 # pseudorandom settings
 img_size = 64
-n_layers = 1
+n_layers = 2
 shared_weights = False
-drop_tail = False
+drop_tail = True
+use_haar = True
 
 # optim settings
 n_repeats = 100
 n_iter = 5000
-start = 64
+start = 90
 end = 144
-# output_sizes = torch.arange(start, end, 2)
-output_sizes = torch.tensor([132,136,140])
+output_sizes = torch.arange(start, end, 2)
+# output_sizes = torch.tensor([132,136,140])
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
