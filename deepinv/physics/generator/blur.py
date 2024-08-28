@@ -664,8 +664,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
         # Computing the eigen-psf
         psf_grid = psf_grid.flatten(-2, -1).transpose(1, 2)
-        _, _, V = torch.linalg.svd(
-            psf_grid, full_matrices=False)
+        _, _, V = torch.linalg.svd(psf_grid, full_matrices=False)
         V = V[..., : self.n_eigen_psf, :].transpose(-1, -2)
         eigen_psf = V.reshape(V.size(0), V.size(1), self.n_eigen_psf, *psf_size)
 
