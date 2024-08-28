@@ -1119,6 +1119,9 @@ def test_generation(name, device):
         elif device.type == "cuda":
             wref = torch.tensor([0.2055327892]).to(device)
 
+    print((w - wref).abs().max().item())
+    print((w - wref).abs().mean().item())
+    print((w - wref).abs().min().item())
     assert torch.allclose(w, wref, atol=atol)
 
 
