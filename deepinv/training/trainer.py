@@ -111,6 +111,11 @@ class Trainer:
         and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
 
+    .. warning::
+
+        If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
+        If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
+        Caveat: this requires ``shuffle=False`` in your dataloaders.
 
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -130,7 +135,7 @@ class Trainer:
         the measurements are loaded from the training dataset.
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
-        Should be used in conjunction with ``online_measurements=True``.
+        Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
@@ -156,6 +161,9 @@ class Trainer:
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
         :meth:`deepinv.Trainer.no_learning_inference` method.
+    :param bool loop_physics_generator: if True, resets the physics generator back to its initial state at the beginning of each epoch,
+        so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
+        Used in conjunction with ``physics_generator``.
     """
 
     model: torch.nn.Module
@@ -189,6 +197,7 @@ class Trainer:
     rescale_mode: str = "clip"
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
+    loop_physics_generator: bool = False
 
     def setup_train(self):
         r"""
@@ -221,6 +230,14 @@ class Trainer:
         if self.physics_generator is not None and not self.online_measurements:
             warnings.warn(
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
+            )
+        elif (
+            self.physics_generator is not None
+            and self.online_measurements
+            and self.loop_physics_generator
+        ):
+            warnings.warn(
+                "Generated measurements repeat each epoch. Ensure that dataloader is not shuffling."
             )
 
         self.epoch_start = 0
@@ -773,6 +790,10 @@ class Trainer:
             batches = min(
                 [len(loader) - loader.drop_last for loader in self.train_dataloader]
             )
+
+            if self.loop_physics_generator and self.physics_generator is not None:
+                for physics_generator in self.physics_generator:
+                    physics_generator.reset_rng()
 
             self.model.train()
             for i in (
