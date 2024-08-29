@@ -657,6 +657,7 @@ class BlindDPS(nn.Module):
     This class implements the Blind Diffusion Posterior Sampling algorithm, 
     an extension of the DPS algorithm for blind inverse problems 
     where both the image and the blur kernel are unknown, described in https://arxiv.org/abs/2211.10656.
+    As opposed to :class:`DPS`, the BlindDPS algorithm simultaneously estimates the image and the blur kernel.
 
     The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
 
