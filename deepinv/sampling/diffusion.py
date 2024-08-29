@@ -820,7 +820,6 @@ class BlindDPS(nn.Module):
                 k0_t = (k0_t + 1.0) / 2.0  # DDPM step uses mean kernel estimate
                 k0_t_norm = k0_t / k0_t.sum()  # Normalized for likelihood computation
 
-                # Here the update_param in the Blur operator is breaking the compute graph
                 physics_cur = deepinv.physics.Blur(
                     filter=k0_t_norm,
                     padding="circular",
