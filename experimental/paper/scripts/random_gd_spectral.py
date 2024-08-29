@@ -24,7 +24,7 @@ from deepinv.optim.phase_retrieval import (
     spectral_methods_wrapper,
 )
 
-model_name = "random"
+model_name = "random-haar"
 recon = "gd_spectral"
 n_repeats = 100
 n_iter = 10000
@@ -36,7 +36,7 @@ res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampli
 use_haar = True
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-BASE_DIR = Path(".")
+BASE_DIR = Path("..")
 DATA_DIR = BASE_DIR / "runs"
 SAVE_DIR = DATA_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
@@ -117,4 +117,4 @@ for i in trange(oversampling_ratios.shape[0]):
         print(df_res.loc[i, f"repeat{j}"])
 
 # save results
-df_res.to_csv(SAVE_DIR / model_name / res_name)
+df_res.to_csv(SAVE_DIR / res_name)

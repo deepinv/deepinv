@@ -302,7 +302,7 @@ def plot_error_bars(
             (plt.Line2D([], [], linestyle='-', color=palette[1]), 'FDF'),
             (plt.Line2D([], [], linestyle='-', color=palette[2]), 'FDFD'),
             (plt.Line2D([], [], linestyle='-', color=palette[3]), 'FDFDFD'),
-            (plt.Line2D([], [], linestyle='-', color=palette[4]), 'Random Orthogonal'),
+            (plt.Line2D([], [], linestyle='-', color=palette[4]), 'Random Unitary'),
             #(Patch(visible=False), ''),  # spacer
             (Patch(visible=False), '$\\bf{Algorithm}$'),
             (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
