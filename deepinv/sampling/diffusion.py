@@ -669,7 +669,7 @@ class BlindDPS(nn.Module):
             \widehat{\mathbf{k}}_{t} &= D_{\theta_k}(\mathbf{k}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
             \\
             \mathbf{g}_t^x &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
-            \mathbf{g}_t^k &= \nabla_{\mathbf{k}_t} \log p( \widehat{\mathbf{k}}_{t}(\mathbf{k}_t) | \mathbf{y} ) \\
+            \mathbf{g}_t^k &= \nabla_{\mathbf{k}_t} \left( \log p( \widehat{\mathbf{k}}_{t}(\mathbf{k}_t) | \mathbf{y} ) + R(\widehat{\mathbf{k}}_{t}(\mathbf{k}_t))\right) \\
             \mathbf{\varepsilon}_t^x &= \mathcal{N}(0, \mathbf{I}) \\
             \mathbf{\varepsilon}_t^k &= \mathcal{N}(0, \mathbf{I}) \\
             \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t + b_t \, \, \widehat{\mathbf{x}}_t + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t^x + \, \mathbf{g}_t^x, \\
