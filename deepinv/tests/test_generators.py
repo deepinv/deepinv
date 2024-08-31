@@ -189,7 +189,7 @@ def test_generation(name, device, dtype):
         .to(device)
         .to(dtype)
     )
-    assert (w - wref).abs().max() < 1e-6
+    assert torch.allclose(w, wref, atol=1e-8)
 
 
 ######################

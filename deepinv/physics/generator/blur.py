@@ -168,9 +168,8 @@ class MotionBlurGenerator(PSFGenerator):
             ]
             for trajectory in trajectories
         ]
-        kernel = torch.cat(kernels, dim=0)
+        kernel = torch.cat(kernels, dim=0).to(**self.factory_kwargs)
         kernel = kernel / torch.sum(kernel, dim=(-2, -1), keepdim=True)
-
         return {
             "filter": kernel.expand(
                 -1,
