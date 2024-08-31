@@ -10,8 +10,9 @@ class SigmaGenerator(PhysicsGenerator):
 
     :param float sigma_min: minimum noise level
     :param float sigma_max: maximum noise level
+    :param torch.Generator rng: random number generator
     :param str device: device where the tensor is stored
-
+    :param torch.dtype dtype: data type of the generated tensor
     |sep|
 
     :Examples:
@@ -30,9 +31,9 @@ class SigmaGenerator(PhysicsGenerator):
         sigma_max=0.5,
         rng: torch.Generator = None,
         device: str = "cpu",
+        dtype: torch.dtype = torch.float32,
     ):
-        super().__init__(shape=(1,), device=device, rng=rng)
-        self.device = device
+        super().__init__(shape=(1,), rng=rng, device=device, dtype=dtype)
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
 
@@ -49,7 +50,7 @@ class SigmaGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
         sigma = (
-            torch.rand(batch_size, device=self.device, generator=self.rng)
+            torch.rand(batch_size, generator=self.rng, **self.factory_kwargs)
             * (self.sigma_max - self.sigma_min)
             + self.sigma_min
         )
