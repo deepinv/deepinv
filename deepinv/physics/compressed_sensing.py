@@ -85,10 +85,10 @@ class CompressedSensing(LinearPhysics):
         >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3))
+        >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
-        tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
-                  0.7754, -0.0479]])
+        tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
+                  0.6752, -1.5684]])
 
     """
 
