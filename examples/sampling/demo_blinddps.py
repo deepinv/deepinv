@@ -10,9 +10,9 @@ in :meth:`deepinv.sampling.BlindDPS`.
 # %% Installing dependencies
 # -----------------------------
 # Let us ``import`` the relevant packages, and load a sample
-# image of size 64x64. This will be used as our ground truth image.
+# image of size 128x128. This will be used as our ground truth image.
 # .. note::
-#           We work with an image of size 64x64 to reduce the computational time of this example.
+#           We work with an image of size 128x128 to reduce the computational time of this example.
 #           The algorithm works best with images of size 256x256.
 #
 
@@ -28,9 +28,8 @@ from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = get_image_url("butterfly.png")
-
-x_true = load_url_image(url=url, img_size=64).to(device)
+url = get_image_url("00000.png")
+x_true = load_url_image(url=url, img_size=128).to(device)
 x = x_true.clone()
 
 # %%
@@ -58,7 +57,6 @@ plot(
     imgs,
     titles=["measurement", "groundtruth", "kernel"],
 )
-
 
 # %%
 # Diffusion model loading
@@ -238,21 +236,7 @@ plot(
 #           usually output images in the range [0, 1]. This is why we rescale the images before applying the steps.
 from deepinv.physics.functional.convolution import conv2d
 
-blur_std = 3.0
-sigma = 5.1 / 255.0
-
-k_true = dinv.physics.blur.gaussian_blur(sigma=blur_std, angle=0.0).to(device)
-k_true = torch.nn.functional.pad(k_true, (21, 20, 21, 20))
-
-physics = dinv.physics.Blur(
-    filter=k_true,
-    padding="reflect",
-    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-    device=device,
-)
-
 y = physics(2 * x_true - 1)
-
 k0 = k_true / (k_true.max() - k_true.min())  # sum = 1 -> [0, 1]
 k0 = k0 * 2.0 - 1.0  # [0, 1] -> [-1, 1]
 x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
@@ -325,10 +309,10 @@ plot(
 #           \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_{t}(\mathbf{x}_t)) \simeq
 #           \rho \nabla_{\mathbf{x}_t} \|\mathbf{y} - \mathbf{A}\hat{\mathbf{x}}_{t}\|^2_2
 #
-# With these in mind, let us solve the inverse problem with DPS!
+# With these in mind, let us solve the inverse problem with BlindDPS!
 
 
-num_steps = 20
+num_steps = 1000
 
 skip = num_train_timesteps // num_steps
 
@@ -338,19 +322,6 @@ eta = 1.0
 seq = range(0, num_train_timesteps, skip)
 seq_next = [-1] + list(seq[:-1])
 time_pairs = list(zip(reversed(seq), reversed(seq_next)))
-
-blur_std = 3.0
-sigma = 5.1 / 255.0
-
-k_true = dinv.physics.blur.gaussian_blur(sigma=blur_std, angle=0.0).to(device)
-k_true = torch.nn.functional.pad(k_true, (21, 20, 21, 20))
-
-physics = dinv.physics.Blur(
-    filter=k_true,
-    padding="reflect",
-    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-    device=device,
-)
 
 x0 = x_true * 2.0 - 1.0
 y = physics(x0.to(device))
@@ -442,7 +413,7 @@ for i, j in tqdm(time_pairs):
         # Apply the physics with the estimated kernel
         y0_t = physics_est.A(x0_t, filter=k0_t_norm)
 
-        # 2. likelihood gradient approximation
+        # 2. Likelihood gradient approximation
         ll_x = torch.linalg.norm(y0_t - y)
         ll_k = torch.linalg.norm(y0_t - y) + 0.1 * torch.linalg.vector_norm(
             k0_t_norm.flatten(), ord=0
@@ -459,7 +430,7 @@ for i, j in tqdm(time_pairs):
 
     # 3. noise step
     epsilon_x = torch.randn_like(xt)
-    espilon_k = torch.randn_like(kt)
+    epsilon_k = torch.randn_like(kt)
 
     # 4. DDPM(IM) step
     xt_next = (
@@ -471,7 +442,7 @@ for i, j in tqdm(time_pairs):
 
     kt_next = (
         (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * (2 * k0_t - 1)
-        + sigma_tilde * espilon_k
+        + sigma_tilde * epsilon_k
         + c2 * kt / (1 - at).sqrt()
         - grad_factor * norm_grad_k
     )
