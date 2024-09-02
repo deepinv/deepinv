@@ -774,16 +774,59 @@ class BlindDPS(nn.Module):
         if seed:
             torch.manual_seed(seed)
 
-        # Initialization
+        # Initialization of the image reconstruction and the blur kernel
         if x_init is None:
             x = torch.randn_like(y)
         else:
-            x = x_init
+            x = 2 * x_init - 1
 
         if k_init is None:
             k = torch.randn_like(physics.filter)
         else:
-            k = k_init
+            k = k_init / (k_init.max() - k_init.min())  # sum = 1 -> [0, 1]
+            k = k * 2.0 - 1.0  # [0, 1] -> [-1, 1]
+
+        # Initialization of the estimated physics operator
+
+        class PhysicsEst(deepinv.physics.Blur):
+            r"""
+            Estimated physics model containing the blur kernel to be estimated
+            """
+
+            def __init__(self, filter, img_size, padding, noise_model, device):
+                super().__init__(
+                    filter=filter,
+                    img_size=img_size,
+                    padding=padding,
+                    noise_model=noise_model,
+                    device=device,
+                )
+
+                self.filter = torch.nn.Parameter(filter, requires_grad=True)
+
+            def A(self, x, filter=None, **kwargs):
+                r"""
+                Applies the filter to the input image.
+
+                :param torch.Tensor x: input image.
+                :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
+                    If not ``None``, it uses this filter instead of the one defined in the class, and
+                    the provided filter is stored as the current filter.
+                """
+                if filter is None:
+                    filter = self.filter
+
+                return deepinv.physics.functional.conv2d(
+                    x, filter=filter, padding=self.padding
+                )
+
+        physics_est = PhysicsEst(
+            filter=k,
+            img_size=x.shape[1:],
+            padding="reflect",
+            noise_model=deepinv.physics.GaussianNoise(sigma=0.0),
+            device=self.device,
+        )
 
         skip = self.num_train_timesteps // self.max_iter
         batch_size = y.shape[0]
@@ -799,7 +842,7 @@ class BlindDPS(nn.Module):
         xt = x.to(self.device)
         kt = k.to(self.device)
 
-        for i, j in tqdm(time_pairs, disable=(not self.verbose)):
+        for i, j in tqdm(time_pairs):
             t = (torch.ones(batch_size) * i).to(self.device)
             next_t = (torch.ones(batch_size) * j).to(self.device)
 
@@ -813,21 +856,20 @@ class BlindDPS(nn.Module):
                 # 1. Denoising step
                 aux_x = xt / 2 + 0.5
                 x0_t = 2 * self.model_x(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
-                x0_t = torch.clip(x0_t, -1.0, 1.0)
+                # x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
+                # Kernel
                 aux_k = kt / 2 + 0.5
                 k0_t = 2 * self.model_k(aux_k, (1 - at).sqrt() / at.sqrt() / 2) - 1
-                k0_t = (k0_t + 1.0) / 2.0  # DDPM step uses mean kernel estimate
-                k0_t_norm = k0_t / k0_t.sum()  # Normalized for likelihood computation
+                # k0_t = torch.clip(k0_t, -1.0, 1.0) # optional
 
-                physics_cur = deepinv.physics.Blur(
-                    filter=k0_t_norm,
-                    padding="circular",
-                    noise_model=deepinv.physics.GaussianNoise(sigma=0.0),
-                    device=self.device,
-                )
+                # This mean kernel estimate is for the DDPM step
+                k0_t = (k0_t + 1.0) / 2.0
+                # This one is for the regularization
+                k0_t_norm = k0_t / k0_t.sum()
 
-                y0_t = physics_cur.A(x0_t)
+                # Apply the physics with the estimated kernel
+                y0_t = physics_est.A(x0_t, filter=k0_t_norm)
 
                 # 2. Likelihood gradient approximation
                 ll_x = torch.linalg.norm(y0_t - y)
@@ -839,8 +881,10 @@ class BlindDPS(nn.Module):
 
             norm_grad_x = torch.autograd.grad(
                 outputs=ll_x, inputs=xt, retain_graph=True
-            )[0].detach()
-            norm_grad_k = torch.autograd.grad(outputs=ll_k, inputs=kt)[0].detach()
+            )[0]
+            norm_grad_x = norm_grad_x.detach()
+            norm_grad_k = torch.autograd.grad(outputs=ll_k, inputs=kt)[0]
+            norm_grad_k = norm_grad_k.detach()
 
             sigma_tilde = (
                 (1 - at / at_next) * (1 - at_next) / (1 - at)
@@ -866,11 +910,14 @@ class BlindDPS(nn.Module):
                 - self.grad_factor * norm_grad_k
             )
 
+            physics_est.filter.data = kt_next / 2 + 0.5
+
             if self.save_iterates:
-                xs.append(xt_next.to("cpu"))
-                ks.append(kt_next.to("cpu"))
-            xt = xt_next.clone()
-            kt = kt_next.clone()
+                xs.append(xt_next.detach().to("cpu"))
+                ks.append(kt_next.detach().to("cpu"))
+
+            del ll_x, ll_k
+            torch.cuda.empty_cache()
 
         if self.save_iterates:
             return xs, ks
