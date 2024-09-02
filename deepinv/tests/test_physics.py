@@ -79,21 +79,31 @@ def find_operator(name, device):
             padding = p
             break
 
+    rng = torch.Generator(device).manual_seed(0)
     if name == "CS":
         m = 30
-        p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
+        p = dinv.physics.CompressedSensing(
+            m=m, img_shape=img_size, device=device, rng=rng
+        )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
-            m=20, fast=True, channelwise=True, img_shape=img_size, device=device
+            m=20,
+            fast=True,
+            channelwise=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
         )
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
+        p = dinv.physics.Inpainting(
+            tensor_size=img_size, mask=0.5, device=device, rng=rng
+        )
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
@@ -109,7 +119,7 @@ def find_operator(name, device):
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
     elif name == "denoising":
-        p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+        p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
@@ -122,12 +132,12 @@ def find_operator(name, device):
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device
+            m=20, fast=True, img_shape=img_size, device=device, rng=rng
         )
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=m, fast=False, img_shape=img_size, device=device
+            m=m, fast=False, img_shape=img_size, device=device, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -203,7 +213,7 @@ def find_operator(name, device):
         img_size = (1, 8, 8)
         m = 50
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, dtype=torch.cfloat, device=device
+            m=m, img_shape=img_size, dtype=torch.cfloat, device=device, rng=rng
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
@@ -245,7 +255,7 @@ def find_operator(name, device):
             real_projection=False,
             dtype=torch.float,
             device=device,
-            noise_model=dinv.physics.GaussianNoise(0.0),
+            noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
