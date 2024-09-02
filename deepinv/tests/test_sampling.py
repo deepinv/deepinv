@@ -172,6 +172,8 @@ def test_blinddps(device):
         device=device,
     )
 
+    y = physics(x)
+
     model_x = DiffUNet().to(device)
     model_k = DiffUNet(in_channels=1, out_channels=1).to(device)
 
