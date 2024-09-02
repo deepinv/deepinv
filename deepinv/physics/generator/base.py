@@ -17,7 +17,7 @@ class PhysicsGenerator(nn.Module):
         the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
         the corresponding key and value pairs.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
-        If ``None``, the default Generator of PyTorch will be used. This `rng` will be passed to the `step` function.
+        If ``None``, the default Generator of PyTorch will be used.
     :param str device: cpu or cuda
     :param torch.dtype dtype: the data type of the generated parameters
 
