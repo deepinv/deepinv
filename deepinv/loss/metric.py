@@ -177,17 +177,6 @@ class PSNR(Loss):
         )
 
 
-class MaxPixelPSNR(PSNR):
-    def forward(self, x_net, x, **kwargs):
-        self.max_pixel = x.max()
-        return super().forward(x_net, x)
-
-
-class MaxPixelSSIM(SSIM):
-    def forward(self, x_net, x, **kwargs):
-        return super().forward(x_net=x_net, x=x, data_range=x.max())
-
-
 class LpNorm(torch.nn.Module):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.

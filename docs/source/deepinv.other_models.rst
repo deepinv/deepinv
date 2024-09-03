@@ -33,3 +33,4 @@ flattens the time dimension into the batch dimension.
    :nosignatures:
 
    deepinv.models.TimeAgnosticNet
+   deepinv.models.TimeAveragingNet

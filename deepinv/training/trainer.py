@@ -8,7 +8,7 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.loss import PSNR, Loss, SupLoss
+from deepinv.loss import PSNR, Loss, SupLoss, BaseLossScheduler
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
@@ -120,6 +120,7 @@ class Trainer:
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
         a signal x or a tuple of (x, y) signal/measurement pairs.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
+        Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
@@ -163,7 +164,9 @@ class Trainer:
     optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
-    losses: Union[Loss, List[Loss]] = SupLoss()
+    losses: Union[Loss, BaseLossScheduler, List[Loss], List[BaseLossScheduler]] = (
+        SupLoss()
+    )
     eval_dataloader: torch.utils.data.DataLoader = None
     scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Loss, List[Loss]] = PSNR()
@@ -454,7 +457,7 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(self, physics, x, y, train=True):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -464,6 +467,7 @@ class Trainer:
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
@@ -479,7 +483,14 @@ class Trainer:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
-                loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+                loss = l(
+                    x=x,
+                    x_net=x_net,
+                    y=y,
+                    physics=physics,
+                    model=self.model,
+                    epoch=epoch,
+                )
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     meters = (
@@ -505,7 +516,9 @@ class Trainer:
 
         return x_net, logs
 
-    def compute_metrics(self, x, x_net, y, physics, logs, train=True):
+    def compute_metrics(
+        self, x, x_net, y, physics, logs, train=True, epoch: int = None
+    ):
         r"""
         Compute the metrics.
 
@@ -517,12 +530,20 @@ class Trainer:
         :param deepinv.physics.Physics physics: Current physics operator.
         :param dict logs: Dictionary containing the logs for printing the training progress.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
         :returns: The logs with the metrics.
         """
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
-                metric = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+                metric = l(
+                    x=x,
+                    x_net=x_net,
+                    y=y,
+                    physics=physics,
+                    model=self.model,
+                    epoch=epoch,
+                )
 
                 current_log = (
                     self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
@@ -596,13 +617,15 @@ class Trainer:
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            x_net, logs = self.compute_loss(physics_cur, x, y, train=train)
+            x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch)
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
 
             # Log metrics
-            logs = self.compute_metrics(x, x_net, y, physics_cur, logs, train=train)
+            logs = self.compute_metrics(
+                x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+            )
 
             # Update the progress bar
             progress_bar.set_postfix(logs)

@@ -30,6 +30,11 @@ New Features
 - Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
 - Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
 
+- Add wrapper classes for adapting models to take time-sequence 2D+t input (:gh:`296` by `Andrew Wang`_)
+- Add sequential MRI operator (:gh:`296` by `Andrew Wang`_)
+- Add multi-operator equivariant imaging loss (:gh:`296` by `Andrew Wang`_)
+- Add loss schedulers (:gh:`296` by `Andrew Wang`_)
+
 Fixed
 ^^^^^
 - Wandb logging (:gh:`280` by `Julian Tachella`_)
@@ -39,6 +44,7 @@ Fixed
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
+- Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^

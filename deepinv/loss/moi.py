@@ -53,7 +53,7 @@ class MOILoss(Loss):
         metric=torch.nn.MSELoss(),
         apply_noise=True,
         weight=1.0,
-        rng=torch.Generator(),
+        rng=None,
     ):
         super(MOILoss, self).__init__()
         self.name = "moi"
@@ -62,7 +62,7 @@ class MOILoss(Loss):
         self.metric = metric
         self.weight = weight
         self.noise = apply_noise
-        self.rng = rng
+        self.rng = rng if rng is not None else torch.Generator()
 
         if isinstance(self.physics, (list, tuple)):
             if self.physics_generator is not None:
