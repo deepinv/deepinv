@@ -2,49 +2,6 @@ import torch
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
-from typing import Callable
-
-
-def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
-    r"""
-    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
-
-
-    The generated function can be simply called as ``A_adjoint(y)``, for example:
-
-    >>> import torch
-    >>> from deepinv.physics.forward import adjoint_function
-    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
-    >>> x = torch.randn((4, 1, 5, 5))
-    >>> y = A(x)
-    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
-    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
-    True
-
-
-    :param callable A: linear operator :math:`A`.
-    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
-        The first dimension, i.e. batch size, should be equal or lower than the batch size B
-        of the input tensor to the adjoint operator.
-    :param str device: device where the adjoint operator is computed.
-    :return: (Callable) function that computes the adjoint of :math:`A`.
-
-    """
-    x = torch.ones(input_size, device=device, dtype=dtype)
-    (_, vjpfunc) = torch.func.vjp(A, x)
-    batches = x.size()[0]
-
-    def adjoint(y):
-        if y.size()[0] < batches:
-            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
-            y2[: y.size()[0], ...] = y
-            return vjpfunc(y2)[0][: y.size()[0], ...]
-        elif y.size()[0] > batches:
-            raise ValueError("Batch size of A_adjoint input is larger than expected")
-        else:
-            return vjpfunc(y)[0]
-
-    return adjoint
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -405,6 +362,30 @@ class LinearPhysics(Physics):
         """
         return self.A_adjoint(v)
 
+    def A_A_adjoint(self, y, **kwargs):
+        r"""
+        A helper function that computes :math:`A A^{\top}y`.
+
+        This function can speed up computation when :math:`A A^{\top}` is available in closed form.
+        Otherwise it just cals :meth:`deepinv.physics.LinearPhysics.A` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+
+        :param torch.Tensor y: measurement.
+        :return: (torch.Tensor) the product :math:`AA^{\top}y`.
+        """
+        return self.A(self.A_adjoint(y, **kwargs), **kwargs)
+
+    def A_adjoint_A(self, x, **kwargs):
+        r"""
+        A helper function that computes :math:`A^{\top}Ax`.
+
+        This function can speed up computation when :math:`A^{\top}A` is available in closed form.
+        Otherwise it just cals :meth:`deepinv.physics.LinearPhysics.A` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+
+        :param torch.Tensor x: signal/image.
+        :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
+        """
+        return self.A_adjoint(self.A(x, **kwargs), **kwargs)
+
     def __mul__(self, other):
         r"""
         Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
@@ -565,7 +546,7 @@ class LinearPhysics(Physics):
 
         """
         b = self.A_adjoint(y, **kwargs) + 1 / gamma * z
-        H = lambda x: self.A_adjoint(self.A(x, **kwargs), **kwargs) + 1 / gamma * x
+        H = lambda x: self.A_adjoint_A(x, **kwargs) + 1 / gamma * x
         x = conjugate_gradient(H, b, self.max_iter, self.tol)
         return x
 
@@ -589,7 +570,7 @@ class LinearPhysics(Physics):
         overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
 
         if not overcomplete:
-            A = lambda x: self.A(self.A_adjoint(x))
+            A = lambda x: self.A_A_adjoint(x)
             b = y
         else:
             A = lambda x: self.A_adjoint(self.A(x))
@@ -706,6 +687,30 @@ class DecomposablePhysics(LinearPhysics):
 
         return self.V(mask * self.U_adjoint(y))
 
+    def A_A_adjoint(self, y, mask=None, **kwargs):
+        r"""
+        A helper function that computes :math:`A A^{\top}y`.
+
+        Using the SVD decomposition, we have :math:`A A^{\top} = U\text{diag}(s^2)U^{\top}`.
+
+        :param torch.Tensor y: measurement.
+        :return: (torch.Tensor) the product :math:`AA^{\top}y`.
+        """
+        self.update_parameters(mask=mask, **kwargs)
+        return self.U(self.mask * self.mask * self.U_adjoint(y))
+
+    def A_adjoint_A(self, x, mask=None, **kwargs):
+        r"""
+        A helper function that computes :math:`A^{\top} A x`.
+
+        Using the SVD decomposition, we have :math:`A^{\top}A = V\text{diag}(s^2)V^{\top}`.
+
+        :param torch.Tensor x: signal/image.
+        :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
+        """
+        self.update_parameters(mask=mask, **kwargs)
+        return self.V(self.mask * self.mask * self.V_adjoint(x))
+
     def U(self, x):
         return self._U(x)
 
@@ -798,3 +803,45 @@ class Denoising(DecomposablePhysics):
 
     def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
         super().__init__(noise_model=noise_model, **kwargs)
+
+
+def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
+    r"""
+    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.
+
+
+    The generated function can be simply called as ``A_adjoint(y)``, for example:
+
+    >>> import torch
+    >>> from deepinv.physics.forward import adjoint_function
+    >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel
+    >>> x = torch.randn((4, 1, 5, 5))
+    >>> y = A(x)
+    >>> A_adjoint = adjoint_function(A, (4, 1, 5, 5))
+    >>> torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x
+    True
+
+
+    :param callable A: linear operator :math:`A`.
+    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
+        The first dimension, i.e. batch size, should be equal or lower than the batch size B
+        of the input tensor to the adjoint operator.
+    :param str device: device where the adjoint operator is computed.
+    :return: (Callable) function that computes the adjoint of :math:`A`.
+
+    """
+    x = torch.ones(input_size, device=device, dtype=dtype)
+    (_, vjpfunc) = torch.func.vjp(A, x)
+    batches = x.size()[0]
+
+    def adjoint(y):
+        if y.size()[0] < batches:
+            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
+            y2[: y.size()[0], ...] = y
+            return vjpfunc(y2)[0][: y.size()[0], ...]
+        elif y.size()[0] > batches:
+            raise ValueError("Batch size of A_adjoint input is larger than expected")
+        else:
+            return vjpfunc(y)[0]
+
+    return adjoint

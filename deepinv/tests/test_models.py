@@ -542,6 +542,19 @@ def test_optional_dependencies(denoiser, dep):
         klass()
 
 
+def test_icnn(device):
+    from deepinv.models import ICNN
+
+    model = ICNN(in_channels=3, device=device)
+    torch.manual_seed(0)
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+    x = torch.ones((1, 3, 128, 128), device=device)
+    y = physics(x)
+    potential = model(y)
+    grad = model.grad(y)
+    assert grad.shape == x.shape
+
+
 # def test_dip(imsize, device): TODO: fix this test
 #     torch.manual_seed(0)
 #     channels = 64
@@ -560,3 +573,11 @@ def test_optional_dependencies(denoiser, dep):
 #     mse_out = (x_net - x).pow(2).mean()
 #
 #     assert mse_out < mse_in
+
+
+def test_time_agnostic_net():
+    backbone_net = dinv.models.UNet(scales=2)
+    net = dinv.models.TimeAgnosticNet(backbone_net)
+    y = torch.rand(1, 1, 2, 4, 4)  # B,C,T,H,W
+    x_net = net(y, None)
+    assert x_net.shape == y.shape

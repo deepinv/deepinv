@@ -31,7 +31,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 physics1 = dinv.physics.Downsampling(
     img_size=img_size, factor=factor, filter=filter, device=device
 )
-physics2 = dinv.physics.Decolorize()
+physics2 = dinv.physics.Decolorize(device=device)
 physics_stacked = physics2 + physics1
 
 # %%

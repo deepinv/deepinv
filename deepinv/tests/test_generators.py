@@ -22,14 +22,20 @@ SIZES = [(5, 5), (6, 6)]
 NUM_CHANNELS = [1, 3]
 
 
+# MRI Generators
 C, T, H, W = 2, 12, 256, 512
 MRI_GENERATORS = ["gaussian", "random", "uniform"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
 
-INPAINTING_GENERATORS = ["bernoulli"]
-INPAINTING_IMG_SIZES = [(1, 64, 64), (1, 28, 31)]
+# Inpainting/Splitting Generators
+INPAINTING_IMG_SIZES = [
+    (2, 64, 40),
+    (2, 1000),
+    (2, 3, 64, 40),
+]  # (C,H,W), (C,M), (C,T,H,W)
+INPAINTING_GENERATORS = ["bernoulli", "gaussian"]
 
 
 def find_generator(name, size, num_channels, device):
@@ -214,39 +220,39 @@ def test_generation(name, device):
                     [
                         [
                             [
-                                0.0113882571,
-                                0.0531018935,
-                                0.0675100237,
-                                0.0303402841,
-                                0.0033624785,
+                                0.0081667975,
+                                0.0339039154,
+                                0.0463643819,
+                                0.0238370951,
+                                0.0067134043,
                             ],
                             [
-                                0.0285054874,
-                                0.1004439145,
-                                0.1303785592,
-                                0.0716396421,
-                                0.0116784973,
+                                0.0235104840,
+                                0.0769919083,
+                                0.1068268567,
+                                0.0638824701,
+                                0.0154726375,
                             ],
                             [
-                                0.0275844987,
-                                0.0919832960,
-                                0.1246952936,
-                                0.0736453235,
-                                0.0134703806,
+                                0.0315882340,
+                                0.0922789276,
+                                0.1303794235,
+                                0.0824520364,
+                                0.0192645062,
                             ],
                             [
-                                0.0105234124,
-                                0.0374408774,
-                                0.0568509996,
-                                0.0335799791,
-                                0.0042723534,
+                                0.0210407600,
+                                0.0526346825,
+                                0.0764168128,
+                                0.0469734631,
+                                0.0075026853,
                             ],
                             [
-                                0.0024160261,
-                                0.0023811366,
-                                0.0076419995,
-                                0.0046625556,
-                                0.0005027915,
+                                0.0074746846,
+                                0.0069856029,
+                                0.0118351672,
+                                0.0068998244,
+                                0.0006031910,
                             ],
                         ]
                     ]
@@ -258,39 +264,39 @@ def test_generation(name, device):
                     [
                         [
                             [
-                                0.0095238974,
-                                0.0175499711,
-                                0.0286177993,
-                                0.0064900601,
-                                0.0026435892,
+                                0.0032691115,
+                                0.0060402630,
+                                0.0175693501,
+                                0.0059448336,
+                                0.0007023035,
                             ],
                             [
-                                0.0238581896,
-                                0.0537733063,
-                                0.0513569079,
-                                0.0185344294,
-                                0.0124229826,
+                                0.0095862420,
+                                0.0427204743,
+                                0.0728377998,
+                                0.0452912413,
+                                0.0118838884,
                             ],
                             [
-                                0.0368810110,
-                                0.0751009807,
-                                0.0805081055,
-                                0.0695058778,
-                                0.0502106547,
+                                0.0251656137,
+                                0.0764198229,
+                                0.1213025227,
+                                0.0953904763,
+                                0.0436460413,
                             ],
                             [
-                                0.0210823547,
-                                0.0472785048,
-                                0.0740763769,
-                                0.0966628939,
-                                0.0694876462,
+                                0.0162273813,
+                                0.0507672094,
+                                0.0916804373,
+                                0.0891042799,
+                                0.0563216321,
                             ],
                             [
-                                0.0038343454,
-                                0.0082935337,
-                                0.0336939581,
-                                0.0635016710,
-                                0.0451108776,
+                                0.0018812985,
+                                0.0099059129,
+                                0.0294828881,
+                                0.0403944701,
+                                0.0364645906,
                             ],
                         ]
                     ]
@@ -307,7 +313,9 @@ def test_generation(name, device):
     assert torch.allclose(w, wref, atol=1e-6)
 
 
-### MRI GENERATORS
+######################
+### MRI GENERATORS ###
+######################
 
 
 @pytest.fixture
@@ -372,10 +380,9 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
         assert not torch.allclose(mask, mask2)
 
 
-### INPAINTING GENERATORS
-
-INPAINTING_IMG_SIZES = [(2, 64, 40), (2, 1000)]  # (C,H,W), (C,M)
-INPAINTING_GENERATORS = ["bernoulli"]
+#############################
+### INPAINTING GENERATORS ###
+#############################
 
 
 def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
@@ -387,6 +394,14 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
             pixelwise=pixelwise,
             rng=torch.Generator().manual_seed(0),
         )
+    elif name == "gaussian":
+        return dinv.physics.generator.GaussianSplittingMaskGenerator(
+            tensor_size=img_size,
+            split_ratio=split_ratio,
+            device=device,
+            pixelwise=pixelwise,
+            rng=np.random.default_rng(0),
+        )
     else:
         raise Exception("The generator chosen doesn't exist")
 
@@ -394,10 +409,15 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("generator_name", INPAINTING_GENERATORS)
 @pytest.mark.parametrize("img_size", INPAINTING_IMG_SIZES)
 @pytest.mark.parametrize("pixelwise", (False, True))
-def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, device):
-    # TODO test more different img_sizes + input_mask shapes for mask3
-    # TODO test pixelwise produces expected result
-    split_ratio = 0.5
+@pytest.mark.parametrize("split_ratio", (0.5,))
+def test_inpainting_generators(
+    generator_name, batch_size, img_size, pixelwise, split_ratio, device
+):
+    if generator_name == "gaussian" and len(img_size) < 3:
+        pytest.skip(
+            "Gaussian splitting mask not valid for images of shape smaller than (C, H, W)"
+        )
+
     gen = choose_inpainting_generator(
         generator_name, img_size, split_ratio, pixelwise, device
     )  # Assume generator always receives "correct" img_size i.e. not one with dims missing
@@ -410,14 +430,16 @@ def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, 
             atol=1e-2,
         )
 
+    def correct_pixelwise(mask):
+        if pixelwise:
+            assert torch.all(mask[:, 0, ...] == mask[:, 1, ...])
+        else:
+            assert not torch.all(mask[:, 0, ...] == mask[:, 1, ...])
+
     # Standard generate mask
     mask1 = gen.step(batch_size=batch_size)["mask"]
     correct_ratio(mask1.sum() / np.prod((batch_size, *img_size)))
-
-    if pixelwise:
-        assert torch.all(mask1[:, 0, ...] == mask1[:, 1, ...])
-    else:
-        assert not torch.all(mask1[:, 0, ...] == mask1[:, 1, ...])
+    correct_pixelwise(mask1)
 
     # Standard without batch dim
     mask1 = gen.step(batch_size=None)["mask"]
@@ -426,15 +448,10 @@ def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, 
 
     # Standard mask but by passing flat input_mask of ones
     input_mask = torch.ones(batch_size, *img_size)
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)[
-        "mask"
-    ]  # should ignore batch_size
+    # should ignore batch_size
+    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
     correct_ratio(mask2.sum() / input_mask.sum())
-
-    if pixelwise:
-        assert torch.all(mask2[:, 0, ...] == mask2[:, 1, ...])
-    else:
-        assert not torch.all(mask2[:, 0, ...] == mask2[:, 1, ...])
+    correct_pixelwise(mask2)
 
     # As above but with no batch dimension in input_mask
     input_mask = torch.ones(*img_size)
@@ -450,11 +467,7 @@ def test_inpainting_generators(generator_name, batch_size, img_size, pixelwise, 
 
     # Generate splitting mask from already subsampled mask
     input_mask = torch.zeros(batch_size, *img_size)
-    input_mask[:, :, 10:20, ...] = 1
+    input_mask[..., 10:20] = 1
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
     correct_ratio(mask3.sum() / input_mask.sum())
-
-    if pixelwise:
-        assert torch.all(mask3[:, 0, ...] == mask3[:, 1, ...])
-    else:
-        assert not torch.all(mask3[:, 0, ...] == mask3[:, 1, ...])
+    correct_pixelwise(mask3)

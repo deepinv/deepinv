@@ -65,6 +65,70 @@ def torch2cpu(img):
     )
 
 
+def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
+    r"""
+    Prepare the images for plotting.
+
+    It prepares the images for plotting by rescaling them and concatenating them in a grid.
+
+    :param torch.Tensor x: Ground truth.
+    :param torch.Tensor y: Measurement.
+    :param torch.Tensor x_net: Reconstruction network output.
+    :param torch.Tensor x_nl: No-learning reconstruction.
+    :returns: The images, the titles, the grid image, and the caption.
+    """
+    with torch.no_grad():
+        imgs = [x]
+        titles = ["Ground truth"]
+        caption = "From left to right: Ground truth, "
+        if y.shape == x.shape:
+            imgs.append(y)
+            titles.append("Measurement")
+            caption += "Measurement, "
+
+        if x_nl is not None:
+            imgs.append(x_nl)
+            titles.append("No learning")
+            caption += "No learning, "
+
+        imgs.append(x_net)
+        titles.append("Reconstruction")
+        caption += "Reconstruction"
+
+        vis_array = torch.cat(imgs, dim=0)
+        for i in range(len(vis_array)):
+            vis_array[i] = rescale_img(vis_array[i], rescale_mode=rescale_mode)
+        grid_image = make_grid(vis_array, nrow=y.shape[0])
+
+    for k in range(len(imgs)):
+        imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
+
+    return imgs, titles, grid_image, caption
+
+
+def preprocess_img(im, rescale_mode="min_max"):
+    r"""
+    Preprocesses an image tensor for plotting.
+
+    :param torch.Tensor im: the image to preprocess.
+    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
+    :return: the preprocessed image.
+    """
+    with torch.no_grad():
+        if im.shape[1] == 2:  # for complex images
+            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
+        elif im.shape[1] > 3:
+            pimg = im.type(torch.float32)
+        else:
+            if torch.is_complex(im):
+                pimg = im.abs().type(torch.float32)
+            else:
+                pimg = im.type(torch.float32)
+
+        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+    return pimg
+
+
 def tensor2uint(img):
     img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
     if img.ndim == 3:
@@ -77,10 +141,25 @@ def numpy2uint(img):
     return np.uint8((img * 255.0).round())
 
 
-def rescale_img(img, rescale_mode="min_max"):
+def rescale_img(im, rescale_mode="min_max"):
+    r"""
+    Rescale an image tensor.
+
+    :param torch.Tensor im: the image to rescale.
+    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
+    :return: the rescaled image.
+    """
+    img = im.clone()
     if rescale_mode == "min_max":
-        if img.max() != img.min():
-            img = (img - img.min()) / (img.max() - img.min())
+        shape = img.shape
+        img = img.reshape(shape[0], -1)
+        mini = img.min(1)[0]
+        maxi = img.max(1)[0]
+        idx = mini < maxi
+        mini = mini[idx].unsqueeze(1)
+        maxi = maxi[idx].unsqueeze(1)
+        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
+        img = img.reshape(shape)
     elif rescale_mode == "clip":
         img = img.clamp(min=0.0, max=1.0)
     else:
@@ -165,25 +244,11 @@ def plot(
     imgs = []
     for im in img_list:
         col_imgs = []
+        im = preprocess_img(im, rescale_mode=rescale_mode)
         for i in range(min(im.shape[0], max_imgs)):
-            if im.shape[1] == 2:  # for complex images
-                pimg = (
-                    im[i, :, :, :]
-                    .pow(2)
-                    .sum(dim=0)
-                    .sqrt()
-                    .unsqueeze(0)
-                    .type(torch.float32)
-                )
-            elif im.shape[1] > 3:
-                pimg = im[i, 0:3, :, :].type(torch.float32)
-            else:
-                if torch.is_complex(im):
-                    pimg = im[i, :, :, :].abs().type(torch.float32)
-                else:
-                    pimg = im[i, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-            col_imgs.append(pimg.detach().permute(1, 2, 0).squeeze().cpu().numpy())
+            col_imgs.append(
+                im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
+            )
         imgs.append(col_imgs)
 
     if figsize is None:
@@ -218,12 +283,12 @@ def plot(
         else:
             plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
-        plt.savefig(save_dir / "images.png", dpi=1200)
+        plt.savefig(save_dir / "images.svg", dpi=1200)
+        save_dir_i = Path(save_dir) / Path(titles[i])
+        save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
             for r, img in enumerate(row_imgs):
-                plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
-                )
+                plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
 
@@ -278,10 +343,6 @@ def scatter_plot(
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
-    if save_dir:
-        save_dir = Path(save_dir)
-        save_dir.mkdir(parents=True, exist_ok=True)
-
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
 
@@ -317,12 +378,13 @@ def scatter_plot(
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
+
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
+            save_dir_i = Path(save_dir) / Path(titles[i])
+            save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_scatter):
-                plt.imsave(
-                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
-                )
+                plt.imsave(save_dir_i / Path(str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
 
@@ -611,6 +673,7 @@ def plot_videos(
     figsize: Tuple[int] = None,
     save_fn: str = None,
     return_anim: bool = False,
+    figsize=None,
     anim_writer: str = None,
     **anim_kwargs,
 ):
@@ -646,6 +709,7 @@ def plot_videos(
     :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
+    :param tuple[int] figsize: size of the figure.
     :param \**anim_kwargs: keyword args for matplotlib FuncAnimation init
     """
     if isinstance(vid_list, torch.Tensor):
@@ -692,3 +756,169 @@ def plot_videos(
             return HTML(anim.to_jshtml())
         except ImportError:
             warn("IPython can't be found. Install it to use display=True. Skipping...")
+
+
+def plot_ortho3D(
+    img_list,
+    titles=None,
+    save_dir=None,
+    tight=True,
+    max_imgs=4,
+    rescale_mode="min_max",
+    show=True,
+    return_fig=False,
+    figsize=None,
+    suptitle=None,
+    cmap="gray",
+    fontsize=17,
+    interpolation="nearest",
+):
+    r"""
+    Plots an orthogonal view of 3D images.
+
+    The images should be of shape [B, C, D, H, W] or [C, D, H, W], where B is the batch size, C is the number of channels,
+    D is the depth, H is the height and W is the width. The images are plotted in a grid, where the number of rows is B
+    and the number of columns is the length of the list. If the B is bigger than max_imgs, only the first
+    batches are plotted.
+
+    .. warning::
+
+        If the number of channels is 2, the magnitude of the complex images is plotted.
+        If the number of channels is bigger than 3, only the first 3 channels are plotted.
+
+    Example usage:
+
+    .. doctest::
+
+        import torch
+        from deepinv.utils import plot_ortho3D
+        img = torch.rand(2, 3, 8, 16, 16)
+        plot_ortho3D(img)
+
+    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
+    :param list[str] titles: list of titles for each image, has to be same length as img_list.
+    :param None, str, Path save_dir: path to save the plot.
+    :param bool tight: use tight layout.
+    :param int max_imgs: maximum number of images to plot.
+    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param bool show: show the image plot.
+    :param bool return_fig: return the figure object.
+    :param tuple[int] figsize: size of the figure.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
+    :param int fontsize: fontsize for the titles. Default: 17
+    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    """
+    # Use the matplotlib config from deepinv
+    config_matplotlib(fontsize=fontsize)
+
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(img_list, torch.Tensor):
+        img_list = [img_list]
+
+    for i, img in enumerate(img_list):
+        if len(img.shape) == 3:
+            img_list[i] = img.unsqueeze(0)
+
+    if isinstance(titles, str):
+        titles = [titles]
+
+    imgs = []
+    for im in img_list:
+        col_imgs = []
+        for i in range(min(im.shape[0], max_imgs)):
+            if im.shape[1] == 2:  # for complex images
+                pimg = (
+                    im[i, :, :, :]
+                    .pow(2)
+                    .sum(dim=0)
+                    .sqrt()
+                    .unsqueeze(0)
+                    .type(torch.float32)
+                )
+            elif im.shape[1] > 3:
+                pimg = im[i, 0:3, :, :, :].type(torch.float32)
+            else:
+                if torch.is_complex(im):
+                    pimg = im[i, :, :, :, :].abs().type(torch.float32)
+                else:
+                    pimg = im[i, :, :, :, :].type(torch.float32)
+            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+            col_imgs.append(pimg.detach().permute(1, 2, 3, 0).cpu().numpy())
+        imgs.append(col_imgs)
+
+    if figsize is None:
+        figsize = (3 * len(imgs), 3 * len(imgs[0]))
+
+    split_ratios = np.zeros((len(imgs), len(imgs[0])))
+    for icol in range(len(imgs)):
+        for jrow in range(len(imgs[0])):
+            split_ratios[icol, jrow] = np.max(
+                [
+                    imgs[icol][jrow].shape[0] / imgs[icol][jrow].shape[1],
+                    imgs[icol][jrow].shape[0] / imgs[icol][jrow].shape[2],
+                ]
+            )
+
+    fig, axs = plt.subplots(
+        len(imgs[0]),
+        len(imgs),
+        figsize=figsize,
+        squeeze=False,
+    )
+
+    if suptitle:
+        plt.suptitle(suptitle)
+        fig.subplots_adjust(top=0.75)
+
+    for i, row_imgs in enumerate(imgs):
+        for r, img in enumerate(row_imgs):
+
+            img = img**0.5
+
+            ax_XY = axs[r, i]
+            ax_XY.imshow(
+                img[img.shape[0] // 2] ** 0.5, cmap=cmap, interpolation=interpolation
+            )
+            # ax_XY.set_aspect(1.)
+            divider = make_axes_locatable(ax_XY)
+            ax_XZ = divider.append_axes(
+                "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY
+            )  # pad=1.0*split_ratios[i, r], sharex=ax_XY)
+            ax_XZ.imshow(
+                img[:, img.shape[1] // 2, :] ** 0.5,
+                cmap=cmap,
+                interpolation=interpolation,
+            )
+            ax_ZY = divider.append_axes(
+                "right", 3 * 0.5 * split_ratios[i, r], sharey=ax_XY
+            )  # pad=1.0*split_ratios[i, r]
+            ax_ZY.imshow(
+                np.moveaxis(img[:, :, img.shape[2] // 2] ** 0.5, (0, 1, 2), (1, 0, 2)),
+                cmap=cmap,
+                interpolation=interpolation,
+            )
+
+            if titles and r == 0:
+                axs[r, i].set_title(titles[i])
+            ax_XY.axis("off")
+            ax_XZ.axis("off")
+            ax_ZY.axis("off")
+
+    if tight:
+        plt.subplots_adjust(hspace=0.05, wspace=0.05)
+    if save_dir:
+        plt.savefig(save_dir / "images.png", dpi=600)
+        for i, row_imgs in enumerate(imgs):
+            for r, img in enumerate(row_imgs):
+                plt.imsave(
+                    save_dir / (titles[i] + "_" + str(r) + ".png"), img, cmap=cmap
+                )
+    if show:
+        plt.show()
+
+    if return_fig:
+        return fig
