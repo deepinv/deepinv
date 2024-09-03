@@ -96,7 +96,7 @@ class Transform(torch.nn.Module):
         To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``Param`` class: ``p = Param(p, neg=lambda x: 1/x)``
 
         :param torch.Tensor x: input image
-        :return dict: keyword args of transform parameters e.g. {'theta': 30}
+        :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
         """
         return NotImplementedError()
 
