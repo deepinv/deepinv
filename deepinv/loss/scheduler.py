@@ -4,6 +4,7 @@ from torch.nn import Module
 from deepinv.loss.loss import Loss
 from deepinv.physics.forward import Physics
 
+
 class BaseLossScheduler(Loss):
     r"""
     Base class for loss schedulers.
