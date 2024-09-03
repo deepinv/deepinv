@@ -303,7 +303,7 @@ def test_loss_scheduler(scheduler_name):
     if scheduler_name == "random":
         l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
     elif scheduler_name == "interleaved":
-        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
+        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
 
     # Loss scheduler adapts all inside losses
     l.adapt_model(None)
