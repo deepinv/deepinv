@@ -67,9 +67,9 @@ class Transform(torch.nn.Module):
         >>> transform(x).shape
         torch.Size([1, 1, 2, 2])
 
-        Symmetrize a function for Reynolds Averaging:
+        Symmetrize a function by averaging over the group (also known as Reynolds averaging):
 
-        >>> f = lambda x: x.pow(2) # Function to be symmetrized
+        >>> f = lambda x: x[..., 0]*x # Function to be symmetrized
         >>> f_s = rotoshift.symmetrize(f)
         >>> f_s(x).shape
         torch.Size([1, 1, 2, 2])
@@ -162,7 +162,7 @@ class Transform(torch.nn.Module):
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         """Symmetrise a function with a transform and its inverse.
 
-        Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, return the function :math:`T_g^{-1} f(T_g \cdot)`
+        Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 
         This is useful for e.g. Reynolds averaging a function over a group.
 

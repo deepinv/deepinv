@@ -81,8 +81,8 @@ class Scale(Transform):
         """Scale image given scale parameters.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param torch.Tensor, list factor: iterable of scale factors to be used, one per n_trans*batch_size.
-        :param torch.Tensor, list center: iterable of scale centers, one per n_trans*batch_size.
+        :param torch.Tensor, list factor: iterable of scale factors to be used, one per ``n_trans*batch_size``.
+        :param torch.Tensor, list center: iterable of scale centers, one per ``n_trans*batch_size``.
         :return: torch.Tensor: scaled image.
         """
         # Prepare for multiple transforms

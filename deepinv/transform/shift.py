@@ -59,8 +59,8 @@ class Shift(Transform):
         """Shift image given shift parameters.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param torch.Tensor, list x_shift: iterable of shifts in x direction, one per n_trans.
-        :param torch.Tensor, list y_shift: iterable of shifts in y direction, one per n_trans.
+        :param torch.Tensor, list x_shift: iterable of shifts in x direction, one per ``n_trans``.
+        :param torch.Tensor, list y_shift: iterable of shifts in y direction, one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
         return torch.cat(

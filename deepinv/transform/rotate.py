@@ -10,7 +10,7 @@ class Rotate(Transform):
     r"""
     2D Rotations.
 
-    Generates n_trans randomly rotated versions of 2D images with zero padding.
+    Generates ``n_trans`` randomly rotated versions of 2D images with zero padding.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 
@@ -55,7 +55,7 @@ class Rotate(Transform):
         """Rotate image given thetas.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param torch.Tensor, list x_shift: iterable of rotation angles (degrees), one per n_trans.
+        :param torch.Tensor, list x_shift: iterable of rotation angles (degrees), one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
         return torch.cat(
