@@ -336,8 +336,8 @@ class Phase2PhaseLoss(SplittingLoss):
     .. note::
 
         Phase2Phase can be used to reconstruct video sequences by setting ``dynamic_model=True`` and using physics :class:`deepinv.physics.DynamicMRI`.
-        It can also be used to reconstructs **static** images (as in the original paper), where the underlying k-space data is a time-sequence,
-        where each time step (phase) consists of sampled spokes such that the whole measurement is a sequence of non-overlapping spokes.
+        It can also be used to reconstructs **static** images, where the k-space measurements is a time-sequence,
+        where each time step (phase) consists of sampled spokes such that the whole measurement is a set of non-overlapping spokes.
         To do this, set ``dynamic_model=False`` and use physics :class:`deepinv.physics.SequentialMRI`. See below for example or :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` for full MRI example.
 
 
@@ -519,8 +519,8 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     .. note::
 
         Artifact2Artifact can be used to reconstruct video sequences by setting ``dynamic_model=True`` and using physics :class:`deepinv.physics.DynamicMRI`.
-        It can also be used to reconstructs **static** images (as in the original paper), where the underlying k-space data is a time-sequence,
-        where each time step (phase) consists of sampled spokes such that the whole measurement is a sequence of non-overlapping spokes.
+        It can also be used to reconstructs **static** images, where the k-space measurements is a time-sequence,
+        where each time step (phase) consists of sampled spokes such that the whole measurement is a set of non-overlapping spokes.
         To do this, set ``dynamic_model=False`` and use physics :class:`deepinv.physics.SequentialMRI`. See below for example or :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` for full MRI example.
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
