@@ -76,37 +76,34 @@ class LPIPS(Loss):
         return (1 - loss) if self.train else loss
 
 
-class SSIM(Loss):
-
-    def __init__(self, multiscale=False, train=False, device="cpu"):
-        super().__init__()
-        check_pyiqa()
-        if multiscale:
-            self.metric = pyiqa.create_metric("ms-ssim").to(device)
-        else:
-            self.metric = pyiqa.create_metric("ssim").to(device)
-        self.train = train
-
-    def forward(self, x, x_net, **kwargs):
-        r"""
-        Computes the SSIM metric.
-
-        :param torch.Tensor x: reference image.
-        :param torch.Tensor x_net: reconstructed image.
-        :return: torch.Tensor size (batch_size,).
-        """
-        loss = self.metric(x, x_net)
-        return (1 - loss) if self.train else loss
-
-
 class MSE(Loss):
+    r"""
+    Mean Squared Error metric.
+    """
+
     def forward(self, x_net, x, **kwargs):
         return cal_mse(x_net, x)
 
 
 class NMSE(MSE):
+    r"""
+    Normalised Mean Squared Error metric.
+
+    Normalises MSE by the L2 norm of the ground truth ``x``.
+
+    TODO add various other normalisation methods from torchmetrics. See https://github.com/Lightning-AI/torchmetrics/pull/2442
+    """
+
+    def __init__(self, method="l2"):
+        super().__init__()
+        self.method = method
+        if self.method not in ("l2",):
+            raise ValueError("method must be l2.")
+
     def forward(self, x_net, x, **kwargs):
-        return cal_mse(x_net, x) / cal_mse(x, 0)
+        if self.method == "l2":
+            norm = cal_mse(x, 0)
+        return cal_mse(x_net, x) / norm
 
 
 class SSIM(Loss):
@@ -115,24 +112,31 @@ class SSIM(Loss):
 
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
+    To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
+
     :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param \**torchmetric_kwargs: kwargs for torchmetrics SSIM. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
     """
 
-    def __init__(self, train=False, multiscale=False, **torchmetric_kwargs):
+    def __init__(
+        self, train=False, multiscale=False, max_pixel=1.0, **torchmetric_kwargs
+    ):
         super().__init__()
         self.train = train
         self.multiscale = multiscale
         self.torchmetric_kwargs = torchmetric_kwargs
+        self.max_pixel = max_pixel
 
-    def forward(self, x_net, x, *args, data_range=1.0, **kwargs):
+    def forward(self, x_net, x, *args, **kwargs):
         ssim = (
             multiscale_structural_similarity_index_measure
             if self.multiscale
             else structural_similarity_index_measure
         )
-        m = ssim(x_net, x, data_range=data_range, **self.torchmetric_kwargs)
+        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
+        m = ssim(x_net, x, data_range=max_pixel, **self.torchmetric_kwargs)
         return (1 - m) if self.train else m
 
 
@@ -148,7 +152,9 @@ class PSNR(Loss):
     where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
     normalized image), and :math:`a` and :math:`b` are the estimate and reference images.
 
-    :param float max_pixel: maximum pixel value
+    To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
+
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
     """
 
@@ -165,9 +171,21 @@ class PSNR(Loss):
         :param torch.Tensor x_net: reconstructed image.
         :return: torch.Tensor size (batch_size,).
         """
+        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
         return cal_psnr(
-            x_net, x, self.max_pixel, self.normalize, mean_batch=False, to_numpy=False
+            x_net, x, max_pixel, self.normalize, mean_batch=False, to_numpy=False
         )
+
+
+class MaxPixelPSNR(PSNR):
+    def forward(self, x_net, x, **kwargs):
+        self.max_pixel = x.max()
+        return super().forward(x_net, x)
+
+
+class MaxPixelSSIM(SSIM):
+    def forward(self, x_net, x, **kwargs):
+        return super().forward(x_net=x_net, x=x, data_range=x.max())
 
 
 class LpNorm(torch.nn.Module):
