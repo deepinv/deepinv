@@ -11,6 +11,19 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Fixed
+^^^^^
+
+Changed
+^^^^^^^
+
+
+v0.2.1
+----------------
+
+New Features
+^^^^^^^^^^^^
 - Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
 - Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
 - Add sinc filter (:gh:`280` by `Julian Tachella`_)
