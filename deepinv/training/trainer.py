@@ -42,7 +42,7 @@ class Trainer:
     ::
 
         class CustomTrainer(Trainer):
-            def compute_loss(self, physics, x, y, train=True):
+            def compute_loss(self, physics, x, y, train=True, epoch: int = None):
                 logs = {}
 
                 self.optimizer.zero_grad() # Zero the gradients
@@ -53,7 +53,7 @@ class Trainer:
                 # Compute the losses
                 loss_total = 0
                 for k, l in enumerate(self.losses):
-                    loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model)
+                    loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model, epoch=epoch)
                     loss_total += loss.mean()
 
                 metric = self.logs_total_loss_train if train else self.logs_total_loss_eval
