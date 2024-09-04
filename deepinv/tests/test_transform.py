@@ -2,6 +2,8 @@ import pytest
 import deepinv as dinv
 import torch
 
+ADD_TIME_DIM = [True, False]
+
 TRANSFORMS = [
     "shift",
     "rotate",
@@ -138,8 +140,11 @@ def check_correct_pattern(x, x_t, pattern_offset):
 
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
-def test_transforms(transform_name, image):
+@pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
+def test_transforms(transform_name, image, add_time_dim: bool):
     transform = choose_transform(transform_name)
+    if add_time_dim:
+        image = torch.stack((image, image), dim=2)
     image_t = transform(image)
 
     # Check if any constituent part of transform is a stacking
@@ -154,7 +159,12 @@ def test_transforms(transform_name, image):
 
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
-def test_transform_identity(transform_name, pattern, pattern_offset):
+@pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
+def test_transform_identity(
+    transform_name, pattern, pattern_offset, add_time_dim: bool
+):
+    if add_time_dim:
+        pattern = torch.stack((pattern, pattern), dim=2)
     t = choose_transform(transform_name)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     assert check_correct_pattern(

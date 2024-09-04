@@ -17,8 +17,8 @@ They can also be used for equivariant imaging (EI) using the :class:`deepinv.los
 See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` and :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` for examples.
 
 If needed, transforms can also be made deterministic by passing in specified parameters to the forward method.
-
-Transforms can also be seamlessly integrated with existing ``torchvision`` transforms. 
+Transforms can also be seamlessly integrated with existing ``torchvision`` transforms.
+Transforms can also accept video (5D) input.
 
 .. autosummary::
    :toctree: stubs
@@ -40,6 +40,8 @@ For example, random transforms can be used as follows:
     >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1]) # Deterministic transform
     >>> torch.all(x == y)
     tensor(True)
+    >>> transform(torch.rand((1, 1, 3, 2, 2))).shape # Accepts video input of shape (B,C,T,H,W)
+    torch.Size([1, 1, 3, 2, 2])
     >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
     >>> transform(x).shape
     torch.Size([2, 1, 2, 2])

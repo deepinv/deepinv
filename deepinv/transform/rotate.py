@@ -41,7 +41,7 @@ class Rotate(Transform):
         self.positive = positive
         self.interpolation_mode = interpolation_mode
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate rotation parameters.
 
         :param torch.Tensor x: input image
@@ -54,7 +54,7 @@ class Rotate(Transform):
         theta = theta[: self.n_trans]
         return {"theta": theta}
 
-    def transform(
+    def _transform(
         self,
         x: torch.Tensor,
         theta: Union[torch.Tensor, Iterable, TransformParam] = [],

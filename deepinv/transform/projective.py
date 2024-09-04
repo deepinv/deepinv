@@ -223,7 +223,7 @@ class Homography(Transform):
             mini = -maxi
         return (mini - maxi) * torch.rand(self.n_trans, generator=self.rng) + maxi
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         H, W = x.shape[-2:]
 
         Reciprocal = lambda p: TransformParam(p, neg=lambda x: 1 / x)
@@ -240,7 +240,7 @@ class Homography(Transform):
             "stretch_y": Reciprocal(self.rand(1, self.y_stretch_factor_min)),
         }
 
-    def transform(
+    def _transform(
         self,
         x: torch.Tensor,
         theta_x: Union[torch.Tensor, Iterable, TransformParam] = [],
@@ -320,9 +320,9 @@ class Affine(Homography):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.theta_max = 0
-        return super().get_params(x)
+        return super()._get_params(x)
 
 
 class Similarity(Homography):
@@ -355,10 +355,10 @@ class Similarity(Homography):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.theta_max = self.skew_max = 0
         self.x_stretch_factor_min = self.y_stretch_factor_min = 1
-        return super().get_params(x)
+        return super()._get_params(x)
 
 
 class Euclidean(Homography):
@@ -390,10 +390,10 @@ class Euclidean(Homography):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.theta_max = self.skew_max = 0
         self.zoom_factor_min = self.x_stretch_factor_min = self.y_stretch_factor_min = 1
-        return super().get_params(x)
+        return super()._get_params(x)
 
 
 class PanTiltRotate(Homography):
@@ -430,7 +430,7 @@ class PanTiltRotate(Homography):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.shift_max = self.skew_max = 0
         self.zoom_factor_min = self.x_stretch_factor_min = self.y_stretch_factor_min = 1
-        return super().get_params(x)
+        return super()._get_params(x)

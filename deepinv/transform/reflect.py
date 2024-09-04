@@ -30,7 +30,7 @@ class Reflect(Transform):
         super().__init__(*args, **kwargs)
         self.dim = dim
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate sets of reflection axes without replacement.
 
         :param torch.Tensor x: input image
@@ -49,7 +49,7 @@ class Reflect(Transform):
 
         return {"dims": TransformParam(out, neg=lambda x: x)}
 
-    def transform(
+    def _transform(
         self,
         x: torch.Tensor,
         dims: Union[torch.Tensor, Iterable] = [],

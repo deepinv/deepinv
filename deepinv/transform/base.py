@@ -1,7 +1,8 @@
 from __future__ import annotations
 from itertools import product
-import torch
 from typing import Tuple, Callable, Any
+import torch
+from deepinv.physics.time import TimeMixin
 
 
 class TransformParam(torch.Tensor):
@@ -25,7 +26,7 @@ class TransformParam(torch.Tensor):
         return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
 
 
-class Transform(torch.nn.Module):
+class Transform(torch.nn.Module, TimeMixin):
     """Base class for image transforms.
 
     The base transform implements transform arithmetic and other methods to invert transforms and symmetrize functions.
@@ -35,6 +36,8 @@ class Transform(torch.nn.Module):
     To implement a new transform, please reimplement ``get_params()`` and ``transform()`` (with a ``**kwargs`` argument). See respective methods for details.
 
     Also handle deterministic (non-random) transformations by passing in fixed parameter values.
+
+    All transforms automatically handle video input (5D of shape (B,C,T,H,W)) by flattening the time dim before calculating and then unflattening.
 
     |sep|
 
@@ -54,6 +57,11 @@ class Transform(torch.nn.Module):
         >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1])
         >>> torch.all(x == y)
         tensor(True)
+
+        # Accepts video input of shape (B,C,T,H,W):
+
+        >>> transform(torch.rand((1, 1, 3, 2, 2))).shape
+        torch.Size([1, 1, 3, 2, 2])
 
         Multiply transforms to create compound transforms (direct product of groups) - similar to ``torchvision.transforms.Compose``:
 
@@ -104,13 +112,27 @@ class Transform(torch.nn.Module):
         self.rng = torch.Generator() if rng is None else rng
         self.constant_shape = constant_shape
 
+    def check_x_4D(self, x: torch.Tensor) -> bool:
+        """If x 4D (i.e. 2D image), return True, if 5D (e.g. with a time dim), return False, else raise Error"""
+        if len(x.shape) == 4:
+            return True
+        elif len(x.shape) == 5:
+            return False
+        else:
+            raise ValueError("x must be either 4D or 5D.")
+
+    def _get_params(self, x: torch.Tensor) -> dict:
+        """
+        Override this to implement a custom transform.
+        See ``get_params`` for details.
+        """
+        return NotImplementedError()
+
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
 
         Params are represented as tensors where the first dimension indexes batch and n_trans.
         Params store e.g rotation degrees or shift amounts.
-
-        Override this function to implement a custom transform.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
         To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class: ``p = TransformParam(p, neg=lambda x: 1/x)``
@@ -118,7 +140,11 @@ class Transform(torch.nn.Module):
         :param torch.Tensor x: input image
         :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
         """
-        return NotImplementedError()
+        return (
+            self._get_params(x)
+            if self.check_x_4D(x)
+            else self._get_params(self.flatten_C(x))
+        )
 
     def invert_params(self, params: dict) -> dict:
         """Invert transformation parameters. Pass variable of type ``TransformParam`` to override negation (e.g. to take reciprocal).
@@ -128,18 +154,28 @@ class Transform(torch.nn.Module):
         """
         return {k: -v for k, v in params.items()}
 
+    def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+        """
+        Override this to implement a custom transform.
+        See ``transform`` for details.
+        """
+        return NotImplementedError()
+
     def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Transform image given transform parameters.
 
         Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.
 
-        Override this to implement a custom transform.
-
         :param torch.Tensor x: input image of shape (B,C,H,W)
         :param **params: params e.g. degrees or shifts provided as keyword args.
         :return: torch.Tensor: transformed image.
         """
-        return NotImplementedError()
+        transform = (
+            self._transform
+            if self.check_x_4D(x)
+            else self.wrap_flatten_C(self._transform)
+        )
+        return transform(x, **params)
 
     def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random transformation on image.
@@ -253,7 +289,11 @@ class Transform(torch.nn.Module):
                     torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
                 )
 
-        return symmetrized
+        return lambda x, *args, **kwargs: (
+            symmetrized(x, *args, **kwargs)
+            if self.check_x_4D(x)
+            else self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
+        )
 
     def __mul__(self, other: Transform):
         """
@@ -270,11 +310,11 @@ class Transform(torch.nn.Module):
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
 
-            def get_params(self, x: torch.Tensor) -> dict:
-                return self.t1.get_params(x) | self.t2.get_params(x)
+            def _get_params(self, x: torch.Tensor) -> dict:
+                return self.t1._get_params(x) | self.t2._get_params(x)
 
-            def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
-                return self.t2.transform(self.t1.transform(x, **params), **params)
+            def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+                return self.t2._transform(self.t1._transform(x, **params), **params)
 
             def inverse(
                 self, x: torch.Tensor, batchwise=True, **params
@@ -315,12 +355,12 @@ class Transform(torch.nn.Module):
                 self.t1 = t1
                 self.t2 = t2
 
-            def get_params(self, x: torch.Tensor) -> dict:
-                return self.t1.get_params(x) | self.t2.get_params(x)
+            def _get_params(self, x: torch.Tensor) -> dict:
+                return self.t1._get_params(x) | self.t2._get_params(x)
 
-            def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+            def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return torch.cat(
-                    (self.t1.transform(x, **params), self.t2.transform(x, **params)),
+                    (self.t1._transform(x, **params), self.t2._transform(x, **params)),
                     dim=0,
                 )
 
@@ -349,8 +389,8 @@ class Transform(torch.nn.Module):
                 self.t2 = t2
                 self.recent_choice = None
 
-            def get_params(self, x: torch.Tensor) -> dict:
-                return self.t1.get_params(x) | self.t2.get_params(x)
+            def _get_params(self, x: torch.Tensor) -> dict:
+                return self.t1._get_params(x) | self.t2._get_params(x)
 
             def choose(self):
                 self.recent_choice = choice = torch.randint(
@@ -358,12 +398,12 @@ class Transform(torch.nn.Module):
                 ).item()
                 return choice
 
-            def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+            def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 choice = self.choose()
                 return (
-                    self.t1.transform(x, **params)
+                    self.t1._transform(x, **params)
                     if choice
-                    else self.t2.transform(x, **params)
+                    else self.t2._transform(x, **params)
                 )
 
             def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:

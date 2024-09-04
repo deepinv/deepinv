@@ -47,7 +47,7 @@ class Scale(Transform):
         self.padding_mode = padding_mode
         self.mode = mode
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate scale factor parameters.
 
         :param torch.Tensor x: input image
@@ -71,7 +71,7 @@ class Scale(Transform):
             "center": TransformParam(center, neg=lambda x: x),
         }
 
-    def transform(
+    def _transform(
         self,
         x: torch.Tensor,
         factor: Union[torch.Tensor, Iterable, TransformParam] = [],

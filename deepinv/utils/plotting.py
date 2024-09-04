@@ -674,7 +674,8 @@ def plot_videos(
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
-    **anim_kwargs,
+    anim_kwargs: dict = {},
+    **plot_kwargs,
 ):
     r"""Plots and animates a list of image sequences.
 
@@ -709,7 +710,8 @@ def plot_videos(
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
     :param tuple[int], None figsize: size of the figure. If None,
-    :param \**anim_kwargs: keyword args for matplotlib FuncAnimation init
+    :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
+    :param \** plot_kwargs: kwargs to pass to :meth:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -728,6 +730,7 @@ def plot_videos(
             fig=fig,
             axs=axs,
             figsize=figsize,
+            **plot_kwargs,
         )
 
     fig, axs = animate(0)

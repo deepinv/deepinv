@@ -21,7 +21,7 @@ class Shift(Transform):
         super().__init__(*args, **kwargs)
         self.shift_max = shift_max
 
-    def get_params(self, x: torch.Tensor) -> dict:
+    def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate shift parameters.
 
         :param torch.Tensor x: input image
@@ -49,7 +49,7 @@ class Shift(Transform):
 
         return {"x_shift": x_shift, "y_shift": y_shift}
 
-    def transform(
+    def _transform(
         self,
         x: torch.Tensor,
         x_shift: Union[torch.Tensor, Iterable, TransformParam] = [],
