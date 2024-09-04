@@ -161,7 +161,7 @@ def test_dps(device):
 def test_blinddps(device):
     from deepinv.models import DiffUNet
 
-    x = torch.ones((1, 3, 32, 32)).to(device)
+    x = torch.ones((1, 3, 64, 64)).to(device)
     sigma = 12.75 / 255.0
 
     physics = dinv.physics.Blur(
@@ -176,10 +176,12 @@ def test_blinddps(device):
 
     model_x = DiffUNet().to(device)
     model_k = DiffUNet(in_channels=1, out_channels=1).to(device)
+    likelihood = L2()
 
     algorithm = dinv.sampling.BlindDPS(
-        model_x, model_k, max_iter=5, verbose=False, device=device
+        model_x, model_k, likelihood, max_iter=5, verbose=False, device=device
     )
 
     out = algorithm(y, physics)
-    assert out.shape == x.shape
+    assert out[0].shape == x.shape
+    assert out[1].shape == physics.filter.shape
