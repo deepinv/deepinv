@@ -79,21 +79,31 @@ def find_operator(name, device):
             padding = p
             break
 
+    rng = torch.Generator(device).manual_seed(0)
     if name == "CS":
         m = 30
-        p = dinv.physics.CompressedSensing(m=m, img_shape=img_size, device=device)
+        p = dinv.physics.CompressedSensing(
+            m=m, img_shape=img_size, device=device, rng=rng
+        )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
-            m=20, fast=True, channelwise=True, img_shape=img_size, device=device
+            m=20,
+            fast=True,
+            channelwise=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
         )
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)
+        p = dinv.physics.Inpainting(
+            tensor_size=img_size, mask=0.5, device=device, rng=rng
+        )
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
@@ -109,7 +119,7 @@ def find_operator(name, device):
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
     elif name == "denoising":
-        p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+        p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
@@ -122,12 +132,12 @@ def find_operator(name, device):
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device
+            m=20, fast=True, img_shape=img_size, device=device, rng=rng
         )
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=m, fast=False, img_shape=img_size, device=device
+            m=m, fast=False, img_shape=img_size, device=device, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -150,15 +160,16 @@ def find_operator(name, device):
         img_size = (3, 20, 13)
         h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
         h /= torch.sum(h)
-        h = torch.cat([h, h], dim=0)
+        h = torch.cat([h, h], dim=2)
         p = dinv.physics.SpaceVaryingBlur(
             filters=h,
             multipliers=torch.ones(
                 (
-                    2,
                     1,
+                    img_size[0],
+                    2,
                 )
-                + img_size,
+                + img_size[-2:],
                 device=device,
             )
             * 0.5,
@@ -202,7 +213,7 @@ def find_operator(name, device):
         img_size = (1, 8, 8)
         m = 50
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, dtype=torch.cfloat, device=device
+            m=m, img_shape=img_size, dtype=torch.cfloat, device=device, rng=rng
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
@@ -244,7 +255,7 @@ def find_operator(name, device):
             real_projection=False,
             dtype=torch.float,
             device=device,
-            noise_model=dinv.physics.GaussianNoise(0.0),
+            noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -403,7 +414,8 @@ def test_MRI(mri_img_size, device, rng):
 
     for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
         B, C, T, H, W = mri_img_size
-
+        if rng.device != device:
+            rng = torch.Generator(device=device)
         x, y = (
             torch.rand(mri_img_size, generator=rng, device=device) + 1,
             torch.rand(mri_img_size, generator=rng, device=device) + 1,
@@ -422,8 +434,10 @@ def test_MRI(mri_img_size, device, rng):
             )
 
             mask, mask2 = (
-                torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:]),
-                torch.zeros(_mask_size, device=device) + torch.eye(*_mask_size[-2:]),
+                torch.ones(_mask_size, device=device)
+                - torch.eye(*_mask_size[-2:], device=device),
+                torch.zeros(_mask_size, device=device)
+                + torch.eye(*_mask_size[-2:], device=device),
             )
 
             # Empty mask
@@ -580,13 +594,14 @@ def test_noise(device, noise_type):
     r"""
     Tests noise models.
     """
-    physics = dinv.physics.DecomposablePhysics()
+    physics = dinv.physics.DecomposablePhysics(device=device)
     physics.noise_model = choose_noise(noise_type)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
     y1 = physics(
         x
-    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+        # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    )
     assert y1.shape == x.shape
 
 
@@ -606,7 +621,8 @@ def test_noise_domain(device):
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
-    )  # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+        # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
+    )
     assert y1.shape == x.shape
 
     assert y1[0, 0, 0, 0] == 0
@@ -727,7 +743,6 @@ def test_downsampling_adjointness(device):
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
-
         size_im = (
             [nchan_im, 5, 5],
             [nchan_im, 6, 6],

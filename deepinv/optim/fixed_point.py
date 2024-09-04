@@ -242,7 +242,6 @@ class FixedPoint(nn.Module):
             range(self.max_iter),
             disable=(not self.verbose or not self.show_progress_bar),
         ):
-
             X_prev = X
             X = self.single_iteration(
                 X,
@@ -272,7 +271,6 @@ class FixedPoint(nn.Module):
         return X, metrics
 
     def single_iteration(self, X, it, *args, **kwargs):
-
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
             self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None

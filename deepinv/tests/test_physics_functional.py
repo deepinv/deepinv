@@ -17,7 +17,6 @@ def test_conv2d_adjointness(device):
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
-
         size_im = (
             [nchan_im, 5, 5],
             [nchan_im, 6, 6],
@@ -58,7 +57,6 @@ def test_conv3d_norm(device):
     paddings = ("circular",)
 
     for nchan_im, nchan_filt in nchannels:
-
         size_im = (
             [nchan_im, 5, 5, 5],
             [nchan_im, 6, 6, 6],
@@ -106,7 +104,6 @@ def test_conv3d_adjointness(device):
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
-
         size_im = (
             [nchan_im, 5, 5, 5],
             [nchan_im, 6, 6, 6],

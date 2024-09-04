@@ -138,7 +138,6 @@ def apply_homography(
             padding_mode=padding,
         )
     else:
-
         if interpolation == "bilinear":
             pil_interp = Image.Resampling.BILINEAR
         elif interpolation == "bicubic":
