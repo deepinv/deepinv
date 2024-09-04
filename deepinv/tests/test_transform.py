@@ -6,10 +6,12 @@ TRANSFORMS = [
     "shift",
     "rotate",
     "scale",
+    "reflect",
     "shift+scale",
     "shift*scale",
     "scale+rotate",
     "scale*rotate",
+    "scale3*rotate3",
     "scale|shift",
     "rotate|scale",
     "BODMASshift+scale*rotate",  # (shift+scale) * rotate
@@ -74,9 +76,15 @@ def choose_transform(transform_name):
         return dinv.transform.Shift()
     elif transform_name == "rotate":
         return dinv.transform.Rotate()
+    elif transform_name == "rotate3":
+        return dinv.transform.Rotate(n_trans=3)
+    elif transform_name == "reflect":
+        return dinv.transform.Reflect(dim=[-2, -1])
     elif transform_name == "scale":
         # Limit to 0.75 only to avoid severe edge/interp effects
         return dinv.transform.Scale(factors=[0.75])
+    elif transform_name == "scale3":
+        return dinv.transform.Scale(factors=[0.75], n_trans=3)
     elif transform_name == "homography":
         # Limit to avoid severe edge/interp effects. All the subgroups will zero their appropriate params.
         return dinv.transform.projective.Homography(**proj_kwargs)
@@ -138,6 +146,9 @@ def test_transforms(transform_name, image):
     if "+" in transform_name:
         assert image.shape[1:] == image_t.shape[1:]
         assert image.shape[0] * 2 == image_t.shape[0]
+    elif "3" in transform_name:
+        assert image.shape[1:] == image_t.shape[1:]
+        assert image.shape[0] * 9 == image_t.shape[0]
     else:
         assert image.shape == image_t.shape
 
@@ -149,3 +160,22 @@ def test_transform_identity(transform_name, pattern, pattern_offset):
     assert check_correct_pattern(
         pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
     )
+
+
+def test_rotate_90():
+    # Test if rotate with theta=90 results in exact pixel rotation
+    x = torch.randn(1, 2, 16, 16)
+    transform = dinv.transform.Rotate()
+    y1 = transform.transform(x, theta=[90.0])
+    y2 = torch.rot90(x, dims=[-2, -1])
+    assert torch.all(y1 == y2)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_batch_size(batch_size):
+    transform = dinv.transform.Rotate(multiples=90, n_trans=3) * dinv.transform.Reflect(
+        dim=[-1], n_trans=2
+    )
+    x = torch.randn(batch_size, 2, 16, 16)
+    xt = transform.identity(x, average=True)
+    assert torch.allclose(x, xt)
