@@ -1,15 +1,17 @@
 from __future__ import annotations
+from itertools import product
 import torch
 from typing import Tuple, Callable, Any
 
 
-class Param(torch.Tensor):
+class TransformParam(torch.Tensor):
     """
     Helper class that stores a tensor parameter for the sole purpose of allowing overriding negation.
     """
 
     @staticmethod
     def __new__(cls, x, neg=None):
+        x = x if isinstance(x, torch.Tensor) else torch.tensor([x])
         return torch.Tensor._make_subclass(cls, x)
 
     def __init__(self, x, neg: Callable = lambda x: -x):
@@ -17,6 +19,10 @@ class Param(torch.Tensor):
 
     def __neg__(self):
         return self._neg(torch.Tensor._make_subclass(torch.Tensor, self))
+
+    def __getitem__(self, index):
+        xi = super().__getitem__(index)
+        return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
 
 
 class Transform(torch.nn.Module):
@@ -69,7 +75,7 @@ class Transform(torch.nn.Module):
 
         Symmetrize a function by averaging over the group (also known as Reynolds averaging):
 
-        >>> f = lambda x: x[..., 0]*x # Function to be symmetrized
+        >>> f = lambda x: x[..., [0]] * x # Function to be symmetrized
         >>> f_s = rotoshift.symmetrize(f)
         >>> f_s(x).shape
         torch.Size([1, 1, 2, 2])
@@ -78,22 +84,36 @@ class Transform(torch.nn.Module):
 
     :param int n_trans: number of transformed versions generated per input image, defaults to 1
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+    :param bool constant_shape: if True, transformed images are assumed to be same shape as input.
+        For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
+        If False, for certain transforms including :class:`deepinv.transform.Rotate`,
+        ``transform`` will try to switch off automatic cropping/padding resulting in errors.
+        However, ``symmetrize`` will still work but perform one-by-one (less efficient).
     """
 
-    def __init__(self, *args, n_trans: int = 1, rng: torch.Generator = None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        n_trans: int = 1,
+        rng: torch.Generator = None,
+        constant_shape: bool = True,
+        **kwargs,
+    ):
         super().__init__()
         self.n_trans = n_trans
         self.rng = torch.Generator() if rng is None else rng
+        self.constant_shape = constant_shape
 
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
 
         Params are represented as tensors where the first dimension indexes batch and n_trans.
+        Params store e.g rotation degrees or shift amounts.
 
-        E.g. rotation degrees or shift amounts. Override this to implement a custom transform.
+        Override this function to implement a custom transform.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
-        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``Param`` class: ``p = Param(p, neg=lambda x: 1/x)``
+        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class: ``p = TransformParam(p, neg=lambda x: 1/x)``
 
         :param torch.Tensor x: input image
         :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
@@ -101,7 +121,7 @@ class Transform(torch.nn.Module):
         return NotImplementedError()
 
     def invert_params(self, params: dict) -> dict:
-        """Invert transformation parameters. Pass variable of type ``Param`` to override negation (e.g. to take reciprocal).
+        """Invert transformation parameters. Pass variable of type ``TransformParam`` to override negation (e.g. to take reciprocal).
 
         :param dict params: transform parameters as dict
         :return dict: inverted parameters.
@@ -133,19 +153,38 @@ class Transform(torch.nn.Module):
         """
         return self.transform(x, **(self.get_params(x) if not params else params))
 
-    def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
+    def inverse(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
         """Perform random inverse transformation on image (i.e. when not a group).
 
         For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
 
         :param torch.Tensor x: input image
+        :param bool batchwise: if True, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
+            If False, params will attempt to match each image in batch to keep constant ``len(out)=len(x)``. No effect when ``n_trans==1``
         :return torch.Tensor: randomly transformed images
         """
-        return self.transform(
-            x, **self.invert_params(self.get_params(x) if not params else params)
+        inv_params = self.invert_params(self.get_params(x) if not params else params)
+
+        if batchwise:
+            return self.transform(x, **inv_params)
+
+        assert len(x) % self.n_trans == 0, "batchwise must be True"
+        B = len(x) // self.n_trans
+        return torch.cat(
+            [
+                self.transform(
+                    x[i].unsqueeze(0),
+                    **{
+                        k: p[[i // B]]
+                        for k, p in inv_params.items()
+                        if len(p) == self.n_trans
+                    },
+                )
+                for i in range(len(x))
+            ]
         )
 
-    def identity(self, x: torch.Tensor) -> torch.Tensor:
+    def identity(self, x: torch.Tensor, average: bool = False) -> torch.Tensor:
         """Sanity check function that should do nothing.
 
         This performs forward and inverse transform, which results in the exact original, down to interpolation effects.
@@ -153,28 +192,66 @@ class Transform(torch.nn.Module):
         Interpolation effects will be visible in non-pixelwise transformations, such as arbitrary rotation, scale or projective transformation.
 
         :param torch.Tensor x: input image
+        :param bool average: average over ``n_trans`` transformed versions to get same number as output images as input images. No effect when ``n_trans=1``.
         :return torch.Tensor: :math:`T_g^{-1}T_g x=x`
         """
-        return self.symmetrize(f=lambda _x: _x)(x)
+        return self.symmetrize(f=lambda _x: _x, average=average)(x)
+
+    def iterate_params(self, params):
+        negs = [getattr(p, "_neg", None) for p in params.values()]
+        param_lists = [p.tolist() for p in params.values()]
+
+        return [
+            {
+                key: (
+                    torch.tensor([comb[i]])
+                    if negs[i] is None
+                    else TransformParam([comb[i]], neg=negs[i])
+                )
+                for i, key in enumerate(params.keys())
+            }
+            for comb in list(product(*param_lists))
+        ]
 
     def symmetrize(
-        self, f: Callable[[torch.Tensor, Any], torch.Tensor]
+        self, f: Callable[[torch.Tensor, Any], torch.Tensor], average: bool = False
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
-        """Symmetrise a function with a transform and its inverse.
+        r"""
+        Symmetrise a function with a transform and its inverse.
 
         Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 
-        This is useful for e.g. Reynolds averaging a function over a group.
+        This is useful for e.g. Reynolds averaging a function over a group. Set ``average=True`` to average over n_trans.
+        For example, use ``Rotate(n_trans=4, positive=True, multiples=90).symmetrize(f)`` to symmetrize f over the entire group.
 
         :param Callable[[torch.Tensor, Any], torch.Tensor] f: function acting on tensors.
+        :param bool average: monte carlo average over all random transformations (in range ``n_trans``) when symmetrising to get same number of output images as input images. No effect when ``n_trans=1``.
         :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
         """
 
         def symmetrized(x, *args, **kwargs):
+            B, C, H, W = x.shape
             params = self.get_params(x)
-            return self.inverse(
-                f(self.transform(x, **params), *args, **kwargs), **params
-            )
+            if self.constant_shape:
+                # Collect over n_trans
+                xt = self.inverse(
+                    f(self.transform(x, **params), *args, **kwargs),
+                    batchwise=False,
+                    **params,
+                )
+                return xt.reshape(-1, B, C, H, W).mean(axis=0) if average else xt
+            else:
+                # Step through n_trans (or combinations) one-by-one
+                out = []
+                for _params in self.iterate_params(params):
+                    out.append(
+                        self.inverse(
+                            f(self.transform(x, **_params), *args, **kwargs), **_params
+                        )
+                    )
+                return (
+                    torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
+                )
 
         return symmetrized
 
@@ -191,6 +268,7 @@ class Transform(torch.nn.Module):
                 super().__init__()
                 self.t1 = t1
                 self.t2 = t2
+                self.constant_shape = t1.constant_shape and t2.constant_shape
 
             def get_params(self, x: torch.Tensor) -> dict:
                 return self.t1.get_params(x) | self.t2.get_params(x)
@@ -198,8 +276,28 @@ class Transform(torch.nn.Module):
             def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return self.t2.transform(self.t1.transform(x, **params), **params)
 
-            def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
-                return self.t1.inverse(self.t2.inverse(x, **params), **params)
+            def inverse(
+                self, x: torch.Tensor, batchwise=True, **params
+            ) -> torch.Tensor:
+                # If batchwise False, carefully match each set of params to each subset of n_transformed images in batch
+                if batchwise:
+                    return self.t1.inverse(self.t2.inverse(x, **params), **params)
+
+                out = []
+                for i in range(self.t2.n_trans):
+                    _x = torch.chunk(x, self.t2.n_trans)[i]
+                    __x = self.t2.inverse(
+                        _x,
+                        **{
+                            k: p[[i]]
+                            for k, p in params.items()
+                            if len(p) == self.t2.n_trans
+                        },
+                    )
+                    ___x = self.t1.inverse(__x, batchwise=False, **params)
+                    out.append(___x)
+
+                return torch.cat(out)
 
         return ChainTransform(self, other)
 

@@ -3,7 +3,7 @@ from typing import Union, Iterable
 import torch
 import torch.nn.functional as F
 from torch.nn import Module
-from deepinv.transform.base import Transform, Param
+from deepinv.transform.base import Transform, TransformParam
 
 
 def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator=None):
@@ -67,15 +67,15 @@ class Scale(Transform):
 
         # Scale params override negation
         return {
-            "factor": Param(factor, neg=lambda x: 1 / x),
-            "center": Param(center, neg=lambda x: x),
+            "factor": TransformParam(factor, neg=lambda x: 1 / x),
+            "center": TransformParam(center, neg=lambda x: x),
         }
 
     def transform(
         self,
         x: torch.Tensor,
-        factor: Union[torch.Tensor, Iterable, Param] = [],
-        center: Union[torch.Tensor, Iterable, Param] = [],
+        factor: Union[torch.Tensor, Iterable, TransformParam] = [],
+        center: Union[torch.Tensor, Iterable, TransformParam] = [],
         **kwargs,
     ) -> torch.Tensor:
         """Scale image given scale parameters.

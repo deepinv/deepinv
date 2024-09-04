@@ -6,12 +6,14 @@ import numpy as np
 import torch
 from PIL import Image
 
-from deepinv.transform.base import Transform, Param
+from deepinv.transform.base import Transform, TransformParam
 
 try:
     from kornia.geometry.transform import warp_perspective
 except ImportError:
-    warp_perspective = ImportError("The kornia package is not installed.")
+
+    def warp_perspective(*args, **kwargs):
+        raise ImportError("The kornia package is not installed.")
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -214,7 +216,7 @@ class Homography(Transform):
     device: str = "cpu"
 
     def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, n_trans=self.n_trans, **kwargs)
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
@@ -224,7 +226,7 @@ class Homography(Transform):
     def get_params(self, x: torch.Tensor) -> dict:
         H, W = x.shape[-2:]
 
-        Reciprocal = lambda p: Param(p, neg=lambda x: 1 / x)
+        Reciprocal = lambda p: TransformParam(p, neg=lambda x: 1 / x)
 
         return {
             "theta_x": self.rand(self.theta_max),
@@ -241,15 +243,15 @@ class Homography(Transform):
     def transform(
         self,
         x: torch.Tensor,
-        theta_x: Union[torch.Tensor, Iterable, Param] = [],
-        theta_y: Union[torch.Tensor, Iterable, Param] = [],
-        theta_z: Union[torch.Tensor, Iterable, Param] = [],
-        zoom_f: Union[torch.Tensor, Iterable, Param] = [],
-        shift_x: Union[torch.Tensor, Iterable, Param] = [],
-        shift_y: Union[torch.Tensor, Iterable, Param] = [],
-        skew: Union[torch.Tensor, Iterable, Param] = [],
-        stretch_x: Union[torch.Tensor, Iterable, Param] = [],
-        stretch_y: Union[torch.Tensor, Iterable, Param] = [],
+        theta_x: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta_z: Union[torch.Tensor, Iterable, TransformParam] = [],
+        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = [],
+        shift_x: Union[torch.Tensor, Iterable, TransformParam] = [],
+        shift_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        skew: Union[torch.Tensor, Iterable, TransformParam] = [],
+        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = [],
+        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = [],
         **params,
     ) -> torch.Tensor:
         return torch.cat(

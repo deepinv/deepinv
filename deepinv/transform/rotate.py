@@ -3,18 +3,25 @@ import torch
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 import numpy as np
-from deepinv.transform.base import Transform, Param
+from deepinv.transform.base import Transform, TransformParam
 
 
 class Rotate(Transform):
     r"""
     2D Rotations.
 
-    Generates ``n_trans`` randomly rotated versions of 2D images with zero padding.
+    Generates ``n_trans`` randomly rotated versions of 2D images with zero padding (without replacement).
+
+    Picks integer angles between -limits and limits, by default -360 to 360. Set ``positive=True`` to clip to positive degrees.
+    For exact pixel rotations (0, 90, 180, 270 etc.), set ``multiples=90``.
+
+    By default, output will be cropped/padded to input shape. Set ``constant_shape=False`` to let output shape differ from input shape.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 
-    :param degrees: images are rotated in the range of angles (-degrees, degrees)
+    :param float limits: images are rotated in the range of angles (-limits, limits).
+    :param float multiples: angles are selected uniformly from :math:`\pm` multiples of ``multiples``. Default to 1 (i.e integers)
+    :param bool positive: if True, only consider positive angles.
     :param n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
@@ -22,12 +29,16 @@ class Rotate(Transform):
     def __init__(
         self,
         *args,
-        degrees: Union[float, int] = 360,
+        limits: float = 360.0,
+        multiples: float = 1.0,
+        positive: bool = False,
         interpolation_mode: InterpolationMode = InterpolationMode.NEAREST,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.group_size = degrees
+        self.limits = limits
+        self.multiples = multiples
+        self.positive = positive
         self.interpolation_mode = interpolation_mode
 
     def get_params(self, x: torch.Tensor) -> dict:
@@ -36,31 +47,33 @@ class Rotate(Transform):
         :param torch.Tensor x: input image
         :return dict: keyword args of angles theta in degrees
         """
-        if self.group_size == 360:
-            theta = np.arange(0, 360)[1:][torch.randperm(359, generator=self.rng)]
-            theta = theta[: self.n_trans]
-        else:
-            theta = np.arange(0, 360, int(360 / (self.group_size + 1)))[1:]
-            theta = theta[torch.randperm(self.group_size, generator=self.rng)][
-                : self.n_trans
-            ]
+        theta = torch.arange(0, self.limits, self.multiples)
+        if not self.positive:
+            theta = torch.cat((theta, -theta))
+        theta = theta[torch.randperm(len(theta), generator=self.rng)]
+        theta = theta[: self.n_trans]
         return {"theta": theta}
 
     def transform(
         self,
         x: torch.Tensor,
-        theta: Union[torch.Tensor, Iterable, Param] = [],
+        theta: Union[torch.Tensor, Iterable, TransformParam] = [],
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param torch.Tensor, list x_shift: iterable of rotation angles (degrees), one per ``n_trans``.
+        :param torch.Tensor, list theta: iterable of rotation angles (degrees), one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
         return torch.cat(
             [
-                rotate(x, float(_theta), interpolation=self.interpolation_mode)
+                rotate(
+                    x,
+                    float(_theta),
+                    interpolation=self.interpolation_mode,
+                    expand=not self.constant_shape,
+                )
                 for _theta in theta
             ]
         )
@@ -72,7 +85,7 @@ class Rotate(Transform):
 #     x = torch.zeros(1, 1, 64, 64, device=device)
 #     x[:, :, 16:48, 16:48] = 1
 #
-#     t = Rotate(4)
+#     t = Rotate(n_trans=4)
 #     y = t(x)
 #
 #     from deepinv.utils import plot
