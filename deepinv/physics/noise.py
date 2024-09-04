@@ -277,7 +277,7 @@ class GammaNoise(NoiseModel):
     Distribution for modelling speckle noise (eg. SAR images),
     where :math:`\ell>0` controls the noise level (smaller values correspond to higher noise).
 
-    .. warnings: This noise model does not support the random number generator.
+    .. warning:: This noise model does not support the random number generator.
 
     :param float, torch.Tensor l: noise level.
     """

@@ -982,7 +982,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         psf_coll = dict_coll["filter"]
         coeff_coll = dict_coll["coeff"]
 
-        # convolution of by the collection PSF by pinhole
+        # convolution of the collection PSF by pinhole
         # 1. Define the pinhole D
         airy_unit = 0.61 * self.lambda_coll / self.NA
         PH_radius = self.pinhole_radius * airy_unit
