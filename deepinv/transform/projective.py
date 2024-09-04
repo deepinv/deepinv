@@ -199,7 +199,7 @@ class Homography(Transform):
     :param str padding: kornia padding mode, defaults to "reflection"
     :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
     :param str device: torch device, defaults to "cpu".
-    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param int n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

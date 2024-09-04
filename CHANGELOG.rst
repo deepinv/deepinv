@@ -8,7 +8,7 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
-- Add multi-axis reflect transform (:gh:`259` by `Andrew Wang`_)
+- Add multi-axis reflect transform and time-shift transform (:gh:`259` by `Andrew Wang`_)
 
 
 New Features

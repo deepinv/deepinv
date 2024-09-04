@@ -22,7 +22,7 @@ class Rotate(Transform):
     :param float limits: images are rotated in the range of angles (-limits, limits).
     :param float multiples: angles are selected uniformly from :math:`\pm` multiples of ``multiples``. Default to 1 (i.e integers)
     :param bool positive: if True, only consider positive angles.
-    :param n_trans: number of transformed versions generated per input image.
+    :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

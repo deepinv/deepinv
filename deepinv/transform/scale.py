@@ -35,7 +35,7 @@ class Scale(Transform):
     :param list factors: list of scale factors (default: [.75, .5])
     :param str padding_mode: padding mode for grid sampling
     :param str mode: interpolation mode for grid sampling
-    :param n_trans: number of transformed versions generated per input image.
+    :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

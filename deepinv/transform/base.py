@@ -31,13 +31,13 @@ class Transform(torch.nn.Module, TimeMixin):
 
     The base transform implements transform arithmetic and other methods to invert transforms and symmetrize functions.
 
-    All transforms must implement ``get_params()`` to randomly generate e.g. rotation degrees or shift pixels, and ``transform()`` to deterministically transform an image given the params.
+    All transforms must implement ``_get_params()`` to randomly generate e.g. rotation degrees or shift pixels, and ``_transform()`` to deterministically transform an image given the params.
 
-    To implement a new transform, please reimplement ``get_params()`` and ``transform()`` (with a ``**kwargs`` argument). See respective methods for details.
+    To implement a new transform, please reimplement ``_get_params()`` and ``_transform()`` (with a ``**kwargs`` argument). See respective methods for details.
 
     Also handle deterministic (non-random) transformations by passing in fixed parameter values.
 
-    All transforms automatically handle video input (5D of shape (B,C,T,H,W)) by flattening the time dim before calculating and then unflattening.
+    All transforms automatically handle video input (5D of shape (B,C,T,H,W)) by flattening the time dim .
 
     |sep|
 
@@ -89,7 +89,6 @@ class Transform(torch.nn.Module, TimeMixin):
         torch.Size([1, 1, 2, 2])
 
 
-
     :param int n_trans: number of transformed versions generated per input image, defaults to 1
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     :param bool constant_shape: if True, transformed images are assumed to be same shape as input.
@@ -97,6 +96,7 @@ class Transform(torch.nn.Module, TimeMixin):
         If False, for certain transforms including :class:`deepinv.transform.Rotate`,
         ``transform`` will try to switch off automatic cropping/padding resulting in errors.
         However, ``symmetrize`` will still work but perform one-by-one (less efficient).
+    :param bool flatten_video_input: accept video (5D) input of shape (B,C,T,H,W) by flattening time dim before transforming and unflattening after all operations.
     """
 
     def __init__(
@@ -105,19 +105,21 @@ class Transform(torch.nn.Module, TimeMixin):
         n_trans: int = 1,
         rng: torch.Generator = None,
         constant_shape: bool = True,
+        flatten_video_input: bool = True,
         **kwargs,
     ):
         super().__init__()
         self.n_trans = n_trans
         self.rng = torch.Generator() if rng is None else rng
         self.constant_shape = constant_shape
+        self.flatten_video_input = flatten_video_input
 
-    def check_x_4D(self, x: torch.Tensor) -> bool:
-        """If x 4D (i.e. 2D image), return True, if 5D (e.g. with a time dim), return False, else raise Error"""
+    def _check_x_5D(self, x: torch.Tensor) -> bool:
+        """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
         if len(x.shape) == 4:
-            return True
-        elif len(x.shape) == 5:
             return False
+        elif len(x.shape) == 5:
+            return True
         else:
             raise ValueError("x must be either 4D or 5D.")
 
@@ -141,9 +143,9 @@ class Transform(torch.nn.Module, TimeMixin):
         :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
         """
         return (
-            self._get_params(x)
-            if self.check_x_4D(x)
-            else self._get_params(self.flatten_C(x))
+            self._get_params(self.flatten_C(x))
+            if self._check_x_5D(x) and self.flatten_video_input
+            else self._get_params(x)
         )
 
     def invert_params(self, params: dict) -> dict:
@@ -171,9 +173,9 @@ class Transform(torch.nn.Module, TimeMixin):
         :return: torch.Tensor: transformed image.
         """
         transform = (
-            self._transform
-            if self.check_x_4D(x)
-            else self.wrap_flatten_C(self._transform)
+            self.wrap_flatten_C(self._transform)
+            if self._check_x_5D(x) and self.flatten_video_input
+            else self._transform
         )
         return transform(x, **params)
 
@@ -223,9 +225,9 @@ class Transform(torch.nn.Module, TimeMixin):
     def identity(self, x: torch.Tensor, average: bool = False) -> torch.Tensor:
         """Sanity check function that should do nothing.
 
-        This performs forward and inverse transform, which results in the exact original, down to interpolation effects.
+        This performs forward and inverse transform, which results in the exact original, down to interpolation and padding effects.
 
-        Interpolation effects will be visible in non-pixelwise transformations, such as arbitrary rotation, scale or projective transformation.
+        Interpolation and padding effects will be visible in non-pixelwise transformations, such as arbitrary rotation, scale or projective transformation.
 
         :param torch.Tensor x: input image
         :param bool average: average over ``n_trans`` transformed versions to get same number as output images as input images. No effect when ``n_trans=1``.
@@ -266,7 +268,6 @@ class Transform(torch.nn.Module, TimeMixin):
         """
 
         def symmetrized(x, *args, **kwargs):
-            B, C, H, W = x.shape
             params = self.get_params(x)
             if self.constant_shape:
                 # Collect over n_trans
@@ -275,7 +276,7 @@ class Transform(torch.nn.Module, TimeMixin):
                     batchwise=False,
                     **params,
                 )
-                return xt.reshape(-1, B, C, H, W).mean(axis=0) if average else xt
+                return xt.reshape(-1, *x.shape).mean(axis=0) if average else xt
             else:
                 # Step through n_trans (or combinations) one-by-one
                 out = []
@@ -290,9 +291,9 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return lambda x, *args, **kwargs: (
-            symmetrized(x, *args, **kwargs)
-            if self.check_x_4D(x)
-            else self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
+            self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
+            if self._check_x_5D(x) and self.flatten_video_input
+            else symmetrized(x, *args, **kwargs)
         )
 
     def __mul__(self, other: Transform):

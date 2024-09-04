@@ -86,3 +86,15 @@ See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`
     deepinv.transform.projective.Affine
     deepinv.transform.projective.PanTiltRotate
 
+Video transforms
+----------------
+
+While all geometric transforms accept video input, the following transforms work specifically in the time dimension.
+These can be easily compounded with geometric transformations using the ``*`` operation.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.transform.ShiftTimeReflectPad

@@ -13,7 +13,7 @@ class Shift(Transform):
     See :class:`deepinv.transform.Transform` for further details and examples.
 
     :param float shift_max: maximum shift as fraction of total height/width.
-    :param n_trans: number of transformed versions generated per input image.
+    :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

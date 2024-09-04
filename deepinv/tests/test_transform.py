@@ -189,3 +189,15 @@ def test_batch_size(batch_size):
     x = torch.randn(batch_size, 2, 16, 16)
     xt = transform.identity(x, average=True)
     assert torch.allclose(x, xt)
+
+def test_shift_time():
+    # Video with moving line
+    x = torch.zeros(1, 3, 8, 16, 16) # B,C,T,H,W
+    for i in range(8):
+        x[:, :, i, i*2, : ] = 1
+
+    t1 = dinv.transform.ShiftTime(n_trans=1, padding="wrap")
+    t2 = dinv.transform.Reflect(dim=[-1])
+
+    assert torch.allclose(t1.identity(x), x)
+    assert torch.allclose((t1 * t2).identity(x), x)
