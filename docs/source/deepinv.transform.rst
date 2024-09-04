@@ -72,6 +72,8 @@ Simple transforms
 
 Advanced transforms
 -------------------
+
+We implement the following further geometric transforms.
 The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. 
 See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` for a demonstration. Note these require ``kornia`` installed.
 
@@ -85,6 +87,7 @@ See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`
     deepinv.transform.projective.Similarity
     deepinv.transform.projective.Affine
     deepinv.transform.projective.PanTiltRotate
+    deepinv.transform.CPABDiffeomorphism
 
 Video transforms
 ----------------

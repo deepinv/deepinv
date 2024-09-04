@@ -55,8 +55,12 @@ transform2 = Compose(
     ]
 )
 
+# Random diffeomorphism
+transform3 = dinv.transform.CPADiffeomorphism()
+
 dinv.utils.plot(
-    [x, transform(x), transform2(x)], titles=["Orig", "Transform 1", "Transform 2"]
+    [x, transform(x), transform2(x), transform3(x)],
+    titles=["Orig", "Transform 1", "Transform 2", "Transform 3"],
 )
 
 

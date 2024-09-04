@@ -26,6 +26,7 @@ TRANSFORMS = [
     "similarity",
     "affine",
     "pantiltrotate",
+    "diffeomorphism",
 ]
 
 
@@ -98,6 +99,8 @@ def choose_transform(transform_name):
         return dinv.transform.projective.Affine(**proj_kwargs)
     elif transform_name == "pantiltrotate":
         return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
+    elif transform_name == "diffeomorphism":
+        return dinv.transform.CPADiffeomorphism()
     else:
         raise ValueError("Invalid transform_name provided")
 
@@ -190,11 +193,12 @@ def test_batch_size(batch_size):
     xt = transform.identity(x, average=True)
     assert torch.allclose(x, xt)
 
+
 def test_shift_time():
     # Video with moving line
-    x = torch.zeros(1, 3, 8, 16, 16) # B,C,T,H,W
+    x = torch.zeros(1, 3, 8, 16, 16)  # B,C,T,H,W
     for i in range(8):
-        x[:, :, i, i*2, : ] = 1
+        x[:, :, i, i * 2, :] = 1
 
     t1 = dinv.transform.ShiftTime(n_trans=1, padding="wrap")
     t2 = dinv.transform.Reflect(dim=[-1])
