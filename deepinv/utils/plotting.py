@@ -378,7 +378,6 @@ def scatter_plot(
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
-
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
             save_dir_i = Path(save_dir) / Path(titles[i])
@@ -870,7 +869,6 @@ def plot_ortho3D(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-
             img = img**0.5
 
             ax_XY = axs[r, i]
