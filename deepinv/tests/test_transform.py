@@ -100,6 +100,11 @@ def choose_transform(transform_name):
     elif transform_name == "pantiltrotate":
         return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
     elif transform_name == "diffeomorphism":
+        pytest.importorskip(
+            "libcpab",
+            reason="This test requires libcpab. It should be "
+            "installed with `pip install git+https://github.com/Andrewwango/libcpab.git`",
+        )
         return dinv.transform.CPADiffeomorphism()
     else:
         raise ValueError("Invalid transform_name provided")
