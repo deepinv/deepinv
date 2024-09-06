@@ -181,6 +181,7 @@ def plot(
     fontsize=17,
     interpolation="none",
     cbar=False,
+    dpi=1200,
     fig=None,
     axs=None,
     return_fig=False,
@@ -219,6 +220,7 @@ def plot(
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param int dpi: DPI to save images.
     :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
     :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
@@ -283,7 +285,7 @@ def plot(
         else:
             plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
-        plt.savefig(save_dir / "images.svg", dpi=1200)
+        plt.savefig(save_dir / "images.svg", dpi=dpi)
         save_dir_i = Path(save_dir) / Path(titles[i])
         save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
@@ -670,6 +672,7 @@ def plot_videos(
     rescale_mode: str = "min_max",
     display: bool = False,
     figsize: Tuple[int] = None,
+    dpi: int = None,
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
@@ -704,11 +707,11 @@ def plot_videos(
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
     :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
-    :param tuple[int] figsize: size of the figure. If None, calculated from size of img list.
+    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
     :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
-    :param tuple[int], None figsize: size of the figure. If None,
+    :param int dpi: DPI of saved videos.
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
     :param \** plot_kwargs: kwargs to pass to :meth:`deepinv.utils.plot`
     """
@@ -745,6 +748,7 @@ def plot_videos(
         anim.save(
             save_fn.with_suffix(".gif") if save_fn.suffix == "" else save_fn,
             writer=anim_writer,
+            dpi=dpi,
         )
 
     if return_anim:
