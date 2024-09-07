@@ -223,7 +223,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         fname, dataslice = self.sample_identifiers[idx]
 
         with h5py.File(fname, "r") as hf:
-            kspace = hf["kspace"][dataslice]
+            kspace = torch.from_numpy(hf["kspace"][dataslice])
             if not self.test:
                 target = hf[self.recons_key][dataslice]
 
