@@ -8,7 +8,7 @@ from torchmetrics.functional import (
 )
 
 from deepinv.loss.loss import Loss
-from deepinv.utils import cal_psnr, cal_mse
+from deepinv.utils.metric import cal_psnr, complex_abs, cal_mse
 
 
 try:
@@ -79,9 +79,18 @@ class LPIPS(Loss):
 class MSE(Loss):
     r"""
     Mean Squared Error metric.
+
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
     """
 
+    def __init__(self, complex=False):
+        super().__init__()
+        self.complex = complex
+
     def forward(self, x_net, x, **kwargs):
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
         return cal_mse(x_net, x)
 
 
@@ -92,15 +101,22 @@ class NMSE(MSE):
     Normalises MSE by the L2 norm of the ground truth ``x``.
 
     TODO add various other normalisation methods from torchmetrics. See https://github.com/Lightning-AI/torchmetrics/pull/2442
+
+    :param str method: normalisation method. Currently only supports ``l2``.
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
     """
 
-    def __init__(self, method="l2"):
+    def __init__(self, method="l2", complex=False):
         super().__init__()
         self.method = method
+        self.complex = complex
         if self.method not in ("l2",):
             raise ValueError("method must be l2.")
 
     def forward(self, x_net, x, **kwargs):
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
         if self.method == "l2":
             norm = cal_mse(x, 0)
         return cal_mse(x_net, x) / norm
@@ -117,17 +133,24 @@ class SSIM(Loss):
     :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
     :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
     :param \**torchmetric_kwargs: kwargs for torchmetrics SSIM. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
     """
 
     def __init__(
-        self, train=False, multiscale=False, max_pixel=1.0, **torchmetric_kwargs
+        self,
+        train=False,
+        multiscale=False,
+        max_pixel=1.0,
+        complex=False,
+        **torchmetric_kwargs,
     ):
         super().__init__()
         self.train = train
         self.multiscale = multiscale
         self.torchmetric_kwargs = torchmetric_kwargs
         self.max_pixel = max_pixel
+        self.complex = complex
 
     def forward(self, x_net, x, *args, **kwargs):
         ssim = (
@@ -135,6 +158,10 @@ class SSIM(Loss):
             if self.multiscale
             else structural_similarity_index_measure
         )
+
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
         m = ssim(x_net, x, data_range=max_pixel, **self.torchmetric_kwargs)
         return (1 - m) if self.train else m
@@ -156,12 +183,14 @@ class PSNR(Loss):
 
     :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
     """
 
-    def __init__(self, max_pixel=1, normalize=False):
+    def __init__(self, max_pixel=1, normalize=False, complex=False):
         super(PSNR, self).__init__()
         self.max_pixel = max_pixel
         self.normalize = normalize
+        self.complex = complex
 
     def forward(self, x_net, x, **kwargs):
         r"""
@@ -171,6 +200,9 @@ class PSNR(Loss):
         :param torch.Tensor x_net: reconstructed image.
         :return: torch.Tensor size (batch_size,).
         """
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
         return cal_psnr(
             x_net, x, max_pixel, self.normalize, mean_batch=False, to_numpy=False
