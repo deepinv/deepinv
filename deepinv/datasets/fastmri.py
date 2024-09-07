@@ -153,18 +153,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         # should contain all the information to load a slice from the storage
         self.sample_identifiers = []
 
-        if load_metadata_from_cache and os.path.exists(
-            metadata_cache_file
-        ):  # from a cache file
-            if not os.path.exists(metadata_cache_file) and save_metadata_to_cache:
-                warnings.warn(
-                    f"`metadata_cache_file` not found, it will be created at {metadata_cache_file}."
-                )
-            else:
-                raise ValueError(
-                    "`metadata_cache_file` doesn't exist, and `save_metadata_to_cache` is set to False. "
-                    "Please either deactivate `load_dataset_from_cache` OR set `metadata_cache_file` properly."
-                )
+        if load_metadata_from_cache and os.path.exists(metadata_cache_file):  # from a cache file
             with open(metadata_cache_file, "rb") as f:
                 dataset_cache = pickle.load(f)
                 if dataset_cache.get(root) is None:
@@ -175,6 +164,10 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 print(f"Using dataset cache from {metadata_cache_file}.")
                 self.sample_identifiers = dataset_cache[root]
         else:
+            if load_metadata_from_cache and not os.path.exists(metadata_cache_file):
+                warnings.warn(
+                    f"Couldn't find dataset cache at {metadata_cache_file}. Loading dataset from scratch."
+                )
             files = sorted(list(Path(root).iterdir()))
             for fname in files:
                 with h5py.File(fname, "r") as hf:
