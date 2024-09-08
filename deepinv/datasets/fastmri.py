@@ -153,7 +153,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         # should contain all the information to load a slice from the storage
         self.sample_identifiers = []
 
-        if load_metadata_from_cache and os.path.exists(metadata_cache_file):  # from a cache file
+        if load_metadata_from_cache and os.path.exists(metadata_cache_file):
             with open(metadata_cache_file, "rb") as f:
                 dataset_cache = pickle.load(f)
                 if dataset_cache.get(root) is None:
