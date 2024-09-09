@@ -187,6 +187,7 @@ def plot_error_bars(
     legend_loc='upper left',
     transparent=True,
     show=True,
+    bbox_inches = 'tight',
 ):
 
     # Generate a color palette
@@ -337,7 +338,7 @@ def plot_error_bars(
 
 
     if save_dir is not None:
-        plt.savefig(save_dir,transparent=transparent)
+        plt.savefig(save_dir,transparent=transparent,bbox_inches=bbox_inches)
         print(f"Figure saved to {save_dir}")
 
     # Show plot
