@@ -57,7 +57,6 @@ test_base_dataset = load_dataset(
 )
 
 
-
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
 num_workers = 4 if torch.cuda.is_available() else 0
@@ -117,7 +116,7 @@ sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
-    "bregman_potential": BurgEntropy()
+    "bregman_potential": BurgEntropy(),
 }
 trainable_params = [
     "g_param",
