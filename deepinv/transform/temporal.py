@@ -7,12 +7,12 @@ class ShiftTime(Transform):
     r"""
     Shift a video in time with reflective padding.
 
-    Generates n_trans randomly transformed versions.
+    Generates ``n_trans`` randomly transformed versions.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 
     :param int n_trans: number of transformed versions generated per input image.
-    :param str padding: "reflect" performs reflective padding, "wrap" performs wrap padding (i.e. roll)
+    :param str padding: ``"reflect"`` performs reflective padding, ``"wrap"`` performs wrap padding (i.e. roll)
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 

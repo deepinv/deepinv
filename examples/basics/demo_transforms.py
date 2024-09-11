@@ -105,7 +105,7 @@ dinv.utils.plot([x, y, model(y, sigma=sigma), model_eq(y, sigma=sigma)])
 
 
 # %%
-# What�s going on under the hood? We use the ``transform.symmetrize``
+# What's going on under the hood? We use the ``transform.symmetrize``
 # method to symmetrize the function :math:`f` with respect to a projective
 # transform:
 #
@@ -118,7 +118,7 @@ t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max
 
 # Symmetrize function with respect to transform
 f_s = t.symmetrize(f, average=True)
-dinv.utils.plot([x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$T^{-1}f(Tx)$"])
+dinv.utils.plot([x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\sum_i T_i^{-1}f(T_ix)$"])
 
 
 # %%
