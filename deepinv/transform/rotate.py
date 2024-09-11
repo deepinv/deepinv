@@ -79,18 +79,3 @@ class Rotate(Transform):
                 for _theta in theta
             ]
         )
-
-
-class RotoReflect(Reflect):
-    r"""
-    Dihedral group D4 actions.
-
-    Generates ``n_trans`` randomly transformed versions of 2D images through 90 degree rotations and reflections (without replacement).
-    Note this group is of order 8, whereas the rotoreflect product transform constructed with
-    :class:`deepinv.transform.Rotate` * :class:`deepinv.transform.Reflect` results in 4x4=16 total transforms.
-
-    See :class:`deepinv.transform.Transform` for further details and examples.
-
-    :param int n_trans: number of transformed versions generated per input image.
-    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
-    """
