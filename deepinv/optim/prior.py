@@ -663,7 +663,7 @@ class PatchNR(nn.Module):
 class L12Prior(Prior):
     r"""
     :math:`\ell_{1,2}` prior :math:`\reg{x} = \sum_i\| x_i \|_2`.
-
+The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.
     |sep|
 
     :Examples:
@@ -680,10 +680,10 @@ class L12Prior(Prior):
               [ 0.0603,  0.1252, -0.1075]]]])
     """
 
-    def __init__(self, *args, def_l2_axis=-1, **kwargs):
+    def __init__(self, *args, l2_axis=-1, **kwargs):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
-        self.l2_axis = def_l2_axis
+        self.l2_axis = l2_axis
 
     def g(self, x, *args, **kwargs):
         r"""
@@ -697,7 +697,7 @@ class L12Prior(Prior):
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
-        Calculates the proximity operator of the l12 regularization term :math:`\regname` at :math:`x`.
+        Calculates the proximity operator of the :math:`\ell_{1,2}` function at :math:`x`.
 
         More precisely, it computes
 
