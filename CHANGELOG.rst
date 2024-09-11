@@ -14,6 +14,7 @@ New Features
 
 Fixed
 ^^^^^
+- Disable unecessary gradient computation to prevent memory explosion (:gh:`301` by Dylan Sechet)
 
 Changed
 ^^^^^^^
