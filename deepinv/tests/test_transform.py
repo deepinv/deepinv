@@ -4,6 +4,14 @@ import torch
 
 ADD_TIME_DIM = [True, False]
 
+"""
+We test many combinations of transforms via transform arithmetic.
+For all transforms, we test correct shapes and also that the forward then inverse = the identity.
+All new transforms must be tested individually.
+Basic arithmetic (* for composition, + for stack, and | for random OR) are tested, as well as more complicated arithmetic.
+Transforms prepended with `VARIANT` means changing the operator precedence.
+Caveat: certain orderings of complicated arithmetic cannot be achieved with the testing code so will have to be manually coded in if desired in future.
+"""
 TRANSFORMS = [
     "shift",
     "rotate",
@@ -16,8 +24,8 @@ TRANSFORMS = [
     "scale3*rotate3",
     "scale|shift",
     "rotate|scale",
-    "BODMASshift+scale*rotate",  # (shift+scale) * rotate
-    "BODMASshift*scale|rotate",  # shift * (scale|rotate)
+    "VARIANTshift+scale*rotate",  # (shift+scale) * rotate
+    "VARIANTshift*scale|rotate",  # shift * (scale|rotate)
     "shift+scale*rotate",  # shift + (scale*rotate)
     "shift+scale|rotate",  # shift + (scale|rotate)
     "shift*scale|rotate",  # (shift*scale) | rotate # NOTE no way here to do (shift+scale) | rotate
@@ -32,8 +40,8 @@ TRANSFORMS = [
 
 def choose_transform(transform_name):
 
-    if "BODMAS" in transform_name:
-        transform_name = transform_name[6:]
+    if "VARIANT" in transform_name:
+        transform_name = transform_name[7:]
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(names[0]) * choose_transform(names[1])
@@ -46,7 +54,7 @@ def choose_transform(transform_name):
         names = transform_name.split("|")
         return choose_transform(names[0]) | choose_transform(names[1])
 
-    if "BODMAS" not in transform_name:
+    if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(names[0]) * choose_transform(names[1])
@@ -200,7 +208,7 @@ def test_batch_size(batch_size):
     assert torch.allclose(x, xt)
 
     # Test still works when collate_batch is False
-    xt = transform.symmetrize(lambda x:x, average=True, collate_batch=False)(x)
+    xt = transform.symmetrize(lambda x: x, average=True, collate_batch=False)(x)
     assert torch.allclose(x, xt)
 
 

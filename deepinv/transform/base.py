@@ -252,7 +252,10 @@ class Transform(torch.nn.Module, TimeMixin):
         ]
 
     def symmetrize(
-        self, f: Callable[[torch.Tensor, Any], torch.Tensor], average: bool = False, collate_batch: bool = True
+        self,
+        f: Callable[[torch.Tensor, Any], torch.Tensor],
+        average: bool = False,
+        collate_batch: bool = True,
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         r"""
         Symmetrise a function with a transform and its inverse.

@@ -4,6 +4,7 @@ from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 import numpy as np
 from deepinv.transform.base import Transform, TransformParam
+from deepinv.transform.reflect import Reflect
 
 
 class Rotate(Transform):
@@ -21,6 +22,7 @@ class Rotate(Transform):
 
     :param float limits: images are rotated in the range of angles (-limits, limits).
     :param float multiples: angles are selected uniformly from :math:`\pm` multiples of ``multiples``. Default to 1 (i.e integers)
+        When multiples is a multiple of 90, no interpolation is performed.
     :param bool positive: if True, only consider positive angles.
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
@@ -79,15 +81,16 @@ class Rotate(Transform):
         )
 
 
-# if __name__ == "__main__":
-#     device = "cuda:0"
-#
-#     x = torch.zeros(1, 1, 64, 64, device=device)
-#     x[:, :, 16:48, 16:48] = 1
-#
-#     t = Rotate(n_trans=4)
-#     y = t(x)
-#
-#     from deepinv.utils import plot
-#
-#     plot([x, y[0, :, :, :].unsqueeze(0), y[1, :, :, :].unsqueeze(0)])
+class RotoReflect(Reflect):
+    r"""
+    Dihedral group D4 actions.
+
+    Generates ``n_trans`` randomly transformed versions of 2D images through 90 degree rotations and reflections (without replacement).
+    Note this group is of order 8, whereas the rotoreflect product transform constructed with
+    :class:`deepinv.transform.Rotate` * :class:`deepinv.transform.Reflect` results in 4x4=16 total transforms.
+
+    See :class:`deepinv.transform.Transform` for further details and examples.
+
+    :param int n_trans: number of transformed versions generated per input image.
+    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    """
