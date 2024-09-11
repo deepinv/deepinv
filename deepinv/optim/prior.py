@@ -663,21 +663,27 @@ class PatchNR(nn.Module):
 class L12Prior(Prior):
     r"""
     :math:`\ell_{1,2}` prior :math:`\reg{x} = \sum_i\| x_i \|_2`.
-The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.
+    The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.
     |sep|
 
     :Examples:
     >>> import torch
     >>> from deepinv.optim import L12Prior
     >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-    >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
+    >>> x = torch.randn(2, 1, 3, 3) # Define random 3x3 image
     >>> prior = L12Prior()
     >>> prior.g(x)
-    tensor([5.7193])
+    tensor([5.4949, 4.3881])
     >>> prior.prox(x)
-    tensor([[[[ 0.9670, -0.1841, -1.3672],
-              [ 0.2626, -0.5011, -0.6462],
-              [ 0.0603,  0.1252, -0.1075]]]])
+    tensor([[[[-0.4666, -0.4776,  0.2348],
+              [ 0.3636,  0.2744, -0.7125],
+              [-0.1655,  0.8986,  0.2270]]],
+
+
+            [[[-0.0000, -0.0000,  0.0000],
+              [ 0.7883,  0.9000,  0.5369],
+              [-0.3695,  0.4081,  0.5513]]]])
+
     """
 
     def __init__(self, *args, l2_axis=-1, **kwargs):
