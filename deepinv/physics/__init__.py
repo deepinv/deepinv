@@ -17,6 +17,7 @@ from .noise import (
     UniformNoise,
     UniformGaussianNoise,
     LogPoissonNoise,
+    GammaNoise,
 )
 from .mri import MRI, DynamicMRI
 from .tomography import Tomography
@@ -28,3 +29,6 @@ from .phase_retrieval import (
     RandomPhaseRetrieval,
 )
 from .radio import RadioInterferometry
+
+from . import generator
+from . import functional

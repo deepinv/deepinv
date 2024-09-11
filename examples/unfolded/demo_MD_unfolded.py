@@ -1,0 +1,205 @@
+r"""
+Vanilla Unfolded algorithm for super-resolution
+====================================================================================================
+
+This is a simple example to show how to use vanilla unfolded Plug-and-Play.
+The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly.
+For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
+For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
+"""
+
+import deepinv as dinv
+from pathlib import Path
+import torch
+from torch.utils.data import DataLoader
+from deepinv.optim.data_fidelity import PoissonLikelihood
+from deepinv.optim.prior import PnP
+from deepinv.unfolded import unfolded_builder
+from torchvision import transforms
+from deepinv.utils.demo import load_dataset
+from deepinv.optim.bregman import BurgEntropy
+
+# %%
+# Setup paths for data loading and results.
+# ----------------------------------------------------------------------------------------
+#
+
+BASE_DIR = Path(".")
+ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
+DATA_DIR = BASE_DIR / "measurements"
+RESULTS_DIR = BASE_DIR / "results"
+CKPT_DIR = BASE_DIR / "ckpts"
+
+# Set the global random seed from pytorch to ensure reproducibility of the example.
+torch.manual_seed(0)
+
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+img_size = 32
+n_channels = 3  # 3 for color images, 1 for gray-scale images
+operation = "deblurring"
+# For simplicity, we use a small dataset for training.
+# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
+train_dataset_name = "CBSD500"
+test_dataset_name = "set3c"
+# Generate training and evaluation datasets in HDF5 folders and load them.
+test_transform = transforms.Compose(
+    [transforms.CenterCrop(img_size), transforms.ToTensor()]
+)
+train_transform = transforms.Compose(
+    [transforms.RandomCrop(img_size), transforms.ToTensor()]
+)
+train_base_dataset = load_dataset(
+    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
+)
+test_base_dataset = load_dataset(
+    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
+)
+
+
+
+# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# dataloading.
+num_workers = 4 if torch.cuda.is_available() else 0
+
+# Degradation parameters
+noise_level_img = 0.03
+noise_level_img = 40  # Poisson Noise gain
+
+# Generate the gaussian blur downsampling operator.
+physics = dinv.physics.BlurFFT(
+    img_size=(n_channels, img_size, img_size),
+    filter=dinv.physics.blur.gaussian_blur(),
+    device=device,
+    noise_model=dinv.physics.PoissonNoise(gain=noise_level_img),
+)
+my_dataset_name = "demo_unrolled_MD"
+n_images_max = (
+    1000 if torch.cuda.is_available() else 10
+)  # maximal number of images used for training
+measurement_dir = DATA_DIR / train_dataset_name / operation
+generated_datasets_path = dinv.datasets.generate_dataset(
+    train_dataset=train_base_dataset,
+    test_dataset=test_base_dataset,
+    physics=physics,
+    device=device,
+    save_dir=measurement_dir,
+    train_datapoints=n_images_max,
+    num_workers=num_workers,
+    dataset_filename=str(my_dataset_name),
+)
+
+train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
+test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
+
+# %%
+# Define the unfolded PnP algorithm.
+# ----------------------------------------------------------------------------------------
+# We use the helper function :meth:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
+# The chosen algorithm is here DRS (Douglas-Rachford Splitting).
+# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
+# then a distinct model (resp. parameter) is trained for each iteration.
+# For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
+
+# Unrolled optimization algorithm parameters
+max_iter = 5  # number of unfolded layers
+
+# Select the data fidelity term
+data_fidelity = PoissonLikelihood()
+
+# Set up the trainable denoising prior
+# Here the prior model is common for all iterations
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
+
+# The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
+stepsize = [1] * max_iter  # stepsize of the algorithm
+sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
+params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
+    "stepsize": stepsize,
+    "g_param": sigma_denoiser,
+    "bregman_potential": BurgEntropy()
+}
+trainable_params = [
+    "g_param",
+    "stepsize",
+]  # define which parameters from 'params_algo' are trainable
+
+# Logging parameters
+verbose = True
+wandb_vis = False  # plot curves and images in Weight&Bias
+
+# Define the unfolded trainable model.
+model = unfolded_builder(
+    iteration="MD",
+    params_algo=params_algo.copy(),
+    trainable_params=trainable_params,
+    data_fidelity=data_fidelity,
+    max_iter=max_iter,
+    prior=prior,
+)
+
+# %%
+# Define the training parameters.
+# ----------------------------------------------------------------------------------------
+# We use the Adam optimizer and the StepLR scheduler.
+
+
+# training parameters
+epochs = 10 if torch.cuda.is_available() else 2
+learning_rate = 5e-4
+train_batch_size = 32 if torch.cuda.is_available() else 1
+test_batch_size = 3
+
+# choose optimizer and scheduler
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+
+# choose supervised training loss
+losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+
+train_dataloader = DataLoader(
+    train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
+)
+test_dataloader = DataLoader(
+    test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
+)
+
+# %%
+# Train the network
+# ----------------------------------------------------------------------------------------
+# We train the network using the :meth:`deepinv.Trainer` class.
+
+trainer = dinv.Trainer(
+    model,
+    physics=physics,
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    epochs=epochs,
+    scheduler=scheduler,
+    losses=losses,
+    optimizer=optimizer,
+    device=device,
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
+)
+
+model = trainer.train()
+
+
+# %%
+# Test the network
+# --------------------------------------------
+#
+#
+
+trainer.test(test_dataloader)
+
+# %%
+# Plotting the trained parameters.
+# ------------------------------------
+
+dinv.utils.plotting.plot_parameters(
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_drs" / operation
+)

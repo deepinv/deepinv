@@ -138,7 +138,6 @@ params_algo = {"stepsize": 1, "lambda": 0.1}
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
@@ -172,8 +171,8 @@ model = optim_builder(
 
 
 batch_size = 1
-wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
+plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 
 dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
@@ -188,7 +187,6 @@ test(
     device=device,
     plot_images=plot_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
-    plot_metrics=plot_metrics,
+    plot_convergence_metrics=plot_convergence_metrics,
     verbose=verbose,
-    wandb_vis=wandb_vis,
 )

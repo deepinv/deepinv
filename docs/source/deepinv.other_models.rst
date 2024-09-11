@@ -19,3 +19,17 @@ for tomographic reconstruction.
 
    deepinv.models.ArtifactRemoval
 
+
+Networks for time-varying data
+------------------------------
+When using time-varying (i.e. dynamic) data of 5D shape (B,C,T,H,W), the reconstruction network must be adapted.
+To adapt any existing network to take dynamic data as independent time-slices, create a time-agnostic wrapper that 
+flattens the time dimension into the batch dimension.
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.TimeAgnosticNet

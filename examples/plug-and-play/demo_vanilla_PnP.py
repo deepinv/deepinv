@@ -59,7 +59,7 @@ physics = dinv.physics.Tomography(
 )
 
 PI = 4 * torch.ones(1).atan()
-SCALING = PI / (2 * angles)  # approximate operator norm of A^T A
+SCALING = (PI / (2 * angles)).to(device)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -95,10 +95,10 @@ prior = PnP(denoiser=denoiser)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 # instantiate the algorithm class to solve the IP problem.
-# intialize with the rescaled adjoint such that the initialization lives already at the correct scale
+# initialize with the rescaled adjoint such that the initialization lives already at the correct scale
 model = optim_builder(
     iteration="PGD",
     prior=prior,
@@ -147,5 +147,5 @@ plot(
 )
 
 # plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+if plot_convergence_metrics:
     plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)

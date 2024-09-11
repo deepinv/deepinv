@@ -162,7 +162,7 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     get_output=custom_output,
-    verbose=True,
+    verbose=False,
 )
 
 # Set the model to evaluation mode. We do not require training here.
@@ -175,8 +175,7 @@ model.eval()
 # We evaluate the PnP algorithm on the test dataset, compute the PSNR metrics and plot reconstruction results.
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
+plot_convergence_metrics = True  # plot metrics. Metrics are saved in save_folder.
 plot_images = True  # plot images. Images are saved in save_folder.
 
 dataloader = DataLoader(
@@ -190,8 +189,6 @@ with torch.no_grad():
         device=device,
         plot_images=plot_images,
         save_folder=RESULTS_DIR / method / operation / dataset_name,
-        plot_metrics=plot_metrics,
+        plot_convergence_metrics=plot_convergence_metrics,
         verbose=True,
-        wandb_vis=wandb_vis,
-        plot_only_first_batch=False,  # By default only the first batch is plotted.
     )

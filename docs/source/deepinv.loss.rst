@@ -59,11 +59,14 @@ about the forward measurement process.
     deepinv.loss.MOILoss
     deepinv.loss.Neighbor2Neighbor
     deepinv.loss.SplittingLoss
+    deepinv.loss.Phase2PhaseLoss
+    deepinv.loss.Artifact2ArtifactLoss
     deepinv.loss.SureGaussianLoss
     deepinv.loss.SurePoissonLoss
     deepinv.loss.SurePGLoss
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
+    deepinv.loss.ScoreLoss
 
 
 .. _adversarial-losses:

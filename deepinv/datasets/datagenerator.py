@@ -12,14 +12,15 @@ class HDF5Dataset(data.Dataset):
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
+    :param transform: A torchvision transform to apply to the data.
     """
 
-    def __init__(self, path, train=True):
+    def __init__(self, path, train=True, transform=None):
         super().__init__()
         self.data_info = []
         self.data_cache = {}
         self.unsupervised = False
-
+        self.transform = transform
         hd5 = h5py.File(path, "r")
         if train:
             if "x_train" in hd5:
@@ -37,6 +38,9 @@ class HDF5Dataset(data.Dataset):
         x = y
         if not self.unsupervised:
             x = torch.from_numpy(self.x[index]).type(torch.float)
+
+        if self.transform is not None:
+            x = self.transform(x)
 
         return x, y
 
@@ -160,7 +164,6 @@ def generate_dataset(
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if train_dataset is not None:
-
             hf.create_dataset("y_train", (n_train_g,) + y.shape[1:], dtype="float")
             if supervised:
                 hf.create_dataset("x_train", (n_train_g,) + x.shape[1:], dtype="float")
@@ -175,7 +178,6 @@ def generate_dataset(
                     disable=(not verbose or not show_progress_bar),
                 )
             ):
-
                 desc = (
                     f"Generating dataset operator {g + 1}"
                     if G > 1
@@ -196,7 +198,6 @@ def generate_dataset(
                 batches = len(train_dataloader) - int(train_dataloader.drop_last)
                 iterator = iter(train_dataloader)
                 for _ in range(batches):
-
                     x = next(iterator)
                     x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                     x = x.to(device)
@@ -233,7 +234,6 @@ def generate_dataset(
             batches = len(test_dataloader) - int(test_dataloader.drop_last)
             iterator = iter(test_dataloader)
             for i in range(batches):
-
                 x = next(iterator)
                 x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                 x = x.to(device)

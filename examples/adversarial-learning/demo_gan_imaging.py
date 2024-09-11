@@ -56,7 +56,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # using :meth:`deepinv.datasets.generate_dataset`.
 #
 
-physics = dinv.physics.Blur(padding="circular")
+physics = dinv.physics.Blur(padding="circular", device=device)
 blur_generator = MotionBlurGenerator((11, 11))
 
 dataset = dinv.datasets.Urban100HR(
@@ -337,5 +337,4 @@ G = trainer.train()
 # optimisation to a relatively high tolerance for speed.
 #
 
-psnr = trainer.test(test_dataloader)[0]
-print("Test PSNR", psnr)
+trainer.test(test_dataloader)

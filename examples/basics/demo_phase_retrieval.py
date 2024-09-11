@@ -84,6 +84,7 @@ physics = dinv.physics.RandomPhaseRetrieval(
     m=m,
     img_shape=img_shape,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+    device=device,
 )
 
 # Generate measurements
@@ -108,7 +109,7 @@ for _ in range(num_iter):
     x_phase_gd_rand = x_phase_gd_rand - stepsize * data_fidelity.grad(
         x_phase_gd_rand, y, physics
     )
-    loss_hist.append(data_fidelity(x_phase_gd_rand, y, physics))
+    loss_hist.append(data_fidelity(x_phase_gd_rand, y, physics).cpu())
 
 print("initial loss:", loss_hist[0])
 print("final loss:", loss_hist[-1])
@@ -167,7 +168,7 @@ for _ in range(num_iter):
     x_phase_gd_spec = x_phase_gd_spec - stepsize * data_fidelity.grad(
         x_phase_gd_spec, y, physics
     )
-    loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics))
+    loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics).cpu())
 
 print("intial loss:", loss_hist[0])
 print("final loss:", loss_hist[-1])

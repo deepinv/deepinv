@@ -138,7 +138,9 @@ prior = dinv.optim.prior.TVPrior(n_it_max=20)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0
@@ -184,6 +186,6 @@ plot(
     titles=["Input", "GT", "Linear", "Recons."],
 )
 
-# plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+# plot convergence curves
+if plot_convergence_metrics:
     plot_curves(metrics)

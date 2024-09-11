@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python 3.6+| |codecov| |Black| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |codecov| |Black| |discord| |colab|
 
 
 Introduction
@@ -110,8 +110,8 @@ If you have any questions or suggestions, please join the conversation in our
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
-   :target: https://www.python.org/downloads/release/python-360/
+.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
+   :target: https://www.python.org/downloads/release/python-390/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
 .. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
