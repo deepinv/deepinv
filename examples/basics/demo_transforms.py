@@ -81,11 +81,12 @@ dinv.utils.plot(
 # ----------------------------------------
 #
 # Suppose we want to make a denoiser equivariant to the rotoreflect group,
-# taken as the group product of the transforms shown above. We can make
-# use of our transform arithmetic:
+# taken as the group product of the 90 degree rotations (order 4) and 1D reflects (order 2).
+# We can do this with our transform arithmetic (note this results in the full dihedral group
+# :math:`\text{Dih}_4` of order 8):
 #
 
-transform = rotate * reflect
+transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 
 
 # %%
@@ -107,7 +108,7 @@ dinv.utils.plot([x, y, model(y, sigma=sigma), model_eq(y, sigma=sigma)])
 # %%
 # What's going on under the hood? We use the ``transform.symmetrize``
 # method to symmetrize the function :math:`f` with respect to a projective
-# transform:
+# transform (with a Monte Carlo approach of ``n_trans=2`` transforms per call):
 #
 
 # Example non-equivariant function
