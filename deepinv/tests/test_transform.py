@@ -191,11 +191,16 @@ def test_rotate_90():
 
 @pytest.mark.parametrize("batch_size", [1, 2])
 def test_batch_size(batch_size):
+    # Test batch retains correct order when >1 n_trans
     transform = dinv.transform.Rotate(multiples=90, n_trans=3) * dinv.transform.Reflect(
         dim=[-1], n_trans=2
     )
     x = torch.randn(batch_size, 2, 16, 16)
     xt = transform.identity(x, average=True)
+    assert torch.allclose(x, xt)
+
+    # Test still works when collate_batch is False
+    xt = transform.symmetrize(lambda x:x, average=True, collate_batch=False)(x)
     assert torch.allclose(x, xt)
 
 

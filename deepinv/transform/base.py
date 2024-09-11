@@ -95,7 +95,7 @@ class Transform(torch.nn.Module, TimeMixin):
         For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
         If False, for certain transforms including :class:`deepinv.transform.Rotate`,
         ``transform`` will try to switch off automatic cropping/padding resulting in errors.
-        However, ``symmetrize`` will still work but perform one-by-one (less efficient).
+        However, ``symmetrize`` will still work but perform one-by-one (i.e. without collating over batch, which is less efficient).
     :param bool flatten_video_input: accept video (5D) input of shape ``(B,C,T,H,W)`` by flattening time dim before transforming and unflattening after all operations.
     """
 
@@ -252,7 +252,7 @@ class Transform(torch.nn.Module, TimeMixin):
         ]
 
     def symmetrize(
-        self, f: Callable[[torch.Tensor, Any], torch.Tensor], average: bool = False
+        self, f: Callable[[torch.Tensor, Any], torch.Tensor], average: bool = False, collate_batch: bool = True
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         r"""
         Symmetrise a function with a transform and its inverse.
@@ -264,12 +264,15 @@ class Transform(torch.nn.Module, TimeMixin):
 
         :param Callable[[torch.Tensor, Any], torch.Tensor] f: function acting on tensors.
         :param bool average: monte carlo average over all random transformations (in range ``n_trans``) when symmetrising to get same number of output images as input images. No effect when ``n_trans=1``.
+        :param bool collate_batch: if ``True``, collect ``n_trans`` transformed images in batch dim and evaluate ``f`` only once.
+            However, this requires ``n_trans`` extra memory. If ``False``, evaluate ``f`` for each transformation.
+            Always will be ``False`` when transformed images aren't constant shape.
         :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
         """
 
         def symmetrized(x, *args, **kwargs):
             params = self.get_params(x)
-            if self.constant_shape:
+            if self.constant_shape and collate_batch:
                 # Collect over n_trans
                 xt = self.inverse(
                     f(self.transform(x, **params), *args, **kwargs),
