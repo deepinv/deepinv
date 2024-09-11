@@ -1,7 +1,7 @@
 .. _transform:
 
 Transforms
-====
+============
 
 This package contains different transforms which can be used for data augmentation or together with the equivariant losses.
 

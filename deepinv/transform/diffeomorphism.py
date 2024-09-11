@@ -14,7 +14,7 @@ class CPADiffeomorphism(Transform):
 
     Requires installing ``libcpab`` using ``pip install git+https://github.com/Andrewwango/libcpab.git``.
 
-    Generates n_trans randomly transformed versions.
+    Generates ``n_trans`` randomly transformed versions.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 

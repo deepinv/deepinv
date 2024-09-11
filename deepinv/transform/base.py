@@ -37,7 +37,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
     Also handle deterministic (non-random) transformations by passing in fixed parameter values.
 
-    All transforms automatically handle video input (5D of shape (B,C,T,H,W)) by flattening the time dim .
+    All transforms automatically handle video input (5D of shape ``(B,C,T,H,W)``) by flattening the time dimension.
 
     |sep|
 
@@ -90,13 +90,13 @@ class Transform(torch.nn.Module, TimeMixin):
 
 
     :param int n_trans: number of transformed versions generated per input image, defaults to 1
-    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
-    :param bool constant_shape: if True, transformed images are assumed to be same shape as input.
+    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param bool constant_shape: if ``True``, transformed images are assumed to be same shape as input.
         For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
         If False, for certain transforms including :class:`deepinv.transform.Rotate`,
         ``transform`` will try to switch off automatic cropping/padding resulting in errors.
         However, ``symmetrize`` will still work but perform one-by-one (less efficient).
-    :param bool flatten_video_input: accept video (5D) input of shape (B,C,T,H,W) by flattening time dim before transforming and unflattening after all operations.
+    :param bool flatten_video_input: accept video (5D) input of shape ``(B,C,T,H,W)`` by flattening time dim before transforming and unflattening after all operations.
     """
 
     def __init__(
@@ -133,7 +133,7 @@ class Transform(torch.nn.Module, TimeMixin):
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
 
-        Params are represented as tensors where the first dimension indexes batch and n_trans.
+        Params are represented as tensors where the first dimension indexes batch and ``n_trans``.
         Params store e.g rotation degrees or shift amounts.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
@@ -259,7 +259,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 
-        This is useful for e.g. Reynolds averaging a function over a group. Set ``average=True`` to average over n_trans.
+        For example, this is useful for Reynolds averaging a function over a group. Set ``average=True`` to average over ``n_trans``.
         For example, use ``Rotate(n_trans=4, positive=True, multiples=90).symmetrize(f)`` to symmetrize f over the entire group.
 
         :param Callable[[torch.Tensor, Any], torch.Tensor] f: function acting on tensors.

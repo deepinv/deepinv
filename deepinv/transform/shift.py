@@ -8,7 +8,7 @@ class Shift(Transform):
     r"""
     Fast integer 2D translations.
 
-    Generates n_trans randomly shifted versions of 2D images with circular padding.
+    Generates ``n_trans`` randomly shifted versions of 2D images with circular padding.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 

@@ -216,7 +216,7 @@ def plot(
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
-    :param tuple[int] figsize: size of the figure. If None, calculated from size of img list.
+    :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
