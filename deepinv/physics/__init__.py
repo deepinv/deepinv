@@ -29,6 +29,8 @@ from .phase_retrieval import (
     RandomPhaseRetrieval,
 )
 from .radio import RadioInterferometry
+from .time import TimeMixin
+
 
 from . import generator
 from . import functional
