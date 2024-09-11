@@ -14,6 +14,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 
 Changed
 ^^^^^^^
@@ -213,3 +214,4 @@ Authors
 .. _Chao Tang: https://github.com/ChaoTang0330
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
 .. _Andrew Wang: https://andrewwango.github.io/about/
+.. _Pierre-Antoine Comby: https://github.com/paquiteau
