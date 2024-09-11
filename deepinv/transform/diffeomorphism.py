@@ -13,6 +13,7 @@ class CPADiffeomorphism(Transform):
     These diffeomorphisms benefit from fast GPU-accelerated transform + fast inverse.
 
     Requires installing ``libcpab`` using ``pip install git+https://github.com/Andrewwango/libcpab.git``.
+    For more details, see ``libcpab`` `docs <https://github.com/Andrewwango/libcpab?tab=readme-ov-file#how-to-use>`_.
 
     Generates n_trans randomly transformed versions.
 
@@ -24,7 +25,7 @@ class CPADiffeomorphism(Transform):
         You may be able to achieve reproducibility by using a global seed instead.
 
     :param int n_trans: number of transformed versions generated per input image.
-    :param int n_tesselation: see ``libcpab.Cpab`` docs
+    :param int n_tesselation: see ``libcpab.Cpab`` `docs <https://github.com/Andrewwango/libcpab?tab=readme-ov-file#how-to-use>`_.
     :param bool zero_boundary: see ``libcpab.Cpab`` docs
     :param bool volume_perservation: see ``libcpab.Cpab`` docs
     :param bool override: see ``libcpab.Cpab`` docs
