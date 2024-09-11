@@ -8,19 +8,15 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-from tqdm import tqdm, trange
+from tqdm import trange
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_url_image, get_image_url
-from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.phase_retrieval import (
-    correct_global_phase,
     cosine_similarity,
     spectral_methods,
-    default_preprocessing,
     spectral_methods_wrapper,
 )
 
@@ -47,7 +43,7 @@ step_size = 3e-3
 start = 64
 end = 144
 # output_sizes = torch.arange(start, end, 2)
-output_sizes = torch.tensor([92,98,104,108,112,116,120,124,128,132,136,140])
+output_sizes = torch.tensor([92, 98, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140])
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
@@ -64,7 +60,6 @@ Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device
 
 # Set up the variable to fetch dataset and operators.
 url = get_image_url("SheppLogan.png")
@@ -122,7 +117,9 @@ for i in trange(n_oversampling):
         y = physics(x_phase)
 
         x_phase_spec = spectral_methods(y, physics, n_iter=n_spec_iter)
-        print("spec cosine similarity: ", cosine_similarity(x_phase, x_phase_spec).item())
+        print(
+            "spec cosine similarity: ", cosine_similarity(x_phase, x_phase_spec).item()
+        )
 
         x_phase_gd_spec = model(y, physics, x_gt=x_phase)
         df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_spec).item()

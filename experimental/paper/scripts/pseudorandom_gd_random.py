@@ -5,23 +5,16 @@ sys.path.append("/home/zhhu/workspaces/deepinv/")
 from datetime import datetime
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-from tqdm import tqdm, trange
+from tqdm import trange
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_url_image, get_image_url
-from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.phase_retrieval import (
-    correct_global_phase,
     cosine_similarity,
-    spectral_methods,
-    default_preprocessing,
-    spectral_methods_wrapper,
 )
 
 # genral
@@ -64,7 +57,6 @@ Path(SAVE_DIR / "pseudorandom").mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device
 
 # Set up the variable to fetch dataset and operators.
 url = get_image_url("SheppLogan.png")
