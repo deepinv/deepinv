@@ -404,7 +404,7 @@ class TVPrior(Prior):
         Computes the regularizer
 
         .. math::
-            g(x) = \|Dx\|_{1,2}
+            \reg{x} = \|Dx\|_{1,2}
 
 
         where D is the finite differences linear operator,
@@ -617,7 +617,7 @@ class L12Prior(Prior):
         self.explicit_prior = True
         self.l2_axis = l2_axis
 
-    def g(self, x, *args, **kwargs):
+    def fn(self, x, *args, **kwargs):
         r"""
         Computes the regularizer :math:`\reg{x} = \sum_i\| x_i \|_2`.
 
