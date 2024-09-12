@@ -21,10 +21,10 @@ from deepinv.optim.phase_retrieval import (
 )
 
 # genral
-model_name = "pseudorandom"
+model_name = "structured"
 recon = "gd-spectral"
 
-# pseudorandom settings
+# structured settings
 img_size = 64
 n_layers = 1
 shared_weights = False
