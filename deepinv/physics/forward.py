@@ -728,8 +728,8 @@ class DecomposablePhysics(LinearPhysics):
         Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`
         in an efficient manner leveraging the singular vector decomposition.
 
-        :param torch.Tensor y: measurements tensor
         :param torch.Tensor, float z: signal tensor
+        :param torch.Tensor y: measurements tensor
         :param float gamma: hyperparameter :math:`\gamma` of the proximal operator
         :return: (torch.Tensor) estimated signal tensor
 
