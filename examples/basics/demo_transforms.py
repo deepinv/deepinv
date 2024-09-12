@@ -56,7 +56,7 @@ transform2 = Compose(
 )
 
 # Random diffeomorphism
-transform3 = dinv.transform.CPADiffeomorphism()
+transform3 = dinv.transform.CPABDiffeomorphism()
 
 dinv.utils.plot(
     [x, transform(x), transform2(x), transform3(x)],
