@@ -598,7 +598,7 @@ class L12Prior(Prior):
     >>> seed = torch.manual_seed(0) # Random seed for reproducibility
     >>> x = torch.randn(2, 1, 3, 3) # Define random 3x3 image
     >>> prior = L12Prior()
-    >>> prior.g(x)
+    >>> prior.fn(x)
     tensor([5.4949, 4.3881])
     >>> prior.prox(x)
     tensor([[[[-0.4666, -0.4776,  0.2348],
