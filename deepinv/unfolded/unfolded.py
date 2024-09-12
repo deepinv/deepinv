@@ -87,6 +87,26 @@ class BaseUnfold(BaseOptim):
         self.prior = nn.ModuleList(self.prior)
         self.data_fidelity = nn.ModuleList(self.data_fidelity)
 
+    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+        r"""
+        Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics physics: physics of the problem for the acquisition of ``y``.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        """
+        X, metrics = self.fixed_point(
+            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+        )
+        x = self.get_output(X)
+        if compute_metrics:
+            return x, metrics
+        else:
+            return x
+
 
 def unfolded_builder(
     iteration,

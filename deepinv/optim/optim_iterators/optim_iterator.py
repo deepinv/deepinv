@@ -79,11 +79,11 @@ class OptimIterator(nn.Module):
         """
         x_prev = X["est"][0]
         if not self.g_first:
-            z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics).detach()
-            x = self.g_step(z, cur_prior, cur_params).detach()
+            z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
+            x = self.g_step(z, cur_prior, cur_params)
         else:
-            z = self.g_step(x_prev, cur_prior, cur_params).detach()
-            x = self.f_step(z, cur_data_fidelity, cur_params, y, physics).detach()
+            z = self.g_step(x_prev, cur_prior, cur_params)
+            x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
