@@ -7,6 +7,8 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 
 
 New Features
@@ -15,9 +17,11 @@ New Features
 Fixed
 ^^^^^
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
+- Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
+
 
 
 v0.2.1
