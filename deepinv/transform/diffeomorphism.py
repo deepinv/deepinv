@@ -3,7 +3,7 @@ import torch
 from deepinv.transform.base import Transform, TransformParam
 
 
-class CPADiffeomorphism(Transform):
+class CPABDiffeomorphism(Transform):
     r"""
     Continuous Piecewise-Affine-based Diffeomorphism.
 

@@ -100,4 +100,4 @@ These can be easily compounded with geometric transformations using the ``*`` op
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.transform.ShiftTimeReflectPad
+    deepinv.transform.ShiftTime
