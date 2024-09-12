@@ -7,6 +7,8 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 
 
 New Features
@@ -19,6 +21,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 
@@ -49,6 +52,9 @@ New Features
 - Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 - Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
 - Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
+- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`)
+- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`)
+
 
 Fixed
 ^^^^^
@@ -59,7 +65,7 @@ Fixed
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
-
+- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`)
 Changed
 ^^^^^^^
 - Changed to Python 3.9+ (:gh:`280` by `Julian Tachella`_)
@@ -217,3 +223,4 @@ Authors
 .. _Chao Tang: https://github.com/ChaoTang0330
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
 .. _Andrew Wang: https://andrewwango.github.io/about/
+.. _Pierre-Antoine Comby: https://github.com/paquiteau

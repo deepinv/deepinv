@@ -64,12 +64,12 @@ Deep Denoisers
 Equivariant Denoisers
 --------------------------
 The denoisers can be turned into equivariant denoisers by wrapping them with the
-:class:`deepinv.models.EquivariantDenoiser` class.
-The group of transformations available at the moment are vertical/horizontal flips, 90 degree rotations, or a
-combination of both, consisting in groups with 3, 4 or 8 elements.
+:class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser 
+with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate` or :class:`deepinv.transform.Reflect`.
+You retain full flexibility by passing in the transform of choice.
 
-The denoising can either be averaged the group of transformation (making the denoiser equivariant) or performed on a
-single transformation sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
+The denoising can either be averaged over the entire group of transformation (making the denoiser equivariant) or performed on 1 or n
+transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
 equivariant denoiser.
 
 .. autosummary::

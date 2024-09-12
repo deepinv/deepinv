@@ -72,7 +72,8 @@ denoisers = [
     "FrEIA",
     "pyiqa",
     "kornia",
-    "torchkbnufft"
+    "torchkbnufft",
+    "libcpab @ git+https://github.com/Andrewwango/libcpab.git"
 ]
 
 # optional dependencies for specific datasets

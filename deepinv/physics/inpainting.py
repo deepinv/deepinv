@@ -32,7 +32,7 @@ class Inpainting(DecomposablePhysics):
     :param tuple tensor_size: size of the input images without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param torch.device device: gpu or cpu
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously. If existing mask passed (i.e. mask is Tensor), this has no effect.
-
+    :param torch.Generator rng: a pseudorandom random number generator for the mask generation. Default to None.
     |sep|
 
     :Examples:
@@ -58,8 +58,8 @@ class Inpainting(DecomposablePhysics):
         >>> physics = Inpainting(mask=0.7, tensor_size=x.shape[1:])
         >>> physics(x)
         tensor([[[[ 1.5410, -0.0000, -2.1788],
-                  [ 0.5684, -1.0845, -1.3986],
-                  [ 0.4033,  0.0000, -0.7193]]]])
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.0000]]]])
 
         Generate random masks on-the-fly using mask generators:
 
@@ -68,7 +68,7 @@ class Inpainting(DecomposablePhysics):
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = Inpainting(tensor_size=x.shape[1:])
         >>> gen = BernoulliSplittingMaskGenerator(x.shape[1:], split_ratio=0.7)
-        >>> params = gen.step(batch_size=1) # Generate random mask
+        >>> params = gen.step(batch_size=1, seed = 0) # Generate random mask
         >>> physics(x, **params) # Set mask on-the-fly
         tensor([[[[-0.4033, -0.0000,  0.1820],
                   [-0.8567,  1.1006, -1.0712],
@@ -81,7 +81,15 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    def __init__(self, tensor_size, mask=None, pixelwise=True, device="cpu", **kwargs):
+    def __init__(
+        self,
+        tensor_size,
+        mask=None,
+        pixelwise=True,
+        device="cpu",
+        rng: torch.Generator = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
@@ -92,6 +100,7 @@ class Inpainting(DecomposablePhysics):
                 split_ratio=mask,
                 pixelwise=pixelwise,
                 device=device,
+                rng=rng,
             )
             mask = gen.step(batch_size=None)["mask"]
         elif mask is None:

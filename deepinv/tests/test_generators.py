@@ -1,19 +1,26 @@
+from deepinv.physics.generator import (
+    GaussianMaskGenerator,
+    EquispacedMaskGenerator,
+    RandomMaskGenerator,
+)
 import pytest
 import numpy as np
 import torch
 import deepinv as dinv
 import itertools
 
-from deepinv.physics.generator import (
-    GaussianMaskGenerator,
-    EquispacedMaskGenerator,
-    RandomMaskGenerator,
-)
+# Avoiding nondeterministic algorithms
+import os
+
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+torch.use_deterministic_algorithms(True)
+torch.backends.cudnn.deterministic = True
 
 # Generators to test (make sure they appear in find_generator as well)
 GENERATORS = [
     "MotionBlurGenerator",
     "DiffractionBlurGenerator",
+    "ProductConvolutionBlurGenerator",
     "SigmaGenerator",
 ]
 
@@ -37,8 +44,15 @@ INPAINTING_IMG_SIZES = [
 ]  # (C,H,W), (C,M), (C,T,H,W)
 INPAINTING_GENERATORS = ["bernoulli", "gaussian"]
 
+# All devices to test
+DEVICES = ["cpu"]
+if torch.cuda.is_available():
+    DEVICES.append("cuda")
 
-def find_generator(name, size, num_channels, device):
+DTYPES = [torch.float32, torch.float64]
+
+
+def find_generator(name, size, num_channels, device, dtype):
     r"""
     Chooses operator
 
@@ -48,18 +62,27 @@ def find_generator(name, size, num_channels, device):
     """
     if name == "MotionBlurGenerator":
         g = dinv.physics.generator.MotionBlurGenerator(
-            psf_size=size, num_channels=num_channels, device=device
+            psf_size=size, num_channels=num_channels, device=device, dtype=dtype
         )
         keys = ["filter"]
     elif name == "DiffractionBlurGenerator":
         g = dinv.physics.generator.DiffractionBlurGenerator(
-            psf_size=size,
-            device=device,
-            num_channels=num_channels,
+            psf_size=size, device=device, num_channels=num_channels, dtype=dtype
         )
         keys = ["filter", "coeff", "pupil"]
+    elif name == "ProductConvolutionBlurGenerator":
+        g = dinv.physics.generator.ProductConvolutionBlurGenerator(
+            psf_generator=dinv.physics.generator.DiffractionBlurGenerator(
+                psf_size=size, device=device, num_channels=num_channels, dtype=dtype
+            ),
+            img_size=512,
+            n_eigen_psf=10,
+            device=device,
+            dtype=dtype,
+        )
+        keys = ["filters", "multipliers", "padding"]
     elif name == "SigmaGenerator":
-        g = dinv.physics.generator.SigmaGenerator(device=device)
+        g = dinv.physics.generator.SigmaGenerator(device=device, dtype=dtype)
         keys = ["sigma"]
     else:
         raise Exception("The generator chosen doesn't exist")
@@ -69,12 +92,14 @@ def find_generator(name, size, num_channels, device):
 @pytest.mark.parametrize("name", GENERATORS)
 @pytest.mark.parametrize("size", SIZES)
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
-def test_shape(name, size, num_channels, device):
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_shape(name, size, num_channels, device, dtype):
     r"""
     Tests generators shape.
     """
 
-    generator, size, keys = find_generator(name, size, num_channels, device)
+    generator, size, keys = find_generator(name, size, num_channels, device, dtype)
     batch_size = 4
 
     params = generator.step(batch_size=batch_size)
@@ -86,231 +111,85 @@ def test_shape(name, size, num_channels, device):
 
 
 @pytest.mark.parametrize("name", GENERATORS)
-def test_generation_newparams(name, device):
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_generation_newparams(name, device, dtype):
     r"""
     Tests generators shape.
     """
     size = (32, 32)
-    generator, size, _ = find_generator(name, size, 1, device)
+    generator, size, _ = find_generator(name, size, 1, device, dtype)
     batch_size = 1
-    torch.manual_seed(0)
-    torch.cuda.manual_seed(0)
 
     if name == "MotionBlurGenerator":
-        param_key = "filter"
+        param_key = ["filter"]
     elif name == "DiffractionBlurGenerator":
-        param_key = "filter"
+        param_key = ["filter"]
+    elif name == "ProductConvolutionBlurGenerator":
+        param_key = ["filters", "multipliers"]
     elif name == "SigmaGenerator":
-        param_key = "sigma"
+        param_key = ["sigma"]
 
-    params0 = generator.step(batch_size=batch_size)
-    params1 = generator.step(batch_size=batch_size)
+    params0 = generator.step(batch_size=batch_size, seed=0)
+    params1 = generator.step(batch_size=batch_size, seed=1)
 
-    assert torch.any(params0[param_key] != params1[param_key])
+    for key in param_key:
+        assert torch.any(params0[key] != params1[key])
 
 
 @pytest.mark.parametrize("name", GENERATORS)
-def test_generation(name, device):
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_generation_seed(name, device, dtype):
+    r"""
+    Tests generators shape.
+    """
+    size = (32, 32)
+    generator, size, _ = find_generator(name, size, 1, device, dtype)
+    batch_size = 1
+
+    if name == "MotionBlurGenerator":
+        param_key = ["filter"]
+    elif name == "DiffractionBlurGenerator":
+        param_key = ["filter"]
+    elif name == "ProductConvolutionBlurGenerator":
+        param_key = ["filters", "multipliers"]
+    elif name == "SigmaGenerator":
+        param_key = ["sigma"]
+
+    params0 = generator.step(batch_size=batch_size, seed=42)
+    params1 = generator.step(batch_size=batch_size, seed=42)
+
+    for key in param_key:
+        assert torch.allclose(params0[key], params1[key])
+
+
+@pytest.mark.parametrize("name", GENERATORS)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", [torch.float64])
+def test_generation(name, device, dtype):
     r"""
     Tests generators shape.
     """
     size = (5, 5)
-    generator, size, _ = find_generator(name, size, 1, device)
+    generator, size, _ = find_generator(name, size, 1, device, dtype)
     batch_size = 1
-    torch.manual_seed(0)
-    torch.cuda.manual_seed(0)
-    params = generator.step(batch_size=batch_size)
-
-    if name == "MotionBlurGenerator":
+    params = generator.step(batch_size=batch_size, seed=0)
+    if name == "MotionBlurGenerator" or name == "DiffractionBlurGenerator":
         w = params["filter"]
-        if device.type == "cpu":
-            wref = torch.tensor(
-                [
-                    [
-                        [
-                            [
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.1509433985,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.3081761003,
-                                0.1572327018,
-                                0.3836477995,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                        ]
-                    ]
-                ]
-            )
-        elif device.type == "cuda":
-            wref = torch.tensor(
-                [
-                    [
-                        [
-                            [
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.0691823885,
-                                0.0628930852,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.0503144637,
-                                0.4842767417,
-                                0.0943396240,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.0000000000,
-                                0.1069182381,
-                                0.1320754737,
-                                0.0000000000,
-                            ],
-                            [
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                                0.0000000000,
-                            ],
-                        ]
-                    ]
-                ],
-            ).to(device)
-
-    elif name == "DiffractionBlurGenerator":
-        w = params["filter"]
-        if device.type == "cpu":
-            wref = torch.tensor(
-                [
-                    [
-                        [
-                            [
-                                0.0081667975,
-                                0.0339039154,
-                                0.0463643819,
-                                0.0238370951,
-                                0.0067134043,
-                            ],
-                            [
-                                0.0235104840,
-                                0.0769919083,
-                                0.1068268567,
-                                0.0638824701,
-                                0.0154726375,
-                            ],
-                            [
-                                0.0315882340,
-                                0.0922789276,
-                                0.1303794235,
-                                0.0824520364,
-                                0.0192645062,
-                            ],
-                            [
-                                0.0210407600,
-                                0.0526346825,
-                                0.0764168128,
-                                0.0469734631,
-                                0.0075026853,
-                            ],
-                            [
-                                0.0074746846,
-                                0.0069856029,
-                                0.0118351672,
-                                0.0068998244,
-                                0.0006031910,
-                            ],
-                        ]
-                    ]
-                ]
-            )
-        elif device.type == "cuda":
-            wref = torch.tensor(
-                [
-                    [
-                        [
-                            [
-                                0.0032691115,
-                                0.0060402630,
-                                0.0175693501,
-                                0.0059448336,
-                                0.0007023035,
-                            ],
-                            [
-                                0.0095862420,
-                                0.0427204743,
-                                0.0728377998,
-                                0.0452912413,
-                                0.0118838884,
-                            ],
-                            [
-                                0.0251656137,
-                                0.0764198229,
-                                0.1213025227,
-                                0.0953904763,
-                                0.0436460413,
-                            ],
-                            [
-                                0.0162273813,
-                                0.0507672094,
-                                0.0916804373,
-                                0.0891042799,
-                                0.0563216321,
-                            ],
-                            [
-                                0.0018812985,
-                                0.0099059129,
-                                0.0294828881,
-                                0.0403944701,
-                                0.0364645906,
-                            ],
-                        ]
-                    ]
-                ]
-            ).to(device)
-
+    elif name == "ProductConvolutionBlurGenerator":
+        w = params["filters"]
     elif name == "SigmaGenerator":
         w = params["sigma"]
-        if device.type == "cpu":
-            wref = torch.tensor([0.2531657219])
-        elif device.type == "cuda":
-            wref = torch.tensor([0.2055327892]).to(device)
 
-    assert torch.allclose(w, wref, atol=1e-6)
+    wref = (
+        torch.load(
+            f"deepinv/tests/assets/generators/{name.lower()}_{device}_{dtype}.pt"
+        )
+        .to(device)
+        .to(dtype)
+    )
+    assert torch.allclose(w, wref, atol=1e-8)
 
 
 ######################
@@ -349,7 +228,7 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
     H, W = img_size[-2:]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
 
-    mask = generator.step(batch_size=batch_size)["mask"]
+    mask = generator.step(batch_size=batch_size, seed=0)["mask"]
 
     if len(img_size) == 2:
         assert len(mask.shape) == 4
@@ -392,7 +271,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
-            rng=torch.Generator().manual_seed(0),
+            rng=torch.Generator(device).manual_seed(0),
         )
     elif name == "gaussian":
         return dinv.physics.generator.GaussianSplittingMaskGenerator(
@@ -400,7 +279,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
-            rng=np.random.default_rng(0),
+            rng=torch.Generator(device).manual_seed(0),
         )
     else:
         raise Exception("The generator chosen doesn't exist")
@@ -410,6 +289,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("img_size", INPAINTING_IMG_SIZES)
 @pytest.mark.parametrize("pixelwise", (False, True))
 @pytest.mark.parametrize("split_ratio", (0.5,))
+@pytest.mark.parametrize("device", DEVICES)
 def test_inpainting_generators(
     generator_name, batch_size, img_size, pixelwise, split_ratio, device
 ):
@@ -425,7 +305,7 @@ def test_inpainting_generators(
     def correct_ratio(ratio):
         assert torch.isclose(
             ratio,
-            torch.Tensor([split_ratio]),
+            torch.tensor([split_ratio], device=device),
             rtol=1e-2,
             atol=1e-2,
         )
@@ -437,37 +317,37 @@ def test_inpainting_generators(
             assert not torch.all(mask[:, 0, ...] == mask[:, 1, ...])
 
     # Standard generate mask
-    mask1 = gen.step(batch_size=batch_size)["mask"]
+    mask1 = gen.step(batch_size=batch_size, seed=0)["mask"]
     correct_ratio(mask1.sum() / np.prod((batch_size, *img_size)))
     correct_pixelwise(mask1)
 
     # Standard without batch dim
-    mask1 = gen.step(batch_size=None)["mask"]
+    mask1 = gen.step(batch_size=None, seed=0)["mask"]
     assert tuple(mask1.shape) == tuple(img_size)
     correct_ratio(mask1.sum() / np.prod(img_size))
 
     # Standard mask but by passing flat input_mask of ones
     input_mask = torch.ones(batch_size, *img_size)
     # should ignore batch_size
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
+    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask2.sum() / input_mask.sum())
     correct_pixelwise(mask2)
 
     # As above but with no batch dimension in input_mask
-    input_mask = torch.ones(*img_size)
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)[
+    input_mask = torch.ones(*img_size, device=device)
+    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)[
         "mask"
     ]  # should use batch_size
     correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # As above but with img_size missing channel dimension (bad practice)
-    input_mask = torch.ones(*img_size[1:])
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
+    input_mask = torch.ones(*img_size[1:], device=device)
+    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # Generate splitting mask from already subsampled mask
-    input_mask = torch.zeros(batch_size, *img_size)
+    input_mask = torch.zeros(batch_size, *img_size, device=device)
     input_mask[..., 10:20] = 1
-    mask3 = gen.step(batch_size=batch_size, input_mask=input_mask)["mask"]
+    mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask3.sum() / input_mask.sum())
     correct_pixelwise(mask3)

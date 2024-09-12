@@ -59,6 +59,8 @@ class SinglePixelCamera(DecomposablePhysics):
     :param tuple img_shape: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
     :param str device: Device to store the forward matrix.
+    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+        If ``None``, the default Generator of PyTorch will be used.
 
     |sep|
 
@@ -80,13 +82,29 @@ class SinglePixelCamera(DecomposablePhysics):
     """
 
     def __init__(
-        self, m, img_shape, fast=True, device="cpu", dtype=torch.float32, **kwargs
+        self,
+        m,
+        img_shape,
+        fast=True,
+        device="cpu",
+        dtype=torch.float32,
+        rng: torch.Generator = None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
         self.img_shape = img_shape
         self.fast = fast
         self.device = device
+        if rng is None:
+            self.rng = torch.Generator(device=device)
+        else:
+            # Make sure that the random generator is on the same device as the physic generator
+            assert rng.device == torch.device(
+                device
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            self.rng = rng
+        self.initial_random_state = self.rng.get_state()
 
         if self.fast:
             C, H, W = img_shape
@@ -108,8 +126,12 @@ class SinglePixelCamera(DecomposablePhysics):
 
         else:
             n = int(np.prod(img_shape[1:]))
-            A = torch.ones((m, n), device=device)
-            A[torch.randn_like(A) > 0.5] = -1.0
+            A = torch.where(
+                torch.randn((m, n), device=device, dtype=dtype, generator=self.rng)
+                > 0.5,
+                -1.0,
+                1.0,
+            )
             A /= np.sqrt(m)  # normalize
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
