@@ -580,11 +580,11 @@ class Trainer:
                 x_nl = physics.A_dagger(y)
         elif self.no_learning_method == "prox_l2" and hasattr(physics, "prox_l2"):
             # this is a regularized version of the pseudo-inverse, with an l2 regularization
-            # with parameter set to 2.0
+            # with parameter set to 5.0 for a mild regularization
             if isinstance(physics, torch.nn.DataParallel):
-                x_nl = physics.module.prox_l2(0.0, y, 2.0)
+                x_nl = physics.module.prox_l2(0.0, y, 5.0)
             else:
-                x_nl = physics.prox_l2(0.0, y, 2.0)
+                x_nl = physics.prox_l2(0.0, y, 5.0)
         elif self.no_learning_method == "y":
             x_nl = y
         else:
