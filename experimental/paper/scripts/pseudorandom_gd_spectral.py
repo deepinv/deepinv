@@ -105,7 +105,7 @@ for i in trange(n_oversampling):
         custom_init=spectral_methods_wrapper,
     )
     for j in range(n_repeats):
-        physics = dinv.physics.PseudoRandomPhaseRetrieval(
+        physics = dinv.physics.StructuredRandomPhaseRetrieval(
             n_layers=n_layers,
             input_shape=(1, img_size, img_size),
             output_shape=(1, output_size, output_size),

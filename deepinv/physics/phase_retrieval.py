@@ -158,7 +158,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         self.name = f"RPR_m{self.m}"
 
 
-class PseudoRandomPhaseRetrieval(PhaseRetrieval):
+class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     r"""
     Pseudo-random Phase Retrieval class corresponding to the operator
 

@@ -26,5 +26,5 @@ from .remote_sensing import Pansharpen
 from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
-    PseudoRandomPhaseRetrieval,
+    StructuredRandomPhaseRetrieval,
 )
