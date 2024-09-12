@@ -338,8 +338,7 @@ model = optim_builder(
 )
 
 # reconstruction with FISTA algorithm
-with torch.no_grad():
-    x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
+x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
 
 # compute PSNR
 print(
