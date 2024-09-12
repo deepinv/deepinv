@@ -89,7 +89,7 @@ class BaseUnfold(BaseOptim):
 
     def forward(self, y, physics, x_gt=None, compute_metrics=False):
         r"""
-        Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
+        Runs the fixed-point iteration algorithm. This is the same forward as in the parent BaseOptim class, but without the ``torch.no_grad()`` context manager.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics physics: physics of the problem for the acquisition of ``y``.
