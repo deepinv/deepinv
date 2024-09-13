@@ -253,7 +253,7 @@ test_sample = test_sample.to(device)
 
 # Get the measurements and the ground truth
 y = physics(test_sample)
-with torch.no_grad(): # it is important to disable gradient computation during testing.
+with torch.no_grad():  # it is important to disable gradient computation during testing.
     rec = model(y, physics=physics)
 
 backprojected = physics.A_adjoint(y)
