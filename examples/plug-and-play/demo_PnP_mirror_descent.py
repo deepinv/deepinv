@@ -65,7 +65,7 @@ data_fidelity = PoissonLikelihood(gain=noise_level_img)
 prior = RED(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # Set up the optimization parameters
-max_iter = 500  # number of iterations
+max_iter = 200  # number of iterations
 stepsize = 1.0  # stepsize of the algorithm
 sigma_denoiser = 0.05  # noise level parameter of the Gaussian denoiser
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary. In particular, this is here that we define the bregman potential used in the mirror descent algorithm.
