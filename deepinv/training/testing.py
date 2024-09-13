@@ -72,5 +72,4 @@ def test(
         show_progress_bar=show_progress_bar,
         **kwargs,
     )
-    with torch.no_grad():
-        return trainer.test(test_dataloader, save_path=save_folder)
+    return trainer.test(test_dataloader, save_path=save_folder)

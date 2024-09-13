@@ -133,19 +133,19 @@ x_model, metrics = model(
     y, physics, x_gt=x, compute_metrics=True
 )  # reconstruction with PnP algorithm
 
-# compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+# # compute PSNR
+# print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
+# print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
 
-# plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
-plot(
-    imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
-    save_dir=RESULTS_DIR / "images",
-    show=True,
-)
+# # plot images. Images are saved in RESULTS_DIR.
+# imgs = [y, x, x_lin, x_model]
+# plot(
+#     imgs,
+#     titles=["Input", "GT", "Linear", "Recons."],
+#     save_dir=RESULTS_DIR / "images",
+#     show=True,
+# )
 
-# plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_convergence_metrics:
-    plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
+# # plot convergence curves. Metrics are saved in RESULTS_DIR.
+# if plot_convergence_metrics:
+#     plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
