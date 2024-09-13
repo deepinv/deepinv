@@ -463,6 +463,10 @@ class Trainer:
             kwargs["update_parameters"] = True
 
         if self.plot_convergence_metrics and not train:
+            with torch.no_grad():
+                x_net, self.conv_metrics = self.model(
+                    y, physics, x_gt=x, compute_metrics=True, **kwargs
+                )
             x_net, self.conv_metrics = self.model(
                 y, physics, x_gt=x, compute_metrics=True, **kwargs
             )
