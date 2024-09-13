@@ -42,16 +42,14 @@ n_channels = 3  # 3 for color images, 1 for gray-scale images
 operation = "deblurring"
 
 # Degradation parameters
-noise_level_img = 1 / 80  # Poisson Noise gain
+noise_level_img = 1 / 40  # Poisson Noise gain
 
 # Generate the gaussian blur operator with Poisson noise.
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=dinv.physics.blur.gaussian_blur(),
     device=device,
-    noise_model=dinv.physics.PoissonNoise(
-        gain=noise_level_img, clip_positive=True, normalize=True
-    ),
+    noise_model=dinv.physics.PoissonNoise(gain=noise_level_img),
 )
 
 # %%
@@ -68,7 +66,7 @@ prior = RED(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(devic
 
 # Set up the optimization parameters
 max_iter = 500  # number of iterations
-stepsize = 2.0  # stepsize of the algorithm
+stepsize = 1.0  # stepsize of the algorithm
 sigma_denoiser = 0.05  # noise level parameter of the Gaussian denoiser
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary. In particular, this is here that we define the bregman potential used in the mirror descent algorithm.
     "stepsize": stepsize,
