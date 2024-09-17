@@ -14,10 +14,17 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add wrapper classes for adapting models to take time-sequence 2D+t input (:gh:`296` by `Andrew Wang`_)
+- Add sequential MRI operator (:gh:`296` by `Andrew Wang`_)
+- Add multi-operator equivariant imaging loss (:gh:`296` by `Andrew Wang`_)
+- Add loss schedulers (:gh:`296` by `Andrew Wang`_)
+
 Fixed
 ^^^^^
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
+
+- Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^

@@ -8,6 +8,7 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
+from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
 LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
@@ -277,3 +278,39 @@ def test_measplit(device):
     x_net2 = f(y, physics)
 
     assert split_loss > 0 and n2n_loss > 0
+
+
+LOSS_SCHEDULERS = ["random", "interleaved"]
+
+
+@pytest.mark.parametrize("scheduler_name", LOSS_SCHEDULERS)
+def test_loss_scheduler(scheduler_name):
+    # Skeleton loss function
+    class TestLoss(dinv.loss.Loss):
+        def __init__(self, a=1):
+            super().__init__()
+            self.adapted = False
+            self.a = a
+
+        def forward(self, x_net, x, y, physics, model, epoch, **kwargs):
+            return self.a
+
+        def adapt_model(self, model, **kwargs):
+            self.adapted = True
+
+    rng = torch.Generator().manual_seed(0)
+
+    if scheduler_name == "random":
+        l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
+    elif scheduler_name == "interleaved":
+        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+
+    # Loss scheduler adapts all inside losses
+    l.adapt_model(None)
+    assert l.losses[0].adapted == True
+
+    # Scheduler calls both losses eventually
+    loss_total = 0
+    for _ in range(20):
+        loss_total += l(None, None, None, None, None, None)
+    assert loss_total > 20

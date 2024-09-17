@@ -57,6 +57,7 @@ about the forward measurement process.
     deepinv.loss.MCLoss
     deepinv.loss.EILoss
     deepinv.loss.MOILoss
+    deepinv.loss.MOEILoss
     deepinv.loss.Neighbor2Neighbor
     deepinv.loss.SplittingLoss
     deepinv.loss.Phase2PhaseLoss
@@ -99,6 +100,8 @@ Metrics are generally used to evaluate the performance of a model. Some of them 
    :template: myclass_template.rst
    :nosignatures:
 
+        deepinv.loss.MSE
+        deepinv.loss.NMSE
         deepinv.loss.PSNR
         deepinv.loss.SSIM
         deepinv.loss.LPIPS
@@ -116,6 +119,22 @@ These losses can be used to regularize the learned function, e.g., controlling i
 
     deepinv.loss.JacobianSpectralNorm
     deepinv.loss.FNEJacobianSpectralNorm
+
+
+Loss schedulers
+-------
+Loss schedulers can be used to control which losses are used when during more advanced training.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.BaseLossScheduler
+    deepinv.loss.RandomLossScheduler
+    deepinv.loss.InterleavedLossScheduler
+    deepinv.loss.InterleavedEpochLossScheduler
+    deepinv.loss.StepLossScheduler
 
 
 Utils
