@@ -22,11 +22,13 @@ New Features
 Fixed
 ^^^^^
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
+- Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
+
 
 
 v0.2.1
@@ -58,6 +60,7 @@ New Features
 
 Fixed
 ^^^^^
+- Disable unecessary gradient computation to prevent memory explosion (:gh:`301` by `Dylan Sechet`, `Samuel Hurault`)
 - Wandb logging (:gh:`280` by `Julian Tachella`_)
 - SURE improvements (:gh:`280` by `Julian Tachella`_)
 - Fixed padding in conv_transpose2d and made conv_2d a true convolution (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024

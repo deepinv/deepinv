@@ -249,7 +249,8 @@ test_sample = test_sample.to(device)
 
 # Get the measurements and the ground truth
 y = physics(test_sample)
-rec = model(y, physics=physics)
+with torch.no_grad():
+    rec = model(y, physics=physics)
 
 backprojected = physics.A_adjoint(y)
 
