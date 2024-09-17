@@ -164,7 +164,7 @@ class SSIM(Loss):
 
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
         m = ssim(x_net, x, data_range=max_pixel, **self.torchmetric_kwargs)
-        return (1. - m) if self.train else m
+        return (1.0 - m) if self.train else m
 
 
 class PSNR(Loss):
