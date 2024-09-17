@@ -14,12 +14,12 @@ class PatchDataset(data.Dataset):
     def __init__(self, imgs, patch_size=6, stride=1, transforms=None, shapes=(-1,)):
         self.imgs = imgs
         self.patch_size = patch_size
-        self.stride=stride
+        self.stride = stride
         self.patches_per_image_x = (self.imgs.shape[2] - patch_size) // stride + 1
         self.patches_per_image_y = (self.imgs.shape[3] - patch_size) // stride + 1
-        self.patches_per_image = self.patches_per_image_x*self.patches_per_image_y
+        self.patches_per_image = self.patches_per_image_x * self.patches_per_image_y
         self.transforms = transforms
-        self.shapes=shapes
+        self.shapes = shapes
 
     def __len__(self):
         return self.imgs.shape[0] * self.patches_per_image
