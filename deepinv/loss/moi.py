@@ -23,7 +23,7 @@ class MOILoss(Loss):
 
     .. math::
 
-        \| \hat{x} - \inverse{\hat{x},A_g} \|^2
+        \| \hat{x} - \inverse{A_g\hat{x},A_g} \|^2
 
     where :math:`\hat{x}=\inverse{y,A_s}` is a reconstructed signal (observed via operator :math:`A_s`) and
     :math:`A_g` is a forward operator sampled at random from a set :math:`\{A_g\}_{g=1}^{G}`.
@@ -117,6 +117,26 @@ class MOILoss(Loss):
 class MOEILoss(EILoss, MOILoss):
     r"""Multi-operator equivariant imaging.
 
+    This loss extends the equivariant loss :class:`deepinv.loss.EILoss`, where the signals are not only
+    assumed to be invariant to a group of transformations, but also observed
+    via multiple (possibly incomplete) forward operators :math:`\{A_s\}_{s=1}^{S}`,
+    i.e., :math:`y_i = A_{s_i}x_i` where :math:`s_i\in \{1,\dots,S\}`.
+
+    The multi-operator equivariance loss is defined as
+
+    .. math::
+
+        \| T_g \hat{x} - \inverse{A_2 T_g \hat{x}, A_2}\|^2
+
+    where :math:`\hat{x}=\inverse{y,A_1}` is a reconstructed signal (observed via operator :math:`A_1`),
+    :math:`A_2` is a forward operator sampled at random from a set :math:`\{A_2\}_{s=1}^{S}` and
+    :math:`T_g` is a transformation sampled at random from a group :math:`g\sim\group`.
+
+    By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
+    can be used as well.
+
+    The operators can be passed as a list of physics or as a single physics with a random physics generator.
+
     See :class:`deepinv.loss.EILoss` for all parameter details for EI.
 
     :param list[Physics], Physics physics: list of physics containing the :math:`G` different forward operators
@@ -137,5 +157,13 @@ class MOEILoss(EILoss, MOILoss):
         self.physics_generator = physics_generator
 
     def forward(self, x_net, physics, model, **kwargs):
+        r"""
+        Computes the MO-EI loss
+
+        :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+        :param torch.nn.Module model: Reconstruction function.
+        :return: (torch.Tensor) loss.
+        """
         physics_cur = self.next_physics(physics)
         return EILoss.forward(x_net, physics_cur, model, **kwargs)

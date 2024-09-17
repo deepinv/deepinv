@@ -242,7 +242,9 @@ def load_np_url(url=None):
 def demo_mri_model(device):
     """Demo MRI reconstruction model for use in relevant examples.
 
-    As a reconstruction network, we use an unrolled network (half-quadratic splitting) with a trainable denoising prior based on the DnCNN architecture.
+    As a reconstruction network, we use an unrolled network (half-quadratic splitting)
+    with a trainable denoising prior based on the DnCNN architecture, as an example of a
+    model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
 
     :param str, torch.device device: device
     :return torch.nn.Module: model
