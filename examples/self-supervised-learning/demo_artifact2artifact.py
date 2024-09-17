@@ -126,7 +126,7 @@ physics = dinv.physics.SequentialMRI(mask=mask)
 
 
 # %%
-# Let�s visualise the sequential measurements using a sample image (run
+# Let's visualise the sequential measurements using a sample image (run
 # this notebook yourself to display the video). We also visualise the
 # frame-by-frame no-learning zero-filled reconstruction.
 #
