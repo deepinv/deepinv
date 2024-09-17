@@ -316,7 +316,7 @@ class SequentialMRI(DynamicMRI):
 
         :param torch.Tensor y: input tensor
         :param torch.nn.Parameter, float mask: input mask
-        :param bool keep_time_dim: if True, adjoint is calculated frame-by-frame. Used for visualisation. If False, flatten the time dimension before calculating.
+        :param bool keep_time_dim: if ``True``, adjoint is calculated frame-by-frame. Used for visualisation. If ``False``, flatten the time dimension before calculating.
         :return: (torch.Tensor) output tensor
         """
         if keep_time_dim:

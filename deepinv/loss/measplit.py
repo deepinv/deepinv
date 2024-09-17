@@ -344,7 +344,8 @@ class Phase2PhaseLoss(SplittingLoss):
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
-    :param bool dynamic_model: set True if using with a model that inputs and outputs time-data i.e. x of shape (B,C,T,H,W). Set False if x are static images (B,C,H,W).
+    :param bool dynamic_model: set ``True`` if using with a model that inputs and outputs time-data i.e. ``x`` of shape (B,C,T,H,W). Set ``False`` if ``x`` are static images (B,C,H,W).
+
     :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     :param str, torch.device device: torch device.
 
