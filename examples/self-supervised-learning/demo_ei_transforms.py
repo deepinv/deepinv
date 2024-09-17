@@ -20,6 +20,8 @@ for self-supervised learning:
 -  PanTiltRotate: pure 3D camera rotation i.e pan, tilt and 2D image
    rotation.
 
+See :ref:`docs <transform>` for full list.
+
 These were proposed in the papers:
 
 -  ``Shift``, ``Rotate``: `Chen et al., Equivariant Imaging: Learning

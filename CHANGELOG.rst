@@ -7,6 +7,8 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 
 
 New Features
@@ -51,6 +53,7 @@ New Features
 
 Fixed
 ^^^^^
+- Disable unecessary gradient computation to prevent memory explosion (:gh:`301` by `Dylan Sechet`, `Samuel Hurault`)
 - Wandb logging (:gh:`280` by `Julian Tachella`_)
 - SURE improvements (:gh:`280` by `Julian Tachella`_)
 - Fixed padding in conv_transpose2d and made conv_2d a true convolution (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024

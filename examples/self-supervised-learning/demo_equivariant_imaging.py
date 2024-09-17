@@ -152,6 +152,8 @@ model = dinv.unfolded.unfolded_builder(
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #
+# See :ref:`docs <transform>` for full list of available transforms.
+#
 # .. note::
 #
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
@@ -163,7 +165,7 @@ batch_size = 16 if torch.cuda.is_available() else 1
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
-losses = [dinv.loss.MCLoss(), dinv.loss.EILoss(dinv.transform.Rotate(4))]
+losses = [dinv.loss.MCLoss(), dinv.loss.EILoss(dinv.transform.Rotate(n_trans=4))]
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

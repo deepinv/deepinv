@@ -91,12 +91,12 @@ y = physics(x)
 prior = dinv.optim.prior.TVPrior(n_it_max=2000)
 
 # Compute the total variation prior cost
-cost_tv = prior(y)
+cost_tv = prior(y).item()
 print(f"Cost TV: g(y) = {cost_tv:.2f}")
 
 # Apply the proximal operator of the TV prior
 x_tv = prior.prox(y, gamma=0.1)
-cost_tv_prox = prior(x_tv)
+cost_tv_prox = prior(x_tv).item()
 
 # %%
 # .. note::
