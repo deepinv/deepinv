@@ -134,8 +134,8 @@ x_model, metrics = model(
 )  # reconstruction with PnP algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"PnP reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_model):.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]

@@ -10,7 +10,7 @@ or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sig
 
 from deepinv.optim import EPLL
 from deepinv.physics import GaussianNoise, Denoising, Inpainting
-from deepinv.utils import cal_psnr, plot
+from deepinv.loss.metric import PSNR, plot
 import torch
 from deepinv.utils.demo import load_url_image, get_image_url
 
@@ -50,8 +50,8 @@ with torch.no_grad():
     x_out = model(observation, physics, batch_size=5000)
 
 # PSNR computation and plots.
-psnr_obs = cal_psnr(observation, test_img)
-psnr_recon = cal_psnr(x_out, test_img)
+psnr_obs = PSNR()(observation, test_img)
+psnr_recon = PSNR()(x_out, test_img)
 
 print("PSNRs for Denoising:")
 print("Observation: {0:.2f}".format(psnr_obs))
@@ -88,8 +88,8 @@ with torch.no_grad():
     x_out = model(observation, physics, betas=betas, batch_size=5000)
 
 # PSNR computation and plots
-psnr_obs = cal_psnr(observation, test_img)
-psnr_recon = cal_psnr(x_out, test_img)
+psnr_obs = PSNR()(observation, test_img)
+psnr_recon = PSNR()(x_out, test_img)
 
 print("PSNRs for Inpainting:")
 print("Observation: {0:.2f}".format(psnr_obs))

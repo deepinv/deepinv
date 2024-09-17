@@ -224,10 +224,10 @@ pula_mean, pula_var = pula(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"ULA posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, ula_mean):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"ULA posterior mean PSNR: {dinv.loss.metric.PSNR()(x, ula_mean):.2f} dB")
 print(
-    f"PreconULA posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, pula_mean):.2f} dB"
+    f"PreconULA posterior mean PSNR: {dinv.loss.metric.PSNR()(x, pula_mean):.2f} dB"
 )
 
 # plot results

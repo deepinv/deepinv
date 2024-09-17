@@ -91,8 +91,8 @@ xhat = diff(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"Diffusion PSNR: {dinv.utils.metric.cal_psnr(x, xhat):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"Diffusion PSNR: {dinv.loss.metric.PSNR()(x, xhat):.2f} dB")
 
 # plot results
 error = (xhat - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
@@ -120,8 +120,8 @@ f = dinv.sampling.DiffusionSampler(diff, max_iter=10)
 mean, var = f(y, physics)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"Posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, mean):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"Posterior mean PSNR: {dinv.loss.metric.PSNR()(x, mean):.2f} dB")
 
 # plot results
 error = (mean - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error

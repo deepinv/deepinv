@@ -100,12 +100,12 @@ Metrics are generally used to evaluate the performance of a model. Some of them 
    :template: myclass_template.rst
    :nosignatures:
 
-        deepinv.loss.MSE
-        deepinv.loss.NMSE
-        deepinv.loss.PSNR
-        deepinv.loss.SSIM
-        deepinv.loss.LPIPS
-        deepinv.loss.NIQE
+        deepinv.loss.metric.MSE
+        deepinv.loss.metric.NMSE
+        deepinv.loss.metric.PSNR
+        deepinv.loss.metric.SSIM
+        deepinv.loss.metric.LPIPS
+        deepinv.loss.metric.NIQE
 
 
 Network Regularization
@@ -146,4 +146,4 @@ A set of popular distances that can be used by the supervised and self-supervise
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.loss.LpNorm
+    deepinv.loss.metric.LpNorm
