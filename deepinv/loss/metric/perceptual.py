@@ -1,5 +1,6 @@
 from deepinv.loss.metric.metric import import_pyiqa, Metric
 
+
 class LPIPS(Metric):
     r"""
     Learned Perceptual Image Patch Similarity (LPIPS) metric.
@@ -24,7 +25,8 @@ class LPIPS(Metric):
         :return: torch.Tensor size (batch_size,).
         """
         return self.lpips(x_net, x)
-    
+
+
 class NIQE(Metric):
     r"""
     Natural Image Quality Evaluator (NIQE) metric.

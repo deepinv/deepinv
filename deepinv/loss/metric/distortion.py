@@ -5,11 +5,13 @@ from torchmetrics.functional import (
 )
 
 from deepinv.loss.metric.metric import Metric
+from deepinv.loss.metric.functional import cal_mse, cal_psnr
 
 class MSE(Metric):
     r"""
     Mean Squared Error metric.
     """
+
     def metric(self, x_net, x, *args, **kwargs):
         return cal_mse(x_net, x)
 
@@ -51,14 +53,14 @@ class SSIM(Metric):
     """
 
     def __init__(
-        self,
-        multiscale=False,
-        max_pixel=1.0,
-        torchmetric_kwargs: dict = {},
-        **kwargs
+        self, multiscale=False, max_pixel=1.0, torchmetric_kwargs: dict = {}, **kwargs
     ):
         super().__init__(**kwargs)
-        self.ssim = multiscale_structural_similarity_index_measure if multiscale else structural_similarity_index_measure
+        self.ssim = (
+            multiscale_structural_similarity_index_measure
+            if multiscale
+            else structural_similarity_index_measure
+        )
         self.torchmetric_kwargs = torchmetric_kwargs
         self.max_pixel = max_pixel
 
