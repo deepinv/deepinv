@@ -7,9 +7,6 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
-- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
-
 
 New Features
 ^^^^^^^^^^^^
@@ -18,6 +15,9 @@ New Features
 - Add sequential MRI operator (:gh:`296` by `Andrew Wang`_)
 - Add multi-operator equivariant imaging loss (:gh:`296` by `Andrew Wang`_)
 - Add loss schedulers (:gh:`296` by `Andrew Wang`_)
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+- Add  (:gh:`309` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -87,7 +87,7 @@ New Features
 - Added a parameterization of the operators and noiselevels for the physics class
 - Added a physics.functional submodule
 - Modified the Blur class to handle color, grayscale, single and multi-batch images
-- Added a PhyisicsGenerator class to synthetize parameters for the forward operators
+- Added a PhysicsGenerator class to synthetize parameters for the forward operators
 - Added the possibility to sum generators
 - Added a MotionBlur generator
 - Added a DiffractionBlur generator

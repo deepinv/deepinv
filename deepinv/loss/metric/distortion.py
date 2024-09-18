@@ -7,6 +7,7 @@ from torchmetrics.functional import (
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr
 
+
 class MSE(Metric):
     r"""
     Mean Squared Error metric.
@@ -21,6 +22,8 @@ class NMSE(MSE):
     Normalised Mean Squared Error metric.
 
     Normalises MSE by the L2 norm of the ground truth ``x``.
+
+    TODO add various other normalisation methods from torchmetrics. See [https://github.com/Lightning-AI/torchmetrics/pull/2442](https://github.com/Lightning-AI/torchmetrics/pull/2442)
 
     :param str method: normalisation method. Currently only supports ``l2``.
     :param bool complex: if ``True``, magnitude is taken of complex data before calculating.

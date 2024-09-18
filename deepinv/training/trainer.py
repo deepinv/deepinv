@@ -8,7 +8,8 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.loss import PSNR, Loss, SupLoss, BaseLossScheduler
+from deepinv.loss import Loss, SupLoss, BaseLossScheduler
+from deepinv.loss.metric import PSNR
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
