@@ -22,4 +22,5 @@ from deepinv.loss.scheduler import (
     InterleavedEpochLossScheduler,
 )
 
+from deepinv.loss.metric import Metric
 from . import metric

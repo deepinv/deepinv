@@ -110,8 +110,8 @@ dip = f(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_lin):.2f} dB")
-print(f"DIP PSNR: {dinv.loss.metric.PSNR()(x, dip):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"DIP PSNR: {dinv.metric.PSNR()(x, dip):.2f} dB")
 
 # plot results
 plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])

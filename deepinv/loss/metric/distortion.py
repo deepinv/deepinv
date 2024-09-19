@@ -1,4 +1,5 @@
-import torch.nn.functional as F
+import torch
+from torch.nn import MSELoss, L1Loss
 from torchmetrics.functional import (
     structural_similarity_index_measure,
     multiscale_structural_similarity_index_measure,
@@ -26,7 +27,6 @@ class NMSE(MSE):
     TODO add various other normalisation methods from torchmetrics. See [https://github.com/Lightning-AI/torchmetrics/pull/2442](https://github.com/Lightning-AI/torchmetrics/pull/2442)
 
     :param str method: normalisation method. Currently only supports ``l2``.
-    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
     """
 
     def __init__(self, method="l2", **kwargs):
@@ -49,7 +49,6 @@ class SSIM(Metric):
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
 
-    :param bool train: if ``True``, the metric is used for training. Default: ``False``.
     :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
     :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param dict torchmetric_kwargs: kwargs for torchmetrics SSIM as dict. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
@@ -109,10 +108,30 @@ class PSNR(Metric):
         )
 
 
+class L1L2(Metric):
+    r"""
+    Combined L2 and L1 metric.
+
+    Calculates L2 distance (i.e. MSE) + L1 (i.e. MAE) distance.
+
+    :param float alpha: Weight between L2 and L1. Defaults to 0.5.
+    """
+
+    def __init__(self, alpha=0.5, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha = alpha
+        self.l1 = L1Loss()
+        self.l2 = MSELoss()
+
+    def metric(self, x_net, x, *args, **kwargs):
+        l1 = self.l1(x_net, x)
+        l2 = self.l2(x_net, x)
+        return self.alpha * l1 + (1 - self.alpha) * l2
+
+
 class LpNorm(Metric):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.
-
 
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
@@ -120,7 +139,8 @@ class LpNorm(Metric):
     Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
-    TODO docs
+    :param int p: order p of the Lp norm
+    :param bool onesided: whether one-sided metric.
     """
 
     def __init__(self, p=2, onesided=False, **kwargs):
@@ -130,6 +150,8 @@ class LpNorm(Metric):
 
     def metric(self, x_net, x, *args, **kwargs):
         if self.onesided:
-            return F.relu(-x * x).flatten().pow(self.p).mean()
+            diff = torch.maximum(x_net, x)
         else:
-            return (x - x).flatten().abs().pow(self.p).mean()
+            diff = x_net - x
+
+        return torch.norm(diff.view(diff.size(0), -1), p=self.p, dim=1).pow(self.p)

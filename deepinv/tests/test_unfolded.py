@@ -153,6 +153,6 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
 
         assert out.shape == test_sample.shape
 
-        loss_fn = dinv.loss.SupLoss(metric=dinv.metric.mse())
+        loss_fn = dinv.loss.SupLoss(metric=dinv.metric.MSE())
         loss = loss_fn(groundtruth_sample, out)
         loss.backward()

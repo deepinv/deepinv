@@ -28,11 +28,15 @@ class Metric(Loss):
     ) -> torch.Tensor:
         raise NotImplementedError()
 
-    def forward(self, x_net, x, y, physics, model, **kwargs):
+    def forward(
+        self, x_net=None, x=None, y=None, physics=None, model=None, *args, **kwargs
+    ):
         if self.complex_abs:
             x_net, x = complex_abs(x_net), complex_abs(x)
             # TODO if x complex dtype tensors then do abs on torch.abs
 
-        m = self.metric(x_net=x_net, x=x, y=y, physics=physics, model=model, **kwargs)
+        m = self.metric(
+            x_net=x_net, x=x, y=y, physics=physics, model=model, *args, **kwargs
+        )
         m = 1.0 - m if self.train_loss else m
         return m

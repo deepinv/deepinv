@@ -568,8 +568,8 @@ def test_dpir(imsize, dummy_dataset, device):
     model = dinv.optim.DPIR(0.1, device=device)
     out = model(y, physics)
 
-    in_psnr = dinv.loss.metric.PSNR()(test_sample, y)
-    out_psnr = dinv.loss.metric.PSNR()(out, test_sample)
+    in_psnr = dinv.metric.PSNR()(test_sample, y)
+    out_psnr = dinv.metric.PSNR()(out, test_sample)
 
     assert out_psnr > in_psnr
 

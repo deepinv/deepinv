@@ -295,7 +295,7 @@ class LinearPhysics(Physics):
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
         >>> PSNR()(x, x_dagger) > PSNR()(x, y) # Should be closer to the orginal
-        True
+        tensor([True])
 
         The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:

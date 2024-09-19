@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
-from deepinv.loss.metric import PSNR
+from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
@@ -138,7 +138,7 @@ class Trainer:
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param deepinv.loss.Metric, list[deepinv.loss.Metric] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
@@ -178,7 +178,7 @@ class Trainer:
     )
     eval_dataloader: torch.utils.data.DataLoader = None
     scheduler: torch.optim.lr_scheduler = None
-    metrics: Union[Loss, List[Loss]] = PSNR()
+    metrics: Union[Metric, List[Metric]] = PSNR()
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
     grad_clip: float = None

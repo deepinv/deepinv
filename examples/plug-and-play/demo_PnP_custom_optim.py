@@ -248,8 +248,8 @@ x_lin = physics.A_adjoint(y)
 x_model, metrics = model(y, physics, x_gt=x, compute_metrics=True)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_lin):.2f} dB")
-print(f"Model reconstruction PSNR: {dinv.loss.metric.PSNR()(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"Model reconstruction PSNR: {dinv.metric.PSNR()(x, x_model):.2f} dB")
 
 # plot results
 imgs = [x, x_lin, x_model]

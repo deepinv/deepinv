@@ -56,7 +56,7 @@ physics = dinv.physics.GaussianNoise(sigma=noise_level_img)
 y = physics(x)
 
 # Compute the PSNR
-psnr = dinv.loss.metric.PSNR()(x, y)
+psnr = dinv.metric.PSNR()(x, y)
 
 # Plot the input and the output of the degradation
 list_images = [x[0, :, 90, :, :], x[0, :, :, 108, :], x[0, :, :, :, 90]]
@@ -107,7 +107,7 @@ denoiser = dinv.models.wavdict.WaveletDenoiser(
 # Apply the denoiser to the volume
 ths = noise_level_img * 2  # thresholding parameter
 x_hat = denoiser(y, ths)  # denoised volume
-psnr = dinv.loss.metric.PSNR()(x, x_hat)  # compute PSNR
+psnr = dinv.metric.PSNR()(x, x_hat)  # compute PSNR
 
 # Plot
 list_images = [x_hat[0, :, 90, :, :], x_hat[0, :, :, 108, :], x_hat[0, :, :, :, 90]]
@@ -226,7 +226,7 @@ for it in range(max_iter):
 
 
 # Compute the PSNR
-psnr = dinv.loss.metric.PSNR()(x, x_cur)
+psnr = dinv.metric.PSNR()(x, x_cur)
 
 # Plot the output
 list_images = [x_cur[0, :, 90, :, :], x_cur[0, :, :, 108, :], x_cur[0, :, :, :, 90]]

@@ -1,6 +1,10 @@
+from typing import Union
+
 import torch
 import torch.nn as nn
 from deepinv.loss.loss import Loss
+from deepinv.loss.metric.metric import Metric
+from deepinv.transform.base import Transform
 
 
 class EILoss(Loss):
@@ -23,9 +27,9 @@ class EILoss(Loss):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
-    :param deepinv.Transform, torchvision.transforms transform: Transform to generate the virtually
+    :param deepinv.transform.Transform, torchvision.transforms transform: Transform to generate the virtually
         augmented measurement. It can be any torch-differentiable function (e.g., a ``torch.nn.Module``).
-    :param torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
+    :param deepinv.loss.Metric, torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
         image.
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
@@ -37,8 +41,8 @@ class EILoss(Loss):
 
     def __init__(
         self,
-        transform,
-        metric=torch.nn.MSELoss(),
+        transform: Transform,
+        metric: Union[Metric, nn.Module] = torch.nn.MSELoss(),
         apply_noise=True,
         weight=1.0,
         no_grad=False,
