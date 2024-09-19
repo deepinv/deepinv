@@ -93,19 +93,24 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
 
 Metrics
 --------
-Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.
+Metrics are generally used to evaluate the performance of a model. 
+
+Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass 
+All metrics can be used as training losses as well.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-        deepinv.loss.metric.MSE
-        deepinv.loss.metric.NMSE
-        deepinv.loss.metric.PSNR
-        deepinv.loss.metric.SSIM
-        deepinv.loss.metric.LPIPS
-        deepinv.loss.metric.NIQE
+        deepinv.metric.Metric
+        deepinv.metric.MSE
+        deepinv.metric.NMSE
+        deepinv.metric.PSNR
+        deepinv.metric.SSIM
+        deepinv.metric.L1L2
+        deepinv.metric.LPIPS
+        deepinv.metric.NIQE
 
 
 Network Regularization
