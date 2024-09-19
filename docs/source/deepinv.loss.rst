@@ -95,7 +95,9 @@ Metrics
 --------
 Metrics are generally used to evaluate the performance of a model. 
 
-Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass 
+Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass.
+All metrics perform a standard set of pre and post processing, including
+operating on complex numbers and normalisation.
 All metrics can be used as training losses as well.
 
 .. autosummary::

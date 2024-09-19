@@ -89,8 +89,9 @@ class RandomLossScheduler(BaseLossScheduler):
     :Example:
 
     >>> import torch
-    >>> from deepinv.loss import RandomLossScheduler, SupLoss, SSIM
-    >>> l = RandomLossScheduler(SupLoss(), SSIM()) # Choose randomly between Sup and SSIM
+    >>> from deepinv.loss import RandomLossScheduler, SupLoss
+    >>> from deepinv.loss.metric import SSIM
+    >>> l = RandomLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose randomly between Sup and SSIM
     >>> x_net = x = torch.tensor([0., 0., 0.])
     >>> l(x=x, x_net=x_net)
     tensor(0.)
@@ -113,8 +114,9 @@ class InterleavedLossScheduler(BaseLossScheduler):
     :Example:
 
     >>> import torch
-    >>> from deepinv.loss import InterleavedLossScheduler, SupLoss, SSIM
-    >>> l = InterleavedLossScheduler(SupLoss(), SSIM()) # Choose alternating between Sup and SSIM
+    >>> from deepinv.loss import InterleavedLossScheduler, SupLoss
+    >>> from deepinv.loss.metric import SSIM
+    >>> l = InterleavedLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose alternating between Sup and SSIM
     >>> x_net = x = torch.tensor([0., 0., 0.])
     >>> l(x=x, x_net=x_net)
     tensor(0.)
@@ -141,8 +143,9 @@ class InterleavedEpochLossScheduler(BaseLossScheduler):
     :Example:
 
     >>> import torch
-    >>> from deepinv.loss import InterleavedEpochLossScheduler, SupLoss, SSIM
-    >>> l = InterleavedEpochLossScheduler(SupLoss(), SSIM()) # Choose alternating between Sup and SSIM
+    >>> from deepinv.loss import InterleavedEpochLossScheduler, SupLoss
+    >>> from deepinv.loss.metric import SSIM
+    >>> l = InterleavedEpochLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose alternating between Sup and SSIM
     >>> x_net = x = torch.tensor([0., 0., 0.])
     >>> l(x=x, x_net=x_net, epoch=0)
     tensor(0.)
@@ -163,14 +166,15 @@ class StepLossScheduler(BaseLossScheduler):
     :Example:
 
     >>> import torch
-    >>> from deepinv.loss import StepLossScheduler, SSIM
-    >>> l = StepLossScheduler(SSIM()) # Use SSIM only after epoch 10
+    >>> from deepinv.loss import StepLossScheduler
+    >>> from deepinv.loss.metric import SSIM
+    >>> l = StepLossScheduler(SSIM(train_loss=True)) # Use SSIM only after epoch 10
     >>> x_net = torch.zeros(1, 1, 12, 12)
     >>> x = torch.ones(1, 1, 12, 12)
     >>> l(x=x, x_net=x_net, epoch=0)
     tensor(0., requires_grad=True)
     >>> l(x=x, x_net=x_net, epoch=11)
-    tensor(9.9990e-05)
+    tensor(0.9999)
 
     :param Loss \*loss: loss or multiple losses to be scheduled.
     :param int epoch_thresh: threshold above which the losses are used.

@@ -18,6 +18,10 @@ def import_pyiqa() -> ModuleType:
 
 
 class Metric(Loss):
+    """
+    #TODO how to implement your own
+    """
+
     def __init__(self, complex_abs=False, train_loss=False):
         super().__init__()
         self.train_loss = train_loss

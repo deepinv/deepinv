@@ -38,7 +38,7 @@ class NIQE(Metric):
 
     def __init__(self, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        import_pyiqa()
+        pyiqa = import_pyiqa()
         self.niqe = pyiqa.create_metric("niqe").to(device)
 
     def metric(self, x_net, *args, **kwargs):
