@@ -5,7 +5,6 @@ sys.path.append("/home/zhhu/workspaces/deepinv/")
 from datetime import datetime
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 from tqdm import trange
@@ -16,19 +15,17 @@ from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.optim.phase_retrieval import (
     cosine_similarity,
-    spectral_methods,
-    spectral_methods_wrapper,
 )
 
 # genral
 model_name = "structured"
-recon = "gd-spectral"
+recon = "gd-rand"
 
 # structured settings
 img_size = 64
 n_layers = 1
 shared_weights = False
-drop_tail = False
+drop_tail = True
 
 # optim settings
 data_fidelity = L2()
@@ -37,13 +34,11 @@ early_stop = True
 verbose = True
 n_repeats = 100
 n_iter = 10000
-n_spec_iter = 5000
 # stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
-step_size = 3e-3
-start = 64
+step_size = 1e-8
+start = 90
 end = 144
-# output_sizes = torch.arange(start, end, 2)
-output_sizes = torch.tensor([92, 98, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140])
+output_sizes = torch.arange(start, end, 2)
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
@@ -53,9 +48,9 @@ res_name = f"res_{model_name}_{n_layers}_{recon}_{n_repeats}repeat_{n_iter}iter_
 print("res_name:", res_name)
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-BASE_DIR = Path(".")
-DATA_DIR = BASE_DIR / "runs"
-SAVE_DIR = DATA_DIR / current_time
+SAVE_DIR = Path("..")
+SAVE_DIR = SAVE_DIR / "runs"
+SAVE_DIR = SAVE_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 
@@ -81,15 +76,18 @@ df_res = pd.DataFrame(
     }
 )
 
+
+def random_init(y, physics):
+    x = torch.randn_like(x_phase)
+    z = x.detach().clone()
+    return {"est": (x, z)}
+
+
 for i in trange(n_oversampling):
     oversampling_ratio = oversampling_ratios[i]
     output_size = output_sizes[i]
     print(f"output_size: {output_size}")
     print(f"oversampling_ratio: {oversampling_ratio}")
-    if oversampling_ratio < 2.0:
-        step_size = 1e-4
-    else:
-        step_size = 1e-4
     step_size = step_size * oversampling_ratio
     df_res.loc[i, "step_size"] = step_size
     params_algo = {"stepsize": step_size.item(), "g_params": 0.00}
@@ -102,7 +100,7 @@ for i in trange(n_oversampling):
         max_iter=n_iter,
         verbose=verbose,
         params_algo=params_algo,
-        custom_init=spectral_methods_wrapper,
+        custom_init=random_init,
     )
     for j in range(n_repeats):
         physics = dinv.physics.StructuredRandomPhaseRetrieval(
@@ -115,11 +113,6 @@ for i in trange(n_oversampling):
             drop_tail=drop_tail,
         )
         y = physics(x_phase)
-
-        x_phase_spec = spectral_methods(y, physics, n_iter=n_spec_iter)
-        print(
-            "spec cosine similarity: ", cosine_similarity(x_phase, x_phase_spec).item()
-        )
 
         x_phase_gd_spec = model(y, physics, x_gt=x_phase)
         df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_gd_spec).item()

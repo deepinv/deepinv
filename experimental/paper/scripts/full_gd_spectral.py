@@ -30,9 +30,9 @@ res_name = f"res_{model_name}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampli
 use_haar = True
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-BASE_DIR = Path("..")
-DATA_DIR = BASE_DIR / "runs"
-SAVE_DIR = DATA_DIR / current_time
+SAVE_DIR = Path("..")
+SAVE_DIR = SAVE_DIR / "runs"
+SAVE_DIR = SAVE_DIR / current_time
 Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 print("save directory:", SAVE_DIR)
 

@@ -7,6 +7,20 @@ from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.optim.phase_retrieval import compare,merge_order,spectral_methods
 
+def generate_diagonal(tensor_shape, mode, dtype, device):
+    r"""
+    Generate a random tensor as the diagonal matrix.
+    """
+
+    if mode == "uniform_phase":
+        diagonal = torch.rand(tensor_shape, dtype=dtype, device=device)
+        diagonal = 2 * np.pi * diagonal
+        diagonal = torch.exp(1j * diagonal)
+    elif mode == "gaussian":
+        diagonal = torch.randn(tensor_shape, dtype=dtype, device=device)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
+    return diagonal
 
 class PhaseRetrieval(Physics):
     r"""
@@ -178,13 +192,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     def __init__(
         self,
-        n_layers,
-        input_shape,
-        output_shape,
+        n_layers:int,
+        input_shape:tuple,
+        output_shape:tuple,
+        diagonal_mode="uniform_phase",
+        shared_weights=False,
+        drop_tail=True,
         dtype=torch.cfloat,
         device="cpu",
-        shared_weights=False,
-        drop_tail=False,
         **kwargs,
     ):
         if output_shape is None:
@@ -245,21 +260,16 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         if not shared_weights:
             for _ in range(self.n_layers):
                 if self.mode == "oversampling":
-                    diagonal = torch.rand(self.output_shape, device=self.device)
+                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
                 else:
-                    diagonal = torch.rand(self.img_shape, device=self.device)
-                diagonal = 2 * torch.pi * diagonal
-                diagonal = torch.exp(1j * diagonal)
+                    diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
                 self.diagonals.append(diagonal)
         else:
             if self.mode == "oversampling":
-                diagonal = torch.rand(self.output_shape, device=self.device)
+                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
             else:
-                diagonal = torch.rand(self.img_shape, device=self.device)
-            diagonal = 2 * torch.pi * diagonal
-            diagonal = torch.exp(1j * diagonal)
-            for _ in range(self.n_layers):
-                self.diagonals.append(diagonal)
+                diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
+            self.diagonals = self.diagonals + [diagonal] * self.n_layers
 
         def A(x):
             assert x.shape[1:] == self.img_shape, f"x doesn't have the correct shape {x.shape[1:]} != {self.img_shape}"
