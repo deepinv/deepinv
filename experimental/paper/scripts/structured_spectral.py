@@ -19,6 +19,7 @@ from deepinv.optim.phase_retrieval import (
 # genral
 model_name = "structured_gaussian"
 recon = "spectral"
+save = True
 
 # structured settings
 img_size = 64
@@ -28,27 +29,25 @@ shared_weights = False
 drop_tail = True
 
 # optim settings
-n_repeats = 100
+n_repeats = 50
 max_iter = 5000
-start = 90
-end = 144
+start = 2
+end = 194
 output_sizes = torch.arange(start, end, 2)
 # output_sizes = torch.tensor([132,136,140])
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
 # save settings
-res_name = f"res_{model_name}_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}_{recon}_{n_layers}_{n_repeats}repeat_{max_iter}iter.csv"
-
-print("res_name:", res_name)
-
-
-current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-SAVE_DIR = Path("..")
-SAVE_DIR = SAVE_DIR / "runs"
-SAVE_DIR = SAVE_DIR / current_time
-Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
-print("save directory:", SAVE_DIR)
+if save:
+    res_name = f"res_{model_name}_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}_{recon}_{n_layers}_{n_repeats}repeat_{max_iter}iter.csv"
+    print("res_name:", res_name)
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    SAVE_DIR = Path("..")
+    SAVE_DIR = SAVE_DIR / "runs"
+    SAVE_DIR = SAVE_DIR / current_time
+    Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
+    print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device
@@ -97,4 +96,5 @@ for i in trange(n_oversampling):
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
 # save results
-df_res.to_csv(SAVE_DIR / res_name)
+if save:
+    df_res.to_csv(SAVE_DIR / res_name)

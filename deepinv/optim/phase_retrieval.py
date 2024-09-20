@@ -312,6 +312,8 @@ def plot_error_bars(
         legend = ax.legend(*zip(*legend_contents),loc=legend_loc)
     elif plot == 'time':
         legend = ax.legend(loc=legend_loc)
+    else:
+        legend = ax.legend(loc=legend_loc)
     # set legend on the bottom layer
     legend.set_zorder(1)
 

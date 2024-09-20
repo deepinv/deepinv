@@ -13,7 +13,8 @@ def generate_diagonal(tensor_shape, mode, dtype, device):
     """
 
     if mode == "uniform_phase":
-        diagonal = torch.rand(tensor_shape, dtype=dtype, device=device)
+        # Generate REAL-VALUED random numbers in the interval [0, 1)
+        diagonal = torch.rand(tensor_shape, device=device)
         diagonal = 2 * np.pi * diagonal
         diagonal = torch.exp(1j * diagonal)
     elif mode == "gaussian":

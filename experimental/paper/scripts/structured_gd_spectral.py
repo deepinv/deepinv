@@ -21,12 +21,14 @@ from deepinv.optim.phase_retrieval import (
 )
 
 # genral
-model_name = "structured"
+model_name = "structured-gaussian"
 recon = "gd-spectral"
+save = True
 
 # structured settings
 img_size = 64
-n_layers = 1
+n_layers = 2
+diagonal_mode = "gaussian"
 shared_weights = False
 drop_tail = False
 
@@ -35,29 +37,28 @@ data_fidelity = L2()
 prior = dinv.optim.prior.Zero()
 early_stop = True
 verbose = True
-n_repeats = 100
-n_iter = 10000
-n_spec_iter = 5000
+n_repeats = 20
+max_iter = 10000
+max_spec_iter = 5000
 # stepsize: use 1e-4 for oversampling ratio 0-2, and 3e-3*oversampling for oversampling ratio 2-9
-step_size = 3e-3
-start = 64
+step_size = 1e-3
+start = 90
 end = 144
-# output_sizes = torch.arange(start, end, 2)
-output_sizes = torch.tensor([92, 98, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140])
+output_sizes = torch.arange(start, end, 2)
+#output_sizes = torch.tensor([92, 98, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140])
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
 # save settings
-res_name = f"res_{model_name}_{n_layers}_{recon}_{n_repeats}repeat_{n_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
-
-print("res_name:", res_name)
-
-current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-SAVE_DIR = Path("..")
-SAVE_DIR = SAVE_DIR / "runs"
-SAVE_DIR = SAVE_DIR / current_time
-Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
-print("save directory:", SAVE_DIR)
+if save:
+    res_name = f"res_{model_name}_{n_layers}_{recon}_{n_repeats}repeat_{max_iter}iter_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}.csv"
+    print("res_name:", res_name)
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    SAVE_DIR = Path("..")
+    SAVE_DIR = SAVE_DIR / "runs"
+    SAVE_DIR = SAVE_DIR / current_time
+    Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
+    print("save directory:", SAVE_DIR)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
@@ -86,10 +87,6 @@ for i in trange(n_oversampling):
     output_size = output_sizes[i]
     print(f"output_size: {output_size}")
     print(f"oversampling_ratio: {oversampling_ratio}")
-    if oversampling_ratio < 2.0:
-        step_size = 1e-4
-    else:
-        step_size = 1e-4
     step_size = step_size * oversampling_ratio
     df_res.loc[i, "step_size"] = step_size
     params_algo = {"stepsize": step_size.item(), "g_params": 0.00}
@@ -99,7 +96,7 @@ for i in trange(n_oversampling):
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=early_stop,
-        max_iter=n_iter,
+        max_iter=max_iter,
         verbose=verbose,
         params_algo=params_algo,
         custom_init=spectral_methods_wrapper,
@@ -109,6 +106,7 @@ for i in trange(n_oversampling):
             n_layers=n_layers,
             input_shape=(1, img_size, img_size),
             output_shape=(1, output_size, output_size),
+            diagonal_mode=diagonal_mode,
             dtype=torch.cfloat,
             device=device,
             shared_weights=shared_weights,
@@ -116,7 +114,7 @@ for i in trange(n_oversampling):
         )
         y = physics(x_phase)
 
-        x_phase_spec = spectral_methods(y, physics, n_iter=n_spec_iter)
+        x_phase_spec = spectral_methods(y, physics, n_iter=max_spec_iter)
         print(
             "spec cosine similarity: ", cosine_similarity(x_phase, x_phase_spec).item()
         )
@@ -127,4 +125,5 @@ for i in trange(n_oversampling):
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 
 # save results
-df_res.to_csv(SAVE_DIR / res_name)
+if save:
+    df_res.to_csv(SAVE_DIR / res_name)
