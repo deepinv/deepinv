@@ -29,7 +29,7 @@ class EILoss(Loss):
 
     :param deepinv.transform.Transform, torchvision.transforms transform: Transform to generate the virtually
         augmented measurement. It can be any torch-differentiable function (e.g., a ``torch.nn.Module``).
-    :param deepinv.loss.Metric, torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
+    :param deepinv.loss.metric.Metric, torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
         image.
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),

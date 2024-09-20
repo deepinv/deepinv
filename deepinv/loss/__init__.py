@@ -1,20 +1,20 @@
-from deepinv.loss.mc import MCLoss
-from deepinv.loss.ei import EILoss
-from deepinv.loss.moi import MOILoss, MOEILoss
-from deepinv.loss.sup import SupLoss
-from deepinv.loss.score import ScoreLoss
-from deepinv.loss.tv import TVLoss
-from deepinv.loss.r2r import R2RLoss
-from deepinv.loss.sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
-from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
-from deepinv.loss.measplit import (
+from .mc import MCLoss
+from .ei import EILoss
+from .moi import MOILoss, MOEILoss
+from .sup import SupLoss
+from .score import ScoreLoss
+from .tv import TVLoss
+from .r2r import R2RLoss
+from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
+from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
+from .measplit import (
     SplittingLoss,
     Neighbor2Neighbor,
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
 )
-from deepinv.loss.loss import Loss
-from deepinv.loss.scheduler import (
+from .loss import Loss
+from .scheduler import (
     BaseLossScheduler,
     RandomLossScheduler,
     InterleavedLossScheduler,
@@ -22,5 +22,4 @@ from deepinv.loss.scheduler import (
     InterleavedEpochLossScheduler,
 )
 
-from deepinv.loss.metric import Metric
 from . import metric

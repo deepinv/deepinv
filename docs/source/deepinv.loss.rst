@@ -93,26 +93,58 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
 
 Metrics
 --------
-Metrics are generally used to evaluate the performance of a model. 
+Metrics are generally used to evaluate the performance of a model.
 
-Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass.
-All metrics perform a standard set of pre and post processing, including
-operating on complex numbers and normalisation.
-All metrics can be used as training losses as well.
+Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass, and take either ``x_net, x``
+for a full-reference metric or ``x_net`` for a no-reference metric. 
+
+.. note::
+
+    Metrics may also optionally take in measurements ``y``, the physics and the model.
+    The arguments are the same as in :class:`deepinv.loss.Loss`.
+
+
+All metrics can perform a standard set of pre and post processing, including
+operating on complex numbers, normalisation and reduction. See :class:`deepinv.loss.metric.Metric` for more details.
+
+.. note::
+
+    By default, metrics do not reduce over the batch dimension, as the usual usage is to average the metrics over a dataset yourself.
+    However, you can use the ``reduction`` argument to perform reduction, e.g. if the metric is to be used as a training loss.
+
+All metrics can be used as training losses as well by setting ``train_loss=True``.
+For example, ``MSE(train_loss=True)`` replaces :class:`torch.nn.MSELoss` and ``MAE(train_loss=True)`` replaces :class:`torch.nn.L1Loss`.
+
+Metrics can either be used directly or as the backbone for loss functions:
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> m = dinv.metric.SSIM()
+    >>> x = torch.ones(2, 3, 16, 16) # B,C,H,W
+    >>> x_hat = x + 0.01
+    >>> m(x_hat, x) # Calculate metric for each image in batch
+    tensor([1.0000, 1.0000])
+    >>> m = dinv.metric.SSIM(reduction="sum")
+    >>> m(x_hat, x) # Sum over batch
+    tensor(1.9999)
+    >>> l = dinv.loss.MCLoss(metric=dinv.metric.SSIM(train_loss=True, reduction="mean")) # Use SSIM for training
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-        deepinv.metric.Metric
-        deepinv.metric.MSE
-        deepinv.metric.NMSE
-        deepinv.metric.PSNR
-        deepinv.metric.SSIM
-        deepinv.metric.L1L2
-        deepinv.metric.LPIPS
-        deepinv.metric.NIQE
+        deepinv.loss.metric.Metric
+        deepinv.loss.metric.MSE
+        deepinv.loss.metric.NMSE
+        deepinv.loss.metric.MAE
+        deepinv.loss.metric.PSNR
+        deepinv.loss.metric.SSIM
+        deepinv.loss.metric.L1L2
+        deepinv.loss.metric.LPIPS
+        deepinv.loss.metric.NIQE
 
 
 Network Regularization
@@ -129,7 +161,7 @@ These losses can be used to regularize the learned function, e.g., controlling i
 
 
 Loss schedulers
--------
+---------------
 Loss schedulers can be used to control which losses are used when during more advanced training.
 
 .. autosummary::

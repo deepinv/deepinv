@@ -6,12 +6,65 @@ from torchmetrics.functional import (
 )
 
 from deepinv.loss.metric.metric import Metric
-from deepinv.loss.metric.functional import cal_mse, cal_psnr
+from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
+
+
+class MAE(Metric):
+    r"""
+    Mean Absolute Error metric.
+
+    See docs for ``forward()`` below for more details.
+
+    .. note::
+
+        :class:`deepinv.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
+        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import MAE
+    >>> m = MAE()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def metric(self, x_net, x, *args, **kwargs):
+        return cal_mae(x_net, x)
 
 
 class MSE(Metric):
     r"""
     Mean Squared Error metric.
+
+    See docs for ``forward()`` below for more details.
+
+    .. note::
+
+        :class:`deepinv.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
+        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import MSE
+    >>> m = MSE()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def metric(self, x_net, x, *args, **kwargs):
@@ -24,9 +77,23 @@ class NMSE(MSE):
 
     Normalises MSE by the L2 norm of the ground truth ``x``.
 
-    TODO add various other normalisation methods from torchmetrics. See [https://github.com/Lightning-AI/torchmetrics/pull/2442](https://github.com/Lightning-AI/torchmetrics/pull/2442)
+    See docs for ``forward()`` below for more details.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import NMSE
+    >>> m = NMSE()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
 
     :param str method: normalisation method. Currently only supports ``l2``.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def __init__(self, method="l2", **kwargs):
@@ -49,9 +116,25 @@ class SSIM(Metric):
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
 
+    See docs for ``forward()`` below for more details.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import SSIM
+    >>> m = SSIM()
+    >>> x_net = x = torch.ones(3, 2, 32, 32) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([1., 1., 1.])
+
     :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
     :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param dict torchmetric_kwargs: kwargs for torchmetrics SSIM as dict. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def __init__(
@@ -68,7 +151,9 @@ class SSIM(Metric):
 
     def metric(self, x_net, x, *args, **kwargs):
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
-        return self.ssim(x_net, x, data_range=max_pixel, **self.torchmetric_kwargs)
+        return self.ssim(
+            x_net, x, data_range=max_pixel, reduction="none", **self.torchmetric_kwargs
+        )
 
 
 class PSNR(Metric):
@@ -78,15 +163,31 @@ class PSNR(Metric):
     If the tensors have size (N, C, H, W), then the PSNR is computed as
 
     .. math::
-        \text{PSNR} = \frac{20}{N} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|a- b\|^2_2 / (CHW) }}
+        \text{PSNR} = \frac{20}{N} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|\hat{x}-x\|^2_2 / (CHW) }}
 
     where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
-    normalized image), and :math:`a` and :math:`b` are the estimate and reference images.
+    normalized image), and :math:`\hat{x}` and :math:`x` are the estimate (``x_net``) and reference images (``x``).
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
 
+    See docs for ``forward()`` below for more details.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import PSNR
+    >>> m = PSNR()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([80., 80., 80.])
+
     :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def __init__(self, max_pixel=1, normalize=False, **kwargs):
@@ -95,17 +196,8 @@ class PSNR(Metric):
         self.normalize = normalize
 
     def metric(self, x_net, x, *args, **kwargs):
-        r"""
-        Computes the PSNR metric.
-
-        :param torch.Tensor x: reference image.
-        :param torch.Tensor x_net: reconstructed image.
-        :return: torch.Tensor size (batch_size,).
-        """
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
-        return cal_psnr(
-            x_net, x, max_pixel, self.normalize, mean_batch=False, to_numpy=False
-        )
+        return cal_psnr(x_net, x, max_pixel=max_pixel)
 
 
 class L1L2(Metric):
@@ -114,14 +206,30 @@ class L1L2(Metric):
 
     Calculates L2 distance (i.e. MSE) + L1 (i.e. MAE) distance.
 
+    See docs for ``forward()`` below for more details.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import L1L2
+    >>> m = L1L2()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
     :param float alpha: Weight between L2 and L1. Defaults to 0.5.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def __init__(self, alpha=0.5, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
-        self.l1 = L1Loss()
-        self.l2 = MSELoss()
+        self.l1 = MAE().metric
+        self.l2 = MSE().metric
 
     def metric(self, x_net, x, *args, **kwargs):
         l1 = self.l1(x_net, x)
@@ -139,8 +247,24 @@ class LpNorm(Metric):
     Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
+    See docs for ``forward()`` below for more details.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import LpNorm
+    >>> m = LpNorm(p=3) # L3 norm
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
     :param int p: order p of the Lp norm
     :param bool onesided: whether one-sided metric.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def __init__(self, p=2, onesided=False, **kwargs):
