@@ -9,7 +9,7 @@ class PatchDataset(data.Dataset):
     :param int patch_size: size of patches
     :param callable transforms: data augmentation. callable object, None for no augmentation.
     :param tuple shape: shape of the returned tensor. None returns C x patch_size x patch_size.
-            The default shape is (-1,). 
+            The default shape is (-1,).
     """
 
     def __init__(self, imgs, patch_size=6, stride=1, transforms=None, shapes=(-1,)):
