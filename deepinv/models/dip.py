@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deepinv.loss import MCLoss
+from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 
 

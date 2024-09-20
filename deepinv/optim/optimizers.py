@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
 from collections.abc import Iterable
-from deepinv.loss.metric import PSNR
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
 
