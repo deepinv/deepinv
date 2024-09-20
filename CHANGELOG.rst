@@ -17,7 +17,7 @@ New Features
 - Add loss schedulers (:gh:`296` by `Andrew Wang`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
-- Add Metric baseclass, typing, tests and L1L2 metric (:gh:`309` by `Andrew Wang`_)
+- Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests and L1L2 metric (:gh:`309` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
