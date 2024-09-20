@@ -8,10 +8,11 @@ To this end, we consider the inverse problem :math:`y = Ax+\epsilon`, where :mat
 or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sigma^2 I)` is white Gaussian noise with standard deviation :math:`\sigma`.
 """
 
+import torch
 from deepinv.optim import EPLL
 from deepinv.physics import GaussianNoise, Denoising, Inpainting
-from deepinv.loss.metric import PSNR, plot
-import torch
+from deepinv.loss.metric import PSNR
+from deepinv.utils import plot
 from deepinv.utils.demo import load_url_image, get_image_url
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -50,8 +51,8 @@ with torch.no_grad():
     x_out = model(observation, physics, batch_size=5000)
 
 # PSNR computation and plots.
-psnr_obs = PSNR()(observation, test_img)
-psnr_recon = PSNR()(x_out, test_img)
+psnr_obs = PSNR()(observation, test_img).item()
+psnr_recon = PSNR()(x_out, test_img).item()
 
 print("PSNRs for Denoising:")
 print("Observation: {0:.2f}".format(psnr_obs))
@@ -88,8 +89,8 @@ with torch.no_grad():
     x_out = model(observation, physics, betas=betas, batch_size=5000)
 
 # PSNR computation and plots
-psnr_obs = PSNR()(observation, test_img)
-psnr_recon = PSNR()(x_out, test_img)
+psnr_obs = PSNR()(observation, test_img).item()
+psnr_recon = PSNR()(x_out, test_img).item()
 
 print("PSNRs for Inpainting:")
 print("Observation: {0:.2f}".format(psnr_obs))

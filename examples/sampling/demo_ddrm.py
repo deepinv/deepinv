@@ -91,8 +91,8 @@ xhat = diff(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin):.2f} dB")
-print(f"Diffusion PSNR: {dinv.metric.PSNR()(x, xhat):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"Diffusion PSNR: {dinv.metric.PSNR()(x, xhat).item():.2f} dB")
 
 # plot results
 error = (xhat - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error

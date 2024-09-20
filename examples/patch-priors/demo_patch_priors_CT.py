@@ -41,12 +41,13 @@ We consider the following two choices of :math:`h`:
 """
 
 import torch
-from deepinv.datasets import PatchDataset
 from torch.utils.data import DataLoader
+from deepinv.datasets import PatchDataset
 from deepinv import Trainer
 from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
-from deepinv.loss.metric import PSNR, plot
+from deepinv.loss.metric import PSNR
+from deepinv.utils import plot
 from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
 
@@ -246,9 +247,9 @@ lam_epll = 120.0
 recon_patchnr = minimize_variational_problem(patchnr_prior, lam_patchnr)
 recon_epll = minimize_variational_problem(epll_prior, lam_epll)
 
-psnr_fbp = PSNR()(fbp, test_imgs)
-psnr_patchnr = PSNR()(recon_patchnr, test_imgs)
-psnr_epll = PSNR()(recon_epll, test_imgs)
+psnr_fbp = PSNR()(fbp, test_imgs).item()
+psnr_patchnr = PSNR()(recon_patchnr, test_imgs).item()
+psnr_epll = PSNR()(recon_epll, test_imgs).item()
 
 print("PSNRs:")
 print("Filtered Backprojection: {0:.2f}".format(psnr_fbp))
