@@ -6,9 +6,6 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 METRICS = ["MAE", "MSE", "NMSE", "PSNR", "SSIM", "LpNorm", "L1L2", "LPIPS", "NIQE"]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
-# TODO Test all metrics take kwargs and args appropriately
-# skip pyiqa ones if not installed
-
 
 def choose_metric(metric_name, **kwargs) -> metric.Metric:
     if metric_name in ("LPIPS", "NIQE"):
