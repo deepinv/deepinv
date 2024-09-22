@@ -1,8 +1,12 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 import torch
 from torch import Tensor
 from torch.nn import Module
 
-from deepinv.physics.forward import Physics
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class Loss(torch.nn.Module):

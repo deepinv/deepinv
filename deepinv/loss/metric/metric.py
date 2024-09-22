@@ -1,14 +1,16 @@
+from __future__ import annotations
 from types import ModuleType
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-import torch
 from torch import Tensor
 from torch.nn import Module
 
 from deepinv.loss.loss import Loss
-from deepinv.physics.forward import Physics
 from deepinv.loss.metric.functional import complex_abs, norm
 from deepinv.utils.plotting import rescale_img
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 def import_pyiqa() -> ModuleType:

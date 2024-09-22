@@ -6,7 +6,7 @@ import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
-from deepinv.loss.metric import PSNR
+from deepinv.loss.metric.distortion import PSNR
 
 
 class BaseOptim(nn.Module):
