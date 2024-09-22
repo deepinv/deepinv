@@ -120,8 +120,8 @@ f = dinv.sampling.DiffusionSampler(diff, max_iter=10)
 mean, var = f(y, physics)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin):.2f} dB")
-print(f"Posterior mean PSNR: {dinv.metric.PSNR()(x, mean):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"Posterior mean PSNR: {dinv.metric.PSNR()(x, mean).item():.2f} dB")
 
 # plot results
 error = (mean - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error

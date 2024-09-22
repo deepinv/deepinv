@@ -1,11 +1,12 @@
 import sys
 import warnings
+from collections.abc import Iterable
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
-from collections.abc import Iterable
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
+from deepinv.loss.metric import PSNR
 
 
 class BaseOptim(nn.Module):
