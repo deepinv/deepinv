@@ -6,6 +6,7 @@ class LPIPS(Metric):
     Learned Perceptual Image Patch Similarity (LPIPS) metric.
 
     Computes the perceptual similarity between two images, based on a pre-trained deep neural network.
+    Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
     See docs for ``forward()`` below for more details.
 
@@ -13,8 +14,8 @@ class LPIPS(Metric):
 
     >>> from deepinv.utils.demo import get_image_url, load_url_image
     >>> from deepinv.loss.metric import LPIPS
-    >>> m = LPIPS() # doctest:+ELLIPSIS
-    Loading...
+    >>> ();m = LPIPS();() # doctest: +ELLIPSIS
+    (...)
     >>> x = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
     >>> x_net = x + 0.01
     >>> m(x_net, x)
@@ -43,6 +44,7 @@ class NIQE(Metric):
     Natural Image Quality Evaluator (NIQE) metric.
 
     It is a no-reference image quality metric that estimates the quality of images.
+    Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
     See docs for ``forward()`` below for more details.
 
@@ -50,7 +52,8 @@ class NIQE(Metric):
 
     >>> from deepinv.utils.demo import get_image_url, load_url_image
     >>> from deepinv.loss.metric import NIQE
-    >>> m = NIQE()
+    >>> ();m = NIQE();() # doctest: +ELLIPSIS
+    (...)
     >>> x_net = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
     >>> m(x_net)
     tensor([8.1880])
