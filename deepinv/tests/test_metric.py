@@ -3,8 +3,7 @@ import torch
 from deepinv.physics import GaussianNoise
 import deepinv.loss.metric as metric
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
-from deepinv.utils import load_url_image
-from deepinv.utils.demo import get_image_url
+from deepinv.utils.demo import get_image_url, load_url_image
 
 METRICS = ["MAE", "MSE", "NMSE", "PSNR", "SSIM", "LpNorm", "L1L2", "LPIPS", "NIQE"]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]

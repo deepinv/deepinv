@@ -11,12 +11,14 @@ class LPIPS(Metric):
 
     :Example:
 
-    >>> import torch
+    >>> from deepinv.utils.demo import get_image_url, load_url_image
     >>> from deepinv.loss.metric import LPIPS
-    >>> m = LPIPS()
-    >>> x_net = x = torch.ones(1, 2, 8, 8) # B,C,H,W
+    >>> m = LPIPS() # doctest:+ELLIPSIS
+    Loading...
+    >>> x = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
+    >>> x_net = x + 0.01
     >>> m(x_net, x)
-    tensor(0.)
+    tensor([0.0005])
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
@@ -33,7 +35,7 @@ class LPIPS(Metric):
         self.lower_better = self.lpips.lower_better
 
     def metric(self, x_net, x, *args, **kwargs):
-        return self.lpips(x_net, x)
+        return self.lpips(x_net, x).squeeze(-1)
 
 
 class NIQE(Metric):
@@ -46,12 +48,12 @@ class NIQE(Metric):
 
     :Example:
 
-    >>> import torch
+    >>> from deepinv.utils.demo import get_image_url, load_url_image
     >>> from deepinv.loss.metric import NIQE
     >>> m = NIQE()
-    >>> x_net = x = torch.ones(1, 2, 8, 8) # B,C,H,W
+    >>> x_net = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
     >>> m(x_net)
-    tensor(0.)
+    tensor([8.1880])
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
@@ -68,4 +70,5 @@ class NIQE(Metric):
         self.lower_better = self.niqe.lower_better
 
     def metric(self, x_net, *args, **kwargs):
-        return self.niqe(x_net)
+        n = self.niqe(x_net).float()
+        return n.unsqueeze(0) if n.dim() == 0 else n
