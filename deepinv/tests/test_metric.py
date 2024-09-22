@@ -1,7 +1,10 @@
 import pytest
 import torch
+from deepinv.physics import GaussianNoise
 import deepinv.loss.metric as metric
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from deepinv.utils import load_url_image
+from deepinv.utils.demo import get_image_url
 
 METRICS = ["MAE", "MSE", "NMSE", "PSNR", "SSIM", "LpNorm", "L1L2", "LPIPS", "NIQE"]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
@@ -36,11 +39,9 @@ def choose_metric(metric_name, **kwargs) -> metric.Metric:
 
 @pytest.mark.parametrize("metric_name", METRICS)
 @pytest.mark.parametrize("complex_abs", [True])
-@pytest.mark.parametrize("train_loss", [True])
+@pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
-def test_metrics(
-    metric_name, complex_abs, train_loss, norm_inputs, imsize_2_channel, rng
-):
+def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
     m = choose_metric(
         metric_name,
         complex_abs=complex_abs,
@@ -48,12 +49,18 @@ def test_metrics(
         norm_inputs=norm_inputs,
         reduction="mean",
     )
-    x = torch.rand((1, *imsize_2_channel), generator=rng)
-    x_hat = x * 0.0 + 0.01
+    x = load_url_image(
+        get_image_url("celeba_example.jpg"), img_size=128, resize_mode="resize"
+    )
 
-    if isinstance(m, metric.NIQE):
-        # NIQE is a no-reference metric that requires a reasonably natural and large image
-        x_hat = DummyCircles(1, (2, 128, 128))[0].unsqueeze(0)
+    if complex_abs:
+        x = x[:, :2, ...]
+
+    x_hat = GaussianNoise(sigma=0.1, rng=rng)(x)
+
+    # Test metric worse when image worse
+    if train_loss:  # All metrics lower = better
+        assert m(x_hat, x).item() > m(x, x).item()
 
     # Test various args and kwargs which could be passed to metrics
     assert m(x_hat, x, None, model=None, some_other_kwarg=None) != 0
@@ -142,5 +149,5 @@ def test_metric_kwargs():
     )
     assert torch.all(metric.MSE(complex_abs=False)(x_hat, x) == torch.tensor([1.0]))
 
-    # Test train loss
-    assert torch.all(metric.MSE(train_loss=True)(x_hat, x) == torch.tensor([0.0]))
+    # Test train loss does nothing as MSE already lower_better=True
+    assert torch.all(metric.MSE(train_loss=True)(x_hat, x) == torch.tensor([1.0]))

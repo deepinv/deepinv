@@ -21,7 +21,7 @@ class LPIPS(Metric):
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -30,6 +30,7 @@ class LPIPS(Metric):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
         self.lpips = pyiqa.create_metric("lpips").to(device)
+        self.lower_better = self.lpips.lower_better
 
     def metric(self, x_net, x, *args, **kwargs):
         return self.lpips(x_net, x)
@@ -55,7 +56,7 @@ class NIQE(Metric):
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -64,6 +65,7 @@ class NIQE(Metric):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
         self.niqe = pyiqa.create_metric("niqe").to(device)
+        self.lower_better = self.niqe.lower_better
 
     def metric(self, x_net, *args, **kwargs):
         return self.niqe(x_net)

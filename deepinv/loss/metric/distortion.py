@@ -31,7 +31,7 @@ class MAE(Metric):
 
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -62,7 +62,7 @@ class MSE(Metric):
 
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -91,7 +91,7 @@ class NMSE(MSE):
     :param str method: normalisation method. Currently only supports ``l2``.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -132,7 +132,7 @@ class SSIM(Metric):
     :param dict torchmetric_kwargs: kwargs for torchmetrics SSIM as dict. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -148,6 +148,7 @@ class SSIM(Metric):
         )
         self.torchmetric_kwargs = torchmetric_kwargs
         self.max_pixel = max_pixel
+        self.lower_better = False
 
     def metric(self, x_net, x, *args, **kwargs):
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
@@ -185,7 +186,7 @@ class PSNR(Metric):
     :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -194,6 +195,7 @@ class PSNR(Metric):
         super().__init__(**kwargs)
         self.max_pixel = max_pixel
         self.normalize = normalize
+        self.lower_better = False
 
     def metric(self, x_net, x, *args, **kwargs):
         max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
@@ -220,7 +222,7 @@ class L1L2(Metric):
     :param float alpha: Weight between L2 and L1. Defaults to 0.5.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -262,7 +264,7 @@ class LpNorm(Metric):
     :param bool onesided: whether one-sided metric.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """

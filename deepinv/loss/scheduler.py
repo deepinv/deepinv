@@ -174,7 +174,7 @@ class StepLossScheduler(BaseLossScheduler):
     >>> l(x=x, x_net=x_net, epoch=0)
     tensor(0., requires_grad=True)
     >>> l(x=x, x_net=x_net, epoch=11)
-    tensor(0.9999)
+    tensor([0.9999])
 
     :param Loss \*loss: loss or multiple losses to be scheduled.
     :param int epoch_thresh: threshold above which the losses are used.

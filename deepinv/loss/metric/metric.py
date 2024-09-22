@@ -32,7 +32,7 @@ class Metric(Loss):
 
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -45,6 +45,7 @@ class Metric(Loss):
         norm_inputs: Optional[str] = None,
     ):
         super().__init__()
+        self.lower_better = True
         self.train_loss = train_loss
         self.complex_abs = complex_abs  # NOTE assumes C in dim=1
         normalizer = lambda x: x
@@ -151,5 +152,5 @@ class Metric(Loss):
 
         m = self.reducer(m)
 
-        m = 1.0 - m if self.train_loss else m
+        m = (1.0 - m) if (self.train_loss and not self.lower_better) else m
         return m
