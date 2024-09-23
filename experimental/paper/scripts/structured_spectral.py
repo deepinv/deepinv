@@ -17,7 +17,7 @@ from deepinv.optim.phase_retrieval import (
 )
 
 # genral
-model_name = "structured_gaussian"
+model_name = "structured_gaussian_std10"
 recon = "spectral"
 save = True
 
@@ -27,6 +27,7 @@ n_layers = 2
 diagonal_mode = "gaussian"
 shared_weights = False
 drop_tail = True
+std = torch.sqrt(torch.tensor(10.0))
 
 # optim settings
 n_repeats = 50
@@ -87,6 +88,7 @@ for i in trange(n_oversampling):
             device=device,
             shared_weights=shared_weights,
             drop_tail=drop_tail,
+            std=std,
         )
         y = physics(x_phase)
 

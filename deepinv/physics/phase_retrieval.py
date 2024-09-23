@@ -7,7 +7,7 @@ from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.optim.phase_retrieval import compare,merge_order,spectral_methods
 
-def generate_diagonal(tensor_shape, mode, dtype, device):
+def generate_diagonal(tensor_shape, mode, dtype, device, std=1.0):
     r"""
     Generate a random tensor as the diagonal matrix.
     """
@@ -18,7 +18,7 @@ def generate_diagonal(tensor_shape, mode, dtype, device):
         diagonal = 2 * np.pi * diagonal
         diagonal = torch.exp(1j * diagonal)
     elif mode == "gaussian":
-        diagonal = torch.randn(tensor_shape, dtype=dtype, device=device)
+        diagonal = std*torch.randn(tensor_shape, dtype=dtype, device=device)
     else:
         raise ValueError(f"Unsupported mode: {mode}")
     return diagonal
@@ -201,6 +201,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         drop_tail=True,
         dtype=torch.cfloat,
         device="cpu",
+        std=1.0,
         **kwargs,
     ):
         if output_shape is None:
@@ -261,15 +262,15 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         if not shared_weights:
             for _ in range(self.n_layers):
                 if self.mode == "oversampling":
-                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
+                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, std=std)
                 else:
-                    diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
+                    diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
                 self.diagonals.append(diagonal)
         else:
             if self.mode == "oversampling":
-                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
+                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
             else:
-                diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device)
+                diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
             self.diagonals = self.diagonals + [diagonal] * self.n_layers
 
         def A(x):
