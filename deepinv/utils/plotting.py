@@ -557,6 +557,7 @@ def plot_inset(
     inset_size: float = 0.4,
     figsize: Tuple[int] = None,
     save_fn: str = None,
+    dpi: int = 1200,
     show: bool = True,
     return_fig: bool = False,
     cmap: str = "gray",
@@ -579,6 +580,7 @@ def plot_inset(
     :param float inset_size: size of inset to be plotted on image, defaults to 0.4
     :param tuple[int] figsize: size of the figure.
     :param str save_fn: filename for plot to be saved, if None, don't save, defaults to None
+    :param int dpi: DPI to save images.
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     """
@@ -663,7 +665,7 @@ def plot_inset(
             )
 
     if save_fn:
-        plt.savefig(save_fn, dpi=1200)
+        plt.savefig(save_fn, dpi=dpi)
 
     if show:
         plt.show()
