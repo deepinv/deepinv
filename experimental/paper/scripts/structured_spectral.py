@@ -4,48 +4,69 @@ sys.path.append("/home/zhhu/workspaces/deepinv/")
 
 from datetime import datetime
 from pathlib import Path
+import shutil
 
+from dotmap import DotMap
 import pandas as pd
 import torch
 from tqdm import trange
+import yaml
 
 import deepinv as dinv
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.optim.phase_retrieval import (
     cosine_similarity,
     spectral_methods,
+    load_config,
 )
 
-# genral
-model_name = "structured_gaussian_std10"
-recon = "spectral"
-save = True
+# load config
+config_path = "../config/structured_spectral.yaml"
+config = load_config(config_path)
 
-# structured settings
-img_size = 64
-n_layers = 2
-diagonal_mode = "gaussian"
-shared_weights = False
-drop_tail = True
-std = torch.sqrt(torch.tensor(10.0))
+# general
+model_name = config.general.name
+recon = config.general.recon
+save = config.general.save
 
-# optim settings
-n_repeats = 50
-max_iter = 5000
-start = 2
-end = 194
-output_sizes = torch.arange(start, end, 2)
-# output_sizes = torch.tensor([132,136,140])
+# model
+img_size = config.model.img_size
+n_layers = config.model.n_layers
+diagonal_mode = config.model.diagonal_mode
+shared_weights = config.model.shared_weights
+drop_tail = config.model.drop_tail
+std = torch.sqrt(torch.tensor(config.model.std))
+
+# recon
+n_repeats = config.recon.n_repeats
+max_iter = config.recon.max_iter
+
+if config.recon.series == "arange":
+    start = config.recon.start
+    end = config.recon.end
+    output_sizes = torch.arange(start, end, 2)
+elif config.recon.series == "list":
+    output_sizes = torch.tensor(config.recon.list)
+else:
+    raise ValueError("Invalid series type.")
+
 oversampling_ratios = output_sizes**2 / img_size**2
 n_oversampling = oversampling_ratios.shape[0]
 
-# save settings
+# save
 if save:
-    res_name = f"res_{model_name}_{oversampling_ratios[0].numpy()}-{oversampling_ratios[-1].numpy()}_{recon}_{n_layers}_{n_repeats}repeat_{max_iter}iter.csv"
+    res_name = config.save.name.format(
+        model_name = model_name,
+        oversampling_start = oversampling_ratios[0].numpy(),
+        oversampling_end = oversampling_ratios[-1].numpy(),
+        recon = recon,
+        n_layers = n_layers,
+        n_repeats = n_repeats,
+        max_iter = max_iter)
     print("res_name:", res_name)
+
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    SAVE_DIR = Path("..")
-    SAVE_DIR = SAVE_DIR / "runs"
+    SAVE_DIR = Path(config.save.path)
     SAVE_DIR = SAVE_DIR / current_time
     Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
     print("save directory:", SAVE_DIR)
@@ -100,3 +121,5 @@ for i in trange(n_oversampling):
 # save results
 if save:
     df_res.to_csv(SAVE_DIR / res_name)
+    # copy the config file to the save directory
+    shutil.copy(config_path, SAVE_DIR / "config.yaml")    

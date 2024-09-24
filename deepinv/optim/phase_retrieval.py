@@ -1,10 +1,18 @@
 import os
 
+from dotmap import DotMap
 from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import torch
+import yaml
+
+# Load configuration from YAML file
+def load_config(config_file):
+    with open(config_file, 'r') as file:
+        config_dict = yaml.safe_load(file)
+    return DotMap(config_dict)
 
 def compare(a:int,b:int):
     if a > b:
