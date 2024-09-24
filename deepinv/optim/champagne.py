@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from typing import Callable, Iterable
 
 import torch
@@ -8,9 +8,9 @@ from deepinv.optim import BaseOptim
 from deepinv.physics import LinearPhysics
 
 
-class ChampagneIterator(nn.Module):
+class ChampagneIterator(nn.Module, metaclass=ABCMeta):
     r"""
-    Iterator for the Champagne Bayesian framework.
+    Base iterator for the Champagne Bayesian framework.
     
     The iteration is given by
 
@@ -32,28 +32,21 @@ class ChampagneIterator(nn.Module):
 
     def forward(self, X_prev, cur_data_fidelity, cur_prior, cur_params, y, A):
         x, gamma = X_prev["est"]
-        nb_sensors = y.size(0)
 
-        g_times_gamma = A * gamma  # A @ Γ
+        # Precompute for performance
+        a_times_gamma = A * gamma  # A @ Γ
+
         # Measure covariance matrix
-        sigma_y = (
-            cur_params["lambda"] * torch.eye(nb_sensors, dtype=A.dtype, device=A.device)
-            + g_times_gamma @ A.T
-        )
-        sigma_y_inv = torch.linalg.inv(sigma_y)
+        sigma_y = a_times_gamma @ A.T
+        idx = torch.arange(sigma_y.shape[0])
+        sigma_y[idx, idx] += 1
 
         # Source expectation
-        x = g_times_gamma.T @ sigma_y_inv @ y
-
-        # Source covariance matrix
-        sigma_x = -g_times_gamma.T @ sigma_y_inv @ g_times_gamma
-        idx = torch.arange(sigma_x.shape[0])
-        sigma_x[idx, idx] += gamma
+        x = a_times_gamma.T @ torch.linalg.lstsq(sigma_y, y).solution
 
         # Update gamma
-        gamma = self.update(gamma, x, A, sigma_x, sigma_y_inv)
+        gamma = self.update(gamma, x, A, sigma_y)
 
-        # FIXME : we're returning x_k and gamma_{k+1}
         return {"est": (x, gamma)}
 
     @abstractmethod
@@ -62,8 +55,7 @@ class ChampagneIterator(nn.Module):
         gamma: torch.Tensor,
         x: torch.Tensor,
         A: torch.Tensor,
-        sigma_x: torch.Tensor,
-        sigma_y_inv: torch.Tensor,
+        sigma_y: torch.Tensor,
     ) -> torch.Tensor:
         r"""
         Get the updated source variances \gamma_{k+1} from \gamma_k.
@@ -71,8 +63,7 @@ class ChampagneIterator(nn.Module):
         :param torch.Tensor gamma: current estimate for the variances of all sources.
         :param torch.Tensor x: current estimate for the expectation of all sources at each timestep.
         :param torch.Tensor A: the forward operator.
-        :param torch.Tensor sigma_x: current estimate for the source covariance matrix.
-        :param torch.Tensor sigma_y_inv: current estimate for the inverse of the sensor covariance matrix.
+        :param torch.Tensor sigma_y: current estimate for the sensor covariance matrix.
         :return: the update estimate for the source variances.
         """
         pass
@@ -166,8 +157,7 @@ class EMChampagneIterator(ChampagneIterator):
         gamma: torch.Tensor,
         x: torch.Tensor,
         A: torch.Tensor,
-        sigma_x: torch.Tensor,
-        sigma_y_inv: torch.Tensor,
+        sigma_y: torch.Tensor,
     ) -> torch.Tensor:
         r"""
         Get the updated source variances \gamma_{k+1} from \gamma_k.
@@ -175,11 +165,19 @@ class EMChampagneIterator(ChampagneIterator):
         :param torch.Tensor gamma: current estimate for the variances of all sources.
         :param torch.Tensor x: current estimate for the expectation of all sources at each timestep.
         :param torch.Tensor A: the forward operator.
-        :param torch.Tensor sigma_x: current estimate for the source covariance matrix.
-        :param torch.Tensor sigma_y_inv: current estimate for the inverse of the sensor covariance matrix.
+        :param torch.Tensor sigma_y: current estimate for the sensor covariance matrix.
         :return: the update estimate for the source variances.
         """
         time_steps = x.size(1)
+
+        sigma_y_inv = torch.linalg.inv(sigma_y)
+
+        # Source covariance matrix
+        a_times_gamma = A * gamma
+        sigma_x = -a_times_gamma.T @ sigma_y_inv @ a_times_gamma
+        idx = torch.arange(sigma_x.shape[0])
+        sigma_x[idx, idx] += gamma
+
         return torch.diag(sigma_x) + (x**2).sum(1) / time_steps
 
 
@@ -201,8 +199,7 @@ class ConvexChampagneIterator(ChampagneIterator):
         gamma: torch.Tensor,
         x: torch.Tensor,
         A: torch.Tensor,
-        sigma_x: torch.Tensor,
-        sigma_y_inv: torch.Tensor,
+        sigma_y: torch.Tensor,
     ) -> torch.Tensor:
         r"""
         Get the updated source variances \gamma_{k+1} from \gamma_k.
@@ -210,11 +207,11 @@ class ConvexChampagneIterator(ChampagneIterator):
         :param torch.Tensor gamma: current estimate for the variances of all sources.
         :param torch.Tensor x: current estimate for the expectation of all sources at each timestep.
         :param torch.Tensor A: the forward operator.
-        :param torch.Tensor sigma_x: current estimate for the source covariance matrix.
-        :param torch.Tensor sigma_y_inv: current estimate for the inverse of the sensor covariance matrix.
+        :param torch.Tensor sigma_y: current estimate for the sensor covariance matrix.
         :return: the update estimate for the source variances.
         """
         time_steps = x.size(1)
+        sigma_y_inv = torch.linalg.inv(sigma_y)
         return torch.sqrt(
             (1 / time_steps) * (x**2).sum(1) / (A.T @ sigma_y_inv * A.T).sum(1)
         )
@@ -238,8 +235,7 @@ class MacKayChampagneIterator(ChampagneIterator):
         gamma: torch.Tensor,
         x: torch.Tensor,
         A: torch.Tensor,
-        sigma_x: torch.Tensor,
-        sigma_y_inv: torch.Tensor,
+        sigma_y: torch.Tensor,
     ) -> torch.Tensor:
         r"""
         Get the updated source variances \gamma_{k+1} from \gamma_k.
@@ -247,11 +243,11 @@ class MacKayChampagneIterator(ChampagneIterator):
         :param torch.Tensor gamma: current estimate for the variances of all sources.
         :param torch.Tensor x: current estimate for the expectation of all sources at each timestep.
         :param torch.Tensor A: the forward operator.
-        :param torch.Tensor sigma_x: current estimate for the source covariance matrix.
-        :param torch.Tensor sigma_y_inv: current estimate for the inverse of the sensor covariance matrix.
+        :param torch.Tensor sigma_y: current estimate for the sensor covariance matrix.
         :return: the update estimate for the source variances.
         """
         time_steps = x.size(1)
+        sigma_y_inv = torch.linalg.inv(sigma_y)
         return (
             (1 / time_steps)
             * (x**2).sum(1)
@@ -277,8 +273,7 @@ class LowSNRChampagneIterator(ChampagneIterator):
         gamma: torch.Tensor,
         x: torch.Tensor,
         A: torch.Tensor,
-        sigma_x: torch.Tensor,
-        sigma_y_inv: torch.Tensor,
+        sigma_y: torch.Tensor,
     ) -> torch.Tensor:
         r"""
         Get the updated source variances \gamma_{k+1} from \gamma_k.
@@ -286,8 +281,7 @@ class LowSNRChampagneIterator(ChampagneIterator):
         :param torch.Tensor gamma: current estimate for the variances of all sources.
         :param torch.Tensor x: current estimate for the expectation of all sources at each timestep.
         :param torch.Tensor A: the forward operator.
-        :param torch.Tensor sigma_x: current estimate for the source covariance matrix.
-        :param torch.Tensor sigma_y_inv: current estimate for the inverse of the sensor covariance matrix.
+        :param torch.Tensor sigma_y: current estimate for the sensor covariance matrix.
         :return: the update estimate for the source variances.
         """
         time_steps = x.size(1)
