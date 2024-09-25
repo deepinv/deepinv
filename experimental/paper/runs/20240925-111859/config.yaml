@@ -1,5 +1,5 @@
 general:
-  name: "structured_gaussian_std14"
+  name: "structured_gaussian_std12"
   recon: "spec"
   save: True
 
@@ -7,7 +7,7 @@ model:
   img_size: 64
   n_layers: 2
   diagonal_mode: "gaussian"
-  std: 1.4
+  std: 1.2
   shared_weights: False
   drop_tail: True
 

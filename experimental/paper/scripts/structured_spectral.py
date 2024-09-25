@@ -71,6 +71,9 @@ if save:
     Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
     print("save directory:", SAVE_DIR)
 
+    # copy the config file to the save directory
+    shutil.copy(config_path, SAVE_DIR / "config.yaml")
+
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device
 
@@ -120,6 +123,4 @@ for i in trange(n_oversampling):
 
 # save results
 if save:
-    df_res.to_csv(SAVE_DIR / res_name)
-    # copy the config file to the save directory
-    shutil.copy(config_path, SAVE_DIR / "config.yaml")    
+    df_res.to_csv(SAVE_DIR / res_name)    
