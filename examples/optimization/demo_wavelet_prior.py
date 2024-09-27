@@ -33,7 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset 
+# In this example, we use the Set3C dataset
 #
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
