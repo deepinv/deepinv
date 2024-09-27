@@ -1,11 +1,27 @@
+from functools import partial
 import math
 
 import numpy as np
+from scipy.fft import dct, idct
 import torch
 
 from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.optim.phase_retrieval import compare,merge_order,spectral_methods
+
+def dct2(x:torch.Tensor,device):
+    r""" 2D DCT
+
+    DCT is performed along the last two dimensions of the input tensor.
+    """
+    return torch.from_numpy(dct(dct(x.cpu().numpy(), axis=-1, norm='ortho'), axis=-2, norm='ortho')).to(device)
+
+def idct2(x:torch.Tensor,device):
+    r""" 2D IDCT
+
+    IDCT is performed along the last two dimensions of the input tensor.
+    """
+    return torch.from_numpy(idct(idct(x.cpu().numpy(), axis=-2, norm='ortho'), axis=-1, norm='ortho')).to(device)
 
 def generate_diagonal(tensor_shape, mode, dtype, device, std=1.0):
     r"""
@@ -197,6 +213,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         input_shape:tuple,
         output_shape:tuple,
         diagonal_mode="uniform_phase",
+        transform="fft",
         shared_weights=False,
         drop_tail=True,
         dtype=torch.cfloat,
@@ -273,6 +290,15 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                 diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
             self.diagonals = self.diagonals + [diagonal] * self.n_layers
 
+        if transform == "fft":
+            transform_func = partial(torch.fft.fft2, norm="ortho")
+            transform_func_inv = partial(torch.fft.ifft2, norm="ortho")
+        elif transform == "dct":
+            transform_func = partial(dct2, device=self.device)
+            transform_func_inv = partial(idct2, device=self.device)
+        else:
+            raise ValueError(f"Unimplemented transform {transform}")
+        
         def A(x):
             assert x.shape[1:] == self.img_shape, f"x doesn't have the correct shape {x.shape[1:]} != {self.img_shape}"
 
@@ -280,11 +306,11 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                 x = self.padding(x)
 
             if not drop_tail:
-                x = torch.fft.fft2(x, norm="ortho")
+                x = transform_func(x)
             for i in range(self.n_layers):
                 diagonal = self.diagonals[i]
                 x = diagonal * x
-                x = torch.fft.fft2(x, norm="ortho")
+                x = transform_func(x)
 
             if self.mode == "undersampling":
                 x = self.trimming(x)
@@ -299,10 +325,10 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
             for i in range(self.n_layers):
                 diagonal = self.diagonals[-i - 1]
-                y = torch.fft.ifft2(y, norm="ortho")
+                y = transform_func_inv(y)
                 y = torch.conj(diagonal) * y
             if not drop_tail:
-                y = torch.fft.ifft2(y, norm="ortho")
+                y = transform_func_inv(y)
 
             if self.mode == "oversampling":
                 y = self.trimming(y)

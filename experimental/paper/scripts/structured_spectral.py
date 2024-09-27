@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 
 from dotmap import DotMap
+import numpy as np
 import pandas as pd
 import torch
 from tqdm import trange
@@ -33,6 +34,7 @@ save = config.general.save
 img_size = config.model.img_size
 n_layers = config.model.n_layers
 diagonal_mode = config.model.diagonal_mode
+transform = config.model.transform
 shared_weights = config.model.shared_weights
 drop_tail = config.model.drop_tail
 std = torch.sqrt(torch.tensor(config.model.std))
@@ -57,12 +59,12 @@ n_oversampling = oversampling_ratios.shape[0]
 if save:
     res_name = config.save.name.format(
         model_name = model_name,
-        oversampling_start = oversampling_ratios[0].numpy(),
-        oversampling_end = oversampling_ratios[-1].numpy(),
+        # keep 4 digits of the following numbers
+        oversampling_start = np.round(oversampling_ratios[0].numpy(),4),
+        oversampling_end = np.round(oversampling_ratios[-1].numpy(),4),
         recon = recon,
-        n_layers = n_layers,
         n_repeats = n_repeats,
-        max_iter = max_iter)
+        )
     print("res_name:", res_name)
 
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -108,6 +110,7 @@ for i in trange(n_oversampling):
             input_shape=(1, img_size, img_size),
             output_shape=(1, output_size, output_size),
             diagonal_mode=diagonal_mode,
+            transform=transform,
             dtype=torch.cfloat,
             device=device,
             shared_weights=shared_weights,
