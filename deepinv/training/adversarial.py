@@ -141,7 +141,7 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self):
+    def setup_train(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """

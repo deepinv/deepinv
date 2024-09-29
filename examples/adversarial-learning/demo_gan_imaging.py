@@ -99,7 +99,7 @@ test_dataloader = DataLoader(
 #
 
 
-def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4):
+def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
     if model is None:
         model = dinv.models.UNet(
             in_channels=3,
@@ -107,10 +107,10 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4):
             scales=2,
             circular_padding=True,
             batch_norm=False,
-        )
+        ).to(device)
 
     if D is None:
-        D = dinv.models.PatchGANDiscriminator(n_layers=2, batch_norm=False)
+        D = dinv.models.PatchGANDiscriminator(n_layers=2, batch_norm=False).to(device)
 
     optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=lr_g, weight_decay=1e-8),

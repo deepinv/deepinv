@@ -71,8 +71,14 @@ def choose_sure(noise_type):
     if noise_type == "PoissonGaussian":
         loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain)
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    elif noise_type == "PoissonGaussianUnknown":
+        loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain, unsure=True)
+        noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
         loss = dinv.loss.SureGaussianLoss(sigma=sigma)
+        noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "GaussianUnknown":
+        loss = dinv.loss.SureGaussianLoss(sigma=sigma, unsure=True)
         noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)

@@ -199,7 +199,7 @@ class Trainer:
     no_learning_method: str = "A_adjoint"
     loop_physics_generator: bool = False
 
-    def setup_train(self):
+    def setup_train(self, train=True):
         r"""
         Set up the training process.
 
@@ -288,7 +288,7 @@ class Trainer:
             ]
 
         # gradient clipping
-        if self.check_grad:
+        if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
         self.save_path = (
@@ -296,7 +296,7 @@ class Trainer:
         )
 
         # count the overall training parameters
-        if self.verbose:
+        if self.verbose and train:
             params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             print(f"The model has {params} trainable parameters")
 
@@ -310,7 +310,8 @@ class Trainer:
         ):
             self.physics_generator = [self.physics_generator]
 
-        self.loss_history = []
+        if train:
+            self.loss_history = []
         self.save_folder_im = None
 
     def load_model(self):
@@ -869,7 +870,7 @@ class Trainer:
         :returns: The trained model.
         """
         self.compare_no_learning = compare_no_learning
-        self.setup_train()
+        self.setup_train(train=False)
 
         self.save_folder_im = save_path
         aux = self.wandb_vis
