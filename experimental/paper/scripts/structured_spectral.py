@@ -31,7 +31,7 @@ recon = config.general.recon
 save = config.general.save
 
 # model
-img_size = config.model.img_size
+img_size = config.image.img_size
 n_layers = config.model.n_layers
 diagonal_mode = config.model.diagonal_mode
 transform = config.model.transform
@@ -80,11 +80,20 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device
 
 
-# Set up the variable to fetch dataset and operators.
-url = get_image_url("SheppLogan.png")
-x = load_url_image(
+# Set up the image to be reconstructed.
+img_size = config.image.img_size
+if config.image.mode == "shepp-logan":
+    url = get_image_url("SheppLogan.png")
+    x = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
-)
+    )
+    print(x.shape)
+elif config.image.mode == "random":
+    # random phase signal
+    x = torch.rand((1, 1, img_size, img_size), device=device)
+else:
+    raise ValueError("Invalid image mode.")
+
 
 # generate phase signal
 # The phase is computed as 2*pi*x - pi, where x is the original image.
