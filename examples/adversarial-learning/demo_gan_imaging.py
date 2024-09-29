@@ -290,8 +290,8 @@ G = trainer.train()
 
 G = dinv.models.CSGMGenerator(
     dinv.models.DCGANGenerator(output_size=128, nz=100, ngf=32), inf_tol=1e-2
-)
-D = dinv.models.DCGANDiscriminator(ndf=32)
+).to(device)
+D = dinv.models.DCGANDiscriminator(ndf=32).to(device)
 _, _, optimizer, scheduler = get_models(
     model=G, D=D, lr_g=2e-4, lr_d=2e-4
 )  # learning rates from original paper
