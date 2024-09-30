@@ -1,0 +1,6 @@
+{
+    "TRAIN_DATASET_PATH": "datasets/train",
+    "VAL_DATASET_PATH": "datasets/val",
+    "WANDB_LOGS_PATH": "wandb/",
+    "PRETRAINED_PATH": "ckpts/"
+}
