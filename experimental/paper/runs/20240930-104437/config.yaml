@@ -1,5 +1,5 @@
 general:
-  name: "structured_randimg_fdf_08noise"
+  name: "structured_randimg_fdf_02noise"
   recon: "spec"
   save: True
 
@@ -14,7 +14,7 @@ model:
 image:
   img_size: 64
   mode: "mix"
-  noise_ratio: 0.8
+  noise_ratio: 0.2
 
 recon:
   series: "arange"

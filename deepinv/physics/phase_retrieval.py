@@ -297,7 +297,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             transform_func = partial(dct2, device=self.device)
             transform_func_inv = partial(idct2, device=self.device)
         else:
-            raise ValueError(f"Unimplemented transform {transform}")
+            raise ValueError(f"Unimplemented transform: {transform}")
         
         def A(x):
             assert x.shape[1:] == self.img_shape, f"x doesn't have the correct shape {x.shape[1:]} != {self.img_shape}"

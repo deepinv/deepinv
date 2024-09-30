@@ -15,6 +15,7 @@ import yaml
 
 import deepinv as dinv
 from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     cosine_similarity,
     spectral_methods,
@@ -91,9 +92,17 @@ if config.image.mode == "shepp-logan":
 elif config.image.mode == "random":
     # random phase signal
     x = torch.rand((1, 1, img_size, img_size), device=device)
+elif config.image.mode == "mix":
+    url = get_image_url("SheppLogan.png")
+    x = load_url_image(
+    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+    )
+    x = x * (1-config.image.noise_ratio) + torch.rand_like(x) * config.image.noise_ratio
 else:
     raise ValueError("Invalid image mode.")
 
+# visualize the image
+plot(x)
 
 # generate phase signal
 # The phase is computed as 2*pi*x - pi, where x is the original image.
