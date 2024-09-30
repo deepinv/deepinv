@@ -50,6 +50,7 @@ class OptimIterator(nn.Module):
         self.g_step = gStep(g_first=self.g_first)
         self.requires_grad_g = False
         self.requires_prox_g = False
+        self.sampling = False
 
     def relaxation_step(self, u, v, beta):
         r"""
@@ -85,6 +86,8 @@ class OptimIterator(nn.Module):
             z = self.g_step(x_prev, cur_prior, cur_params)
             x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
         x = self.relaxation_step(x, x_prev, cur_params["beta"])
+        if self.sampling:
+            x = x + torch.sqrt(2 * cur_params["stepsize"]) * torch.randn_like(x)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost

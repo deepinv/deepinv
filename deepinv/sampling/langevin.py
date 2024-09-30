@@ -23,9 +23,9 @@ class MonteCarlo(nn.Module):
                 super().__init__()
                 self.iterator_params = iterator_params
 
-            def forward(self, x, y, physics, likelihood, prior):
+            def forward(self, x, y, physics, data_fidelity, prior):
                 # run one sampling kernel iteration
-                new_x = f(x, y, physics, likelihood, prior, self.iterator_params)
+                new_x = f(x, y, physics, data_fidelity, prior, self.iterator_params)
                 return new_x
 
         class MySampler(MonteCarlo):
@@ -47,7 +47,7 @@ class MonteCarlo(nn.Module):
     This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
     Monte Carlo samples.
 
-    :param deepinv.optim.ScorePrior prior: negative log-prior based on a trained or model-based denoiser.
+    :param deepinv.optim.Prior prior: Negative log of an image prior distribution.
     :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
     :param int max_iter: number of Monte Carlo iterations.
@@ -67,8 +67,8 @@ class MonteCarlo(nn.Module):
 
     def __init__(
         self,
-        iterator: torch.nn.Module,
-        prior: deepinv.optim.ScorePrior,
+        iterator: deepinv.optim.OptimIterator,
+        prior: deepinv.optim.Prior,
         data_fidelity: deepinv.optim.DataFidelity,
         max_iter=1e3,
         burnin_ratio=0.2,
@@ -84,7 +84,7 @@ class MonteCarlo(nn.Module):
 
         self.iterator = iterator
         self.prior = prior
-        self.likelihood = data_fidelity
+        self.data_fidelity = data_fidelity
         self.C_set = clip
         self.thinning = thinning
         self.max_iter = int(max_iter)
@@ -131,7 +131,7 @@ class MonteCarlo(nn.Module):
             self.var_convergence = False
             for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
                 x = self.iterator(
-                    x, y, physics, likelihood=self.likelihood, prior=self.prior
+                    x, y, physics, data_fidelity=self.data_fidelity, prior=self.prior
                 )
 
                 if self.C_set:
@@ -227,9 +227,9 @@ class ULAIterator(nn.Module):
         self.noise_std = np.sqrt(2 * step_size)
         self.sigma = sigma
 
-    def forward(self, x, y, physics, likelihood, prior):
+    def forward(self, x, y, physics, data_fidelity, prior):
         noise = torch.randn_like(x) * self.noise_std
-        lhood = -likelihood.grad(x, y, physics)
+        lhood = -data_fidelity.grad(x, y, physics)
         lprior = -prior.grad(x, self.sigma) * self.alpha
         return x + self.step_size * (lhood + lprior) + noise
 
@@ -322,8 +322,8 @@ class SKRockIterator(nn.Module):
         self.noise_std = np.sqrt(2 * step_size)
         self.sigma = sigma
 
-    def forward(self, x, y, physics, likelihood, prior):
-        posterior = lambda u: likelihood.grad(u, y, physics) + self.alpha * prior.grad(
+    def forward(self, x, y, physics, data_fidelity, prior):
+        posterior = lambda u: data_fidelity.grad(u, y, physics) + self.alpha * prior.grad(
             u, self.sigma
         )
 
@@ -459,7 +459,7 @@ class SKRock(MonteCarlo):
 #
 #     y = physics(x)
 #
-#     likelihood = L2(sigma=sigma)
+#     data_fidelity = L2(sigma=sigma)
 #
 #     # model_spec = {'name': 'median_filter', 'args': {'kernel_size': 3}}
 #     model_spec = {
@@ -478,7 +478,7 @@ class SKRock(MonteCarlo):
 #     sigma_den = 2 / 255
 #     f = ULA(
 #         prior,
-#         likelihood,
+#         data_fidelity,
 #         max_iter=5000,
 #         sigma=sigma_den,
 #         burnin_ratio=0.3,
@@ -488,7 +488,7 @@ class SKRock(MonteCarlo):
 #         clip=(-1, 2),
 #         save_chain=True,
 #     )
-#     # f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,
+#     # f = SKRock(prior, data_fidelity, max_iter=1000, burnin_ratio=.3, verbose=True,
 #     #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))
 #
 #     xmean, xvar = f(y, physics)
