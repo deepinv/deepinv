@@ -196,3 +196,36 @@ class NegEntropy(Bregman):
         :return: (torch.tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
         """
         return torch.exp(x - 1)
+    
+
+class ICNN(Bregman):
+    r"""
+    Module for the using a deep ICNN as Bregman potential.
+    """
+
+    def __init__(self, forw_model, conj_model = None):
+        super().__init__()
+        self.forw_model = forw_model
+        self.conj_model = conj_model
+
+    def fn(self, x):
+        r"""
+        Computes the Bregman potential.
+
+        :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
+        :return: (torch.tensor) potential :math:`\phi(x)`.
+        """
+        return self.forw_model(x)
+
+    def conjugate(self, x):
+        r"""
+        Computes the convex conjugate potential.
+
+        :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
+        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        """
+        if self.conj_model is not None:
+            return self.conj_model(x)
+        else:
+            super().conjugate(x)
+        return

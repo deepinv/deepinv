@@ -43,7 +43,7 @@ class Potential(nn.Module):
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
         :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
         """
-        grad = lambda z: self(z, *args, **kwargs) - torch.dot(z, x)
+        grad = lambda z: self(z, *args, **kwargs) - torch.sum(x.reshape(x.shape[0],-1)*z.reshape(z.shape[0],-1), dim=-1)
         return gradient_descent(grad, x)
 
     def grad(self, x, *args, **kwargs):
@@ -56,9 +56,8 @@ class Potential(nn.Module):
         """
         with torch.enable_grad():
             x = x.requires_grad_()
-            grad = torch.autograd.grad(
-                self.forward(x, *args, **kwargs), x, create_graph=True, only_inputs=True
-            )[0]
+            h = self.forward(x, *args, **kwargs)
+            grad = torch.autograd.grad(h, x, torch.ones_like(h), create_graph=True, only_inputs=True)[0]
         return grad
 
     def grad_conj(self, x, *args, **kwargs):
@@ -72,9 +71,11 @@ class Potential(nn.Module):
         """
         with torch.enable_grad():
             x = x.requires_grad_()
+            h = self.conjugate(x, *args, **kwargs)
             grad = torch.autograd.grad(
-                self.conjugate(x, *args, **kwargs),
+                h,
                 x,
+                torch.ones_like(h),
                 create_graph=True,
                 only_inputs=True,
             )[0]
