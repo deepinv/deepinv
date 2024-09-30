@@ -519,7 +519,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
                     reg_value = (cur_params["lambda"] * prior_value).sum()
                 else:
                     reg_value = (
-                        cur_params["lambda"].flatten() * prior_value.flatten()
+                        cur_params["lambda"].flatten().to(prior_value.device) * prior_value.flatten()
                     ).sum()
             return data_fidelity(x, y, physics) + reg_value
 
