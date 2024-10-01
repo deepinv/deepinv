@@ -69,6 +69,7 @@ Fixed
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
 - Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`)
+- Fixed the generate_dataset with sigma_generator and batch_size != 1. (:gh:`315` by apolychronou) 
 Changed
 ^^^^^^^
 - Changed to Python 3.9+ (:gh:`280` by `Julian Tachella`_)
