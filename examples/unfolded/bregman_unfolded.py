@@ -27,12 +27,13 @@ from deepinv.loss.loss import Loss
 # ----------------------------------------------------------------------------------------
 #
 
+
 class DeepBregman(Bregman):
     r"""
     Module for the using a deep NN as Bregman potential.
     """
 
-    def __init__(self, forw_model, conj_model = None):
+    def __init__(self, forw_model, conj_model=None):
         super().__init__()
         self.forw_model = forw_model
         self.conj_model = conj_model
@@ -65,6 +66,7 @@ class DeepBregman(Bregman):
 # ----------------------------------------------------------------------------------------
 #
 
+
 class DualMDIteration(OptimIterator):
     def __init__(self, **kwargs):
         super(DualMDIteration, self).__init__(**kwargs)
@@ -80,14 +82,16 @@ class DualMDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        
+
         y = y_prev - grad
         return {"est": (y,)}
-    
+
+
 # %%
 # Define Mirror Loss
 # ----------------------------------------------------------------------------------------
 #
+
 
 class MirrorLoss(Loss):
     def __init__(self, metric=torch.nn.MSELoss()):
@@ -98,8 +102,6 @@ class MirrorLoss(Loss):
     def forward(self, x, x_net, y, physics, model, *args, **kwargs):
         bregman_potential = model.bregman_potential
         return self.metric(bregman_potential.grad_conj(bregman_potential.grad(x)), x)
-
-    
 
 
 # %%
@@ -155,8 +157,8 @@ physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=dinv.physics.blur.gaussian_blur(),
     device=device,
-    #noise_model=dinv.physics.PoissonNoise(gain=noise_level_img, clip_positive = True),
-    noise_model=dinv.physics.GaussianNoise(sigma = noise_level_img),
+    # noise_model=dinv.physics.PoissonNoise(gain=noise_level_img, clip_positive = True),
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
 my_dataset_name = "demo_unfolded_sr"
@@ -191,8 +193,8 @@ data_fidelity = L2()
 # Set up the denoising prior. Note that we use a Gaussian noise denoiser, even if the observation noise is Poisson.
 prior = dinv.optim.WaveletPrior(wv="db8", level=3, device=device)
 
-forw_bregman = tiny_ICNN(in_channels=3, dim_hidden=64, device = device)
-back_bregman = tiny_ICNN(in_channels=3, dim_hidden=64, device = device)
+forw_bregman = tiny_ICNN(in_channels=3, dim_hidden=64, device=device)
+back_bregman = tiny_ICNN(in_channels=3, dim_hidden=64, device=device)
 
 # Set up the optimization parameters
 max_iter = 5  # number of iterations
@@ -214,13 +216,13 @@ verbose = True
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
-    iteration = MDIteration(F_fn=None, has_cost=False),
+    iteration=MDIteration(F_fn=None, has_cost=False),
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    bregman_potential=DeepBregman(forw_model = forw_bregman, conj_model = back_bregman)
+    bregman_potential=DeepBregman(forw_model=forw_bregman, conj_model=back_bregman),
 )
 
 # training parameters

@@ -13,12 +13,13 @@ from deepinv.optim import OptimIterator
 from deepinv.optim.optim_iterators import MDIteration
 from deepinv.optim.optim_iterators.gradient_descent import gStepGD, fStepGD
 
+
 class DeepBregman(Bregman):
     r"""
     Module for the using a deep NN as Bregman potential.
     """
 
-    def __init__(self, forw_model, conj_model = None):
+    def __init__(self, forw_model, conj_model=None):
         super().__init__()
         self.forw_model = forw_model
         self.conj_model = conj_model
@@ -53,17 +54,19 @@ def get_unrolled_architecture(max_iter, device):
     # Set up the prior
     prior = dinv.optim.WaveletPrior(wv="db8", level=3, device=device)
 
-     # Unrolled optimization algorithm parameters
+    # Unrolled optimization algorithm parameters
     max_iter = 5  # number of unfolded layers
     stepsize = [1] * max_iter  # stepsize of the algorithm
     lamb = [1] * max_iter
 
-    forw_bregman = ICNN(in_channels=3, dim_hidden=256, device = device)
-    back_bregman = ICNN(in_channels=3, dim_hidden=256, device = device)
+    forw_bregman = ICNN(in_channels=3, dim_hidden=256, device=device)
+    back_bregman = ICNN(in_channels=3, dim_hidden=256, device=device)
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "lambda": lamb,
-        "bregman_potential": DeepBregman(forw_model = forw_bregman, conj_model = back_bregman),
+        "bregman_potential": DeepBregman(
+            forw_model=forw_bregman, conj_model=back_bregman
+        ),
     }
     trainable_params = [
         "lambda",
@@ -72,13 +75,12 @@ def get_unrolled_architecture(max_iter, device):
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
-        iteration = MDIteration(F_fn=None, has_cost=False),
+        iteration=MDIteration(F_fn=None, has_cost=False),
         params_algo=params_algo.copy(),
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
     )
-
 
     return model.to(device)

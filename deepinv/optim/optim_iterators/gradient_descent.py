@@ -81,7 +81,9 @@ class MDIteration(OptimIterator):
         self.f_step = fStepGD(**kwargs)
         self.requires_grad_g = True
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, bregman_potential):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, bregman_potential
+    ):
         r"""
         Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
         The bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.

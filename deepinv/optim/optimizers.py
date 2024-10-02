@@ -245,7 +245,7 @@ class BaseOptim(nn.Module):
             update_params_fn=self.update_params_fn,
             update_data_fidelity_fn=self.update_data_fidelity_fn,
             update_prior_fn=self.update_prior_fn,
-            get_bregman_potential =self.get_bregman_potential,
+            get_bregman_potential=self.get_bregman_potential,
             check_iteration_fn=self.check_iteration_fn,
             check_conv_fn=self.check_conv_fn,
             init_metrics_fn=self.init_metrics_fn,
@@ -299,7 +299,7 @@ class BaseOptim(nn.Module):
             else self.data_fidelity[0]
         )
         return cur_data_fidelity
-    
+
     def get_bregman_potential(self):
         r"""
         Selects the bregman_potential.
@@ -530,7 +530,8 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
                     reg_value = (cur_params["lambda"] * prior_value).sum()
                 else:
                     reg_value = (
-                        cur_params["lambda"].flatten().to(prior_value.device) * prior_value.flatten()
+                        cur_params["lambda"].flatten().to(prior_value.device)
+                        * prior_value.flatten()
                     ).sum()
             return data_fidelity(x, y, physics) + reg_value
 

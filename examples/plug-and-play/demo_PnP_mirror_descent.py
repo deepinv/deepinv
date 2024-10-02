@@ -70,7 +70,7 @@ stepsize = 1.0  # stepsize of the algorithm
 sigma_denoiser = 0.05  # noise level parameter of the Gaussian denoiser
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary. In particular, this is here that we define the bregman potential used in the mirror descent algorithm.
     "stepsize": stepsize,
-    "g_param": sigma_denoiser
+    "g_param": sigma_denoiser,
 }
 
 # Logging parameters

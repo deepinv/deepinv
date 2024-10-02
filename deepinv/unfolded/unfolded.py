@@ -85,7 +85,9 @@ class BaseUnfold(BaseOptim):
         self.params_algo = self.init_params_algo.copy()
         # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
         self.prior = nn.ModuleList(self.prior) if self.prior else None
-        self.data_fidelity = nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+        self.data_fidelity = (
+            nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+        )
 
 
 def unfolded_builder(

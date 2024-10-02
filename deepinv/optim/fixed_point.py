@@ -280,7 +280,9 @@ class FixedPoint(nn.Module):
         cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
         bregman_potential = self.get_bregman_potential()
         X_prev = X
-        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args, bregman_potential)
+        X = self.iterator(
+            X_prev, cur_data_fidelity, cur_prior, cur_params, *args, bregman_potential
+        )
         if self.anderson_acceleration:
             X = self.anderson_acceleration_step(
                 it,

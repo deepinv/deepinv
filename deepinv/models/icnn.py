@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 
+
 class tiny_ICNN(nn.Module):
     r"""
     Small Input Convex Neural Network.

@@ -5,7 +5,7 @@ import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 import torchvision
 import deepinv as dinv
-from deepinv.utils import plot #, rescale_img
+from deepinv.utils import plot  # , rescale_img
 from argparse import ArgumentParser
 import wandb
 import json
@@ -17,16 +17,16 @@ from utils.utils import get_model, rescale_img, get_wandb_setup
 
 torch.backends.cudnn.benchmark = True
 
-with open('config/config.json') as json_file:
+with open("config/config.json") as json_file:
     config = json.load(json_file)
 
-TRAIN_DATASET_PATH = config['TRAIN_DATASET_PATH']
-VAL_DATASET_PATH = config['VAL_DATASET_PATH']
-WANDB_LOGS_PATH = config['WANDB_LOGS_PATH']
-PRETRAINED_PATH = config['PRETRAINED_PATH']
+TRAIN_DATASET_PATH = config["TRAIN_DATASET_PATH"]
+VAL_DATASET_PATH = config["VAL_DATASET_PATH"]
+WANDB_LOGS_PATH = config["WANDB_LOGS_PATH"]
+PRETRAINED_PATH = config["PRETRAINED_PATH"]
 OUT_DIR = Path(".")
 CKPT_DIR = OUT_DIR / "ckpts"  # path to store the checkpoints
-WANDB_PROJ_NAME = 'shared_repo'  # Name of the wandb project
+WANDB_PROJ_NAME = "shared_repo"  # Name of the wandb project
 
 
 class MyTrainer(dinv.training.Trainer):
@@ -147,9 +147,9 @@ class MyTrainer(dinv.training.Trainer):
                 wandb.log(log_dict_post_epoch)
 
 
-
-
-def load_data(train_patch_size, train_batch_size, num_workers, device='cpu', train=True):
+def load_data(
+    train_patch_size, train_batch_size, num_workers, device="cpu", train=True
+):
     """
     Load the training and validation datasets and create the corresponding dataloaders.
 
@@ -161,28 +161,45 @@ def load_data(train_patch_size, train_batch_size, num_workers, device='cpu', tra
     """
     pin_memory = True if torch.cuda.is_available() else False
 
-    denoising_dataset, noise_generator, physics_noise = get_drunet_dataset(train_patch_size, device=device, train=train,
-                                                                           train_pth=TRAIN_DATASET_PATH,
-                                                                           val_pth=VAL_DATASET_PATH,
-                                                                           sigma_min=0.2,
-                                                                           sigma_max=0.2)
+    denoising_dataset, noise_generator, physics_noise = get_drunet_dataset(
+        train_patch_size,
+        device=device,
+        train=train,
+        train_pth=TRAIN_DATASET_PATH,
+        val_pth=VAL_DATASET_PATH,
+        sigma_min=0.2,
+        sigma_max=0.2,
+    )
 
     shuffle = True if train else False
     if dist.is_initialized():
         # batch_size= train_batch_size * dist.get_world_size()
         train_batch_size = train_batch_size // dist.get_world_size()
-        sampler = DistributedSampler(denoising_dataset, num_replicas=dist.get_world_size(), rank=dist.get_rank(),
-                                     shuffle=shuffle)
-        denoising_dataloader = DataLoader(denoising_dataset, batch_size=train_batch_size, shuffle=False,
-                                      num_workers=num_workers, pin_memory=pin_memory, sampler=sampler)
+        sampler = DistributedSampler(
+            denoising_dataset,
+            num_replicas=dist.get_world_size(),
+            rank=dist.get_rank(),
+            shuffle=shuffle,
+        )
+        denoising_dataloader = DataLoader(
+            denoising_dataset,
+            batch_size=train_batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            sampler=sampler,
+        )
 
     else:
         batch_size = train_batch_size
         denoising_dataloader = DataLoader(
-            denoising_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle, pin_memory=pin_memory,
-            drop_last=True
+            denoising_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            drop_last=True,
         )
-
 
     dataloaders = [denoising_dataloader]
     physics = [physics_noise]
@@ -191,17 +208,19 @@ def load_data(train_patch_size, train_batch_size, num_workers, device='cpu', tra
     return dataloaders, physics, generators
 
 
-def train_denoiser(grayscale=False,
-                   gpu_num=1,
-                   model_name='drunet',
-                   ckpt_resume=None,
-                   wandb_resume_id=None,
-                   seed=0,
-                   wandb_vis=True,
-                   epochs=None,
-                   train_batch_size=None,
-                   train_patch_size=None,
-                   lr=1e-4):
+def train_denoiser(
+    grayscale=False,
+    gpu_num=1,
+    model_name="drunet",
+    ckpt_resume=None,
+    wandb_resume_id=None,
+    seed=0,
+    wandb_vis=True,
+    epochs=None,
+    train_batch_size=None,
+    train_patch_size=None,
+    lr=1e-4,
+):
 
     device, global_rank = setup_distributed(seed)
 
@@ -213,13 +232,17 @@ def train_denoiser(grayscale=False,
         train_patch_size = 128
 
     if train_batch_size is None:
-        base_bs = 32 if 'unext' in model_name else 64
-        train_batch_size = base_bs*gpu_num  # TODO: check redundancy with multigpu distributed
+        base_bs = 32 if "unext" in model_name else 64
+        train_batch_size = (
+            base_bs * gpu_num
+        )  # TODO: check redundancy with multigpu distributed
 
-    train_dataloader, physics, physics_generator = load_data(train_patch_size, train_batch_size, num_workers,
-                                                             device=device,
-                                                             train=True)
-    val_dataloader, _, _ = load_data(train_patch_size, train_batch_size, num_workers, device=device, train=False)
+    train_dataloader, physics, physics_generator = load_data(
+        train_patch_size, train_batch_size, num_workers, device=device, train=True
+    )
+    val_dataloader, _, _ = load_data(
+        train_patch_size, train_batch_size, num_workers, device=device, train=False
+    )
 
     model = get_model()
 
@@ -236,12 +259,21 @@ def train_denoiser(grayscale=False,
     # choose training losses
     losses = dinv.loss.SupLoss(metric=dinv.metric.l1())
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.05)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, gamma=0.1, step_size=int(9 * epochs / 10))
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.05
+    )
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, gamma=0.1, step_size=int(9 * epochs / 10)
+    )
 
-    wandb_setup = get_wandb_setup(WANDB_LOGS_PATH, WANDB_PROJ_NAME, mode='offline', wandb_resume_id=wandb_resume_id)
+    wandb_setup = get_wandb_setup(
+        WANDB_LOGS_PATH,
+        WANDB_PROJ_NAME,
+        mode="offline",
+        wandb_resume_id=wandb_resume_id,
+    )
 
-    print('Start training on ', device)
+    print("Start training on ", device)
     if global_rank == 0:
         show_progress_bar = True
         verbose = True
@@ -251,7 +283,11 @@ def train_denoiser(grayscale=False,
         verbose = False
         plot_images = False
 
-    print('The model has ', sum(p.numel() for p in model.parameters() if p.requires_grad), 'parameters')
+    print(
+        "The model has ",
+        sum(p.numel() for p in model.parameters() if p.requires_grad),
+        "parameters",
+    )
 
     trainer = MyTrainer(
         model=model,
@@ -275,36 +311,43 @@ def train_denoiser(grayscale=False,
         check_grad=True,
         ckpt_pretrained=ckpt_resume,
         freq_plot=1,
-        show_progress_bar=show_progress_bar
+        show_progress_bar=show_progress_bar,
     )
 
     trainer.train()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     parser = ArgumentParser()
-    parser.add_argument('--grayscale', type=int, default=0)
-    parser.add_argument('--gpu_num', type=int, default=1)
-    parser.add_argument('--ckpt_resume', type=str, default='')
-    parser.add_argument('--model_name', type=str, default='drunet')
-    parser.add_argument('--wandb_resume_id', type=str, default='')
-    parser.add_argument('--lr_scheduler', type=str, default='multistep')
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--epochs', type=int, default=20)
-    parser.add_argument('--train_batch_size', type=int, default=0)
-    parser.add_argument('--train_patch_size', type=int, default=0)
-    parser.add_argument('--lr', type=float, default=2e-4)
+    parser.add_argument("--grayscale", type=int, default=0)
+    parser.add_argument("--gpu_num", type=int, default=1)
+    parser.add_argument("--ckpt_resume", type=str, default="")
+    parser.add_argument("--model_name", type=str, default="drunet")
+    parser.add_argument("--wandb_resume_id", type=str, default="")
+    parser.add_argument("--lr_scheduler", type=str, default="multistep")
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--train_batch_size", type=int, default=0)
+    parser.add_argument("--train_patch_size", type=int, default=0)
+    parser.add_argument("--lr", type=float, default=2e-4)
 
     args = parser.parse_args()
 
     grayscale = False if args.grayscale == 0 else True
-    ckpt_resume = None if args.ckpt_resume == '' else args.ckpt_resume
-    wanddb_resume_id = None if args.wandb_resume_id == '' else args.wandb_resume_id
-    lr_scheduler = None if args.lr_scheduler == '' else args.lr_scheduler
+    ckpt_resume = None if args.ckpt_resume == "" else args.ckpt_resume
+    wanddb_resume_id = None if args.wandb_resume_id == "" else args.wandb_resume_id
+    lr_scheduler = None if args.lr_scheduler == "" else args.lr_scheduler
     epochs = None if args.epochs == 0 else args.epochs
     train_batch_size = None if args.train_batch_size == 0 else args.train_batch_size
     train_patch_size = None if args.train_patch_size == 0 else args.train_patch_size
 
-    train_denoiser(model_name=args.model_name, epochs=epochs, train_batch_size=train_batch_size,
-                   train_patch_size=train_patch_size, seed=args.seed, gpu_num=args.gpu_num,lr=args.lr)
+    train_denoiser(
+        model_name=args.model_name,
+        epochs=epochs,
+        train_batch_size=train_batch_size,
+        train_patch_size=train_patch_size,
+        seed=args.seed,
+        gpu_num=args.gpu_num,
+        lr=args.lr,
+    )

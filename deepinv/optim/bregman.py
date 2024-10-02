@@ -196,14 +196,14 @@ class NegEntropy(Bregman):
         :return: (torch.tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
         """
         return torch.exp(x - 1)
-    
+
 
 class ICNN(Bregman):
     r"""
     Module for the using a deep ICNN as Bregman potential.
     """
 
-    def __init__(self, forw_model, conj_model = None):
+    def __init__(self, forw_model, conj_model=None):
         super().__init__()
         self.forw_model = forw_model
         self.conj_model = conj_model
