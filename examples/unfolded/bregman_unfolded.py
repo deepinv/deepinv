@@ -1,9 +1,8 @@
 r"""
-Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.
+Learned mirror map of Mirror Descent for Poisson noise inverse problems.
 ====================================================================================================
 
-This is a simple example to show how to use a mirror descent Plug-and-Play algorithm for solving an inverse problem with Poisson noise.
-The prior term is a RED denoising prior with DnCNN denoiser.
+This is a simple example to show how to train a mirror descent map for solving an inverse problem with Poisson noise.
 """
 
 import deepinv as dinv
@@ -97,8 +96,8 @@ class MirrorLoss(Loss):
         self.metric = metric
 
     def forward(self, x, x_net, y, physics, model, *args, **kwargs):
-        bregman_potential = model.params_algo.bregman_potential[0]
-        return self.metric(bregman_potential.grad_conj(bregman_potential.grad(x_net)), x_net)
+        bregman_potential = model.bregman_potential
+        return self.metric(bregman_potential.grad_conj(bregman_potential.grad(x)), x)
 
     
 
@@ -204,7 +203,6 @@ lamb = [1] * max_iter
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "lambda": lamb,
-    "bregman_potential": DeepBregman(forw_model = forw_bregman, conj_model = back_bregman),
 }
 trainable_params = [
     "lambda",
@@ -222,6 +220,7 @@ model = unfolded_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    bregman_potential=DeepBregman(forw_model = forw_bregman, conj_model = back_bregman)
 )
 
 # training parameters
