@@ -28,6 +28,7 @@ def generate_diagonal(tensor_shape, mode, dtype, device, std=1.0):
     Generate a random tensor as the diagonal matrix.
     """
 
+    #! all distributions should be normalized to have unit variance
     if mode == "uniform_phase":
         # Generate REAL-VALUED random numbers in the interval [0, 1)
         diagonal = torch.rand(tensor_shape, device=device)
@@ -187,6 +188,9 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         )
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
+    
+    def get_A_var(self):
+        return self.B._A.var()
 
 
 class StructuredRandomPhaseRetrieval(PhaseRetrieval):
@@ -340,3 +344,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     def B_dagger(self, y):
         return self.B.A_adjoint(y)
+    
+    def get_A_var(self):
+        return self.diagonals[0].var()

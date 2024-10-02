@@ -130,9 +130,13 @@ def spectral_methods(
 
     if log == True:
         metrics = []
+    
+    #! estimate the norm of x using y
+    #! for the i.i.d. case, we have norm(x) = sqrt(sum(y)/var(A))
+    #! for the structured case, when the variance of diagonals are 1, we have norm(x) = sqrt(sum(y))
+    norm_x = torch.sqrt(y.sum()/physics.get_A_var())
 
     x = x.to(torch.cfloat)
-    x = x / torch.linalg.norm(x)
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
@@ -150,7 +154,8 @@ def spectral_methods(
                 print(f"Power iteration early stopping at iteration {i}.")
                 break
         x = x_new
-    x = x * torch.sqrt(y.sum())
+    #! change the norm of x so that it matches the norm of true x
+    x = x * norm_x
     if log:
         return x, metrics
     else:
