@@ -100,9 +100,10 @@ y = physics(x)
 x_lin = physics.A_adjoint(y)
 
 # run the model on the problem.
-x_model, metrics = model(
-    y, physics, x_gt=x, compute_metrics=True
-)  # reconstruction with PnP algorithm
+with torch.no_grad():
+    x_model, metrics = model(
+        y, physics, x_gt=x, compute_metrics=True
+    )  # reconstruction with PnP algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")

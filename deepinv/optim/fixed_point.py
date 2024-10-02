@@ -71,6 +71,7 @@ class FixedPoint(nn.Module):
         update_params_fn=None,
         update_data_fidelity_fn=None,
         update_prior_fn=None,
+        get_bregman_potential=None,
         init_iterate_fn=None,
         init_metrics_fn=None,
         update_metrics_fn=None,
@@ -91,6 +92,7 @@ class FixedPoint(nn.Module):
         self.early_stop = early_stop
         self.update_params_fn = update_params_fn
         self.update_data_fidelity_fn = update_data_fidelity_fn
+        self.get_bregman_potential = get_bregman_potential
         self.update_prior_fn = update_prior_fn
         self.init_iterate_fn = init_iterate_fn
         self.init_metrics_fn = init_metrics_fn
@@ -276,8 +278,9 @@ class FixedPoint(nn.Module):
             self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None
         )
         cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
+        bregman_potential = self.get_bregman_potential()
         X_prev = X
-        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args, bregman_potential)
         if self.anderson_acceleration:
             X = self.anderson_acceleration_step(
                 it,

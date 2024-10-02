@@ -146,6 +146,7 @@ class BaseOptim(nn.Module):
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         data_fidelity=None,
         prior=None,
+        bregman_potential=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -230,11 +231,13 @@ class BaseOptim(nn.Module):
         else:
             self.prior = prior
 
-        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the prior to change at each iteration.
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
         if not isinstance(data_fidelity, Iterable):
             self.data_fidelity = [data_fidelity]
         else:
             self.data_fidelity = data_fidelity
+
+        self.bregman_potential = bregman_potential
 
         # Initialize the fixed-point module
         self.fixed_point = FixedPoint(
@@ -242,6 +245,7 @@ class BaseOptim(nn.Module):
             update_params_fn=self.update_params_fn,
             update_data_fidelity_fn=self.update_data_fidelity_fn,
             update_prior_fn=self.update_prior_fn,
+            get_bregman_potential =self.get_bregman_potential,
             check_iteration_fn=self.check_iteration_fn,
             check_conv_fn=self.check_conv_fn,
             init_metrics_fn=self.init_metrics_fn,
@@ -276,7 +280,7 @@ class BaseOptim(nn.Module):
         (if this prior depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the prior of iteration ``it``.
+        :return: the prior of iteration ``it``.
         """
         cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return cur_prior
@@ -287,7 +291,7 @@ class BaseOptim(nn.Module):
         (if this data_fidelity depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the data_fidelity of iteration ``it``.
+        :return: the data_fidelity of iteration ``it``.
         """
         cur_data_fidelity = (
             self.data_fidelity[it]
@@ -295,6 +299,13 @@ class BaseOptim(nn.Module):
             else self.data_fidelity[0]
         )
         return cur_data_fidelity
+    
+    def get_bregman_potential(self):
+        r"""
+        Selects the bregman_potential.
+        :return: a dictionary containing the bregman_potential of iteration ``it``.
+        """
+        return self.bregman_potential
 
     def init_iterate_fn(self, y, physics, F_fn=None):
         r"""
@@ -543,6 +554,7 @@ def optim_builder(
     params_algo={"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05},
     data_fidelity=None,
     prior=None,
+    bregman_potential=None,
     F_fn=None,
     g_first=False,
     **kwargs,
@@ -579,6 +591,7 @@ def optim_builder(
         has_cost=iterator.has_cost,
         data_fidelity=data_fidelity,
         prior=prior,
+        bregman_potential=bregman_potential,
         params_algo=params_algo,
         max_iter=max_iter,
         **kwargs,

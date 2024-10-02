@@ -61,7 +61,7 @@ class OptimIterator(nn.Module):
         """
         return beta * u + (1 - beta) * v
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args):
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
