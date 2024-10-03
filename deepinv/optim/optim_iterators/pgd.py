@@ -1,4 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
+from deepinv.optim.bregman import BregmanL2
 
 
 class PGDIteration(OptimIterator):
@@ -177,8 +178,9 @@ class PMDIteration(OptimIterator):
 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, bregman_potential=BregmanL2(), **kwargs):
         super(PMDIteration, self).__init__(**kwargs)
+        self.bregman_potential = bregman_potential
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
         if self.g_first:
@@ -199,11 +201,12 @@ class fStepPMD(fStep):
         r"""
          Single Proximal Mirror Descent iteration step on the data-fidelity term :math:`f`.
 
-         :param torch.Tensor x: Current iterate :math:`x_k`.
-         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param torch.Tensor x: Current iterate :math:`x_k`.
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-         :param torch.Tensor y: Input data.
-         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.optim.Bregman Bregman potential used for Bregman optimization algorithms such as Mirror Descent.
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
@@ -233,6 +236,7 @@ class gStepPMD(gStep):
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :param deepinv.optim.Bregman Bregman potential used for Bregman optimization algorithms such as Mirror Descent.
         """
         if not self.g_first:
             return cur_prior.bregman_prox(

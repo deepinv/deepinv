@@ -67,16 +67,33 @@ class BaseDEQ(BaseUnfold):
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics
             )
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
-        cur_data_fidelity = self.update_data_fidelity_fn(self.max_iter - 1)
-        cur_prior = self.update_prior_fn(self.max_iter - 1)
-        cur_params = self.update_params_fn(self.max_iter - 1)
+        cur_data_fidelity = (
+            self.update_data_fidelity_fn(self.max_iter - 1)
+            if self.update_data_fidelity_fn
+            else None
+        )
+        cur_prior = (
+            self.update_prior_fn(self.max_iter - 1) if self.update_prior_fn else None
+        )
+        cur_params = (
+            self.update_params_fn(self.max_iter - 1) if self.update_params_fn else None
+        )
+        bregman_potential = (
+            self.get_bregman_potential() if self.get_bregman_potential else None
+        )
         x = self.fixed_point.iterator(
-            X, cur_data_fidelity, cur_prior, cur_params, y, physics
+            X, cur_data_fidelity, cur_prior, cur_params, y, physics, bregman_potential
         )["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
-            {"est": (x0,)}, cur_data_fidelity, cur_prior, cur_params, y, physics
+            {"est": (x0,)},
+            cur_data_fidelity,
+            cur_prior,
+            cur_params,
+            y,
+            physics,
+            bregman_potential,
         )["est"][0]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation

@@ -1,4 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
+from deepinv.optim.bregman import BregmanL2
 
 
 class GDIteration(OptimIterator):
@@ -75,19 +76,25 @@ class MDIteration(OptimIterator):
    The potential :math:`h` should be specified in the cur_params dictionary.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, bregman_potential=BregmanL2(), **kwargs):
         super(MDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
         self.requires_grad_g = True
+        self.bregman_potential = bregman_potential
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, bregman_potential
+        self,
+        X,
+        cur_data_fidelity,
+        cur_prior,
+        cur_params,
+        y,
+        physics,
     ):
         r"""
-        Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
-        The bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.
-        It must be defined in the cur_params dictionary.
+        Single mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
+        The Bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -95,7 +102,6 @@ class MDIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the `Physics` class defining the current physics.
-        :param deepinv.optim.Bregman bregman_potential: Instance of the `Bregman` class defining the Bregman potential.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev = X["est"][0]
@@ -103,7 +109,7 @@ class MDIteration(OptimIterator):
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        x = bregman_potential.grad_conj(bregman_potential.grad(x_prev) - grad)
+        x = self.bregman_potential.grad_conj(self.bregman_potential.grad(x_prev) - grad)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
