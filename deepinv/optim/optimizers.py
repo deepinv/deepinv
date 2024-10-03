@@ -487,14 +487,15 @@ class BaseOptim(nn.Module):
         :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        X, metrics = self.fixed_point(
-            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
-        )
-        x = self.get_output(X)
-        if compute_metrics:
-            return x, metrics
-        else:
-            return x
+        with torch.no_grad():
+            X, metrics = self.fixed_point(
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+            )
+            x = self.get_output(X)
+            if compute_metrics:
+                return x, metrics
+            else:
+                return x
 
 
 def create_iterator(iteration, prior=None, F_fn=None, g_first=False):

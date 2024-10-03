@@ -113,7 +113,7 @@ def choose_transform(transform_name):
             reason="This test requires libcpab. It should be "
             "installed with `pip install git+https://github.com/Andrewwango/libcpab.git`",
         )
-        return dinv.transform.CPADiffeomorphism()
+        return dinv.transform.CPABDiffeomorphism()
     else:
         raise ValueError("Invalid transform_name provided")
 

@@ -169,7 +169,7 @@ class AdversarialTrainer(Trainer):
                 "Gradient norm for discriminator", ":.2e"
             )
 
-    def compute_loss(self, physics, x, y, train=True):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
 
@@ -177,6 +177,7 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
@@ -202,6 +203,7 @@ class AdversarialTrainer(Trainer):
                     physics=physics,
                     model=self.model,
                     D=self.D,
+                    epoch=epoch,
                 )
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
@@ -244,6 +246,7 @@ class AdversarialTrainer(Trainer):
                         physics=physics,
                         model=self.model,
                         D=self.D,
+                        epoch=epoch,
                     )
                     loss_total_d += loss.mean()
                     if len(self.losses_d) > 1 and self.verbose_individual_losses:

@@ -74,7 +74,7 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     def __init__(
         self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
     ):
-        super().__init__(weight_adv=weight_adv, D=D, **kwargs)
+        super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "SupAdversarialDiscriminator"
 
     def forward(
