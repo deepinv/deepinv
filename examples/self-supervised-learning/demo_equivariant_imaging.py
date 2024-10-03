@@ -15,7 +15,7 @@ import torch
 from pathlib import Path
 from torchvision import transforms
 from deepinv.optim.prior import PnP
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils.demo import load_dataset, load_degradation, demo_mri_model
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -97,49 +97,11 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # ---------------------------------------------------------------
 #
 # As a reconstruction network, we use an unrolled network (half-quadratic splitting)
-# with a trainable denoising prior based on the DnCNN architecture.
+# with a trainable denoising prior based on the DnCNN architecture as an example
+# of a model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+# See :meth:`deepinv.utils.demo.demo_mri_model` for details.
 
-# Select the data fidelity term
-data_fidelity = dinv.optim.L2()
-n_channels = 2  # real + imaginary parts
-
-# If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
-# iteration. For fixed trained model prior across iterations, initialize with a single model.
-prior = PnP(
-    denoiser=dinv.models.DnCNN(
-        in_channels=n_channels,
-        out_channels=n_channels,
-        pretrained=None,
-        depth=7,
-    ).to(device)
-)
-
-# Unrolled optimization algorithm parameters
-max_iter = 3  # number of unfolded layers
-lamb = [1.0] * max_iter  # initialization of the regularization parameter
-stepsize = [1.0] * max_iter  # initialization of the step sizes.
-sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "lambda": lamb,
-}
-
-trainable_params = [
-    "lambda",
-    "stepsize",
-    "g_param",
-]  # define which parameters from 'params_algo' are trainable
-
-# Define the unfolded trainable model.
-model = dinv.unfolded.unfolded_builder(
-    "HQS",
-    params_algo=params_algo,
-    trainable_params=trainable_params,
-    data_fidelity=data_fidelity,
-    max_iter=max_iter,
-    prior=prior,
-)
+model = demo_mri_model(device=device)
 
 
 # %%

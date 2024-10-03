@@ -1,6 +1,6 @@
 from deepinv.loss.mc import MCLoss
 from deepinv.loss.ei import EILoss
-from deepinv.loss.moi import MOILoss
+from deepinv.loss.moi import MOILoss, MOEILoss
 from deepinv.loss.sup import SupLoss
 from deepinv.loss.score import ScoreLoss
 from deepinv.loss.tv import TVLoss
@@ -13,5 +13,12 @@ from deepinv.loss.measplit import (
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
 )
-from deepinv.loss.metric import LpNorm, PSNR, SSIM, LPIPS, NIQE
+from deepinv.loss.metric import LpNorm, PSNR, SSIM, LPIPS, NIQE, MSE, NMSE
 from deepinv.loss.loss import Loss
+from deepinv.loss.scheduler import (
+    BaseLossScheduler,
+    RandomLossScheduler,
+    InterleavedLossScheduler,
+    StepLossScheduler,
+    InterleavedEpochLossScheduler,
+)

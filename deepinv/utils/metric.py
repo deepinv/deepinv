@@ -76,22 +76,18 @@ def cal_psnr_complex(a, b):
     :param b: shape [N,2,H,W]
     :return: psnr value
     """
-    a = complex_abs(a.permute(0, 2, 3, 1))
-    b = complex_abs(b.permute(0, 2, 3, 1))
-    return cal_psnr(a, b)
+    return cal_psnr(complex_abs(a), complex_abs(b))
 
 
-def complex_abs(data):
+def complex_abs(data, dim=1, keepdim=True):
     """
     Compute the absolute value of a complex valued input tensor.
-    Args:
-        data (torch.Tensor): A complex valued tensor, where the size of the final dimension
-            should be 2.
-    Returns:
-        torch.Tensor: Absolute value of data
+    :param torch.Tensor data: A complex valued tensor with Re and Im part in dimension given by dim
+    :param int dim: complex dimension
+    :param bool keepdim: keep complex dimension after abs
     """
-    assert data.size(-1) == 2
-    return (data**2).sum(dim=-1).sqrt()
+    assert data.size(dim) == 2
+    return (data**2).sum(dim=dim, keepdim=keepdim).sqrt()
 
 
 def norm_psnr(a, b, complex=False):

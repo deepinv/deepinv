@@ -2,8 +2,13 @@ import math
 import torch
 import torch.nn as nn
 from torch import autograd as autograd
+from torchmetrics.functional import (
+    structural_similarity_index_measure,
+    multiscale_structural_similarity_index_measure,
+)
+
 from deepinv.loss.loss import Loss
-from deepinv.utils import cal_psnr
+from deepinv.utils.metric import cal_psnr, complex_abs, cal_mse
 
 
 try:
@@ -71,36 +76,93 @@ class LPIPS(Loss):
         return (1 - loss) if self.train else loss
 
 
+class MSE(Loss):
+    r"""
+    Mean Squared Error metric.
+
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
+    """
+
+    def __init__(self, complex=False):
+        super().__init__()
+        self.complex = complex
+
+    def forward(self, x_net, x, **kwargs):
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
+        return cal_mse(x_net, x)
+
+
+class NMSE(MSE):
+    r"""
+    Normalised Mean Squared Error metric.
+
+    Normalises MSE by the L2 norm of the ground truth ``x``.
+
+    :param str method: normalisation method. Currently only supports ``l2``.
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
+    """
+
+    def __init__(self, method="l2", complex=False):
+        super().__init__()
+        self.method = method
+        self.complex = complex
+        if self.method not in ("l2",):
+            raise ValueError("method must be l2.")
+
+    def forward(self, x_net, x, **kwargs):
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
+        if self.method == "l2":
+            norm = cal_mse(x, 0)
+        return cal_mse(x_net, x) / norm
+
+
 class SSIM(Loss):
     r"""
-    Structural Similarity Index (SSIM) metric.
+    Structural Similarity Index (SSIM) metric using torchmetrics.
 
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
-    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
+    To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
+
     :param bool train: if ``True``, the metric is used for training. Default: ``False``.
-    :param str device: device to use for the metric computation. Default: 'cpu'.
+    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
+    :param \**torchmetric_kwargs: kwargs for torchmetrics SSIM. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
     """
 
-    def __init__(self, multiscale=False, train=False, device="cpu"):
+    def __init__(
+        self,
+        train=False,
+        multiscale=False,
+        max_pixel=1.0,
+        complex=False,
+        **torchmetric_kwargs,
+    ):
         super().__init__()
-        check_pyiqa()
-        if multiscale:
-            self.metric = pyiqa.create_metric("ms-ssim").to(device)
-        else:
-            self.metric = pyiqa.create_metric("ssim").to(device)
         self.train = train
+        self.multiscale = multiscale
+        self.torchmetric_kwargs = torchmetric_kwargs
+        self.max_pixel = max_pixel
+        self.complex = complex
 
-    def forward(self, x, x_net, **kwargs):
-        r"""
-        Computes the SSIM metric.
+    def forward(self, x_net, x, *args, **kwargs):
+        ssim = (
+            multiscale_structural_similarity_index_measure
+            if self.multiscale
+            else structural_similarity_index_measure
+        )
 
-        :param torch.Tensor x: reference image.
-        :param torch.Tensor x_net: reconstructed image.
-        :return: torch.Tensor size (batch_size,).
-        """
-        loss = self.metric(x, x_net)
-        return (1 - loss) if self.train else loss
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
+        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
+        m = ssim(x_net, x, data_range=max_pixel, **self.torchmetric_kwargs)
+        return (1.0 - m) if self.train else m
 
 
 class PSNR(Loss):
@@ -115,14 +177,18 @@ class PSNR(Loss):
     where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
     normalized image), and :math:`a` and :math:`b` are the estimate and reference images.
 
-    :param float max_pixel: maximum pixel value
+    To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
+
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
     :param bool normalize: if ``True``, the estimate is normalized to have the same norm as the reference.
+    :param bool complex: if ``True``, magnitude is taken of complex data before calculating.
     """
 
-    def __init__(self, max_pixel=1, normalize=False):
+    def __init__(self, max_pixel=1, normalize=False, complex=False):
         super(PSNR, self).__init__()
         self.max_pixel = max_pixel
         self.normalize = normalize
+        self.complex = complex
 
     def forward(self, x_net, x, **kwargs):
         r"""
@@ -132,8 +198,12 @@ class PSNR(Loss):
         :param torch.Tensor x_net: reconstructed image.
         :return: torch.Tensor size (batch_size,).
         """
+        if self.complex:
+            x_net, x = complex_abs(x_net), complex_abs(x)
+
+        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
         return cal_psnr(
-            x_net, x, self.max_pixel, self.normalize, mean_batch=False, to_numpy=False
+            x_net, x, max_pixel, self.normalize, mean_batch=False, to_numpy=False
         )
 
 
