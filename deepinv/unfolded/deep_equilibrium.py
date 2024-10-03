@@ -90,7 +90,7 @@ class BaseDEQ(BaseUnfold):
             cur_params,
             y,
             physics,
-            **kwargs
+            **kwargs,
         )["est"][0]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
@@ -168,7 +168,13 @@ def DEQ_builder(
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first, bregman_potential=bregman_potential)
+    iterator = create_iterator(
+        iteration,
+        prior=prior,
+        F_fn=F_fn,
+        g_first=g_first,
+        bregman_potential=bregman_potential,
+    )
     return BaseDEQ(
         iterator,
         has_cost=iterator.has_cost,

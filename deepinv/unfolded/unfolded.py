@@ -179,7 +179,13 @@ def unfolded_builder(
 
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first, bregman_potential=bregman_potential)
+    iterator = create_iterator(
+        iteration,
+        prior=prior,
+        F_fn=F_fn,
+        g_first=g_first,
+        bregman_potential=bregman_potential,
+    )
     return BaseUnfold(
         iterator,
         max_iter=max_iter,
