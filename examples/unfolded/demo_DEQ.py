@@ -126,13 +126,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Set up the trainable denoising prior. Here the prior model is common for all iterations
+# Set up the trainable denoising prior. Here the prior model is common for all iterations. We use here a pretrained denoiser.
 prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # Unrolled optimization algorithm parameters
 max_iter = 20 if torch.cuda.is_available() else 10
-stepsize = [0.01] * max_iter  # stepsize of the algorithm
-sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
+stepsize = [1.]   # stepsize of the algorithm
+sigma_denoiser = [0.03]   # noise level parameter of the denoiser
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -151,8 +151,8 @@ model = DEQ_builder(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    anderson_acceleration=False,
-    anderson_acceleration_backward=False,
+    anderson_acceleration=True,
+    anderson_acceleration_backward=True,
     history_size_backward=3,
     history_size=3,
     max_iter_backward=20,
@@ -206,7 +206,7 @@ trainer = dinv.Trainer(
     eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
@@ -220,10 +220,19 @@ model = trainer.train()
 
 trainer.test(test_dataloader)
 
-# %%
-# Plotting the trained parameters.
-# ------------------------------------
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
 
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "DEQ_HQS" / operation
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
 )
