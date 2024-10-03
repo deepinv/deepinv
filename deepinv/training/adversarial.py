@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Union, List, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from torch.optim import Optimizer
     from torch.optim.lr_scheduler import LRScheduler
