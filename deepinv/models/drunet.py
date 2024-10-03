@@ -190,7 +190,8 @@ class DRUNet(nn.Module):
                 * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
-        if (x.size(2) % 8 == 0
+        if (
+            x.size(2) % 8 == 0
             and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
