@@ -131,8 +131,8 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(devic
 
 # Unrolled optimization algorithm parameters
 max_iter = 20 if torch.cuda.is_available() else 10
-stepsize = [1.]   # stepsize of the algorithm
-sigma_denoiser = [0.03]   # noise level parameter of the denoiser
+stepsize = [1.0]  # stepsize of the algorithm
+sigma_denoiser = [0.03]  # noise level parameter of the denoiser
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
