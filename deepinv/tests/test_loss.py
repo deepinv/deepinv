@@ -16,7 +16,6 @@ LIST_SURE = [
     "PoissonGaussian",
     "GaussianUnknown",
     "PoissonGaussianUnknown",
-    "Neighbor2Neighbor",
 ]
 
 
@@ -89,9 +88,6 @@ def choose_sure(noise_type):
         noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
-        noise_model = dinv.physics.PoissonNoise(gain)
-    elif noise_type == "Neighbor2Neighbor":
-        loss = dinv.loss.Neighbor2Neighbor()
         noise_model = dinv.physics.PoissonNoise(gain)
     else:
         raise Exception("The SURE loss doesnt exist")
