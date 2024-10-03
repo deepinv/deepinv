@@ -199,7 +199,7 @@ class Trainer:
     no_learning_method: str = "A_adjoint"
     loop_physics_generator: bool = False
 
-    def setup_train(self, train=True):
+    def setup_train(self, train=True, **kwargs):
         r"""
         Set up the training process.
 

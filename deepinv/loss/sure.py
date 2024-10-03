@@ -72,7 +72,17 @@ def mc_div(y1, y, f, physics, tau, precond=lambda x: x):
     return (precond(b) * precond(y2 - y1) / tau).reshape(y.size(0), -1).mean(1)
 
 
-def gradient_step(loss, param, saved_grad, init_flag, step_size, momentum):
+def unsure_gradient_step(loss, param, saved_grad, init_flag, step_size, momentum):
+    r"""
+    Gradient step for estimating the noise level in the UNSURE loss.
+
+    :param torch.Tensor loss: Loss value.
+    :param torch.Tensor param: Parameter to optimize.
+    :param torch.Tensor saved_grad: Saved gradient w.r.t. the parameter.
+    :param bool init_flag: Initialization flag (first gradient step).
+    :param float step_size: Step size.
+    :param float momentum: Momentum.
+    """
     grad = torch.autograd.grad(loss, param, retain_graph=True)[0]
     if init_flag:
         init_flag = False
@@ -174,7 +184,7 @@ class SureGaussianLoss(Loss):
         loss_sure = mse + div - self.sigma2
 
         if self.unsure:  # update the estimate of the noise level
-            self.sigma2, self.grad_sigma, self.init_flag = gradient_step(
+            self.sigma2, self.grad_sigma, self.init_flag = unsure_gradient_step(
                 div.mean(),
                 self.sigma2,
                 self.grad_sigma,
@@ -371,7 +381,7 @@ class SurePGLoss(Loss):
 
         if self.unsure:  # update the estimate of the noise levels
             div = loss_div1.mean()
-            self.sigma2, self.grad_sigma, self.init_flag = gradient_step(
+            self.sigma2, self.grad_sigma, self.init_flag = unsure_gradient_step(
                 div,
                 self.sigma2,
                 self.grad_sigma,
@@ -379,7 +389,7 @@ class SurePGLoss(Loss):
                 self.step_size[0],
                 self.momentum[0],
             )
-            self.gain, self.grad_gain, self.init_flag = gradient_step(
+            self.gain, self.grad_gain, self.init_flag = unsure_gradient_step(
                 div,
                 self.sigma2,
                 self.grad_sigma,

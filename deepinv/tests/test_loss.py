@@ -10,7 +10,14 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 
 LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
-LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
+LIST_SURE = [
+    "Gaussian",
+    "Poisson",
+    "PoissonGaussian",
+    "GaussianUnknown",
+    "PoissonGaussianUnknown",
+    "Neighbor2Neighbor",
+]
 
 
 def test_jacobian_spectral_values(toymatrix):
