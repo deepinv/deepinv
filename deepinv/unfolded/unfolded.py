@@ -89,7 +89,7 @@ class BaseUnfold(BaseOptim):
             nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
         )
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
         Runs the fixed-point iteration algorithm. This is the same forward as in the parent BaseOptim class, but without the ``torch.no_grad()`` context manager.
 
@@ -101,7 +101,7 @@ class BaseUnfold(BaseOptim):
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         X, metrics = self.fixed_point(
-            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+            y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
         )
         x = self.get_output(X)
         if compute_metrics:
@@ -120,6 +120,7 @@ def unfolded_builder(
     device=torch.device("cpu"),
     F_fn=None,
     g_first=False,
+    bregman_potential=None,
     **kwargs,
 ):
     r"""
@@ -149,6 +150,7 @@ def unfolded_builder(
     :param callable F_fn: Custom user input cost function. default: None.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
     :return: an unfolded architecture (instance of :meth:`BaseUnfold`).
 
@@ -177,7 +179,7 @@ def unfolded_builder(
 
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first, bregman_potential=bregman_potential)
     return BaseUnfold(
         iterator,
         max_iter=max_iter,

@@ -51,7 +51,7 @@ class BaseDEQ(BaseUnfold):
         self.beta_anderson_acc = beta_anderson_acc_backward
         self.eps_anderson_acc = eps_anderson_acc_backward
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
         The forward pass of the DEQ algorithm. Compared to :class:`deepinv.unfolded.BaseUnfold`, the backward algorithm is performed using fixed point iterations.
 
@@ -64,7 +64,7 @@ class BaseDEQ(BaseUnfold):
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
             X, metrics = self.fixed_point(
-                y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
         cur_data_fidelity = (
@@ -78,11 +78,8 @@ class BaseDEQ(BaseUnfold):
         cur_params = (
             self.update_params_fn(self.max_iter - 1) if self.update_params_fn else None
         )
-        bregman_potential = (
-            self.get_bregman_potential() if self.get_bregman_potential else None
-        )
         x = self.fixed_point.iterator(
-            X, cur_data_fidelity, cur_prior, cur_params, y, physics, bregman_potential
+            X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
         )["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
@@ -93,7 +90,7 @@ class BaseDEQ(BaseUnfold):
             cur_params,
             y,
             physics,
-            bregman_potential,
+            **kwargs
         )["est"][0]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
@@ -145,6 +142,7 @@ def DEQ_builder(
     prior=None,
     F_fn=None,
     g_first=False,
+    bregman_potential=None,
     **kwargs,
 ):
     r"""
@@ -167,9 +165,10 @@ def DEQ_builder(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first, bregman_potential=bregman_potential)
     return BaseDEQ(
         iterator,
         has_cost=iterator.has_cost,
