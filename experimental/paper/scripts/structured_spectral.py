@@ -38,7 +38,7 @@ diagonal_mode = config.model.diagonal_mode
 transform = config.model.transform
 shared_weights = config.model.shared_weights
 drop_tail = config.model.drop_tail
-std = torch.sqrt(torch.tensor(config.model.std))
+df = config.model.df
 
 # recon
 n_repeats = config.recon.n_repeats
@@ -85,30 +85,30 @@ device
 img_size = config.image.img_size
 if config.image.mode == "shepp-logan":
     url = get_image_url("SheppLogan.png")
-    x = load_url_image(
+    img = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
     )
-    print(x.shape)
+    print(img.shape)
 elif config.image.mode == "random":
     # random phase signal
-    x = torch.rand((1, 1, img_size, img_size), device=device)
+    img = torch.rand((1, 1, img_size, img_size), device=device)
 elif config.image.mode == "mix":
     url = get_image_url("SheppLogan.png")
-    x = load_url_image(
+    img = load_url_image(
     url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
     )
-    x = x * (1-config.image.noise_ratio) + torch.rand_like(x) * config.image.noise_ratio
+    img = img * (1-config.image.noise_ratio) + torch.rand_like(img) * config.image.noise_ratio
 else:
     raise ValueError("Invalid image mode.")
 
 # visualize the image
-plot(x)
+plot(img)
 
 # generate phase signal
 # The phase is computed as 2*pi*x - pi, where x is the original image.
-x_phase = torch.exp(1j * x * torch.pi - 0.5j * torch.pi).to(device)
+x = torch.exp(1j * img * torch.pi - 0.5j * torch.pi).to(device)
 # Every element of the signal should have unit norm.
-assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
+assert torch.allclose(x.real**2 + x.imag**2, torch.tensor(1.0))
 
 df_res = pd.DataFrame(
     {
@@ -133,12 +133,12 @@ for i in trange(n_oversampling):
             device=device,
             shared_weights=shared_weights,
             drop_tail=drop_tail,
-            std=std,
+            df=df,
         )
-        y = physics(x_phase)
+        y = physics(x)
 
         x_phase_spec = spectral_methods(y, physics, n_iter=max_iter)
-        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x_phase, x_phase_spec).item()
+        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x, x_phase_spec).item()
         # print the cosine similarity
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 

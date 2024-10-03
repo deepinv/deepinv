@@ -1,5 +1,5 @@
 general:
-  name: "structured_FDFD_student-t_df=500"
+  name: "structured_FDFD_student-t_df=5"
   recon: "spec"
   save: True
 
@@ -8,7 +8,7 @@ model:
   diagonal_mode: "student-t"
   transform: "fft"
   shared_weights: False
-  df: 500
+  df: 5
   drop_tail: True
 
 image:

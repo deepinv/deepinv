@@ -1,14 +1,14 @@
 general:
-  name: "structured_FDFD_student-t_df=500"
+  name: "structured_FDFD_laplace"
   recon: "spec"
   save: True
 
 model:
   n_layers: 2
-  diagonal_mode: "student-t"
+  diagonal_mode: "laplace"
   transform: "fft"
   shared_weights: False
-  df: 500
+  df: None
   drop_tail: True
 
 image:

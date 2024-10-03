@@ -23,7 +23,13 @@ def idct2(x:torch.Tensor,device):
     """
     return torch.from_numpy(idct(idct(x.cpu().numpy(), axis=-2, norm='ortho'), axis=-1, norm='ortho')).to(device)
 
-def generate_diagonal(tensor_shape, mode, dtype, device, std=1.0):
+def generate_diagonal(
+    tensor_shape,
+    mode,
+    dtype=torch.complex64,
+    device="cpu",
+    df=3
+):
     r"""
     Generate a random tensor as the diagonal matrix.
     """
@@ -35,7 +41,18 @@ def generate_diagonal(tensor_shape, mode, dtype, device, std=1.0):
         diagonal = 2 * np.pi * diagonal
         diagonal = torch.exp(1j * diagonal)
     elif mode == "gaussian":
-        diagonal = std*torch.randn(tensor_shape, dtype=dtype, device=device)
+        diagonal = torch.randn(tensor_shape, dtype=dtype, device=device)
+    elif mode == "laplace":
+        #! variance = 2*scale^2
+        #! variance of complex numbers is doubled
+        laplace_dist = torch.distributions.laplace.Laplace(0,0.5)
+        diagonal = (laplace_dist.sample(tensor_shape) + 1j*laplace_dist.sample(tensor_shape)).to(device)
+    elif mode == "student-t":
+        #! variance = df/(df-2) if df > 2
+        #! variance of complex numbers is doubled
+        student_t_dist = torch.distributions.studentT.StudentT(df,0,1)
+        scale = torch.sqrt((torch.tensor(df)-2)/torch.tensor(df)/2)
+        diagonal = (scale*(student_t_dist.sample(tensor_shape) + 1j*student_t_dist.sample(tensor_shape))).to(device)
     else:
         raise ValueError(f"Unsupported mode: {mode}")
     return diagonal
@@ -143,7 +160,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
+    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.complex64.
     :param str device: Device to store the forward matrix.
 
     |sep|
@@ -153,7 +170,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         Random phase retrieval operator with 10 measurements for a 3x3 image:
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
+        >>> x = torch.randn((1, 1, 3, 3),dtype=torch.complex64) # Define random 3x3 image
         >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3))
         >>> physics(x)
         tensor([[1.1901, 4.0743, 0.1858, 2.3197, 0.0734, 0.4557, 0.1231, 0.6597, 1.7768,
@@ -165,7 +182,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         m,
         img_shape,
         channelwise=False,
-        dtype=torch.cfloat,
+        dtype=torch.complex64,
         device="cpu",
         use_haar=False,
         test=False,
@@ -207,7 +224,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     :param int n_layers: number of layers.
     :param tuple img_shape: shape (C, H, W) of inputs.
-    :param torch.type dtype: Signals are processed in dtype. Default is torch.cfloat.
+    :param torch.type dtype: Signals are processed in dtype. Default is torch.complex64.
     :param str device: Device for computation.
     """
 
@@ -220,9 +237,9 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         transform="fft",
         shared_weights=False,
         drop_tail=True,
-        dtype=torch.cfloat,
+        dtype=torch.complex64,
         device="cpu",
-        std=1.0,
+        df=3,
         **kwargs,
     ):
         if output_shape is None:
@@ -283,15 +300,15 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         if not shared_weights:
             for _ in range(self.n_layers):
                 if self.mode == "oversampling":
-                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, std=std)
+                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
                 else:
-                    diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
+                    diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
                 self.diagonals.append(diagonal)
         else:
             if self.mode == "oversampling":
-                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
+                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
             else:
-                diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device,std=std)
+                diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
             self.diagonals = self.diagonals + [diagonal] * self.n_layers
 
         if transform == "fft":
