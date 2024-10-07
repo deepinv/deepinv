@@ -48,6 +48,7 @@ jobs:
       - name: Test with pytest and generate coverage report
         run: |
           which python
+          python -c "import deepinv"
           python -m pytest deepinv/tests
           pytest --cov=./ --cov-report=xml
 
