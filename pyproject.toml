@@ -37,7 +37,7 @@ dependencies = [
 platforms = ["any"]
 
 [tool.setuptools.packages]
-find = { where = ["deepinv"] }
+find = { where = ["."] }
 
 [project.readme]
 file = "README.rst"
