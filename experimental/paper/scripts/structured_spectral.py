@@ -34,11 +34,11 @@ save = config.general.save
 # model
 img_size = config.image.img_size
 n_layers = config.model.n_layers
-diagonal_mode = config.model.diagonal_mode
-transform = config.model.transform
-shared_weights = config.model.shared_weights
 drop_tail = config.model.drop_tail
-df = config.model.df
+transform = config.model.transform
+diagonal_mode = config.model.diagonal.mode
+distri_config = config.model.diagonal.config
+shared_weights = config.model.shared_weights
 
 # recon
 n_repeats = config.recon.n_repeats
@@ -124,16 +124,16 @@ for i in trange(n_oversampling):
     print(f"oversampling_ratio: {oversampling_ratio}")
     for j in range(n_repeats):
         physics = dinv.physics.StructuredRandomPhaseRetrieval(
-            n_layers=n_layers,
             input_shape=(1, img_size, img_size),
             output_shape=(1, output_size, output_size),
-            diagonal_mode=diagonal_mode,
-            transform=transform,
-            dtype=torch.cfloat,
-            device=device,
-            shared_weights=shared_weights,
+            n_layers=n_layers,
             drop_tail=drop_tail,
-            df=df,
+            transform=transform,
+            diagonal_mode=diagonal_mode,
+            distri_config=distri_config,
+            shared_weights=shared_weights,
+            dtype=torch.complex64,
+            device=device,
         )
         y = physics(x)
 

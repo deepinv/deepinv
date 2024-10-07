@@ -5,10 +5,13 @@ general:
 
 model:
   n_layers: 2
-  diagonal_mode: "student-t"
+  diagonal:
+    mode: 'student-t'
+    config:
+      degree_of_freedom: 30
+      complex: False
   transform: "fft"
   shared_weights: False
-  df: 30
   drop_tail: True
 
 image:

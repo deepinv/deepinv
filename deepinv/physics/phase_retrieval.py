@@ -1,6 +1,7 @@
 from functools import partial
 import math
 
+from dotmap import DotMap
 import numpy as np
 from scipy.fft import dct, idct
 import torch
@@ -23,18 +24,72 @@ def idct2(x:torch.Tensor,device):
     """
     return torch.from_numpy(idct(idct(x.cpu().numpy(), axis=-2, norm='ortho'), axis=-1, norm='ortho')).to(device)
 
+def triangular_distribution(a, size):
+    u = torch.rand(size)  # Sample from uniform distribution [0, 1]
+    
+    # Apply inverse transform method for triangular distribution
+    condition = (u < 0.5)
+    samples = torch.zeros(size)
+    
+    # Left part of the triangular distribution
+    samples[condition] = -a + torch.sqrt(u[condition] * 2 * a**2)
+    
+    # Right part of the triangular distribution
+    samples[~condition] = a - torch.sqrt((1 - u[~condition]) * 2 * a**2)
+    
+    return samples
+
+class MarchenkoPastur:
+    def __init__(self,m,n,sigma=None):
+        self.m = m
+        self.n = n
+        self.gamma = n / m
+        if sigma is not None:
+            self.sigma = sigma
+        else:
+            # automatically set sigma to make E[|x|^2] = 1
+            self.sigma = (1+self.gamma)**(-0.25)
+        self.lamb = m / n
+        self.min_supp = self.sigma**2*(1-np.sqrt(self.gamma))**2
+        self.max_supp = self.sigma**2*(1+np.sqrt(self.gamma))**2
+        self.max_pdf = None
+    
+    def pdf(self,x):
+        assert (x >= self.min_supp).all() and (x <= self.max_supp).all(), "x is out of the support of the distribution"
+        return np.sqrt((self.max_supp - x) * (x - self.min_supp)) / (2 * np.pi * self.sigma**2 * self.gamma * x)
+    
+    def sample(self,num_samples):
+        """using acceptance-rejection sampling"""
+        # compute the maximum value of the pdf if not yet computed
+        if self.max_pdf is None:
+            self.max_pdf = np.max(self.pdf(np.linspace(self.min_supp,self.max_supp,10000)))
+        
+        samples = []
+        while len(samples) < num_samples:
+            x = np.random.uniform(self.min_supp, self.max_supp, size=1)
+            y = np.random.uniform(0, self.max_pdf, size=1)
+            if y < self.pdf(x):
+                samples.append(x)
+        return np.array(samples)
+    
+    def mean(self):
+        return self.sigma**2
+    
+    def var(self):
+        return self.gamma*self.sigma**4
+
 def generate_diagonal(
     tensor_shape,
     mode,
     dtype=torch.complex64,
     device="cpu",
-    df=3
+    config:DotMap=None,
 ):
     r"""
     Generate a random tensor as the diagonal matrix.
     """
 
-    #! all distributions should be normalized to have unit variance
+    #! all distributions should be normalized to have E[|x|^2] = 1
     if mode == "uniform_phase":
         # Generate REAL-VALUED random numbers in the interval [0, 1)
         diagonal = torch.rand(tensor_shape, device=device)
@@ -50,9 +105,27 @@ def generate_diagonal(
     elif mode == "student-t":
         #! variance = df/(df-2) if df > 2
         #! variance of complex numbers is doubled
-        student_t_dist = torch.distributions.studentT.StudentT(df,0,1)
-        scale = torch.sqrt((torch.tensor(df)-2)/torch.tensor(df)/2)
+        student_t_dist = torch.distributions.studentT.StudentT(config.degree_of_freedom,0,1)
+        scale = torch.sqrt((torch.tensor(config.degree_of_freedom)-2)/torch.tensor(config.degree_of_freedom)/2)
         diagonal = (scale*(student_t_dist.sample(tensor_shape) + 1j*student_t_dist.sample(tensor_shape))).to(device)
+    elif mode == "marchenko-pastur":
+        diagonal = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(tensor_shape)).to(device)
+    elif mode == "uniform":
+        #! variance = 1/2a for real numbers
+        if config.complex == True:
+            real = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=dtype, device=device) - 0.5)
+            imag = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=dtype, device=device) - 0.5)
+            diagonal = real + 1j*imag
+        else:
+            diagonal = torch.sqrt(torch.tensor(12)) * (torch.rand(tensor_shape, dtype=dtype, device=device) - 0.5)
+    elif mode == "triangular":
+        #! variance = a^2/6 for real numbers
+        if config.complex == True:
+            real = triangular_distribution(torch.sqrt(torch.tensor(3)),tensor_shape)
+            imag = triangular_distribution(torch.sqrt(torch.tensor(3)),tensor_shape)
+            diagonal = real + 1j*imag
+        else:
+            diagonal = triangular_distribution(torch.sqrt(torch.tensor(6)),tensor_shape)
     else:
         raise ValueError(f"Unsupported mode: {mode}")
     return diagonal
@@ -230,27 +303,23 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     def __init__(
         self,
-        n_layers:int,
         input_shape:tuple,
         output_shape:tuple,
-        diagonal_mode="uniform_phase",
-        transform="fft",
-        shared_weights=False,
+        n_layers:int,
         drop_tail=True,
+        transform="fft",
+        diagonal_mode="uniform_phase",
+        distri_config:DotMap=None,
+        shared_weights=False,
         dtype=torch.complex64,
         device="cpu",
-        df=3,
         **kwargs,
     ):
         if output_shape is None:
             output_shape = input_shape
 
-        self.n_layers = n_layers
-        self.shared_weights = shared_weights
-        self.drop_tail = drop_tail
-
-        height_order = compare(input_shape[1:], output_shape[1:])
-        width_order = compare(input_shape[2:], output_shape[2:])
+        height_order = compare(input_shape[1], output_shape[1])
+        width_order = compare(input_shape[2], output_shape[2])
 
         order = merge_order(height_order, width_order)
 
@@ -286,11 +355,17 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             return tensor
         self.trimming = trimming
 
-        self.img_shape = input_shape
+        self.input_shape = input_shape
         self.output_shape = output_shape
-        self.n = torch.prod(torch.tensor(self.img_shape))
+        self.n = torch.prod(torch.tensor(self.input_shape))
         self.m = torch.prod(torch.tensor(self.output_shape))
         self.oversampling_ratio = self.m / self.n
+        self.n_layers = n_layers
+        self.shared_weights = shared_weights
+        self.drop_tail = drop_tail
+        self.distri_config = distri_config
+        self.distri_config.m = self.m
+        self.distri_config.n = self.n
 
         self.dtype = dtype
         self.device = device
@@ -300,15 +375,15 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         if not shared_weights:
             for _ in range(self.n_layers):
                 if self.mode == "oversampling":
-                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
+                    diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
                 else:
-                    diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
+                    diagonal = generate_diagonal(self.input_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
                 self.diagonals.append(diagonal)
         else:
             if self.mode == "oversampling":
-                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
+                diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
             else:
-                diagonal = generate_diagonal(self.img_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, df=df)
+                diagonal = generate_diagonal(self.input_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
             self.diagonals = self.diagonals + [diagonal] * self.n_layers
 
         if transform == "fft":
@@ -321,7 +396,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             raise ValueError(f"Unimplemented transform: {transform}")
         
         def A(x):
-            assert x.shape[1:] == self.img_shape, f"x doesn't have the correct shape {x.shape[1:]} != {self.img_shape}"
+            assert x.shape[1:] == self.input_shape, f"x doesn't have the correct shape {x.shape[1:]} != {self.input_shape}"
 
             if self.mode == "oversampling":
                 x = self.padding(x)
