@@ -11,7 +11,13 @@ from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralN
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
 LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
-LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
+LIST_SURE = [
+    "Gaussian",
+    "Poisson",
+    "PoissonGaussian",
+    "GaussianUnknown",
+    "PoissonGaussianUnknown",
+]
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -72,14 +78,17 @@ def choose_sure(noise_type):
     if noise_type == "PoissonGaussian":
         loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain)
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    elif noise_type == "PoissonGaussianUnknown":
+        loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain, unsure=True)
+        noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
         loss = dinv.loss.SureGaussianLoss(sigma=sigma)
         noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "GaussianUnknown":
+        loss = dinv.loss.SureGaussianLoss(sigma=sigma, unsure=True)
+        noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
-        noise_model = dinv.physics.PoissonNoise(gain)
-    elif noise_type == "Neighbor2Neighbor":
-        loss = dinv.loss.Neighbor2Neighbor()
         noise_model = dinv.physics.PoissonNoise(gain)
     else:
         raise Exception("The SURE loss doesnt exist")

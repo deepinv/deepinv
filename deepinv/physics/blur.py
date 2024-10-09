@@ -232,7 +232,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
-        self.update_parameters(filter, **kwargs)
+        self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -243,7 +243,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter, **kwargs)
+        self.update_parameters(filter=filter, **kwargs)
 
         if x.dim() == 4:
             return conv2d(x, filter=self.filter, padding=self.padding)
@@ -259,7 +259,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter, **kwargs)
+        self.update_parameters(filter=filter, **kwargs)
 
         if y.dim() == 4:
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
@@ -471,7 +471,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding, **kwargs)
+            self.update_parameters(
+                filters=filters, multipliers=multipliers, padding=padding, **kwargs
+            )
 
             return product_convolution2d_adjoint(
                 y, self.multipliers, self.filters, self.padding

@@ -112,7 +112,7 @@ class GaussianNoise(NoiseModel):
 
     def __init__(self, sigma=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(sigma)
+        self.update_parameters(sigma=sigma)
 
     def forward(self, x, sigma=None, seed=None, **kwargs):
         r"""
@@ -125,7 +125,7 @@ class GaussianNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(sigma)
+        self.update_parameters(sigma=sigma)
 
         if isinstance(sigma, torch.Tensor):
             sigma = sigma[(...,) + (None,) * (x.dim() - 1)]
@@ -233,7 +233,7 @@ class PoissonNoise(NoiseModel):
     ):
         super().__init__(rng=rng)
         self.normalize = to_nn_parameter(normalize)
-        self.update_parameters(gain)
+        self.update_parameters(gain=gain)
         self.clip_positive = clip_positive
 
     def forward(self, x, gain=None, seed: int = None, **kwargs):
@@ -246,7 +246,7 @@ class PoissonNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(gain)
+        self.update_parameters(gain=gain)
         self.rng_manual_seed(seed)
         y = torch.poisson(
             torch.clip(x / self.gain, min=0.0) if self.clip_positive else x / self.gain,
@@ -286,7 +286,7 @@ class GammaNoise(NoiseModel):
         super().__init__(rng=None)
         if isinstance(l, int):
             l = float(l)
-        self.update_parameters(l)
+        self.update_parameters(l=l)
 
     def forward(self, x, l=None, **kwargs):
         r"""
@@ -296,7 +296,7 @@ class GammaNoise(NoiseModel):
         :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
-        self.update_parameters(l)
+        self.update_parameters(l=l)
         d = torch.distributions.gamma.Gamma(self.l, self.l / x)
         return d.sample()
 
@@ -336,7 +336,7 @@ class PoissonGaussianNoise(NoiseModel):
 
     def __init__(self, gain=1.0, sigma=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(gain, sigma)
+        self.update_parameters(gain=gain, sigma=sigma)
 
     def forward(self, x, gain=None, sigma=None, seed: int = None, **kwargs):
         r"""
@@ -350,7 +350,7 @@ class PoissonGaussianNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(gain, sigma)
+        self.update_parameters(gain=gain, sigma=sigma)
         self.rng_manual_seed(seed)
         y = torch.poisson(x / self.gain, generator=self.rng) * self.gain
         y += self.randn_like(x) * self.sigma
@@ -394,7 +394,7 @@ class UniformNoise(NoiseModel):
 
     def __init__(self, a=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(a)
+        self.update_parameters(a=a)
 
     def forward(self, x, a=None, seed: int = None, **kwargs):
         r"""
@@ -405,7 +405,7 @@ class UniformNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(a)
+        self.update_parameters(a=a)
         return x + (self.rand_like(x, seed=seed) - 0.5) * 2 * self.a
 
     def update_parameters(self, a=None, **kwargs):
@@ -453,7 +453,7 @@ class LogPoissonNoise(NoiseModel):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(mu, N0)
+        self.update_parameters(mu=mu, N0=N0)
 
     def forward(self, x, mu=None, N0=None, seed: int = None, **kwargs):
         r"""
@@ -467,7 +467,7 @@ class LogPoissonNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(mu, N0)
+        self.update_parameters(mu=mu, N0=N0)
         self.rng_manual_seed(seed)
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
         y = -torch.log(N1_tilde / self.N0) / self.mu

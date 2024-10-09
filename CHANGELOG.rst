@@ -7,12 +7,14 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
-- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 
 
 New Features
 ^^^^^^^^^^^^
+- Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+
 
 - Add wrapper classes for adapting models to take time-sequence 2D+t input (:gh:`296` by `Andrew Wang`_)
 - Add sequential MRI operator (:gh:`296` by `Andrew Wang`_)
