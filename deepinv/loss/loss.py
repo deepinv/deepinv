@@ -32,5 +32,6 @@ class Loss(torch.nn.Module):
         r"""
         Some loss functions require the model forward call to be adapted before the forward pass.
 
+        :param torch.nn.Module model: reconstruction model
         """
         return model

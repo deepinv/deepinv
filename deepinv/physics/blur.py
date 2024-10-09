@@ -260,7 +260,7 @@ class Blur(LinearPhysics):
             the provided filter is stored as the current filter.
         """
         self.update_parameters(filter=filter, **kwargs)
-
+  
         if y.dim() == 4:
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
         elif y.dim() == 5:

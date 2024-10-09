@@ -88,3 +88,4 @@ Other
         deepinv.utils.get_freer_gpu
         deepinv.utils.load_url_image
         deepinv.utils.load_image
+        deepinv.utils.demo.demo_mri_model

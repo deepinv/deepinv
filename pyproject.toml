@@ -27,6 +27,7 @@ dependencies = [
     "tqdm",
     "torch",
     "torchvision",
+    "torchmetrics",
     "einops",
     "wandb",
     "scipy",
