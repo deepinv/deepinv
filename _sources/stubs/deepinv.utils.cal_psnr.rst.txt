@@ -1,0 +1,9 @@
+﻿cal\_psnr
+=========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: cal_psnr
+
+.. minigallery:: deepinv.utils.cal_psnr
+    :add-heading: Examples using ``cal_psnr``:

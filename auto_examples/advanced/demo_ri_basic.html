@@ -1,0 +1,552 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radio interferometric imaging with deepinverse &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Imaging inverse problems with adversarial networks" href="../adversarial-learning/demo_gan_imaging.html" />
+    <link rel="prev" title="Examples" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#advanced">Advanced</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Radio interferometric imaging with deepinverse</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#import-required-packages">Import required packages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-ri-measurement-operator">The RI measurement operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#groundtruth-image">Groundtruth image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sampling-pattern">Sampling pattern</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#simulating-the-measurements">Simulating the measurements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#natural-weighting-and-briggs-weighting">Natural weighting and Briggs weighting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#solving-the-problem-with-a-wavelet-prior">Solving the problem with a wavelet prior</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#adversarial-learning">Adversarial Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#optimization">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#patch-priors">Patch Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#plug-and-play">Plug-and-Play</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sampling">Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#self-supervised-learning">Self-Supervised Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unfolded">Unfolded</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Radio interferometric imaging with deepinverse</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/advanced/demo_ri_basic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-advanced-demo-ri-basic-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="radio-interferometric-imaging-with-deepinverse">
+<span id="sphx-glr-auto-examples-advanced-demo-ri-basic-py"></span><h1>Radio interferometric imaging with deepinverse<a class="headerlink" href="#radio-interferometric-imaging-with-deepinverse" title="Link to this heading"></a></h1>
+<p>In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.
+The following example and data are taken from <a class="reference external" href="https://arxiv.org/abs/2403.05452">Aghabiglou et al. (2024)</a>.
+If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check <a class="reference external" href="https://basp-group.github.io/BASPLib/">BASPLib</a>.</p>
+<section id="import-required-packages">
+<h2>Import required packages<a class="headerlink" href="#import-required-packages" title="Link to this heading"></a></h2>
+<p>We rely on the <cite>TorchKbNufft</cite> as the non-uniform FFT backend in this problem.
+This first snippet is just here to check that dependencies are installed properly.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torchkbnufft</span> <span class="k">as</span> <span class="nn">tkbn</span>
+
+<span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.plotting</span> <span class="kn">import</span> <span class="n">plot</span><span class="p">,</span> <span class="n">plot_curves</span><span class="p">,</span> <span class="n">scatter_plot</span><span class="p">,</span> <span class="n">plot_inset</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.demo</span> <span class="kn">import</span> <span class="n">load_np_url</span><span class="p">,</span> <span class="n">get_image_dataset_url</span><span class="p">,</span> <span class="n">get_degradation_url</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.nn</span> <span class="kn">import</span> <span class="n">dirac_like</span>
+
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <a href="http://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="the-ri-measurement-operator">
+<h2>The RI measurement operator<a class="headerlink" href="#the-ri-measurement-operator" title="Link to this heading"></a></h2>
+<p>The RI inverse problem aims at restoring the target image <span class="math notranslate nohighlight">\(x\in \mathbb{R}^{n}\)</span> from complex measurements (or visibilities) <span class="math notranslate nohighlight">\(y \in \mathbb{C}^{m}\)</span>, reads:</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation*}
+    y = Ax+\epsilon,
+\end{equation*}\]</div>
+<p>where <span class="math notranslate nohighlight">\(A\)</span> can be decomposed as <span class="math notranslate nohighlight">\(A = GFZ \in \mathbb{C}^{m \times n}\)</span>.
+There, <span class="math notranslate nohighlight">\(G \in \mathbb{C}^{m \times d}\)</span> is a sparse interpolation matrix,
+encoding the non-uniform Fourier transform,
+<span class="math notranslate nohighlight">\(F \in \mathbb{C}^{d\times d}\)</span> is the 2D Discrete Fourier Transform,
+<span class="math notranslate nohighlight">\(Z \in \mathbb{R}^{d\times n}\)</span> is a zero-padding operator,
+incorporating the correction for the convolution performed through the operator <span class="math notranslate nohighlight">\(G\)</span>,
+and <span class="math notranslate nohighlight">\(\epsilon \in \mathbb{C}^{m}\)</span> is a realization of some i.i.d. Gaussian random noise.</p>
+<p>This operator can be implemented with <a class="reference external" href="https://github.com/mmuckley/torchkbnufft">TorchKbNUFFT</a>.
+Below, we propose an implementation using the <a class="reference internal" href="../../stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a>.
+As such, operations like grad and prox are available.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">LinearPhysics</span></a>
+
+
+<span class="k">class</span> <span class="nc">RadioInterferometry</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">LinearPhysics</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Radio Interferometry measurement operator.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        img_size (tuple): Size of the target image, e.g., (H, W).</span>
+<span class="sd">        samples_loc (torch.Tensor): Normalized sampling locations in the Fourier domain.</span>
+<span class="sd">        dataWeight (torch.Tensor): Data weighting for the measurements.</span>
+<span class="sd">        interp_points (Union[int, Sequence[int]]): Number of neighbors to use for interpolation in each dimension. Default is `7`.</span>
+<span class="sd">        k_oversampling (float): Oversampling of the k space grid, should be between `1.25` and `2`. Default is `2`.</span>
+<span class="sd">        real_projection (bool): Apply real projection after the adjoint NUFFT.</span>
+<span class="sd">        device (torch.device): Device where the operator is computed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">,</span>
+        <span class="n">samples_loc</span><span class="p">,</span>
+        <span class="n">dataWeight</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="mf">1.0</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">),</span>
+        <span class="n">k_oversampling</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">interp_points</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="n">real_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">RadioInterferometry</span></a><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_oversampling</span> <span class="o">=</span> <span class="n">k_oversampling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interp_points</span> <span class="o">=</span> <span class="n">interp_points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">real_projection</span> <span class="o">=</span> <span class="n">real_projection</span>
+
+        <span class="c1"># Check image size format</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="c1"># Define oversampled grid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">img_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_oversampling</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">img_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_oversampling</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples_loc</span> <span class="o">=</span> <span class="n">samples_loc</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataWeight</span> <span class="o">=</span> <span class="n">dataWeight</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nufftObj</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">tkbn</span><span class="o">.</span><span class="n">KbNufft</span></a><span class="p">(</span>
+            <span class="n">im_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">grid_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+            <span class="n">numpoints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">interp_points</span><span class="p">,</span>
+            <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><span class="bp">self</span><span class="o">.</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjnufftObj</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">tkbn</span><span class="o">.</span><span class="n">KbNufftAdjoint</span></a><span class="p">(</span>
+            <span class="n">im_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">grid_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+            <span class="n">numpoints</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">interp_points</span><span class="p">,</span>
+            <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><span class="bp">self</span><span class="o">.</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Define adjoint operator projection</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_projection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adj_projection</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <a href="http://pytorch.org/docs/2.0/generated/torch.real.html#torch.real" title="torch.real" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">real</span></a><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">float</span></a><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adj_projection</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">setWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataWeight</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nufftObj</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">complex64</span></a><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_loc</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataWeight</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj_projection</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adjnufftObj</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataWeight</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_loc</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+<p>This measurement operator is readily available in the Physics module in <a class="reference internal" href="../../stubs/deepinv.physics.RadioInterferometry.html#deepinv.physics.RadioInterferometry" title="deepinv.physics.RadioInterferometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.RadioInterferometry</span></code></a>
+and can be used directly as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">RadioInterferometry</span></a>
+
+<span class="n">physics</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">RadioInterferometry</span></a><span class="p">(</span><span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">samples_loc</span><span class="o">=</span><span class="n">samples_loc</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="groundtruth-image">
+<h2>Groundtruth image<a class="headerlink" href="#groundtruth-image" title="Link to this heading"></a></h2>
+<p>The following data is our groundtruth with the settings of Experiment II in <a class="reference external" href="https://arxiv.org/abs/2403.05452">Aghabiglou et al. (2024)</a>.
+The groundtruth data has been normalized in the [0, 1] range.
+As usual in radio interferometric imaging, the data has high dynamic range,
+i.e. the ratio between the faintest and highest emissions is higher than in traditional low-level vision tasks.
+In the case of this particular image, this ratio is of <code class="docutils literal notranslate"><span class="pre">5000</span></code>.
+For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a> <span class="o">=</span> <span class="n">load_np_url</span><span class="p">(</span><span class="n">get_image_dataset_url</span><span class="p">(</span><span class="s2">&quot;3c353_gdth&quot;</span><span class="p">,</span> <span class="n">file_type</span><span class="o">=</span><span class="s2">&quot;npy&quot;</span><span class="p">))</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.from_numpy.html#torch.from_numpy" title="torch.from_numpy" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">to_logimage</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">rescale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dr</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function plotting the image in logarithmic scale with specified dynamic range</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">rescale</span><span class="p">:</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">im</span> <span class="o">-</span> <span class="n">im</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">im</span> <span class="o">/</span> <span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">im</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.clamp.html#torch.clamp" title="torch.clamp" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">clamp</span></a><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <a href="http://pytorch.org/docs/2.0/generated/torch.log10.html#torch.log10" title="torch.log10" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">log10</span></a><span class="p">(</span><span class="n">dr</span> <span class="o">*</span> <span class="n">im</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">log10</span></a><span class="p">(</span><span class="n">dr</span><span class="p">)</span>
+
+
+<a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a> <span class="o">=</span> <span class="p">[</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">,</span> <span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">)]</span>
+<span class="n">plot</span><span class="p">(</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Groundtruth&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Groundtruth in logarithmic scale&quot;</span><span class="p">],</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span>
+    <span class="n">cbar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_ri_basic_001.png" srcset="../../_images/sphx_glr_demo_ri_basic_001.png" alt="Groundtruth, Groundtruth in logarithmic scale" class = "sphx-glr-single-img"/></section>
+<section id="sampling-pattern">
+<h2>Sampling pattern<a class="headerlink" href="#sampling-pattern" title="Link to this heading"></a></h2>
+<p>We’ll load a simulated sampling pattern of <a class="reference external" href="https://public.nrao.edu/telescopes/vla/">Very Large Array</a> telescope.
+For simplicity, the coordinates of the sampling points have been normalized to the range of <span class="math notranslate nohighlight">\([-\pi, \pi]\)</span>.
+In RI imaging task, a super-resolution factor will normally be introduced in imaging step,
+so that the possibility of point sources appearing on the boundaries of pixels can be reduced.
+Here, this factor is <code class="docutils literal notranslate"><span class="pre">1.5</span></code>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">uv</span></a> <span class="o">=</span> <span class="n">load_np_url</span><span class="p">(</span><span class="n">get_degradation_url</span><span class="p">(</span><span class="s2">&quot;uv_coordinates.npy&quot;</span><span class="p">))</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">uv</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.from_numpy.html#torch.from_numpy" title="torch.from_numpy" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">uv</span></a><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<span class="n">scatter_plot</span><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">uv</span></a><span class="p">],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;uv coverage&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_ri_basic_002.png" srcset="../../_images/sphx_glr_demo_ri_basic_002.png" alt="uv coverage" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/runner/work/deepinv/deepinv/deepinv/utils/plotting.py:374: UserWarning: No data for colormapping provided via &#39;c&#39;. Parameters &#39;cmap&#39; will be ignored
+  axs[r, i].scatter(
+</pre></div>
+</div>
+</section>
+<section id="simulating-the-measurements">
+<h2>Simulating the measurements<a class="headerlink" href="#simulating-the-measurements" title="Link to this heading"></a></h2>
+<p>We now have all the data and tools to generate our measurements!
+The noise level <span class="math notranslate nohighlight">\(\tau\)</span> in the spacial Fourier domain is set to <code class="docutils literal notranslate"><span class="pre">0.5976</span> <span class="pre">*</span> <span class="pre">2e-3</span></code>.
+This value will preserve the dynamic range of the groundtruth image in this case.
+Please check <a class="reference external" href="https://doi.org/10.1093/mnras/stac2672">Terris et al. (2024)</a> and <a class="reference external" href="https://arxiv.org/abs/2403.05452">Aghabiglou et al. (2024)</a>
+for more information about the relationship between the noise level in the Fourier domain and the dynamic range of the target image.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tau</span></a> <span class="o">=</span> <span class="mf">0.5976</span> <span class="o">*</span> <span class="mf">2e-3</span>
+
+<span class="c1"># build sensing operator</span>
+<span class="n">physics</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">RadioInterferometry</span></a><span class="p">(</span>
+    <span class="n">img_size</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span>
+    <span class="n">samples_loc</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">uv</span></a><span class="o">.</span><span class="n">permute</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Generate the physics</span>
+<a href="http://pytorch.org/docs/2.0/generated/torch.manual_seed.html#torch.manual_seed" title="torch.manual_seed" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span></a><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">noise</span></a> <span class="o">=</span> <span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.randn_like.html#torch.randn_like" title="torch.randn_like" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/generated/torch.randn_like.html#torch.randn_like" title="torch.randn_like" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">))</span> <span class="o">/</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span></a><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">+</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tau</span></a> <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">noise</span></a>
+</pre></div>
+</div>
+</section>
+<section id="natural-weighting-and-briggs-weighting">
+<h2>Natural weighting and Briggs weighting<a class="headerlink" href="#natural-weighting-and-briggs-weighting" title="Link to this heading"></a></h2>
+<p>A common practice in RI consists is weighting the measurements in the Fourier domain to
+whiten the noise level in the spatial Fourier domain and compensate the over-sampling of visibilities at low-frequency regions.
+We here provide the Briggs-weighting scheme associated to the above uv-sampling pattern.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># load pre-computed Briggs weighting</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nWimag</span></a> <span class="o">=</span> <span class="n">load_np_url</span><span class="p">(</span><span class="n">get_degradation_url</span><span class="p">(</span><span class="s2">&quot;briggs_weight.npy&quot;</span><span class="p">))</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nWimag</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.from_numpy.html#torch.from_numpy" title="torch.from_numpy" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nWimag</span></a><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<span class="c1"># apply natural weighting and Briggs weighting to measurements</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nWimag</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tau</span></a>
+
+<span class="c1"># add image weighting to the sensing operator</span>
+<span class="n">physics</span><span class="o">.</span><span class="n">setWeight</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">nWimag</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tau</span></a><span class="p">)</span>
+
+<span class="c1"># compute operator norm (note: increase the iteration number for higher precision)</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">opnorm</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span>
+    <a href="http://pytorch.org/docs/2.0/generated/torch.randn_like.html#torch.randn_like" title="torch.randn_like" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">),</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">max_iter</span></a><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Operator norm: &quot;</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">opnorm</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Operator norm:  757126.4375
+</pre></div>
+</div>
+<p>The PSF, defined as <span class="math notranslate nohighlight">\(\operatorname{PSF} = A \delta\)</span> (where <span class="math notranslate nohighlight">\(\delta\)</span> is a Dirac), can be computed
+with the help of the <code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.utils.nn.dirac_like()</span></code> function.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dirac</span></a> <span class="o">=</span> <span class="n">dirac_like</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">PSF</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dirac</span></a><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PSF peak value: &quot;</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">PSF</span></a><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_log</span></a> <span class="o">=</span> <span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">PSF</span></a><span class="p">,</span> <span class="n">rescale</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">plot_inset</span><span class="p">(</span>
+    <span class="p">[</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_log</span></a><span class="p">],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PSF (logscale)&quot;</span><span class="p">],</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">,</span>
+    <span class="n">extract_loc</span><span class="o">=</span><span class="p">(</span><span class="mf">0.46</span><span class="p">,</span> <span class="mf">0.46</span><span class="p">),</span>
+    <span class="n">extract_size</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span>
+    <span class="n">inset_loc</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">),</span>
+    <span class="n">inset_size</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_ri_basic_003.png" srcset="../../_images/sphx_glr_demo_ri_basic_003.png" alt="PSF (logscale)" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>PSF peak value:  28690.173828125
+</pre></div>
+</div>
+<p>The backprojected image <span class="math notranslate nohighlight">\(A^{\top}Ay\)</span> is shown below.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">back</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>
+
+<a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a> <span class="o">=</span> <span class="p">[</span><span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">),</span> <span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">back</span></a><span class="p">,</span> <span class="n">rescale</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
+<span class="n">plot</span><span class="p">(</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Groundtruth (logscale)&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Backprojection (logscale)&quot;</span><span class="p">],</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_ri_basic_004.png" srcset="../../_images/sphx_glr_demo_ri_basic_004.png" alt="Groundtruth (logscale), Backprojection (logscale)" class = "sphx-glr-single-img"/></section>
+<section id="solving-the-problem-with-a-wavelet-prior">
+<h2>Solving the problem with a wavelet prior<a class="headerlink" href="#solving-the-problem-with-a-wavelet-prior" title="Link to this heading"></a></h2>
+<p>A traditional approach for solving the RI problem consists in solving the optimization problem</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation*}
+    \underset{x \geq 0}{\operatorname{min}} \,\, \frac{1}{2} \|Ax-y\|_2^2 + \lambda \sum_i \|\Psi_i x\|_{1}(x),
+\end{equation*}\]</div>
+<p>where <span class="math notranslate nohighlight">\(1/2 \|A(x)-y\|_2^2\)</span> is the a data-fidelity term, and each <span class="math notranslate nohighlight">\(\|\Psi_i x\|_{1}(x)\)</span> is a sparsity
+inducing prior for the image <span class="math notranslate nohighlight">\(x\)</span>, and <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span> is a regularisation parameter. Simlarly to the <a class="reference external" href="https://basp-group.github.io/BASPLib/SARA_family.html">SARA</a>
+algorithm, we use a dictionnary of 8 Daubechies wavelets as the prior.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.optim.data_fidelity</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">L2</span></a>
+<span class="kn">from</span> <span class="nn">deepinv.optim.prior</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">WaveletPrior</span></a>
+
+<span class="c1"># Select the data fidelity term</span>
+<span class="n">data_fidelity</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">L2</span></a><span class="p">()</span>
+
+<span class="c1"># Specify the prior (we redefine it with a smaller number of iteration for faster computation)</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wv_list</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;db1&quot;</span><span class="p">,</span> <span class="s2">&quot;db2&quot;</span><span class="p">,</span> <span class="s2">&quot;db3&quot;</span><span class="p">,</span> <span class="s2">&quot;db4&quot;</span><span class="p">,</span> <span class="s2">&quot;db5&quot;</span><span class="p">,</span> <span class="s2">&quot;db6&quot;</span><span class="p">,</span> <span class="s2">&quot;db7&quot;</span><span class="p">,</span> <span class="s2">&quot;db8&quot;</span><span class="p">]</span>
+<span class="n">prior</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">WaveletPrior</span></a><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">wv</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wv_list</span></a><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">clamp_min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The problem is quite challenging and to reduce optimization time,
+we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">custom_init</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">physics</span><span class="p">):</span>
+    <span class="n">x_init</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.clamp.html#torch.clamp" title="torch.clamp" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">clamp</span></a><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">x_init</span><span class="p">,</span> <span class="n">x_init</span><span class="p">)}</span>
+</pre></div>
+</div>
+<p>We are now ready to implement the FISTA algorithm.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.optim.optimizers</span> <span class="kn">import</span> <span class="n">optim_builder</span>
+
+<span class="c1"># Logging parameters</span>
+<a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a> <span class="o">=</span> <span class="kc">True</span>
+
+<a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">plot_convergence_metrics</span></a> <span class="o">=</span> <span class="p">(</span>
+    <span class="kc">True</span>  <span class="c1"># compute performance and convergence metrics along the algorithm.</span>
+<span class="p">)</span>
+
+<span class="c1"># Algorithm parameters</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">stepsize</span></a> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">opnorm</span></a><span class="p">)</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lamb</span></a> <span class="o">=</span> <span class="mf">1e-3</span> <span class="o">*</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">opnorm</span></a>  <span class="c1"># wavelet regularisation parameter</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">params_algo</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">stepsize</span></a><span class="p">,</span> <span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lamb</span></a><span class="p">}</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">max_iter</span></a> <span class="o">=</span> <span class="mi">50</span>
+<a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">early_stop</span></a> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># Instantiate the algorithm class to solve the problem.</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">optim_builder</span><span class="p">(</span>
+    <span class="n">iteration</span><span class="o">=</span><span class="s2">&quot;FISTA&quot;</span><span class="p">,</span>
+    <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">early_stop</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">early_stop</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">max_iter</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">max_iter</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">params_algo</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">params_algo</span></a><span class="p">,</span>
+    <span class="n">custom_init</span><span class="o">=</span><span class="n">custom_init</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># reconstruction with FISTA algorithm</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_model</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">metrics</span></a> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># compute PSNR</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Linear reconstruction PSNR: </span><span class="si">{</span><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">cal_psnr</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">,</span><span class="w"> </span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">back</span></a><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB&quot;</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;FISTA reconstruction PSNR: </span><span class="si">{</span><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">cal_psnr</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">,</span><span class="w"> </span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_model</span></a><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># plot images</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">image_gdth</span></a><span class="p">),</span>
+    <span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">back</span></a><span class="p">,</span> <span class="n">rescale</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">to_logimage</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_model</span></a><span class="p">,</span> <span class="n">rescale</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a><span class="p">,</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GT&quot;</span><span class="p">,</span> <span class="s2">&quot;Linear&quot;</span><span class="p">,</span> <span class="s2">&quot;Recons.&quot;</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span> <span class="n">cbar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># plot convergence curves</span>
+<span class="k">if</span> <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">plot_convergence_metrics</span></a><span class="p">:</span>
+    <span class="n">plot_curves</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">metrics</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img src="../../_images/sphx_glr_demo_ri_basic_005.png" srcset="../../_images/sphx_glr_demo_ri_basic_005.png" alt="GT, Linear, Recons." class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_demo_ri_basic_006.png" srcset="../../_images/sphx_glr_demo_ri_basic_006.png" alt="PSNR, F, residual" class = "sphx-glr-multi-img"/></li>
+</ul>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Linear reconstruction PSNR: -78.85 dB
+FISTA reconstruction PSNR: 57.54 dB
+</pre></div>
+</div>
+<p>We can see that the bright sources are generally recovered,
+but not for the faint and extended emissions.
+We kindly point the readers to <a class="reference external" href="https://basp-group.github.io/BASPLib/">BASPLib</a>
+for the state-of-the-art RI imaging algorithms, such as
+<a class="reference external" href="https://basp-group.github.io/BASPLib/R2D2.html">R2D2</a>,
+<a class="reference external" href="https://basp-group.github.io/BASPLib/AIRI.html">AIRI</a>,
+<a class="reference external" href="https://basp-group.github.io/BASPLib/SARA_family.html">SARA</a>,
+and corresponding reconstructions.</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (1 minutes 19.669 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-advanced-demo-ri-basic-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/99e499ece38eddaadc0ee25c5c817335/demo_ri_basic.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_ri_basic.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/7ca8520120c86ddfcc647ab857795abd/demo_ri_basic.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_ri_basic.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/9ebe666dd732be158f5760fb8c2a90aa/demo_ri_basic.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_ri_basic.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../adversarial-learning/demo_gan_imaging.html" class="btn btn-neutral float-right" title="Imaging inverse problems with adversarial networks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

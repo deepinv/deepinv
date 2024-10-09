@@ -1,0 +1,15 @@
+﻿NMSE
+====
+
+.. currentmodule:: deepinv.loss
+
+.. autoclass:: NMSE
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.loss.NMSE:
+
+.. minigallery:: deepinv.loss.NMSE
+    :add-heading: Examples using ``NMSE``:

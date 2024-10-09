@@ -1,0 +1,15 @@
+﻿LPIPS
+=====
+
+.. currentmodule:: deepinv.loss
+
+.. autoclass:: LPIPS
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.loss.LPIPS:
+
+.. minigallery:: deepinv.loss.LPIPS
+    :add-heading: Examples using ``LPIPS``:
