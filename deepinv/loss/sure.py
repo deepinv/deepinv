@@ -342,8 +342,12 @@ class SurePGLoss(Loss):
         self.grad_sigma = 0.0
         self.grad_gain = 0.0
         self.momentum = momentum
-        self.init_flag = True
+        self.init_flag_sigma = True
+        self.init_flag_gain = True
         self.unsure = unsure
+        if unsure:
+            self.sigma2 = torch.tensor(self.sigma2, requires_grad=True)
+            self.gain = torch.tensor(self.gain, requires_grad=True)
 
     def forward(self, y, x_net, physics, model, **kwargs):
         r"""
@@ -381,19 +385,19 @@ class SurePGLoss(Loss):
 
         if self.unsure:  # update the estimate of the noise levels
             div = loss_div1.mean()
-            self.sigma2, self.grad_sigma, self.init_flag = unsure_gradient_step(
+            self.sigma2, self.grad_sigma, self.init_flag_sigma = unsure_gradient_step(
                 div,
                 self.sigma2,
                 self.grad_sigma,
-                self.init_flag,
+                self.init_flag_sigma,
                 self.step_size[0],
                 self.momentum[0],
             )
-            self.gain, self.grad_gain, self.init_flag = unsure_gradient_step(
+            self.gain, self.grad_gain, self.init_flag_gain = unsure_gradient_step(
                 div,
-                self.sigma2,
-                self.grad_sigma,
-                self.init_flag,
+                self.gain,
+                self.grad_gain,
+                self.init_flag_gain,
                 self.step_size[1],
                 self.momentum[1],
             )
