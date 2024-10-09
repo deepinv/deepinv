@@ -1,9 +1,12 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+    from torch.optim.lr_scheduler import LRScheduler
 
 import torch
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import Module
 
 from deepinv.training.trainer import Trainer
