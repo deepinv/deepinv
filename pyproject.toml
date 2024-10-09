@@ -36,6 +36,9 @@ dependencies = [
 [tool.setuptools]
 platforms = ["any"]
 
+[tool.setuptools.packages]
+find = { where = ["."] }
+
 [project.readme]
 file = "README.rst"
 content-type = "text/x-rst"
