@@ -190,14 +190,14 @@ class DRUNet(nn.Module):
                 * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
-        if self.training or (
+        if (
             x.size(2) % 8 == 0
             and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif x.size(2) < 32 or x.size(3) < 32:
+        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)

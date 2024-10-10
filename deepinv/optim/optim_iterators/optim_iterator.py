@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from deepinv.optim.data_fidelity import L2
 
 
 class OptimIterator(nn.Module):
@@ -62,7 +61,9 @@ class OptimIterator(nn.Module):
         """
         return beta * u + (1 - beta) * v
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda g`, alternating
         between a step on :math:`f` and a step on :math:`g`.
@@ -79,12 +80,16 @@ class OptimIterator(nn.Module):
         """
         x_prev = X["est"][0]
         if not self.g_first:
-            z = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
-            x = self.g_step(z, cur_prior, cur_params)
+            z = self.f_step(
+                x_prev, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
+            )
+            x = self.g_step(z, cur_prior, cur_params, *args, **kwargs)
         else:
             z = self.g_step(x_prev, cur_prior, cur_params)
-            x = self.f_step(z, cur_data_fidelity, cur_params, y, physics)
-        x = self.relaxation_step(x, x_prev, cur_params["beta"])
+            x = self.f_step(
+                z, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
+            )
+        x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
@@ -105,7 +110,9 @@ class fStep(nn.Module):
         super(fStep, self).__init__()
         self.g_first = g_first
 
-        def forward(self, x, cur_data_fidelity, cur_params, y, physics):
+        def forward(
+            self, x, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
+        ):
             r"""
             Single iteration step on the data-fidelity term :math:`f`.
 
@@ -130,7 +137,7 @@ class gStep(nn.Module):
         super(gStep, self).__init__()
         self.g_first = g_first
 
-        def forward(self, x, cur_prior, cur_params):
+        def forward(self, x, cur_prior, cur_params, *args, **kwargs):
             r"""
             Single iteration step on the prior term :math:`g`.
 

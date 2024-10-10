@@ -230,7 +230,7 @@ class BaseOptim(nn.Module):
         else:
             self.prior = prior
 
-        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the prior to change at each iteration.
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
         if not isinstance(data_fidelity, Iterable):
             self.data_fidelity = [data_fidelity]
         else:
@@ -276,7 +276,7 @@ class BaseOptim(nn.Module):
         (if this prior depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the prior of iteration ``it``.
+        :return: the prior of iteration ``it``.
         """
         cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return cur_prior
@@ -287,7 +287,7 @@ class BaseOptim(nn.Module):
         (if this data_fidelity depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the data_fidelity of iteration ``it``.
+        :return: the data_fidelity of iteration ``it``.
         """
         cur_data_fidelity = (
             self.data_fidelity[it]
@@ -465,7 +465,7 @@ class BaseOptim(nn.Module):
         else:
             return False
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
@@ -473,12 +473,13 @@ class BaseOptim(nn.Module):
         :param deepinv.physics physics: physics of the problem for the acquisition of ``y``.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :param kwargs: optional keyword arguments for the optimization iterator (see :meth:`deepinv.optim.optim_iterators.OptimIterator`)
         :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         with torch.no_grad():
             X, metrics = self.fixed_point(
-                y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
             x = self.get_output(X)
             if compute_metrics:
@@ -487,7 +488,9 @@ class BaseOptim(nn.Module):
                 return x
 
 
-def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
+def create_iterator(
+    iteration, prior=None, F_fn=None, g_first=False, bregman_potential=None
+):
     r"""
     Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
     corresponding to the chosen minimization algorithm.
@@ -501,6 +504,7 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     """
     # If no prior is given, we set it to a zero prior.
     if prior is None:
@@ -520,7 +524,8 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
                     reg_value = (cur_params["lambda"] * prior_value).sum()
                 else:
                     reg_value = (
-                        cur_params["lambda"].flatten() * prior_value.flatten()
+                        cur_params["lambda"].flatten().to(prior_value.device)
+                        * prior_value.flatten()
                     ).sum()
             return data_fidelity(x, y, physics) + reg_value
 
@@ -532,7 +537,12 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
         iteration, str
     ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
-        return iterator_fn(g_first=g_first, F_fn=F_fn, has_cost=has_cost)
+        return iterator_fn(
+            g_first=g_first,
+            F_fn=F_fn,
+            has_cost=has_cost,
+            bregman_potential=bregman_potential,
+        )
     else:
         # If the iteration is directly given as an instance of OptimIterator, nothing to do
         return iteration
@@ -546,6 +556,7 @@ def optim_builder(
     prior=None,
     F_fn=None,
     g_first=False,
+    bregman_potential=None,
     **kwargs,
 ):
     r"""
@@ -569,12 +580,19 @@ def optim_builder(
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
     :param callable F_fn: Custom user input cost function. default: `None`.
-    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: `False`
+    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
     :return: an instance of the :meth:`BaseOptim` class.
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(
+        iteration,
+        prior=prior,
+        F_fn=F_fn,
+        g_first=g_first,
+        bregman_potential=bregman_potential,
+    )
     return BaseOptim(
         iterator,
         has_cost=iterator.has_cost,
