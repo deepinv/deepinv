@@ -146,7 +146,7 @@ epochs = 4  # choose training epochs
 learning_rate = 5e-4
 
 # choose training losses
-losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
+losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

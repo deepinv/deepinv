@@ -195,7 +195,7 @@ learning_rate = 5e-3  # reduce this parameter when using more epochs
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
 
 # Choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.l1())]
+losses = [dinv.loss.SupLoss(metric=torch.nn.L1Loss())]
 
 # Batch sizes and data loaders
 train_batch_size = 64 if torch.cuda.is_available() else 8

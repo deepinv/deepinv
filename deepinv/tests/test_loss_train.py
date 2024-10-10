@@ -137,7 +137,7 @@ def test_optim_algo(name_algo, imsize, device):
     )
 
     epochs = 1
-    losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+    losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
     optimizer = torch.optim.Adam(model_unfolded.parameters(), lr=1e-3, weight_decay=0.0)
 
     trainer = dinv.Trainer(

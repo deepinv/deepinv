@@ -52,7 +52,7 @@ class ShiftTime(Transform):
         )
 
     def _get_params(self, x: torch.Tensor) -> dict:
-        amounts = torch.randperm(x.shape[-3] * 2) - x.shape[-3]
+        amounts = torch.randperm(x.shape[-3] * 2, generator=self.rng) - x.shape[-3]
         amounts = amounts[: self.n_trans]
         return {"amounts": amounts}
 

@@ -223,7 +223,7 @@ verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # choose training losses
-losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
+losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)

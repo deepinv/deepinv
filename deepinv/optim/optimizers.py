@@ -1,12 +1,12 @@
 import sys
 import warnings
+from collections.abc import Iterable
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
-from collections.abc import Iterable
-from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
+from deepinv.loss.metric.distortion import PSNR
 
 
 class BaseOptim(nn.Module):
@@ -351,7 +351,7 @@ class BaseOptim(nn.Module):
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
         if x_gt is not None:
-            psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            psnr = [[PSNR()(x_init[i], x_gt[i])] for i in range(self.batch_size)]
         else:
             psnr = [[] for i in range(self.batch_size)]
         init["psnr"] = psnr
@@ -385,7 +385,7 @@ class BaseOptim(nn.Module):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = cal_psnr(x[i], x_gt[i])
+                    psnr = PSNR()(x[i], x_gt[i])
                     metrics["psnr"][i].append(psnr)
                 if self.has_cost:
                     F = X["cost"][i]

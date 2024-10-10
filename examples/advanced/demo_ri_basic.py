@@ -342,10 +342,10 @@ x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
 
 # compute PSNR
 print(
-    f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(image_gdth, back):.2f} dB"
+    f"Linear reconstruction PSNR: {dinv.metric.PSNR()(image_gdth, back).item():.2f} dB"
 )
 print(
-    f"FISTA reconstruction PSNR: {dinv.utils.metric.cal_psnr(image_gdth, x_model):.2f} dB"
+    f"FISTA reconstruction PSNR: {dinv.metric.PSNR()(image_gdth, x_model).item():.2f} dB"
 )
 
 # plot images

@@ -1,6 +1,8 @@
 from __future__ import annotations
+from typing import Union
 import torch
 from deepinv.loss.loss import Loss
+from deepinv.loss.metric.metric import Metric
 
 
 class R2RLoss(Loss):
@@ -44,6 +46,7 @@ class R2RLoss(Loss):
         over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)`
         where :math:`N>1`. This can be achieved using :meth:`adapt_model`.
 
+    :param Metric, torch.nn.Module metric: metric for calculating loss, defaults to MSE.
     :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
     :param float alpha: scaling factor of the perturbation.
     :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
@@ -69,7 +72,11 @@ class R2RLoss(Loss):
     """
 
     def __init__(
-        self, metric=torch.nn.MSELoss(), sigma=0.1, alpha=0.5, eval_n_samples=5
+        self,
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        sigma=0.1,
+        alpha=0.5,
+        eval_n_samples=5,
     ):
         super(R2RLoss, self).__init__()
         self.name = "r2r"
