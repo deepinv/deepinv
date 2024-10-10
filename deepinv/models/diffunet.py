@@ -54,11 +54,11 @@ class DiffUNet(nn.Module):
             num_res_blocks = 2
             attention_resolutions = "8,16,32"
         else:
-            model_channels = 128
+            model_channels = 64 if in_channels == 1 else 128
             num_res_blocks = 1
             attention_resolutions = "16"
 
-        dropout = 0.1
+        dropout = 0.0 if in_channels == 1 else 0.1
         conv_resample = True
         dims = 2
         num_classes = None
@@ -71,9 +71,14 @@ class DiffUNet(nn.Module):
         use_new_attention_order = False
 
         out_channels = 6 if out_channels == 3 else out_channels
+        out_channels = 2 if out_channels == 1 else out_channels
+
         channel_mult = (1, 1, 2, 2, 4, 4)
+        channel_mult = (1, 2, 3, 4) if in_channels == 1 else channel_mult
 
         img_size = 256
+        img_size = 64 if in_channels == 1 else img_size
+
         attention_ds = []
         for res in attention_resolutions.split(","):
             attention_ds.append(img_size // int(res))
@@ -249,14 +254,19 @@ class DiffUNet(nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 3 and out_channels == 6 and not large_model:
+                    model_name = "diffunet"
                     name = "diffusion_ffhq_10m.pt"
                 elif in_channels == 3 and out_channels == 6 and large_model:
+                    model_name = "diffunet"
                     name = "diffusion_openai.pt"
+                elif in_channels == 1 and out_channels == 2:
+                    name = "kernel_checkpoint.pt"
+                    model_name = "blind_dps_kernels"
                 else:
                     raise ValueError(
                         "no existing pretrained model matches the requested configuration"
                     )
-                url = get_weights_url(model_name="diffunet", file_name=name)
+                url = get_weights_url(model_name=model_name, file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
@@ -405,7 +415,11 @@ class DiffUNet(nn.Module):
         noise_est_sample_var = self.forward_diffusion(
             x, torch.tensor([timesteps]).to(x.device), y=y
         )
-        noise_est = noise_est_sample_var[:, :3, ...]
+        if noise_est_sample_var.shape[1] == 6:
+            noise_est = noise_est_sample_var[:, :3, ...]
+        elif noise_est_sample_var.shape[1] == 2:
+            noise_est = noise_est_sample_var[:, :1, ...]
+
         denoised = (
             sqrt_recip_alphas_cumprod[timesteps] * x
             - sqrt_recipm1_alphas_cumprod[timesteps] * noise_est
