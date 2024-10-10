@@ -24,17 +24,18 @@ def import_pyiqa() -> ModuleType:
         )
 
 
-class Metric(Loss):
+class Metric(Module):
     r"""
     Base class for metrics.
 
     See docs for ``forward()`` below for more details.
 
-    To create a new metric, inherit from this class and override the function :meth:`deepinv.loss.metric.Metric.metric`.
+    To create a new metric, inherit from this class, override the function :meth:`deepinv.metric.Metric.metric`,
+    set lower_better attribute and optionally override the ``invert_metric`` method.
 
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
+    :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -47,7 +48,6 @@ class Metric(Loss):
         norm_inputs: Optional[str] = None,
     ):
         super().__init__()
-        self.lower_better = True
         self.train_loss = train_loss
         self.complex_abs = complex_abs  # NOTE assumes C in dim=1
         normalizer = lambda x: x
@@ -80,13 +80,14 @@ class Metric(Loss):
             else:
                 raise ValueError("reduction must either be mean, sum, none or None.")
 
+        # Subclasses override this if higher is better (e.g. in SSIM)
+        self.lower_better = True
+
     def metric(
         self,
         x_net: Tensor = None,
         x: Tensor = None,
         y: Tensor = None,
-        physics: Physics = None,
-        model: Module = None,
         *args,
         **kwargs,
     ) -> Tensor:
@@ -95,29 +96,32 @@ class Metric(Loss):
         Override this function to implement your own metric. Always include ``args`` and ``kwargs`` arguments.
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
-        :param torch.Tensor x: Reference image.
-        :param torch.Tensor y: Measurement.
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module model: Reconstruction function.
+        :param torch.Tensor x: Reference image (optional).
+        :param torch.Tensor y: Measurement (optional).
 
         :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
         """
         raise NotImplementedError()
+
+    def invert_metric(self, m: Tensor):
+        """Invert metric. Used where a higher=better metric is to be used in a training loss.
+
+        :param Tensor m: calculated metric
+        """
+        return -m
 
     def forward(
         self,
         x_net: Tensor = None,
         x: Tensor = None,
         y: Tensor = None,
-        physics: Physics = None,
-        model: Module = None,
         *args,
         **kwargs,
     ) -> Tensor:
         r"""Metric forward pass.
 
         Usually, the data passed is ``x_net, x`` i.e. estimate and target or only ``x_net`` for no-reference metric.
-        In general, the data can also include measurements ``y``, ``physics`` and the reconstruction ``model``.
+        Optionally, the data can also include input measurements ``y``.
 
         The forward pass also optionally calculates complex magnitude of images, performs normalisation,
         or inverts the metric to use it as a training loss.
@@ -127,10 +131,8 @@ class Metric(Loss):
         All tensors should be of shape (B, ...) or (B, C, ...).
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
-        :param torch.Tensor x: Reference image.
-        :param torch.Tensor y: Measurement.
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param torch.nn.Module model: Reconstruction function.
+        :param torch.Tensor x: Reference image (optional).
+        :param torch.Tensor y: Measurement (optional).
 
         :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
         """
@@ -146,13 +148,13 @@ class Metric(Loss):
             x_net=self.normalizer(x_net),
             x=self.normalizer(x),
             y=self.normalizer(y),
-            physics=physics,
-            model=model,
             *args,
             **kwargs,
         )
 
         m = self.reducer(m)
 
-        m = (1.0 - m) if (self.train_loss and not self.lower_better) else m
-        return m
+        if self.train_loss and not self.lower_better:
+            return self.invert_metric(m)
+        else:
+            return m

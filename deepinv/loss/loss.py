@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class Loss(torch.nn.Module):
     r"""
-    Base class for all loss/metric functions.
+    Base class for all loss functions.
 
     Sets a template for the loss functions, whose forward method must follow the input parameters in
     :meth:`deepinv.loss.Loss.forward`.

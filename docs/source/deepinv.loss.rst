@@ -96,13 +96,8 @@ Metrics
 Metrics are generally used to evaluate the performance of a model.
 
 Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass, and take either ``x_net, x``
-for a full-reference metric or ``x_net`` for a no-reference metric. 
-
-.. note::
-
-    Metrics may also optionally take in measurements ``y``, the physics and the model.
-    The arguments are the same as in :class:`deepinv.loss.Loss`.
-
+for a full-reference metric or ``x_net`` for a no-reference metric.
+Metrics may also optionally take in the input measurements ``y`` if needed.
 
 All metrics can perform a standard set of pre and post processing, including
 operating on complex numbers, normalisation and reduction. See :class:`deepinv.loss.metric.Metric` for more details.
@@ -112,10 +107,20 @@ operating on complex numbers, normalisation and reduction. See :class:`deepinv.l
     By default, metrics do not reduce over the batch dimension, as the usual usage is to average the metrics over a dataset yourself.
     However, you can use the ``reduction`` argument to perform reduction, e.g. if the metric is to be used as a training loss.
 
-All metrics can be used as training losses as well by setting ``train_loss=True``.
-For example, ``MSE(train_loss=True)`` replaces :class:`torch.nn.MSELoss` and ``MAE(train_loss=True)`` replaces :class:`torch.nn.L1Loss`.
+All metrics can either be used directly as metrics, or as the backbone for training losses.
+To do this, wrap the metric in a suitable loss such as :class:`deepinv.loss.SupLoss` or :class:`deepinv.loss.MCLoss`.
+In this way, :class:`deepinv.loss.metric.MSE` replaces :class:`torch.nn.MSELoss` and :class:`deepinv.loss.metric.MAE` replaces :class:`torch.nn.L1Loss`,
+and you can use these in a loss like ``SupLoss(metric=MSE())``.
 
-Metrics can either be used directly or as the backbone for loss functions:
+.. note::
+
+    For some metrics, higher is better; for these, you must also set ``train_loss=True``.
+
+.. note::
+
+    For convenience, you can also import metrics directly from ``deepinv.metric`` or ``deepinv.loss``.
+
+Example:
 
 .. doctest::
 

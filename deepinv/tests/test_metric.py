@@ -1,11 +1,22 @@
 import pytest
 import torch
-from deepinv.physics import GaussianNoise
+import deepinv as dinv
 import deepinv.loss.metric as metric
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.utils.demo import get_image_url, load_url_image
 
-METRICS = ["MAE", "MSE", "NMSE", "PSNR", "SSIM", "LpNorm", "L1L2", "LPIPS", "NIQE"]
+METRICS = [
+    "MAE",
+    "MSE",
+    "MSE1",
+    "MSE2",
+    "NMSE",
+    "PSNR",
+    "SSIM",
+    "LpNorm",
+    "L1L2",
+    "LPIPS",
+    "NIQE",
+]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
 
@@ -17,7 +28,14 @@ def choose_metric(metric_name, **kwargs) -> metric.Metric:
             "installed with `pip install pyiqa`",
         )
     if metric_name == "MSE":
+        # Test importing from deepinv.loss.metric
         return metric.MSE(**kwargs)
+    elif metric_name == "MSE1":
+        # Test importing from deepinv.metric
+        return dinv.metric.MSE(**kwargs)
+    elif metric_name == "MSE2":
+        # Test importing from deepinv.loss directly
+        return dinv.loss.MSE(**kwargs)
     elif metric_name == "NMSE":
         return metric.NMSE(**kwargs)
     elif metric_name == "MAE":
@@ -55,10 +73,12 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
     if complex_abs:
         x = x[:, :2, ...]
 
-    x_hat = GaussianNoise(sigma=0.1, rng=rng)(x)
+    x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 
     # Test metric worse when image worse
-    if train_loss:  # All metrics lower = better
+    # In general, metrics can be either lower or higher = better
+    # However, if we set train_loss=True, all metrics become lower = better.
+    if train_loss:
         assert m(x_hat, x).item() > m(x, x).item()
 
     # Test various args and kwargs which could be passed to metrics

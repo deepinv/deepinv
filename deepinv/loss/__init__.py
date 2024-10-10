@@ -23,3 +23,19 @@ from .scheduler import (
 )
 
 from . import metric
+
+from .metric import (
+    Metric,
+    MSE,
+    NMSE,
+    PSNR,
+    SSIM,
+    LpNorm,
+    L1L2,
+    MAE,
+    NIQE,
+    LPIPS,
+    cal_mse,
+    cal_psnr,
+    cal_mae,
+)

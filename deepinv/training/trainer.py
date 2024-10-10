@@ -138,7 +138,7 @@ class Trainer:
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.
-    :param deepinv.loss.metric.Metric, list[deepinv.loss.metric.Metric] metrics: Metric or list of metrics used for evaluating the model.
+    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
@@ -562,8 +562,6 @@ class Trainer:
                     x=x,
                     x_net=x_net,
                     y=y,
-                    physics=physics,
-                    model=self.model,
                     epoch=epoch,
                 )
 
