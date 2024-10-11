@@ -57,7 +57,7 @@ New Features
 - Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
 - Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`)
 - Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`)
-
+- Added stride, shape in `PatchDataset` (:gh:`308` by apolychronou)
 
 Fixed
 ^^^^^
