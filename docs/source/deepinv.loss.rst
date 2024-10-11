@@ -97,7 +97,6 @@ Metrics are generally used to evaluate the performance of a model.
 
 Metrics inherit from the :class:`deepinv.loss.metric.Metric` baseclass, and take either ``x_net, x``
 for a full-reference metric or ``x_net`` for a no-reference metric.
-Metrics may also optionally take in the input measurements ``y`` if needed.
 
 All metrics can perform a standard set of pre and post processing, including
 operating on complex numbers, normalisation and reduction. See :class:`deepinv.loss.metric.Metric` for more details.

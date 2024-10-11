@@ -87,7 +87,6 @@ class Metric(Module):
         self,
         x_net: Tensor = None,
         x: Tensor = None,
-        y: Tensor = None,
         *args,
         **kwargs,
     ) -> Tensor:
@@ -97,7 +96,6 @@ class Metric(Module):
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param torch.Tensor x: Reference image (optional).
-        :param torch.Tensor y: Measurement (optional).
 
         :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
         """
@@ -114,14 +112,12 @@ class Metric(Module):
         self,
         x_net: Tensor = None,
         x: Tensor = None,
-        y: Tensor = None,
         *args,
         **kwargs,
     ) -> Tensor:
         r"""Metric forward pass.
 
         Usually, the data passed is ``x_net, x`` i.e. estimate and target or only ``x_net`` for no-reference metric.
-        Optionally, the data can also include input measurements ``y``.
 
         The forward pass also optionally calculates complex magnitude of images, performs normalisation,
         or inverts the metric to use it as a training loss.
@@ -132,22 +128,19 @@ class Metric(Module):
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param torch.Tensor x: Reference image (optional).
-        :param torch.Tensor y: Measurement (optional).
 
         :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
         """
         if isinstance(x_net, (list, tuple)):
-            x_net = x_net[0]
+            x_net = x_net[0] if x_net is not None else x_net
             x = x[0] if x is not None else x
-            y = y[0] if y is not None else y
 
         if self.complex_abs:
-            x_net, x, y = complex_abs(x_net), complex_abs(x), complex_abs(y)
+            x_net, x = complex_abs(x_net), complex_abs(x)
 
         m = self.metric(
-            x_net=self.normalizer(x_net),
-            x=self.normalizer(x),
-            y=self.normalizer(y),
+            self.normalizer(x_net),
+            self.normalizer(x),
             *args,
             **kwargs,
         )

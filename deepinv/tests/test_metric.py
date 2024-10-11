@@ -83,6 +83,7 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
 
     # Test various args and kwargs which could be passed to metrics
     assert m(x_hat, x, None, model=None, some_other_kwarg=None) != 0
+    assert m(x_net=x_hat, x=x, some_other_kwarg=None) != 0
 
     # Test no reduce works
     x_hat = torch.cat([x_hat] * 3)
