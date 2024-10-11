@@ -145,7 +145,7 @@ class AdversarialTrainer(Trainer):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup_train()
+        super().setup_train(**kwargs)
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
