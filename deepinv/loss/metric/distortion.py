@@ -305,11 +305,12 @@ class QNR(Metric):
     >>> from deepinv.loss.metric import QNR
     >>> from deepinv.physics import Pansharpen
     >>> m = QNR()
-    >>> x = x_net = torch.rand(1, 3, 64, 64, generator=torch.Generator().manual_seed(0)) # B,C,H,W
+    >>> x = x_net = torch.ones(1, 3, 64, 64) # B,C,H,W
+    >>> x_net[..., 1, 1] = 0 # add small blemish
     >>> physics = Pansharpen((3, 64, 64), noise_gray=None)
     >>> y = physics(x) #[BCH'W', B1HW]
     >>> m(x_net=x_net, y=y, physics=physics)
-    tensor([0.8670], grad_fn=<MulBackward0>)
+    tensor([0.9392], grad_fn=<MulBackward0>)
 
     :param float alpha: weight for spectral quality, defaults to 1
     :param float beta: weight for structural quality, defaults to 1
