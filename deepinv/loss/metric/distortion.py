@@ -1,4 +1,9 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+from functools import partial
+
 import torch
+from torch import Tensor
 from torch.nn import MSELoss, L1Loss
 from torchmetrics.functional import (
     structural_similarity_index_measure,
@@ -7,6 +12,10 @@ from torchmetrics.functional import (
 
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
+from deepinv.utils.nn import TensorList
+
+if TYPE_CHECKING:
+    from deepinv.physics.remote_sensing import Pansharpen
 
 
 class MAE(Metric):
@@ -278,3 +287,113 @@ class LpNorm(Metric):
             diff = x_net - x
 
         return torch.norm(diff.view(diff.size(0), -1), p=self.p, dim=1).pow(self.p)
+
+
+class QNR(Metric):
+    r"""
+    Quality with No Reference (QNR) metric for pansharpening.
+
+    QNR was proposed in Alparone et al., "Multispectral and Panchromatic Data Fusion Assessment Without Reference".
+
+    Note we don't use the torchmetrics implementation.
+
+    See docs for ``forward()`` below for more details.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import QNR
+    >>> from deepinv.physics import Pansharpen
+    >>> m = QNR()
+    >>> x = x_net = torch.rand(1, 3, 64, 64, generator=torch.Generator().manual_seed(0)) # B,C,H,W
+    >>> physics = Pansharpen((3, 64, 64), noise_gray=None)
+    >>> y = physics(x) #[BCH'W', B1HW]
+    >>> m(x_net=x_net, y=y, physics=physics)
+    tensor([0.8670], grad_fn=<MulBackward0>)
+
+    :param float alpha: weight for spectral quality, defaults to 1
+    :param float beta: weight for structural quality, defaults to 1
+    :param float p: power exponent for spectral D, defaults to 1
+    :param float q: power exponent for structural D, defaults to 1
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def __init__(
+        self, alpha: float = 1, beta: float = 1, p: float = 1, q: float = 1, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.alpha, self.beta, self.p, self.q = alpha, beta, p, q
+        self.Q = partial(
+            structural_similarity_index_measure, reduction="none"
+        )  # Wang-Bovik
+        self.lower_better = False
+
+    def invert_metric(self, m):
+        return 1.0 - m
+
+    def D_lambda(self, hrms: Tensor, lrms: Tensor) -> float:
+        """Calculate spectral distortion index."""
+        _, n_bands, _, _ = hrms.shape
+        out = 0
+        for b in range(n_bands):
+            for c in range(n_bands):
+                out += (
+                    abs(
+                        self.Q(hrms[:, [b], :, :], hrms[:, [c], :, :])
+                        - self.Q(lrms[:, [b], :, :], lrms[:, [c], :, :])
+                    )
+                    ** self.p
+                )
+        return (out / (n_bands * (n_bands - 1))) ** (1 / self.p)
+
+    def D_s(self, hrms: Tensor, lrms: Tensor, pan: Tensor, pan_lr: Tensor) -> float:
+        """Calculate spatial (or structural) distortion index."""
+        _, n_bands, _, _ = hrms.shape
+        out = 0
+        for b in range(n_bands):
+            out += (
+                abs(
+                    self.Q(hrms[:, [b], :, :], pan) - self.Q(lrms[:, [b], :, :], pan_lr)
+                )
+                ** self.q
+            )
+        return (out / n_bands) ** (1 / self.q)
+
+    def metric(self, x_net, x, y: TensorList, physics: Pansharpen, *args, **kwargs):
+        r"""Calculate QNR on data.
+
+        Note this does not require knowledge of ``x``, but it is included here as a placeholder.
+        QNR requires knowledge of ``y`` and ``physics``, which is not standard. In order to use QNR with
+        :class:`deepinv.Trainer`, you will have to override the ``compute_metrics`` method to
+        pass ``y``,``physics`` into the metric.
+
+        :param torch.Tensor x_net: Reconstructed high-res multispectral image :math:`\inverse{y}` of shape (B,C,H,W).
+        :param torch.Tensor x: Placeholder, does nothing.
+        :param deepinv.utils.TensorList y: pansharpening measurements generated from
+            :class:`deepinv.physics.Pansharpen`, where y[0] is the low-res multispectral image of shape (B,C,H',W')
+            and y[1] is the high-res noisy panchromatic image of shape (B,1,H,W)
+        :param deepinv.physics.Pansharpen physics: pansharpening physics, used to calculate low-res pan image for QNR calculation.
+
+        :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
+        """
+
+        if y is None:
+            raise ValueError("QNR requires the measurements y to be passed.")
+
+        if physics is None:
+            raise ValueError("QNR requires the pansharpening physics to be passed.")
+
+        lrms = y[0]
+        pan = y[1]
+
+        pan_lr = physics.downsampling.A(pan)
+
+        d_lambda = self.D_lambda(x_net, lrms)
+        d_s = self.D_s(x_net, lrms, pan, pan_lr)
+        qnr = (1 - d_lambda) ** self.alpha * (1 - d_s) ** self.beta
+
+        return qnr

@@ -14,6 +14,7 @@ METRICS = [
     "SSIM",
     "LpNorm",
     "L1L2",
+    "QNR",
     "LPIPS",
     "NIQE",
 ]
@@ -52,6 +53,8 @@ def choose_metric(metric_name, **kwargs) -> metric.Metric:
         return metric.LPIPS(**kwargs)
     elif metric_name == "NIQE":
         return metric.NIQE(**kwargs)
+    elif metric_name == "QNR":
+        return metric.QNR()
 
 
 @pytest.mark.parametrize("metric_name", METRICS)
@@ -69,6 +72,13 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
     x = load_url_image(
         get_image_url("celeba_example.jpg"), img_size=128, resize_mode="resize"
     )
+
+    if metric_name == "QNR":
+        x_hat = x
+        physics = dinv.physics.Pansharpen((3, 128, 128))
+        y = physics(x)
+        assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
+        return
 
     if complex_abs:
         x = x[:, :2, ...]

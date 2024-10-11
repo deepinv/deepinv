@@ -146,6 +146,7 @@ Example:
         deepinv.loss.metric.MAE
         deepinv.loss.metric.PSNR
         deepinv.loss.metric.SSIM
+        deepinv.loss.metric.QNR
         deepinv.loss.metric.L1L2
         deepinv.loss.metric.LPIPS
         deepinv.loss.metric.NIQE

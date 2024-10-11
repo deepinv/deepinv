@@ -559,9 +559,8 @@ class Trainer:
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
                 metric = l(
-                    x=x,
                     x_net=x_net,
-                    y=y,
+                    x=x,
                     epoch=epoch,
                 )
 
