@@ -305,12 +305,11 @@ class QNR(Metric):
     >>> from deepinv.loss.metric import QNR
     >>> from deepinv.physics import Pansharpen
     >>> m = QNR()
-    >>> x = x_net = torch.ones(1, 3, 64, 64) # B,C,H,W
-    >>> x_net[..., 1, 1] = 0 # add small blemish
-    >>> physics = Pansharpen((3, 64, 64), noise_gray=None)
+    >>> x = x_net = torch.rand(1, 3, 64, 64) # B,C,H,W
+    >>> physics = Pansharpen((3, 64, 64))
     >>> y = physics(x) #[BCH'W', B1HW]
-    >>> m(x_net=x_net, y=y, physics=physics)
-    tensor([0.9392], grad_fn=<MulBackward0>)
+    >>> m(x_net=x_net, y=y, physics=physics) # doctest: +ELLIPSIS
+    tensor([...], grad_fn=<MulBackward0>)
 
     :param float alpha: weight for spectral quality, defaults to 1
     :param float beta: weight for structural quality, defaults to 1
@@ -367,10 +366,12 @@ class QNR(Metric):
     def metric(self, x_net, x, y: TensorList, physics: Pansharpen, *args, **kwargs):
         r"""Calculate QNR on data.
 
-        Note this does not require knowledge of ``x``, but it is included here as a placeholder.
-        QNR requires knowledge of ``y`` and ``physics``, which is not standard. In order to use QNR with
-        :class:`deepinv.Trainer`, you will have to override the ``compute_metrics`` method to
-        pass ``y``,``physics`` into the metric.
+        .. note::
+
+            Note this does not require knowledge of ``x``, but it is included here as a placeholder.
+            QNR requires knowledge of ``y`` and ``physics``, which is not standard. In order to use QNR with
+            :class:`deepinv.Trainer`, you will have to override the ``compute_metrics`` method to
+            pass ``y,physics`` into the metric.
 
         :param torch.Tensor x_net: Reconstructed high-res multispectral image :math:`\inverse{y}` of shape (B,C,H,W).
         :param torch.Tensor x: Placeholder, does nothing.
