@@ -144,11 +144,11 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self):
+    def setup_train(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup_train()
+        super().setup_train(**kwargs)
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
