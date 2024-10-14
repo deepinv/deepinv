@@ -50,8 +50,8 @@ class MarchenkoPastur:
             # automatically set sigma to make E[|x|^2] = 1
             self.sigma = (1+self.gamma)**(-0.25)
         self.lamb = m / n
-        self.min_supp = self.sigma**2*(1-np.sqrt(self.gamma))**2
-        self.max_supp = self.sigma**2*(1+np.sqrt(self.gamma))**2
+        self.min_supp = np.array(self.sigma**2*(1-np.sqrt(self.gamma))**2)
+        self.max_supp = np.array(self.sigma**2*(1+np.sqrt(self.gamma))**2)
         self.max_pdf = None
     
     def pdf(self,x):

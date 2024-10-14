@@ -5,9 +5,9 @@ general:
 
 signal:
   img_size: 64
-  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
+  mode: "random" # "random", "shepp-logan", "mix", "delta"
   config:
-    varying_norm: True
+    varying_norm: False
     noise_ratio: 0.0 # noise ratio for mix mode
     max_scale: 3.0 # max scale for varying norm
 

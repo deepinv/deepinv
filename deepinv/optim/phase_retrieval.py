@@ -8,11 +8,43 @@ import seaborn as sns
 import torch
 import yaml
 
+from deepinv.utils.demo import load_url_image, get_image_url
+
 # Load configuration from YAML file
 def load_config(config_file):
     with open(config_file, 'r') as file:
         config_dict = yaml.safe_load(file)
     return DotMap(config_dict)
+
+def generate_signal(img_shape, mode, config, dtype, device):
+    if mode == "shepp-logan":
+        url = get_image_url("SheppLogan.png")
+        img = load_url_image(
+        url=url, img_size=img_shape, grayscale=True, resize_mode="resize", device=device
+        )
+    elif mode == "random":
+        # random phase signal
+        img = torch.rand((1, 1, img_shape, img_shape), device=device)
+    elif mode == "mix":
+        url = get_image_url("SheppLogan.png")
+        img = load_url_image(
+        url=url, img_size=img_shape, grayscale=True, resize_mode="resize", device=device
+        )
+        img = img * (1-config.noise_ratio) + torch.rand_like(img) * config.noise_ratio
+    elif mode == "delta":
+        img = torch.zeros((1, 1, img_shape, img_shape), device=device)
+        img[0, 0, img_shape // 2, img_shape // 2] = 1.0
+    else:
+        raise ValueError("Invalid image mode.")
+    # generate phase signal
+    # The phase is computed as 2*pi*x - pi, where x is the original image.
+    x = torch.exp(1j * img * torch.pi - 0.5j * torch.pi).to(device)
+    # Every element of the signal should have unit norm.
+    assert torch.allclose(x.real**2 + x.imag**2, torch.tensor(1.0))
+    if config.varying_norm is True:
+        scale = config.max_scale*torch.rand_like(x, dtype=torch.float)
+        x = x * scale
+    return x
 
 def compare(a:int,b:int):
     if a > b:
@@ -123,7 +155,7 @@ def spectral_methods(
     if x is None:
         # always use randn for initial guess, never use rand!
         x = torch.randn(
-            (y.shape[0],) + physics.img_shape,
+            (y.shape[0],) + physics.input_shape,
             dtype=physics.dtype,
             device=physics.device,
         )

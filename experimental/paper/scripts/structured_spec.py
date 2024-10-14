@@ -20,6 +20,7 @@ from deepinv.optim.phase_retrieval import (
     cosine_similarity,
     spectral_methods,
     load_config,
+    generate_signal,
 )
 
 # load config
@@ -32,7 +33,7 @@ recon = config.general.recon
 save = config.general.save
 
 # model
-img_size = config.image.img_size
+img_size = config.signal.img_size
 n_layers = config.model.n_layers
 drop_tail = config.model.drop_tail
 transform = config.model.transform
@@ -60,6 +61,7 @@ n_oversampling = oversampling_ratios.shape[0]
 if save:
     res_name = config.save.name.format(
         model_name = model_name,
+        img_mode = config.signal.mode,
         # keep 4 digits of the following numbers
         oversampling_start = np.round(oversampling_ratios[0].numpy(),4),
         oversampling_end = np.round(oversampling_ratios[-1].numpy(),4),
@@ -78,37 +80,17 @@ if save:
     shutil.copy(config_path, SAVE_DIR / "config.yaml")
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device
 
 
-# Set up the image to be reconstructed.
-img_size = config.image.img_size
-if config.image.mode == "shepp-logan":
-    url = get_image_url("SheppLogan.png")
-    img = load_url_image(
-    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
-    )
-    print(img.shape)
-elif config.image.mode == "random":
-    # random phase signal
-    img = torch.rand((1, 1, img_size, img_size), device=device)
-elif config.image.mode == "mix":
-    url = get_image_url("SheppLogan.png")
-    img = load_url_image(
-    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
-    )
-    img = img * (1-config.image.noise_ratio) + torch.rand_like(img) * config.image.noise_ratio
-else:
-    raise ValueError("Invalid image mode.")
+# Set up the signal to be reconstructed.
+x = generate_signal(
+    img_shape=img_size,
+    mode=config.signal.mode,
+    config=config.signal.config,
+    dtype=torch.complex64,
+    device=device,
+)
 
-# visualize the image
-plot(img)
-
-# generate phase signal
-# The phase is computed as 2*pi*x - pi, where x is the original image.
-x = torch.exp(1j * img * torch.pi - 0.5j * torch.pi).to(device)
-# Every element of the signal should have unit norm.
-assert torch.allclose(x.real**2 + x.imag**2, torch.tensor(1.0))
 
 df_res = pd.DataFrame(
     {
@@ -137,8 +119,8 @@ for i in trange(n_oversampling):
         )
         y = physics(x)
 
-        x_phase_spec = spectral_methods(y, physics, n_iter=max_iter)
-        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x, x_phase_spec).item()
+        x_spec = spectral_methods(y, physics, n_iter=max_iter)
+        df_res.loc[i, f"repeat{j}"] = cosine_similarity(x, x_spec).item()
         # print the cosine similarity
         print(f"cosine similarity: {df_res.loc[i, f'repeat{j}']}")
 

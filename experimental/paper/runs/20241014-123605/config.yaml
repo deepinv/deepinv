@@ -1,5 +1,5 @@
 general:
-  name: "structured_FDF"
+  name: "structured_FDF_shepp-logan"
   recon: "spec"
   save: True
 
@@ -7,7 +7,7 @@ signal:
   img_size: 64
   mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
   config:
-    varying_norm: True
+    varying_norm: False
     noise_ratio: 0.0 # noise ratio for mix mode
     max_scale: 3.0 # max scale for varying norm
 
