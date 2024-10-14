@@ -30,6 +30,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
+    "sphinxcontrib.bibtex"
 ]
 
 copybutton_exclude = ".linenos, .gp"
@@ -126,3 +127,5 @@ rst_prolog = """
 
    <hr />
 """
+
+bibtex_bibfiles = ['refs.bib']
