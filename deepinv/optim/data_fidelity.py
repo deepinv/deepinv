@@ -215,7 +215,9 @@ class PoissonLikelihood(DataFidelity):
 
         The function is not Lipschitz smooth w.r.t. :math:`z` in the absence of background (:math:`\beta=0`).
 
-    :param float bkg: background level :math:`\beta`.
+    :param float gain: gain of the measurement :math:`y`. Default: 1.0.
+    :param float bkg: background level :math:`\beta`. Default: 0.
+    :param bool normalize: if True, the measurement is multiplied by the gain. Default: True.
     """
 
     def __init__(self, gain=1.0, bkg=0, normalize=True):

@@ -43,10 +43,11 @@ class Potential(nn.Module):
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
         :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
         """
-        grad = lambda z: self(z, *args, **kwargs) - torch.sum(
+        grad = lambda z: self.grad(z, *args, **kwargs) - x
+        z = gradient_descent(-grad, x)
+        return self.forward(z, *args, **kwargs) - torch.sum(
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
-        )
-        return gradient_descent(grad, x)
+        ).view(x.shape[0], 1)
 
     def grad(self, x, *args, **kwargs):
         r"""
