@@ -91,23 +91,6 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
     deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
     deepinv.loss.adversarial.UAIRGeneratorLoss
 
-Metrics
---------
-Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-        deepinv.loss.MSE
-        deepinv.loss.NMSE
-        deepinv.loss.PSNR
-        deepinv.loss.SSIM
-        deepinv.loss.LPIPS
-        deepinv.loss.NIQE
-
-
 Network Regularization
 ----------------------
 These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
@@ -122,7 +105,7 @@ These losses can be used to regularize the learned function, e.g., controlling i
 
 
 Loss schedulers
--------
+---------------
 Loss schedulers can be used to control which losses are used when during more advanced training.
 
 .. autosummary::
@@ -146,4 +129,4 @@ A set of popular distances that can be used by the supervised and self-supervise
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.loss.LpNorm
+    deepinv.loss.metric.LpNorm

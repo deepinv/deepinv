@@ -224,7 +224,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
 )
 
 # choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # %%
 # Training dataset of random phantoms.

@@ -170,6 +170,7 @@ def rescale_img(im, rescale_mode="min_max"):
 def plot(
     img_list,
     titles=None,
+    save_fn=None,
     save_dir=None,
     tight=True,
     max_imgs=4,
@@ -200,6 +201,8 @@ def plot(
         If the number of channels is 2, the magnitude of the complex images is plotted.
         If the number of channels is bigger than 3, only the first 3 channels are plotted.
 
+    We provide flexibility to save plots either side-by-side using ``save_fn`` or as individual images using ``save_dir``.
+
     Example usage:
 
     .. doctest::
@@ -211,7 +214,8 @@ def plot(
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_dir: path to save the plot.
+    :param None, str, Path save_fn: path to save the plot as a single image (i.e. side-by-side).
+    :param None, str, Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
@@ -279,11 +283,16 @@ def plot(
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
+
     if tight:
         if cbar:
             plt.subplots_adjust(hspace=0.2, wspace=0.2)
         else:
             plt.subplots_adjust(hspace=0.01, wspace=0.05)
+
+    if save_fn:
+        plt.savefig(save_fn, dpi=dpi)
+
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
         save_dir_i = Path(save_dir) / Path(titles[i])
@@ -550,6 +559,7 @@ def plot_inset(
     inset_size: float = 0.4,
     figsize: Tuple[int] = None,
     save_fn: str = None,
+    dpi: int = 1200,
     show: bool = True,
     return_fig: bool = False,
     cmap: str = "gray",
@@ -572,6 +582,7 @@ def plot_inset(
     :param float inset_size: size of inset to be plotted on image, defaults to 0.4
     :param tuple[int] figsize: size of the figure.
     :param str save_fn: filename for plot to be saved, if None, don't save, defaults to None
+    :param int dpi: DPI to save images.
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     """
@@ -656,7 +667,7 @@ def plot_inset(
             )
 
     if save_fn:
-        plt.savefig(save_fn, dpi=1200)
+        plt.savefig(save_fn, dpi=dpi)
 
     if show:
         plt.show()

@@ -108,6 +108,13 @@ def download_cbsd68():
 
 def test_load_cbsd68_dataset(download_cbsd68):
     """Check that dataset contains 68 PIL images."""
+
+    pytest.importorskip(
+        "datasets",
+        reason="This test requires datasets. It should be "
+        "installed with `pip install datasets`",
+    )
+
     dataset = CBSD68(download_cbsd68, download=False)
     assert (
         len(dataset) == 68

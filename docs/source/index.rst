@@ -56,6 +56,7 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.datasets
    deepinv.utils
    deepinv.loss
+   deepinv.metric
    deepinv.transform
    deepinv.denoisers
    deepinv.optim

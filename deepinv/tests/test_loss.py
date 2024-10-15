@@ -117,7 +117,7 @@ def test_sure(noise_type, device):
     y = physics(x)
 
     x_net = f(y, physics)
-    mse = deepinv.metric.mse()(x, x_net)
+    mse = deepinv.metric.MSE()(x, x_net)
     sure = loss(y=y, x_net=x_net, physics=physics, model=f)
 
     rel_error = (sure - mse).abs() / mse
