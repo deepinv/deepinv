@@ -84,7 +84,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # Set up the signal to be reconstructed.
 x = generate_signal(
-    img_shape=img_size,
+    img_size=img_size,
     mode=config.signal.mode,
     config=config.signal.config,
     dtype=torch.complex64,

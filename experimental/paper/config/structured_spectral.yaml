@@ -5,7 +5,7 @@ general:
 
 signal:
   img_size: 64
-  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
+  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"， "constant"
   config:
     noise_ratio: 0.0 # noise ratio for mix mode
     reverse: True

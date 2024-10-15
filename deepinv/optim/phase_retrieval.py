@@ -16,24 +16,26 @@ def load_config(config_file):
         config_dict = yaml.safe_load(file)
     return DotMap(config_dict)
 
-def generate_signal(img_shape, mode, config, dtype, device):
+def generate_signal(img_size, mode, config, dtype, device):
     if mode == "shepp-logan":
         url = get_image_url("SheppLogan.png")
         img = load_url_image(
-        url=url, img_size=img_shape, grayscale=True, resize_mode="resize", device=device
+        url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
         )
     elif mode == "random":
         # random phase signal
-        img = torch.rand((1, 1, img_shape, img_shape), device=device)
+        img = torch.rand((1, 1, img_size, img_size), device=device)
     elif mode == "mix":
         url = get_image_url("SheppLogan.png")
         img = load_url_image(
-        url=url, img_size=img_shape, grayscale=True, resize_mode="resize", device=device
+        url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
         )
         img = img * (1-config.noise_ratio) + torch.rand_like(img) * config.noise_ratio
     elif mode == "delta":
-        img = torch.zeros((1, 1, img_shape, img_shape), device=device)
-        img[0, 0, img_shape // 2, img_shape // 2] = 1.0
+        img = torch.zeros((1, 1, img_size, img_size), device=device)
+        img[0, 0, img_size // 2, img_size // 2] = 1.0
+    elif mode == "constant":
+        img == 0.3 * torch.ones((1, 1, img_size, img_size), device=device)
     else:
         raise ValueError("Invalid image mode.")
     if config.reverse is True:
