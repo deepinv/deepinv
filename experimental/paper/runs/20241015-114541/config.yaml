@@ -1,5 +1,5 @@
 general:
-  name: "structured_shepplogan_reverse"
+  name: "structured_FDF"
   recon: "spec"
   save: True
 
@@ -7,9 +7,8 @@ signal:
   img_size: 64
   mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
   config:
+    varying_norm: True
     noise_ratio: 0.0 # noise ratio for mix mode
-    reverse: True
-    varying_norm: False
     max_scale: 40.0 # max scale for varying norm
 
 model:
@@ -18,7 +17,7 @@ model:
     mode: 'uniform_phase' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
       degree_of_freedom: 30
-      complex: False
+      complex: True
   transform: "fft"
   shared_weights: False
   drop_tail: False

@@ -36,6 +36,8 @@ def generate_signal(img_shape, mode, config, dtype, device):
         img[0, 0, img_shape // 2, img_shape // 2] = 1.0
     else:
         raise ValueError("Invalid image mode.")
+    if config.reverse is True:
+        img = 1 - img
     # generate phase signal
     # The phase is computed as 2*pi*x - pi, where x is the original image.
     x = torch.exp(1j * img * torch.pi - 0.5j * torch.pi).to(device)
@@ -160,19 +162,19 @@ def spectral_methods(
             device=physics.device,
         )
 
-    if log == True:
+    if log is True:
         metrics = []
     
     #! estimate the norm of x using y
-    #! for the i.i.d. case, we have norm(x) = sqrt(sum(y)/var(A))
-    #! for the structured case, when the variance of diagonals are 1, we have norm(x) = sqrt(sum(y))
-    norm_x = torch.sqrt(y.sum()/physics.get_A_var())
+    #! for the i.i.d. case, we have norm(x) = sqrt(sum(y)/A_squared_mean)
+    #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
+    norm_x = torch.sqrt(y.sum())
 
-    x = x.to(torch.cfloat)
+    x = x.to(torch.complex64)
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
-    diag_T = diag_T.to(torch.cfloat)
+    diag_T = diag_T.to(torch.complex64)
     for i in range(n_iter):
         x_new = physics.B(x)
         x_new = diag_T * x_new
@@ -183,7 +185,7 @@ def spectral_methods(
             metrics.append(log_metric(x_new, x_true))
         if early_stop:
             if torch.linalg.norm(x_new - x) / torch.linalg.norm(x) < rtol:
-                print(f"Power iteration early stopping at iteration {i}.")
+                print(f"Power iteration early stopped at iteration {i}.")
                 break
         x = x_new
     #! change the norm of x so that it matches the norm of true x

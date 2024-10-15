@@ -41,11 +41,11 @@ def triangular_distribution(a, size):
 
 class MarchenkoPastur:
     def __init__(self,m,n,sigma=None):
-        self.m = m
-        self.n = n
-        self.gamma = n / m
+        self.m = np.array(m)
+        self.n = np.array(n)
+        self.gamma = np.array(n / m)
         if sigma is not None:
-            self.sigma = sigma
+            self.sigma = np.array(sigma)
         else:
             # automatically set sigma to make E[|x|^2] = 1
             self.sigma = (1+self.gamma)**(-0.25)
@@ -58,19 +58,19 @@ class MarchenkoPastur:
         assert (x >= self.min_supp).all() and (x <= self.max_supp).all(), "x is out of the support of the distribution"
         return np.sqrt((self.max_supp - x) * (x - self.min_supp)) / (2 * np.pi * self.sigma**2 * self.gamma * x)
     
-    def sample(self,num_samples):
+    def sample(self,samples_shape):
         """using acceptance-rejection sampling"""
         # compute the maximum value of the pdf if not yet computed
         if self.max_pdf is None:
             self.max_pdf = np.max(self.pdf(np.linspace(self.min_supp,self.max_supp,10000)))
         
         samples = []
-        while len(samples) < num_samples:
+        while len(samples) < np.prod(samples_shape):
             x = np.random.uniform(self.min_supp, self.max_supp, size=1)
             y = np.random.uniform(0, self.max_pdf, size=1)
             if y < self.pdf(x):
                 samples.append(x)
-        return np.array(samples)
+        return np.array(samples).reshape(samples_shape)
     
     def mean(self):
         return self.sigma**2
@@ -109,15 +109,15 @@ def generate_diagonal(
         scale = torch.sqrt((torch.tensor(config.degree_of_freedom)-2)/torch.tensor(config.degree_of_freedom)/2)
         diagonal = (scale*(student_t_dist.sample(tensor_shape) + 1j*student_t_dist.sample(tensor_shape))).to(device)
     elif mode == "marchenko-pastur":
-        diagonal = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(tensor_shape)).to(device)
+        diagonal = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(tensor_shape)).to(device).to(dtype)
     elif mode == "uniform":
         #! variance = 1/2a for real numbers
         if config.complex == True:
-            real = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=dtype, device=device) - 0.5)
-            imag = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=dtype, device=device) - 0.5)
+            real = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=torch.float32, device=device) - 0.5)
+            imag = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=torch.float32, device=device) - 0.5)
             diagonal = real + 1j*imag
         else:
-            diagonal = torch.sqrt(torch.tensor(12)) * (torch.rand(tensor_shape, dtype=dtype, device=device) - 0.5)
+            diagonal = torch.sqrt(torch.tensor(12)) * (torch.rand(tensor_shape, dtype=torch.float32, device=device) - 0.5)
     elif mode == "triangular":
         #! variance = a^2/6 for real numbers
         if config.complex == True:
@@ -279,8 +279,8 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
     
-    def get_A_var(self):
-        return self.B._A.var()
+    def get_A_squared_mean(self):
+        return self.B._A.var() + self.B._A.mean()**2
 
 
 class StructuredRandomPhaseRetrieval(PhaseRetrieval):
@@ -437,5 +437,5 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     def B_dagger(self, y):
         return self.B.A_adjoint(y)
     
-    def get_A_var(self):
-        return self.diagonals[0].var()
+    def get_A_squared_mean(self):
+        return self.diagonals[0].var() + self.diagonals[0].mean()**2
