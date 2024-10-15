@@ -21,11 +21,11 @@ if TYPE_CHECKING:
 class MAE(Metric):
     r"""
     Mean Absolute Error metric.
-    
+
     Calculates the MAE :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     .. note::
@@ -59,7 +59,7 @@ class MSE(Metric):
     Calculates the MSE :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     .. note::
@@ -90,11 +90,11 @@ class NMSE(MSE):
     r"""
     Normalised Mean Squared Error metric.
 
-    Calculates the NMSE :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`. 
+    Calculates the NMSE :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     Normalises MSE by the L2 norm of the ground truth ``x``.
 
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     :Example:
@@ -128,14 +128,14 @@ class NMSE(MSE):
 class SSIM(Metric):
     r"""
     Structural Similarity Index (SSIM) metric using torchmetrics.
-    
+
     Calculates the SSIM :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
 
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     :Example:
@@ -194,9 +194,9 @@ class PSNR(Metric):
     normalized image).
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
-    
+
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     :Example:
@@ -233,7 +233,7 @@ class L1L2(Metric):
     :math:`\alpha L_1(\hat{x},x)+(1-\alpha)L_2(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     :Example:
@@ -277,8 +277,8 @@ class LpNorm(Metric):
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
     .. note::
-        
-        By default, no reduction is performed in the batch dimension.    
+
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -314,15 +314,15 @@ class LpNorm(Metric):
 class QNR(Metric):
     r"""
     Quality with No Reference (QNR) metric for pansharpening.
-    
+
     Calculates the no-reference QNR :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
-    
+
     QNR was proposed in Alparone et al., "Multispectral and Panchromatic Data Fusion Assessment Without Reference".
 
     Note we don't use the torchmetrics implementation.
 
     .. note::
-        
+
         By default, no reduction is performed in the batch dimension.
 
     :Example:
