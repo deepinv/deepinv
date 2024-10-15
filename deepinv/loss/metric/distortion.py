@@ -21,8 +21,12 @@ if TYPE_CHECKING:
 class MAE(Metric):
     r"""
     Mean Absolute Error metric.
+    
+    Calculates the MAE :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     .. note::
 
@@ -40,7 +44,6 @@ class MAE(Metric):
 
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -53,7 +56,11 @@ class MSE(Metric):
     r"""
     Mean Squared Error metric.
 
-    See docs for ``forward()`` below for more details.
+    Calculates the MSE :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     .. note::
 
@@ -71,7 +78,6 @@ class MSE(Metric):
 
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param bool train_loss: use metric as a training loss, by returning one minus the metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
@@ -84,9 +90,12 @@ class NMSE(MSE):
     r"""
     Normalised Mean Squared Error metric.
 
+    Calculates the NMSE :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`. 
     Normalises MSE by the L2 norm of the ground truth ``x``.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -119,12 +128,15 @@ class NMSE(MSE):
 class SSIM(Metric):
     r"""
     Structural Similarity Index (SSIM) metric using torchmetrics.
-
+    
+    Calculates the SSIM :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -172,17 +184,20 @@ class PSNR(Metric):
     r"""
     Peak Signal-to-Noise Ratio (PSNR) metric.
 
-    If the tensors have size (N, C, H, W), then the PSNR is computed as
+    Calculates the PSNR :math:`\text{PSNR}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    If the tensors have size ``(B, C, H, W)``, then the PSNR is computed as
 
     .. math::
-        \text{PSNR} = \frac{20}{N} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|\hat{x}-x\|^2_2 / (CHW) }}
+        \text{PSNR} = \frac{20}{B} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|\hat{x}-x\|^2_2 / (CHW) }}
 
     where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a
-    normalized image), and :math:`\hat{x}` and :math:`x` are the estimate (``x_net``) and reference images (``x``).
+    normalized image).
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
-
-    See docs for ``forward()`` below for more details.
+    
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -214,9 +229,12 @@ class L1L2(Metric):
     r"""
     Combined L2 and L1 metric.
 
-    Calculates L2 distance (i.e. MSE) + L1 (i.e. MAE) distance.
+    Calculates L2 distance (i.e. MSE) + L1 (i.e. MAE) distance,
+    :math:`\alpha L_1(\hat{x},x)+(1-\alpha)L_2(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -250,13 +268,17 @@ class LpNorm(Metric):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.
 
+    Calculates the Lp norm :math:`L_p(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
 
     Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.    
 
     :Example:
 
@@ -292,12 +314,16 @@ class LpNorm(Metric):
 class QNR(Metric):
     r"""
     Quality with No Reference (QNR) metric for pansharpening.
-
+    
+    Calculates the no-reference QNR :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+    
     QNR was proposed in Alparone et al., "Multispectral and Panchromatic Data Fusion Assessment Without Reference".
 
     Note we don't use the torchmetrics implementation.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -373,14 +399,14 @@ class QNR(Metric):
             :class:`deepinv.Trainer`, you will have to override the ``compute_metrics`` method to
             pass ``y,physics`` into the metric.
 
-        :param torch.Tensor x_net: Reconstructed high-res multispectral image :math:`\inverse{y}` of shape (B,C,H,W).
+        :param torch.Tensor x_net: Reconstructed high-res multispectral image :math:`\inverse{y}` of shape ``(B,C,H,W)``.
         :param torch.Tensor x: Placeholder, does nothing.
         :param deepinv.utils.TensorList y: pansharpening measurements generated from
-            :class:`deepinv.physics.Pansharpen`, where y[0] is the low-res multispectral image of shape (B,C,H',W')
-            and y[1] is the high-res noisy panchromatic image of shape (B,1,H,W)
+            :class:`deepinv.physics.Pansharpen`, where y[0] is the low-res multispectral image of shape ``(B,C,H',W')``
+            and y[1] is the high-res noisy panchromatic image of shape ``(B,1,H,W)``
         :param deepinv.physics.Pansharpen physics: pansharpening physics, used to calculate low-res pan image for QNR calculation.
 
-        :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
+        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
         """
 
         if y is None:

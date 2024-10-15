@@ -90,10 +90,10 @@ class Metric(Module):
 
         Override this function to implement your own metric. Always include ``args`` and ``kwargs`` arguments.
 
-        :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
-        :param torch.Tensor x: Reference image (optional).
+        :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
+        :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
-        :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
+        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
         """
         raise NotImplementedError()
 
@@ -116,16 +116,16 @@ class Metric(Module):
         Usually, the data passed is ``x_net, x`` i.e. estimate and target or only ``x_net`` for no-reference metric.
 
         The forward pass also optionally calculates complex magnitude of images, performs normalisation,
-        or inverts the metric to use it as a training loss.
+        or inverts the metric to use it as a training loss (if by default higher is better).
 
         By default, no reduction is performed in the batch dimension, but mean or sum reduction can be performed too.
 
-        All tensors should be of shape (B, ...) or (B, C, ...).
+        All tensors should be of shape ``(B, ...)`` or ``(B, C, ...)`` where ``B`` is batch size and ``C`` is channels.
 
-        :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
-        :param torch.Tensor x: Reference image (optional).
+        :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
+        :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
-        :return torch.Tensor: calculated metric, the tensor size might be (1,) or (batch size,).
+        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
         """
         if isinstance(x_net, (list, tuple)):
             x_net = x_net[0] if x_net is not None else x_net

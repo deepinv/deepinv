@@ -4,11 +4,15 @@ from deepinv.loss.metric.metric import import_pyiqa, Metric
 class LPIPS(Metric):
     r"""
     Learned Perceptual Image Patch Similarity (LPIPS) metric.
-
+    
+    Calculates the LPIPS :math:`\text{LPIPS}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    
     Computes the perceptual similarity between two images, based on a pre-trained deep neural network.
     Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
@@ -42,10 +46,13 @@ class NIQE(Metric):
     r"""
     Natural Image Quality Evaluator (NIQE) metric.
 
+    Calculates the NIQE :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
     It is a no-reference image quality metric that estimates the quality of images.
     Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
-    See docs for ``forward()`` below for more details.
+    .. note::
+        
+        By default, no reduction is performed in the batch dimension.
 
     :Example:
 
