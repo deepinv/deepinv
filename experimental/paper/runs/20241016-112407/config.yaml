@@ -1,5 +1,5 @@
 general:
-  name: "structured_uniform_magnitude_FDF"
+  name: "structured_marchenko-pastur-FDF"
   recon: "spec"
   save: True
 
@@ -15,16 +15,17 @@ signal:
 model:
   n_layers: 1
   diagonal:
-    mode: 'uniform_magnitude' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
+    mode: 'marchenko-pastur' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
       degree_of_freedom: 30
       complex: False
   transform: "fft"
   shared_weights: False
+  drop_tail: False
 
 recon:
   series: "arange"
-  start: 2
+  start: 66
   end: 194
   list: []
   n_repeats: 50

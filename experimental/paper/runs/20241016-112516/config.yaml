@@ -1,11 +1,11 @@
 general:
-  name: "structured_mp_FDFD"
+  name: "structured_marchenko-pastur-FD"
   recon: "spec"
   save: True
 
 signal:
   img_size: 64
-  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
+  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"， "constant"
   config:
     noise_ratio: 0.0 # noise ratio for mix mode
     reverse: False
@@ -13,7 +13,7 @@ signal:
     max_scale: 40.0 # max scale for varying norm
 
 model:
-  n_layers: 2
+  n_layers: 1
   diagonal:
     mode: 'marchenko-pastur' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
@@ -25,7 +25,7 @@ model:
 
 recon:
   series: "arange"
-  start: 2
+  start: 66
   end: 194
   list: []
   n_repeats: 50

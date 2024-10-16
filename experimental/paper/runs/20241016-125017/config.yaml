@@ -1,11 +1,11 @@
 general:
-  name: "structured_mp_FD"
+  name: "structured_uniform_magnitude_FDFD"
   recon: "spec"
   save: True
 
 signal:
   img_size: 64
-  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
+  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"， "constant"
   config:
     noise_ratio: 0.0 # noise ratio for mix mode
     reverse: False
@@ -13,9 +13,9 @@ signal:
     max_scale: 40.0 # max scale for varying norm
 
 model:
-  n_layers: 1
+  n_layers: 2
   diagonal:
-    mode: 'marchenko-pastur' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
+    mode: 'uniform_magnitude' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
       degree_of_freedom: 30
       complex: False

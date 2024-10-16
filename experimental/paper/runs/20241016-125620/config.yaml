@@ -1,11 +1,11 @@
 general:
-  name: "structured_mp_FDF"
+  name: "structured_uniform_magnitude_FD"
   recon: "spec"
   save: True
 
 signal:
   img_size: 64
-  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"
+  mode: "shepp-logan" # "random", "shepp-logan", "mix", "delta"， "constant"
   config:
     noise_ratio: 0.0 # noise ratio for mix mode
     reverse: False
@@ -15,13 +15,13 @@ signal:
 model:
   n_layers: 1
   diagonal:
-    mode: 'marchenko-pastur' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
+    mode: 'uniform_magnitude' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
       degree_of_freedom: 30
       complex: False
   transform: "fft"
   shared_weights: False
-  drop_tail: False
+  drop_tail: True
 
 recon:
   series: "arange"

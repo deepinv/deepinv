@@ -35,7 +35,6 @@ save = config.general.save
 # model
 img_size = config.signal.img_size
 n_layers = config.model.n_layers
-drop_tail = config.model.drop_tail
 transform = config.model.transform
 diagonal_mode = config.model.diagonal.mode
 distri_config = config.model.diagonal.config
@@ -109,7 +108,6 @@ for i in trange(n_oversampling):
             input_shape=(1, img_size, img_size),
             output_shape=(1, output_size, output_size),
             n_layers=n_layers,
-            drop_tail=drop_tail,
             transform=transform,
             diagonal_mode=diagonal_mode,
             distri_config=distri_config,

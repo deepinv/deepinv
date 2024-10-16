@@ -43,6 +43,7 @@ class MarchenkoPastur:
     def __init__(self,m,n,sigma=None):
         self.m = np.array(m)
         self.n = np.array(n)
+        # when oversampling ratio is 1, the distribution has min support at 0, leading to a very high peak near 0 and numerical issues.
         self.gamma = np.array(n / m)
         if sigma is not None:
             self.sigma = np.array(sigma)
@@ -95,6 +96,13 @@ def generate_diagonal(
         diagonal = torch.rand(tensor_shape, device=device)
         diagonal = 2 * np.pi * diagonal
         diagonal = torch.exp(1j * diagonal)
+    elif mode == "uniform_magnitude":
+        if config.range:
+            diagonal = config.range * torch.rand(tensor_shape, device=device)
+        else:
+            # ensure E[|x|^2] = 1
+            diagonal = torch.sqrt(torch.tensor(3.0)) * torch.rand(tensor_shape, device=device)
+        diagonal = diagonal.to(dtype)
     elif mode == "gaussian":
         diagonal = torch.randn(tensor_shape, dtype=dtype, device=device)
     elif mode == "laplace":
@@ -295,7 +303,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
 
-    :param int n_layers: number of layers.
+    :param int n_layers: number of layers. an extra F is at the end if there is a 0.5
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param torch.type dtype: Signals are processed in dtype. Default is torch.complex64.
     :param str device: Device for computation.
@@ -306,7 +314,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         input_shape:tuple,
         output_shape:tuple,
         n_layers:int,
-        drop_tail=True,
         transform="fft",
         diagonal_mode="uniform_phase",
         distri_config:DotMap=None,
@@ -360,9 +367,10 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.n = torch.prod(torch.tensor(self.input_shape))
         self.m = torch.prod(torch.tensor(self.output_shape))
         self.oversampling_ratio = self.m / self.n
+        assert n_layers % 1 == 0.5 or n_layers % 1 == 0, "n_layers must be an integer or an integer plus 0.5"
         self.n_layers = n_layers
+        self.structure = "FD" * math.floor(self.n_layers) + "F" * (n_layers % 1 == 0.5)
         self.shared_weights = shared_weights
-        self.drop_tail = drop_tail
         self.distri_config = distri_config
         self.distri_config.m = self.m
         self.distri_config.n = self.n
@@ -373,7 +381,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.diagonals = []
 
         if not shared_weights:
-            for _ in range(self.n_layers):
+            for _ in range(math.floor(self.n_layers)):
                 if self.mode == "oversampling":
                     diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
                 else:
@@ -384,7 +392,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                 diagonal = generate_diagonal(self.output_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
             else:
                 diagonal = generate_diagonal(self.input_shape, mode=diagonal_mode, dtype=self.dtype, device=self.device, config=self.distri_config)
-            self.diagonals = self.diagonals + [diagonal] * self.n_layers
+            self.diagonals = self.diagonals + [diagonal] * math.floor(self.n_layers)
 
         if transform == "fft":
             transform_func = partial(torch.fft.fft2, norm="ortho")
@@ -401,9 +409,9 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             if self.mode == "oversampling":
                 x = self.padding(x)
 
-            if not drop_tail:
+            if (self.n_layers - math.floor(self.n_layers) == 0.5):
                 x = transform_func(x)
-            for i in range(self.n_layers):
+            for i in range(math.floor(self.n_layers)):
                 diagonal = self.diagonals[i]
                 x = diagonal * x
                 x = transform_func(x)
@@ -419,11 +427,11 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             if self.mode == "undersampling":
                 y = self.padding(y)
 
-            for i in range(self.n_layers):
+            for i in range(math.floor(self.n_layers)):
                 diagonal = self.diagonals[-i - 1]
                 y = transform_func_inv(y)
                 y = torch.conj(diagonal) * y
-            if not drop_tail:
+            if (self.n_layers - math.floor(self.n_layers) == 0.5):
                 y = transform_func_inv(y)
 
             if self.mode == "oversampling":
@@ -438,4 +446,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         return self.B.A_adjoint(y)
     
     def get_A_squared_mean(self):
+        if self.n_layers == 0.5:
+            print("warning: computing the mean of the squared operator for a single Fourier transform.")
+            return None
         return self.diagonals[0].var() + self.diagonals[0].mean()**2
