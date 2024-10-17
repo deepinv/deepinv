@@ -286,7 +286,7 @@ class BaseOptim(nn.Module):
         (if this data_fidelity depends on the iteration number).
 
         :param int it: iteration number.
-        :return: the data_fidelity of iteration ``it``.
+        :return: the data_fidelity at iteration ``it``.
         """
         cur_data_fidelity = (
             self.data_fidelity[it]
