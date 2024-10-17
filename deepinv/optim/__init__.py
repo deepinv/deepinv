@@ -26,5 +26,13 @@ from .prior import (
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL
 from .dpir import DPIR
-from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2
+from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, ICNN
 from .potential import Potential
+from .distance import (
+    L2Distance,
+    IndicatorL2Distance,
+    PoissonLogLikelihood,
+    L1Distance,
+    AmplitudeLossDistance,
+    LogPoissonLikelihoodDistance,
+)

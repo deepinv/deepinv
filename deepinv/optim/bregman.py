@@ -21,7 +21,7 @@ class Bregman(Potential):
         :param torch.Tensor x: Left variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Right variable :math:`y` at which the divergence is computed.
 
-        :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y`.
+        :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y  \rangle`.
         """
         return (
             self(x, *args, **kwargs)
@@ -105,6 +105,7 @@ class BurgEntropy(Bregman):
     r"""
     Module for the using Burg's entropy as Bregman potential :math:`\phi(x) = - \sum_i \log x_i`.
     The corresponding Bregman divergence is the Itakura-Saito distance :math:`D(x,y) = \sum_i x_i / y_i - \log(x_i / y_i) - 1`.
+    As shown in https://publications.ut-capitole.fr/id/eprint/25852/1/25852.pdf, it is the Bregman potential to use for performing mirror descent on the Poisson likelihood :class:`deepinv.optim.data_fidelity.PoissonLikelihood`.
     """
 
     def __init__(self):

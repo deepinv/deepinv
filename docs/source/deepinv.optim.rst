@@ -118,7 +118,7 @@ Potentials
 The base class for implementing potential scalar functions :math:`h : \xset \to \mathbb{R}` used to define an optimization problems.
 
 This class comes with methods for computing operators useful for optimization, such as its proximal operator :math:`\operatorname{prox}_{h}`, its gradient :math:`\nabla h`,
-its convex conjugate :math:`h^*` ect ...
+its convex conjugate :math:`h^*`, ect ...
 
 .. _data-fidelity:
 
@@ -152,7 +152,7 @@ Priors
 This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and
 where :math:`\regname` is a function.
 
-This class is implmented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
+This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
 operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
 priors, such as the Tikhonov regularisation, but also implicit priors. For instance, in PnP methods, the method
 computing the proximity operator is overwritten by a method performing denoising.
@@ -174,6 +174,28 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.PatchPrior
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+
+
+.. _bregman:
+
+Bregman
+------
+This is the base class for implementing Bregman potentials :math:`\phi(x)` where :math:`x\in\xset` is a variable and
+where :math:`\phi` is a convex scalar function.
+
+This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
+operators useful for Bregman optimization algorithms such as Mirror Descent: the gradient :math:`\nabla \phi`, the conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`, or the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^T y`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.bregman.Bregman
+   deepinv.optim.bregman.BregmanL2
+   deepinv.optim.bregman.BurgEntropy
+   deepinv.optim.bregman.NegEntropy
+   deepinv.optim.bregman.ICNN
 
 
 .. _optim-params:

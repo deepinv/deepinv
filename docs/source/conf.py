@@ -29,7 +29,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
-    "sphinx_copybutton"
+    "sphinx_copybutton",
 ]
 
 copybutton_exclude = ".linenos, .gp"
