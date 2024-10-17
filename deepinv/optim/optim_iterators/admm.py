@@ -34,7 +34,9 @@ class ADMMIteration(OptimIterator):
         self.f_step = fStepADMM(**kwargs)
         self.requires_prox_g = True
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single iteration of the ADMM algorithm.
 

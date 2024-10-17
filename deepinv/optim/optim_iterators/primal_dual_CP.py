@@ -47,7 +47,9 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single iteration of the Chambolle-Pock algorithm.
 

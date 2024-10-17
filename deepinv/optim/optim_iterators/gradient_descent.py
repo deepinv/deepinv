@@ -29,7 +29,9 @@ class GDIteration(OptimIterator):
         self.f_step = fStepGD(**kwargs)
         self.requires_grad_g = True
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
 
