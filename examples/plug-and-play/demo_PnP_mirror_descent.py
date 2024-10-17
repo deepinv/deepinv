@@ -2,8 +2,18 @@ r"""
 Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.
 ====================================================================================================
 
-This is a simple example to show how to use a mirror descent Plug-and-Play algorithm for solving an inverse problem with Poisson noise.
-The prior term is a RED denoising prior with DnCNN denoiser.
+This is a simple example to show how to use a mirror descent algorithm for solving an inverse problem with Poisson noise.
+
+The Mirror descent with RED denoiser write
+
+.. math:: 
+
+    x_{k+1} = \nabla \phi ( \nabla \phi^*(x_k) - \tau \nabla \distance{A(x_k)}{y} - \tau ( x_k - D_\sigma(x)))
+
+where :math:`\phi` is a convex Bergman potential, :math:`\distance{A(x)}{y}` is the data fidelity term and :math:`D_\sigma(x)` is a denoiser.
+
+In this example, we use the DnCNN denoiser. As the observation has been corrupted with Poisson noise, we use the class:`deepinv.optim.PoissonLikelihood` data-fidelity term.
+In https://publications.ut-capitole.fr/id/eprint/25852/1/25852.pdf, it is shown that, with this data-fidelity term, the right Bregman potential to use is Burg's entropy class:`deepinv.optim.BurgEntropy`.
 """
 
 import deepinv as dinv
@@ -106,8 +116,8 @@ with torch.no_grad():
     )  # reconstruction with PnP algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin):.2f} dB")
+print(f"PnP reconstruction PSNR: {dinv.metric.PSNR()(x, x_model):.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]

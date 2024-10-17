@@ -25,7 +25,9 @@ class BaseDEQ(BaseUnfold):
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    .. note::
+
+        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
@@ -147,6 +149,10 @@ def DEQ_builder(
 ):
     r"""
     Helper function for building an instance of the :meth:`BaseDEQ` class.
+
+    .. note::
+
+        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
