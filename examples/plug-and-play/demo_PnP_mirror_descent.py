@@ -4,7 +4,7 @@ Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.
 
 This is a simple example to show how to use a mirror descent algorithm for solving an inverse problem with Poisson noise.
 
-The Mirror descent with RED denoiser write
+The Mirror descent with RED denoiser writes
 
 .. math:: 
 
