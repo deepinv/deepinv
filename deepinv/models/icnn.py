@@ -98,7 +98,7 @@ class ICNN(nn.Module):
         # slope of leaky-relu
         self.negative_slope = 0.2
         self.strong_convexity = strong_convexity
-        
+
         self.pos_weights = pos_weights
         self.device = device
 
