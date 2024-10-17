@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tomography &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Pansharpen" href="deepinv.physics.Pansharpen.html" />
+    <link rel="prev" title="EquispacedMaskGenerator" href="deepinv.physics.generator.EquispacedMaskGenerator.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.physics.html">Physics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#introduction">Introduction</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.physics.html#forward-operators">Forward operators</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#pixelwise-operators">Pixelwise operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#blur-super-resolution">Blur &amp; Super-Resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#magnetic-resonance-imaging">Magnetic Resonance Imaging</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../deepinv.physics.html#tomography">Tomography</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Tomography</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#remote-sensing">Remote Sensing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#compressive-operators">Compressive operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#radio-interferometric-imaging">Radio interferometric imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#single-photon-lidar">Single-photon lidar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#dehazing">Dehazing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#phase-retrieval">Phase retrieval</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#noise-distributions">Noise distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#defining-new-operators">Defining new operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#functional">Functional</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.physics.html">Physics</a></li>
+      <li class="breadcrumb-item active">Tomography</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.physics.Tomography.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tomography">
+<h1>Tomography<a class="headerlink" href="#tomography" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.physics.Tomography">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.physics.</span></span><span class="sig-name descname"><span class="pre">Tomography</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">circle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel_computation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_beam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">device(type='cpu')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float32</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/tomography.html#Tomography"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Tomography" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.forward.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinearPhysics</span></code></a></p>
+<p>(Computed) Tomography operator.</p>
+<p>The Radon transform is the integral transform which takes a square image <span class="math notranslate nohighlight">\(x\)</span> defined on the plane to a function
+<span class="math notranslate nohighlight">\(y=Rx\)</span> defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal
+to the line integral of the function over that line.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The pseudo-inverse is computed using the filtered back-projection algorithm with a Ramp filter.
+This is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation which is
+robust to noise.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The measurements are not normalized by the image size, thus the norm of the operator depends on the image size.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The adjoint operator has small numerical errors due to interpolation.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>angles</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><em>torch.tensor</em>) – These are the tomography angles. If the type is <code class="docutils literal notranslate"><span class="pre">int</span></code>, the angles are sampled uniformly between 0 and 360 degrees.
+If the type is <code class="docutils literal notranslate"><span class="pre">torch.tensor</span></code>, the angles are the ones provided (e.g., <code class="docutils literal notranslate"><span class="pre">torch.linspace(0,</span> <span class="pre">180,</span> <span class="pre">steps=10)</span></code>).</p></li>
+<li><p><strong>img_width</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – width/height of the square image input.</p></li>
+<li><p><strong>circle</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code> both forward and backward projection will be restricted to pixels inside a circle
+inscribed in the square image.</p></li>
+<li><p><strong>parallel_computation</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.</p></li>
+<li><p><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
+In this case the operator norm is approximately given by <span class="math notranslate nohighlight">\(\|A\|_2^2  \approx \frac{\pi}{2\,\text{angles}}\)</span>,
+If <code class="docutils literal notranslate"><span class="pre">False</span></code>, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals</p></li>
+<li><p><strong>fan_beam</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, use fan beam geometry, if <code class="docutils literal notranslate"><span class="pre">False</span></code> use parallel beam</p></li>
+<li><p><strong>fan_parameters</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – <p>Only used if fan_beam is <code class="docutils literal notranslate"><span class="pre">True</span></code>. Contains the parameters defining the scanning geometry. The dict should contain the keys:</p>
+<ul>
+<li><p>”pixel_spacing” defining the distance between two pixels in the image, default: 0.5 / (in_size)</p></li>
+<li><p>”source_radius” distance between the x-ray source and the rotation axis (middle of the image), default: 57.5</p></li>
+<li><p>”detector_radius” distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5</p></li>
+<li><p>”n_detector_pixels” number of pixels of the detector, default: 258</p></li>
+<li><p>”detector_spacing” distance between two pixels on the detector, default: 0.077</p></li>
+</ul>
+<p>The default values are adapted from the geometry in <a class="reference external" href="https://doi.org/10.5281/zenodo.8307932">https://doi.org/10.5281/zenodo.8307932</a>,
+where pixel spacing, source and detector radius and detector spacing are given in cm.
+Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.</p>
+</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – gpu or cpu.</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tomography operator with defined angles for 3x3 image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Tomography</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Random seed for reproducibility</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>  <span class="c1"># Define random 4x4 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">angles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Tomography</span><span class="p">(</span><span class="n">angles</span><span class="o">=</span><span class="n">angles</span><span class="p">,</span> <span class="n">img_width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">circle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">tensor([[[[ 0.1650,  1.2640,  1.6995],</span>
+<span class="go">          [-0.4860,  0.2674,  0.9971],</span>
+<span class="go">          [ 0.9002, -0.3856, -0.9360],</span>
+<span class="go">          [-2.4882, -2.1068, -2.5720]]]])</span>
+</pre></div>
+</div>
+<p>Tomography operator with 3 uniformly sampled angles in [0, 360] for 3x3 image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Tomography</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Random seed for reproducibility</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>  <span class="c1"># Define random 4x4 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Tomography</span><span class="p">(</span><span class="n">angles</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">img_width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">circle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">tensor([[[[ 0.1650,  1.9493,  1.9897],</span>
+<span class="go">          [-0.4860,  0.7137, -1.6536],</span>
+<span class="go">          [ 0.9002, -0.8457, -0.1666],</span>
+<span class="go">          [-2.4882, -2.7340, -0.9793]]]])</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.Tomography.A">
+<span class="sig-name descname"><span class="pre">A</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/tomography.html#Tomography.A"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Tomography.A" title="Link to this definition"></a></dt>
+<dd><p>Computes forward operator <span class="math notranslate nohighlight">\(y = A(x)\)</span> (without noise and/or sensor non-linearities)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a><em>,</em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>[</em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a><em>]</em>) – signal/image</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) clean measurements</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.Tomography.A_adjoint">
+<span class="sig-name descname"><span class="pre">A_adjoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/tomography.html#Tomography.A_adjoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Tomography.A_adjoint" title="Link to this definition"></a></dt>
+<dd><p>Computes transpose of the forward operator <span class="math notranslate nohighlight">\(\tilde{x} = A^{\top}y\)</span>.
+If <span class="math notranslate nohighlight">\(A\)</span> is linear, it should be the exact transpose of the forward matrix.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the problem is non-linear, there is not a well-defined transpose operation,
+but defining one can be useful for some reconstruction networks, such as <code class="docutils literal notranslate"><span class="pre">deepinv.models.ArtifactRemoval</span></code>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – measurements.</p></li>
+<li><p><strong>params</strong> (<em>None</em><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – optional additional parameters for the adjoint operator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) linear reconstruction <span class="math notranslate nohighlight">\(\tilde{x} = A^{\top}y\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.Tomography.A_dagger">
+<span class="sig-name descname"><span class="pre">A_dagger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/tomography.html#Tomography.A_dagger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Tomography.A_dagger" title="Link to this definition"></a></dt>
+<dd><p>Computes the solution in <span class="math notranslate nohighlight">\(x\)</span> to <span class="math notranslate nohighlight">\(y = Ax\)</span> using the
+<a class="reference external" href="https://en.wikipedia.org/wiki/Conjugate_gradient_method">conjugate gradient method</a>,
+see <a class="reference internal" href="deepinv.optim.utils.conjugate_gradient.html#deepinv.optim.utils.conjugate_gradient" title="deepinv.optim.utils.conjugate_gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.optim.utils.conjugate_gradient()</span></code></a>.</p>
+<p>If the size of <span class="math notranslate nohighlight">\(y\)</span> is larger than <span class="math notranslate nohighlight">\(x\)</span> (overcomplete problem), it computes <span class="math notranslate nohighlight">\((A^{\top} A)^{-1} A^{\top} y\)</span>,
+otherwise (incomplete problem) it computes <span class="math notranslate nohighlight">\(A^{\top} (A A^{\top})^{-1} y\)</span>.</p>
+<p>This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – a measurement <span class="math notranslate nohighlight">\(y\)</span> to reconstruct via the pseudoinverse.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) The reconstructed image <span class="math notranslate nohighlight">\(x\)</span>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-tomography">
+<span id="sphx-glr-backref-deepinv-physics-tomography"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">Tomography</span></code>:<a class="headerlink" href="#examples-using-tomography" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of some of the forward operators implemented in DeepInverse. We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in here."><img alt="" src="../_images/sphx_glr_demo_physics_tour_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_physics_tour.html#sphx-glr-auto-examples-basics-demo-physics-tour-py"><span class="std std-ref">A tour of forward sensing operators</span></a></p>
+  <div class="sphx-glr-thumbnail-title">A tour of forward sensing operators</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example we use patch priors for limited angle computed tomography. More precisely, we consider the  inverse problem y = \mathrm{noisy}(Ax), where A is the discretized Radon transform with 100 equispace angles between 20 and 160 degrees. For the reconstruction, we minimize the variational problem"><img alt="" src="../_images/sphx_glr_demo_patch_priors_CT_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/patch-priors/demo_patch_priors_CT.html#sphx-glr-auto-examples-patch-priors-demo-patch-priors-ct-py"><span class="std std-ref">Patch priors for limited-angle computed tomography</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Patch priors for limited-angle computed tomography</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography."><img alt="" src="../_images/sphx_glr_demo_vanilla_PnP_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate self-supervised learning with measurement splitting, to train a denoiser network on the MNIST dataset. The physics here is noisy computed tomography, as is the case in Noise2Inverse. Note this example can also be easily applied to undersampled multicoil MRI as is the case in SSDU."><img alt="" src="../_images/sphx_glr_demo_splitting_loss_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_splitting_loss.html#sphx-glr-auto-examples-self-supervised-learning-demo-splitting-loss-py"><span class="std std-ref">Self-supervised learning with measurement splitting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with measurement splitting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Adler, Jonas, and Ozan Öktem.  &quot;Learned primal-dual reconstruction.&quot;  IEEE transactions on medical imaging 37.6 (2018): 1322-1332."><img alt="" src="../_images/sphx_glr_demo_learned_primal_dual_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_learned_primal_dual.html#sphx-glr-auto-examples-unfolded-demo-learned-primal-dual-py"><span class="std std-ref">Learned Primal-Dual algorithm for CT scan.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned Primal-Dual algorithm for CT scan.</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.generator.EquispacedMaskGenerator.html" class="btn btn-neutral float-left" title="EquispacedMaskGenerator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.physics.Pansharpen.html" class="btn btn-neutral float-right" title="Pansharpen" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

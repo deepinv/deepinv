@@ -1,0 +1,264 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.datasets.cbsd68 &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.datasets.cbsd68</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.datasets.cbsd68</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">deepinv.datasets.utils</span> <span class="kn">import</span> <span class="n">calculate_md5</span>
+
+<span class="n">error_import</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">datasets</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">error_import</span> <span class="o">=</span> <span class="ne">ImportError</span><span class="p">(</span>
+        <span class="s2">&quot;datasets is not available. Please install the datasets package with `pip install datasets`.&quot;</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="CBSD68">
+<a class="viewcode-back" href="../../../stubs/deepinv.datasets.CBSD68.html#deepinv.datasets.CBSD68">[docs]</a>
+<span class="k">class</span> <span class="nc">CBSD68</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset for `CBSBD68 &lt;https://paperswithcode.com/dataset/cbsd68&gt;`_.</span>
+
+<span class="sd">    Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark.</span>
+<span class="sd">    It is used for measuring image restoration algorithms performance. It contains 68 images.</span>
+
+
+<span class="sd">    **Raw data file structure:** ::</span>
+
+<span class="sd">            self.root --- data-00000-of-00001.arrow</span>
+<span class="sd">                       -- dataset_info.json</span>
+<span class="sd">                       -- state.json</span>
+
+<span class="sd">    This dataset wraps the huggingface version of the dataset.</span>
+<span class="sd">    HF source : https://huggingface.co/datasets/deepinv/CBSD68</span>
+
+<span class="sd">    :param str root: Root directory of dataset. Directory path from where we load and save the dataset.</span>
+<span class="sd">    :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.</span>
+<span class="sd">        If dataset is already downloaded, it is not downloaded again. Default at False.</span>
+<span class="sd">    :param callable, optional transform: A function/transform that takes in a PIL image</span>
+<span class="sd">        and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Instanciate dataset and download raw data from the Internet</span>
+
+<span class="sd">        &gt;&gt;&gt; import shutil</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.datasets import CBSD68</span>
+<span class="sd">        &gt;&gt;&gt; dataset = CBSD68(root=&quot;CBSB68&quot;, download=True)  # download raw data at root and load dataset</span>
+<span class="sd">        Dataset has been successfully downloaded.</span>
+<span class="sd">        &gt;&gt;&gt; print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; print(len(dataset))                                  # check that we have 68 images</span>
+<span class="sd">        68</span>
+<span class="sd">        &gt;&gt;&gt; shutil.rmtree(&quot;CBSB68&quot;)                         # remove raw data from disk</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># for integrity of downloaded data</span>
+    <span class="n">checksum</span> <span class="o">=</span> <span class="s2">&quot;18e128fbf5bb99ea7fca35f59683ea39&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">download</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">error_import</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error_import</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">error_import</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+
+        <span class="c1"># download dataset, we check first that dataset isn&#39;t already downloaded</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_dataset_exists</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">download</span><span class="p">:</span>
+                <span class="c1"># source : https://github.com/huggingface/datasets/issues/6703</span>
+                <span class="c1"># load_dataset : download from Internet, raw data formats like CSV are processed into Arrow format, then saved in a cache dir</span>
+                <span class="n">hf_dataset</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="s2">&quot;deepinv/CBSD68&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+
+                <span class="c1"># &#39;__url__&#39; column contains absolute paths to raw data in the cache dir which is unnecessary when saving the dataset</span>
+                <span class="k">if</span> <span class="s2">&quot;__url__&quot;</span> <span class="ow">in</span> <span class="n">hf_dataset</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                    <span class="c1"># Remove the &#39;__url__&#39; column</span>
+                    <span class="n">hf_dataset</span> <span class="o">=</span> <span class="n">hf_dataset</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">(</span><span class="s2">&quot;__url__&quot;</span><span class="p">)</span>
+                <span class="n">hf_dataset</span><span class="o">.</span><span class="n">save_to_disk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_dataset_exists</span><span class="p">():</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dataset has been successfully downloaded.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is an issue with the data downloaded.&quot;</span><span class="p">)</span>
+            <span class="c1"># stop the execution since the dataset is not available and we didn&#39;t download it</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Dataset not found at `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">`. Please set `root` correctly (currently `root=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">`) OR set `download=True` (currently `download=</span><span class="si">{</span><span class="n">download</span><span class="si">}</span><span class="s2">`).&quot;</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hf_dataset</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_dataset</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="c1"># PIL Image</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf_dataset</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;png&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span>
+
+<div class="viewcode-block" id="CBSD68.check_dataset_exists">
+<a class="viewcode-back" href="../../../stubs/deepinv.datasets.CBSD68.html#deepinv.datasets.CBSD68.check_dataset_exists">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_dataset_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify that the HuggingFace dataset folder exists and contains the raw data file.</span>
+
+<span class="sd">        `self.root` should have the following structure: ::</span>
+
+<span class="sd">            self.root --- data-00000-of-00001.arrow</span>
+<span class="sd">                       -- xxx</span>
+<span class="sd">                       -- xxx</span>
+
+<span class="sd">        This is a soft verification as we don&#39;t check all the files in the folder.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">raw_data_fpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;data-00000-of-00001.arrow&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">raw_data_fpath</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">calculate_md5</span><span class="p">(</span><span class="n">fpath</span><span class="o">=</span><span class="n">raw_data_fpath</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

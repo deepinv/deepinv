@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MotionBlurGenerator &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DiffractionBlurGenerator" href="deepinv.physics.generator.DiffractionBlurGenerator.html" />
+    <link rel="prev" title="sinc_filter" href="deepinv.physics.blur.sinc_filter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.physics.html">Physics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#introduction">Introduction</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.physics.html#forward-operators">Forward operators</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#pixelwise-operators">Pixelwise operators</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../deepinv.physics.html#blur-super-resolution">Blur &amp; Super-Resolution</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.Blur.html">Blur</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.BlurFFT.html">BlurFFT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.SpaceVaryingBlur.html">SpaceVaryingBlur</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.Downsampling.html">Downsampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.blur.gaussian_blur.html">gaussian_blur</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.blur.bilinear_filter.html">bilinear_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.blur.bicubic_filter.html">bicubic_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.blur.sinc_filter.html">sinc_filter</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">MotionBlurGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.DiffractionBlurGenerator.html">DiffractionBlurGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.DiffractionBlurGenerator3D.html">DiffractionBlurGenerator3D</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.ProductConvolutionBlurGenerator.html">ProductConvolutionBlurGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#magnetic-resonance-imaging">Magnetic Resonance Imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#tomography">Tomography</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#remote-sensing">Remote Sensing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#compressive-operators">Compressive operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#radio-interferometric-imaging">Radio interferometric imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#single-photon-lidar">Single-photon lidar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#dehazing">Dehazing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#phase-retrieval">Phase retrieval</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#noise-distributions">Noise distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#defining-new-operators">Defining new operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#functional">Functional</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.physics.html">Physics</a></li>
+      <li class="breadcrumb-item active">MotionBlurGenerator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.physics.generator.MotionBlurGenerator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="motionblurgenerator">
+<h1>MotionBlurGenerator<a class="headerlink" href="#motionblurgenerator" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.physics.generator.MotionBlurGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.physics.generator.</span></span><span class="sig-name descname"><span class="pre">MotionBlurGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><span class="pre">Generator</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#type" title="(in Python v3.4)"><span class="pre">type</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">torch.float32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/generator/blur.html#MotionBlurGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.generator.MotionBlurGenerator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PSFGenerator</span></code></p>
+<p>Random motion blur generator.</p>
+<p>See <a class="reference external" href="https://arxiv.org/pdf/1406.7444.pdf">https://arxiv.org/pdf/1406.7444.pdf</a> for more details.</p>
+<p>A blur trajectory is generated by sampling both its x- and y-coordinates independently
+from a Gaussian Process with a Matérn 3/2 covariance function.</p>
+<div class="math notranslate nohighlight">
+\[f_x(t), f_y(t) \sim \mathcal{GP}(0, k(t, t'))\]</div>
+<p>where <span class="math notranslate nohighlight">\(k\)</span> is defined as</p>
+<div class="math notranslate nohighlight">
+\[k(t, s) = \sigma^2 \left( 1 + \frac{\sqrt{5} |t -s|}{l} + \frac{5 (t-s)^2}{3 l^2} \right) \exp \left(-\frac{\sqrt{5} |t-s|}{l}\right)\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psf_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – the shape of the generated PSF in 2D, should be <cite>(kernel_size, kernel_size)</cite></p></li>
+<li><p><strong>num_channels</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of images channels. Defaults to 1.</p></li>
+<li><p><strong>l</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the length scale of the trajectory, defaults to 0.3</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the standard deviation of the Gaussian Process, defaults to 0.25</p></li>
+<li><p><strong>n_steps</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – the number of points in the trajectory, defaults to 1000</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list simple">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <span class="n">MotionBlurGenerator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generator</span> <span class="o">=</span> <span class="n">MotionBlurGenerator</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">num_channels</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blur</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>  <span class="c1"># dict_keys([&#39;filter&#39;])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">blur</span><span class="p">[</span><span class="s1">&#39;filter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">torch.Size([1, 1, 5, 5])</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.generator.MotionBlurGenerator.f_matern">
+<span class="sig-name descname"><span class="pre">f_matern</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/generator/blur.html#MotionBlurGenerator.f_matern"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.generator.MotionBlurGenerator.f_matern" title="Link to this definition"></a></dt>
+<dd><p>Generates the trajectory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – batch_size.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the standard deviation of the Gaussian Process.</p></li>
+<li><p><strong>l</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the length scale of the trajectory.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the trajectory of shape <cite>(batch_size, n_steps)</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.generator.MotionBlurGenerator.matern_kernel">
+<span class="sig-name descname"><span class="pre">matern_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/generator/blur.html#MotionBlurGenerator.matern_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.generator.MotionBlurGenerator.matern_kernel" title="Link to this definition"></a></dt>
+<dd><p>Compute the Matérn 3/2 covariance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>diff</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – the difference <cite>t - s</cite></p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the standard deviation of the Gaussian Process</p></li>
+<li><p><strong>l</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the length scale of the trajectory</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.generator.MotionBlurGenerator.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/generator/blur.html#MotionBlurGenerator.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.generator.MotionBlurGenerator.step" title="Link to this definition"></a></dt>
+<dd><p>Generate a random motion blur PSF with parameters <span class="math notranslate nohighlight">\(\sigma\)</span> and <span class="math notranslate nohighlight">\(l\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – batch_size.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the standard deviation of the Gaussian Process</p></li>
+<li><p><strong>l</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – the length scale of the trajectory</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – the seed for the random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dictionary with key <strong>‘filter’</strong>: the generated PSF of shape <cite>(batch_size, 1, psf_size[0], psf_size[1])</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-motionblurgenerator">
+<span id="sphx-glr-backref-deepinv-physics-generator-motionblurgenerator"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">MotionBlurGenerator</span></code>:<a class="headerlink" href="#examples-using-motionblurgenerator" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train various networks using adversarial training for deblurring problems. We demonstrate running training and inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and UAIR implemented in the library, and how to simply train your own GAN by using deepinv.training.AdversarialTrainer. These examples can also be easily extended to train more complicated GANs such as CycleGAN."><img alt="" src="../_images/sphx_glr_demo_gan_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/adversarial-learning/demo_gan_imaging.html#sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Imaging inverse problems with adversarial networks</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Imaging inverse problems with adversarial networks</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of 2D blur operators in DeepInv. In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs."><img alt="" src="../_images/sphx_glr_demo_blur_tour_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_blur_tour.html#sphx-glr-auto-examples-basics-demo-blur-tour-py"><span class="std std-ref">A tour of blur operators</span></a></p>
+  <div class="sphx-glr-thumbnail-title">A tour of blur operators</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.blur.sinc_filter.html" class="btn btn-neutral float-left" title="sinc_filter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.physics.generator.DiffractionBlurGenerator.html" class="btn btn-neutral float-right" title="DiffractionBlurGenerator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DDRM &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DiffPIR" href="deepinv.sampling.DiffPIR.html" />
+    <link rel="prev" title="MonteCarlo" href="deepinv.sampling.MonteCarlo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="deepinv.sampling.MonteCarlo.html">MonteCarlo</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.sampling.html#diffusion">Diffusion</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">DDRM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.sampling.DDRM"><code class="docutils literal notranslate"><span class="pre">DDRM</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-ddrm">Examples using <code class="docutils literal notranslate"><span class="pre">DDRM</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.sampling.DiffPIR.html">DiffPIR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.sampling.DPS.html">DPS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.sampling.DiffusionSampler.html">DiffusionSampler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.sampling.html#markov-chain-monte-carlo-langevin">Markov Chain Monte Carlo Langevin</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+      <li class="breadcrumb-item active">DDRM</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.sampling.DDRM.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ddrm">
+<h1>DDRM<a class="headerlink" href="#ddrm" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.sampling.DDRM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.sampling.</span></span><span class="sig-name descname"><span class="pre">DDRM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denoiser</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigmas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">np.linspace(1,</span> <span class="pre">0,</span> <span class="pre">100)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.85</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">etab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DDRM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DDRM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Denoising Diffusion Restoration Models (DDRM).</p>
+<p>This class implements the denoising diffusion restoration model (DDRM) described in <a class="reference external" href="https://arxiv.org/abs/2201.11793">https://arxiv.org/abs/2201.11793</a>.</p>
+<p>The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.</p>
+<p>It requires that the physics operator has a singular value decomposition, i.e.,
+it is <a class="reference internal" href="deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics()</span></code></a> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>denoiser</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – a denoiser model that can handle different noise levels.</p></li>
+<li><p><strong>sigmas</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>]</em><em>, </em><em>numpy.array</em>) – a list of noise levels to use in the diffusion, they should be in decreasing
+order from 1 to 0.</p></li>
+<li><p><strong>eta</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – hyperparameter</p></li>
+<li><p><strong>etab</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – hyperparameter</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if True, print progress</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Denoising diffusion restoration model using a pretrained DRUNet denoiser:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">device</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_freer_gpu</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;cpu&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># Random seed for reproducibility</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># Random seed for reproducibility on GPU</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="c1"># Define plain gray 32x32 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">mask</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">tensor_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+<span class="gp">... </span>  <span class="n">noise_model</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="mf">0.1</span><span class="p">),</span>
+<span class="gp">... </span>  <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># measurements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DRUNet</span><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;download&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">DDRM</span><span class="p">(</span><span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">sigmas</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># define the DDRM model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xhat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span> <span class="c1"># sample from the posterior distribution</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dinv</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">PSNR</span><span class="p">()(</span><span class="n">xhat</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">dinv</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">PSNR</span><span class="p">()(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="c1"># Should be closer to the original</span>
+<span class="go">tensor([True])</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.sampling.DDRM.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.forward.DecomposablePhysics"><span class="pre">DecomposablePhysics</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/sampling/diffusion.html#DDRM.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.sampling.DDRM.forward" title="Link to this definition"></a></dt>
+<dd><p>Runs the diffusion to obtain a random sample of the posterior distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – the measurements.</p></li>
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><em>deepinv.physics.DecomposablePhysics</em></a>) – the physics operator, which must have a singular value
+decomposition.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – the seed for the random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-ddrm">
+<span id="sphx-glr-backref-deepinv-sampling-ddrm"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">DDRM</span></code>:<a class="headerlink" href="#examples-using-ddrm" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="While deepinv offers a large number of forward operators in the physics module, you might want to create your own forward operator for your specific imaging problem. This example walks you through the creation of a custom forward operator."><img alt="" src="../_images/sphx_glr_demo_physics_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_physics.html#sphx-glr-auto-examples-basics-demo-physics-py"><span class="std std-ref">Creating a forward operator.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Creating a forward operator.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use the DDRM diffusion algorithm to reconstruct images and also compute the uncertainty of a reconstruction from incomplete and noisy measurements."><img alt="" src="../_images/sphx_glr_demo_ddrm_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_ddrm.html#sphx-glr-auto-examples-sampling-demo-ddrm-py"><span class="std std-ref">Image reconstruction with a diffusion model</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image reconstruction with a diffusion model</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.sampling.MonteCarlo.html" class="btn btn-neutral float-left" title="MonteCarlo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.sampling.DiffPIR.html" class="btn btn-neutral float-right" title="DiffPIR" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SequentialMRI &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="BaseMaskGenerator" href="deepinv.physics.generator.BaseMaskGenerator.html" />
+    <link rel="prev" title="DynamicMRI" href="deepinv.physics.DynamicMRI.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.physics.html">Physics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#introduction">Introduction</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.physics.html#forward-operators">Forward operators</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#pixelwise-operators">Pixelwise operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#blur-super-resolution">Blur &amp; Super-Resolution</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../deepinv.physics.html#magnetic-resonance-imaging">Magnetic Resonance Imaging</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.MRI.html">MRI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.DynamicMRI.html">DynamicMRI</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">SequentialMRI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.BaseMaskGenerator.html">BaseMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.GaussianMaskGenerator.html">GaussianMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.RandomMaskGenerator.html">RandomMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.EquispacedMaskGenerator.html">EquispacedMaskGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#tomography">Tomography</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#remote-sensing">Remote Sensing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#compressive-operators">Compressive operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#radio-interferometric-imaging">Radio interferometric imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#single-photon-lidar">Single-photon lidar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#dehazing">Dehazing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#phase-retrieval">Phase retrieval</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#noise-distributions">Noise distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#defining-new-operators">Defining new operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#functional">Functional</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.physics.html">Physics</a></li>
+      <li class="breadcrumb-item active">SequentialMRI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.physics.SequentialMRI.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="sequentialmri">
+<h1>SequentialMRI<a class="headerlink" href="#sequentialmri" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.physics.SequentialMRI">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.physics.</span></span><span class="sig-name descname"><span class="pre">SequentialMRI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><span class="pre">tuple</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(320,</span> <span class="pre">320)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/mri.html#SequentialMRI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.SequentialMRI" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI" title="deepinv.physics.mri.DynamicMRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">DynamicMRI</span></code></a></p>
+<p>Single-coil accelerated magnetic resonance imaging using sequential sampling.</p>
+<p>Let <span class="math notranslate nohighlight">\(S\)</span> be a subsampling mask with given acceleration.
+<span class="math notranslate nohighlight">\(S_t\)</span> is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that <span class="math notranslate nohighlight">\(S=\bigcup_t S_t\)</span>.
+The sequential MRI operator then simulates a time sequence of k-space samples:</p>
+<div class="math notranslate nohighlight">
+\[y_t = S_t F x\]</div>
+<p>where <span class="math notranslate nohighlight">\(F\)</span> is the 2D discrete Fourier Transform, the image <span class="math notranslate nohighlight">\(x\)</span> is of shape (B, 2, H, W) and measurements <span class="math notranslate nohighlight">\(y\)</span> is of shape (B, 2, T, H, W)
+where the first channel corresponds to the real part and the second channel corresponds to the imaginary part.</p>
+<p>This operator has a simple singular value decomposition, so it inherits the structure of <a class="reference internal" href="deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics()</span></code></a> and thus have a fast pseudo-inverse and prox operators.</p>
+<p>A fixed mask can be set at initialisation, or a new mask can be set either at forward (using <code class="docutils literal notranslate"><span class="pre">physics(x,</span> <span class="pre">mask=mask)</span></code>) or using <code class="docutils literal notranslate"><span class="pre">update_parameters</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. <a class="reference internal" href="deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator" title="deepinv.physics.generator.mri.RandomMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.mri.RandomMaskGenerator</span></code></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – binary mask <span class="math notranslate nohighlight">\(S_t,t=1\ldots T\)</span>, where 1s represent sampling locations, and 0s otherwise.
+The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.</p></li>
+<li><p><strong>img_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – if mask not specified, blank mask of ones is created using <code class="docutils literal notranslate"><span class="pre">img_size</span></code>, where <code class="docutils literal notranslate"><span class="pre">img_size</span></code> can be of any shape specified above. If mask provided, <code class="docutils literal notranslate"><span class="pre">img_size</span></code> is ignored.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><em>torch.device</em></a>) – cpu or gpu.</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Single-coil accelerated sequential MRI operator:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">SequentialMRI</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="c1"># Define random image of shape (B,C,H,W)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="c1"># Empty demo time-varying mask with 3 frames</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">SequentialMRI</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="c1"># Physics with given mask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="c1"># Alternatively set mask on-the-fly</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="c1"># MRI sequential samples</span>
+<span class="go">torch.Size([1, 2, 3, 2, 2])</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.SequentialMRI.A">
+<span class="sig-name descname"><span class="pre">A</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/deepinv/physics/mri.html#SequentialMRI.A"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.SequentialMRI.A" title="Link to this definition"></a></dt>
+<dd><p>Applies the forward operator <span class="math notranslate nohighlight">\(y = A(x)\)</span>.</p>
+<p>If a mask/singular values is provided, it is used to apply the forward operator,
+and also stored as the current mask/singular values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input tensor</p></li>
+<li><p><strong>mask</strong> (<em>torch.nn.Parameter</em><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – singular values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) output tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.SequentialMRI.A_adjoint">
+<span class="sig-name descname"><span class="pre">A_adjoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_time_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/deepinv/physics/mri.html#SequentialMRI.A_adjoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.SequentialMRI.A_adjoint" title="Link to this definition"></a></dt>
+<dd><p>Computes the adjoint of the forward operator <span class="math notranslate nohighlight">\(\tilde{x} = A^{\top}y\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input tensor</p></li>
+<li><p><strong>mask</strong> (<em>torch.nn.Parameter</em><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – input mask</p></li>
+<li><p><strong>keep_time_dim</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, adjoint is calculated frame-by-frame. Used for visualisation. If <code class="docutils literal notranslate"><span class="pre">False</span></code>, flatten the time dimension before calculating.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) output tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-sequentialmri">
+<span id="sphx-glr-backref-deepinv-physics-sequentialmri"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">SequentialMRI</span></code>:<a class="headerlink" href="#examples-using-sequentialmri" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate the self-supervised Artifact2Artifact loss for solving an undersampled sequential MRI reconstruction problem without ground truth."><img alt="" src="../_images/sphx_glr_demo_artifact2artifact_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_artifact2artifact.html#sphx-glr-auto-examples-self-supervised-learning-demo-artifact2artifact-py"><span class="std std-ref">Self-supervised MRI reconstruction with Artifact2Artifact</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised MRI reconstruction with Artifact2Artifact</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.DynamicMRI.html" class="btn btn-neutral float-left" title="DynamicMRI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.physics.generator.BaseMaskGenerator.html" class="btn btn-neutral float-right" title="BaseMaskGenerator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

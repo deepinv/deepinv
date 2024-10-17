@@ -1,0 +1,406 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D diffraction PSF &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Training a reconstruction network." href="demo_train_inpainting.html" />
+    <link rel="prev" title="Creating a forward operator." href="demo_physics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#advanced">Advanced</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#adversarial-learning">Adversarial Learning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#basics">Basics</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_pansharpening.html">Stacking and concatenating forward operators.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_transforms.html">Image transforms for equivariance &amp; augmentations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dataset.html">Creating your own dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_hf_dataset.html">Using huggingface dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics.html">Creating a forward operator.</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">3D diffraction PSF</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#d-convolutions">3D convolutions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#diffraction-psf-generation">Diffraction PSF generation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="demo_train_inpainting.html">Training a reconstruction network.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics_tour.html">A tour of forward sensing operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_loading.html">Saving and loading models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_blur_tour.html">A tour of blur operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#optimization">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#patch-priors">Patch Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#plug-and-play">Plug-and-Play</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sampling">Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#self-supervised-learning">Self-Supervised Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unfolded">Unfolded</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Examples</a></li>
+      <li class="breadcrumb-item active">3D diffraction PSF</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/basics/demo_microscopy_3d.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-basics-demo-microscopy-3d-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="d-diffraction-psf">
+<span id="sphx-glr-auto-examples-basics-demo-microscopy-3d-py"></span><h1>3D diffraction PSF<a class="headerlink" href="#d-diffraction-psf" title="Link to this heading"></a></h1>
+<p>This example provides a tour of 3D blur operators in the library.
+In particular, we show how to use Diffraction Blurs (Fresnel diffraction) to simulate
+fluorescence microscopes.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.plotting</span> <span class="kn">import</span> <span class="n">plot</span><span class="p">,</span> <span class="n">plot_ortho3D</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.demo</span> <span class="kn">import</span> <span class="n">load_np_url</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">imageio.v2</span> <span class="k">as</span> <span class="nn">io</span>
+
+
+<span class="c1"># First, let&#39;s load some test images.</span>
+
+<a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">float32</span></a>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_freer_gpu</span><span class="p">()</span> <span class="k">if</span> <a href="http://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+
+<span class="c1"># Next, set the global random seed from pytorch to ensure reproducibility of the example.</span>
+<a href="http://pytorch.org/docs/2.0/generated/torch.manual_seed.html#torch.manual_seed" title="torch.manual_seed" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span></a><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/generated/torch.cuda.manual_seed.html#torch.cuda.manual_seed" title="torch.cuda.manual_seed" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span></a><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a> <span class="o">=</span> <span class="n">load_np_url</span><span class="p">(</span>
+    <span class="s2">&quot;https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true&quot;</span>
+<span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.copy.html#numpy.copy" title="numpy.copy" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">copy</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.from_numpy.html#torch.from_numpy" title="torch.from_numpy" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a> <span class="o">/</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">volume_data</span></a><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">b</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">c</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">d</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">h</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">w</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>We are now ready to explore how to generate 3D blur operators for different microscopes.</strong></p>
+<section id="d-convolutions">
+<h2>3D convolutions<a class="headerlink" href="#d-convolutions" title="Link to this heading"></a></h2>
+<p>The class <a class="reference internal" href="../../stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Blur</span></code></a> implements convolution operations with kernels. It will
+automatically work for 3D images when given 5D <code class="xref py py-meth docutils literal notranslate"><span class="pre">torch.tensor()</span></code> of size (B, C, D, H, W) for both
+the image and filter. Under the hood, the 3D convolutions are implemented through FFT.
+For instance, here is the convolution of a grayscale 3D image with a random grayscale filter:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">filter_0</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.rand.html#torch.rand" title="torch.rand" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">rand</span></a><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">physics</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Blur</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">filter_0</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+
+<span class="n">plot_ortho3D</span><span class="p">(</span>
+    <span class="p">[</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">filter_0</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;signal&quot;</span><span class="p">,</span> <span class="s2">&quot;filter&quot;</span><span class="p">,</span> <span class="s2">&quot;measurement&quot;</span><span class="p">],</span>
+    <span class="n">suptitle</span><span class="o">=</span><span class="s2">&quot;3D convolution&quot;</span><span class="p">,</span>
+    <span class="n">interpolation</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_microscopy_3d_001.png" srcset="../../_images/sphx_glr_demo_microscopy_3d_001.png" alt="3D convolution, signal, filter, measurement" class = "sphx-glr-single-img"/></section>
+<section id="diffraction-psf-generation">
+<h2>Diffraction PSF generation<a class="headerlink" href="#diffraction-psf-generation" title="Link to this heading"></a></h2>
+<p>Advanced kernel generation methods are provided in the toolbox thanks to
+the class <code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.PSFGenerator</span></code>, that we used to construct
+PSF generators for different type of microscopes.</p>
+<section id="widefield-microscope-psf">
+<h3>Widefield microscope PSF<a class="headerlink" href="#widefield-microscope-psf" title="Link to this heading"></a></h3>
+<p>We implemented 3D diffraction blurs obtained using scalar diffraction theory in
+<a class="reference internal" href="../../stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html#deepinv.physics.generator.DiffractionBlurGenerator3D" title="deepinv.physics.generator.DiffractionBlurGenerator3D"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.generator.DiffractionBlurGenerator3D()</span></code></a>.
+Therein, the psf is defined through the pupil plane expanded in Zernike polynomials
+and the wave is propagated in the axial direction using the Fresnel approximation</p>
+<p>Let’s generate 3 different 3D diffraction blurs. First, we instantiate the generator:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">DiffractionBlurGenerator3D</span></a>
+
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a> <span class="o">=</span> <span class="mi">51</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_Z</span></a> <span class="o">=</span> <span class="mi">35</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size</span></a> <span class="o">=</span> <span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_Z</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a><span class="p">)</span>
+
+
+<span class="n">diffraction_generator</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">DiffractionBlurGenerator3D</span></a><span class="p">(</span>
+    <span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_Z</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a><span class="p">),</span>
+    <span class="n">fc</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+    <span class="n">kb</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">stepz_pixel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>For optician physicists: <code class="docutils literal notranslate"><span class="pre">fc</span></code> is the cutoff frequency, which should be below 0.25
+to respect Shannon’s sampling theorem,  <code class="docutils literal notranslate"><span class="pre">kb</span></code> is the wave number, used for propagation
+in depth. Letting <code class="docutils literal notranslate"><span class="pre">NA</span></code> denote the numerical aperture, <code class="docutils literal notranslate"><span class="pre">NI</span></code> denote the index
+of refraction of the immersion medium and lambda denote the emission wavelength,
+the quantities are related through:
+<cite>fc = (NA/lambda) * pixel_size</cite>.
+<cite>kb = (NI/lambda) * pixel_size</cite>.</p>
+<p>To generate new filters, it suffices to call the step() function as follows:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a> <span class="o">=</span> <span class="n">diffraction_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case, the <cite>step()</cite> function returns a dictionary containing the filters,
+their pupil function and Zernike coefficients:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+<span class="n">plot_ortho3D</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a><span class="p">[</span><span class="s2">&quot;filter&quot;</span><span class="p">]],</span>
+    <span class="n">suptitle</span><span class="o">=</span><span class="s2">&quot;Examples of randomly generated diffraction blurs&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">plot</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">f</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <a href="http://pytorch.org/docs/2.0/generated/torch.angle.html#torch.angle" title="torch.angle" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">angle</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a><span class="p">[</span><span class="s2">&quot;pupil&quot;</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/generated/torch.abs.html#torch.abs" title="torch.abs" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">abs</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a><span class="p">[</span><span class="s2">&quot;pupil&quot;</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">])</span>
+    <span class="p">],</span>
+    <span class="n">suptitle</span><span class="o">=</span><span class="s2">&quot;Corresponding pupil planes&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Coefficients of the decomposition on Zernike polynomials&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a><span class="p">[</span><span class="s2">&quot;coeff&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img src="../../_images/sphx_glr_demo_microscopy_3d_002.png" srcset="../../_images/sphx_glr_demo_microscopy_3d_002.png" alt="Examples of randomly generated diffraction blurs" class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_demo_microscopy_3d_003.png" srcset="../../_images/sphx_glr_demo_microscopy_3d_003.png" alt="Corresponding pupil planes" class = "sphx-glr-multi-img"/></li>
+</ul>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>dict_keys([&#39;filter&#39;, &#39;pupil&#39;, &#39;coeff&#39;])
+Coefficients of the decomposition on Zernike polynomials
+tensor([[-0.0349,  0.0559, -0.0247, -0.0145,  0.0431, -0.0064, -0.0642,  0.0707],
+        [ 0.0322, -0.0109, -0.0623, -0.0014, -0.0501, -0.0519, -0.0204,  0.0022],
+        [ 0.0318,  0.0568,  0.0515,  0.0732,  0.0089, -0.0096, -0.0559, -0.0335]])
+</pre></div>
+</div>
+<p>It is also possible to directly specify the Zernike decomposition.
+For instance, if the pupil is null, the PSF is the Airy pattern.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_zernike</span></a> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">diffraction_generator</span><span class="o">.</span><span class="n">list_param</span></a>
+<span class="p">)</span>  <span class="c1"># number of Zernike coefficients in the decomposition</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a> <span class="o">=</span> <span class="n">diffraction_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">coeff</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/generated/torch.zeros.html#torch.zeros" title="torch.zeros" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_zernike</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">plot_ortho3D</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a><span class="p">[</span><span class="s2">&quot;filter&quot;</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">]],</span>
+    <span class="n">suptitle</span><span class="o">=</span><span class="s2">&quot;Airy pattern&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_microscopy_3d_004.png" srcset="../../_images/sphx_glr_demo_microscopy_3d_004.png" alt="Airy pattern" class = "sphx-glr-single-img"/><p>Finally, notice that you can activate the aberrations you want in the Noll
+nomenclature <a class="reference external" href="https://en.wikipedia.org/wiki/Zernike_polynomials#Noll's_sequential_indices">https://en.wikipedia.org/wiki/Zernike_polynomials#Noll’s_sequential_indices</a></p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">diffraction_generator</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">DiffractionBlurGenerator3D</span></a><span class="p">(</span>
+    <span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_Z</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size_XY</span></a><span class="p">),</span>
+    <span class="n">fc</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">kb</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">stepz_pixel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">list_param</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Z5&quot;</span><span class="p">,</span> <span class="s2">&quot;Z6&quot;</span><span class="p">],</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blurs</span></a> <span class="o">=</span> <span class="n">diffraction_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="confocal-microscope-psf">
+<h3>Confocal microscope PSF<a class="headerlink" href="#confocal-microscope-psf" title="Link to this heading"></a></h3>
+<p>We implemented the PSF of a confocal microscope in <code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.generator.ConfocalBlurGenerator3D()</span></code>.
+In fluorescence confocal microscopy, the light emitted by the sample is filtered
+through a pinhole to prevent the collection  of out-of-focus light.
+The confocal intensity PSF can be expressed as</p>
+<div class="math notranslate nohighlight">
+\[{\rm PSF}(r, z; \lambda_{ill}, \lambda_{coll}) = \vert h_{ill}(r, z; \lambda_{ill})\vert^2~ \left [ \vert h_{coll}(r, z; \lambda_{coll})\vert^2 \otimes_{2} D(r)\right ],\]</div>
+<p>where <span class="math notranslate nohighlight">\(h(r, z)\)</span> is the amplitude PSF and <span class="math notranslate nohighlight">\(D(r)\)</span> is the detector intensity sensitivity distribution (here : one inside the confocal pinhole, 0 outside).
+<cite>ill</cite> coincides with illumination, while <cite>coll</cite> coincides with collection. <span class="math notranslate nohighlight">\(\lambda\)</span> coincides with the wavelength.</p>
+<p>See e.g. Gu and Sheppard, JMO, 1991  - Eq. (6) <a class="reference external" href="https://doi.org/10.1080/09500349114552311">https://doi.org/10.1080/09500349114552311</a></p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">ConfocalBlurGenerator3D</span></a>
+
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NI</span></a> <span class="o">=</span> <span class="mf">1.51</span>  <span class="c1"># refractive index of oil</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">angAper</span></a> <span class="o">=</span> <span class="mi">55</span>  <span class="c1">##angular aperture in degrees</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NA</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NI</span></a> <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/generated/torch.sin.html#torch.sin" title="torch.sin" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">sin</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.deg2rad.html#torch.deg2rad" title="torch.deg2rad" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">([</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">angAper</span></a><span class="p">])))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>  <span class="c1"># numerical aperture</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lambda_ill</span></a> <span class="o">=</span> <span class="mf">489e-9</span>  <span class="c1"># wavelength for GFP excitation in m</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lambda_coll</span></a> <span class="o">=</span> <span class="mf">395e-9</span>  <span class="c1"># wavelength for GFP emission in m</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pixelsize_XY</span></a> <span class="o">=</span> <span class="mf">70e-9</span>  <span class="c1"># in m</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pixelsize_Z</span></a> <span class="o">=</span> <span class="mf">140e-9</span>  <span class="c1"># in m</span>
+
+<span class="n">generator</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">ConfocalBlurGenerator3D</span></a><span class="p">(</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_size</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NI</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NI</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NA</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">NA</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lambda_ill</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lambda_ill</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lambda_coll</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">lambda_coll</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pixelsize_XY</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pixelsize_XY</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pixelsize_Z</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pixelsize_Z</span></a><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_confocal</span></a> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_confocal</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_confocal</span></a><span class="p">[</span><span class="s2">&quot;filter&quot;</span><span class="p">]</span>
+
+
+<a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_coll</span></a> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">generator_coll</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">coeff</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_confocal</span></a><span class="p">[</span><span class="s2">&quot;coeff_coll&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_coll</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_coll</span></a><span class="p">[</span><span class="s2">&quot;filter&quot;</span><span class="p">]</span>
+<span class="c1"># plot generated PSFs</span>
+<span class="n">plot_ortho3D</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">psf</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="k">for</span> <span class="n">psf</span> <span class="ow">in</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_coll</span></a><span class="p">],</span>
+    <span class="n">suptitle</span><span class="o">=</span><span class="s2">&quot;PSFs of Widefield microscope (collection only)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">plot_ortho3D</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">psf</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="k">for</span> <span class="n">psf</span> <span class="ow">in</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psf_confocal</span></a><span class="p">],</span>
+    <span class="n">suptitle</span><span class="o">=</span><span class="s2">&quot;Corresponding PSFs of Confocal microscope&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img src="../../_images/sphx_glr_demo_microscopy_3d_005.png" srcset="../../_images/sphx_glr_demo_microscopy_3d_005.png" alt="PSFs of Widefield microscope (collection only)" class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_demo_microscopy_3d_006.png" srcset="../../_images/sphx_glr_demo_microscopy_3d_006.png" alt="Corresponding PSFs of Confocal microscope" class = "sphx-glr-multi-img"/></li>
+</ul>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 4.791 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-basics-demo-microscopy-3d-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/278193eb0d15e535a2742dcde168944d/demo_microscopy_3d.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_microscopy_3d.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/3ac68038ea190365b24933460b5f75fb/demo_microscopy_3d.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_microscopy_3d.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/34adde3c6e01451a5ceea0b1fea9ea9a/demo_microscopy_3d.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_microscopy_3d.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="demo_physics.html" class="btn btn-neutral float-left" title="Creating a forward operator." accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="demo_train_inpainting.html" class="btn btn-neutral float-right" title="Training a reconstruction network." accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

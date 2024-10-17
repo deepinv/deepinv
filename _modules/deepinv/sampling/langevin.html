@@ -1,0 +1,680 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.sampling.langevin &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.sampling.langevin</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.sampling.langevin</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span> <span class="k">as</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">deepinv.optim</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">deepinv.optim.utils</span> <span class="kn">import</span> <span class="n">check_conv</span>
+<span class="kn">from</span> <span class="nn">deepinv.sampling.utils</span> <span class="kn">import</span> <span class="n">Welford</span><span class="p">,</span> <span class="n">projbox</span><span class="p">,</span> <span class="n">refl_projbox</span>
+
+
+<div class="viewcode-block" id="MonteCarlo">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo">[docs]</a>
+<span class="k">class</span> <span class="nc">MonteCarlo</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for Monte Carlo sampling.</span>
+
+<span class="sd">    This class can be used to create new Monte Carlo samplers, by only defining their kernel inside a torch.nn.Module:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        # define custom sampling kernel (possibly a Markov kernel which depends on the previous sample).</span>
+<span class="sd">        class MyKernel(torch.torch.nn.Module):</span>
+<span class="sd">            def __init__(self, iterator_params):</span>
+<span class="sd">                super().__init__()</span>
+<span class="sd">                self.iterator_params = iterator_params</span>
+
+<span class="sd">            def forward(self, x, y, physics, likelihood, prior):</span>
+<span class="sd">                # run one sampling kernel iteration</span>
+<span class="sd">                new_x = f(x, y, physics, likelihood, prior, self.iterator_params)</span>
+<span class="sd">                return new_x</span>
+
+<span class="sd">        class MySampler(MonteCarlo):</span>
+<span class="sd">            def __init__(self, prior, data_fidelity, iterator_params,</span>
+<span class="sd">                         max_iter=1e3, burnin_ratio=.1, clip=(-1,2), verbose=True):</span>
+<span class="sd">                # generate an iterator</span>
+<span class="sd">                iterator = MyKernel(step_size=step_size, alpha=alpha)</span>
+<span class="sd">                # set the params of the base class</span>
+<span class="sd">                super().__init__(iterator, prior, data_fidelity, max_iter=max_iter,</span>
+<span class="sd">                                 burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)</span>
+
+<span class="sd">        # create the sampler</span>
+<span class="sd">        sampler = MySampler(prior, data_fidelity, iterator_params)</span>
+
+<span class="sd">        # compute posterior mean and variance of reconstruction of measurement y</span>
+<span class="sd">        mean, var = sampler(y, physics)</span>
+
+
+<span class="sd">    This class computes the mean and variance of the chain using Welford&#39;s algorithm, which avoids storing the whole</span>
+<span class="sd">    Monte Carlo samples.</span>
+
+<span class="sd">    :param deepinv.optim.ScorePrior prior: negative log-prior based on a trained or model-based denoiser.</span>
+<span class="sd">    :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the</span>
+<span class="sd">        noise distribution in the acquisition physics.</span>
+<span class="sd">    :param int max_iter: number of Monte Carlo iterations.</span>
+<span class="sd">    :param int thinning: thins the Monte Carlo samples by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``</span>
+<span class="sd">        samples to compute posterior statistics).</span>
+<span class="sd">    :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.</span>
+<span class="sd">        The burn-in samples are discarded constant with a numerical algorithm.</span>
+<span class="sd">    :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.</span>
+<span class="sd">        If ``None``, the algorithm will not project the samples.</span>
+<span class="sd">    :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.</span>
+<span class="sd">    :param function_handle g_statistic: The sampler will compute the posterior mean and variance</span>
+<span class="sd">        of the function g_statistic. By default, it is the identity function (lambda x: x),</span>
+<span class="sd">        and thus the sampler computes the posterior mean and variance.</span>
+<span class="sd">    :param bool verbose: prints progress of the algorithm.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">iterator</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">:</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">ScorePrior</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">:</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">DataFidelity</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e3</span><span class="p">,</span>
+        <span class="n">burnin_ratio</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">thinning</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">clip</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">thresh_conv</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">crit_conv</span><span class="o">=</span><span class="s2">&quot;residual&quot;</span><span class="p">,</span>
+        <span class="n">save_chain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">g_statistic</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MonteCarlo</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">iterator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">prior</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">likelihood</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">C_set</span> <span class="o">=</span> <span class="n">clip</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thinning</span> <span class="o">=</span> <span class="n">thinning</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_iter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresh_conv</span> <span class="o">=</span> <span class="n">thresh_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span> <span class="o">=</span> <span class="n">crit_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burnin_iter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">burnin_ratio</span> <span class="o">*</span> <span class="n">max_iter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_function</span> <span class="o">=</span> <span class="n">g_statistic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_chain</span> <span class="o">=</span> <span class="n">save_chain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="MonteCarlo.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements</span>
+<span class="sd">        :param float seed: Random seed for generating the Monte Carlo samples</span>
+<span class="sd">        :return: (tuple of torch.tensor) containing the posterior mean and variance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+            <span class="c1"># Algorithm parameters</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_set</span><span class="p">:</span>
+                <span class="n">C_lower_lim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_set</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">C_upper_lim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_set</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># Initialization</span>
+            <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x_init</span>
+
+            <span class="c1"># Monte Carlo loop</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">statistics</span> <span class="o">=</span> <span class="n">Welford</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_function</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">),</span> <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">likelihood</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">likelihood</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prior</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_set</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">projbox</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">C_lower_lim</span><span class="p">,</span> <span class="n">C_upper_lim</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">burnin_iter</span> <span class="ow">and</span> <span class="p">(</span><span class="n">it</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">thinning</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">thinning</span><span class="p">):</span>
+                        <span class="n">mean_prev</span> <span class="o">=</span> <span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                        <span class="n">var_prev</span> <span class="o">=</span> <span class="n">statistics</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                    <span class="n">statistics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_function</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_chain</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">chain</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
+                <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">elapsed</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Monte Carlo sampling finished! elapsed time=</span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">check_conv</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_prev</span><span class="p">,)},</span>
+                    <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(),)},</span>
+                    <span class="n">it</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">thresh_conv</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="ow">and</span> <span class="n">it</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">check_conv</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">var_prev</span><span class="p">,)},</span>
+                    <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">statistics</span><span class="o">.</span><span class="n">var</span><span class="p">(),)},</span>
+                    <span class="n">it</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">thresh_conv</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="ow">and</span> <span class="n">it</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">statistics</span><span class="o">.</span><span class="n">var</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MonteCarlo.get_chain">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo.get_chain">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the thinned Monte Carlo samples (after burn-in iterations).</span>
+<span class="sd">        Requires ``save_chain=True``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain</span></div>
+
+
+<div class="viewcode-block" id="MonteCarlo.reset">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo.reset">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the Markov chain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="MonteCarlo.mean_has_converged">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo.mean_has_converged">[docs]</a>
+    <span class="k">def</span> <span class="nf">mean_has_converged</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a boolean indicating if the posterior mean verifies the convergence criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span></div>
+
+
+<div class="viewcode-block" id="MonteCarlo.var_has_converged">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.MonteCarlo.html#deepinv.sampling.MonteCarlo.var_has_converged">[docs]</a>
+    <span class="k">def</span> <span class="nf">var_has_converged</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a boolean indicating if the posterior variance verifies the convergence criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span></div>
+</div>
+
+
+
+<span class="k">class</span> <span class="nc">ULAIterator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Single iteration of the Unadjusted Langevin Algorithm.</span>
+
+<span class="sd">    :param float step_size: step size :math:`\eta&gt;0` of the algorithm.</span>
+<span class="sd">    :param float alpha: regularization parameter :math:`\alpha`.</span>
+<span class="sd">    :param float sigma: noise level used in the plug-and-play prior denoiser.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">step_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">likelihood</span><span class="p">,</span> <span class="n">prior</span><span class="p">):</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_std</span>
+        <span class="n">lhood</span> <span class="o">=</span> <span class="o">-</span><span class="n">likelihood</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+        <span class="n">lprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">prior</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">*</span> <span class="p">(</span><span class="n">lhood</span> <span class="o">+</span> <span class="n">lprior</span><span class="p">)</span> <span class="o">+</span> <span class="n">noise</span>
+
+
+<div class="viewcode-block" id="ULA">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.ULA.html#deepinv.sampling.ULA">[docs]</a>
+<span class="k">class</span> <span class="nc">ULA</span><span class="p">(</span><span class="n">MonteCarlo</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Projected Plug-and-Play Unadjusted Langevin Algorithm.</span>
+
+<span class="sd">    The algorithm runs the following markov chain iteration</span>
+<span class="sd">    (Algorithm 2 from https://arxiv.org/abs/2103.04715):</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        x_{k+1} = \Pi_{[a,b]} \left(x_{k} + \eta \nabla \log p(y|A,x_k) +</span>
+<span class="sd">        \eta \alpha \nabla \log p(x_{k}) + \sqrt{2\eta}z_{k+1} \right).</span>
+
+<span class="sd">    where :math:`x_{k}` is the :math:`k` th sample of the Markov chain,</span>
+<span class="sd">    :math:`\log p(y|x)` is the log-likelihood function, :math:`\log p(x)` is the log-prior,</span>
+<span class="sd">    :math:`\eta&gt;0` is the step size, :math:`\alpha&gt;0` controls the amount of regularization,</span>
+<span class="sd">    :math:`\Pi_{[a,b]}(x)` projects the entries of :math:`x` to the interval :math:`[a,b]` and</span>
+<span class="sd">    :math:`z\sim \mathcal{N}(0,I)` is a standard Gaussian vector.</span>
+
+
+<span class="sd">    - Projected PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable</span>
+<span class="sd">    - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`</span>
+
+
+<span class="sd">    :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.</span>
+<span class="sd">    :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the</span>
+<span class="sd">        noise distribution in the acquisition physics.</span>
+<span class="sd">    :param float step_size: step size :math:`\eta&gt;0` of the algorithm.</span>
+<span class="sd">        Tip: use :meth:`deepinv.physics.Physics.compute_norm()` to compute the Lipschitz constant of the forward operator.</span>
+<span class="sd">    :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in</span>
+<span class="sd">        a more regularized reconstruction.</span>
+<span class="sd">    :param float alpha: regularization parameter :math:`\alpha`</span>
+<span class="sd">    :param int max_iter: number of Monte Carlo iterations.</span>
+<span class="sd">    :param int thinning: Thins the Markov Chain by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``</span>
+<span class="sd">        samples to compute posterior statistics).</span>
+<span class="sd">    :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.</span>
+<span class="sd">        The burn-in samples are discarded constant with a numerical algorithm.</span>
+<span class="sd">    :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.</span>
+<span class="sd">        If ``None``, the algorithm will not project the samples.</span>
+<span class="sd">    :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.</span>
+<span class="sd">    :param function_handle g_statistic: The sampler will compute the posterior mean and variance</span>
+<span class="sd">        of the function g_statistic. By default, it is the identity function (lambda x: x),</span>
+<span class="sd">        and thus the sampler computes the posterior mean and variance.</span>
+<span class="sd">    :param bool verbose: prints progress of the algorithm.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">step_size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e3</span><span class="p">,</span>
+        <span class="n">thinning</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">burnin_ratio</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">clip</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">thresh_conv</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">save_chain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">g_statistic</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">ULAIterator</span><span class="p">(</span><span class="n">step_size</span><span class="o">=</span><span class="n">step_size</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">iterator</span><span class="p">,</span>
+            <span class="n">prior</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">thresh_conv</span><span class="o">=</span><span class="n">thresh_conv</span><span class="p">,</span>
+            <span class="n">g_statistic</span><span class="o">=</span><span class="n">g_statistic</span><span class="p">,</span>
+            <span class="n">burnin_ratio</span><span class="o">=</span><span class="n">burnin_ratio</span><span class="p">,</span>
+            <span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">,</span>
+            <span class="n">thinning</span><span class="o">=</span><span class="n">thinning</span><span class="p">,</span>
+            <span class="n">save_chain</span><span class="o">=</span><span class="n">save_chain</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="k">class</span> <span class="nc">SKRockIterator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">inner_iter</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span> <span class="o">=</span> <span class="n">inner_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">step_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">likelihood</span><span class="p">,</span> <span class="n">prior</span><span class="p">):</span>
+        <span class="n">posterior</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">prior</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+            <span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span>
+        <span class="p">)</span>
+
+        <span class="c1"># First kind Chebyshev function</span>
+        <span class="n">T_s</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arccosh</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+        <span class="c1"># First derivative Chebyshev polynomial first kind</span>
+        <span class="n">T_prime_s</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">s</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arccosh</span><span class="p">(</span><span class="n">u</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">w0</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># parameter \omega_0</span>
+        <span class="n">w1</span> <span class="o">=</span> <span class="n">T_s</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span><span class="p">,</span> <span class="n">w0</span><span class="p">)</span> <span class="o">/</span> <span class="n">T_prime_s</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span><span class="p">,</span> <span class="n">w0</span>
+        <span class="p">)</span>  <span class="c1"># parameter \omega_1</span>
+        <span class="n">mu1</span> <span class="o">=</span> <span class="n">w1</span> <span class="o">/</span> <span class="n">w0</span>  <span class="c1"># parameter \mu_1</span>
+        <span class="n">nu1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span> <span class="o">*</span> <span class="n">w1</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># parameter \nu_1</span>
+        <span class="n">kappa1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span> <span class="o">*</span> <span class="p">(</span><span class="n">w1</span> <span class="o">/</span> <span class="n">w0</span><span class="p">)</span>  <span class="c1"># parameter \kappa_1</span>
+
+        <span class="c1"># sampling the variable x</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># diffusion term</span>
+
+        <span class="c1"># first internal iteration (s=1)</span>
+        <span class="n">xts_2</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">xts</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="o">-</span> <span class="n">mu1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">*</span> <span class="n">posterior</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">nu1</span> <span class="o">*</span> <span class="n">noise</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">kappa1</span> <span class="o">*</span> <span class="n">noise</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">js</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+            <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inner_iter</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">):</span>  <span class="c1"># s=2,...,self.inner_iter SK-ROCK internal iterations</span>
+            <span class="n">xts_1</span> <span class="o">=</span> <span class="n">xts</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w1</span> <span class="o">*</span> <span class="n">T_s</span><span class="p">(</span><span class="n">js</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w0</span><span class="p">)</span> <span class="o">/</span> <span class="n">T_s</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">w0</span><span class="p">)</span>  <span class="c1"># parameter \mu_js</span>
+            <span class="n">nu</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w0</span> <span class="o">*</span> <span class="n">T_s</span><span class="p">(</span><span class="n">js</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w0</span><span class="p">)</span> <span class="o">/</span> <span class="n">T_s</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">w0</span><span class="p">)</span>  <span class="c1"># parameter \nu_js</span>
+            <span class="n">kappa</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">nu</span>  <span class="c1"># parameter \kappa_js</span>
+            <span class="n">xts</span> <span class="o">=</span> <span class="o">-</span><span class="n">mu</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">*</span> <span class="n">posterior</span><span class="p">(</span><span class="n">xts</span><span class="p">)</span> <span class="o">+</span> <span class="n">nu</span> <span class="o">*</span> <span class="n">xts</span> <span class="o">+</span> <span class="n">kappa</span> <span class="o">*</span> <span class="n">xts_2</span>
+            <span class="n">xts_2</span> <span class="o">=</span> <span class="n">xts_1</span>
+
+        <span class="k">return</span> <span class="n">xts</span>  <span class="c1"># new sample produced by the SK-ROCK algorithm</span>
+
+
+<div class="viewcode-block" id="SKRock">
+<a class="viewcode-back" href="../../../stubs/deepinv.sampling.SKRock.html#deepinv.sampling.SKRock">[docs]</a>
+<span class="k">class</span> <span class="nc">SKRock</span><span class="p">(</span><span class="n">MonteCarlo</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plug-and-Play SKROCK algorithm.</span>
+
+<span class="sd">    Obtains samples of the posterior distribution using an orthogonal Runge-Kutta-Chebyshev stochastic</span>
+<span class="sd">    approximation to accelerate the standard Unadjusted Langevin Algorithm.</span>
+
+<span class="sd">    The algorithm was introduced in &quot;Accelerating proximal Markov chain Monte Carlo by using an explicit stabilised method&quot;</span>
+<span class="sd">    by L. Vargas, M. Pereyra and K. Zygalakis (https://arxiv.org/abs/1908.08845)</span>
+
+<span class="sd">    - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable</span>
+<span class="sd">    - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`</span>
+
+<span class="sd">    :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.</span>
+<span class="sd">    :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the</span>
+<span class="sd">        noise distribution in the acquisition physics.</span>
+<span class="sd">    :param float step_size: Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz</span>
+<span class="sd">    :param float eta: :math:`\eta` SKROCK damping parameter.</span>
+<span class="sd">    :param float alpha: regularization parameter :math:`\alpha`.</span>
+<span class="sd">    :param int inner_iter: Number of inner SKROCK iterations.</span>
+<span class="sd">    :param int max_iter: Number of outer iterations.</span>
+<span class="sd">    :param int thinning: Thins the Markov Chain by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``</span>
+<span class="sd">        samples to compute posterior statistics).</span>
+<span class="sd">    :param float burnin_ratio: percentage of iterations used for burn-in period. The burn-in samples are discarded</span>
+<span class="sd">        constant with a numerical algorithm.</span>
+<span class="sd">    :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.</span>
+<span class="sd">        If ``None``, the algorithm will not project the samples.</span>
+<span class="sd">    :param bool verbose: prints progress of the algorithm.</span>
+<span class="sd">    :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in</span>
+<span class="sd">        a more regularized reconstruction.</span>
+<span class="sd">    :param function_handle g_statistic: The sampler will compute the posterior mean and variance</span>
+<span class="sd">        of the function g_statistic. By default, it is the identity function (lambda x: x),</span>
+<span class="sd">        and thus the sampler computes the posterior mean and variance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">:</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">ScorePrior</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">step_size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">inner_iter</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">eta</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e3</span><span class="p">,</span>
+        <span class="n">burnin_ratio</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">thinning</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">clip</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">thresh_conv</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">save_chain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">g_statistic</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">SKRockIterator</span><span class="p">(</span>
+            <span class="n">step_size</span><span class="o">=</span><span class="n">step_size</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="n">inner_iter</span><span class="o">=</span><span class="n">inner_iter</span><span class="p">,</span>
+            <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">iterator</span><span class="p">,</span>
+            <span class="n">prior</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">thresh_conv</span><span class="o">=</span><span class="n">thresh_conv</span><span class="p">,</span>
+            <span class="n">thinning</span><span class="o">=</span><span class="n">thinning</span><span class="p">,</span>
+            <span class="n">burnin_ratio</span><span class="o">=</span><span class="n">burnin_ratio</span><span class="p">,</span>
+            <span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">,</span>
+            <span class="n">g_statistic</span><span class="o">=</span><span class="n">g_statistic</span><span class="p">,</span>
+            <span class="n">save_chain</span><span class="o">=</span><span class="n">save_chain</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="c1"># if __name__ == &quot;__main__&quot;:</span>
+<span class="c1">#     import deepinv as dinv</span>
+<span class="c1">#     import torchvision</span>
+<span class="c1">#     from deepinv.optim.data_fidelity import L2</span>
+<span class="c1">#</span>
+<span class="c1">#     x = torchvision.io.read_image(&quot;../../datasets/celeba/img_align_celeba/085307.jpg&quot;)</span>
+<span class="c1">#     x = x.unsqueeze(0).float().to(dinv.device) / 255</span>
+<span class="c1">#     # physics = dinv.physics.CompressedSensing(m=50000, fast=True, img_shape=(3, 218, 178), device=dinv.device)</span>
+<span class="c1">#     # physics = dinv.physics.Denoising()</span>
+<span class="c1">#     physics = dinv.physics.Inpainting(</span>
+<span class="c1">#         mask=0.95, tensor_size=(3, 218, 178), device=dinv.device</span>
+<span class="c1">#     )</span>
+<span class="c1">#     # physics = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(sigma=(2,2)), img_size=x.shape[1:], device=dinv.device)</span>
+<span class="c1">#</span>
+<span class="c1">#     sigma = 0.1</span>
+<span class="c1">#     physics.noise_model = dinv.physics.GaussianNoise(sigma)</span>
+<span class="c1">#</span>
+<span class="c1">#     y = physics(x)</span>
+<span class="c1">#</span>
+<span class="c1">#     likelihood = L2(sigma=sigma)</span>
+<span class="c1">#</span>
+<span class="c1">#     # model_spec = {&#39;name&#39;: &#39;median_filter&#39;, &#39;args&#39;: {&#39;kernel_size&#39;: 3}}</span>
+<span class="c1">#     model_spec = {</span>
+<span class="c1">#         &quot;name&quot;: &quot;dncnn&quot;,</span>
+<span class="c1">#         &quot;args&quot;: {</span>
+<span class="c1">#             &quot;device&quot;: dinv.device,</span>
+<span class="c1">#             &quot;in_channels&quot;: 3,</span>
+<span class="c1">#             &quot;out_channels&quot;: 3,</span>
+<span class="c1">#             &quot;pretrained&quot;: &quot;download_lipschitz&quot;,</span>
+<span class="c1">#         },</span>
+<span class="c1">#     }</span>
+<span class="c1">#     # model_spec = {&#39;name&#39;: &#39;waveletprior&#39;, &#39;args&#39;: {&#39;wv&#39;: &#39;db8&#39;, &#39;level&#39;: 4, &#39;device&#39;: dinv.device}}</span>
+<span class="c1">#</span>
+<span class="c1">#     prior = ScorePrior(model_spec=model_spec, sigma_normalize=True)</span>
+<span class="c1">#</span>
+<span class="c1">#     sigma_den = 2 / 255</span>
+<span class="c1">#     f = ULA(</span>
+<span class="c1">#         prior,</span>
+<span class="c1">#         likelihood,</span>
+<span class="c1">#         max_iter=5000,</span>
+<span class="c1">#         sigma=sigma_den,</span>
+<span class="c1">#         burnin_ratio=0.3,</span>
+<span class="c1">#         verbose=True,</span>
+<span class="c1">#         alpha=0.3,</span>
+<span class="c1">#         step_size=0.5 * 1 / (1 / (sigma**2) + 1 / (sigma_den**2)),</span>
+<span class="c1">#         clip=(-1, 2),</span>
+<span class="c1">#         save_chain=True,</span>
+<span class="c1">#     )</span>
+<span class="c1">#     # f = SKRock(prior, likelihood, max_iter=1000, burnin_ratio=.3, verbose=True,</span>
+<span class="c1">#     #           alpha=.9, step_size=.1*(sigma**2), clip=(-1, 2))</span>
+<span class="c1">#</span>
+<span class="c1">#     xmean, xvar = f(y, physics)</span>
+<span class="c1">#</span>
+<span class="c1">#     print(str(f.mean_has_converged()))</span>
+<span class="c1">#     print(str(f.var_has_converged()))</span>
+<span class="c1">#</span>
+<span class="c1">#     chain = f.get_chain()</span>
+<span class="c1">#     distance = np.zeros((len(chain)))</span>
+<span class="c1">#     for k, xhat in enumerate(chain):</span>
+<span class="c1">#         dist = (xhat - xmean).pow(2).mean()</span>
+<span class="c1">#         distance[k] = dist</span>
+<span class="c1">#     distance = np.sort(distance)</span>
+<span class="c1">#     thres = distance[int(len(distance) * 0.95)]  #</span>
+<span class="c1">#     err = (x - xmean).pow(2).mean()</span>
+<span class="c1">#     print(f&quot;Confidence region: {thres:.2e}, error: {err:.2e}&quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#     xstdn = xvar.sqrt()</span>
+<span class="c1">#     xstdn_plot = xstdn.sum(dim=1).unsqueeze(1)</span>
+<span class="c1">#</span>
+<span class="c1">#     error = (xmean - x).abs()  # per pixel average abs. error</span>
+<span class="c1">#     error_plot = error.sum(dim=1).unsqueeze(1)</span>
+<span class="c1">#</span>
+<span class="c1">#     print(f&quot;Correct std: {(xstdn*3&gt;error).sum()/np.prod(xstdn.shape)*100:.1f}%&quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#     dinv.utils.plot(</span>
+<span class="c1">#         [physics.A_adjoint(y), x, xmean, xstdn_plot, error_plot],</span>
+<span class="c1">#         titles=[&quot;meas.&quot;, &quot;ground-truth&quot;, &quot;mean&quot;, &quot;norm. std&quot;, &quot;abs. error&quot;],</span>
+<span class="c1">#     )</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,353 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creating a forward operator. &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="3D diffraction PSF" href="demo_microscopy_3d.html" />
+    <link rel="prev" title="Using huggingface dataset" href="demo_hf_dataset.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#advanced">Advanced</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#adversarial-learning">Adversarial Learning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#basics">Basics</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_pansharpening.html">Stacking and concatenating forward operators.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_transforms.html">Image transforms for equivariance &amp; augmentations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dataset.html">Creating your own dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_hf_dataset.html">Using huggingface dataset</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Creating a forward operator.</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#creating-a-custom-forward-operator">Creating a custom forward operator.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#generate-toy-image">Generate toy image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#verifying-our-linear-operator">Verifying our linear operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#creating-a-decomposable-forward-operator">Creating a decomposable forward operator.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#benefits-of-using-a-decomposable-forward-operator">Benefits of using a decomposable forward operator.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="demo_microscopy_3d.html">3D diffraction PSF</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_train_inpainting.html">Training a reconstruction network.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics_tour.html">A tour of forward sensing operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_loading.html">Saving and loading models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_blur_tour.html">A tour of blur operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#optimization">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#patch-priors">Patch Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#plug-and-play">Plug-and-Play</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sampling">Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#self-supervised-learning">Self-Supervised Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unfolded">Unfolded</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Creating a forward operator.</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/basics/demo_physics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-basics-demo-physics-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="creating-a-forward-operator">
+<span id="sphx-glr-auto-examples-basics-demo-physics-py"></span><h1>Creating a forward operator.<a class="headerlink" href="#creating-a-forward-operator" title="Link to this heading"></a></h1>
+<p>While deepinv offers a large number of forward operators in the physics module,
+you might want to create your own forward operator for your specific imaging problem.
+This example walks you through the creation of a custom forward operator.</p>
+<p>We will create a simple forward operator that converts RGB images to grayscale images by averaging the color channels.
+We also show you how to exploit the singular value decomposition of the operator to speed up the evaluation of
+the pseudo-inverse and proximal operators.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+</pre></div>
+</div>
+<section id="creating-a-custom-forward-operator">
+<h2>Creating a custom forward operator.<a class="headerlink" href="#creating-a-custom-forward-operator" title="Link to this heading"></a></h2>
+<p>Defining a new linear operator only requires a forward function and its transpose operation,
+inheriting the remaining structure of the <a class="reference internal" href="../../stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a> class.</p>
+<p>Once the operator is defined, we can use any of the functions in the <a class="reference internal" href="../../stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Physics</span></code></a> class and
+<a class="reference internal" href="../../stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a> class, such as computing the norm of the operator, testing the adjointness,
+computing the proximal operator, etc.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># define an operator that converts color images into grayscale ones.</span>
+<span class="k">class</span> <span class="nc">Decolorize</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts RGB images to grayscale.</span>
+
+<span class="sd">    Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]</span>
+<span class="sd">    The measurements are grayscale images.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span></a><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># theta is an optional parameter that is not used here</span>
+        <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mf">0.2989</span> <span class="o">+</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mf">0.5870</span> <span class="o">+</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mf">0.1140</span>
+        <span class="k">return</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <a href="http://pytorch.org/docs/2.0/generated/torch.cat.html#torch.cat" title="torch.cat" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cat</span></a><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="mf">0.2989</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="mf">0.5870</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="mf">0.1140</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">physics</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">Decolorize</span></a><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="generate-toy-image">
+<h2>Generate toy image<a class="headerlink" href="#generate-toy-image" title="Link to this heading"></a></h2>
+<p>This example uses a toy image with 3 color channels.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.zeros.html#torch.zeros" title="torch.zeros" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">96</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="mi">32</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="p">:</span><span class="mi">64</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">64</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>  <span class="c1"># compute the linear pseudo-inverse</span>
+
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin</span></a><span class="p">],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;meas.&quot;</span><span class="p">,</span> <span class="s2">&quot;linear rec.&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_physics_001.png" srcset="../../_images/sphx_glr_demo_physics_001.png" alt="image, meas., linear rec." class = "sphx-glr-single-img"/></section>
+<section id="verifying-our-linear-operator">
+<h2>Verifying our linear operator<a class="headerlink" href="#verifying-our-linear-operator" title="Link to this heading"></a></h2>
+<blockquote>
+<div><p>If the operator is linear, it is recommended to verify that the transpose well-defined using
+<a class="reference internal" href="../../stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.adjointness_test" title="deepinv.physics.LinearPhysics.adjointness_test"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.adjointness_test()</span></code></a>,
+and that it has a unit norm using <a class="reference internal" href="../../stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_norm" title="deepinv.physics.LinearPhysics.compute_norm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.compute_norm()</span></code></a>.</p>
+</div></blockquote>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The linear operator has norm=</span><span class="si">{</span><span class="n">physics</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">physics</span><span class="o">.</span><span class="n">adjointness_test</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The linear operator has a well defined transpose&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Power iteration converged at iteration 2, value=0.45
+The linear operator has norm=0.45
+The linear operator has a well defined transpose
+</pre></div>
+</div>
+</section>
+<section id="creating-a-decomposable-forward-operator">
+<h2>Creating a decomposable forward operator.<a class="headerlink" href="#creating-a-decomposable-forward-operator" title="Link to this heading"></a></h2>
+<p>If the forward operator has a closed form singular value decomposition (SVD),
+it is recommended to implement the operator using the <a class="reference internal" href="../../stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics()</span></code></a> method.</p>
+<p>The operator in this example is decomposable, so we can implement it using
+<a class="reference internal" href="../../stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics</span></code></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">DecolorizeSVD</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">DecomposablePhysics</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts RGB images to grayscale.</span>
+
+<span class="sd">    Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]</span>
+<span class="sd">    The measurements are grayscale images.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="mf">0.447</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span></a><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">V_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">):</span>
+        <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mf">0.6687</span> <span class="o">+</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mf">1.3132</span> <span class="o">+</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="mf">0.2550</span>
+        <span class="k">return</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">V</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">):</span>
+        <span class="k">return</span> <a href="http://pytorch.org/docs/2.0/generated/torch.cat.html#torch.cat" title="torch.cat" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cat</span></a><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="mf">0.6687</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="mf">1.3132</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="mf">0.2550</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">physics2</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">DecolorizeSVD</span></a><span class="p">()</span>
+
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a> <span class="o">=</span> <span class="n">physics2</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin2</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a><span class="p">)</span>  <span class="c1"># compute the linear pseudo-inverse</span>
+
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin2</span></a><span class="p">],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;meas.&quot;</span><span class="p">,</span> <span class="s2">&quot;linear rec.&quot;</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The decomposable operator has norm=</span><span class="si">{</span><span class="n">physics</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">physics</span><span class="o">.</span><span class="n">adjointness_test</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The decomposable operator has a well defined transpose&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_physics_002.png" srcset="../../_images/sphx_glr_demo_physics_002.png" alt="image, meas., linear rec." class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Power iteration converged at iteration 2, value=0.45
+The decomposable operator has norm=0.45
+The decomposable operator has a well defined transpose
+</pre></div>
+</div>
+</section>
+<section id="benefits-of-using-a-decomposable-forward-operator">
+<h2>Benefits of using a decomposable forward operator.<a class="headerlink" href="#benefits-of-using-a-decomposable-forward-operator" title="Link to this heading"></a></h2>
+<p>If the forward operator has a closed form singular value decomposition (SVD),
+it is recommended to implement the operator using <a class="reference internal" href="../../stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics</span></code></a>.</p>
+<p>The operator in this example is decomposable, so we can implement it using
+<a class="reference internal" href="../../stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics</span></code></a>.</p>
+<p>The main benefit of using a decomposable forward operator is that it provides closed form solutions for the
+proximal operator and the linear pseudo-inverse. Moreover, some algorithms, such as <a class="reference internal" href="../../stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM" title="deepinv.sampling.DDRM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DDRM</span></code></a>
+require the forward operator to be decomposable.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
+
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="k">for</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>
+    <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xprox</span></a> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">prox_l2</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elapsed time for LinearPhysics: </span><span class="si">{</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a><span class="w"> </span><span class="o">-</span><span class="w"> </span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="k">for</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin2</span></a> <span class="o">=</span> <span class="n">physics2</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>
+    <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xprox2</span></a> <span class="o">=</span> <span class="n">physics2</span><span class="o">.</span><span class="n">prox_l2</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elapsed time for DecomposablePhysics: </span><span class="si">{</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a><span class="w"> </span><span class="o">-</span><span class="w"> </span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Elapsed time for LinearPhysics: 0.02 seconds
+Elapsed time for DecomposablePhysics: 3.68e-03 seconds
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.177 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-basics-demo-physics-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/4e006cfb4baa63f63da096872157fa80/demo_physics.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_physics.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/64de46bcd44941688d236383fe4f04d5/demo_physics.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_physics.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/5fa8fa8130e8b8a4263a95e0761021f8/demo_physics.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_physics.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="demo_hf_dataset.html" class="btn btn-neutral float-left" title="Using huggingface dataset" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="demo_microscopy_3d.html" class="btn btn-neutral float-right" title="3D diffraction PSF" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

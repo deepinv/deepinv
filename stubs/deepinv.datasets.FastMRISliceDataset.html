@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastMRISliceDataset &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="LidcIdriSliceDataset" href="deepinv.datasets.LidcIdriSliceDataset.html" />
+    <link rel="prev" title="CBSD68" href="deepinv.datasets.CBSD68.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.datasets.html#hd5dataset">HD5Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.datasets.html#patchdataset">PatchDataset</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.datasets.html#image-datasets">Image Datasets</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.DIV2K.html">DIV2K</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.Urban100HR.html">Urban100HR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.Set14HR.html">Set14HR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.CBSD68.html">CBSD68</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">FastMRISliceDataset</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.datasets.FastMRISliceDataset"><code class="docutils literal notranslate"><span class="pre">FastMRISliceDataset</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.LidcIdriSliceDataset.html">LidcIdriSliceDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.Flickr2kHR.html">Flickr2kHR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.LsdirHR.html">LsdirHR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.datasets.FMD.html">FMD</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.datasets.html">Datasets</a></li>
+      <li class="breadcrumb-item active">FastMRISliceDataset</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.datasets.FastMRISliceDataset.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fastmrislicedataset">
+<h1>FastMRISliceDataset<a class="headerlink" href="#fastmrislicedataset" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.datasets.FastMRISliceDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.datasets.</span></span><span class="sig-name descname"><span class="pre">FastMRISliceDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">~pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test:</span> <span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">challenge:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_metadata_from_cache:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_metadata_to_cache:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_cache_file:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">~pathlib.Path</span> <span class="pre">=</span> <span class="pre">'dataset_cache.pkl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_filter:</span> <span class="pre">~typing.Callable</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">FastMRISliceDataset.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_sample_rate:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_kspace:</span> <span class="pre">~typing.Callable</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_target:</span> <span class="pre">~typing.Callable</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/datasets/fastmri.html#FastMRISliceDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.datasets.FastMRISliceDataset" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a></p>
+<p>Dataset for <a class="reference external" href="https://fastmri.med.nyu.edu/">fastMRI</a> that provides access to MR image slices.</p>
+<div class="line-block">
+<div class="line">1) The fastMRI dataset includes two types of MRI scans: knee MRIs and</div>
+<div class="line">the brain (neuro) MRIs, and containing training, validation, and masked test sets.</div>
+<div class="line">2) MRIs are volumes (3D) made of slices (2D).</div>
+<div class="line">3) This class in particular considers one data sample as one slice of a MRI scan,</div>
+<div class="line">thus slices of the same MRI scan are considered independently in the dataset.</div>
+</div>
+<p><strong>Raw data file structure:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">---</span> <span class="n">file1000005</span><span class="o">.</span><span class="n">h5</span>
+           <span class="o">|</span>
+           <span class="o">--</span> <span class="n">xxxxxxxxxxx</span><span class="o">.</span><span class="n">h5</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line">0) To download raw data, please go to the bottom of the page <cite>https://fastmri.med.nyu.edu/</cite></div>
+<div class="line">1) Each MRI scan is stored in a HDF5 file and can be read with the h5py package.</div>
+<div class="line">Each file contains the k-space data, ground truth and some meta data related to the scan.</div>
+<div class="line">2) MRI scans can either be single-coil or multi-coil with each coil in</div>
+<div class="line">a multi-coil MRI scan focusses on a different region of the image.</div>
+<div class="line">3) In multi-coil MRIs, k-space data has the following shape:</div>
+<div class="line">(number of slices, number of coils, height, width)</div>
+<div class="line">4) For single-coil MRIs, k-space data has the following shape:</div>
+<div class="line">(number of slices, height, width)</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>root</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – Path to the dataset.</p></li>
+<li><p><strong>test</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Whether the split is the “test” set.</p></li>
+<li><p><strong>challenge</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – “singlecoil” or “multicoil” depending on the type of mri scan.</p></li>
+<li><p><strong>load_metadata_from_cache</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Whether to load dataset metadata from cache.</p></li>
+<li><p><strong>save_metadata_to_cache</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Whether to cache dataset metadata.</p></li>
+<li><p><strong>metadata_cache_file</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – A file used to cache dataset
+information for faster load times.</p></li>
+<li><p><strong>sample_filter</strong> (<em>callable</em><em>, </em><em>optional</em>) – A callable object that takes a
+<a class="reference internal" href="#deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier" title="deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier"><code class="xref py py-meth docutils literal notranslate"><span class="pre">SliceSampleFileIdentifier()</span></code></a> as input and returns a boolean indicating
+whether the sample should be included in the dataset.</p></li>
+<li><p><strong>sample_rate</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><em>optional</em>) – A float between 0 and 1. This controls what
+fraction of all slices should be loaded. Defaults to 1.
+When creating a sampled dataset either set sample_rate (sample by slices)
+or volume_sample_rate (sample by volumes) but not both.</p></li>
+<li><p><strong>volume_sample_rate</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><em>optional</em>) – A float between 0 and 1. This controls
+what fraction of the volumes should be loaded. Defaults to 1 if no value is given.
+When creating a sampled dataset either set sample_rate (sample by slices)
+or volume_sample_rate (sample by volumes) but not both.</p></li>
+<li><p><strong>transform_kspace</strong> (<em>callable</em><em>, </em><em>optional</em>) – A function/transform that takes in the
+kspace and returns a transformed version. E.g, <code class="docutils literal notranslate"><span class="pre">torchvision.transforms.RandomCrop</span></code></p></li>
+<li><p><strong>transform_target</strong> (<em>callable</em><em>, </em><em>optional</em>) – A function/transform that takes in the
+target and returns a transformed version. E.g, <code class="docutils literal notranslate"><span class="pre">torchvision.transforms.RandomCrop</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Instanciate dataset without transform</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deepinv.datasets</span> <span class="kn">import</span> <span class="n">FastMRISliceDataset</span>
+<span class="n">root</span> <span class="o">=</span> <span class="s2">&quot;/path/to/dataset/fastMRI/knee_singlecoil/train&quot;</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">FastMRISliceDataset</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">challenge</span><span class="o">=</span><span class="s2">&quot;singlecoil&quot;</span><span class="p">)</span>
+<span class="n">target</span><span class="p">,</span> <span class="n">kspace</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Instanciate dataset with transform</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span>
+<span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+    <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+    <span class="n">transforms</span><span class="o">.</span><span class="n">RandomCrop</span><span class="p">((</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">pad_if_needed</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">transforms</span><span class="o">.</span><span class="n">RandomHorizontalFlip</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+    <span class="n">transforms</span><span class="o">.</span><span class="n">RandomVerticalFlip</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+<span class="p">])</span> <span class="c1"># Define the transform pipeline</span>
+<span class="n">root</span> <span class="o">=</span> <span class="s2">&quot;/path/to/dataset/fastMRI/knee_singlecoil/train&quot;</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">FastMRISliceDataset</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">challenge</span><span class="o">=</span><span class="s2">&quot;multicoil&quot;</span><span class="p">,</span> <span class="n">transform_kspace</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">transform_target</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span>
+<span class="n">target</span><span class="p">,</span> <span class="n">kspace</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SliceSampleFileIdentifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/pathlib.html#pathlib.Path" title="(in Python v3.4)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/datasets/fastmri.html#FastMRISliceDataset.SliceSampleFileIdentifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">NamedTuple</span></code></p>
+<p>Data structure for identifying specific slices within MRI data files.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier.fname">
+<span class="sig-name descname"><span class="pre">fname</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/pathlib.html#pathlib.Path" title="(in Python v3.4)"><span class="pre">Path</span></a></em><a class="headerlink" href="#deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier.fname" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier.slice_ind">
+<span class="sig-name descname"><span class="pre">slice_ind</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></em><a class="headerlink" href="#deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier.slice_ind" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="sphx-glr-backref-deepinv-datasets-fastmrislicedataset"></span></section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.datasets.CBSD68.html" class="btn btn-neutral float-left" title="CBSD68" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.datasets.LidcIdriSliceDataset.html" class="btn btn-neutral float-right" title="LidcIdriSliceDataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iterative Reconstruction (PnP, RED, etc.) &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="DPIR" href="stubs/deepinv.optim.DPIR.html" />
+    <link rel="prev" title="GaussianMixtureModel" href="stubs/deepinv.optim.utils.GaussianMixtureModel.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Iterative Reconstruction (PnP, RED, etc.)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#implementing-an-algorithm">Implementing an Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#predefined-iterative-algorithms">Predefined Iterative Algorithms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.DPIR.html">DPIR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.optim.EPLL.html">EPLL</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#deep-image-prior">Deep Image Prior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.models.DeepImagePrior.html">DeepImagePrior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.models.ConvDecoder.html">ConvDecoder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Iterative Reconstruction (PnP, RED, etc.)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/deepinv.iterative.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="iterative-reconstruction-pnp-red-etc">
+<span id="iterative"></span><h1>Iterative Reconstruction (PnP, RED, etc.)<a class="headerlink" href="#iterative-reconstruction-pnp-red-etc" title="Link to this heading"></a></h1>
+<p>Many image reconstruction algorithms can be shown to be solving
+minimization problems of the form</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation*}
+\label{eq:min_prob}
+\underset{x}{\arg\min} \quad \datafid{x}{y} +  \lambda \reg{x},
+\end{equation*}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}\)</span> is a data-fidelity term, <span class="math notranslate nohighlight">\(\regname:\xset\mapsto \mathbb{R}_{+}\)</span>
+is a prior term, and <span class="math notranslate nohighlight">\(\lambda\)</span> is a positive scalar. The data-fidelity term measures the discrepancy between the
+reconstruction <span class="math notranslate nohighlight">\(x\)</span> and the data <span class="math notranslate nohighlight">\(y\)</span>, and the prior term enforces some prior knowledge on the reconstruction.</p>
+<p>PnP and RED algorithms are optimization algorithms where optimization over the prior term is replaced by denoising
+operators. When one replaces a proximity operator with a denoiser, the algorithm is called a Plug-and-Play (PnP) algorithm,
+whereas when one replaces a gradient step on the prior term with a denoising step, the algorithm is called a
+Regularization by Denoising (RED) algorithm.</p>
+<section id="implementing-an-algorithm">
+<h2>Implementing an Algorithm<a class="headerlink" href="#implementing-an-algorithm" title="Link to this heading"></a></h2>
+<p>Iterative algorithms can be easily implemented using the <a class="reference internal" href="deepinv.optim.html#optim"><span class="std std-ref">optim module</span></a>, which provides many
+pre-implemented <a class="reference internal" href="deepinv.optim.html#data-fidelity"><span class="std std-ref">data-fidelity</span></a> and <a class="reference internal" href="deepinv.optim.html#priors"><span class="std std-ref">prior terms</span></a> (including PnP and RED),
+as well as many off-the-shelf optimization algorithms.</p>
+<p>For example, a PnP proximal gradient descent (PGD) algorithm for
+solving the inverse problem <span class="math notranslate nohighlight">\(y = \noise{\forw{x}}\)</span> reads</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{equation*}
+\begin{aligned}
+u_{k} &amp;=  x_k - \gamma \nabla \datafid{x_k}{y} \\
+x_{k+1} &amp;= \denoiser{u_k}{\sigma},
+\end{aligned}
+\end{equation*}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(f(x)=\frac{1}{2}\|y-\forw{x}\|^2\)</span> is a standard data-fidelity term,
+and the prior is implicitly defined by a median filter denoiser, can be implemented as follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.utils</span> <span class="kn">import</span> <span class="n">load_url_image</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">url</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">load_url_image</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">img_size</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">grayscale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">mask</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<span class="gp">... </span>                                   <span class="n">noise_model</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.01</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">data_fidelity</span><span class="o">.</span><span class="n">L2</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prior</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">PnP</span><span class="p">(</span><span class="n">denoiser</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">MedianFilter</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">optim_builder</span><span class="p">(</span><span class="n">iteration</span><span class="o">=</span><span class="s2">&quot;PGD&quot;</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span> <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+<span class="gp">... </span>                                 <span class="n">params_algo</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;g_param&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;signal&quot;</span><span class="p">,</span> <span class="s2">&quot;measurement&quot;</span><span class="p">,</span> <span class="s2">&quot;estimate&quot;</span><span class="p">],</span> <span class="n">rescale_mode</span><span class="o">=</span><span class="s1">&#39;clip&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While we offer predefined optimization iterators (in this case proximal gradient descent), it is possible to use
+the optim class with any custom optimization algorithm. See the example
+<a class="reference internal" href="auto_examples/plug-and-play/demo_PnP_custom_optim.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-custom-optim-py"><span class="std std-ref">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</span></a> for more details.</p>
+</div>
+</section>
+<section id="predefined-iterative-algorithms">
+<h2>Predefined Iterative Algorithms<a class="headerlink" href="#predefined-iterative-algorithms" title="Link to this heading"></a></h2>
+<p>We also provide pre-implemented iterative optimization algorithms,
+which can be loaded in a single line of code, and used
+to solve any inverse problem. The following algorithms are available:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.DPIR.html#deepinv.optim.DPIR" title="deepinv.optim.DPIR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.DPIR</span></code></a></p></td>
+<td><p>Deep Plug-and-Play (DPIR) algorithm for image restoration.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL" title="deepinv.optim.EPLL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.EPLL</span></code></a></p></td>
+<td><p>Expected Patch Log Likelihood reconstruction method.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="deep-image-prior">
+<h2>Deep Image Prior<a class="headerlink" href="#deep-image-prior" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://arxiv.org/abs/1711.10925">deep image prior</a> can be interpreted as
+using an indicator function <span class="math notranslate nohighlight">\(g(x) = \mathbf {1} _{x=d_{\theta}(z)}\)</span> which forces the reconstruction image
+to be the output of a convolutional decoder network <span class="math notranslate nohighlight">\(d_{\theta}\)</span> applied to a random input <span class="math notranslate nohighlight">\(z\)</span>.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.models.DeepImagePrior.html#deepinv.models.DeepImagePrior" title="deepinv.models.DeepImagePrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.models.DeepImagePrior</span></code></a></p></td>
+<td><p>Deep Image Prior reconstruction.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The choice of the architecture of <span class="math notranslate nohighlight">\(d_{\theta}\)</span> is crucial for the success of the method. The
+following architecture is available, which is based on a convolutional decoder network:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.models.ConvDecoder.html#deepinv.models.ConvDecoder" title="deepinv.models.ConvDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.models.ConvDecoder</span></code></a></p></td>
+<td><p>Convolutional decoder network.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stubs/deepinv.optim.utils.GaussianMixtureModel.html" class="btn btn-neutral float-left" title="GaussianMixtureModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stubs/deepinv.optim.DPIR.html" class="btn btn-neutral float-right" title="DPIR" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

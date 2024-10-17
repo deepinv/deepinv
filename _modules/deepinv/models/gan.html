@@ -1,0 +1,546 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.models.gan &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.models.gan</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.models.gan</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">rand</span>
+<span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Adam</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Physics</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss</span> <span class="kn">import</span> <span class="n">MCLoss</span>
+
+
+<div class="viewcode-block" id="PatchGANDiscriminator">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.PatchGANDiscriminator.html#deepinv.models.PatchGANDiscriminator">[docs]</a>
+<span class="k">class</span> <span class="nc">PatchGANDiscriminator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;PatchGAN Discriminator model.</span>
+
+<span class="sd">     This discriminator model was originally proposed in `Image-to-Image Translation with Conditional Adversarial</span>
+<span class="sd">     Networks &lt;https://arxiv.org/abs/1611.07004&gt;`_ (Isola et al.) and classifies whether each patch of an image is real</span>
+<span class="sd">     or fake.</span>
+
+<span class="sd">    Implementation adapted from `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks</span>
+<span class="sd">    &lt;https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf&gt;`_</span>
+<span class="sd">    (Kupyn et al.).</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.</span>
+
+<span class="sd">    :param int input_nc: number of input channels, defaults to 3</span>
+<span class="sd">    :param int ndf: hidden layer size, defaults to 64</span>
+<span class="sd">    :param int n_layers: number of hidden conv layers, defaults to 3</span>
+<span class="sd">    :param bool use_sigmoid: use sigmoid activation at end, defaults to False</span>
+<span class="sd">    :param bool batch_norm: whether to use batch norm layers, defaults to True</span>
+<span class="sd">    :param bool bias: whether to use bias in conv layers, defaults to True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">ndf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+        <span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">use_sigmoid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">batch_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">kw</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># kernel width</span>
+        <span class="n">padw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">kw</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">input_nc</span><span class="p">,</span> <span class="n">ndf</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">kw</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">padw</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="n">nf_mult</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">nf_mult_prev</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">):</span>
+            <span class="n">nf_mult_prev</span> <span class="o">=</span> <span class="n">nf_mult</span>
+            <span class="n">nf_mult</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+            <span class="n">sequence</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+                    <span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult_prev</span><span class="p">,</span>
+                    <span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="n">kw</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                    <span class="n">padding</span><span class="o">=</span><span class="n">padw</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult</span><span class="p">)</span> <span class="k">if</span> <span class="n">batch_norm</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">(),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">]</span>
+
+        <span class="n">nf_mult_prev</span> <span class="o">=</span> <span class="n">nf_mult</span>
+        <span class="n">nf_mult</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_layers</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+                <span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult_prev</span><span class="p">,</span>
+                <span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">kw</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="n">padw</span><span class="p">,</span>
+                <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult</span><span class="p">)</span> <span class="k">if</span> <span class="n">batch_norm</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">(),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="n">sequence</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="n">nf_mult</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">kw</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">padw</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">use_sigmoid</span><span class="p">:</span>
+            <span class="n">sequence</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">sequence</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PatchGANDiscriminator.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.PatchGANDiscriminator.html#deepinv.models.PatchGANDiscriminator.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of discriminator model.</span>
+
+<span class="sd">        :param Tensor input: input image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ESRGANDiscriminator">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.ESRGANDiscriminator.html#deepinv.models.ESRGANDiscriminator">[docs]</a>
+<span class="k">class</span> <span class="nc">ESRGANDiscriminator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;ESRGAN Discriminator.</span>
+
+<span class="sd">    The ESRGAN discriminator model was originally proposed in `ESRGAN: Enhanced Super-Resolution Generative Adversarial</span>
+<span class="sd">    Networks &lt;https://arxiv.org/abs/1809.00219&gt;`_ (Wang et al.). Implementation taken from</span>
+<span class="sd">    https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.</span>
+
+<span class="sd">    :param tuple input_shape: shape of input image</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="o">=</span> <span class="n">input_shape</span>
+        <span class="n">in_channels</span><span class="p">,</span> <span class="n">in_height</span><span class="p">,</span> <span class="n">in_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span>
+        <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">in_height</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="mi">4</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">in_width</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">discriminator_block</span><span class="p">(</span><span class="n">in_filters</span><span class="p">,</span> <span class="n">out_filters</span><span class="p">,</span> <span class="n">first_block</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_filters</span><span class="p">,</span> <span class="n">out_filters</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">first_block</span><span class="p">:</span>
+                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_filters</span><span class="p">))</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">out_filters</span><span class="p">,</span> <span class="n">out_filters</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_filters</span><span class="p">))</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">layers</span>
+
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">in_filters</span> <span class="o">=</span> <span class="n">in_channels</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">out_filters</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">]):</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">discriminator_block</span><span class="p">(</span><span class="n">in_filters</span><span class="p">,</span> <span class="n">out_filters</span><span class="p">,</span> <span class="n">first_block</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">in_filters</span> <span class="o">=</span> <span class="n">out_filters</span>
+
+        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">out_filters</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ESRGANDiscriminator.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.ESRGANDiscriminator.html#deepinv.models.ESRGANDiscriminator.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of discriminator model.</span>
+
+<span class="sd">        :param Tensor img: input image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">img</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DCGANDiscriminator">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator">[docs]</a>
+<span class="k">class</span> <span class="nc">DCGANDiscriminator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;DCGAN Discriminator.</span>
+
+<span class="sd">    The DCGAN discriminator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional</span>
+<span class="sd">    Generative Adversarial Networks &lt;https://arxiv.org/abs/1511.06434&gt;`_ (Radford et al.). Implementation taken from</span>
+<span class="sd">    https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.</span>
+
+<span class="sd">    :param int ndf: hidden layer size, defaults to 64</span>
+<span class="sd">    :param int nc: number of input channels, defaults to 3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ndf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="n">nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="c1"># input is ``(nc) x 64 x 64``</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">nc</span><span class="p">,</span> <span class="n">ndf</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="c1"># state size. ``(ndf) x 32 x 32``</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">ndf</span><span class="p">,</span> <span class="n">ndf</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="c1"># state size. ``(ndf*2) x 16 x 16``</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ndf</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="c1"># state size. ``(ndf*4) x 8 x 8``</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">ndf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="c1"># state size. ``(ndf*8) x 4 x 4``</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">ndf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="DCGANDiscriminator.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward pass of discriminator model.</span>
+
+<span class="sd">        :param Tensor input: input image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DCGANGenerator">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.DCGANGenerator.html#deepinv.models.DCGANGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">DCGANGenerator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;DCGAN Generator.</span>
+
+<span class="sd">    The DCGAN generator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional</span>
+<span class="sd">    Generative Adversarial Networks &lt;https://arxiv.org/abs/1511.06434&gt;`_ (Radford et al.)</span>
+<span class="sd">    and takes a latent sample as input.</span>
+
+<span class="sd">    Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.</span>
+
+<span class="sd">    :param int output_size: desired square size of output image. Choose from 64 or 128, defaults to 64</span>
+<span class="sd">    :param int nz: latent dimension, defaults to 100</span>
+<span class="sd">    :param int ngf: hidden layer size, defaults to 64</span>
+<span class="sd">    :param int nc: number of image output channels, defaults to 3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="n">nz</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">ngf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="n">nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nz</span> <span class="o">=</span> <span class="n">nz</span>
+        <span class="c1"># input is (b, nz, 1, 1), output is (b, nc, output_size, output_size)</span>
+        <span class="k">if</span> <span class="n">output_size</span> <span class="o">==</span> <span class="mi">64</span><span class="p">:</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">nz</span><span class="p">,</span> <span class="n">ngf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="n">output_size</span> <span class="o">==</span> <span class="mi">128</span><span class="p">:</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">nz</span><span class="p">,</span> <span class="n">ngf</span> <span class="o">*</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">16</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">16</span><span class="p">,</span> <span class="n">ngf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">),</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;output_size must be 64 or 128.&quot;</span><span class="p">)</span>
+
+        <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ngf</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">ngf</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">ngf</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ngf</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">ngf</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">ngf</span><span class="p">,</span> <span class="n">nc</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DCGANGenerator.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.DCGANGenerator.html#deepinv.models.DCGANGenerator.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CSGMGenerator">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">CSGMGenerator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.</span>
+
+<span class="sd">    This approach was proposed in `Compressed Sensing using Generative Models &lt;https://arxiv.org/abs/1703.03208&gt;`_ and</span>
+<span class="sd">    `AmbientGAN: Generative models from lossy measurements &lt;https://openreview.net/forum?id=Hy7fDog0b&gt;`_ (Bora et al.).</span>
+
+<span class="sd">    At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.</span>
+
+<span class="sd">    At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input</span>
+<span class="sd">    measurements y, then outputs the corresponding reconstruction.</span>
+
+<span class="sd">    This generator can be overridden for more advanced optimisation algorithms by overriding ``optimize_z``.</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        At train time, this generator discards the measurements ``y``, but these measurements are used at test time.</span>
+<span class="sd">        This means that train PSNR will be meaningless but test PSNR will be correct.</span>
+
+
+<span class="sd">    :param nn.Module backbone_generator: any neural network that maps a latent vector of length ``nz`` to an image, must have ``nz`` attribute. Defaults to DCGANGenerator()</span>
+<span class="sd">    :param int inf_max_iter: maximum iterations at inference-time optimisation, defaults to 2500</span>
+<span class="sd">    :param float inf_tol: tolerance of inference-time optimisation, defaults to 1e-2</span>
+<span class="sd">    :param float inf_lr: learning rate of inference-time optimisation, defaults to 1e-2</span>
+<span class="sd">    :param bool inf_progress_bar: whether to display progress bar for inference-time optimisation, defaults to False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">backbone_generator</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">DCGANGenerator</span><span class="p">(),</span>
+        <span class="n">inf_max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2500</span><span class="p">,</span>
+        <span class="n">inf_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">inf_lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span><span class="p">,</span>
+        <span class="n">inf_progress_bar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backbone_generator</span> <span class="o">=</span> <span class="n">backbone_generator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inf_loss</span> <span class="o">=</span> <span class="n">MCLoss</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inf_max_iter</span> <span class="o">=</span> <span class="n">inf_max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inf_tol</span> <span class="o">=</span> <span class="n">inf_tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inf_lr</span> <span class="o">=</span> <span class="n">inf_lr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inf_progress_bar</span> <span class="o">=</span> <span class="n">inf_progress_bar</span>
+
+<div class="viewcode-block" id="CSGMGenerator.random_latent">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator.random_latent">[docs]</a>
+    <span class="k">def</span> <span class="nf">random_latent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Generate a latent sample to feed into generative model.</span>
+
+<span class="sd">        The model must have an attribute `nz` which is the latent dimension.</span>
+
+<span class="sd">        :param torch.device device: torch device</span>
+<span class="sd">        :param bool requires_grad: whether to require gradient, defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">rand</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">backbone_generator</span><span class="o">.</span><span class="n">nz</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="n">requires_grad</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="mi">2</span>
+            <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CSGMGenerator.optimize_z">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator.optimize_z">[docs]</a>
+    <span class="k">def</span> <span class="nf">optimize_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.</span>
+
+<span class="sd">        The optimisation is defined with simple stopping criteria. Override this function for more advanced optimisation.</span>
+
+<span class="sd">        :param Tensor z: initial latent variable guess</span>
+<span class="sd">        :param Tensor y: measurement with which to compare reconstructed image</span>
+<span class="sd">        :param Physics physics: forward model</span>
+<span class="sd">        :return Tensor: optimized z</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">([</span><span class="n">z</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inf_lr</span><span class="p">)</span>
+        <span class="n">err_prev</span> <span class="o">=</span> <span class="mi">999</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">pbar</span> <span class="o">:=</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inf_max_iter</span><span class="p">),</span> <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">inf_progress_bar</span><span class="p">))</span>
+        <span class="p">):</span>
+            <span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone_generator</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inf_loss</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_net</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">)</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+            <span class="n">error</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+            <span class="n">err_curr</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">err_perc</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">err_curr</span> <span class="o">-</span> <span class="n">err_prev</span><span class="p">)</span> <span class="o">/</span> <span class="n">err_curr</span>
+            <span class="n">err_prev</span> <span class="o">=</span> <span class="n">err_curr</span>
+            <span class="n">pbar</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">({</span><span class="s2">&quot;err_curr&quot;</span><span class="p">:</span> <span class="n">err_curr</span><span class="p">,</span> <span class="s2">&quot;err_perc&quot;</span><span class="p">:</span> <span class="n">err_perc</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">err_perc</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">inf_tol</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">z</span></div>
+
+
+<div class="viewcode-block" id="CSGMGenerator.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward pass of generator model.</span>
+
+<span class="sd">        At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.</span>
+
+<span class="sd">        At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input</span>
+<span class="sd">        measurements y, then outputs the corresponding reconstruction.</span>
+
+<span class="sd">        :param Tensor y: measurement to reconstruct</span>
+<span class="sd">        :param Physics physics: forward model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_latent</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimize_z</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone_generator</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

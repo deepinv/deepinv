@@ -1,0 +1,538 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.physics.functional.convolution &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/logo.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../../index.html">
+            
+              <img src="../../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.physics.functional.convolution</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.physics.functional.convolution</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">import</span> <span class="nn">torch.fft</span> <span class="k">as</span> <span class="nn">fft</span>
+
+
+<div class="viewcode-block" id="conv2d">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.functional.conv2d.html#deepinv.physics.functional.conv2d">[docs]</a>
+<span class="k">def</span> <span class="nf">conv2d</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="n">correlation</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function performing the 2d convolution of images ``x`` and ``filter``. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transposed2d`</span>
+
+<span class="sd">    :param torch.Tensor x: Image of size ``(B, C, W, H)``.</span>
+<span class="sd">    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.</span>
+<span class="sd">    filter center is at ``(hh, ww)`` where ``hh = h//2`` if h is odd and ``hh = h//2 - 1`` if h is even. Same for ``ww``.</span>
+<span class="sd">    :param bool correlation: choose True if you want a cross-correlation (default False)</span>
+
+<span class="sd">    ..note:</span>
+<span class="sd">        Contrarily to Pytorch :meth:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.</span>
+
+<span class="sd">    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy &lt;https://numpy.org/doc/stable/user/basics.broadcasting.html&gt;`_. Otherwise, each channel of each image is convolved with the corresponding kernel.</span>
+
+<span class="sd">    :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = &#39;valid&#39;`` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.</span>
+<span class="sd">    ``constant`` corresponds to zero padding or ``same`` in :meth:`torch.nn.functional.conv2d`</span>
+
+<span class="sd">    :return: (torch.Tensor) : the output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">filter</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Input and filter must be 4D tensors&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">correlation</span><span class="p">:</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Get dimensions of the input and the filter</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">C</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">B</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">padding</span> <span class="o">!=</span> <span class="s2">&quot;valid&quot;</span><span class="p">:</span>
+        <span class="n">ph</span> <span class="o">=</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">ih</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span>
+        <span class="n">pw</span> <span class="o">=</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">iw</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="p">(</span><span class="n">pw</span><span class="p">,</span> <span class="n">pw</span> <span class="o">-</span> <span class="n">iw</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">ph</span> <span class="o">-</span> <span class="n">ih</span><span class="p">)</span>  <span class="c1"># because functional.pad is w,h instead of h,w</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pad</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+    <span class="c1"># Move batch dim of the input into channels</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+    <span class="c1"># Expand the channel dim of the filter and move it into batch dimension</span>
+    <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span> <span class="o">*</span> <span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+    <span class="c1"># Perform the convolution, using the groups parameter</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">B</span> <span class="o">*</span> <span class="n">C</span><span class="p">)</span>
+    <span class="c1"># Make it in the good shape</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">output</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output</span></div>
+
+
+
+<div class="viewcode-block" id="conv_transpose2d">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.functional.conv_transpose2d.html#deepinv.physics.functional.conv_transpose2d">[docs]</a>
+<span class="k">def</span> <span class="nf">conv_transpose2d</span><span class="p">(</span>
+    <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="n">correlation</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of this operation is :meth:`deepinv.physics.functional.conv2d`</span>
+
+<span class="sd">    :param torch.Tensor x: Image of size ``(B, C, W, H)``.</span>
+<span class="sd">    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.</span>
+<span class="sd">    :param bool correlation: choose True if you want a cross-correlation (default False)</span>
+
+<span class="sd">    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy &lt;https://numpy.org/doc/stable/user/basics.broadcasting.html&gt;`_. Otherwise, each channel of each image is convolved with the corresponding kernel.</span>
+
+<span class="sd">    :param str padding: options are ``&#39;valid&#39;``, ``&#39;circular&#39;``, ``&#39;replicate&#39;`` and ``&#39;reflect&#39;``.</span>
+<span class="sd">        If ``padding=&#39;valid&#39;`` the blurred output is smaller than the image (no padding)</span>
+<span class="sd">        otherwise the blurred output has the same size as the image.</span>
+
+<span class="sd">    :return: (torch.Tensor) : the output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">filter</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Input and filter must be 4D tensors&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">correlation</span><span class="p">:</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Get dimensions of the input and the filter</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+    <span class="n">ph</span> <span class="o">=</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">pw</span> <span class="o">=</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">ih</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span>
+    <span class="n">iw</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span>
+
+    <span class="k">if</span> <span class="n">padding</span> <span class="o">!=</span> <span class="s2">&quot;valid&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ph</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">pw</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Both dimensions of the filter must be strictly greater than 2 if padding != &#39;valid&#39;&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">C</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">B</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Move batch dim of the input into channels</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+    <span class="c1"># Expand the channel dim of the filter and move it into batch dimension</span>
+    <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span> <span class="o">*</span> <span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+    <span class="c1"># Perform the convolution, using the groups parameter</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv_transpose2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">B</span> <span class="o">*</span> <span class="n">C</span><span class="p">)</span>
+    <span class="c1"># Make it in the good shape</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;valid&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="k">elif</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;circular&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span>
+        <span class="c1"># sides</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">ph</span> <span class="o">-</span> <span class="n">ih</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">pw</span> <span class="o">-</span> <span class="n">iw</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">pw</span><span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span>
+        <span class="c1"># corners</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">ph</span> <span class="o">-</span> <span class="n">ih</span><span class="p">,</span> <span class="p">:</span> <span class="n">pw</span> <span class="o">-</span> <span class="n">iw</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span><span class="p">:,</span> <span class="o">-</span><span class="n">pw</span><span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">ph</span> <span class="o">-</span> <span class="n">ih</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span><span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span><span class="p">:,</span> <span class="p">:</span> <span class="n">pw</span> <span class="o">-</span> <span class="n">iw</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span>
+
+    <span class="k">elif</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;reflect&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span>
+        <span class="c1"># sides</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span> <span class="p">:</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">ph</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,))</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">1</span> <span class="p">:</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">pw</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="c1"># corners</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span> <span class="p">:</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">ph</span><span class="p">,</span> <span class="mi">1</span> <span class="p">:</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">pw</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[</span>
+            <span class="p">:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="p">:</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">pw</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span> <span class="p">:</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">ph</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;replicate&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span>
+        <span class="c1"># sides</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># corners</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">ph</span> <span class="o">+</span> <span class="n">ih</span> <span class="p">:,</span> <span class="p">:</span><span class="n">pw</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">ph</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span> <span class="o">+</span> <span class="n">iw</span> <span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;constant&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ph</span> <span class="p">:</span> <span class="o">-</span><span class="p">(</span><span class="n">ph</span> <span class="o">-</span> <span class="n">ih</span><span class="p">),</span> <span class="n">pw</span> <span class="p">:</span> <span class="o">-</span><span class="p">(</span><span class="n">pw</span> <span class="o">-</span> <span class="n">iw</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="conv2d_fft">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.functional.conv2d_fft.html#deepinv.physics.functional.conv2d_fft">[docs]</a>
+<span class="k">def</span> <span class="nf">conv2d_fft</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">real_fft</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function performing the 2d convolution of images ``x`` and ``filter`` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transposed2d_fft()`</span>
+
+<span class="sd">    :param torch.Tensor x: Image of size ``(B, C, W, H)``.</span>
+<span class="sd">    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.</span>
+
+<span class="sd">    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy &lt;https://numpy.org/doc/stable/user/basics.broadcasting.html&gt;`_. Otherwise, each channel of each image is convolved with the corresponding kernel.</span>
+
+<span class="sd">    For convolution using FFT consider only ``&#39;circular&#39;`` padding (i.e., circular convolution).</span>
+
+<span class="sd">    ..note:</span>
+<span class="sd">        The convolution here is a convolution, not a correlation as in conv2d.</span>
+
+<span class="sd">    :return: torch.Tensor : the output of the convolution of the shape size as :math:`x`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">filter</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Input and filter must be 4D tensors&quot;</span>
+
+    <span class="c1"># Get dimensions of the input and the filter</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">img_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">C</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">c</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">),</span> <span class="s2">&quot;Number of channels of the kernel is not matched for broadcasting&quot;</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">B</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Batch size of the kernel is not matched for broadcasting&quot;</span>
+
+    <span class="n">filter_f</span> <span class="o">=</span> <span class="n">filter_fft_2d</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">real_fft</span><span class="p">)</span>
+    <span class="n">x_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">real_fft</span> <span class="k">else</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fft</span><span class="o">.</span><span class="n">irfft2</span><span class="p">(</span><span class="n">x_f</span> <span class="o">*</span> <span class="n">filter_f</span><span class="p">)</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<div class="viewcode-block" id="conv_transpose2d_fft">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.functional.conv_transpose2d_fft.html#deepinv.physics.functional.conv_transpose2d_fft">[docs]</a>
+<span class="k">def</span> <span class="nf">conv_transpose2d_fft</span><span class="p">(</span><span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">real_fft</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function performing the 2d transposed convolution 2d of ``x`` and ``filter`` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv2d_fft()`.</span>
+
+<span class="sd">    :param torch.Tensor y: Image of size ``(B, C, W, H)``.</span>
+<span class="sd">    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.</span>
+
+<span class="sd">    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy &lt;https://numpy.org/doc/stable/user/basics.broadcasting.html&gt;`_. Otherwise, each channel of each image is convolved with the corresponding kernel.</span>
+
+<span class="sd">    For convolution using FFT consider only ``&#39;circular&#39;`` padding (i.e., circular convolution).</span>
+
+<span class="sd">    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`y`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">filter</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Input and filter must be 4D tensors&quot;</span>
+
+    <span class="c1"># Get dimensions of the input and the filter</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">img_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">C</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">B</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="n">filter_f</span> <span class="o">=</span> <span class="n">filter_fft_2d</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">real_fft</span><span class="p">)</span>
+    <span class="n">y_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">real_fft</span> <span class="k">else</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fft</span><span class="o">.</span><span class="n">irfft2</span><span class="p">(</span><span class="n">y_f</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">filter_f</span><span class="p">))</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">filter_fft_2d</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">real_fft</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">ph</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">filter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">pw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">filter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">filt2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="nb">tuple</span><span class="p">(</span><span class="nb">filter</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]),</span> <span class="n">device</span><span class="o">=</span><span class="nb">filter</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="n">filt2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="nb">filter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">:</span> <span class="nb">filter</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">filter</span>
+    <span class="n">filt2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">filt2</span><span class="p">,</span> <span class="n">shifts</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">ph</span><span class="p">,</span> <span class="o">-</span><span class="n">pw</span><span class="p">),</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">filt2</span><span class="p">)</span> <span class="k">if</span> <span class="n">real_fft</span> <span class="k">else</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">filt2</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">conv3d</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function to perform 3D convolution of images :math:``x`` and ``filter``.  The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed3d()`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span> <span class="nf">conv_transpose3d</span><span class="p">(</span><span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function to perform 3D transpose convolution.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="conv3d_fft">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.functional.conv3d_fft.html#deepinv.physics.functional.conv3d_fft">[docs]</a>
+<span class="k">def</span> <span class="nf">conv3d_fft</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">real_fft</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function performing the 3d convolution of ``x`` and `filter` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transpose3d_fft()`.</span>
+
+<span class="sd">    If ``b = 1`` or ``c = 1``, this function applies the same filter for each channel.</span>
+<span class="sd">    Otherwise, each channel of each image is convolved with the corresponding kernel.</span>
+
+<span class="sd">    Padding conditions include ``&#39;circular&#39;`` and ``&#39;valid&#39;``.</span>
+
+<span class="sd">    :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.</span>
+<span class="sd">    :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.</span>
+<span class="sd">    :param bool real_fft: for real filters and images choose True (default) to accelerate computation</span>
+<span class="sd">    :param str padding: can be ``&#39;valid&#39;`` (default) or ``&#39;circular&#39;``</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The filter center is located at ``(d//2, h//2, w//2)``.</span>
+
+<span class="sd">    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:``x`` if ``padding = &#39;circular&#39;``, ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = &#39;valid&#39;``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">filter</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;Input and filter must be 5D tensors&quot;</span>
+
+    <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">img_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">C</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">B</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">real_fft</span><span class="p">:</span>
+        <span class="n">f_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">x_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">irfftn</span><span class="p">(</span><span class="n">x_f</span> <span class="o">*</span> <span class="n">f_f</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fftn</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">x_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fftn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">ifftn</span><span class="p">(</span><span class="n">x_f</span> <span class="o">*</span> <span class="n">f_f</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;valid&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:,</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:,</span> <span class="n">w</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:]</span>
+    <span class="k">elif</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;circular&quot;</span><span class="p">:</span>
+        <span class="n">shifts</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">d</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="p">(</span><span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="p">(</span><span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">shifts</span><span class="o">=</span><span class="n">shifts</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;padding = &#39;&quot;</span> <span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="s2">&quot;&#39; not implemented&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="conv_transpose3d_fft">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.functional.conv_transpose3d_fft.html#deepinv.physics.functional.conv_transpose3d_fft">[docs]</a>
+<span class="k">def</span> <span class="nf">conv_transpose3d_fft</span><span class="p">(</span>
+    <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">real_fft</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper function performing the 3d transposed convolution of ``y`` and ``filter`` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv3d_fft()`.</span>
+
+<span class="sd">    If ``b = 1`` or ``c = 1``, then this function applies the same filter for each channel.</span>
+<span class="sd">    Otherwise, each channel of each image is convolved with the corresponding kernel.</span>
+
+<span class="sd">    Padding conditions include ``&#39;circular&#39;`` and ``&#39;valid&#39;``.</span>
+
+<span class="sd">    :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.</span>
+<span class="sd">    :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.</span>
+<span class="sd">    :param bool real_fft: for real filters and images choose True (default) to accelerate computation</span>
+<span class="sd">    :param str padding: can be ``&#39;valid&#39;`` (default) or ``&#39;circular&#39;``</span>
+
+<span class="sd">    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`y`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="nb">filter</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;Input and filter must be 5D tensors&quot;</span>
+
+    <span class="c1"># Get dimensions of the input and the filter</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;valid&quot;</span><span class="p">:</span>
+        <span class="n">img_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">D</span> <span class="o">+</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">H</span> <span class="o">+</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">W</span> <span class="o">+</span> <span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;circular&quot;</span><span class="p">:</span>
+        <span class="n">img_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+        <span class="n">shifts</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">shifts</span><span class="o">=</span><span class="n">shifts</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;padding = &#39;&quot;</span> <span class="o">+</span> <span class="n">padding</span> <span class="o">+</span> <span class="s2">&quot;&#39; not implemented&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">C</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">B</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">real_fft</span><span class="p">:</span>
+        <span class="n">f_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">y_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">irfftn</span><span class="p">(</span><span class="n">y_f</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">f_f</span><span class="p">),</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fftn</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">y_f</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fftn</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">ifftn</span><span class="p">(</span><span class="n">y_f</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">f_f</span><span class="p">),</span> <span class="n">s</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;valid&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">shifts</span><span class="o">=</span><span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

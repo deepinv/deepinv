@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GaussianNoise &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="LogPoissonNoise" href="deepinv.physics.LogPoissonNoise.html" />
+    <link rel="prev" title="RandomPhaseRetrieval" href="deepinv.physics.RandomPhaseRetrieval.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.physics.html">Physics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#forward-operators">Forward operators</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.physics.html#noise-distributions">Noise distributions</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">GaussianNoise</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.physics.GaussianNoise"><code class="docutils literal notranslate"><span class="pre">GaussianNoise</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-gaussiannoise">Examples using <code class="docutils literal notranslate"><span class="pre">GaussianNoise</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.LogPoissonNoise.html">LogPoissonNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.PoissonNoise.html">PoissonNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.PoissonGaussianNoise.html">PoissonGaussianNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.UniformNoise.html">UniformNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.UniformGaussianNoise.html">UniformGaussianNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.GammaNoise.html">GammaNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.physics.generator.SigmaGenerator.html">SigmaGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#defining-new-operators">Defining new operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#functional">Functional</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.physics.html">Physics</a></li>
+      <li class="breadcrumb-item active">GaussianNoise</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.physics.GaussianNoise.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="gaussiannoise">
+<h1>GaussianNoise<a class="headerlink" href="#gaussiannoise" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.physics.GaussianNoise">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.physics.</span></span><span class="sig-name descname"><span class="pre">GaussianNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><span class="pre">Generator</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/noise.html#GaussianNoise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.GaussianNoise" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></p>
+<p>Gaussian noise <span class="math notranslate nohighlight">\(y=z+\epsilon\)</span> where <span class="math notranslate nohighlight">\(\epsilon\sim \mathcal{N}(0,I\sigma^2)\)</span>.</p>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Adding gaussian noise to a physics operator by setting the <code class="docutils literal notranslate"><span class="pre">noise_model</span></code>
+attribute of the physics operator:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Denoising</span><span class="p">,</span> <span class="n">GaussianNoise</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Denoising</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">GaussianNoise</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Standard deviation of the noise.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><em>torch.Generator</em></a><em> (</em><em>Optional</em><em>)</em>) – a pseudorandom random number generator for the parameter generation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.GaussianNoise.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/noise.html#GaussianNoise.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.GaussianNoise.forward" title="Link to this definition"></a></dt>
+<dd><p>Adds the noise to measurements x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – measurements</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – standard deviation of the noise.
+If not None, it will overwrite the current noise level.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – the seed for the random number generator, if <cite>rng</cite> is provided.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>noisy measurements</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.GaussianNoise.update_parameters">
+<span class="sig-name descname"><span class="pre">update_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/noise.html#GaussianNoise.update_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.GaussianNoise.update_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the standard deviation of the noise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – standard deviation of the noise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-gaussiannoise">
+<span id="sphx-glr-backref-deepinv-physics-gaussiannoise"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">GaussianNoise</span></code>:<a class="headerlink" href="#examples-using-gaussiannoise" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This code shows how to reconstruct a noisy and incomplete image using the deep image prior."><img alt="" src="../_images/sphx_glr_demo_dip_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_dip.html#sphx-glr-auto-examples-basics-demo-dip-py"><span class="std std-ref">Reconstructing an image using the deep image prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Reconstructing an image using the deep image prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate the use of our deepinv.transform module for use in solving imaging problems. These can be used for:"><img alt="" src="../_images/sphx_glr_demo_transforms_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_transforms.html#sphx-glr-auto-examples-basics-demo-transforms-py"><span class="std std-ref">Image transforms for equivariance &amp; augmentations</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image transforms for equivariance & augmentations</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create your own dataset for deep image inverse problems from a base dataset of images. Here we use Set3C as a base dataset of natural images. This base dataset contains 3 images."><img alt="" src="../_images/sphx_glr_demo_dataset_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_dataset.html#sphx-glr-auto-examples-basics-demo-dataset-py"><span class="std std-ref">Creating your own dataset</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Creating your own dataset</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="While deepinv offers a large number of forward operators in the physics module, you might want to create your own forward operator for your specific imaging problem. This example walks you through the creation of a custom forward operator."><img alt="" src="../_images/sphx_glr_demo_physics_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_physics.html#sphx-glr-auto-examples-basics-demo-physics-py"><span class="std std-ref">Creating a forward operator.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Creating a forward operator.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of some of the forward operators implemented in DeepInverse. We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in here."><img alt="" src="../_images/sphx_glr_demo_physics_tour_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_physics_tour.html#sphx-glr-auto-examples-basics-demo-physics-tour-py"><span class="std std-ref">A tour of forward sensing operators</span></a></p>
+  <div class="sphx-glr-thumbnail-title">A tour of forward sensing operators</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="../_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:"><img alt="" src="../_images/sphx_glr_demo_phase_retrieval_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_phase_retrieval.html#sphx-glr-auto-examples-basics-demo-phase-retrieval-py"><span class="std std-ref">Random phase retrieval and reconstruction methods.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \epsilon where A is a convolutional operator and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_TV_minimisation_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_TV_minimisation.html#sphx-glr-auto-examples-optimization-demo-tv-minimisation-py"><span class="std std-ref">Image deblurring with Total-Variation (TV) prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \epsilon where A is a mask and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_wavelet_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_wavelet_prior.html#sphx-glr-auto-examples-optimization-demo-wavelet-prior-py"><span class="std std-ref">Image inpainting with wavelet prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a 3D wavelet denoiser for denoising a 3D image. We first apply a standard soft-thresholding wavelet denoiser to a 3D brain MRI volume. We then extend the denoiser objective to a redundant dictionary of wavelet bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm."><img alt="" src="../_images/sphx_glr_demo_3D_wavelets_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_3D_wavelets.html#sphx-glr-auto-examples-optimization-demo-3d-wavelets-py"><span class="std std-ref">3D wavelet denoising</span></a></p>
+  <div class="sphx-glr-thumbnail-title">3D wavelet denoising</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example we use the expected patch log likelihood (EPLL) prior EPLL proposed in &quot;From learning models of natural image patches to whole image restoration&quot;.  for denoising and inpainting of natural images. To this end, we consider the inverse problem y = Ax+\epsilon, where A is either the identity (for denoising) or a masking operator (for inpainting) and \epsilon\sim\mathcal{N}(0,\sigma^2 I) is white Gaussian noise with standard deviation \sigma."><img alt="" src="../_images/sphx_glr_demo_epll_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/patch-priors/demo_epll.html#sphx-glr-auto-examples-patch-priors-demo-epll-py"><span class="std std-ref">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography."><img alt="" src="../_images/sphx_glr_demo_vanilla_PnP_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="../_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior."><img alt="" src="../_images/sphx_glr_demo_RED_GSPnP_SR_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to define your own optimization algorithm. For example, here, we implement the Condat-Vu Primal-Dual algorithm, and apply it for Single Pixel Camera reconstruction."><img alt="" src="../_images/sphx_glr_demo_PnP_custom_optim_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_custom_optim.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-custom-optim-py"><span class="std std-ref">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</span></a></p>
+  <div class="sphx-glr-thumbnail-title">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction from incomplete and noisy measurements."><img alt="" src="../_images/sphx_glr_demo_sampling_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_sampling.html#sphx-glr-auto-examples-sampling-demo-sampling-py"><span class="std std-ref">Uncertainty quantification with PnP-ULA.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Uncertainty quantification with PnP-ULA.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use the DDRM diffusion algorithm to reconstruct images and also compute the uncertainty of a reconstruction from incomplete and noisy measurements."><img alt="" src="../_images/sphx_glr_demo_ddrm_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_ddrm.html#sphx-glr-auto-examples-sampling-demo-ddrm-py"><span class="std std-ref">Image reconstruction with a diffusion model</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image reconstruction with a diffusion model</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin Algorithm (PreconULA) that takes advantage of the singular value decomposition of the forward operator to accelerate the sampling."><img alt="" src="../_images/sphx_glr_demo_custom_kernel_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_custom_kernel.html#sphx-glr-auto-examples-sampling-demo-custom-kernel-py"><span class="std std-ref">Building your custom sampling algorithm.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Building your custom sampling algorithm.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from Zhou et al.. The full algorithm is implemented in deepinv.sampling.DiffPIR."><img alt="" src="../_images/sphx_glr_demo_diffpir_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_diffpir.html#sphx-glr-auto-examples-sampling-demo-diffpir-py"><span class="std std-ref">Implementing DiffPIR</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Implementing DiffPIR</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate self-supervised learning with measurement splitting, to train a denoiser network on the MNIST dataset. The physics here is noisy computed tomography, as is the case in Noise2Inverse. Note this example can also be easily applied to undersampled multicoil MRI as is the case in SSDU."><img alt="" src="../_images/sphx_glr_demo_splitting_loss_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_splitting_loss.html#sphx-glr-auto-examples-self-supervised-learning-demo-splitting-loss-py"><span class="std std-ref">Self-supervised learning with measurement splitting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with measurement splitting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a denoiser network in a fully self-supervised way, i.e., using noisy images with unknown noise level only via the UNSURE loss, which is introduced in https://arxiv.org/abs/2409.01985."><img alt="" src="../_images/sphx_glr_demo_unsure_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_unsure.html#sphx-glr-auto-examples-self-supervised-learning-demo-unsure-py"><span class="std std-ref">Self-supervised denoising with the UNSURE loss.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised denoising with the UNSURE loss.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use vanilla unfolded Plug-and-Play. The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly. For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="../_images/sphx_glr_demo_vanilla_unfolded_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_vanilla_unfolded.html#sphx-glr-auto-examples-unfolded-demo-vanilla-unfolded-py"><span class="std std-ref">Vanilla Unfolded algorithm for super-resolution</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Vanilla Unfolded algorithm for super-resolution</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This a toy example to show you how to use DEQ to solve a deblurring problem.  Note that this is a small dataset for training. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True."><img alt="" src="../_images/sphx_glr_demo_DEQ_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_DEQ.html#sphx-glr-auto-examples-unfolded-demo-deq-py"><span class="std std-ref">Deep Equilibrium (DEQ) algorithms for image deblurring</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Deep Equilibrium (DEQ) algorithms for image deblurring</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Adler, Jonas, and Ozan Öktem.  &quot;Learned primal-dual reconstruction.&quot;  IEEE transactions on medical imaging 37.6 (2018): 1322-1332."><img alt="" src="../_images/sphx_glr_demo_learned_primal_dual_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_learned_primal_dual.html#sphx-glr-auto-examples-unfolded-demo-learned-primal-dual-py"><span class="std std-ref">Learned Primal-Dual algorithm for CT scan.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Learned Primal-Dual algorithm for CT scan.</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.RandomPhaseRetrieval.html" class="btn btn-neutral float-left" title="RandomPhaseRetrieval" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.physics.LogPoissonNoise.html" class="btn btn-neutral float-right" title="LogPoissonNoise" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

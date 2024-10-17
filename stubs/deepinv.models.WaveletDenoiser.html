@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveletDenoiser &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="WaveletDictDenoiser" href="deepinv.models.WaveletDictDenoiser.html" />
+    <link rel="prev" title="TGVDenoiser" href="deepinv.models.TGVDenoiser.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.denoisers.html#classical-denoisers">Classical Denoisers</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.BM3D.html">BM3D</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.MedianFilter.html">MedianFilter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.TVDenoiser.html">TVDenoiser</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.TGVDenoiser.html">TGVDenoiser</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">WaveletDenoiser</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.models.WaveletDenoiser"><code class="docutils literal notranslate"><span class="pre">WaveletDenoiser</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-waveletdenoiser">Examples using <code class="docutils literal notranslate"><span class="pre">WaveletDenoiser</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.WaveletDictDenoiser.html">WaveletDictDenoiser</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.EPLLDenoiser.html">EPLLDenoiser</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#deep-denoisers">Deep Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#equivariant-denoisers">Equivariant Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#adversarial-networks">Adversarial Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#complex-denoisers">Complex Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#pretrained-weights">Pretrained Weights</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.denoisers.html">Denoisers</a></li>
+      <li class="breadcrumb-item active">WaveletDenoiser</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.models.WaveletDenoiser.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="waveletdenoiser">
+<h1>WaveletDenoiser<a class="headerlink" href="#waveletdenoiser" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.models.</span></span><span class="sig-name descname"><span class="pre">WaveletDenoiser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'db8'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">non_linearity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'soft'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wvdim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Orthogonal Wavelet denoising with the <span class="math notranslate nohighlight">\(\ell_1\)</span> norm.</p>
+<p>This denoiser is defined as the solution to the optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\underset{x}{\arg\min} \;  \|x-y\|^2 + \gamma \|\Psi x\|_n\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Psi\)</span> is an orthonormal wavelet transform, <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span> is a hyperparameter, and where
+<span class="math notranslate nohighlight">\(\|\cdot\|_n\)</span> is either the <span class="math notranslate nohighlight">\(\ell_1\)</span> norm (<code class="docutils literal notranslate"><span class="pre">non_linearity=&quot;soft&quot;</span></code>) or
+the <span class="math notranslate nohighlight">\(\ell_0\)</span> norm (<code class="docutils literal notranslate"><span class="pre">non_linearity=&quot;hard&quot;</span></code>). A variant of the <span class="math notranslate nohighlight">\(\ell_0\)</span> norm is also available
+(<code class="docutils literal notranslate"><span class="pre">non_linearity=&quot;topk&quot;</span></code>), where the thresholding is done by keeping the <span class="math notranslate nohighlight">\(k\)</span> largest coefficients
+in each wavelet subband and setting the others to zero.</p>
+<p>The solution is available in closed-form, thus the denoiser is cheap to compute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – decomposition level of the wavelet transform</p></li>
+<li><p><strong>wv</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – mother wavelet (follows the <a class="reference external" href="https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html">PyWavelets convention</a>) (default: “db8”)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – cpu or gpu</p></li>
+<li><p><strong>non_linearity</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">&quot;soft&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hard&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;topk&quot;</span></code> thresholding (default: <code class="docutils literal notranslate"><span class="pre">&quot;soft&quot;</span></code>).
+If <code class="docutils literal notranslate"><span class="pre">&quot;topk&quot;</span></code>, only the top-k wavelet coefficients are kept.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.crop_output">
+<span class="sig-name descname"><span class="pre">crop_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.crop_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.crop_output" title="Link to this definition"></a></dt>
+<dd><p>Crop the output to make it compatible with the wavelet transform.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.dwt">
+<span class="sig-name descname"><span class="pre">dwt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.dwt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.dwt" title="Link to this definition"></a></dt>
+<dd><p>Applies the wavelet decomposition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.flatten_coeffs">
+<span class="sig-name descname"><span class="pre">flatten_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.flatten_coeffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.flatten_coeffs" title="Link to this definition"></a></dt>
+<dd><p>Flattens the wavelet coefficients and returns them in a single torch vector of shape (n_coeffs,).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.forward" title="Link to this definition"></a></dt>
+<dd><p>Run the model on a noisy image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – noisy image.</p></li>
+<li><p><strong>ths</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – thresholding parameter <span class="math notranslate nohighlight">\(\gamma\)</span>.
+If <cite>ths</cite> is a tensor, it should be of shape
+<code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">)</span></code> (same coefficent for all levels), <code class="docutils literal notranslate"><span class="pre">(n_levels-1,</span> <span class="pre">)</span></code> (one coefficient per level),
+or <code class="docutils literal notranslate"><span class="pre">(n_levels-1,</span> <span class="pre">3)</span></code> (one coefficient per subband and per level).
+If <code class="docutils literal notranslate"><span class="pre">non_linearity</span></code> equals <code class="docutils literal notranslate"><span class="pre">&quot;soft&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;hard&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">ths</span></code> serves as a (soft or hard)
+thresholding parameter for the wavelet coefficients. If <code class="docutils literal notranslate"><span class="pre">non_linearity</span></code> equals <code class="docutils literal notranslate"><span class="pre">&quot;topk&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ths</span></code> can indicate the number of wavelet coefficients
+that are kept (if <code class="docutils literal notranslate"><span class="pre">int</span></code>) or the proportion of coefficients that are kept (if <code class="docutils literal notranslate"><span class="pre">float</span></code>).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.hard_threshold_topk">
+<span class="sig-name descname"><span class="pre">hard_threshold_topk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.hard_threshold_topk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.hard_threshold_topk" title="Link to this definition"></a></dt>
+<dd><p>Hard thresholding of the wavelet coefficients by keeping only the top-k coefficients and setting the others to
+0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – wavelet coefficients.</p></li>
+<li><p><strong>ths</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – top k coefficients to keep. If <code class="docutils literal notranslate"><span class="pre">float</span></code>, it is interpreted as a proportion of the total
+number of coefficients. If <code class="docutils literal notranslate"><span class="pre">int</span></code>, it is interpreted as the number of coefficients to keep.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.iwt">
+<span class="sig-name descname"><span class="pre">iwt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.iwt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.iwt" title="Link to this definition"></a></dt>
+<dd><p>Applies the wavelet recomposition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.pad_input">
+<span class="sig-name descname"><span class="pre">pad_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.pad_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.pad_input" title="Link to this definition"></a></dt>
+<dd><p>Pad the input to make it compatible with the wavelet transform.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.prox_l0">
+<span class="sig-name descname"><span class="pre">prox_l0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.prox_l0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.prox_l0" title="Link to this definition"></a></dt>
+<dd><p>Hard thresholding of the wavelet coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – wavelet coefficients.</p></li>
+<li><p><strong>ths</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – threshold.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.prox_l1">
+<span class="sig-name descname"><span class="pre">prox_l1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.prox_l1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.prox_l1" title="Link to this definition"></a></dt>
+<dd><p>Soft thresholding of the wavelet coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – wavelet coefficients.</p></li>
+<li><p><strong>ths</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – threshold.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.psi">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'db2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimension</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.psi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.psi" title="Link to this definition"></a></dt>
+<dd><p>Returns a flattened list containing the wavelet coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image.</p></li>
+<li><p><strong>wavelet</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – mother wavelet.</p></li>
+<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – decomposition level.</p></li>
+<li><p><strong>dimension</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – dimension of the wavelet transform (either 2 or 3).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.reshape_ths">
+<span class="sig-name descname"><span class="pre">reshape_ths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.reshape_ths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.reshape_ths" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Reshape the thresholding parameter in the appropriate format, i.e. either:</dt><dd><ul class="simple">
+<li><p>a list of 3 elements, or</p></li>
+<li><p>a tensor of 3 elements.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Since the approximation coefficients are not thresholded, we do not need to provide a thresholding parameter,
+ths has shape (n_levels-1, 3).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.threshold_3D">
+<span class="sig-name descname"><span class="pre">threshold_3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.threshold_3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.threshold_3D" title="Link to this definition"></a></dt>
+<dd><p>Thresholds coefficients of the 3D wavelet transform.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.threshold_ND">
+<span class="sig-name descname"><span class="pre">threshold_ND</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.threshold_ND"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.threshold_ND" title="Link to this definition"></a></dt>
+<dd><p>Apply thresholding to the wavelet coefficients of arbitrary dimension.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.thresold_2D">
+<span class="sig-name descname"><span class="pre">thresold_2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.thresold_2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.thresold_2D" title="Link to this definition"></a></dt>
+<dd><p>Thresholds coefficients of the 2D wavelet transform.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.WaveletDenoiser.thresold_func">
+<span class="sig-name descname"><span class="pre">thresold_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/wavdict.html#WaveletDenoiser.thresold_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.WaveletDenoiser.thresold_func" title="Link to this definition"></a></dt>
+<dd><p>”
+Apply thresholding to the wavelet coefficients.</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-waveletdenoiser">
+<span id="sphx-glr-backref-deepinv-models-waveletdenoiser"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">WaveletDenoiser</span></code>:<a class="headerlink" href="#examples-using-waveletdenoiser" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model. The architecture of the model and its training are described in the constrained unfolded demo."><img alt="" src="../_images/sphx_glr_demo_loading_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_loading.html#sphx-glr-auto-examples-basics-demo-loading-py"><span class="std std-ref">Saving and loading models</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Saving and loading models</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a 3D wavelet denoiser for denoising a 3D image. We first apply a standard soft-thresholding wavelet denoiser to a 3D brain MRI volume. We then extend the denoiser objective to a redundant dictionary of wavelet bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm."><img alt="" src="../_images/sphx_glr_demo_3D_wavelets_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_3D_wavelets.html#sphx-glr-auto-examples-optimization-demo-3d-wavelets-py"><span class="std std-ref">3D wavelet denoising</span></a></p>
+  <div class="sphx-glr-thumbnail-title">3D wavelet denoising</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:"><img alt="" src="../_images/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_unfolded_constrained_LISTA.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constrained-lista-py"><span class="std std-ref">Unfolded Chambolle-Pock for constrained image inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.models.TGVDenoiser.html" class="btn btn-neutral float-left" title="TGVDenoiser" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.models.WaveletDictDenoiser.html" class="btn btn-neutral float-right" title="WaveletDictDenoiser" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

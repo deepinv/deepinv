@@ -1,0 +1,223 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.loss.adversarial.uair &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/logo.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../../index.html">
+            
+              <img src="../../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.loss.adversarial.uair</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.loss.adversarial.uair</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">GeneratorLoss</span><span class="p">,</span> <span class="n">DiscriminatorLoss</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Physics</span>
+
+
+<div class="viewcode-block" id="UAIRGeneratorLoss">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html#deepinv.loss.adversarial.UAIRGeneratorLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">UAIRGeneratorLoss</span><span class="p">(</span><span class="n">GeneratorLoss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Reimplementation of UAIR generator&#39;s adversarial loss.</span>
+
+<span class="sd">    Pajot et al., &quot;Unsupervised Adversarial Image Reconstruction&quot;.</span>
+
+<span class="sd">    The loss is defined as follows, to be minimised by the generator:</span>
+
+<span class="sd">    :math:`\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}`</span>
+
+<span class="sd">    where the standard adversarial loss is</span>
+
+<span class="sd">    :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.</span>
+
+<span class="sd">    Simple example (assuming a pretrained discriminator):</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        from deepinv.models import DCGANDiscriminator</span>
+<span class="sd">        D = DCGANDiscriminator() # assume pretrained discriminator</span>
+
+<span class="sd">        loss = UAIRGeneratorLoss(D=D)</span>
+
+<span class="sd">        l = loss(y, y_hat, physics, model)</span>
+
+<span class="sd">        l.backward()</span>
+
+<span class="sd">    :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)</span>
+<span class="sd">    :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)</span>
+<span class="sd">    :param nn.Module metric: metric for measurement consistency, defaults to nn.MSELoss</span>
+<span class="sd">    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight_adv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">weight_mc</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">metric</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(),</span>
+        <span class="n">D</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight_adv</span><span class="o">=</span><span class="n">weight_adv</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;UAIRGenerator&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_mc</span> <span class="o">=</span> <span class="n">weight_mc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">D</span>
+
+<div class="viewcode-block" id="UAIRGeneratorLoss.forward">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html#deepinv.loss.adversarial.UAIRGeneratorLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_hat</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">D</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward pass for UAIR generator&#39;s adversarial loss.</span>
+
+<span class="sd">        :param Tensor y: input measurement</span>
+<span class="sd">        :param Tensor y_hat: re-measured reconstruction</span>
+<span class="sd">        :param Physics physics: forward physics</span>
+<span class="sd">        :param nn.Module model: reconstruction network</span>
+<span class="sd">        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="k">if</span> <span class="n">D</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">D</span>
+
+        <span class="n">adv_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adversarial_loss</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+
+        <span class="n">x_tilde</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y_hat</span><span class="p">)</span>
+        <span class="n">y_tilde</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_tilde</span><span class="p">)</span>  <span class="c1"># use same operator as y_hat</span>
+        <span class="n">mc_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">y_tilde</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">adv_loss</span> <span class="o">+</span> <span class="n">mc_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_mc</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

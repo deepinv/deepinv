@@ -1,0 +1,623 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.loss.metric.distortion &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/logo.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../../index.html">
+            
+              <img src="../../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.loss.metric.distortion</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.loss.metric.distortion</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">MSELoss</span><span class="p">,</span> <span class="n">L1Loss</span>
+<span class="kn">from</span> <span class="nn">torchmetrics.functional</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">structural_similarity_index_measure</span><span class="p">,</span>
+    <span class="n">multiscale_structural_similarity_index_measure</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">deepinv.loss.metric.metric</span> <span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.metric.functional</span> <span class="kn">import</span> <span class="n">cal_mse</span><span class="p">,</span> <span class="n">cal_psnr</span><span class="p">,</span> <span class="n">cal_mae</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.nn</span> <span class="kn">import</span> <span class="n">TensorList</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">deepinv.physics.remote_sensing</span> <span class="kn">import</span> <span class="n">Pansharpen</span>
+
+
+<div class="viewcode-block" id="MAE">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.MAE.html#deepinv.loss.metric.MAE">[docs]</a>
+<span class="k">class</span> <span class="nc">MAE</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mean Absolute Error metric.</span>
+
+<span class="sd">    Calculates the MAE :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        :class:`deepinv.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction=&#39;mean&#39;`` or ``reduction=&#39;sum&#39;``,</span>
+<span class="sd">        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import MAE</span>
+<span class="sd">    &gt;&gt;&gt; m = MAE()</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([0., 0., 0.])</span>
+
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MAE.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.MAE.html#deepinv.loss.metric.MAE.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cal_mae</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MSE">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.MSE.html#deepinv.loss.metric.MSE">[docs]</a>
+<span class="k">class</span> <span class="nc">MSE</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mean Squared Error metric.</span>
+
+<span class="sd">    Calculates the MSE :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        :class:`deepinv.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction=&#39;mean&#39;`` or ``reduction=&#39;sum&#39;``,</span>
+<span class="sd">        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import MSE</span>
+<span class="sd">    &gt;&gt;&gt; m = MSE()</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([0., 0., 0.])</span>
+
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MSE.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.MSE.html#deepinv.loss.metric.MSE.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cal_mse</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="NMSE">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.NMSE.html#deepinv.loss.metric.NMSE">[docs]</a>
+<span class="k">class</span> <span class="nc">NMSE</span><span class="p">(</span><span class="n">MSE</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalised Mean Squared Error metric.</span>
+
+<span class="sd">    Calculates the NMSE :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+<span class="sd">    Normalises MSE by the L2 norm of the ground truth ``x``.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import NMSE</span>
+<span class="sd">    &gt;&gt;&gt; m = NMSE()</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([0., 0., 0.])</span>
+
+<span class="sd">    :param str method: normalisation method. Currently only supports ``l2``.</span>
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;l2&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;l2&quot;</span><span class="p">,):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;method must be l2.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NMSE.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.NMSE.html#deepinv.loss.metric.NMSE.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;l2&quot;</span><span class="p">:</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="n">cal_mse</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cal_mse</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SSIM">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.SSIM.html#deepinv.loss.metric.SSIM">[docs]</a>
+<span class="k">class</span> <span class="nc">SSIM</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Structural Similarity Index (SSIM) metric using torchmetrics.</span>
+
+<span class="sd">    Calculates the SSIM :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+<span class="sd">    See https://en.wikipedia.org/wiki/Structural_similarity for more information.</span>
+
+<span class="sd">    To set the max pixel on the fly (as is the case in `fastMRI evaluation code &lt;https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py&gt;`_), set ``max_pixel=None``.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import SSIM</span>
+<span class="sd">    &gt;&gt;&gt; m = SSIM()</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 32, 32) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([1., 1., 1.])</span>
+
+<span class="sd">    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.</span>
+<span class="sd">    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.</span>
+<span class="sd">    :param dict torchmetric_kwargs: kwargs for torchmetrics SSIM as dict. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html</span>
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param bool train_loss: use metric as a training loss, by returning one minus the metric.</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">multiscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_pixel</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">torchmetric_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssim</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">multiscale_structural_similarity_index_measure</span>
+            <span class="k">if</span> <span class="n">multiscale</span>
+            <span class="k">else</span> <span class="n">structural_similarity_index_measure</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">torchmetric_kwargs</span> <span class="o">=</span> <span class="n">torchmetric_kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="o">=</span> <span class="n">max_pixel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_better</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="SSIM.invert_metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.SSIM.html#deepinv.loss.metric.SSIM.invert_metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">invert_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">m</span></div>
+
+
+<div class="viewcode-block" id="SSIM.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.SSIM.html#deepinv.loss.metric.SSIM.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">max_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssim</span><span class="p">(</span>
+            <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data_range</span><span class="o">=</span><span class="n">max_pixel</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">torchmetric_kwargs</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PSNR">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR">[docs]</a>
+<span class="k">class</span> <span class="nc">PSNR</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Peak Signal-to-Noise Ratio (PSNR) metric.</span>
+
+<span class="sd">    Calculates the PSNR :math:`\text{PSNR}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+<span class="sd">    If the tensors have size ``(B, C, H, W)``, then the PSNR is computed as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \text{PSNR} = \frac{20}{B} \log_{10} \frac{\text{MAX}_I}{\sqrt{\|\hat{x}-x\|^2_2 / (CHW) }}</span>
+
+<span class="sd">    where :math:`\text{MAX}_I` is the maximum possible pixel value of the image (e.g. 1.0 for a</span>
+<span class="sd">    normalized image).</span>
+
+<span class="sd">    To set the max pixel on the fly (as is the case in `fastMRI evaluation code &lt;https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py&gt;`_), set ``max_pixel=None``.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import PSNR</span>
+<span class="sd">    &gt;&gt;&gt; m = PSNR()</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([80., 80., 80.])</span>
+
+<span class="sd">    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.</span>
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_pixel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="o">=</span> <span class="n">max_pixel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_better</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="PSNR.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">max_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_pixel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">cal_psnr</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">max_pixel</span><span class="o">=</span><span class="n">max_pixel</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="L1L2">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.L1L2.html#deepinv.loss.metric.L1L2">[docs]</a>
+<span class="k">class</span> <span class="nc">L1L2</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combined L2 and L1 metric.</span>
+
+<span class="sd">    Calculates L2 distance (i.e. MSE) + L1 (i.e. MAE) distance,</span>
+<span class="sd">    :math:`\alpha L_1(\hat{x},x)+(1-\alpha)L_2(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import L1L2</span>
+<span class="sd">    &gt;&gt;&gt; m = L1L2()</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([0., 0., 0.])</span>
+
+<span class="sd">    :param float alpha: Weight between L2 and L1. Defaults to 0.5.</span>
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l1</span> <span class="o">=</span> <span class="n">MAE</span><span class="p">()</span><span class="o">.</span><span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">=</span> <span class="n">MSE</span><span class="p">()</span><span class="o">.</span><span class="n">metric</span>
+
+<div class="viewcode-block" id="L1L2.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.L1L2.html#deepinv.loss.metric.L1L2.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">l1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">l2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">l1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">l2</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LpNorm">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.LpNorm.html#deepinv.loss.metric.LpNorm">[docs]</a>
+<span class="k">class</span> <span class="nc">LpNorm</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :math:`\ell_p` metric for :math:`p&gt;0`.</span>
+
+<span class="sd">    Calculates the Lp norm :math:`L_p(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.</span>
+
+<span class="sd">    If ``onesided=False`` then the metric is defined as</span>
+<span class="sd">    :math:`d(x,y)=\|x-y\|_p^p`.</span>
+
+<span class="sd">    Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as</span>
+<span class="sd">    :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import LpNorm</span>
+<span class="sd">    &gt;&gt;&gt; m = LpNorm(p=3) # L3 norm</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net, x)</span>
+<span class="sd">    tensor([0., 0., 0.])</span>
+
+<span class="sd">    :param int p: order p of the Lp norm</span>
+<span class="sd">    :param bool onesided: whether one-sided metric.</span>
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">onesided</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onesided</span> <span class="o">=</span> <span class="n">onesided</span>
+
+<div class="viewcode-block" id="LpNorm.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.LpNorm.html#deepinv.loss.metric.LpNorm.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">onesided</span><span class="p">:</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="n">x_net</span> <span class="o">-</span> <span class="n">x</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">diff</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">diff</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="QNR">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR">[docs]</a>
+<span class="k">class</span> <span class="nc">QNR</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Quality with No Reference (QNR) metric for pansharpening.</span>
+
+<span class="sd">    Calculates the no-reference QNR :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.</span>
+
+<span class="sd">    QNR was proposed in Alparone et al., &quot;Multispectral and Panchromatic Data Fusion Assessment Without Reference&quot;.</span>
+
+<span class="sd">    Note we don&#39;t use the torchmetrics implementation.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, no reduction is performed in the batch dimension.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import QNR</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.physics import Pansharpen</span>
+<span class="sd">    &gt;&gt;&gt; m = QNR()</span>
+<span class="sd">    &gt;&gt;&gt; x = x_net = torch.rand(1, 3, 64, 64) # B,C,H,W</span>
+<span class="sd">    &gt;&gt;&gt; physics = Pansharpen((3, 64, 64))</span>
+<span class="sd">    &gt;&gt;&gt; y = physics(x) #[BCH&#39;W&#39;, B1HW]</span>
+<span class="sd">    &gt;&gt;&gt; m(x_net=x_net, y=y, physics=physics) # doctest: +ELLIPSIS</span>
+<span class="sd">    tensor([...], grad_fn=&lt;MulBackward0&gt;)</span>
+
+<span class="sd">    :param float alpha: weight for spectral quality, defaults to 1</span>
+<span class="sd">    :param float beta: weight for structural quality, defaults to 1</span>
+<span class="sd">    :param float p: power exponent for spectral D, defaults to 1</span>
+<span class="sd">    :param float q: power exponent for structural D, defaults to 1</span>
+<span class="sd">    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,</span>
+<span class="sd">        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).</span>
+<span class="sd">    :param bool train_loss: use metric as a training loss, by returning one minus the metric.</span>
+<span class="sd">    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).</span>
+<span class="sd">    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">structural_similarity_index_measure</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span>
+        <span class="p">)</span>  <span class="c1"># Wang-Bovik</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_better</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="QNR.invert_metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.invert_metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">invert_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">m</span></div>
+
+
+<div class="viewcode-block" id="QNR.D_lambda">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.D_lambda">[docs]</a>
+    <span class="k">def</span> <span class="nf">D_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hrms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">lrms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate spectral distortion index.&quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">hrms</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bands</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bands</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="nb">abs</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">hrms</span><span class="p">[:,</span> <span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">hrms</span><span class="p">[:,</span> <span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:])</span>
+                        <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">lrms</span><span class="p">[:,</span> <span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">lrms</span><span class="p">[:,</span> <span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:])</span>
+                    <span class="p">)</span>
+                    <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">out</span> <span class="o">/</span> <span class="p">(</span><span class="n">n_bands</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_bands</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="QNR.D_s">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.D_s">[docs]</a>
+    <span class="k">def</span> <span class="nf">D_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hrms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">lrms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">pan</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">pan_lr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate spatial (or structural) distortion index.&quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">n_bands</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">hrms</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bands</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="nb">abs</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">hrms</span><span class="p">[:,</span> <span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">pan</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">lrms</span><span class="p">[:,</span> <span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">pan_lr</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">out</span> <span class="o">/</span> <span class="n">n_bands</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="QNR.metric">
+<a class="viewcode-back" href="../../../../stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.metric">[docs]</a>
+    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Pansharpen</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate QNR on data.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Note this does not require knowledge of ``x``, but it is included here as a placeholder.</span>
+<span class="sd">            QNR requires knowledge of ``y`` and ``physics``, which is not standard. In order to use QNR with</span>
+<span class="sd">            :class:`deepinv.Trainer`, you will have to override the ``compute_metrics`` method to</span>
+<span class="sd">            pass ``y,physics`` into the metric.</span>
+
+<span class="sd">        :param torch.Tensor x_net: Reconstructed high-res multispectral image :math:`\inverse{y}` of shape ``(B,C,H,W)``.</span>
+<span class="sd">        :param torch.Tensor x: Placeholder, does nothing.</span>
+<span class="sd">        :param deepinv.utils.TensorList y: pansharpening measurements generated from</span>
+<span class="sd">            :class:`deepinv.physics.Pansharpen`, where y[0] is the low-res multispectral image of shape ``(B,C,H&#39;,W&#39;)``</span>
+<span class="sd">            and y[1] is the high-res noisy panchromatic image of shape ``(B,1,H,W)``</span>
+<span class="sd">        :param deepinv.physics.Pansharpen physics: pansharpening physics, used to calculate low-res pan image for QNR calculation.</span>
+
+<span class="sd">        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;QNR requires the measurements y to be passed.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">physics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;QNR requires the pansharpening physics to be passed.&quot;</span><span class="p">)</span>
+
+        <span class="n">lrms</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pan</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">pan_lr</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">downsampling</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">pan</span><span class="p">)</span>
+
+        <span class="n">d_lambda</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D_lambda</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">lrms</span><span class="p">)</span>
+        <span class="n">d_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D_s</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">lrms</span><span class="p">,</span> <span class="n">pan</span><span class="p">,</span> <span class="n">pan_lr</span><span class="p">)</span>
+        <span class="n">qnr</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">d_lambda</span><span class="p">)</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">d_s</span><span class="p">)</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+
+        <span class="k">return</span> <span class="n">qnr</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,225 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>test &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="plot" href="deepinv.utils.plot.html" />
+    <link rel="prev" title="train" href="deepinv.train.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.utils.html">Utils</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.utils.html#training-and-testing">Training and Testing</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.Trainer.html">Trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.training.AdversarialTrainer.html">AdversarialTrainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.train.html">train</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">test</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.test"><code class="docutils literal notranslate"><span class="pre">test()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-test">Examples using <code class="docutils literal notranslate"><span class="pre">test</span></code>:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.utils.html#plotting">Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.utils.html#tensorlist">TensorList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.utils.html#other">Other</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.utils.html">Utils</a></li>
+      <li class="breadcrumb-item active">test</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.test.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="test">
+<h1>test<a class="headerlink" href="#test" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="deepinv.test">
+<span class="sig-prename descclassname"><span class="pre">deepinv.</span></span><span class="sig-name descname"><span class="pre">test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataloader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PSNR()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">online_measurements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_images</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_convergence_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rescale_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'clip'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress_bar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_learning_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'A_dagger'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/training/testing.html#test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.test" title="Link to this definition"></a></dt>
+<dd><p>Tests a reconstruction model (algorithm or network).</p>
+<p>This function computes the chosen metrics of the reconstruction network on the test set,
+and optionally plots the reconstructions as well as the metrics computed along the iterations.
+Note that by default only the first batch is plotted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – Reconstruction network, which can be PnP, unrolled, artifact removal
+or any other custom reconstruction network (unfolded, plug-and-play, etc).</p></li>
+<li><p><strong>test_dataloader</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="(in PyTorch v2.0)"><em>torch.utils.data.DataLoader</em></a>) – Test data loader, which should provide a tuple of (x, y) pairs.
+See <a class="reference internal" href="../deepinv.datasets.html#datasets"><span class="std std-ref">datasets</span></a> for more details.</p></li>
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>[</em><a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a><em>]</em>) – Forward operator(s)
+used by the reconstruction network at test time.</p></li>
+<li><p><strong>metrics</strong> (<a class="reference internal" href="deepinv.loss.Loss.html#deepinv.loss.Loss" title="deepinv.loss.Loss"><em>deepinv.loss.Loss</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a><em>[</em><em>deepinv.Loss</em><em>]</em>) – Metric or list of metrics used for evaluating the model.
+<a class="reference internal" href="../deepinv.loss.html#loss"><span class="std std-ref">See the libraries’ evaluation metrics</span></a>.</p></li>
+<li><p><strong>online_measurements</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Generate the measurements in an online manner at each iteration by calling
+<code class="docutils literal notranslate"><span class="pre">physics(x)</span></code>.</p></li>
+<li><p><strong>physics_generator</strong> (<em>None</em><em>, </em><a class="reference internal" href="deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.PhysicsGenerator"><em>deepinv.physics.generator.PhysicsGenerator</em></a>) – Optional physics generator for generating
+the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
+Should be used in conjunction with <code class="docutils literal notranslate"><span class="pre">online_measurements=True</span></code>.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><em>torch.device</em></a>) – gpu or cpu.</p></li>
+<li><p><strong>plot_images</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Plot the ground-truth and estimated images.</p></li>
+<li><p><strong>save_folder</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – Directory in which to save plotted reconstructions.
+Images are saved in the <code class="docutils literal notranslate"><span class="pre">save_folder/images</span></code> directory</p></li>
+<li><p><strong>plot_convergence_metrics</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – plot the metrics to be plotted w.r.t iteration.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Output training progress information in the console.</p></li>
+<li><p><strong>plot_measurements</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Plot the measurements y. default=True.</p></li>
+<li><p><strong>show_progress_bar</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Show progress bar.</p></li>
+<li><p><strong>no_learning_method</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – <p>Reconstruction method used for the no learning comparison. Options are <code class="docutils literal notranslate"><span class="pre">'A_dagger'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'A_adjoint'</span></code>, <code class="docutils literal notranslate"><span class="pre">'prox_l2'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'y'</span></code>. Default is <code class="docutils literal notranslate"><span class="pre">'A_dagger'</span></code>. The user can modify the no-learning method</p>
+<blockquote>
+<div><p>by overwriting the <code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.Trainer.no_learning_inferece()</span></code> method</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
+the average and standard deviation of the metric.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<section id="examples-using-test">
+<h2>Examples using <code class="docutils literal notranslate"><span class="pre">test</span></code>:<a class="headerlink" href="#examples-using-test" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to train a simple reconstruction network for an image inpainting inverse problem."><img alt="" src="../_images/sphx_glr_demo_train_inpainting_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_train_inpainting.html#sphx-glr-auto-examples-basics-demo-train-inpainting-py"><span class="std std-ref">Training a reconstruction network.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Training a reconstruction network.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior."><img alt="" src="../_images/sphx_glr_demo_custom_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_custom_prior.html#sphx-glr-auto-examples-basics-demo-custom-prior-py"><span class="std std-ref">Image deblurring with custom deep explicit prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in the following paper: Zhang, K., Zuo, W., Gu, S., &amp; Zhang, L. (2017).  Learning deep CNN denoiser prior for image restoration.  In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938)."><img alt="" src="../_images/sphx_glr_demo_PnP_DPIR_deblur_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html#sphx-glr-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py"><span class="std std-ref">DPIR method for PnP image deblurring.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior."><img alt="" src="../_images/sphx_glr_demo_RED_GSPnP_SR_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/plug-and-play/demo_RED_GSPnP_SR.html#sphx-glr-auto-examples-plug-and-play-demo-red-gspnp-sr-py"><span class="std std-ref">Regularization by Denoising (RED) for Super-Resolution.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:"><img alt="" src="../_images/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_unfolded_constrained_LISTA.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constrained-lista-py"><span class="std std-ref">Unfolded Chambolle-Pock for constrained image inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.train.html" class="btn btn-neutral float-left" title="train" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.utils.plot.html" class="btn btn-neutral float-right" title="plot" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,610 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.physics.generator.inpainting &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/logo.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../../index.html">
+            
+              <img src="../../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.physics.generator.inpainting</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.physics.generator.inpainting</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <span class="n">PhysicsGenerator</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.functional</span> <span class="kn">import</span> <span class="n">random_choice</span>
+
+
+<div class="viewcode-block" id="BernoulliSplittingMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">BernoulliSplittingMaskGenerator</span><span class="p">(</span><span class="n">PhysicsGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base generator for splitting/inpainting masks.</span>
+
+<span class="sd">    Generates binary masks with an approximate given split ratio, according to a Bernoulli distribution. Can be used either for generating random inpainting masks for :class:`deepinv.physics.Inpainting`, or random splitting masks for :class:`deepinv.loss.SplittingLoss`.</span>
+
+<span class="sd">    Optional pass in input_mask to subsample this mask given the split ratio. For mask ratio to be almost exactly as specified, use this option with a flat mask of ones as input.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Generate random mask</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import BernoulliSplittingMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; gen = BernoulliSplittingMaskGenerator((1, 3, 3), split_ratio=0.6)</span>
+<span class="sd">        &gt;&gt;&gt; gen.step(batch_size=2)[&quot;mask&quot;].shape</span>
+<span class="sd">        torch.Size([2, 1, 3, 3])</span>
+
+<span class="sd">        Generate splitting mask from given input_mask</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import BernoulliSplittingMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Inpainting</span>
+<span class="sd">        &gt;&gt;&gt; physics = Inpainting((1, 3, 3), 0.9)</span>
+<span class="sd">        &gt;&gt;&gt; gen = BernoulliSplittingMaskGenerator((1, 3, 3), split_ratio=0.6)</span>
+<span class="sd">        &gt;&gt;&gt; gen.step(batch_size=2, input_mask=physics.mask)[&quot;mask&quot;].shape</span>
+<span class="sd">        torch.Size([2, 1, 3, 3])</span>
+
+<span class="sd">    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)</span>
+<span class="sd">    :param float split_ratio: ratio of values to be kept.</span>
+<span class="sd">    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.</span>
+<span class="sd">    :param str, torch.device device: device where the tensor is stored (default: &#39;cpu&#39;).</span>
+<span class="sd">    :param torch.Generator rng: torch random number generator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tensor_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">pixelwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span> <span class="o">=</span> <span class="n">tensor_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span> <span class="o">=</span> <span class="n">split_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span> <span class="o">=</span> <span class="n">pixelwise</span>
+
+<div class="viewcode-block" id="BernoulliSplittingMaskGenerator.step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator.step">[docs]</a>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a random mask.</span>
+
+<span class="sd">        If ``input_mask`` is None, generates a standard random mask that can be used for :class:`deepinv.physics.Inpainting`.</span>
+<span class="sd">        If ``input_mask`` is specified, splits the input mask into subsets given the split ratio.</span>
+
+<span class="sd">        :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension &gt; 1, batch_size is ignored.</span>
+<span class="sd">        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.</span>
+<span class="sd">        :param int seed: the seed for the random number generator.</span>
+
+<span class="sd">        :return: dictionary with key **&#39;mask&#39;**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span>
+        <span class="p">):</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Batch dim exists in input_mask and it&#39;s &gt; 1</span>
+                <span class="n">batch_size</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Singular batch dim exists in input_mask so use batch_size</span>
+                <span class="n">input_mask</span> <span class="o">=</span> <span class="n">input_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Create each mask in batch independently</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+                <span class="n">inp</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span>
+                <span class="p">):</span>
+                    <span class="n">inp</span> <span class="o">=</span> <span class="n">input_mask</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                    <span class="n">inp</span> <span class="o">=</span> <span class="n">input_mask</span>
+                <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_step</span><span class="p">(</span><span class="n">input_mask</span><span class="o">=</span><span class="n">inp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_step</span><span class="p">(</span><span class="n">input_mask</span><span class="o">=</span><span class="n">input_mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="BernoulliSplittingMaskGenerator.check_pixelwise">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator.check_pixelwise">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_pixelwise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Check if pixelwise can be used given input_mask dimensions and tensor_size dimensions&quot;&quot;&quot;</span>
+        <span class="n">pixelwise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span>
+
+        <span class="k">if</span> <span class="n">pixelwise</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Generating pixelwise mask assumes channel in first dimension. For 2D images (i.e. of shape (H,W)) ensure tensor_size is at least 3D (i.e. C,H,W). However, for tensor_size of shape (C,M), this will work as expected.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pixelwise</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;For 1D tensor_size, pixelwise must be False.&quot;</span><span class="p">)</span>
+            <span class="n">pixelwise</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="p">):</span>  <span class="c1"># Input mask is properly specified</span>
+            <span class="k">if</span> <span class="n">pixelwise</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;input_mask is only 1D so pixelwise cannot be used.&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span>
+                <span class="p">):</span>
+                    <span class="c1"># When input_mask 2D, this can either be shape C,M or H,W.</span>
+                    <span class="c1"># When input_mask C,M, tensor_size will also be C,M (as passed in from SplittingLoss) and pixelwise can be used safely.</span>
+                    <span class="c1"># When input_mask H,W but tensor_size higher-dimensional e.g. C,H,W, then pixelwise should be set to False as it will happen anyway.</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_mask</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">input_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="p">):</span>
+                    <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;To use pixelwise, all channels must be same.&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">pixelwise</span></div>
+
+
+<div class="viewcode-block" id="BernoulliSplittingMaskGenerator.batch_step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator.batch_step">[docs]</a>
+    <span class="k">def</span> <span class="nf">batch_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create one batch of splitting mask.</span>
+
+<span class="sd">        :param torch.Tensor, None input_mask: optional mask to be split. If ``None``, all pixels are considered. If not ``None``, only pixels where ``mask==1`` are considered. Batch dimension should not be included in shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pixelwise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_pixelwise</span><span class="p">(</span><span class="n">input_mask</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="c1"># Sample indices from given input mask</span>
+            <span class="k">if</span> <span class="n">pixelwise</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">input_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="n">shuff</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">idx_out</span> <span class="o">=</span> <span class="n">shuff</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">))]</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>
+
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_mask</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pixelwise</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+                <span class="n">mask</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">idx_out</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">mask</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mask</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">idx_out</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Sample pixels from a uniform distribution as input_mask is not given</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">aux</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pixelwise</span><span class="p">:</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">aux</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mask</span><span class="p">[:,</span> <span class="n">aux</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">mask</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GaussianSplittingMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">GaussianSplittingMaskGenerator</span><span class="p">(</span><span class="n">BernoulliSplittingMaskGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Randomly generate Gaussian splitting/inpainting masks.</span>
+
+<span class="sd">    Generates binary masks with an approximate given split ratio, where samples are weighted according to a spatial Gaussian distribution, where pixels near the center are less likely to be kept.</span>
+<span class="sd">    This mask is used for measurement splitting for MRI in `SSDU &lt;https://pubmed.ncbi.nlm.nih.gov/32614100/&gt;`_.</span>
+
+<span class="sd">    Can be used either for generating random inpainting masks for :class:`deepinv.physics.Inpainting`, or random splitting masks for :class:`deepinv.loss.SplittingLoss`.</span>
+
+<span class="sd">    Optional pass in input_mask to subsample this mask given the split ratio.</span>
+
+<span class="sd">    Handles both 2D mask (i.e. [C, H, W] from `SSDU &lt;https://pubmed.ncbi.nlm.nih.gov/32614100/&gt;`_) and 2D+time dynamic mask (i.e. [C, T, H, W] from `Acar et al. &lt;https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4&gt;`_) generation. Does not handle 1D data (e.g. of shape [C, M])</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Randomly split input mask using Gaussian weighting</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import GaussianSplittingMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Inpainting</span>
+<span class="sd">        &gt;&gt;&gt; physics = Inpainting((1, 3, 3), 0.9)</span>
+<span class="sd">        &gt;&gt;&gt; gen = GaussianSplittingMaskGenerator((1, 3, 3), split_ratio=0.6, center_block=0)</span>
+<span class="sd">        &gt;&gt;&gt; gen.step(batch_size=2, input_mask=physics.mask)[&quot;mask&quot;].shape</span>
+<span class="sd">        torch.Size([2, 1, 3, 3])</span>
+
+<span class="sd">    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)</span>
+<span class="sd">    :param float split_ratio: ratio of values to be kept (i.e. ones).</span>
+<span class="sd">    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.</span>
+<span class="sd">    :param float std_scale: scale parameter of 2D Gaussian, in pixels.</span>
+<span class="sd">    :param int, tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal. Either int for square block or 2-tuple (h, w)</span>
+<span class="sd">    :param str, torch.device device: device where the tensor is stored (default: &#39;cpu&#39;).</span>
+<span class="sd">    :param torch.Generator rng: random number generator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tensor_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">pixelwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">std_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
+        <span class="n">center_block</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="n">tensor_size</span><span class="o">=</span><span class="n">tensor_size</span><span class="p">,</span>
+            <span class="n">split_ratio</span><span class="o">=</span><span class="n">split_ratio</span><span class="p">,</span>
+            <span class="n">pixelwise</span><span class="o">=</span><span class="n">pixelwise</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor_size</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;tensor_size should be at least of shape (C, H, W). Gaussian splitting mask does not support signals of shape (C, M).&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_scale</span> <span class="o">=</span> <span class="n">std_scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_block</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">center_block</span><span class="p">,</span> <span class="n">center_block</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">center_block</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">center_block</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="GaussianSplittingMaskGenerator.batch_step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator.batch_step">[docs]</a>
+    <span class="k">def</span> <span class="nf">batch_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create one batch of splitting mask using Gaussian distribution.</span>
+
+<span class="sd">        Adapted from https://github.com/byaman14/SSDU/blob/main/masks/ssdu_masks.py from `SSDU &lt;https://pubmed.ncbi.nlm.nih.gov/32614100/&gt;`_.</span>
+
+<span class="sd">        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. No batch dim in shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pixelwise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_pixelwise</span><span class="p">()</span>
+        <span class="n">_T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">_C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pixelwise</span> <span class="k">else</span> <span class="mi">1</span>
+
+        <span class="c1"># Create blank input mask if not specified. Create with time dim even if we only want static mask</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">_C</span><span class="p">,</span> <span class="n">_T</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">):</span>
+            <span class="c1"># Missing channel dim, so create it</span>
+            <span class="n">no_channel_dim</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">_C</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">no_channel_dim</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># Create time dim even if we only want static mask</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pixelwise</span><span class="p">:</span>
+            <span class="c1"># Only use one channel (they are all the same...)</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">input_mask</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span> <span class="o">=</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">centerx</span><span class="p">,</span> <span class="n">centery</span> <span class="o">=</span> <span class="n">nx</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ny</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Create PDF</span>
+        <span class="n">gaussian</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">centerx</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">nx</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_scale</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">centery</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">ny</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_scale</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">prob_mask</span> <span class="o">=</span> <span class="n">input_mask</span> <span class="o">*</span> <span class="n">gaussian</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+        <span class="n">prob_mask</span><span class="p">[</span>
+            <span class="o">...</span><span class="p">,</span>
+            <span class="n">centerx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">centerx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_block</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">centery</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">centery</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_block</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">norm_prob</span> <span class="o">=</span> <span class="n">prob_mask</span> <span class="o">/</span> <span class="n">prob_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Fill output mask</span>
+        <span class="n">mask_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_mask</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">_C</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">_T</span><span class="p">):</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">random_choice</span><span class="p">(</span>
+                    <span class="n">nx</span> <span class="o">*</span> <span class="n">ny</span><span class="p">,</span>
+                    <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">input_mask</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span><span class="p">))</span>
+                    <span class="o">.</span><span class="n">ceil</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">int</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                    <span class="n">p</span><span class="o">=</span><span class="n">norm_prob</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
+                    <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">mask_out</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># Invert mask for output and handle dimensions</span>
+        <span class="n">mask_out</span> <span class="o">=</span> <span class="n">input_mask</span> <span class="o">-</span> <span class="n">mask_out</span><span class="o">.</span><span class="n">unflatten</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">mask_out</span> <span class="o">=</span> <span class="n">mask_out</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>  <span class="c1"># no actual time dim</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">no_channel_dim</span><span class="p">:</span>
+            <span class="n">mask_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">mask_out</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mask_out</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Phase2PhaseSplittingMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html#deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">Phase2PhaseSplittingMaskGenerator</span><span class="p">(</span><span class="n">BernoulliSplittingMaskGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Phase2Phase splitting mask generator for dynamic data.</span>
+
+<span class="sd">    To be exclusively used with :class:`deepinv.loss.Phase2PhaseLoss`.</span>
+<span class="sd">    Splits dynamic data (i.e. data of shape (B, C, T, H, W)) into even and odd phases in the T dimension.</span>
+
+<span class="sd">    Used in `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging &lt;https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx&gt;`_</span>
+<span class="sd">    for free-breathing MRI.</span>
+
+<span class="sd">    If input_mask not passed, a blank input mask is used instead.</span>
+
+<span class="sd">    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)</span>
+<span class="sd">    :param str, torch.device device: device where the tensor is stored (default: &#39;cpu&#39;).</span>
+<span class="sd">    :param torch.Generator rng: unused.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tensor_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">tensor_size</span><span class="o">=</span><span class="n">tensor_size</span><span class="p">,</span>
+            <span class="n">split_ratio</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">pixelwise</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Phase2PhaseSplittingMaskGenerator.batch_step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html#deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.batch_step">[docs]</a>
+    <span class="k">def</span> <span class="nf">batch_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tensor_size must be of shape (C, T, H, W)&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="n">input_mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">input_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;input_mask must be same shape as tensor_size&quot;</span><span class="p">)</span>
+
+        <span class="n">mask_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_mask</span><span class="p">)</span>
+        <span class="n">mask_out</span><span class="p">[:,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_mask</span><span class="p">[:,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">mask_out</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Artifact2ArtifactSplittingMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html#deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">Artifact2ArtifactSplittingMaskGenerator</span><span class="p">(</span><span class="n">Phase2PhaseSplittingMaskGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Artifact2Artifact splitting mask generator for dynamic data.</span>
+
+<span class="sd">    To be exclusively used with :class:`deepinv.loss.Artifact2ArtifactLoss`.</span>
+<span class="sd">    Randomly selects a chunk from dynamic data (i.e. data of shape (B, C, T, H, W)) in the T dimension and puts zeros in the rest of the mask.</span>
+
+<span class="sd">    When ``step`` called with ``persist_prev``, the selected chunk will be different from the previous time it was called.</span>
+<span class="sd">    This is used so input chunk is compared to a different output chunk.</span>
+
+<span class="sd">    Artifact2Artifact was introduced in `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth &lt;https://arxiv.org/abs/1912.05854&gt;`_</span>
+<span class="sd">    for free-breathing MRI.</span>
+
+<span class="sd">    If input_mask not passed, a blank input mask is used instead.</span>
+
+<span class="sd">    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)</span>
+<span class="sd">    :param int, tuple[int] split_size: time-length of chunk. Must divide ``tensor_size[1]`` exactly. If ``tuple``, one is randomly selected each time.</span>
+<span class="sd">    :param str, torch.device device: device where the tensor is stored (default: &#39;cpu&#39;).</span>
+<span class="sd">    :param torch.Generator rng: torch random number generator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tensor_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">split_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">tensor_size</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_size</span> <span class="o">=</span> <span class="n">split_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_split_size</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Artifact2ArtifactSplittingMaskGenerator.batch_step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html#deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.batch_step">[docs]</a>
+    <span class="k">def</span> <span class="nf">batch_step</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">persist_prev</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">rand_select</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arr</span><span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,),</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="p">]</span>
+
+        <span class="c1"># Do Phase2Phase step to check input dimensions</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">batch_step</span><span class="p">(</span><span class="n">input_mask</span><span class="o">=</span><span class="n">input_mask</span><span class="p">)</span>
+
+        <span class="c1"># Choose split_size</span>
+        <span class="n">split_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_size</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_size</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">persist_prev</span><span class="p">:</span>
+                <span class="n">split_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_split_size</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prev_split_size</span> <span class="o">=</span> <span class="n">split_size</span> <span class="o">=</span> <span class="n">rand_select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_size</span><span class="p">)</span>
+
+        <span class="c1"># Randomly select one chunk. Don&#39;t select previous chunk if leave_prev_idx is True</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">input_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">split_size</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">persist_prev</span><span class="p">:</span>
+            <span class="n">idxs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_idx</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">rand_select</span><span class="p">(</span><span class="n">idxs</span><span class="p">)</span>
+
+        <span class="n">mask_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_mask</span><span class="p">)</span>
+        <span class="n">mask_out</span><span class="p">[:,</span> <span class="n">split_size</span> <span class="o">*</span> <span class="n">idx</span> <span class="p">:</span> <span class="n">split_size</span> <span class="o">*</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">input_mask</span><span class="p">[</span>
+            <span class="p">:,</span> <span class="n">split_size</span> <span class="o">*</span> <span class="n">idx</span> <span class="p">:</span> <span class="n">split_size</span> <span class="o">*</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">mask_out</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

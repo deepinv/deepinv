@@ -1,0 +1,594 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.loss.sure &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.loss.sure</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.loss.sure</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">deepinv.physics</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.loss</span> <span class="kn">import</span> <span class="n">Loss</span>
+
+
+<span class="k">def</span> <span class="nf">hutch_div</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">mc_iter</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Hutch divergence for A(f(x)).</span>
+
+<span class="sd">    :param torch.Tensor y: Measurements.</span>
+<span class="sd">    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">    :param torch.nn.Module f: Reconstruction network.</span>
+<span class="sd">    :param int mc_iter: number of iterations. Default=1.</span>
+<span class="sd">    :param torch.Generator rng: Random number generator. Default is None.</span>
+<span class="sd">    :return: (float) hutch divergence.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mc_iter</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span>
+            <span class="mi">0</span>
+        <span class="p">]</span>
+        <span class="n">out</span> <span class="o">+=</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span> <span class="o">/</span> <span class="n">mc_iter</span>
+
+
+<span class="k">def</span> <span class="nf">exact_div</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exact divergence for A(f(x)).</span>
+
+<span class="sd">    :param torch.Tensor y: Measurements.</span>
+<span class="sd">    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">    :param torch.nn.Module model: Reconstruction network.</span>
+<span class="sd">    :param int mc_iter: number of iterations. Default=1.</span>
+<span class="sd">    :return: (float) exact divergence.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+                <span class="n">b</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+                    <span class="n">output</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">out</span> <span class="o">+=</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">out</span> <span class="o">/</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">w</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">mc_div</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">precond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Monte-Carlo estimation for the divergence of A(f(x)).</span>
+
+<span class="sd">    :param torch.Tensor y: Measurements.</span>
+<span class="sd">    :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">    :param torch.nn.Module f: Reconstruction network.</span>
+<span class="sd">    :param int mc_iter: number of iterations. Default=1.</span>
+<span class="sd">    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.</span>
+<span class="sd">    :param bool pinv: If ``True``, the pseudo-inverse of the forward operator is used. Default ``False``.</span>
+<span class="sd">    :param Callable precond: Preconditioner. Default is the identity.</span>
+<span class="sd">    :param torch.Generator rng: Random number generator. Default is None.</span>
+<span class="sd">    :return: (float) Ramani MC divergence.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">tau</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">precond</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">precond</span><span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="n">tau</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">unsure_gradient_step</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">saved_grad</span><span class="p">,</span> <span class="n">init_flag</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">momentum</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gradient step for estimating the noise level in the UNSURE loss.</span>
+
+<span class="sd">    :param torch.Tensor loss: Loss value.</span>
+<span class="sd">    :param torch.Tensor param: Parameter to optimize.</span>
+<span class="sd">    :param torch.Tensor saved_grad: Saved gradient w.r.t. the parameter.</span>
+<span class="sd">    :param bool init_flag: Initialization flag (first gradient step).</span>
+<span class="sd">    :param float step_size: Step size.</span>
+<span class="sd">    :param float momentum: Momentum.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">init_flag</span><span class="p">:</span>
+        <span class="n">init_flag</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">saved_grad</span> <span class="o">=</span> <span class="n">grad</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">saved_grad</span> <span class="o">=</span> <span class="n">momentum</span> <span class="o">*</span> <span class="n">saved_grad</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">momentum</span><span class="p">)</span> <span class="o">*</span> <span class="n">grad</span>
+    <span class="k">return</span> <span class="n">param</span> <span class="o">+</span> <span class="n">step_size</span> <span class="o">*</span> <span class="n">grad</span><span class="p">,</span> <span class="n">saved_grad</span><span class="p">,</span> <span class="n">init_flag</span>
+
+
+<div class="viewcode-block" id="SureGaussianLoss">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SureGaussianLoss.html#deepinv.loss.SureGaussianLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">SureGaussianLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SURE loss for Gaussian noise</span>
+
+
+<span class="sd">    The loss is designed for the following noise model:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y \sim\mathcal{N}(u,\sigma^2 I) \quad \text{with}\quad u= A(x).</span>
+
+<span class="sd">    The loss is computed as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \frac{1}{m}\|B(y - A\inverse{y})\|_2^2 -\sigma^2 +\frac{2\sigma^2}{m\tau}b^{\top} B^{\top} \left(A\inverse{y+\tau b_i} -</span>
+<span class="sd">        A\inverse{y}\right)</span>
+
+<span class="sd">    where :math:`R` is the trainable network, :math:`A` is the forward operator,</span>
+<span class="sd">    :math:`y` is the noisy measurement vector of size :math:`m`, :math:`A` is the forward operator,</span>
+<span class="sd">    :math:`B` is an optional linear mapping which should be approximately :math:`A^{\dagger}` (or any stable approximation),</span>
+<span class="sd">    :math:`b\sim\mathcal{N}(0,I)` and :math:`\tau\geq 0` is a hyperparameter controlling the</span>
+<span class="sd">    Monte Carlo approximation of the divergence.</span>
+
+<span class="sd">    This loss approximates the divergence of :math:`A\inverse{y}` (in the original SURE loss)</span>
+<span class="sd">    using the Monte Carlo approximation in</span>
+<span class="sd">    https://ieeexplore.ieee.org/abstract/document/4099398/</span>
+
+<span class="sd">    If the measurement data is truly Gaussian with standard deviation :math:`\sigma`,</span>
+<span class="sd">    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`</span>
+<span class="sd">    where :math:`z` is the noiseless measurement.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The loss can be sensitive to the choice of :math:`\tau`, which should be proportional to the size of :math:`y`.</span>
+<span class="sd">        The default value of 0.01 is adapted to :math:`y` vectors with entries in :math:`[0,1]`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If the noise level is unknown, the loss can be adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985,</span>
+<span class="sd">        which also learns the noise level.</span>
+
+<span class="sd">    :param float sigma: Standard deviation of the Gaussian noise.</span>
+<span class="sd">    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.</span>
+<span class="sd">    :param Callable, str B: Optional linear metric :math:`B`, which can be used to improve</span>
+<span class="sd">        the performance of the loss. If &#39;A_dagger&#39;, the pseudo-inverse of the forward operator is used.</span>
+<span class="sd">        Otherwise the metric should be a linear operator that approximates the pseudo-inverse of the forward operator</span>
+<span class="sd">        such as :meth:`deepinv.physics.LinearPhysics.prox_l2` with large :math:`\gamma`. By default, the identity is used.</span>
+<span class="sd">    :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985</span>
+<span class="sd">        where the noise level :math:`\sigma` is also learned (the input value is used as initialization).</span>
+<span class="sd">    :param float step_size: Step size for the gradient ascent of the noise level if unsure is ``True``.</span>
+<span class="sd">    :param float momentum: Momentum for the gradient ascent of the noise level if unsure is ``True``.</span>
+<span class="sd">    :param torch.Generator rng: Optional random number generator. Default is None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">,</span>
+        <span class="n">tau</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span>
+        <span class="n">B</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">unsure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">step_size</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">momentum</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SureGaussianLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;SureGaussian&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">=</span> <span class="n">tau</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsure</span> <span class="o">=</span> <span class="n">unsure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_flag</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span> <span class="o">=</span> <span class="n">momentum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_sigma</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span>
+        <span class="k">if</span> <span class="n">unsure</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SureGaussianLoss.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SureGaussianLoss.html#deepinv.loss.SureGaussianLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the SURE Loss.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">        :param torch.nn.Module model: Reconstruction network.</span>
+<span class="sd">        :return: torch.nn.Tensor loss of size (batch_size,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;A_dagger&quot;</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span>
+
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_net</span><span class="p">)</span>
+        <span class="n">div</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span> <span class="o">*</span> <span class="n">mc_div</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">mse</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">loss_sure</span> <span class="o">=</span> <span class="n">mse</span> <span class="o">+</span> <span class="n">div</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsure</span><span class="p">:</span>  <span class="c1"># update the estimate of the noise level</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_sigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_flag</span> <span class="o">=</span> <span class="n">unsure_gradient_step</span><span class="p">(</span>
+                <span class="n">div</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">grad_sigma</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">init_flag</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_sure</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SurePoissonLoss">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SurePoissonLoss.html#deepinv.loss.SurePoissonLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">SurePoissonLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SURE loss for Poisson noise</span>
+
+<span class="sd">    The loss is designed for the following noise model:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      y = \gamma z \quad \text{with}\quad z\sim \mathcal{P}(\frac{u}{\gamma}), \quad u=A(x).</span>
+
+<span class="sd">    The loss is computed as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y</span>
+<span class="sd">        +\frac{2\gamma}{m\tau}(b\odot y)^{\top} \left(A\inverse{y+\tau b}-A\inverse{y}\right)</span>
+
+<span class="sd">    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector of size :math:`m`,</span>
+<span class="sd">    :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,</span>
+<span class="sd">    :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.</span>
+
+<span class="sd">    See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.</span>
+<span class="sd">    If the measurement data is truly Poisson</span>
+<span class="sd">    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`</span>
+<span class="sd">    where :math:`z` is the noiseless measurement.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The loss can be sensitive to the choice of :math:`\tau`, which should be proportional to the size of :math:`y`.</span>
+<span class="sd">        The default value of 0.01 is adapted to :math:`y` vectors with entries in :math:`[0,1]`.</span>
+
+<span class="sd">    :param float gain: Gain of the Poisson Noise.</span>
+<span class="sd">    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.</span>
+<span class="sd">    :param torch.Generator rng: Optional random number generator. Default is None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SurePoissonLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;SurePoisson&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">=</span> <span class="n">tau</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span>
+
+<div class="viewcode-block" id="SurePoissonLoss.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SurePoissonLoss.html#deepinv.loss.SurePoissonLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the SURE loss.</span>
+
+<span class="sd">        :param torch.Tensor y: measurements.</span>
+<span class="sd">        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements</span>
+<span class="sd">        :param torch.nn.Module model: Reconstruction network</span>
+<span class="sd">        :return: torch.nn.Tensor loss of size (batch_size,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># generate a random vector b</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mf">0.5</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0</span>  <span class="c1"># binary [-1, 1]</span>
+
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_net</span><span class="p">)</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+
+        <span class="n">loss_sure</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">*</span> <span class="n">y</span>
+            <span class="o">+</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">))</span>
+        <span class="p">)</span>
+
+        <span class="n">loss_sure</span> <span class="o">=</span> <span class="n">loss_sure</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_sure</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SurePGLoss">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SurePGLoss.html#deepinv.loss.SurePGLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">SurePGLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SURE loss for Poisson-Gaussian noise</span>
+
+<span class="sd">    The loss is designed for the following noise model:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y = \gamma z + \epsilon</span>
+
+<span class="sd">    where :math:`u = A(x)`, :math:`z \sim \mathcal{P}\left(\frac{u}{\gamma}\right)`,</span>
+<span class="sd">    and :math:`\epsilon \sim \mathcal{N}(0, \sigma^2 I)`.</span>
+
+<span class="sd">    The loss is computed as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        &amp; \frac{1}{m}\|y-A\inverse{y}\|_2^2-\frac{\gamma}{m} 1^{\top}y-\sigma^2</span>
+<span class="sd">        +\frac{2}{m\tau_1}(b\odot (\gamma y + \sigma^2 I))^{\top} \left(A\inverse{y+\tau b}-A\inverse{y} \right) \\\\</span>
+<span class="sd">        &amp; +\frac{2\gamma \sigma^2}{m\tau_2^2}c^{\top} \left( A\inverse{y+\tau c} + A\inverse{y-\tau c} - 2A\inverse{y} \right)</span>
+
+<span class="sd">    where :math:`R` is the trainable network, :math:`y` is the noisy measurement vector,</span>
+<span class="sd">    :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,</span>
+<span class="sd">    :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.</span>
+
+<span class="sd">    If the measurement data is truly Poisson-Gaussian</span>
+<span class="sd">    this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`</span>
+<span class="sd">    where :math:`z` is the noiseless measurement.</span>
+
+<span class="sd">    See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The loss can be sensitive to the choice of :math:`\tau`, which should be proportional to the size of :math:`y`.</span>
+<span class="sd">        The default value of 0.01 is adapted to :math:`y` vectors with entries in :math:`[0,1]`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If the noise levels are unknown, the loss can be adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985,</span>
+<span class="sd">        which also learns the noise levels.</span>
+
+<span class="sd">    :param float sigma: Standard deviation of the Gaussian noise.</span>
+<span class="sd">    :param float gamma: Gain of the Poisson Noise.</span>
+<span class="sd">    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.</span>
+<span class="sd">    :param float tau2: Approximation constant for the second derivative.</span>
+<span class="sd">    :param bool second_derivative: If ``False``, the last term in the loss (approximating the second derivative) is removed</span>
+<span class="sd">        to speed up computations, at the cost of a possibly inexact loss. Default ``True``.</span>
+<span class="sd">    :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985</span>
+<span class="sd">        where :math:`\gamma` and :math:`\sigma^2` are also learned (their input value is used as initialization).</span>
+<span class="sd">    :param tuple[float] step_size: Step size for the gradient ascent of the noise levels if unsure is ``True``.</span>
+<span class="sd">    :param tuple[float] momentum: Momentum for the gradient ascent of the noise levels if unsure is ``True``.</span>
+<span class="sd">    :param torch.Generator rng: Optional random number generator. Default is None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">,</span>
+        <span class="n">gain</span><span class="p">,</span>
+        <span class="n">tau1</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">tau2</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span>
+        <span class="n">second_derivative</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">unsure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">step_size</span><span class="o">=</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">),</span>
+        <span class="n">momentum</span><span class="o">=</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">),</span>
+        <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SurePGLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;SurePG&quot;</span>
+        <span class="c1"># self.sure_loss_weight = sure_loss_weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau1</span> <span class="o">=</span> <span class="n">tau1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau2</span> <span class="o">=</span> <span class="n">tau2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">second_derivative</span> <span class="o">=</span> <span class="n">second_derivative</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_sigma</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_gain</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span> <span class="o">=</span> <span class="n">momentum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_flag_sigma</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_flag_gain</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsure</span> <span class="o">=</span> <span class="n">unsure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span>
+        <span class="k">if</span> <span class="n">unsure</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SurePGLoss.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.SurePGLoss.html#deepinv.loss.SurePGLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the SURE loss.</span>
+
+<span class="sd">        :param torch.Tensor y: measurements.</span>
+<span class="sd">        :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements</span>
+<span class="sd">        :param torch.nn.Module f: Reconstruction network</span>
+<span class="sd">        :return: torch.nn.Tensor loss of size (batch_size,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">b1</span> <span class="o">&gt;</span> <span class="mf">0.5</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">b1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0</span>  <span class="c1"># binary [-1, 1]</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="mf">0.7236</span>  <span class="c1"># .5 + .5*np.sqrt(1/5.)</span>
+
+        <span class="n">b2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">b1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">))</span>
+        <span class="n">b2</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+
+        <span class="n">meas1</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_net</span><span class="p">)</span>
+        <span class="n">meas2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau1</span> <span class="o">*</span> <span class="n">b1</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+
+        <span class="n">loss_mc</span> <span class="o">=</span> <span class="p">(</span><span class="n">meas1</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">loss_div1</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">2</span>
+            <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau1</span>
+            <span class="o">*</span> <span class="p">((</span><span class="n">b1</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">meas2</span> <span class="o">-</span> <span class="n">meas1</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">offset</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">*</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsure</span><span class="p">:</span>  <span class="c1"># update the estimate of the noise levels</span>
+            <span class="n">div</span> <span class="o">=</span> <span class="n">loss_div1</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_sigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_flag_sigma</span> <span class="o">=</span> <span class="n">unsure_gradient_step</span><span class="p">(</span>
+                <span class="n">div</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">grad_sigma</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">init_flag_sigma</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_gain</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_flag_gain</span> <span class="o">=</span> <span class="n">unsure_gradient_step</span><span class="p">(</span>
+                <span class="n">div</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">grad_gain</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">init_flag_gain</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">second_derivative</span><span class="p">:</span>
+            <span class="n">meas2p</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau2</span> <span class="o">*</span> <span class="n">b2</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+            <span class="n">meas2n</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau2</span> <span class="o">*</span> <span class="n">b2</span><span class="p">,</span> <span class="n">physics</span><span class="p">))</span>
+            <span class="n">loss_div2</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="o">-</span><span class="mi">2</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma2</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span>
+                <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">b2</span> <span class="o">*</span> <span class="p">(</span><span class="n">meas2p</span> <span class="o">+</span> <span class="n">meas2n</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">meas1</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_div2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">loss_div1</span><span class="p">)</span>
+
+        <span class="n">loss_sure</span> <span class="o">=</span> <span class="n">loss_mc</span> <span class="o">+</span> <span class="n">loss_div1</span> <span class="o">+</span> <span class="n">loss_div2</span> <span class="o">+</span> <span class="n">offset</span>
+        <span class="k">return</span> <span class="n">loss_sure</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

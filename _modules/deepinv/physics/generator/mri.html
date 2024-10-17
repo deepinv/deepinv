@@ -1,0 +1,442 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.physics.generator.mri &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/logo.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../../index.html">
+            
+              <img src="../../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.physics.generator.mri</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.physics.generator.mri</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <span class="n">PhysicsGenerator</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.functional</span> <span class="kn">import</span> <span class="n">random_choice</span>
+
+
+<span class="k">def</span> <span class="nf">ceildiv</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">a</span> <span class="o">//</span> <span class="o">-</span><span class="n">b</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="BaseMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">BaseMaskGenerator</span><span class="p">(</span><span class="n">PhysicsGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base generator for MRI acceleration masks.</span>
+
+<span class="sd">    Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and undersampling in the high frequencies.</span>
+
+<span class="sd">    The type of undersampling is determined by the child class. The mask is repeated across channels and randomly varies across batch dimension.</span>
+
+<span class="sd">    :param Tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps</span>
+<span class="sd">    :param int acceleration: acceleration factor, defaults to 4</span>
+<span class="sd">    :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space). If 0, there is no fixed low-freq sampling. Defaults to None.</span>
+<span class="sd">    :param torch.Generator rng: torch random generator. Defaults to None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">,</span>
+        <span class="n">acceleration</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">center_fraction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">=</span> <span class="n">acceleration</span>
+
+        <span class="c1"># Set default center_fraction if not provided</span>
+        <span class="k">if</span> <span class="n">center_fraction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center_fraction</span> <span class="o">=</span> <span class="n">center_fraction</span>
+        <span class="k">elif</span> <span class="n">acceleration</span> <span class="o">&lt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center_fraction</span> <span class="o">=</span> <span class="mf">0.08</span>
+        <span class="k">elif</span> <span class="n">acceleration</span> <span class="o">&gt;=</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center_fraction</span> <span class="o">=</span> <span class="mf">0.04</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;img_size must be (H, W) or (C, H, W) or (C, T, H, W)&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center_fraction</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_lines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_lines</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;center_fraction is too high for this acceleration factor.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_lines</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Number of high frequency lines to be sampled is 0. Reduce acceleration factor or reduce center_fraction.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="BaseMaskGenerator.sample_mask">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator.sample_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">sample_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Given empty mask, sample lines according to child class sampling strategy.</span>
+
+<span class="sd">        This must be implemented in child classes. Time dimension is specified but can be ignored if needed.</span>
+
+<span class="sd">        :param torch.Tensor mask: empty mask of shape (B, C, T, H, W)</span>
+<span class="sd">        :return torch.Tensor: sampled mask of shape (B, C, T, H, W)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BaseMaskGenerator.step">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator.step">[docs]</a>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a mask of vertical lines.</span>
+
+<span class="sd">        :param int batch_size: batch_size.</span>
+<span class="sd">        :param int seed: the seed for the random number generator.</span>
+
+<span class="sd">        :return: dictionary with key **&#39;mask&#39;**: tensor of size (batch_size, C, H, W) or (batch_size, C, T, H, W) with values in {0, 1}.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">_T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_mask</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="n">_T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">),</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RandomMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">RandomMaskGenerator</span><span class="p">(</span><span class="n">BaseMaskGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generator for MRI Cartesian acceleration masks using random uniform undersampling.</span>
+
+<span class="sd">    Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and random uniform undersampling in the high frequencies.</span>
+
+<span class="sd">    Supports k-t sampling, where the mask is selected randomly across time.</span>
+
+<span class="sd">    The mask is repeated across channels and randomly varies across batch dimension.</span>
+
+<span class="sd">    For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Random k-t mask generator for a 8x64x64 video:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import RandomMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; generator = RandomMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W</span>
+<span class="sd">        &gt;&gt;&gt; params = generator.step(batch_size=1)</span>
+<span class="sd">        &gt;&gt;&gt; mask = params[&quot;mask&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; mask.shape</span>
+<span class="sd">        torch.Size([1, 2, 8, 64, 64])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RandomMaskGenerator.get_pdf">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator.get_pdf">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create one-dimensional uniform probability density function across columns, ignoring any fixed sampling columns.</span>
+
+<span class="sd">        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RandomMaskGenerator.sample_mask">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator.sample_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">sample_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pdf</span><span class="p">()</span>
+
+        <span class="c1"># lines are never randomly sampled from the already sampled center</span>
+        <span class="n">pdf</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">ceildiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_center</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># normalise distribution</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">pdf</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pdf</span><span class="p">)</span>
+        <span class="c1"># select low-frequency lines according to pdf</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">random_choice</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_lines</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">pdf</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span>
+                <span class="p">)</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">,</span> <span class="p">:,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># central lines are always sampled</span>
+        <span class="n">mask</span><span class="p">[</span>
+            <span class="p">:,</span>
+            <span class="p">:,</span>
+            <span class="p">:,</span>
+            <span class="p">:,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">ceildiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_center</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">mask</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GaussianMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.GaussianMaskGenerator.html#deepinv.physics.generator.GaussianMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">GaussianMaskGenerator</span><span class="p">(</span><span class="n">RandomMaskGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generator for MRI Cartesian acceleration masks using Gaussian undersampling.</span>
+
+<span class="sd">    Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and Gaussian undersampling in the high frequencies.</span>
+
+<span class="sd">    The high frequences are selected according to a tail-adjusted Gaussian pdf. This ensures that the expected number of rows selected is equal to (N / acceleration).</span>
+
+<span class="sd">    Supports k-t sampling, where the Gaussian mask varies randomly across time.</span>
+
+<span class="sd">    The mask is repeated across channels and randomly varies across batch dimension.</span>
+
+<span class="sd">    Algorithm taken from Schlemper et al. `A Deep Cascade of Convolutional Neural Networks for Dynamic MR Image Reconstruction &lt;https://github.com/js3611/Deep-MRI-Reconstruction/blob/master/utils/compressed_sensing.py&gt;`_.</span>
+
+<span class="sd">    For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Gaussian random k-t mask generator for a 8x64x64 video:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import GaussianMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; generator = GaussianMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W</span>
+<span class="sd">        &gt;&gt;&gt; params = generator.step(batch_size=1)</span>
+<span class="sd">        &gt;&gt;&gt; mask = params[&quot;mask&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; mask.shape</span>
+<span class="sd">        torch.Size([1, 2, 8, 64, 64])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GaussianMaskGenerator.get_pdf">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.GaussianMaskGenerator.html#deepinv.physics.generator.GaussianMaskGenerator.get_pdf">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create one-dimensional Gaussian probability density function across columns, ignoring any fixed sampling columns.</span>
+
+<span class="sd">        Add uniform distribution so that the probability of sampling high-frequency lines is non-zero.</span>
+
+<span class="sd">        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">normal_pdf</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">sensitivity</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                <span class="o">-</span><span class="n">sensitivity</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-</span> <span class="n">length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="p">)</span>
+
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">normal_pdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">/</span> <span class="mf">10.0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">lmda</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">acc</span><span class="p">)</span>
+
+        <span class="n">pdf</span> <span class="o">+=</span> <span class="n">lmda</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span>
+
+        <span class="k">return</span> <span class="n">pdf</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="EquispacedMaskGenerator">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.EquispacedMaskGenerator.html#deepinv.physics.generator.EquispacedMaskGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">EquispacedMaskGenerator</span><span class="p">(</span><span class="n">BaseMaskGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generator for MRI Cartesian acceleration masks using uniform (equispaced) non-random undersampling with random offset.</span>
+
+<span class="sd">    Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and equispaced undersampling in the high frequencies.</span>
+
+<span class="sd">    The number of lines selected with equal spacing are at a proportion that reaches the desired acceleration rate taking into consideration the number of low-freq lines, so that the total number of lines is (N / acceleration).</span>
+
+<span class="sd">    Supports k-t sampling, where the uniform mask is sheared across time.</span>
+
+<span class="sd">    The mask is repeated across channels and the offset varies randomly across batch dimension. Based off fastMRI code https://github.com/facebookresearch/fastMRI</span>
+
+<span class="sd">    For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Equispaced k-t mask generator for a 8x64x64 video:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import EquispacedMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; generator = EquispacedMaskGenerator((2, 8, 64, 64), acceleration=8, center_fraction=0.04) # C, T, H, W</span>
+<span class="sd">        &gt;&gt;&gt; params = generator.step(batch_size=1)</span>
+<span class="sd">        &gt;&gt;&gt; mask = params[&quot;mask&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; mask.shape</span>
+<span class="sd">        torch.Size([1, 2, 8, 64, 64])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EquispacedMaskGenerator.sample_mask">
+<a class="viewcode-back" href="../../../../stubs/deepinv.physics.generator.EquispacedMaskGenerator.html#deepinv.physics.generator.EquispacedMaskGenerator.sample_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">sample_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">pad</span> <span class="p">:</span> <span class="n">pad</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># determine acceleration rate by adjusting for the number of low frequencies</span>
+        <span class="n">adjusted_accel</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_center</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_center</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span>
+        <span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+            <span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">high</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">adjusted_accel</span><span class="p">),</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),),</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="n">accel_samples</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="o">%</span> <span class="n">adjusted_accel</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">adjusted_accel</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="o">.</span><span class="n">round</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">,</span> <span class="p">:,</span> <span class="n">accel_samples</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">mask</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

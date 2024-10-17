@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.optim.epll &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.optim.epll</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.optim.epll</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils</span> <span class="kn">import</span> <span class="n">patch_extractor</span>
+<span class="kn">from</span> <span class="nn">deepinv.optim.utils</span> <span class="kn">import</span> <span class="n">conjugate_gradient</span>
+<span class="kn">from</span> <span class="nn">deepinv.models.utils</span> <span class="kn">import</span> <span class="n">get_weights_url</span>
+<span class="kn">from</span> <span class="nn">deepinv.optim.utils</span> <span class="kn">import</span> <span class="n">GaussianMixtureModel</span>
+
+
+<div class="viewcode-block" id="EPLL">
+<a class="viewcode-back" href="../../../stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL">[docs]</a>
+<span class="k">class</span> <span class="nc">EPLL</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Expected Patch Log Likelihood reconstruction method.</span>
+
+<span class="sd">    Reconstruction method based on the minimization problem</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \underset{x}{\arg\min} \; \|y-Ax\|^2 - \sum_i \log p(P_ix)</span>
+
+<span class="sd">    where the first term is a standard :math:`\ell_2` data-fidelity, and the second term represents a patch prior via</span>
+<span class="sd">    Gaussian mixture models, where :math:`P_i` is a patch operator that extracts the ith (overlapping) patch from the image.</span>
+
+<span class="sd">    The reconstruction function is based on the approximated half-quadratic splitting method as in Zoran, D., and Weiss,</span>
+<span class="sd">    Y.  &quot;From learning models of natural image patches to whole image restoration.&quot; (ICCV 2011).</span>
+
+<span class="sd">    :param None, deepinv.optim.utils.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.</span>
+<span class="sd">        ``None`` creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.</span>
+<span class="sd">    :param int n_components: number of components of the generated GMM if GMM is ``None``.</span>
+<span class="sd">    :param str, None pretrained: Path to pretrained weights of the GMM with file ending ``.pt``. None for no pretrained weights,</span>
+<span class="sd">        ``&quot;download&quot;`` for pretrained weights on the BSDS500 dataset, ``&quot;GMM_lodopab_small&quot;`` for the weights from the limited-angle CT example.</span>
+<span class="sd">        See :ref:`pretrained-weights &lt;pretrained-weights&gt;` for more details.</span>
+<span class="sd">    :param int patch_size: patch size.</span>
+<span class="sd">    :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)</span>
+<span class="sd">    :param str device: defines device (``cpu`` or ``cuda``)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">GMM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_components</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;download&quot;</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="n">channels</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EPLL</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">GMM</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span> <span class="o">=</span> <span class="n">GaussianMixtureModel</span><span class="p">(</span>
+                <span class="n">n_components</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span> <span class="o">=</span> <span class="n">GMM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">=</span> <span class="n">patch_size</span>
+
+        <span class="k">if</span> <span class="n">pretrained</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pretrained</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;.pt&quot;</span><span class="p">:</span>
+                <span class="n">ckpt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pretrained</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pretrained</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;GMM_lodopab_small&quot;</span><span class="p">):</span>
+                    <span class="k">assert</span> <span class="n">patch_size</span> <span class="o">==</span> <span class="mi">3</span>
+                    <span class="k">assert</span> <span class="n">channels</span> <span class="o">==</span> <span class="mi">1</span>
+                    <span class="n">file_name</span> <span class="o">=</span> <span class="n">pretrained</span> <span class="o">+</span> <span class="s2">&quot;.pt&quot;</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;GMM_BSDS_gray&quot;</span> <span class="ow">or</span> <span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;download&quot;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">patch_size</span> <span class="o">==</span> <span class="mi">6</span>
+                    <span class="ow">and</span> <span class="n">channels</span> <span class="o">==</span> <span class="mi">1</span>
+                <span class="p">):</span>
+                    <span class="n">file_name</span> <span class="o">=</span> <span class="s2">&quot;GMM_BSDS_gray2.pt&quot;</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;GMM_BSDS_color&quot;</span> <span class="ow">or</span> <span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;download&quot;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">patch_size</span> <span class="o">==</span> <span class="mi">6</span>
+                    <span class="ow">and</span> <span class="n">channels</span> <span class="o">==</span> <span class="mi">3</span>
+                <span class="p">):</span>
+                    <span class="n">file_name</span> <span class="o">=</span> <span class="s2">&quot;GMM_BSDS_color2.pt&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;No pretrained weights found for this configuration!&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="n">get_weights_url</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;EPLL&quot;</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span><span class="p">)</span>
+                <span class="n">ckpt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span><span class="p">(</span>
+                    <span class="n">url</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EPLL.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">betas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Approximated half-quadratic splitting method for image reconstruction as proposed by Zoran and Weiss.</span>
+
+<span class="sd">        :param torch.Tensor y: tensor of observations. Shape: batch size x ...</span>
+<span class="sd">        :param torch.Tensor, None x_init: tensor of initializations. If ``None`` uses initializes with the adjoint of the forward operator.</span>
+<span class="sd">            Shape: batch size x channels x height x width</span>
+<span class="sd">        :param deepinv.physics.LinearPhysics physics: Forward linear operator.</span>
+<span class="sd">        :param list[float] betas: parameters from the half-quadratic splitting. ``None`` uses the standard choice ``[1,4,8,16,32]/sigma_sq``</span>
+<span class="sd">        :param int batch_size: batching the patch estimations for large images. No effect on the output, but a small value reduces the memory consumption</span>
+<span class="sd">            but might increase the computation time. -1 for considering all patches at once.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">x_init</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x_init</span>
+
+        <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">):</span>
+                <span class="n">sigma</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Noise level sigma has to be provided if not present in the physics model.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">betas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># default choice as suggested in Parameswaran et al. &quot;Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up&quot;</span>
+            <span class="n">betas</span> <span class="o">=</span> <span class="p">[</span><span class="n">beta</span> <span class="o">/</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">beta</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">,</span> <span class="mf">16.0</span><span class="p">,</span> <span class="mf">32.0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># vectorization over a batch of images not implemented....</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reconstruction</span><span class="p">(</span>
+                        <span class="n">y</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+                        <span class="n">x_init</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+                        <span class="n">betas</span><span class="o">=</span><span class="n">betas</span><span class="p">,</span>
+                        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="p">],</span>
+                <span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x_init</span>
+        <span class="n">Aty</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">beta</span> <span class="ow">in</span> <span class="n">betas</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reconstruction_step</span><span class="p">(</span><span class="n">Aty</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="EPLL.negative_log_likelihood">
+<a class="viewcode-back" href="../../../stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL.negative_log_likelihood">[docs]</a>
+    <span class="k">def</span> <span class="nf">negative_log_likelihood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Takes patches and returns the negative log likelihood of the GMM for each patch.</span>
+
+<span class="sd">        :param torch.Tensor x: tensor of patches of shape batch_size x number of patches per batch x patch_dimensions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">n_patches</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">logpz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span> <span class="o">*</span> <span class="n">n_patches</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">logpz</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n_patches</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_reconstruction_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Aty</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma_sq</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="c1"># precomputations for GMM with covariance regularization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="o">.</span><span class="n">set_cov_reg</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">beta</span><span class="p">)</span>
+        <span class="n">N</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">total_patch_number</span> <span class="o">=</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">M</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="n">total_patch_number</span><span class="p">:</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">total_patch_number</span>
+
+        <span class="c1"># compute sum P_i^T z and sum P_i^T P_i on the fly with batching</span>
+        <span class="n">x_tilde_flattened</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">patch_multiplicities</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># batching loop over all patches in the image</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">ind</span> <span class="o">&lt;</span> <span class="n">total_patch_number</span><span class="p">:</span>
+            <span class="c1"># extract patches</span>
+            <span class="n">n_patches</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">total_patch_number</span> <span class="o">-</span> <span class="n">ind</span><span class="p">)</span>
+            <span class="n">patch_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">n_patches</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">patches</span><span class="p">,</span> <span class="n">linear_inds</span> <span class="o">=</span> <span class="n">patch_extractor</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">n_patches</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">,</span> <span class="n">position_inds_linear</span><span class="o">=</span><span class="n">patch_inds</span>
+            <span class="p">)</span>
+            <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">linear_inds</span> <span class="o">=</span> <span class="n">linear_inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Gaussian selection</span>
+            <span class="n">k_star</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="o">.</span><span class="n">classify</span><span class="p">(</span><span class="n">patches</span><span class="p">,</span> <span class="n">cov_regularization</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Patch estimation</span>
+            <span class="n">estimation_matrices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="o">.</span><span class="n">get_cov_inv_reg</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="o">.</span><span class="n">get_cov</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">estimation_matrices_k_star</span> <span class="o">=</span> <span class="n">estimation_matrices</span><span class="p">[</span><span class="n">k_star</span><span class="p">]</span>
+            <span class="n">patch_estimates</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+                <span class="n">estimation_matrices_k_star</span><span class="p">,</span> <span class="n">patches</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># update on-the-fly parameters</span>
+            <span class="c1"># the following two lines are the same like</span>
+            <span class="c1"># patch_multiplicities[linear_inds] += 1.0</span>
+            <span class="c1"># x_tilde_flattened[linear_inds] += patch_estimates</span>
+            <span class="c1"># where values of multiple indices are accumulated.</span>
+            <span class="n">patch_multiplicities</span><span class="o">.</span><span class="n">index_put_</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">linear_inds</span><span class="p">,),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">patch_estimates</span><span class="p">),</span> <span class="n">accumulate</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">x_tilde_flattened</span><span class="o">.</span><span class="n">index_put_</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">linear_inds</span><span class="p">,),</span> <span class="n">patch_estimates</span><span class="p">,</span> <span class="n">accumulate</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">n_patches</span>
+        <span class="c1"># compute x_tilde</span>
+        <span class="n">x_tilde_flattened</span> <span class="o">/=</span> <span class="n">patch_multiplicities</span>
+
+        <span class="c1"># Image estimation by CG method</span>
+        <span class="n">rhs</span> <span class="o">=</span> <span class="n">Aty</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">sigma_sq</span> <span class="o">*</span> <span class="n">x_tilde_flattened</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">im</span><span class="p">:</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">im</span><span class="p">))</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">sigma_sq</span> <span class="o">*</span> <span class="n">im</span>
+        <span class="n">hat_x</span> <span class="o">=</span> <span class="n">conjugate_gradient</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e2</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hat_x</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

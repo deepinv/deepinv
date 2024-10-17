@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imaging inverse problems with adversarial networks &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Single photon lidar operator for depth ranging." href="../basics/demo_lidar.html" />
+    <link rel="prev" title="Radio interferometric imaging with deepinverse" href="../advanced/demo_ri_basic.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#advanced">Advanced</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#adversarial-learning">Adversarial Learning</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Imaging inverse problems with adversarial networks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#generate-dataset">Generate dataset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#define-models">Define models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conditional-gan-training">Conditional GAN training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#uair-training">UAIR training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#csgm-ambientgan-training">CSGM / AmbientGAN training</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#optimization">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#patch-priors">Patch Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#plug-and-play">Plug-and-Play</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sampling">Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#self-supervised-learning">Self-Supervised Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unfolded">Unfolded</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Imaging inverse problems with adversarial networks</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/adversarial-learning/demo_gan_imaging.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="imaging-inverse-problems-with-adversarial-networks">
+<span id="sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"></span><h1>Imaging inverse problems with adversarial networks<a class="headerlink" href="#imaging-inverse-problems-with-adversarial-networks" title="Link to this heading"></a></h1>
+<p>This example shows you how to train various networks using adversarial
+training for deblurring problems. We demonstrate running training and
+inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and
+UAIR implemented in the library, and how to simply train
+your own GAN by using <a class="reference internal" href="../../stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.training.AdversarialTrainer()</span></code></a>. These
+examples can also be easily extended to train more complicated GANs such
+as CycleGAN.</p>
+<p>This example is based on the following papers:</p>
+<ul class="simple">
+<li><p>Kupyn et al., <a class="reference external" href="https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf">DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks</a></p></li>
+<li><p>Bora et al., <a class="reference external" href="https://arxiv.org/abs/1703.03208">Compressed Sensing using Generative
+Models</a> (CSGM)</p></li>
+<li><p>Bora et al., <a class="reference external" href="https://openreview.net/forum?id=Hy7fDog0b">AmbientGAN: Generative models from lossy
+measurements</a></p></li>
+<li><p>Pajot et al., <a class="reference external" href="https://openreview.net/forum?id=BJg4Z3RqF7">Unsupervised Adversarial Image
+Reconstruction</a></p></li>
+</ul>
+<p>Adversarial networks are characterised by the addition of an adversarial
+loss <span class="math notranslate nohighlight">\(\mathcal{L}_\text{adv}\)</span> to the standard reconstruction loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]\]</div>
+<p>where <span class="math notranslate nohighlight">\(D(\cdot)\)</span> is the discriminator model, <span class="math notranslate nohighlight">\(x\)</span> is the
+reference image, <span class="math notranslate nohighlight">\(\hat x\)</span> is the estimated reconstruction,
+<span class="math notranslate nohighlight">\(q(\cdot)\)</span> is a quality function (e.g <span class="math notranslate nohighlight">\(q(x)=x\)</span> for WGAN).
+Training alternates between generator <span class="math notranslate nohighlight">\(G\)</span> and discriminator
+<span class="math notranslate nohighlight">\(D\)</span> in a minimax game. When there are no ground truths (i.e.
+unsupervised), this may be defined on the measurements <span class="math notranslate nohighlight">\(y\)</span>
+instead.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss</span> <span class="kn">import</span> <span class="n">adversarial</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">MotionBlurGenerator</span></a>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.random_split" title="torch.utils.data.random_split" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-function"><span class="n">random_split</span></a>
+<span class="kn">from</span> <span class="nn">torchvision.datasets</span> <span class="kn">import</span> <span class="n">ImageFolder</span>
+<span class="kn">from</span> <span class="nn">torchvision.transforms</span> <span class="kn">import</span> <span class="n">Compose</span><span class="p">,</span> <span class="n">ToTensor</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">CenterCrop</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">Resize</span></a>
+<span class="kn">from</span> <span class="nn">torchvision.datasets.utils</span> <span class="kn">import</span> <span class="n">download_and_extract_archive</span>
+
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_freer_gpu</span><span class="p">()</span> <span class="k">if</span> <a href="http://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+</pre></div>
+</div>
+<section id="generate-dataset">
+<h2>Generate dataset<a class="headerlink" href="#generate-dataset" title="Link to this heading"></a></h2>
+<p>In this example we use the Urban100 dataset resized to 128x128. We apply random
+motion blur physics using
+<a class="reference internal" href="../../stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.generator.MotionBlurGenerator()</span></code></a>, and save the data
+using <a class="reference internal" href="../../stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset()</span></code></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">physics</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Blur</span></a><span class="p">(</span><span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">blur_generator</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">MotionBlurGenerator</span></a><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">))</span>
+
+<span class="n">dataset</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="torch.utils.data.Dataset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">Urban100HR</span></a><span class="p">(</span>
+    <span class="n">root</span><span class="o">=</span><span class="s2">&quot;Urban100&quot;</span><span class="p">,</span>
+    <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">transform</span><span class="o">=</span><span class="n">Compose</span><span class="p">([</span><span class="n">ToTensor</span><span class="p">(),</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">Resize</span></a><span class="p">(</span><span class="mi">256</span><span class="p">),</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">CenterCrop</span></a><span class="p">(</span><span class="mi">128</span><span class="p">)]),</span>
+<span class="p">)</span>
+
+<a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.random_split" title="torch.utils.data.random_split" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-function"><span class="n">random_split</span></a><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">))</span>
+
+<span class="c1"># Generate data pairs x,y offline using a physics generator</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset_path</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset</span></a><span class="p">,</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset</span></a><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <span class="n">physics_generator</span><span class="o">=</span><span class="n">blur_generator</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">save_dir</span><span class="o">=</span><span class="s2">&quot;Urban100&quot;</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">(</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="torch.utils.data.Dataset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset_path</span></a><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">(</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="torch.utils.data.Dataset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset_path</span></a><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/135388067 [00:00&lt;?, ?it/s]
+ 17%|█▋        | 22.4M/129M [00:00&lt;00:00, 235MB/s]
+ 36%|███▌      | 46.4M/129M [00:00&lt;00:00, 245MB/s]
+ 61%|██████▏   | 79.3M/129M [00:00&lt;00:00, 290MB/s]
+ 88%|████████▊ | 114M/129M [00:00&lt;00:00, 318MB/s]
+100%|██████████| 129M/129M [00:00&lt;00:00, 303MB/s]
+
+Extracting:   0%|          | 0/101 [00:00&lt;?, ?it/s]
+Extracting:  16%|█▌        | 16/101 [00:00&lt;00:00, 148.16it/s]
+Extracting:  32%|███▏      | 32/101 [00:00&lt;00:00, 154.68it/s]
+Extracting:  51%|█████▏    | 52/101 [00:00&lt;00:00, 174.10it/s]
+Extracting:  69%|██████▉   | 70/101 [00:00&lt;00:00, 162.54it/s]
+Extracting:  86%|████████▌ | 87/101 [00:00&lt;00:00, 157.78it/s]
+Extracting: 100%|██████████| 101/101 [00:00&lt;00:00, 157.17it/s]
+Dataset has been successfully downloaded.
+Dataset has been saved in Urban100
+</pre></div>
+</div>
+</section>
+<section id="define-models">
+<h2>Define models<a class="headerlink" href="#define-models" title="Link to this heading"></a></h2>
+<p>We first define reconstruction network (i.e conditional generator) and
+discriminator network to use for adversarial training. For demonstration
+we use a simple U-Net as the reconstruction network and the
+discriminator from <a class="reference external" href="https://arxiv.org/abs/1611.07004">PatchGAN</a>, but
+these can be replaced with any architecture e.g transformers, unrolled
+etc. Further discriminator models are in <a class="reference internal" href="../../deepinv.denoisers.html#adversarial-networks"><span class="std std-ref">adversarial models</span></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_models</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lr_g</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">lr_d</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">):</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">UNet</span></a><span class="p">(</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">scales</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">circular_padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">D</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">D</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">PatchGANDiscriminator</span></a><span class="p">(</span><span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">adversarial</span><span class="o">.</span><span class="n">AdversarialOptimizer</span><span class="p">(</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span></a><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr_g</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module.parameters" title="torch.nn.Module.parameters" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">D</span><span class="o">.</span><span class="n">parameters</span></a><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr_d</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">scheduler</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">adversarial</span><span class="o">.</span><span class="n">AdversarialScheduler</span><span class="p">(</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span><span class="o">.</span><span class="n">G</span></a><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span></a><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span><span class="o">.</span><span class="n">D</span></a><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span>
+</pre></div>
+</div>
+</section>
+<section id="conditional-gan-training">
+<h2>Conditional GAN training<a class="headerlink" href="#conditional-gan-training" title="Link to this heading"></a></h2>
+<p>Conditional GANs (Kupyn et al., <a class="reference external" href="https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf">DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks</a>)
+are a type of GAN where the generator is conditioned on a label or input. In the context of imaging,
+this can be used to generate images from a given measurement. In this example, we use a simple U-Net as the generator
+and a PatchGAN discriminator. The forward pass of the generator is given by:</p>
+<p><strong>Conditional GAN</strong> forward pass:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = G(y)\]</div>
+<p><strong>Conditional GAN</strong> loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{sup}(\hat x, x)+\mathcal{L}_\text{adv}(\hat x, x;D)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{L}_\text{sup}\)</span> is a supervised loss such as
+pixel-wise MSE or VGG Perceptual Loss.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_models</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We next define pixel-wise and adversarial losses as defined above. We use the
+MSE for the supervised pixel-wise metric for simplicity but this can be
+easily replaced with a perceptual loss if desired.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">loss_g</span> <span class="o">=</span> <span class="p">[</span>
+    <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">SupLoss</span></a><span class="p">(</span><span class="n">metric</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.MSELoss.html#torch.nn.MSELoss" title="torch.nn.MSELoss" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span></a><span class="p">()),</span>
+    <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">loss_d</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>We are now ready to train the networks using <a class="reference internal" href="../../stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.training.AdversarialTrainer()</span></code></a>. We only train for 2
+epochs for speed, but below we also show results with a pretrained model
+trained in the exact same way after 50 epochs.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">AdversarialTrainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">G</span><span class="p">,</span>
+    <span class="n">D</span><span class="o">=</span><span class="n">D</span><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">eval_dataloader</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><span class="n">loss_g</span><span class="p">,</span>
+    <span class="n">losses_d</span><span class="o">=</span><span class="n">loss_d</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">scheduler</span><span class="o">=</span><span class="n">scheduler</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The model has 444867 trainable parameters
+Train epoch 0: SupLoss=0.001, SupAdversarialGeneratorLoss=0.004, TotalLoss=0.005, PSNR=29.889
+Eval epoch 0: PSNR=30.693
+Train epoch 1: SupLoss=0.001, SupAdversarialGeneratorLoss=0.003, TotalLoss=0.004, PSNR=31.915
+Eval epoch 1: PSNR=32.583
+</pre></div>
+</div>
+<p>Show pretrained model results:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/hub.html#torch.hub.load_state_dict_from_url" title="torch.hub.load_state_dict_from_url" class="sphx-glr-backref-module-torch-hub sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span></a><span class="p">(</span>
+    <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_weights_url</span><span class="p">(</span><span class="s2">&quot;deblurgan-demo&quot;</span><span class="p">,</span> <span class="s2">&quot;deblurgan_model.pth&quot;</span><span class="p">),</span>
+    <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">s</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">G</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">))</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="o">**</span><span class="n">blur_generator</span><span class="o">.</span><span class="n">step</span><span class="p">())</span>
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">G</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GT&quot;</span><span class="p">,</span> <span class="s2">&quot;Measurement&quot;</span><span class="p">,</span> <span class="s2">&quot;Reconstruction&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_gan_imaging_001.png" srcset="../../_images/sphx_glr_demo_gan_imaging_001.png" alt="GT, Measurement, Reconstruction" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/deblurgan-demo/resolve/main/deblurgan_model.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/deblurgan_model.pth
+
+  0%|          | 0.00/1.70M [00:00&lt;?, ?B/s]
+100%|██████████| 1.70M/1.70M [00:00&lt;00:00, 48.8MB/s]
+</pre></div>
+</div>
+</section>
+<section id="uair-training">
+<h2>UAIR training<a class="headerlink" href="#uair-training" title="Link to this heading"></a></h2>
+<p>Unsupervised Adversarial Image Reconstruction (UAIR) (Pajot et al.,
+<a class="reference external" href="https://openreview.net/forum?id=BJg4Z3RqF7">Unsupervised Adversarial Image Reconstruction</a>)
+is a method for solving inverse problems using generative models. In this
+example, we use a simple U-Net as the generator and discriminator, and
+train using the adversarial loss. The forward pass of the generator is defined as:</p>
+<p><strong>UAIR</strong> forward pass:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = G(y),\]</div>
+<p><strong>UAIR</strong> loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.\]</div>
+<p>We next load the models and construct losses as defined above.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_models</span><span class="p">(</span>
+    <span class="n">lr_g</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">lr_d</span><span class="o">=</span><span class="mf">4e-4</span>
+<span class="p">)</span>  <span class="c1"># learning rates from original paper</span>
+
+<span class="n">loss_g</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UAIRGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">loss_d</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UnsupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>We are now ready to train the networks using <a class="reference internal" href="../../stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.training.AdversarialTrainer()</span></code></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">AdversarialTrainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">G</span><span class="p">,</span>
+    <span class="n">D</span><span class="o">=</span><span class="n">D</span><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">eval_dataloader</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><span class="n">loss_g</span><span class="p">,</span>
+    <span class="n">losses_d</span><span class="o">=</span><span class="n">loss_d</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">scheduler</span><span class="o">=</span><span class="n">scheduler</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The model has 444867 trainable parameters
+Train epoch 0: TotalLoss=0.335, PSNR=19.52
+Eval epoch 0: PSNR=23.529
+Train epoch 1: TotalLoss=0.254, PSNR=20.817
+Eval epoch 1: PSNR=24.697
+</pre></div>
+</div>
+</section>
+<section id="csgm-ambientgan-training">
+<h2>CSGM / AmbientGAN training<a class="headerlink" href="#csgm-ambientgan-training" title="Link to this heading"></a></h2>
+<p>Compressed Sensing using Generative Models (CSGM) and AmbientGAN are two methods for solving inverse problems
+using generative models. CSGM (Bora et al., <a class="reference external" href="https://arxiv.org/abs/1703.03208">Compressed Sensing using Generative Models</a>) uses a generative model to solve the inverse problem by optimising the latent
+space of the generator. AmbientGAN (Bora et al., <a class="reference external" href="https://openreview.net/forum?id=Hy7fDog0b">AmbientGAN: Generative models from lossy measurements</a>) uses a generative model to solve the inverse problem by optimising the
+measurements themselves. Both methods are trained using an adversarial loss; the main difference is that CSGM requires
+a ground truth dataset (supervised loss), while AmbientGAN does not (unsupervised loss).</p>
+<p>In this example, we use a DCGAN as the
+generator and discriminator, and train using the adversarial loss. The forward pass of the generator is given by:</p>
+<p><strong>CSGM</strong> forward pass at train time:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = \inverse{z},\quad z\sim \mathcal{N}(\mathbf{0},\mathbf{I}_k)\]</div>
+<p><strong>CSGM</strong>/<strong>AmbientGAN</strong> forward pass at eval time:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = \inverse{\hat z}\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert \forw{\inverse{z}}-y\rVert _2^2\]</div>
+<p><strong>CSGM</strong> loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{adv}(\hat x, x;D)\]</div>
+<p><strong>AmbientGAN</strong> loss (where <span class="math notranslate nohighlight">\(\forw{\cdot}\)</span> is the physics):</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{adv}(\forw{\hat x}, y;D)\]</div>
+<p>We next load the models and construct losses as defined above.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CSGMGenerator</span></a><span class="p">(</span>
+    <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DCGANGenerator</span></a><span class="p">(</span><span class="n">output_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">nz</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">ngf</span><span class="o">=</span><span class="mi">32</span><span class="p">),</span> <span class="n">inf_tol</span><span class="o">=</span><span class="mf">1e-2</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">D</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DCGANDiscriminator</span></a><span class="p">(</span><span class="n">ndf</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_models</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">D</span><span class="p">,</span> <span class="n">lr_g</span><span class="o">=</span><span class="mf">2e-4</span><span class="p">,</span> <span class="n">lr_d</span><span class="o">=</span><span class="mf">2e-4</span>
+<span class="p">)</span>  <span class="c1"># learning rates from original paper</span>
+
+<span class="c1"># For AmbientGAN:</span>
+<span class="n">loss_g</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UnsupAdversarialGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">loss_d</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UnsupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<span class="c1"># For CSGM:</span>
+<span class="n">loss_g</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">loss_d</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>As before, we can now train our models. Since inference is very
+slow for CSGM/AmbientGAN as it requires an optimisation, we only do one
+evaluation at the end. Note the train PSNR is meaningless as this
+generative model is trained on random latents.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">AdversarialTrainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">G</span><span class="p">,</span>
+    <span class="n">D</span><span class="o">=</span><span class="n">D</span><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><span class="n">loss_g</span><span class="p">,</span>
+    <span class="n">losses_d</span><span class="o">=</span><span class="n">loss_d</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">scheduler</span><span class="o">=</span><span class="n">scheduler</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The model has 3608000 trainable parameters
+Train epoch 0: TotalLoss=0.005, PSNR=2.871
+Train epoch 1: TotalLoss=0.008, PSNR=4.643
+</pre></div>
+</div>
+<p>Eventually, we run evaluation of the generative model by running test-time optimisation
+using test measurements. Note that we do not get great results as CSGM /
+AmbientGAN relies on large datasets of diverse samples, and we run the
+optimisation to a relatively high tolerance for speed.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=5.494, PSNR no learning=25.27
+Test results:
+PSNR no learning: 25.270 +- 2.495
+PSNR: 5.494 +- 0.475
+
+{&#39;PSNR no learning&#39;: 25.269918537139894, &#39;PSNR no learning_std&#39;: 2.4947767872317561, &#39;PSNR&#39;: 5.4935460805892946, &#39;PSNR_std&#39;: 0.47516133287508394}
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (2 minutes 23.207 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-adversarial-learning-demo-gan-imaging-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/2f3e20ed263cc3e5c7e770603c2bda28/demo_gan_imaging.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_gan_imaging.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/1b08a6c94b052657775204a9369c2c98/demo_gan_imaging.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_gan_imaging.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/74982483541b96cb559b9926a0156344/demo_gan_imaging.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_gan_imaging.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../advanced/demo_ri_basic.html" class="btn btn-neutral float-left" title="Radio interferometric imaging with deepinverse" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../basics/demo_lidar.html" class="btn btn-neutral float-right" title="Single photon lidar operator for depth ranging." accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>
