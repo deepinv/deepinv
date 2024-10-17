@@ -23,7 +23,7 @@ class ICNN(nn.Module):
 
     def __init__(
         self,
-        in_channels=1,
+        in_channels=3,
         num_filters=64,
         kernel_dim=5,
         num_layers=10,
@@ -125,10 +125,11 @@ class ICNN(nn.Module):
 
     def grad(self, x):
         x = x.requires_grad_(True)
+        out = self.forward(x)
         return torch.autograd.grad(
-            outputs=self.forward(x),
+            outputs=out,
             inputs=x,
-            grad_outputs=torch.ones_like(x).requires_grad_(False),
+            grad_outputs=torch.ones_like(out),
             create_graph=True,
             retain_graph=True,
             only_inputs=True,
