@@ -7,17 +7,22 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 Current
 ----------------
-- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
-- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 
 
 New Features
 ^^^^^^^^^^^^
+- Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+
 
 - Add wrapper classes for adapting models to take time-sequence 2D+t input (:gh:`296` by `Andrew Wang`_)
 - Add sequential MRI operator (:gh:`296` by `Andrew Wang`_)
 - Add multi-operator equivariant imaging loss (:gh:`296` by `Andrew Wang`_)
 - Add loss schedulers (:gh:`296` by `Andrew Wang`_)
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+- Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -29,6 +34,7 @@ Fixed
 Changed
 ^^^^^^^
 
+- Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
 
 
 v0.2.1
@@ -89,7 +95,7 @@ New Features
 - Added a parameterization of the operators and noiselevels for the physics class
 - Added a physics.functional submodule
 - Modified the Blur class to handle color, grayscale, single and multi-batch images
-- Added a PhyisicsGenerator class to synthetize parameters for the forward operators
+- Added a PhysicsGenerator class to synthetize parameters for the forward operators
 - Added the possibility to sum generators
 - Added a MotionBlur generator
 - Added a DiffractionBlur generator

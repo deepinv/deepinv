@@ -6,6 +6,7 @@ import torch
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.ei import EILoss
+from deepinv.loss.metric.metric import Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 
@@ -37,7 +38,7 @@ class MOILoss(Loss):
             associated with the measurements, or single physics, or None. If single physics or None, physics generator must be used.
             If None, physics taken during ``forward``.
     :param PhysicsGenerator physics_generator: random physics generator that generates new params, if physics is not a list.
-    :param torch.nn.Module metric: metric used for computing data consistency,
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float weight: total weight of the loss
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
@@ -50,7 +51,7 @@ class MOILoss(Loss):
         self,
         physics: Optional[Union[list[Physics], Physics]] = None,
         physics_generator: Optional[PhysicsGenerator] = None,
-        metric=torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         apply_noise=True,
         weight=1.0,
         rng=None,

@@ -121,4 +121,4 @@ class SinglePhotonLidar(Physics):
 #     plt.plot(y0)
 #     plt.show()
 #
-#     print(f"MSE {dinv.utils.cal_mse(x, xhat)}")
+#     print(f"MSE {dinv.metric.MSE()(x, xhat)}")

@@ -168,9 +168,9 @@ class IndicatorL2Distance(Distance):
         ).view(-1, 1, 1, 1)
 
 
-class KullbackLeiblerDistance(Distance):
+class PoissonLogLikelihood(Distance):
     r"""
-    "Generalized" Kullback-Leibler divergence. It is also the log-likelihood of the Poisson distribution.
+    (Negative) Log-likelihood of the Poisson distribution.
 
     .. math::
 
@@ -183,14 +183,14 @@ class KullbackLeiblerDistance(Distance):
 
     :param float gain: gain of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
-    :param bool normalize: if True, the measurement is multiplied by the gain. Default: True.
+    :param bool denormalize: if True, the measurement is divided by the gain. By default in the class :class:`physics.noise.PoissonNoise`, the measurements are multiplied by the gain after being sampled by the Poisson distribution . Default: True.
     """
 
-    def __init__(self, gain=1.0, bkg=0, normalize=True):
+    def __init__(self, gain=1.0, bkg=0, denormalize=True):
         super().__init__()
         self.bkg = bkg
         self.gain = gain
-        self.normalize = normalize
+        self.denormalize = denormalize
 
     def fn(self, x, y, *args, **kwargs):
         r"""
@@ -199,7 +199,7 @@ class KullbackLeiblerDistance(Distance):
         :param torch.Tensor x: Variable :math:`x` at which the distance is computed.
         :param torch.Tensor y: Observation :math:`y`.
         """
-        if self.normalize:
+        if self.denormalize:
             y = y / self.gain
         return (-y * torch.log(x / self.gain + self.bkg)).flatten().sum() + (
             (x / self.gain) + self.bkg - y
@@ -212,7 +212,7 @@ class KullbackLeiblerDistance(Distance):
         :param torch.Tensor x: signal :math:`x` at which the function is computed.
         :param torch.Tensor y: measurement :math:`y`.
         """
-        if self.normalize:
+        if self.denormalize:
             y = y / self.gain
         return self.gain * (torch.ones_like(x) - y / (x / self.gain + self.bkg))
 
@@ -224,7 +224,7 @@ class KullbackLeiblerDistance(Distance):
         :param torch.Tensor y: measurement :math:`y`.
         :param float gamma: proximity operator step size.
         """
-        if self.normalize:
+        if self.denormalize:
             y = y / self.gain
         out = (
             x

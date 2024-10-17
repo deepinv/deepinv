@@ -5,6 +5,7 @@ from warnings import warn
 import torch
 from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
+from deepinv.loss.metric.metric import Metric
 from deepinv.physics.generator import (
     PhysicsGenerator,
     BernoulliSplittingMaskGenerator,
@@ -58,7 +59,7 @@ class SplittingLoss(Loss):
 
         To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=True``. This is done in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
 
-    :param torch.nn.Module metric: metric used for computing data consistency,
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
         with the splitting ratio. Ignored if ``mask_generator`` passed.
@@ -93,7 +94,7 @@ class SplittingLoss(Loss):
 
     def __init__(
         self,
-        metric=torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         split_ratio: float = 0.9,
         mask_generator: Optional[PhysicsGenerator] = None,
         eval_n_samples=5,
@@ -346,7 +347,7 @@ class Phase2PhaseLoss(SplittingLoss):
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
     :param bool dynamic_model: set ``True`` if using with a model that inputs and outputs time-data i.e. ``x`` of shape (B,C,T,H,W). Set ``False`` if ``x`` are static images (B,C,H,W).
 
-    :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     :param str, torch.device device: torch device.
 
     |sep|
@@ -396,7 +397,7 @@ class Phase2PhaseLoss(SplittingLoss):
         self,
         tensor_size: Tuple[int],
         dynamic_model: bool = True,
-        metric=torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
     ):
         super().__init__()
@@ -529,7 +530,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
     :param int, tuple[int] split_size: time-length of chunk. Must divide ``tensor_size[1]`` exactly. If ``tuple``, one is randomly selected each time.
     :param bool dynamic_model: set True if using with a model that inputs and outputs time-data i.e. x of shape (B,C,T,H,W). Set False if x are static images (B,C,H,W).
-    :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     :param str, torch.device device: torch device.
 
     |sep|
@@ -580,7 +581,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         tensor_size: Tuple[int],
         split_size: Union[int, Tuple[int]] = 2,
         dynamic_model: bool = True,
-        metric=torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
     ):
         super().__init__(
@@ -633,12 +634,14 @@ class Neighbor2Neighbor(Loss):
 
     The code has been adapted from the repository https://github.com/TaoHuang2018/Neighbor2Neighbor.
 
-    :param torch.nn.Module metric: metric used for computing data consistency,
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float gamma: regularization parameter :math:`\gamma`.
     """
 
-    def __init__(self, metric=torch.nn.MSELoss(), gamma=2.0):
+    def __init__(
+        self, metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(), gamma=2.0
+    ):
         super().__init__()
         self.name = "neigh2neigh"
         self.metric = metric
@@ -752,7 +755,7 @@ if __name__ == "__main__":
     y = physics(x)
 
     x_net = f(y, physics)
-    mse = dinv.metric.mse()(physics.A(x), physics.A(x_net))
+    mse = dinv.metric.MSE()(physics.A(x), physics.A(x_net))
     split_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
 
     print(

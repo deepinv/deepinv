@@ -176,7 +176,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
 # choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True

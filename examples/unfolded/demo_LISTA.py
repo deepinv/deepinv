@@ -194,7 +194,7 @@ learning_rate = 0.01
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True

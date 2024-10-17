@@ -8,7 +8,8 @@ import wandb
 from pathlib import Path
 from typing import Union, List
 from dataclasses import dataclass, field
-from deepinv.loss import PSNR, Loss, SupLoss, BaseLossScheduler
+from deepinv.loss import Loss, SupLoss, BaseLossScheduler
+from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
@@ -137,7 +138,7 @@ class Trainer:
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
@@ -177,7 +178,7 @@ class Trainer:
     )
     eval_dataloader: torch.utils.data.DataLoader = None
     scheduler: torch.optim.lr_scheduler = None
-    metrics: Union[Loss, List[Loss]] = PSNR()
+    metrics: Union[Metric, List[Metric]] = PSNR()
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
     grad_clip: float = None
@@ -202,7 +203,7 @@ class Trainer:
     no_learning_method: str = "A_adjoint"
     loop_physics_generator: bool = False
 
-    def setup_train(self):
+    def setup_train(self, train=True, **kwargs):
         r"""
         Set up the training process.
 
@@ -291,7 +292,7 @@ class Trainer:
             ]
 
         # gradient clipping
-        if self.check_grad:
+        if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
         self.save_path = (
@@ -299,7 +300,7 @@ class Trainer:
         )
 
         # count the overall training parameters
-        if self.verbose:
+        if self.verbose and train:
             params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             print(f"The model has {params} trainable parameters")
 
@@ -313,7 +314,8 @@ class Trainer:
         ):
             self.physics_generator = [self.physics_generator]
 
-        self.loss_history = []
+        if train:
+            self.loss_history = []
         self.save_folder_im = None
 
     def load_model(self):
@@ -558,11 +560,8 @@ class Trainer:
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
                 metric = l(
-                    x=x,
                     x_net=x_net,
-                    y=y,
-                    physics=physics,
-                    model=self.model,
+                    x=x,
                     epoch=epoch,
                 )
 
@@ -892,7 +891,7 @@ class Trainer:
         :returns: The trained model.
         """
         self.compare_no_learning = compare_no_learning
-        self.setup_train()
+        self.setup_train(train=False)
 
         self.save_folder_im = save_path
         aux = self.wandb_vis
