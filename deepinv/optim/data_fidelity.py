@@ -4,7 +4,7 @@ from deepinv.optim.distance import (
     L1Distance,
     IndicatorL2Distance,
     AmplitudeLossDistance,
-    KullbackLeiblerDistance,
+    PoissonLogLikelihood,
     LogPoissonLikelihoodDistance,
 )
 from deepinv.optim.potential import Potential
