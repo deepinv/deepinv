@@ -502,15 +502,15 @@ class PatchNR(Prior):
         supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)
         as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
         If `rev=True`, it considers the inverse of the normalizing flow.
-        When set to `None` it is set to a dense invertible neural network built with the FrEIA library, where the number of
+        When set to ``None`` it is set to a dense invertible neural network built with the FrEIA library, where the number of
         invertible blocks and the size of the subnetworks is determined by the parameters `num_layers` and `sub_net_size`.
     :param str pretrained: Define pretrained weights by its path to a `.pt` file, None for random initialization,
         `"PatchNR_lodopab_small"` for the weights from the limited-angle CT example.
     :param int patch_size: size of patches
     :param int channels: number of channels for the underlying images/patches.
-    :param int num_layers: defines the number of blocks of the generated normalizing flow if `normalizing_flow` is `None`.
+    :param int num_layers: defines the number of blocks of the generated normalizing flow if `normalizing_flow` is ``None``.
     :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
-        if `normalizing_flow` is `None`.
+        if `normalizing_flow` is ``None``.
     :param str device: used device
     """
 

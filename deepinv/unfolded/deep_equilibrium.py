@@ -159,10 +159,10 @@ def DEQ_builder(
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.

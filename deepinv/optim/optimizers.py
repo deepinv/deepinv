@@ -114,7 +114,7 @@ class BaseOptim(nn.Module):
                             Default: `{"stepsize": 1.0, "lambda": 1.0}`. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.
@@ -128,7 +128,7 @@ class BaseOptim(nn.Module):
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value) algorithm is initialized with :math:`A^Ty`. Default: ``None``.
+    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^Ty` when the adjoint is defined, and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param function get_output: get the image output given the current dictionary update containing primal and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
     :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
@@ -500,7 +500,7 @@ def create_iterator(
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
@@ -574,13 +574,13 @@ def optim_builder(
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: `None`.
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
+    :param callable F_fn: Custom user input cost function. default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
-    :param deepinv.optim.Bregman in th: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
     :return: an instance of the :meth:`BaseOptim` class.
 
